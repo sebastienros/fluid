@@ -18,6 +18,7 @@ namespace Fluid
         // Used to store statements as we process tag bodies. 
         // Unstacked when we exit a tag.
         private Stack<(ParseTreeNode tag, List<Statement> statements)> _accumulators;
+        private List<Statement> _accumulator;
 
         public bool TryParse(StringSegment template, out List<Statement> result, out IEnumerable<string> errors)
         {
@@ -43,12 +44,7 @@ namespace Fluid
                         if (index != previous)
                         {
                             // Consume last Text statement
-                            var accumulator = _accumulators.Count > 0
-                                ? _accumulators.Peek().statements
-                                : result
-                                ;
-
-                            accumulator.Add(new TextStatement(template.Substring(previous, index - previous)));
+                            (_accumulator ?? result).Add(new TextStatement(template.Substring(previous, index - previous)));
                         }
 
                         break;
@@ -63,13 +59,7 @@ namespace Fluid
                         if (start != previous)
                         {
                             // Consume current Text statement
-
-                            var accumulator = _accumulators.Count > 0
-                                ? _accumulators.Peek().statements
-                                : result
-                                ;
-
-                            accumulator.Add(new TextStatement(template.Substring(previous, start - previous)));
+                            (_accumulator ?? result).Add(new TextStatement(template.Substring(previous, start - previous)));
                         }
 
                         var tag = template.Substring(start, end - start + 1);
@@ -100,12 +90,7 @@ namespace Fluid
 
                         if (s != null)
                         {
-                            var accumulator = _accumulators.Count > 0
-                                ? _accumulators.Peek().statements
-                                : result
-                                ;
-
-                            accumulator.Add(s);
+                            (_accumulator ?? result).Add(s);
                         }
 
                         index = end + 1;
@@ -195,10 +180,11 @@ namespace Fluid
             switch (tag.Term.Name)
             {
                 case "for":
-                    _accumulators.Push((tag, new List<Statement>()));
+                    _accumulators.Push((tag, _accumulator = new List<Statement>()));
                     break;
                 case "endFor":
                     (var t, var statements) = _accumulators.Pop();
+                    _accumulator = _accumulators.Any() ? _accumulators.Peek().statements : null;
                     return BuildForStatement(t, statements);
 
                 default:
