@@ -31,7 +31,7 @@ namespace Fluid.Ast.Values
 
             if (indexProperty == null)
             {
-                return FluidValue.Nil;
+                return NilValue.Instance;
             }
 
             return Create(indexProperty.GetValue(_value, new[] { index.ToObjectValue() }));

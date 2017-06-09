@@ -5,6 +5,9 @@ namespace Fluid.Ast.Values
 {
     public class BooleanValue : FluidValue
     {
+        public static BooleanValue False = new BooleanValue(false);
+        public static BooleanValue True = new BooleanValue(true);
+
         private readonly bool _value;
 
         public BooleanValue(bool value)

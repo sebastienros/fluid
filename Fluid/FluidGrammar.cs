@@ -61,14 +61,14 @@ namespace Fluid
             Literal.Rule = StringLiteral | Number | Boolean;
             BinaryExpression.Rule = Expression + BinaryOperator + Expression;
             BinaryOperator.Rule = ToTerm("+") | "-" | "*" | "/" | "%"
-                       | "==" | ">" | "<" | ">=" | "<=" | "<>" | "!=" | "!<" | "!>" | "contains"
+                       | "==" | ">" | "<" | ">=" | "<=" | "<>" | "!=" | "contains"
                        | "and" | "or";
             Boolean.Rule = True | False;
 
             // Operators
             RegisterOperators(10, "*", "/", "%");
             RegisterOperators(9, "+", "-");
-            RegisterOperators(8, "==", ">", "<", ">=", "<=", "<>", "!=", "!<", "!>", "contains");
+            RegisterOperators(8, "==", ">", "<", ">=", "<=", "<>", "!=", "contains");
             RegisterOperators(5, "and");
             RegisterOperators(4, "or");
 
@@ -130,12 +130,12 @@ namespace Fluid
             MarkPunctuation(
                 "[", "]", ":", "|",
                 "if",
-                "case", "or",
+                "case",
                 "for", "in", "(", ")", "..",
                 "when"
                 );
             MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd, Colon);
-            MarkTransient(Statement, KnownTags, ForSource, FilterArgument, RangeIndex);
+            MarkTransient(Statement, KnownTags, ForSource, FilterArgument, RangeIndex, BinaryOperator);
         }
     }
 }

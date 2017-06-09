@@ -43,7 +43,7 @@ namespace Fluid
                 }
             }
 
-            return FluidValue.Undefined;
+            return UndefinedValue.Instance;
         }
 
         public void SetProperty(string name, FluidValue value)

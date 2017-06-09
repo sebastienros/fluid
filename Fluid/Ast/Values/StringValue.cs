@@ -27,12 +27,12 @@ namespace Fluid.Ast.Values
                 return Create(_value[i]);
             }
 
-            return FluidValue.Undefined;
+            return UndefinedValue.Instance;
         }
 
         public FluidValue GetProperty(string name)
         {
-            return FluidValue.Undefined;
+            return UndefinedValue.Instance;
         }
 
         public override bool ToBooleanValue()

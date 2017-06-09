@@ -132,6 +132,7 @@ namespace Fluid.Tests
             Assert.NotNull(ifStatement);
             Assert.Equal(1, ifStatement.Statements.Count);
             Assert.NotNull(ifStatement.Else);
+            Assert.Null(ifStatement.ElseIfs);
         }
     }
 }

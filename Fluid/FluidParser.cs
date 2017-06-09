@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Fluid.Ast;
+using Fluid.Ast.BinaryExpressions;
 using Fluid.Ast.Values;
 using Irony.Parsing;
 using Microsoft.Extensions.Primitives;
@@ -459,10 +460,38 @@ namespace Fluid
                 case "literal":
                     return BuildLiteralExpression(child);
                 case "binaryExpression":
-                    throw new NotSupportedException();
+                    return BuildBinaryExpression(child);
                 default:
                     throw new ParseException("Unknown expression type: " + node.Term.Name);
             }
+        }
+
+        private Expression BuildBinaryExpression(ParseTreeNode node)
+        {
+            var left = BuildExpression(node.ChildNodes[0]);
+            var op = node.ChildNodes[1].Term.Name;
+            var right = BuildExpression(node.ChildNodes[2]);
+
+            switch (op)
+            {
+                case "==": return new EqualBinaryExpression(left, right);
+                case "<>": 
+                case "!=": return new NotEqualBinaryExpression(left, right);
+                case "+": return new AddBinaryExpression(left, right);
+                case "-": return new SubstractBinaryExpression(left, right);
+                case "*": return new MultiplyBinaryExpression(left, right);
+                case "/": return new DivideBinaryExpression(left, right);
+                case "%": return new ModuloBinaryExpression(left, right);
+                case ">": return new GreaterThanBinaryExpression(left, right, true);
+                case "<": return new LowerThanExpression(left, right, true);
+                case ">=": return new GreaterThanBinaryExpression(left, right, false);
+                case "<=": return new LowerThanExpression(left, right, false);
+                case "contains": return new ContainsBinaryExpression(left, right);
+                case "and": return new AndBinaryExpression(left, right);
+                case "or": return new OrBinaryExpression(left, right);
+            }
+
+            throw new ParseException($"Unknown binary expression: {op}");
         }
 
         private MemberExpression BuildMemberExpression(ParseTreeNode node)

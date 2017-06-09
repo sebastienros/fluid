@@ -21,13 +21,13 @@ namespace Fluid.Ast
 
                 if (namedSet == null)
                 {
-                    return FluidValue.Undefined;
+                    return UndefinedValue.Instance;
                 }
 
                 value = segment.Resolve(namedSet, context);
 
                 // Stop processing as soon as a member returns nothing
-                if (value == FluidValue.Undefined)
+                if (value.IsUndefined())
                 {
                     return value;
                 }

@@ -4,11 +4,8 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Ast.Values
 {
-    public abstract class FluidValue
+    public abstract class FluidValue : IEquatable<FluidValue>
     {
-        public static FluidValue Nil = new StringValue("nil");
-        public static FluidValue Undefined = new StringValue("undefined");
-
         public abstract void WriteTo(TextWriter writer, TextEncoder encoder);
 
         public abstract bool Equals(FluidValue other);
@@ -17,6 +14,16 @@ namespace Fluid.Ast.Values
         public abstract double ToNumberValue();
         public abstract string ToStringValue();
         public abstract object ToObjectValue();
+
+        public virtual bool IsUndefined()
+        {
+            return false;
+        }
+
+        public virtual bool IsNil()
+        {
+            return false;
+        }
 
         public static FluidValue Create(object value)
         {
@@ -37,12 +44,19 @@ namespace Fluid.Ast.Values
                 case TypeCode.UInt64:
                     return new NumberValue(Convert.ToDouble(value));
                 case TypeCode.Empty:
-                    return FluidValue.Nil;
+                    return NilValue.Instance;
                 case TypeCode.Object:
-                    if (value is FluidValue)
+
+                    if (value == null)
                     {
-                        return (FluidValue)value;
+                        return NilValue.Instance;
                     }
+
+                    if (value is FluidValue fluid)
+                    {
+                        return fluid;
+                    }
+
                     return new ObjectValue(value);
                 case TypeCode.DateTime:
                 case TypeCode.Char:
