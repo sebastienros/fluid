@@ -159,5 +159,17 @@ namespace Fluid.Tests
         {
             Check(source, expected, ctx => { ctx.SetValue("products", _products); });
         }
+
+        [Theory]
+        [InlineData(1, "x1")]
+        [InlineData(2, "x2")]
+        [InlineData(3, "x3")]
+        [InlineData(4, "other")]
+        public void ShouldEvaluateElseIfStatement(int x, string expected)
+        {
+            var template = "{% if x == 1 %}x1{%elsif x == 2%}x2{%elsif x == 3%}x3{%else%}other{% endif %}";
+
+            Check(template, expected, ctx => { ctx.SetValue("x", x); });
+        }
     }
 }

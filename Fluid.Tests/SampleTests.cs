@@ -11,7 +11,7 @@ namespace Fluid.Tests
     {
         private static LanguageData _language = new LanguageData(new FluidGrammar());
 
-        private List<Statement> Parse(string template)
+        private IList<Statement> Parse(string template)
         {
             new FluidParser().TryParse(new StringSegment(template), out var statements, out var errors);
             return statements;

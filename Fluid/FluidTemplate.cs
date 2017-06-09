@@ -9,9 +9,9 @@ namespace Fluid
 {
     public class FluidTemplate
     {
-        private List<Statement> _statements;
+        private IList<Statement> _statements;
 
-        private FluidTemplate(List<Statement> statements)
+        private FluidTemplate(IList<Statement> statements)
         {
             _statements = statements;
         }

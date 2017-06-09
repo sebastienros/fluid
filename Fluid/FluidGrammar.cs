@@ -84,7 +84,7 @@ namespace Fluid
             var EndIf = ToTerm("endif");
 
             var Else = ToTerm("else");
-            var Elsif = ToTerm("elsif");
+            var Elsif = new NonTerminal("elsif");
             var Unless = ToTerm("unless");
             var EndUnless = ToTerm("endunless");
 
@@ -117,6 +117,7 @@ namespace Fluid
                 Raw | EndRaw;
 
             If.Rule = "if" + Expression;
+            Elsif.Rule = "elsif" + Expression;
 
             Case.Rule = "case" + MemberAccess;
             When.Rule = "when" + LiteralList;
@@ -129,7 +130,7 @@ namespace Fluid
 
             MarkPunctuation(
                 "[", "]", ":", "|",
-                "if",
+                "if", "elsif",
                 "case",
                 "for", "in", "(", ")", "..",
                 "when"

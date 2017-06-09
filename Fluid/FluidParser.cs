@@ -18,18 +18,19 @@ namespace Fluid
 
         // Used to store statements as we process tag bodies. 
         // Unstacked when we exit a tag.
-        private Stack<BlockContext> _accumulators;
-        private BlockContext _accumulator;
+        private Stack<BlockContext> _contexts;
+        private BlockContext _currentContext;
         private bool _isComment; // true when the current block is a comment
         private bool _isRaw; // true when the current block is raw
 
-        public bool TryParse(StringSegment template, out List<Statement> result, out IEnumerable<string> errors)
+        public bool TryParse(StringSegment template, out IList<Statement> result, out IEnumerable<string> errors)
         {
-            result = new List<Statement>();
             errors = Array.Empty<string>();
             
             Parser parser = null;
-            _accumulators = new Stack<BlockContext>();
+            _currentContext = new BlockContext(null);
+            _contexts = new Stack<BlockContext>();
+            result = _currentContext.Statements;
 
             try
             {
@@ -47,7 +48,7 @@ namespace Fluid
                         if (index != previous)
                         {
                             // Consume last Text statement
-                            ConsumeTextStatement(_accumulator?.Statements ?? result, template, previous, index);
+                            ConsumeTextStatement(template, previous, index);
                         }
 
                         break;
@@ -62,7 +63,7 @@ namespace Fluid
                         if (start != previous)
                         {
                             // Consume current Text statement
-                            ConsumeTextStatement(_accumulator?.Statements ?? result, template, previous, start);
+                            ConsumeTextStatement(template, previous, start);
                         }
 
                         var tag = template.Substring(start, end - start + 1);
@@ -93,7 +94,7 @@ namespace Fluid
 
                         if (s != null)
                         {
-                            (_accumulator?.Statements ?? result).Add(s);
+                            _currentContext.Statements.Add(s);
                         }
 
                         index = end + 1;
@@ -110,7 +111,7 @@ namespace Fluid
             return false;
         }
 
-        private void ConsumeTextStatement(IList<Statement> statements, StringSegment template, int start, int end)
+        private void ConsumeTextStatement(StringSegment template, int start, int end)
         {
             var textSatement = CreateTextStatement(template, start, end);
 
@@ -118,11 +119,11 @@ namespace Fluid
             {
                 if (_isComment)
                 {
-                    statements.Add(new CommentStatement(textSatement.Text));
+                    _currentContext.AddStatement(new CommentStatement(textSatement.Text));
                 }
                 else
                 {
-                    statements.Add(textSatement);
+                    _currentContext.AddStatement(textSatement);
                 }
 
             }
@@ -295,11 +296,11 @@ namespace Fluid
                     return BuildIfStatement();
 
                 case "else":
-                    EnterSubBlock(tag, new ElseStatement(new List<Statement>()));
+                    _currentContext.EnterBlock("else", new ElseStatement(new List<Statement>()));
                     break;
 
-                case "elseif":
-                    EnterSubBlock(tag, new ElseIfStatement(BuildExpression(node.ChildNodes[0]), new List<Statement>()));
+                case "elsif":
+                    _currentContext.EnterBlock("elsif", new ElseIfStatement(BuildExpression(tag.ChildNodes[0]), new List<Statement>()));
                     break;
 
                 case "break":
@@ -337,38 +338,13 @@ namespace Fluid
         /// </summary>
         private void EnterBlock(ParseTreeNode tag)
         {
-            _accumulators.Push(_accumulator = new BlockContext
-            {
-                Tag = tag,
-                Statements = new List<Statement>()
-            });
+            _contexts.Push(_currentContext);
+            _currentContext = new BlockContext(tag);
         }
 
-        /// <summary>
-        /// Invoked when a sub tag like 'else' is found so that statements
-        /// are accumulated without changing the current block.
-        /// </summary>
-        private void EnterSubBlock(ParseTreeNode tag, TagStatement statement)
+        private void ExitBlock()
         {
-            if (!_accumulator.Blocks.TryGetValue(tag.Term.Name, out var block))
-            {
-                _accumulator.Blocks.Add(tag.Term.Name, block = new List<Statement>());
-            }
-
-            block.Add(statement);
-
-            _accumulator = new BlockContext
-            {
-                Tag = tag,
-                Statements = statement.Statements
-            };
-        }
-
-        private BlockContext ExitBlock()
-        {
-            var result = _accumulators.Pop();
-            _accumulator = _accumulators.Any() ? _accumulators.Peek() : null;
-            return result;
+            _currentContext = _contexts.Pop();
         }
 
         #region Build methods
@@ -387,45 +363,53 @@ namespace Fluid
 
         private IfStatement BuildIfStatement()
         {
-            var block = ExitBlock();
-
-            if (block.Tag.Term.Name != "if")
+            if (_currentContext.Tag.Term.Name != "if")
             {
-                throw new ParseException($"Unexpected tag: endif not matchig {block.Tag.Term.Name} tag.");
+                throw new ParseException($"Unexpected tag: endif not matchig {_currentContext.Tag.Term.Name} tag.");
             }
 
-            block.Blocks.TryGetValue("else", out var elseStatements);
-            block.Blocks.TryGetValue("elseif", out var elseIfStatements);
+            var elseStatements = _currentContext.GetBlockStatements<ElseStatement>("else");
+            var elseIfStatements = _currentContext.GetBlockStatements<ElseIfStatement>("elsif");
 
-            return new IfStatement(
-                BuildExpression(block.Tag.ChildNodes[0]),
-                block.Statements,
-                elseStatements?.FirstOrDefault() as ElseStatement,
-                elseIfStatements?.Cast<ElseIfStatement>().ToList()
+            var ifStatement = new IfStatement(
+                BuildExpression(_currentContext.Tag.ChildNodes[0]),
+                _currentContext.Statements,
+                elseStatements.FirstOrDefault(),
+                elseIfStatements
                 );
+
+            ExitBlock();
+
+            return ifStatement;
         }
 
         private Statement BuildForStatement()
         {
-            var block = ExitBlock();
-
-            if (block.Tag.Term.Name != "for")
+            if (_currentContext.Tag.Term.Name != "for")
             {
-                throw new ParseException($"Unexpected tag: endfor not matching {block.Tag.Term.Name} tag.");
+                throw new ParseException($"Unexpected tag: endfor not matching {_currentContext.Tag.Term.Name} tag.");
             }
 
-            var identifier = block.Tag.ChildNodes[0].Token.Text;
-            var source = block.Tag.ChildNodes[1];
+            var identifier = _currentContext.Tag.ChildNodes[0].Token.Text;
+            var source = _currentContext.Tag.ChildNodes[1];
+
+            ForStatement forStatement;
 
             switch (source.Term.Name)
             {
                 case "memberAccess":
-                    return new ForStatement(block.Statements, identifier, BuildMemberExpression(source));
+                    forStatement = new ForStatement(_currentContext.Statements, identifier, BuildMemberExpression(source));
+                    break;
                 case "range":
-                    return new ForStatement(block.Statements, identifier, BuildRangeExpression(source));
+                    forStatement =  new ForStatement(_currentContext.Statements, identifier, BuildRangeExpression(source));
+                    break;
                 default:
                     throw new InvalidOperationException();
             }
+
+            ExitBlock();
+
+            return forStatement;
         }
 
         private RangeExpression BuildRangeExpression(ParseTreeNode node)
@@ -562,6 +546,7 @@ namespace Fluid
                 ? node.ChildNodes[1].ChildNodes.Select(BuildFilter).ToArray()
                 : Array.Empty<Expression>()
                 ;
+
             return new FilterExpression(identifier, arguments);
         }
 
@@ -580,11 +565,53 @@ namespace Fluid
 
         private class BlockContext
         {
-            public ParseTreeNode Tag;
-            public IList<Statement> Statements;
 
             // Some types of sub-block can be repeated (when, case)
-            public Dictionary<string, IList<Statement>> Blocks = new Dictionary<string, IList<Statement>>();
+            // This value is initialized the first time a sub-block is found
+            private Dictionary<string, IList<Statement>> _blocks;
+
+            private IList<Statement> _statements;
+
+            public BlockContext(ParseTreeNode tag)
+            {
+                Tag = tag;
+                Statements = new List<Statement>();
+                _statements = Statements;
+            }
+
+            public ParseTreeNode Tag { get; }
+            public IList<Statement> Statements { get; }
+            
+            public void EnterBlock(string name, TagStatement statement)
+            {
+                if (_blocks == null)
+                {
+                    _blocks = new Dictionary<string, IList<Statement>>();
+                }
+
+                if (!_blocks.TryGetValue(name, out var blockStatements))
+                {
+                    _blocks.Add(name, blockStatements = new List<Statement>());
+                }
+
+                blockStatements.Add(statement);
+                _statements = statement.Statements;
+            }
+
+            public void AddStatement(Statement statement)
+            {
+                _statements.Add(statement);
+            }
+
+            public IList<TStatement> GetBlockStatements<TStatement>(string name)
+            {
+                if (_blocks != null && _blocks.TryGetValue(name, out var statements))
+                {
+                    return statements.Cast<TStatement>().ToList();
+                }
+
+                return Array.Empty<TStatement>();
+            }
         }
     }
 }

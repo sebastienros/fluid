@@ -11,7 +11,7 @@ namespace Fluid.Tests
     {
         private static LanguageData _language = new LanguageData(new FluidGrammar());
 
-        private List<Statement> Parse(string template)
+        private IList<Statement> Parse(string template)
         {
             new FluidParser().TryParse(new StringSegment(template), out var statements, out var errors);
             return statements;
@@ -132,7 +132,19 @@ namespace Fluid.Tests
             Assert.NotNull(ifStatement);
             Assert.Equal(1, ifStatement.Statements.Count);
             Assert.NotNull(ifStatement.Else);
-            Assert.Null(ifStatement.ElseIfs);
+            Assert.Equal(0, ifStatement.ElseIfs.Count);
+        }
+
+        [Fact]
+        public void ShouldParseIfElseIfTag()
+        {
+            var statements = Parse("{% if true %}yes{%elsif a%}maybe{%else%}no{%endif%}");
+
+            var ifStatement = statements.ElementAt(0) as IfStatement;
+            Assert.NotNull(ifStatement);
+            Assert.Equal(1, ifStatement.Statements.Count);
+            Assert.NotNull(ifStatement.Else);
+            Assert.NotNull(ifStatement.ElseIfs);
         }
     }
 }
