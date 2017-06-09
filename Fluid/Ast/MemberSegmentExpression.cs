@@ -7,9 +7,9 @@ namespace Fluid.Ast
         public abstract FluidValue Resolve(INamedSet properties, TemplateContext context);
     }
 
-    public class IdentifierSegmentIdentifer : MemberSegment
+    public class IdentifierSegment : MemberSegment
     {
-        public IdentifierSegmentIdentifer(string identifier)
+        public IdentifierSegment(string identifier)
         {
             Identifier = identifier;
         }
@@ -22,9 +22,9 @@ namespace Fluid.Ast
         }
     }
 
-    public class IndexerSegmentIdentifer : MemberSegment
+    public class IndexerSegment : MemberSegment
     {
-        public IndexerSegmentIdentifer(Expression expression)
+        public IndexerSegment(Expression expression)
         {
             Expression = expression;
         }

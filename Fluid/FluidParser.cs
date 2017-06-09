@@ -276,22 +276,48 @@ namespace Fluid
         public Statement BuildTagStatement(ParseTreeNode node)
         {
             var tag = node.ChildNodes[0];
+            List<Statement> statements;
+            ParseTreeNode t;
 
             switch (tag.Term.Name)
             {
                 case "for":
-                    _accumulators.Push((tag, _accumulator = new List<Statement>()));
+                    EnterBlock(tag);
                     break;
+
                 case "endFor":
-                    (var t, var statements) = _accumulators.Pop();
-                    _accumulator = _accumulators.Any() ? _accumulators.Peek().statements : null;
+                    (t, statements) = ExitBlock();
+
+                    if (t.Term.Name != "for")
+                    {
+                        throw new ParseException("Unexpected tag: endfor");
+                    }
+
                     return BuildForStatement(t, statements);
 
+                case "break":
+                    return new BreakStatement();
+
+                case "continue":
+                    return new ContinueStatement();
+
                 default:
-                    throw new ParseException("Unknown expression type: " + node.Term.Name);
+                    throw new ParseException("Unknown tag type: " + node.Term.Name);
             }
 
             return null;
+        }
+
+        private void EnterBlock(ParseTreeNode tag)
+        {
+            _accumulators.Push((tag, _accumulator = new List<Statement>()));
+        }
+
+        private (ParseTreeNode, List<Statement>) ExitBlock()
+        {
+            var result = _accumulators.Pop();
+            _accumulator = _accumulators.Any() ? _accumulators.Peek().statements : null;
+            return result;
         }
 
         public Statement BuildForStatement(ParseTreeNode node, List<Statement> statements)
@@ -355,7 +381,7 @@ namespace Fluid
             var segmentNodes = node.ChildNodes[1].ChildNodes;
 
             var segments = new MemberSegment[segmentNodes.Count + 1];
-            segments[0] = new IdentifierSegmentIdentifer(identifierNode.Token.Text);
+            segments[0] = new IdentifierSegment(identifierNode.Token.Text);
 
             for(var i=0; i<segmentNodes.Count; i++)
             {
@@ -373,9 +399,9 @@ namespace Fluid
             switch (child.Term.Name)
             {
                 case "memberAccessSegmentIdentifier":
-                    return new IdentifierSegmentIdentifer(child.ChildNodes[0].Token.Text);
+                    return new IdentifierSegment(child.ChildNodes[0].Token.Text);
                 case "memberAccessSegmentIndexer":
-                    return new IndexerSegmentIdentifer(BuildExpression(child.ChildNodes[0]));
+                    return new IndexerSegment(BuildExpression(child.ChildNodes[0]));
                 default:
                     throw new ParseException("Unknown expression type: " + node.Term.Name);
             }

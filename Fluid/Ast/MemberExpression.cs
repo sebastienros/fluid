@@ -4,7 +4,7 @@ namespace Fluid.Ast
 {
     public class MemberExpression : Expression
     {
-        public MemberExpression(MemberSegment[] segments)
+        public MemberExpression(params MemberSegment[] segments)
         {
             Segments = segments;
         }

@@ -31,7 +31,26 @@ namespace Fluid.Ast
 
             if (Member != null)
             {
-                list = (Member.Evaluate(context).ToObjectValue() as IEnumerable<object>)?.Select(FluidValue.Create).ToArray();
+                var member = Member.Evaluate(context);
+                var objectValue = member.ToObjectValue();
+
+                switch (objectValue)
+                {
+                    case IEnumerable<FluidValue> l:
+                        list = l;
+                        break;
+                    case IEnumerable<object> o:
+                        list = o.Select(FluidValue.Create).ToArray();
+                        break;
+                    case IEnumerable e:
+                        var es = new List<FluidValue>();
+                        foreach(var item in e)
+                        {
+                            es.Add(FluidValue.Create(item));
+                        }
+                        list = es;
+                        break;
+                }
             }
             else if (Range != null)
             {
@@ -52,20 +71,22 @@ namespace Fluid.Ast
                     {
                         completion = statement.WriteTo(writer, encoder, context);
 
-                        switch (completion)
+                        if (completion != Completion.Normal)
                         {
-                            case Completion.Continue:
-                            case Completion.Break:
-                                break;
+                            // Stop processing the block statements
+                            break;
                         }
                     }
 
                     if (completion == Completion.Continue)
                     {
+                        // Go to next iteration
                         continue;
                     }
+
                     if (completion == Completion.Break)
                     {
+                        // Leave the loop
                         break;
                     }
                 }
