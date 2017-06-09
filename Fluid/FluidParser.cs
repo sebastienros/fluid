@@ -44,7 +44,11 @@ namespace Fluid
                         if (index != previous)
                         {
                             // Consume last Text statement
-                            (_accumulator ?? result).Add(CreateTextStatement(template, previous, index));
+                            var textSatement = CreateTextStatement(template, previous, index);
+                            if (textSatement != null)
+                            {
+                                (_accumulator ?? result).Add(textSatement);
+                            }
                         }
 
                         break;
@@ -59,7 +63,11 @@ namespace Fluid
                         if (start != previous)
                         {
                             // Consume current Text statement
-                            (_accumulator ?? result).Add(CreateTextStatement(template, previous, start));
+                            var textStatement = CreateTextStatement(template, previous, start);
+                            if (textStatement != null)
+                            {
+                                (_accumulator ?? result).Add(textStatement);
+                            }
                         }
 
                         var tag = template.Substring(start, end - start + 1);
@@ -129,6 +137,7 @@ namespace Fluid
                     // Reach beginning of section?
                     if (index == start)
                     {
+                        end = start;
                         break;
                     }
 
@@ -136,14 +145,8 @@ namespace Fluid
 
                     if (c == '\n')
                     {
-                        if (index - 1 > start && segment.Value[index -1] == '\r')
-                        {
-                            end = index - 1;
-                            break;
-                        }
-
                         // Beginning of line, we can strip
-                        end = index;
+                        end = index + 1;
                         break;
                     }
 
@@ -167,6 +170,7 @@ namespace Fluid
                     // Reach end of section?
                     if (index == end)
                     {
+                        start = end;
                         break;
                     }
 
@@ -193,6 +197,12 @@ namespace Fluid
 
                     index++;
                 }
+            }
+
+            // Did the text get completely removed?
+            if (end == start)
+            {
+                return null;
             }
 
             return new TextStatement(segment.Substring(start, end - start));

@@ -28,7 +28,7 @@ namespace Fluid.Tests
             Assert.NotNull(textStatement);
             Assert.Equal("Hello World", textStatement.Text);
         }
-
+        
         [Fact]
         public void ShouldParseOutput()
         {
@@ -57,9 +57,41 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldParseForTag()
         {
-            var statements = Parse("{% for a in b %} {% endfor %}");
+            var statements = Parse("{% for a in b %}{% endfor %}");
 
             Assert.IsType<ForStatement>(statements.ElementAt(0));
+        }
+
+        [Fact]
+        public void ShouldTrimTextOnStart()
+        {
+            var statements = Parse("  {% for a in b %}{% endfor %}");
+            Assert.IsType<ForStatement>(statements.ElementAt(0));
+        }
+
+        [Fact]
+        public void ShouldTrimTextOnEnd()
+        {
+            var statements = Parse("{% for a in b %}{% endfor %}   ");
+            Assert.Equal(1, statements.Count);
+            Assert.IsType<ForStatement>(statements.ElementAt(0));
+        }
+
+        [Fact]
+        public void ShouldTrimTextOnLineBreak()
+        {
+            var statements = Parse(@"{% for a in b %}  
+{% endfor %}");
+            Assert.Equal(1, statements.Count);
+        }
+
+        [Fact]
+        public void ShouldTrimTextOnNewLineBreak()
+        {
+            var statements = Parse(@"{% for a in b %}   
+
+{% endfor %}");
+            Assert.Equal(1, statements.Count);
         }
     }
 }

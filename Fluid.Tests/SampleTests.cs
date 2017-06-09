@@ -35,25 +35,26 @@ namespace Fluid.Tests
 
             var expected = @"
 <ul id=""products"">
-      <li>
+    <li>
       <h2>product 1</h2>
       Only 1
 
       product 1
-      </li>
-      <li>
+    </li>
+    <li>
       <h2>product 2</h2>
-      Only 1
+      Only 2
 
       product 2
-      </li>
-      <li>
+    </li>
+    <li>
       <h2>product 3</h2>
-      Only 1
+      Only 3
 
       product 3
-      </li>
-</ul>";
+    </li>
+</ul>
+";
 
             var _products = new[]
             {
