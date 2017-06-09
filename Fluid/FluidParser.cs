@@ -273,18 +273,6 @@ namespace Fluid
             return false;
         }
 
-        public OutputStatement BuildOutputStatement(ParseTreeNode node)
-        {
-            var expressionNode = node.ChildNodes[0];
-            var filterListNode = node.ChildNodes[1];
-
-            var expression = BuildExpression(expressionNode);
-
-            var filters = filterListNode.ChildNodes.Select(BuildFilterExpression).ToArray();
-
-            return new OutputStatement(expression, filters);
-        }
-
         public Statement BuildTagStatement(ParseTreeNode node)
         {
             var tag = node.ChildNodes[0];
@@ -296,36 +284,14 @@ namespace Fluid
                     break;
 
                 case "endfor":
-                    var block = ExitBlock();
-
-                    if (block.Tag.Term.Name != "for")
-                    {
-                        throw new ParseException($"Unexpected tag: endfor not matchig {block.Tag.Term.Name} tag.");
-                    }
-
-                    return BuildForStatement(block.Tag, block.Statements);
+                    return BuildForStatement();
 
                 case "if":
                     EnterBlock(tag);
                     break;
 
                 case "endif":
-                    block = ExitBlock();
-
-                    if (block.Tag.Term.Name != "if")
-                    {
-                        throw new ParseException($"Unexpected tag: endif not matchig {block.Tag.Term.Name} tag.");
-                    }
-
-                    block.Blocks.TryGetValue("else", out var elseStatements);
-                    block.Blocks.TryGetValue("elseif", out var elseIfStatements);
-
-                    return new IfStatement(
-                        BuildExpression(block.Tag.ChildNodes[0]),
-                        block.Statements,
-                        elseStatements?.FirstOrDefault() as ElseStatement,
-                        elseIfStatements?.Cast<ElseIfStatement>().ToList() ?? new List<ElseIfStatement>()
-                        );
+                    return BuildIfStatement();
 
                 case "else":
                     EnterSubBlock(tag, new ElseStatement(new List<Statement>()));
@@ -363,7 +329,7 @@ namespace Fluid
 
             return null;
         }
-
+        
         /// <summary>
         /// Invoked when a block is entered to assign subsequent
         /// statements to it.
@@ -404,23 +370,64 @@ namespace Fluid
             return result;
         }
 
-        public Statement BuildForStatement(ParseTreeNode node, IList<Statement> statements)
+        #region Build methods
+
+        public OutputStatement BuildOutputStatement(ParseTreeNode node)
         {
-            var identifier = node.ChildNodes[0].Token.Text;
-            var source = node.ChildNodes[1];
-            
+            var expressionNode = node.ChildNodes[0];
+            var filterListNode = node.ChildNodes[1];
+
+            var expression = BuildExpression(expressionNode);
+
+            var filters = filterListNode.ChildNodes.Select(BuildFilterExpression).ToArray();
+
+            return new OutputStatement(expression, filters);
+        }
+
+        private IfStatement BuildIfStatement()
+        {
+            var block = ExitBlock();
+
+            if (block.Tag.Term.Name != "if")
+            {
+                throw new ParseException($"Unexpected tag: endif not matchig {block.Tag.Term.Name} tag.");
+            }
+
+            block.Blocks.TryGetValue("else", out var elseStatements);
+            block.Blocks.TryGetValue("elseif", out var elseIfStatements);
+
+            return new IfStatement(
+                BuildExpression(block.Tag.ChildNodes[0]),
+                block.Statements,
+                elseStatements?.FirstOrDefault() as ElseStatement,
+                elseIfStatements?.Cast<ElseIfStatement>().ToList()
+                );
+        }
+
+        private Statement BuildForStatement()
+        {
+            var block = ExitBlock();
+
+            if (block.Tag.Term.Name != "for")
+            {
+                throw new ParseException($"Unexpected tag: endfor not matching {block.Tag.Term.Name} tag.");
+            }
+
+            var identifier = block.Tag.ChildNodes[0].Token.Text;
+            var source = block.Tag.ChildNodes[1];
+
             switch (source.Term.Name)
             {
                 case "memberAccess":
-                    return new ForStatement(statements, identifier, BuildMemberExpression(source));
+                    return new ForStatement(block.Statements, identifier, BuildMemberExpression(source));
                 case "range":
-                    return new ForStatement(statements, identifier, BuildRangeExpression(source));
+                    return new ForStatement(block.Statements, identifier, BuildRangeExpression(source));
                 default:
-                    throw new ParseException("Unknown for source type: " + node.Term.Name);
+                    throw new InvalidOperationException();
             }
         }
 
-        public RangeExpression BuildRangeExpression(ParseTreeNode node)
+        private RangeExpression BuildRangeExpression(ParseTreeNode node)
         {
             Expression from = null, to = null;
 
@@ -441,7 +448,7 @@ namespace Fluid
             return new RangeExpression(from, to);
         }
 
-        public Expression BuildExpression(ParseTreeNode node)
+        private Expression BuildExpression(ParseTreeNode node)
         {
             var child = node.ChildNodes[0];
 
@@ -458,7 +465,7 @@ namespace Fluid
             }
         }
 
-        public MemberExpression BuildMemberExpression(ParseTreeNode node)
+        private MemberExpression BuildMemberExpression(ParseTreeNode node)
         {
             var identifierNode = node.ChildNodes[0];
             var segmentNodes = node.ChildNodes[1].ChildNodes;
@@ -466,7 +473,7 @@ namespace Fluid
             var segments = new MemberSegment[segmentNodes.Count + 1];
             segments[0] = new IdentifierSegment(identifierNode.Token.Text);
 
-            for(var i=0; i<segmentNodes.Count; i++)
+            for (var i = 0; i < segmentNodes.Count; i++)
             {
                 var segmentNode = segmentNodes[i];
                 segments[i + 1] = BuildMemberSegment(segmentNode);
@@ -475,7 +482,7 @@ namespace Fluid
             return new MemberExpression(segments);
         }
 
-        public MemberSegment BuildMemberSegment(ParseTreeNode node)
+        private MemberSegment BuildMemberSegment(ParseTreeNode node)
         {
             var child = node.ChildNodes[0];
 
@@ -490,14 +497,14 @@ namespace Fluid
             }
         }
 
-        public LiteralExpression BuildLiteralExpression(ParseTreeNode node)
+        private LiteralExpression BuildLiteralExpression(ParseTreeNode node)
         {
             var child = node.ChildNodes[0];
 
             return BuildLiteral(child);
-        } 
+        }
 
-        public LiteralExpression BuildLiteral(ParseTreeNode node)
+        private LiteralExpression BuildLiteral(ParseTreeNode node)
         {
             switch (node.Term.Name)
             {
@@ -518,7 +525,7 @@ namespace Fluid
             }
         }
 
-        public FilterExpression BuildFilterExpression(ParseTreeNode node)
+        private FilterExpression BuildFilterExpression(ParseTreeNode node)
         {
             var identifier = node.ChildNodes[0].Token.Text;
 
@@ -540,7 +547,8 @@ namespace Fluid
                 return BuildLiteral(node);
             }
         }
-        
+        #endregion
+
         private class BlockContext
         {
             public ParseTreeNode Tag;
