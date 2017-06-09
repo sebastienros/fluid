@@ -81,25 +81,30 @@ namespace Fluid
 
             // Known Tags
             var If = new NonTerminal("if");
-            var EndIf = new NonTerminal("endIf");
+            var EndIf = ToTerm("endif");
 
-            var Else = new NonTerminal("else");
-            var Elsif = new NonTerminal("elsif");
-            var Unless = new NonTerminal("unless");
-            var EndUnless = new NonTerminal("endUnless");
+            var Else = ToTerm("else");
+            var Elsif = ToTerm("elsif");
+            var Unless = ToTerm("unless");
+            var EndUnless = ToTerm("endunless");
 
             var Case = new NonTerminal("case");
-            var EndCase = new NonTerminal("endCase");
+            var EndCase = ToTerm("endcase");
             var When = new NonTerminal("when");
             var LiteralList = new NonTerminal("literalList");
 
             var For = new NonTerminal("for");
-            var EndFor = new NonTerminal("endFor");
+            var EndFor = ToTerm("endfor");
             var ForSource = new NonTerminal("forSource");
             var Range = new NonTerminal("range");
             var RangeIndex = new NonTerminal("rangeIndex");
-            var Continue = new NonTerminal("continue");
-            var Break = new NonTerminal("break");
+
+            var Continue = ToTerm("continue");
+            var Break = ToTerm("break");
+            var Comment = ToTerm("comment");
+            var EndComment = ToTerm("endcomment");
+            var Raw = ToTerm("raw");
+            var EndRaw = ToTerm("endraw");
 
             KnownTags.Rule =
                 If | EndIf |
@@ -107,38 +112,28 @@ namespace Fluid
                 Unless | EndUnless |
                 Case | EndCase | When |
                 For | EndFor |
-                Continue |
-                Break;
+                Continue | Break |
+                Comment | EndComment |
+                Raw | EndRaw;
 
             If.Rule = "if" + Expression;
-            Elsif.Rule = "elsif";
-            Else.Rule = "else";
-            EndIf.Rule = "endif";
-
-            Unless.Rule = "unless" + Expression;
-            EndUnless.Rule = "endunless";
 
             Case.Rule = "case" + MemberAccess;
             When.Rule = "when" + LiteralList;
             LiteralList.Rule = MakePlusRule(LiteralList, ToTerm("or"), Literal);
-            EndCase.Rule = "endcase";
 
             For.Rule = "for" + IdentifierPart + "in" + ForSource;
             ForSource.Rule = MemberAccess | Range;
             Range.Rule = "(" + RangeIndex + ".." + RangeIndex + ")";
             RangeIndex.Rule = Number | MemberAccess;
-            EndFor.Rule = "endfor";
-
-            Break.Rule = "break";
-            Continue.Rule = "continue";
 
             MarkPunctuation(
                 "[", "]", ":", "|",
-                "if", "elseif", "endif",
-                "case", "when", "endcase", "or",
-                "for", "in", "endfor", "(", ")", "..",
-                "unless", "endunless",
-                "break", "continue", "else");
+                "if",
+                "case", "or",
+                "for", "in", "(", ")", "..",
+                "when"
+                );
             MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd, Colon);
             MarkTransient(Statement, KnownTags, ForSource, FilterArgument, RangeIndex);
         }

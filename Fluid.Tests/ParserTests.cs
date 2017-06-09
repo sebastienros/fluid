@@ -93,5 +93,25 @@ namespace Fluid.Tests
 {% endfor %}");
             Assert.Equal(1, statements.Count);
         }
+
+        [Fact]
+        public void ShouldParseRaw()
+        {
+            var statements = Parse(@"{% raw %} on {{ this }} and {{{ that }}} {% endraw %}");
+
+            Assert.Equal(1, statements.Count);
+            Assert.IsType<TextStatement>(statements.ElementAt(0));
+            Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as TextStatement).Text);
+        }
+
+        [Fact]
+        public void ShouldParseComment()
+        {
+            var statements = Parse(@"{% comment %} on {{ this }} and {{{ that }}} {% endcomment %}");
+
+            Assert.Equal(1, statements.Count);
+            Assert.IsType<CommentStatement>(statements.ElementAt(0));
+            Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as CommentStatement).Text);
+        }
     }
 }

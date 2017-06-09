@@ -19,6 +19,8 @@ namespace Fluid
         // Unstacked when we exit a tag.
         private Stack<(ParseTreeNode tag, List<Statement> statements)> _accumulators;
         private List<Statement> _accumulator;
+        private bool _isComment; // true when the current block is a comment
+        private bool _isRaw; // true when the current block is raw
 
         public bool TryParse(StringSegment template, out List<Statement> result, out IEnumerable<string> errors)
         {
@@ -44,11 +46,7 @@ namespace Fluid
                         if (index != previous)
                         {
                             // Consume last Text statement
-                            var textSatement = CreateTextStatement(template, previous, index);
-                            if (textSatement != null)
-                            {
-                                (_accumulator ?? result).Add(textSatement);
-                            }
+                            ConsumeTextStatement(_accumulator ?? result, template, previous, index);
                         }
 
                         break;
@@ -63,11 +61,7 @@ namespace Fluid
                         if (start != previous)
                         {
                             // Consume current Text statement
-                            var textStatement = CreateTextStatement(template, previous, start);
-                            if (textStatement != null)
-                            {
-                                (_accumulator ?? result).Add(textStatement);
-                            }
+                            ConsumeTextStatement(_accumulator ?? result, template, previous, start);
                         }
 
                         var tag = template.Substring(start, end - start + 1);
@@ -115,6 +109,23 @@ namespace Fluid
             return false;
         }
 
+        private void ConsumeTextStatement(List<Statement> statements, StringSegment template, int start, int end)
+        {
+            var textSatement = CreateTextStatement(template, start, end);
+
+            if (textSatement != null)
+            {
+                if (_isComment)
+                {
+                    statements.Add(new CommentStatement(textSatement.Text));
+                }
+                else
+                {
+                    statements.Add(textSatement);
+                }
+
+            }
+        }
         /// <summary>
         /// Returns a <see cref="TextStatement"/> where the extra whitespace is stripped 
         /// for a Tag that is the only content on a line
@@ -227,7 +238,8 @@ namespace Fluid
                 if (start < template.Length - 1)
                 {
                     var c = template.Value[start + 1];
-                    if (c == '{' || c == '%')
+
+                    if ((c == '{' && !(_isComment || _isRaw)) || c == '%')
                     {
                         // Start tag found
                         var endTag = c == '{' ? "}}" : "%}";
@@ -285,7 +297,7 @@ namespace Fluid
                     EnterBlock(tag);
                     break;
 
-                case "endFor":
+                case "endfor":
                     (t, statements) = ExitBlock();
 
                     if (t.Term.Name != "for")
@@ -300,6 +312,22 @@ namespace Fluid
 
                 case "continue":
                     return new ContinueStatement();
+
+                case "comment":
+                    _isComment = true;
+                    break;
+
+                case "endcomment":
+                    _isComment = false;
+                    break;
+
+                case "raw":
+                    _isRaw = true;
+                    break;
+
+                case "endraw":
+                    _isRaw = false;
+                    break;
 
                 default:
                     throw new ParseException("Unknown tag type: " + node.Term.Name);
