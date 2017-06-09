@@ -292,8 +292,15 @@ namespace Fluid
                     EnterBlock(tag);
                     break;
 
+                case "unless":
+                    EnterBlock(tag);
+                    break;
+
                 case "endif":
                     return BuildIfStatement();
+
+                case "endunless":
+                    return BuildUnlessStatement();
 
                 case "else":
                     _currentContext.EnterBlock("else", new ElseStatement(new List<Statement>()));
@@ -365,7 +372,7 @@ namespace Fluid
         {
             if (_currentContext.Tag.Term.Name != "if")
             {
-                throw new ParseException($"Unexpected tag: endif not matchig {_currentContext.Tag.Term.Name} tag.");
+                throw new ParseException($"Unexpected tag: endif not matching {_currentContext.Tag.Term.Name} tag.");
             }
 
             var elseStatements = _currentContext.GetBlockStatements<ElseStatement>("else");
@@ -381,6 +388,36 @@ namespace Fluid
             ExitBlock();
 
             return ifStatement;
+        }
+
+        private UnlessStatement BuildUnlessStatement()
+        {
+            if (_currentContext.Tag.Term.Name != "unless")
+            {
+                throw new ParseException($"Unexpected tag: endunless not matching {_currentContext.Tag.Term.Name} tag.");
+            }
+
+            var elseStatements = _currentContext.GetBlockStatements<ElseStatement>("else");
+            var elseIfStatements = _currentContext.GetBlockStatements<ElseIfStatement>("elsif");
+
+            if (elseStatements.Count > 0)
+            {
+                throw new ParseException($"Unexpected tag 'else' in 'unless'.");
+            }
+
+            if (elseIfStatements.Count > 0)
+            {
+                throw new ParseException($"Unexpected tag 'elsif' in 'unless'.");
+            }
+
+            var unlessStatement = new UnlessStatement(
+                BuildExpression(_currentContext.Tag.ChildNodes[0]),
+                _currentContext.Statements
+                );
+
+            ExitBlock();
+
+            return unlessStatement;
         }
 
         private Statement BuildForStatement()
