@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast.Values
@@ -13,29 +12,34 @@ namespace Fluid.Ast.Values
             _value = value;
         }
 
-        public override FluidValue Add(FluidValue other)
+        public override bool Equals(FluidValue other)
         {
-            throw new NotSupportedException("Can't add a boolean value");
+            return _value == other.ToBooleanValue();
         }
 
-        public override FluidValue Equals(FluidValue other)
-        {
-            return new BooleanValue(_value == other.ToBoolean());
-        }
-
-        public override bool ToBoolean()
+        public override bool ToBooleanValue()
         {
             return _value;
         }
 
-        public override double ToNumber()
+        public override double ToNumberValue()
         {
             return _value ? 1 : 0;
         }
 
+        public override string ToStringValue()
+        {
+            return _value ? "true" : "false";
+        }
+
         public override void WriteTo(TextWriter writer, TextEncoder encoder)
         {
-            writer.Write(encoder.Encode(_value.ToString()));
+            writer.Write(encoder.Encode(ToStringValue()));
+        }
+
+        public override object ToObjectValue()
+        {
+            return _value;
         }
     }
 }

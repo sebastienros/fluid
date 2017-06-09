@@ -1,10 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Fluid.Ast
+﻿namespace Fluid.Ast
 {
     public class RangeExpression
     {
+        public RangeExpression(Expression from, Expression to)
+        {
+            From = from;
+            To = to;
+        }
+
+        public Expression From { get; }
+        public Expression To { get; }
     }
 }

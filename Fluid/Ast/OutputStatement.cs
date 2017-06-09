@@ -26,7 +26,7 @@ namespace Fluid.Ast
                 value = filter.Evaluate(value, context);
             }
 
-            writer.Write(value);
+            value.WriteTo(writer, encoder);
 
             return Completion.Normal;
         }

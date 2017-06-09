@@ -17,8 +17,8 @@ namespace Fluid
             var IdentifierPart = new IdentifierTerminal("identifier");
             var Pipe = ToTerm("|");
             var Colon = ToTerm(":");
-            var StringLiteral = new StringLiteral("string", "'", StringOptions.AllowsDoubledQuote);
-            var Number = new NumberLiteral("number");
+            var StringLiteral = new StringLiteral("string", "'", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes);
+            var Number = new NumberLiteral("number", NumberOptions.AllowSign);
             var True = ToTerm("true");
             var False = ToTerm("false");
 
@@ -35,12 +35,9 @@ namespace Fluid
             var Filter = new NonTerminal("filter");
             var Expression = new NonTerminal("expression");
             var Literal = new NonTerminal("literal");
-            var UnaryExpression = new NonTerminal("unaryExpression");
-            var UnaryOperator = new NonTerminal("unaryOperator");
             var BinaryExpression = new NonTerminal("binaryExpression");
             var BinaryOperator = new NonTerminal("binaryOperator");
             var FilterArguments = new NonTerminal("filterArguments");
-            var FilterArgumentsOptional = new NonTerminal("filterArgumentsOptional");
             var FilterArgument = new NonTerminal("filterArgument");
             var Boolean = new NonTerminal("boolean");
             var KnownTags = new NonTerminal("knownTags");
@@ -60,14 +57,12 @@ namespace Fluid
             MemberAccessSegmentIndexer.Rule = "[" + Expression + "]";
 
             // Expression
-            Expression.Rule = MemberAccess | Literal | UnaryExpression | BinaryExpression;
+            Expression.Rule = MemberAccess | Literal | BinaryExpression;
             Literal.Rule = StringLiteral | Number | Boolean;
             BinaryExpression.Rule = Expression + BinaryOperator + Expression;
             BinaryOperator.Rule = ToTerm("+") | "-" | "*" | "/" | "%"
                        | "==" | ">" | "<" | ">=" | "<=" | "<>" | "!=" | "!<" | "!>" | "contains"
                        | "and" | "or";
-            UnaryExpression.Rule = UnaryOperator + Expression;
-            UnaryOperator.Rule = ToTerm("+") | "-";
             Boolean.Rule = True | False;
 
             // Operators
@@ -79,10 +74,9 @@ namespace Fluid
 
             // Filters
             FilterList.Rule = MakeStarRule(FilterList, Filter);
-            Filter.Rule = Pipe + IdentifierPart + FilterArgumentsOptional;
-
-            FilterArgumentsOptional.Rule = Empty | Colon + FilterArgument + FilterArguments;
-            FilterArguments.Rule = MakeStarRule(FilterArguments, Comma, FilterArgument);
+            Filter.Rule = Pipe + IdentifierPart;
+            Filter.Rule |= Pipe + IdentifierPart + Colon + FilterArguments;
+            FilterArguments.Rule = MakeListRule(FilterArguments, Comma, FilterArgument);
             FilterArgument.Rule = StringLiteral | Number | Boolean | MemberAccess; // We are not using Expression here to limit the values that can be passed
 
             // Known Tags
@@ -139,14 +133,14 @@ namespace Fluid
             Continue.Rule = "continue";
 
             MarkPunctuation(
-                "[", "]", ":",
+                "[", "]", ":", "|",
                 "if", "elseif", "endif",
                 "case", "when", "endcase", "or",
                 "for", "in", "endfor", "(", ")", "..",
                 "unless", "endunless",
                 "break", "continue", "else");
-            MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd);
-            MarkTransient(Statement, KnownTags, ForSource);
+            MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd, Colon);
+            MarkTransient(Statement, KnownTags, ForSource, FilterArgument, RangeIndex);
         }
     }
 }

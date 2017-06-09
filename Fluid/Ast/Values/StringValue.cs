@@ -1,9 +1,10 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast.Values
 {
-    public class StringValue : FluidValue
+    public class StringValue : FluidValue, INamedSet
     {
         private readonly string _value;
 
@@ -12,29 +13,52 @@ namespace Fluid.Ast.Values
             _value = value;
         }
 
-        public override FluidValue Add(FluidValue other)
+        public override bool Equals(FluidValue other)
         {
-            return new StringValue(_value + other.ToString());
+            return _value == other.ToString();
         }
 
-        public override FluidValue Equals(FluidValue other)
+        public FluidValue GetIndex(FluidValue index)
         {
-            return new BooleanValue(_value == other.ToString());
+            var i = Convert.ToInt32(index.ToNumberValue());
+
+            if (i < _value.Length)
+            {
+                return Create(_value[i]);
+            }
+
+            return FluidValue.Undefined;
         }
 
-        public override bool ToBoolean()
+        public FluidValue GetProperty(string name)
+        {
+            return FluidValue.Undefined;
+        }
+
+        public override bool ToBooleanValue()
         {
             return string.IsNullOrEmpty(_value);
         }
 
-        public override double ToNumber()
+        public override double ToNumberValue()
         {
             return 0;
         }
 
+        public override string ToStringValue()
+        {
+            return _value;
+        }
+
         public override void WriteTo(TextWriter writer, TextEncoder encoder)
         {
-            writer.Write(encoder.Encode(_value));
+            writer.Write(encoder.Encode(ToStringValue()));
         }
+
+        public override object ToObjectValue()
+        {
+            return _value;
+        }
+
     }
 }

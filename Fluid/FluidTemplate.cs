@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 using Fluid.Ast;
@@ -33,23 +34,31 @@ namespace Fluid
                 return false;
             }            
         }
-        public void Render(TextWriter writer, TextEncoder encoder)
+        public void Render(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            var context = new TemplateContext();
-
             foreach(var statement in _statements)
             {
                 statement.WriteTo(writer, encoder, context);
             }
         }
 
-        public string Render()
+        public string Render(TemplateContext context)
         {
-            using(var writer = new StringWriter())
+            if (context == null)
             {
-                Render(writer, HtmlEncoder.Default);
+                throw new ArgumentNullException(nameof(context));
+            }
+
+             using(var writer = new StringWriter())
+            {
+                Render(writer, HtmlEncoder.Default, context);
                 return writer.ToString();
             }
+        }
+
+        public string Render()
+        {
+            return Render(new TemplateContext());
         }
     }
 }

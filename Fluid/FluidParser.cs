@@ -44,7 +44,7 @@ namespace Fluid
                         if (index != previous)
                         {
                             // Consume last Text statement
-                            (_accumulator ?? result).Add(new TextStatement(template.Substring(previous, index - previous)));
+                            (_accumulator ?? result).Add(CreateTextStatement(template, previous, index));
                         }
 
                         break;
@@ -59,7 +59,7 @@ namespace Fluid
                         if (start != previous)
                         {
                             // Consume current Text statement
-                            (_accumulator ?? result).Add(new TextStatement(template.Substring(previous, start - previous)));
+                            (_accumulator ?? result).Add(CreateTextStatement(template, previous, start));
                         }
 
                         var tag = template.Substring(start, end - start + 1);
@@ -107,6 +107,96 @@ namespace Fluid
             return false;
         }
 
+        /// <summary>
+        /// Returns a <see cref="TextStatement"/> where the extra whitespace is stripped 
+        /// for a Tag that is the only content on a line
+        /// </summary>
+        /// <param name="segment"></param>
+        /// <param name="start"></param>
+        /// <param name="end"></param>
+        /// <returns></returns>
+        private TextStatement CreateTextStatement(StringSegment segment, int start, int end)
+        {
+            int index;
+
+            if (end < segment.Length - 1 && segment.Value[end + 1] == '%')
+            {
+                index = end - 1;
+
+                // There is a tag after, we can try to strip the end of the section
+                while (true)
+                {
+                    // Reach beginning of section?
+                    if (index == start)
+                    {
+                        break;
+                    }
+
+                    var c = segment.Value[index];
+
+                    if (c == '\n')
+                    {
+                        if (index - 1 > start && segment.Value[index -1] == '\r')
+                        {
+                            end = index - 1;
+                            break;
+                        }
+
+                        // Beginning of line, we can strip
+                        end = index;
+                        break;
+                    }
+
+                    if (!Char.IsWhiteSpace(c))
+                    {
+                        // This is not just whitespace
+                        break;
+                    }
+
+                    index--;
+                }
+            }
+
+            if (start > 2 && segment.Value[start - 2] == '%')
+            {
+                index = start;
+
+                // There is a tag before, we can try to strip the beginning of the section
+                while (true)
+                {
+                    // Reach end of section?
+                    if (index == end)
+                    {
+                        break;
+                    }
+
+                    var c = segment.Value[index];
+
+                    if (c == '\n' && index + 1 <= end)
+                    {
+                        // End of line, we can strip
+                        start = index + 1;
+                        break;
+                    }
+
+                    if (c == '\r' && index + 2 < end && segment.Value[index + 1] == '\n')
+                    {
+                        start = index + 2;
+                        break;
+                    }
+
+                    if (!Char.IsWhiteSpace(c))
+                    {
+                        // This is not just whitespace
+                        break;
+                    }
+
+                    index++;
+                }
+            }
+
+            return new TextStatement(segment.Substring(start, end - start));
+        }
 
         private bool MatchTag(StringSegment template, int startIndex, out int start, out int end)
         {
@@ -213,7 +303,23 @@ namespace Fluid
 
         public RangeExpression BuildRangeExpression(ParseTreeNode node)
         {
-            throw new NotSupportedException();
+            Expression from = null, to = null;
+
+            var fromNode = node.ChildNodes[0];
+
+            from = fromNode.Term.Name == "number"
+                ? (Expression)BuildLiteral(fromNode)
+                : BuildMemberExpression(fromNode)
+                ;
+
+            var toNode = node.ChildNodes[1];
+
+            to = toNode.Term.Name == "number"
+                ? (Expression)BuildLiteral(toNode)
+                : BuildMemberExpression(toNode)
+                ;
+
+            return new RangeExpression(from, to);
         }
 
         public Expression BuildExpression(ParseTreeNode node)
@@ -226,8 +332,6 @@ namespace Fluid
                     return BuildMemberExpression(child);
                 case "literal":
                     return BuildLiteralExpression(child);
-                case "unaryExpression":
-                    throw new NotSupportedException();
                 case "binaryExpression":
                     throw new NotSupportedException();
                 default:
@@ -240,28 +344,28 @@ namespace Fluid
             var identifierNode = node.ChildNodes[0];
             var segmentNodes = node.ChildNodes[1].ChildNodes;
 
-            var segments = new MemberSegmentExpression[segmentNodes.Count + 1];
-            segments[0] = new IdentifierSegmentIdentiferExpression(identifierNode.Token.Text);
+            var segments = new MemberSegment[segmentNodes.Count + 1];
+            segments[0] = new IdentifierSegmentIdentifer(identifierNode.Token.Text);
 
             for(var i=0; i<segmentNodes.Count; i++)
             {
                 var segmentNode = segmentNodes[i];
-                segments[i + 1] = BuildMemberSegmentExpression(segmentNode);
+                segments[i + 1] = BuildMemberSegment(segmentNode);
             }
 
             return new MemberExpression(segments);
         }
 
-        public MemberSegmentExpression BuildMemberSegmentExpression(ParseTreeNode node)
+        public MemberSegment BuildMemberSegment(ParseTreeNode node)
         {
             var child = node.ChildNodes[0];
 
             switch (child.Term.Name)
             {
                 case "memberAccessSegmentIdentifier":
-                    return new IdentifierSegmentIdentiferExpression(child.ChildNodes[0].Token.Text);
+                    return new IdentifierSegmentIdentifer(child.ChildNodes[0].Token.Text);
                 case "memberAccessSegmentIndexer":
-                    return new IndexerSegmentIdentiferExpression(BuildExpression(child.ChildNodes[0]));
+                    return new IndexerSegmentIdentifer(BuildExpression(child.ChildNodes[0]));
                 default:
                     throw new ParseException("Unknown expression type: " + node.Term.Name);
             }
@@ -271,35 +375,52 @@ namespace Fluid
         {
             var child = node.ChildNodes[0];
 
-            string raw = child.Token.Text;
+            return BuildLiteral(child);
+        } 
 
-            switch (child.Term.Name)
+        public LiteralExpression BuildLiteral(ParseTreeNode node)
+        {
+            switch (node.Term.Name)
             {
-                case "stringLiteral":
-                    return new LiteralExpression(new StringValue(raw));
-                case "number":
-                    if(!double.TryParse(raw, out var number))
-                    {
-                        throw new ParseException("Invalid number: " + raw);
-                    }
+                case "string":
+                    return new LiteralExpression(new StringValue(node.Token.ValueString));
 
-                    return new LiteralExpression(new NumberValue(number));
+                case "number":
+                    return new LiteralExpression(new NumberValue(Convert.ToDouble(node.Token.Value)));
                 case "boolean":
-                    if (!bool.TryParse(raw, out var boolean))
+                    if (!bool.TryParse(node.ChildNodes[0].Token.Text, out var boolean))
                     {
-                        throw new ParseException("Invalid boolean: " + raw);
+                        throw new ParseException("Invalid boolean: " + node.Token.Text);
                     }
                     return new LiteralExpression(new BooleanValue(boolean));
+
                 default:
                     throw new ParseException("Unknown literal expression: " + node.Term.Name);
             }
-        } 
+        }
 
         public FilterExpression BuildFilterExpression(ParseTreeNode node)
         {
             var identifier = node.ChildNodes[0].Token.Text;
 
-            return new FilterExpression(identifier, Array.Empty<Expression>());
+            var arguments = node.ChildNodes.Count > 1
+                ? node.ChildNodes[1].ChildNodes.Select(BuildFilter).ToArray()
+                : Array.Empty<Expression>()
+                ;
+            return new FilterExpression(identifier, arguments);
         }
+
+        public Expression BuildFilter(ParseTreeNode node)
+        {
+            if (node.Term.Name == "memberAccess")
+            {
+                return BuildMemberExpression(node);
+            }
+            else
+            {
+                return BuildLiteral(node);
+            }
+        }
+        
     }
 }

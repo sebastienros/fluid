@@ -1,6 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Encodings.Web;
+using Fluid.Ast.Values;
 
 namespace Fluid.Ast
 {
@@ -23,29 +27,51 @@ namespace Fluid.Ast
 
         public override Completion WriteTo(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            for (var i = 1; i < 3; i++)
+            IEnumerable<FluidValue> list = Enumerable.Empty<FluidValue>();
+
+            if (Member != null)
             {
-                Completion completion = Completion.Normal;
+                list = (Member.Evaluate(context).ToObjectValue() as IEnumerable<object>)?.Select(FluidValue.Create).ToArray();
+            }
+            else if (Range != null)
+            {
+                int start = Convert.ToInt32(Range.From.Evaluate(context).ToNumberValue());
+                int end = Convert.ToInt32(Range.To.Evaluate(context).ToNumberValue());
+                list = Enumerable.Range(start, end - start + 1).Select(x => new NumberValue(x)).ToArray();
+            }
 
-                foreach (var statement in Statements)
+            foreach (var item in list)
+            {
+                context.EnterChildScope();
+                context.SetValue(Identifier, item);
+                try
                 {
-                    completion = statement.WriteTo(writer, encoder, context);
+                    Completion completion = Completion.Normal;
 
-                    switch (completion)
+                    foreach (var statement in Statements)
                     {
-                        case Completion.Continue:
-                        case Completion.Break:
-                            break;
+                        completion = statement.WriteTo(writer, encoder, context);
+
+                        switch (completion)
+                        {
+                            case Completion.Continue:
+                            case Completion.Break:
+                                break;
+                        }
+                    }
+
+                    if (completion == Completion.Continue)
+                    {
+                        continue;
+                    }
+                    if (completion == Completion.Break)
+                    {
+                        break;
                     }
                 }
-
-                if (completion == Completion.Continue)
+                finally
                 {
-                    continue;
-                }
-                if (completion == Completion.Break)
-                {
-                    break;
+                    context.ReleaseScope();
                 }
             }
 

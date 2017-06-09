@@ -12,29 +12,34 @@ namespace Fluid.Ast.Values
             _value = value;
         }
 
-        public override FluidValue Add(FluidValue other)
+        public override bool Equals(FluidValue other)
         {
-            return new NumberValue(_value + other.ToNumber());
+            return _value == other.ToNumberValue();
         }
 
-        public override FluidValue Equals(FluidValue other)
+        public override bool ToBooleanValue()
         {
-            return new BooleanValue(_value == other.ToNumber());
+            return _value != 0;
         }
 
-        public override bool ToBoolean()
+        public override double ToNumberValue()
         {
-            throw new System.NotImplementedException();
+            return _value;
         }
 
-        public override double ToNumber()
+        public override string ToStringValue()
         {
-            throw new System.NotImplementedException();
+            return _value.ToString();
         }
 
         public override void WriteTo(TextWriter writer, TextEncoder encoder)
         {
-            writer.Write(encoder.Encode(_value.ToString()));
+            writer.Write(encoder.Encode(ToStringValue()));
+        }
+
+        public override object ToObjectValue()
+        {
+            return _value;
         }
     }
 }
