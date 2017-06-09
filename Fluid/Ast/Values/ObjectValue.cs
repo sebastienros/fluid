@@ -1,4 +1,7 @@
-﻿using System.IO;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Encodings.Web;
@@ -16,6 +19,20 @@ namespace Fluid.Ast.Values
 
         public override bool Equals(FluidValue other)
         {
+            if (other == EmptyValue.Instance)
+            {
+                switch (_value)
+                {
+                    case ICollection collection:
+                        return collection.Count == 0;
+
+                    case IEnumerable enumerable:
+                        return !enumerable.GetEnumerator().MoveNext();
+                }
+
+                return false;
+            }
+
             return other is ObjectValue && ((ObjectValue)other)._value == _value;
         }
 

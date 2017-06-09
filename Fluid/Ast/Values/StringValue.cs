@@ -15,6 +15,11 @@ namespace Fluid.Ast.Values
 
         public override bool Equals(FluidValue other)
         {
+            if (other == EmptyValue.Instance)
+            {   
+                return _value.Length == 0;
+            }
+
             return _value == other.ToString();
         }
 

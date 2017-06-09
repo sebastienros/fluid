@@ -6,13 +6,18 @@ namespace Fluid
 {
     public class TemplateContext
     {
-        public Scope Scope { get; private set; } = new Scope();
+        public static Scope GlobalScope = new Scope();
+
+        public Scope Scope { get; private set; } = new Scope(GlobalScope);
 
         public Dictionary<string, FilterDelegate> Filters { get; } = new Dictionary<string, FilterDelegate>();
         public static Dictionary<string, FilterDelegate> GlobalFilters { get; } = new Dictionary<string, FilterDelegate>();
 
         static TemplateContext()
         {
+            // Global properties
+            GlobalScope.SetProperty("empty", EmptyValue.Instance);
+
             // Initialize Global Filters
         }
 

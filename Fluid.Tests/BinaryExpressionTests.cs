@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Xunit;
 
 namespace Fluid.Tests
@@ -112,6 +113,20 @@ namespace Fluid.Tests
         public void GreaterThanBinaryExpressionIsEvaluated(string source, string expected)
         {
             Check("{{" + source + "}}", expected);
+        }
+
+        [Theory]
+        [InlineData("'' == empty", "true")]
+        [InlineData("'a' == empty", "false")]
+        [InlineData("x == empty", "true")]
+        [InlineData("y == empty", "false")]
+        public void EmptyValue(string source, string expected)
+        {
+            Check("{{" + source + "}}", expected, context =>
+            {
+                context.SetValue("x", new string[0]);
+                context.SetValue("y", new List<string>{ "foo" });
+            });
         }
     }
 }
