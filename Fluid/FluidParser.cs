@@ -17,8 +17,8 @@ namespace Fluid
 
         // Used to store statements as we process tag bodies. 
         // Unstacked when we exit a tag.
-        private Stack<(ParseTreeNode tag, List<Statement> statements)> _accumulators;
-        private List<Statement> _accumulator;
+        private Stack<BlockContext> _accumulators;
+        private BlockContext _accumulator;
         private bool _isComment; // true when the current block is a comment
         private bool _isRaw; // true when the current block is raw
 
@@ -28,7 +28,7 @@ namespace Fluid
             errors = Array.Empty<string>();
             
             Parser parser = null;
-            _accumulators = new Stack<(ParseTreeNode tag, List<Statement> statements)>();
+            _accumulators = new Stack<BlockContext>();
 
             try
             {
@@ -46,7 +46,7 @@ namespace Fluid
                         if (index != previous)
                         {
                             // Consume last Text statement
-                            ConsumeTextStatement(_accumulator ?? result, template, previous, index);
+                            ConsumeTextStatement(_accumulator?.Statements ?? result, template, previous, index);
                         }
 
                         break;
@@ -61,7 +61,7 @@ namespace Fluid
                         if (start != previous)
                         {
                             // Consume current Text statement
-                            ConsumeTextStatement(_accumulator ?? result, template, previous, start);
+                            ConsumeTextStatement(_accumulator?.Statements ?? result, template, previous, start);
                         }
 
                         var tag = template.Substring(start, end - start + 1);
@@ -92,7 +92,7 @@ namespace Fluid
 
                         if (s != null)
                         {
-                            (_accumulator ?? result).Add(s);
+                            (_accumulator?.Statements ?? result).Add(s);
                         }
 
                         index = end + 1;
@@ -109,7 +109,7 @@ namespace Fluid
             return false;
         }
 
-        private void ConsumeTextStatement(List<Statement> statements, StringSegment template, int start, int end)
+        private void ConsumeTextStatement(IList<Statement> statements, StringSegment template, int start, int end)
         {
             var textSatement = CreateTextStatement(template, start, end);
 
@@ -288,8 +288,6 @@ namespace Fluid
         public Statement BuildTagStatement(ParseTreeNode node)
         {
             var tag = node.ChildNodes[0];
-            List<Statement> statements;
-            ParseTreeNode t;
 
             switch (tag.Term.Name)
             {
@@ -298,14 +296,44 @@ namespace Fluid
                     break;
 
                 case "endfor":
-                    (t, statements) = ExitBlock();
+                    var block = ExitBlock();
 
-                    if (t.Term.Name != "for")
+                    if (block.Tag.Term.Name != "for")
                     {
-                        throw new ParseException("Unexpected tag: endfor");
+                        throw new ParseException($"Unexpected tag: endfor not matchig {block.Tag.Term.Name} tag.");
                     }
 
-                    return BuildForStatement(t, statements);
+                    return BuildForStatement(block.Tag, block.Statements);
+
+                case "if":
+                    EnterBlock(tag);
+                    break;
+
+                case "endif":
+                    block = ExitBlock();
+
+                    if (block.Tag.Term.Name != "if")
+                    {
+                        throw new ParseException($"Unexpected tag: endif not matchig {block.Tag.Term.Name} tag.");
+                    }
+
+                    block.Blocks.TryGetValue("else", out var elseStatements);
+                    block.Blocks.TryGetValue("elseif", out var elseIfStatements);
+
+                    return new IfStatement(
+                        BuildExpression(block.Tag.ChildNodes[0]),
+                        block.Statements,
+                        elseStatements?.FirstOrDefault() as ElseStatement,
+                        elseIfStatements?.Cast<ElseIfStatement>().ToList() ?? new List<ElseIfStatement>()
+                        );
+
+                case "else":
+                    EnterSubBlock(tag, new ElseStatement(new List<Statement>()));
+                    break;
+
+                case "elseif":
+                    EnterSubBlock(tag, new ElseIfStatement(BuildExpression(node.ChildNodes[0]), new List<Statement>()));
+                    break;
 
                 case "break":
                     return new BreakStatement();
@@ -336,19 +364,47 @@ namespace Fluid
             return null;
         }
 
+        /// <summary>
+        /// Invoked when a block is entered to assign subsequent
+        /// statements to it.
+        /// </summary>
         private void EnterBlock(ParseTreeNode tag)
         {
-            _accumulators.Push((tag, _accumulator = new List<Statement>()));
+            _accumulators.Push(_accumulator = new BlockContext
+            {
+                Tag = tag,
+                Statements = new List<Statement>()
+            });
         }
 
-        private (ParseTreeNode, List<Statement>) ExitBlock()
+        /// <summary>
+        /// Invoked when a sub tag like 'else' is found so that statements
+        /// are accumulated without changing the current block.
+        /// </summary>
+        private void EnterSubBlock(ParseTreeNode tag, TagStatement statement)
+        {
+            if (!_accumulator.Blocks.TryGetValue(tag.Term.Name, out var block))
+            {
+                _accumulator.Blocks.Add(tag.Term.Name, block = new List<Statement>());
+            }
+
+            block.Add(statement);
+
+            _accumulator = new BlockContext
+            {
+                Tag = tag,
+                Statements = statement.Statements
+            };
+        }
+
+        private BlockContext ExitBlock()
         {
             var result = _accumulators.Pop();
-            _accumulator = _accumulators.Any() ? _accumulators.Peek().statements : null;
+            _accumulator = _accumulators.Any() ? _accumulators.Peek() : null;
             return result;
         }
 
-        public Statement BuildForStatement(ParseTreeNode node, List<Statement> statements)
+        public Statement BuildForStatement(ParseTreeNode node, IList<Statement> statements)
         {
             var identifier = node.ChildNodes[0].Token.Text;
             var source = node.ChildNodes[1];
@@ -362,7 +418,6 @@ namespace Fluid
                 default:
                     throw new ParseException("Unknown for source type: " + node.Term.Name);
             }
-
         }
 
         public RangeExpression BuildRangeExpression(ParseTreeNode node)
@@ -486,5 +541,15 @@ namespace Fluid
             }
         }
         
+        private class BlockContext
+        {
+            public ParseTreeNode Tag;
+            public IList<Statement> Statements;
+
+            // Some types of sub-block can be repeated (when, case)
+            public Dictionary<string, IList<Statement>> Blocks = new Dictionary<string, IList<Statement>>();
+        }
     }
 }
+
+

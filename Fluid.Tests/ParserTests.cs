@@ -113,5 +113,25 @@ namespace Fluid.Tests
             Assert.IsType<CommentStatement>(statements.ElementAt(0));
             Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as CommentStatement).Text);
         }
+
+        [Fact]
+        public void ShouldParseIfTag()
+        {
+            var statements = Parse("{% if true %}yes{% endif %}");
+
+            Assert.IsType<IfStatement>(statements.ElementAt(0));
+            Assert.True(statements.ElementAt(0) is IfStatement s && s.Statements.Count == 1);
+        }
+
+        [Fact]
+        public void ShouldParseIfElseTag()
+        {
+            var statements = Parse("{% if true %}yes{%else%}no{% endif %}");
+
+            var ifStatement = statements.ElementAt(0) as IfStatement;
+            Assert.NotNull(ifStatement);
+            Assert.Equal(1, ifStatement.Statements.Count);
+            Assert.NotNull(ifStatement.Else);
+        }
     }
 }
