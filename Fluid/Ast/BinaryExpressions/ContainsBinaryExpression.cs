@@ -1,4 +1,6 @@
-﻿using Fluid.Ast.Values;
+﻿using System;
+using System.Collections;
+using Fluid.Ast.Values;
 
 namespace Fluid.Ast.BinaryExpressions
 {
@@ -19,6 +21,37 @@ namespace Fluid.Ast.BinaryExpressions
                 {
                     return BooleanValue.True;
                 }
+
+                return BooleanValue.False;
+            }
+
+            if (leftValue is ObjectValue objectValue)
+            {
+                var value = objectValue.ToObjectValue();
+                switch (value)
+                {
+                    case Array array:
+                        return Array.IndexOf(array, rightValue.ToObjectValue()) != -1
+                            ? BooleanValue.True
+                            : BooleanValue.False;
+
+                    case IEnumerable enumerable:
+                        var target = rightValue.ToObjectValue();
+                        foreach (var item in enumerable)
+                        {
+                            if (item != null)
+                            {
+                                if (item.Equals(target))
+                                {
+                                    return BooleanValue.True;
+                                }
+                            }
+                        }
+
+                        return BooleanValue.False;
+                }
+
+                return BooleanValue.False;
             }
 
             return BooleanValue.False;

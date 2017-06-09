@@ -94,9 +94,17 @@ namespace Fluid.Tests
         [Theory]
         [InlineData("'abc' contains 'a'", "true")]
         [InlineData("'abc' contains 'd'", "false")]
+        [InlineData("x contains 'a'", "true")]
+        [InlineData("x contains 'x'", "false")]
+        [InlineData("y contains 'a'", "true")]
+        [InlineData("y contains 'x'", "false")]
         public void ContainsBinaryExpressionIsEvaluated(string source, string expected)
         {
-            Check("{{" + source + "}}", expected);
+            Check("{{" + source + "}}", expected, context =>
+            {
+                context.SetValue("x", new[] { "a", "b", "c" });
+                context.SetValue("y", new List<string> { "a", "b", "c" });
+            });
         }
 
         [Theory]
