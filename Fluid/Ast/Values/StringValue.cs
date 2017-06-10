@@ -20,7 +20,7 @@ namespace Fluid.Ast.Values
                 return _value.Length == 0;
             }
 
-            return _value == other.ToString();
+            return _value == other.ToStringValue();
         }
 
         public FluidValue GetIndex(FluidValue index)

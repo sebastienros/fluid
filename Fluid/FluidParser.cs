@@ -288,6 +288,18 @@ namespace Fluid
                 case "endfor":
                     return BuildForStatement();
 
+                case "case":
+                    EnterBlock(tag);
+                    break;
+
+                case "when":
+                    var options = tag.ChildNodes[0].ChildNodes.Select(BuildLiteral).ToList();
+                    _currentContext.EnterBlock("when", new WhenStatement(options, new List<Statement>()));
+                    break;
+
+                case "endcase":
+                    return BuildCaseStatement();
+
                 case "if":
                     EnterBlock(tag);
                     break;
@@ -388,6 +400,32 @@ namespace Fluid
             ExitBlock();
 
             return ifStatement;
+        }
+
+        private CaseStatement BuildCaseStatement()
+        {
+            if (_currentContext.Tag.Term.Name != "case")
+            {
+                throw new ParseException($"Unexpected tag: endcase not matching {_currentContext.Tag.Term.Name} tag.");
+            }
+
+            if (_currentContext.Statements.Any())
+            {
+                throw new ParseException($"Unexpected content in 'case' tag. Only 'when' and 'else' are allowed.");
+            }
+
+            var elseStatements = _currentContext.GetBlockStatements<ElseStatement>("else");
+            var whenStatements = _currentContext.GetBlockStatements<WhenStatement>("when");
+
+            var caseStatement = new CaseStatement(
+                BuildExpression(_currentContext.Tag.ChildNodes[0]),
+                elseStatements.FirstOrDefault(),
+                whenStatements
+                );
+
+            ExitBlock();
+
+            return caseStatement;
         }
 
         private UnlessStatement BuildUnlessStatement()

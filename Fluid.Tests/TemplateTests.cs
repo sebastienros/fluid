@@ -189,5 +189,16 @@ namespace Fluid.Tests
 
             Check(template, expected, ctx => { ctx.SetValue("x", x); });
         }
+
+        [Theory]
+        [InlineData(1, "x1")]
+        [InlineData(2, "x2")]
+        [InlineData(3, "other")]
+        public void ShouldEvaluateCaseStatement(int x, string expected)
+        {
+            var template = "{% case x %}{%when 1%}x1{%when 2%}x2{%else%}other{% endcase %}";
+
+            Check(template, expected, ctx => { ctx.SetValue("x", x); });
+        }
     }
 }

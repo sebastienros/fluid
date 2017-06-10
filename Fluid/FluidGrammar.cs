@@ -121,7 +121,7 @@ namespace Fluid
             Unless.Rule = "unless" + Expression;
             Elsif.Rule = "elsif" + Expression;
 
-            Case.Rule = "case" + MemberAccess;
+            Case.Rule = "case" + Expression;
             When.Rule = "when" + LiteralList;
             LiteralList.Rule = MakePlusRule(LiteralList, ToTerm("or"), Literal);
 
@@ -138,7 +138,7 @@ namespace Fluid
                 "when"
                 );
             MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd, Colon);
-            MarkTransient(Statement, KnownTags, ForSource, FilterArgument, RangeIndex, BinaryOperator);
+            MarkTransient(Statement, KnownTags, ForSource, FilterArgument, RangeIndex, BinaryOperator, LiteralList);
         }
     }
 }
