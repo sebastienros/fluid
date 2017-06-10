@@ -24,7 +24,7 @@ namespace Fluid
         /// if it doesn't exist.
         /// </summary>
         /// <param name="name">The name of the value to return.</param>
-        public FluidValue GetProperty(string name)
+        public FluidValue GetValue(string name)
         {
             if (name == null)
             {
@@ -39,14 +39,14 @@ namespace Fluid
             {
                 if (_parent != null)
                 {
-                    return _parent.GetProperty(name);
+                    return _parent.GetValue(name);
                 }
             }
 
             return UndefinedValue.Instance;
         }
 
-        public void SetProperty(string name, FluidValue value)
+        public void SetValue(string name, FluidValue value)
         {
             _properties[name] = value;
         }
@@ -63,7 +63,7 @@ namespace Fluid
 
         public FluidValue GetIndex(FluidValue index)
         {
-            return GetProperty(index.ToString());
+            return GetValue(index.ToString());
         }
     }
 }

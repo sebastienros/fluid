@@ -48,7 +48,7 @@ namespace Fluid.Ast.Values
             return false;
         }
 
-        public FluidValue GetProperty(string name)
+        public FluidValue GetValue(string name)
         {
             if (!_value.Contains(name))
             {
@@ -60,7 +60,7 @@ namespace Fluid.Ast.Values
 
         public FluidValue GetIndex(FluidValue index)
         {
-            return GetProperty(index.ToStringValue());
+            return GetValue(index.ToStringValue());
         }
 
         public override bool ToBooleanValue()

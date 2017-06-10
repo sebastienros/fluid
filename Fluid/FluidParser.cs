@@ -346,11 +346,22 @@ namespace Fluid
                 case "cycle":
                     return BuildCycleStatement(tag);
 
+                case "assign":
+                    return BuildAssignStatement(tag);
+
                 default:
                     throw new ParseException("Unknown tag type: " + node.Term.Name);
             }
 
             return null;
+        }
+
+        private Statement BuildAssignStatement(ParseTreeNode tag)
+        {
+            var identifier = tag.ChildNodes[0].Token.ValueString;
+            var value = BuildExpression(tag.ChildNodes[1]);
+
+            return new AssignStatement(identifier, value);
         }
 
         private CycleStatement BuildCycleStatement(ParseTreeNode tag)

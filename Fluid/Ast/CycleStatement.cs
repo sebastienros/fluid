@@ -20,7 +20,7 @@ namespace Fluid.Ast
         {
             var groupValue = Group == null ? "$defautGroup" : Group.Evaluate(context).ToStringValue();
 
-            var currentValue = context.Scope.GetProperty(groupValue);
+            var currentValue = context.GetValue(groupValue);
 
             if (currentValue.IsUndefined())
             {
@@ -29,7 +29,7 @@ namespace Fluid.Ast
 
             var index = (int)currentValue.ToNumberValue() % Values.Count;
             var value = Values[index].Evaluate(context);
-            context.Scope.SetProperty(groupValue, new NumberValue(index + 1));
+            context.SetValue(groupValue, new NumberValue(index + 1));
 
             value.WriteTo(writer, encoder);
 

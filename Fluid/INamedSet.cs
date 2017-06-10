@@ -4,7 +4,7 @@ namespace Fluid
 {
     public interface INamedSet
     {
-        FluidValue GetProperty(string name);
+        FluidValue GetValue(string name);
         FluidValue GetIndex(FluidValue index);
     }
 }

@@ -36,7 +36,7 @@ namespace Fluid.Ast.Values
             return other is ObjectValue && ((ObjectValue)other)._value == _value;
         }
 
-        public FluidValue GetProperty(string name)
+        public FluidValue GetValue(string name)
         {
             var propertyInfo = _value.GetType().GetTypeInfo().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
             return Create(propertyInfo.GetValue(_value));

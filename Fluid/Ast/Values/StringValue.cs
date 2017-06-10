@@ -35,7 +35,7 @@ namespace Fluid.Ast.Values
             return UndefinedValue.Instance;
         }
 
-        public FluidValue GetProperty(string name)
+        public FluidValue GetValue(string name)
         {
             return UndefinedValue.Instance;
         }

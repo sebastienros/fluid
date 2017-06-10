@@ -15,28 +15,17 @@ namespace Fluid.Ast
 
         public override Completion WriteTo(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            context.EnterChildScope();
-
-            try
+            // Process statements until next block or end of statements
+            for (var index = 0; index < Statements.Count; index++)
             {
-                Completion completion = Completion.Normal;
+                var completion = Statements[index].WriteTo(writer, encoder, context);
 
-                // Process statements until next block or end of statements
-                for (var index = 0; index < Statements.Count; index++)
+                if (completion != Completion.Normal)
                 {
-                    completion = Statements[index].WriteTo(writer, encoder, context);
-
-                    if (completion != Completion.Normal)
-                    {
-                        // Stop processing the block statements
-                        // We return the completion to flow it to the outer loop
-                        return completion;
-                    }
+                    // Stop processing the block statements
+                    // We return the completion to flow it to the outer loop
+                    return completion;
                 }
-            }
-            finally
-            {
-                context.ReleaseScope();
             }
 
             return Completion.Normal;

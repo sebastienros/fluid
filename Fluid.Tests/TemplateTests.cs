@@ -214,5 +214,12 @@ namespace Fluid.Tests
         {
             Check(source, expected, ctx => { ctx.SetValue("x", 3); });
         }
+
+        [Theory]
+        [InlineData("{% assign x = 123 %} {{x}}", "123")]
+        public void ShouldEvaluateAssignStatement(string source, string expected)
+        {
+            Check(source, expected);
+        }
     }
 }

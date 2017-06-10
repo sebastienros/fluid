@@ -26,31 +26,22 @@ namespace Fluid.Ast
         {
             var value = Expression.Evaluate(context);
 
-            context.EnterChildScope();
-
-            try
+            if (Whens != null)
             {
-                if (Whens != null)
+                foreach (var when in Whens)
                 {
-                    foreach (var when in Whens)
-                    {
-                        var condition = when.Options.Any(x => value.Equals(x.Evaluate(context)));
+                    var condition = when.Options.Any(x => value.Equals(x.Evaluate(context)));
 
-                        if (condition)
-                        {
-                            return when.WriteTo(writer, encoder, context);
-                        }
+                    if (condition)
+                    {
+                        return when.WriteTo(writer, encoder, context);
                     }
                 }
-
-                if (Else != null)
-                {
-                    Else.WriteTo(writer, encoder, context);
-                }
             }
-            finally
+
+            if (Else != null)
             {
-                context.ReleaseScope();
+                Else.WriteTo(writer, encoder, context);
             }
 
             return Completion.Normal;

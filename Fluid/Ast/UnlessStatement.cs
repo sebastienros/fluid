@@ -7,9 +7,9 @@ namespace Fluid.Ast
     public class UnlessStatement : TagStatement
     {
         public UnlessStatement(
-            Expression condition, 
+            Expression condition,
             IList<Statement> statements
-            ) :base (statements)
+            ) : base(statements)
         {
             Condition = condition;
         }
@@ -20,32 +20,21 @@ namespace Fluid.Ast
         {
             var result = Condition.Evaluate(context).ToBooleanValue();
 
-            context.EnterChildScope();
-
-            try
+            if (!result)
             {
-                Completion completion = Completion.Normal;
-
-                if (!result)
+                foreach (var statement in Statements)
                 {
-                    foreach (var statement in Statements)
+                    var completion = statement.WriteTo(writer, encoder, context);
+
+                    if (completion != Completion.Normal)
                     {
-                        completion = statement.WriteTo(writer, encoder, context);
-
-                        if (completion != Completion.Normal)
-                        {
-                            // Stop processing the block statements
-                            // We return the completion to flow it to the outer loop
-                            return completion;
-                        }
+                        // Stop processing the block statements
+                        // We return the completion to flow it to the outer loop
+                        return completion;
                     }
-
-                    return Completion.Normal;
                 }
-            }
-            finally
-            {
-                context.ReleaseScope();
+
+                return Completion.Normal;
             }
 
             return Completion.Normal;

@@ -18,7 +18,7 @@ namespace Fluid.Ast
 
         public override FluidValue Resolve(INamedSet properties, TemplateContext context)
         {
-            return properties.GetProperty(Identifier);
+            return properties.GetValue(Identifier);
         }
     }
 

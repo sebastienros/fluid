@@ -104,6 +104,7 @@ namespace Fluid
             var Range = new NonTerminal("range");
             var RangeIndex = new NonTerminal("rangeIndex");
             var Cycle = new NonTerminal("cycle");
+            var Assign = new NonTerminal("assign");
 
             var Continue = ToTerm("continue");
             var Break = ToTerm("break");
@@ -121,7 +122,7 @@ namespace Fluid
                 Continue | Break |
                 Comment | EndComment |
                 Raw | EndRaw |
-                Cycle;
+                Cycle | Assign;
 
             If.Rule = "if" + Expression;
             Unless.Rule = "unless" + Expression;
@@ -143,9 +144,11 @@ namespace Fluid
             Cycle.Rule = "cycle" + FilterArguments;
             Cycle.Rule |= "cycle" + FilterArgument + Colon + FilterArguments;
 
+            Assign.Rule = "assign" + IdentifierPart + "=" + Expression;
+
             MarkPunctuation(
-                "[", "]", ":", "|",
-                "if", "unless", "elsif",
+                "[", "]", ":", "|", "=",
+                "if", "elsif", "unless", "assign",
                 "case",
                 "for", "in", "(", ")", "..",
                 "when", "cycle", "limit", "offset"

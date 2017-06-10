@@ -26,50 +26,39 @@ namespace Fluid.Ast
         {
             var result = Condition.Evaluate(context).ToBooleanValue();
 
-            context.EnterChildScope();
-
-            try
+            if (result)
             {
-                Completion completion = Completion.Normal;
-
-                if (result)
+                foreach (var statement in Statements)
                 {
-                    foreach (var statement in Statements)
-                    {
-                        completion = statement.WriteTo(writer, encoder, context);
+                    var completion = statement.WriteTo(writer, encoder, context);
 
-                        if (completion != Completion.Normal)
-                        {
-                            // Stop processing the block statements
-                            // We return the completion to flow it to the outer loop
-                            return completion;
-                        }
-                    }
-
-                    return Completion.Normal;
-                }
-                else
-                {
-                    if (ElseIfs != null)
+                    if (completion != Completion.Normal)
                     {
-                        foreach (var elseIf in ElseIfs)
-                        {
-                            if (elseIf.Condition.Evaluate(context).ToBooleanValue())
-                            {
-                                return elseIf.WriteTo(writer, encoder, context);
-                            }
-                        }
-                    }
-
-                    if (Else != null)
-                    {
-                        Else.WriteTo(writer, encoder, context);
+                        // Stop processing the block statements
+                        // We return the completion to flow it to the outer loop
+                        return completion;
                     }
                 }
+
+                return Completion.Normal;
             }
-            finally
+            else
             {
-                context.ReleaseScope();
+                if (ElseIfs != null)
+                {
+                    foreach (var elseIf in ElseIfs)
+                    {
+                        if (elseIf.Condition.Evaluate(context).ToBooleanValue())
+                        {
+                            return elseIf.WriteTo(writer, encoder, context);
+                        }
+                    }
+                }
+
+                if (Else != null)
+                {
+                    Else.WriteTo(writer, encoder, context);
+                }
             }
 
             return Completion.Normal;
