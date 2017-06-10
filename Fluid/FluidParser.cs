@@ -293,7 +293,7 @@ namespace Fluid
                     break;
 
                 case "when":
-                    var options = tag.ChildNodes[0].ChildNodes.Select(BuildLiteral).ToList();
+                    var options = tag.ChildNodes[0].ChildNodes[0].ChildNodes.Select(BuildLiteral).ToList();
                     _currentContext.EnterBlock("when", new WhenStatement(options, new List<Statement>()));
                     break;
 

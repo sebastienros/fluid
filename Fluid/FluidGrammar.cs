@@ -138,7 +138,7 @@ namespace Fluid
                 "when"
                 );
             MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd, Colon);
-            MarkTransient(Statement, KnownTags, ForSource, FilterArgument, RangeIndex, BinaryOperator, LiteralList);
+            MarkTransient(Statement, KnownTags, ForSource, FilterArgument, RangeIndex, BinaryOperator);
         }
     }
 }
