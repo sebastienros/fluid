@@ -495,16 +495,54 @@ namespace Fluid
             var identifier = _currentContext.Tag.ChildNodes[0].Token.Text;
             var source = _currentContext.Tag.ChildNodes[1];
 
+            LiteralExpression limit = null;
+            LiteralExpression offset = null;
+            var reversed = false;
+
+            // Options?
+            if (_currentContext.Tag.ChildNodes.Count > 2)
+            {
+                foreach(var option in _currentContext.Tag.ChildNodes[2].ChildNodes)
+                {
+                    switch (option.Term.Name)
+                    {
+                        case "limit":
+                            limit = BuildLiteral(option.ChildNodes[0]);
+                            break;
+                        case "offset":
+                            offset = BuildLiteral(option.ChildNodes[0]);
+                            break;
+                        case "reversed":
+                            reversed = true;
+                            break;
+                    }
+                }
+            }
+
             ForStatement forStatement;
 
             switch (source.Term.Name)
             {
                 case "memberAccess":
-                    forStatement = new ForStatement(_currentContext.Statements, identifier, BuildMemberExpression(source));
+                    forStatement = new ForStatement(
+                        _currentContext.Statements, 
+                        identifier, 
+                        BuildMemberExpression(source),
+                        limit,
+                        offset,
+                        reversed);
                     break;
+
                 case "range":
-                    forStatement =  new ForStatement(_currentContext.Statements, identifier, BuildRangeExpression(source));
+                    forStatement =  new ForStatement(
+                        _currentContext.Statements, 
+                        identifier, 
+                        BuildRangeExpression(source),
+                        limit,
+                        offset,
+                        reversed);
                     break;
+
                 default:
                     throw new InvalidOperationException();
             }

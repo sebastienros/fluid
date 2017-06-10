@@ -10,24 +10,45 @@ namespace Fluid.Ast
 {
     public class ForStatement : TagStatement
     {
-        public ForStatement(IList<Statement> statements, string identifier, MemberExpression member) : base(statements)
+        public ForStatement(
+            IList<Statement> statements, 
+            string identifier, 
+            MemberExpression member,
+            LiteralExpression limit,
+            LiteralExpression offset,
+            bool reversed) : base(statements)
         {
             Identifier = identifier;
             Member = member;
+            Limit = limit;
+            Offset = offset;
+            Reversed = reversed;
         }
-        public ForStatement(IList<Statement> statements, string identifier, RangeExpression range) : base(statements)
+        public ForStatement(
+            IList<Statement> statements, 
+            string identifier, 
+            RangeExpression range,
+            LiteralExpression limit,
+            LiteralExpression offset,
+            bool reversed) : base(statements)
         {
             Identifier = identifier;
             Range = range;
+            Limit = limit;
+            Offset = offset;
+            Reversed = reversed;
         }
 
         public string Identifier { get; }
         public RangeExpression Range { get; }
         public MemberExpression Member { get; }
+        public LiteralExpression Limit { get; }
+        public LiteralExpression Offset { get; }
+        public bool Reversed { get; }
 
         public override Completion WriteTo(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            IList<FluidValue> list = Array.Empty<FluidValue>();
+            IEnumerable<FluidValue> elements = Array.Empty<FluidValue>();
 
             if (Member != null)
             {
@@ -37,11 +58,11 @@ namespace Fluid.Ast
                 switch (objectValue)
                 {
                     case IEnumerable<FluidValue> l:
-                        list = l.ToArray();
+                        elements = l.ToArray();
                         break;
 
                     case IEnumerable<object> o:
-                        list = o.Select(FluidValue.Create).ToArray();
+                        elements = o.Select(FluidValue.Create);
                         break;
 
                     case IEnumerable e:
@@ -50,7 +71,7 @@ namespace Fluid.Ast
                         {
                             es.Add(FluidValue.Create(item));
                         }
-                        list = es;
+                        elements = es;
                         break;
                 }
             }
@@ -58,8 +79,29 @@ namespace Fluid.Ast
             {
                 int start = Convert.ToInt32(Range.From.Evaluate(context).ToNumberValue());
                 int end = Convert.ToInt32(Range.To.Evaluate(context).ToNumberValue());
-                list = Enumerable.Range(start, end - start + 1).Select(x => new NumberValue(x)).ToArray();
+                elements = Enumerable.Range(start, end - start + 1).Select(x => new NumberValue(x));
             }
+
+            // Apply options
+
+            if (Offset != null)
+            {
+                var offset = (int)Offset.Evaluate(context).ToNumberValue();
+                elements = elements.Skip(offset);
+            }
+
+            if (Limit != null)
+            {
+                var limit = (int)Limit.Evaluate(context).ToNumberValue();
+                elements = elements.Take(limit);
+            }
+
+            if (Reversed)
+            {
+                elements = elements.Reverse();
+            }
+
+            var list = elements.ToList();
 
             var length = list.Count;
 
@@ -69,7 +111,8 @@ namespace Fluid.Ast
             {
                 var forloop = new Dictionary<string, FluidValue>();
                 forloop.Add("length", new NumberValue(length));
-                context.Scope.SetProperty("forloop", new DictionaryValue(forloop));
+                context.SetValue("forloop", new DictionaryValue(forloop));
+
 
                 for (var i = 0; i < list.Count; i++)
                 {

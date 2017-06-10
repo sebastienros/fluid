@@ -97,6 +97,10 @@ namespace Fluid
             var For = new NonTerminal("for");
             var EndFor = ToTerm("endfor");
             var ForSource = new NonTerminal("forSource");
+            var ForOptions = new NonTerminal("forOptions");
+            var ForOption = new NonTerminal("forOption");
+            var ForLimit = new NonTerminal("limit");
+            var ForOffset = new NonTerminal("offset");
             var Range = new NonTerminal("range");
             var RangeIndex = new NonTerminal("rangeIndex");
             var Cycle = new NonTerminal("cycle");
@@ -127,10 +131,14 @@ namespace Fluid
             When.Rule = "when" + LiteralList;
             LiteralList.Rule = MakePlusRule(LiteralList, ToTerm("or"), Literal);
 
-            For.Rule = "for" + IdentifierPart + "in" + ForSource;
+            For.Rule = "for" + IdentifierPart + "in" + ForSource + ForOptions;
             ForSource.Rule = MemberAccess | Range;
             Range.Rule = "(" + RangeIndex + ".." + RangeIndex + ")";
             RangeIndex.Rule = Number | MemberAccess;
+            ForOptions.Rule = MakeStarRule(ForOptions, ForOption);
+            ForOption.Rule = ForLimit | ForOffset | "reversed";
+            ForOffset.Rule = "offset" + Colon + Number;
+            ForLimit.Rule = "limit" + Colon + Number;
 
             Cycle.Rule = "cycle" + FilterArguments;
             Cycle.Rule |= "cycle" + FilterArgument + Colon + FilterArguments;
@@ -140,10 +148,10 @@ namespace Fluid
                 "if", "unless", "elsif",
                 "case",
                 "for", "in", "(", ")", "..",
-                "when", "cycle"
+                "when", "cycle", "limit", "offset"
                 );
             MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd, Colon);
-            MarkTransient(Statement, KnownTags, ForSource, FilterArgument, RangeIndex, BinaryOperator);
+            MarkTransient(Statement, KnownTags, ForSource, FilterArgument, RangeIndex, BinaryOperator, ForOption);
         }
     }
 }

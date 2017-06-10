@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
 using Fluid.Ast;
@@ -20,7 +21,8 @@ namespace Fluid.Tests
                 new RangeExpression(
                     new LiteralExpression(new NumberValue(1)),
                     new LiteralExpression(new NumberValue(3))
-                )
+                ),
+                null, null, false
             );
 
             var sw = new StringWriter();
@@ -37,7 +39,8 @@ namespace Fluid.Tests
                 "i",
                 new MemberExpression(
                     new IdentifierSegment("items")
-                )
+                ),
+                null, null, false
             );
 
             var sw = new StringWriter();
@@ -60,7 +63,8 @@ namespace Fluid.Tests
                 "i",
                 new MemberExpression(
                     new IdentifierSegment("items")
-                )
+                ),
+                null, null, false
             );
 
             var sw = new StringWriter();
@@ -83,7 +87,8 @@ namespace Fluid.Tests
                 "i",
                 new MemberExpression(
                     new IdentifierSegment("items")
-                )
+                ),
+                null, null, false
             );
 
             var sw = new StringWriter();
@@ -97,25 +102,22 @@ namespace Fluid.Tests
         [Fact]
         public void ForShouldProvideHelperVariables()
         {
-            Statement CreateMemberStatement(string p)
-            {
-                return new OutputStatement(new MemberExpression(new IdentifierSegment("forloop"), new IdentifierSegment(p)), null);
-            }
 
             var e = new ForStatement(
                 new Statement[] {
-                    CreateMemberStatement("length"),
-                    CreateMemberStatement("index"),
-                    CreateMemberStatement("index0"),
-                    CreateMemberStatement("rindex"),
-                    CreateMemberStatement("rindex0"),
-                    CreateMemberStatement("first"),
-                    CreateMemberStatement("last")
+                    CreateMemberStatement("forloop.length"),
+                    CreateMemberStatement("forloop.index"),
+                    CreateMemberStatement("forloop.index0"),
+                    CreateMemberStatement("forloop.rindex"),
+                    CreateMemberStatement("forloop.rindex0"),
+                    CreateMemberStatement("forloop.first"),
+                    CreateMemberStatement("forloop.last")
                 },
                 "i",
                 new MemberExpression(
                     new IdentifierSegment("items")
-                )
+                ),
+                null, null, false
             );
 
             var sw = new StringWriter();
@@ -124,6 +126,33 @@ namespace Fluid.Tests
             e.WriteTo(sw, HtmlEncoder.Default, context);
 
             Assert.Equal("31023truefalse32112falsefalse33201falsetrue", sw.ToString());
+        }
+
+        [Fact]
+        public void ForEvaluatesOptions()
+        {
+            var e = new ForStatement(
+                new[] { CreateMemberStatement("i") },
+                "i",
+                new RangeExpression(
+                    new LiteralExpression(new NumberValue(1)),
+                    new LiteralExpression(new NumberValue(5))
+                ),
+                new LiteralExpression(new NumberValue(3)),
+                new LiteralExpression(new NumberValue(2)),
+                true
+            );
+
+            var sw = new StringWriter();
+            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+
+            Assert.Equal("543", sw.ToString());
+        }
+
+
+        Statement CreateMemberStatement(string p)
+        {
+            return new OutputStatement(new MemberExpression(p.Split('.').Select(x => new IdentifierSegment(x)).ToArray()), null);
         }
     }
 }
