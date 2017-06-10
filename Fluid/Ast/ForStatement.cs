@@ -10,7 +10,7 @@ namespace Fluid.Ast
 {
     public class ForStatement : TagStatement
     {
-        public ForStatement(IList<Statement> statements, string identifier, MemberExpression member) :base (statements)
+        public ForStatement(IList<Statement> statements, string identifier, MemberExpression member) : base(statements)
         {
             Identifier = identifier;
             Member = member;
@@ -27,7 +27,7 @@ namespace Fluid.Ast
 
         public override Completion WriteTo(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            IEnumerable<FluidValue> list = Enumerable.Empty<FluidValue>();
+            IList<FluidValue> list = Array.Empty<FluidValue>();
 
             if (Member != null)
             {
@@ -37,14 +37,16 @@ namespace Fluid.Ast
                 switch (objectValue)
                 {
                     case IEnumerable<FluidValue> l:
-                        list = l;
+                        list = l.ToArray();
                         break;
+
                     case IEnumerable<object> o:
                         list = o.Select(FluidValue.Create).ToArray();
                         break;
+
                     case IEnumerable e:
                         var es = new List<FluidValue>();
-                        foreach(var item in e)
+                        foreach (var item in e)
                         {
                             es.Add(FluidValue.Create(item));
                         }
@@ -59,12 +61,30 @@ namespace Fluid.Ast
                 list = Enumerable.Range(start, end - start + 1).Select(x => new NumberValue(x)).ToArray();
             }
 
-            foreach (var item in list)
+            var length = list.Count;
+
+            context.EnterChildScope();
+
+            try
             {
-                context.EnterChildScope();
-                context.SetValue(Identifier, item);
-                try
+                var forloop = new Dictionary<string, FluidValue>();
+                forloop.Add("length", new NumberValue(length));
+                context.Scope.SetProperty("forloop", new DictionaryValue(forloop));
+
+                for (var i = 0; i < list.Count; i++)
                 {
+                    var item = list[i];
+
+                    context.SetValue(Identifier, item);
+
+                    // Set helper variables
+                    forloop["index"] = new NumberValue(i + 1);
+                    forloop["index0"] = new NumberValue(i);
+                    forloop["rindex"] = new NumberValue(list.Count - i - 1);
+                    forloop["rindex0"] = new NumberValue(list.Count - i);
+                    forloop["first"] = new BooleanValue(i == 0);
+                    forloop["last"] = new BooleanValue(i == list.Count - 1);
+
                     Completion completion = Completion.Normal;
 
                     foreach (var statement in Statements)
@@ -90,10 +110,10 @@ namespace Fluid.Ast
                         break;
                     }
                 }
-                finally
-                {
-                    context.ReleaseScope();
-                }
+            }
+            finally
+            {
+                context.ReleaseScope();
             }
 
             return Completion.Normal;

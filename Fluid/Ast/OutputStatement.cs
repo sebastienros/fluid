@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 
@@ -10,7 +11,7 @@ namespace Fluid.Ast
         public OutputStatement(Expression expression, IList<FilterExpression> filters)
         {
             Expression = expression;
-            Filters = filters;
+            Filters = filters ?? Array.Empty<FilterExpression>();
         }
 
         public Expression Expression { get; }

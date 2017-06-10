@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 
@@ -52,9 +54,13 @@ namespace Fluid.Ast.Values
                         return NilValue.Instance;
                     }
 
-                    if (value is FluidValue fluid)
+                    switch (value)
                     {
-                        return fluid;
+                        case FluidValue fluid:
+                            return fluid;
+
+                        case IDictionary dictionary:
+                            return new DictionaryValue(dictionary);
                     }
 
                     return new ObjectValue(value);

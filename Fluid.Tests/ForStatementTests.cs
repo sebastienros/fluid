@@ -93,5 +93,37 @@ namespace Fluid.Tests
 
             Assert.Equal("xxx", sw.ToString());
         }
+
+        [Fact]
+        public void ForShouldProvideHelperVariables()
+        {
+            Statement CreateMemberStatement(string p)
+            {
+                return new OutputStatement(new MemberExpression(new IdentifierSegment("forloop"), new IdentifierSegment(p)), null);
+            }
+
+            var e = new ForStatement(
+                new Statement[] {
+                    CreateMemberStatement("length"),
+                    CreateMemberStatement("index"),
+                    CreateMemberStatement("index0"),
+                    CreateMemberStatement("rindex"),
+                    CreateMemberStatement("rindex0"),
+                    CreateMemberStatement("first"),
+                    CreateMemberStatement("last")
+                },
+                "i",
+                new MemberExpression(
+                    new IdentifierSegment("items")
+                )
+            );
+
+            var sw = new StringWriter();
+            var context = new TemplateContext();
+            context.SetValue("items", new[] { 1, 2, 3 });
+            e.WriteTo(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal("31023truefalse32112falsefalse33201falsetrue", sw.ToString());
+        }
     }
 }
