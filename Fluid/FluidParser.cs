@@ -293,8 +293,7 @@ namespace Fluid
                     break;
 
                 case "when":
-                    var options = tag.ChildNodes[0].ChildNodes[0].ChildNodes.Select(BuildLiteral).ToList();
-                    _currentContext.EnterBlock("when", new WhenStatement(options, new List<Statement>()));
+                    BuildWhenStatement(tag);
                     break;
 
                 case "endcase":
@@ -344,13 +343,41 @@ namespace Fluid
                     _isRaw = false;
                     break;
 
+                case "cycle":
+                    return BuildCycleStatement(tag);
+
                 default:
                     throw new ParseException("Unknown tag type: " + node.Term.Name);
             }
 
             return null;
         }
-        
+
+        private CycleStatement BuildCycleStatement(ParseTreeNode tag)
+        {
+            Expression group = null;
+            IList<Expression> values;
+
+            if (tag.ChildNodes[0].Term.Name == "filterArguments")
+            {
+                // No group name
+                values = tag.ChildNodes[0].ChildNodes.Select(BuildFilter).ToArray();
+            }
+            else
+            {
+                group = BuildFilter(tag.ChildNodes[0]);
+                values = tag.ChildNodes[1].ChildNodes.Select(BuildFilter).ToArray();
+            }
+
+            return new CycleStatement(group, values);
+        }
+
+        private void BuildWhenStatement(ParseTreeNode tag)
+        {
+            var options = tag.ChildNodes[0].ChildNodes[0].ChildNodes.Select(BuildLiteral).ToList();
+            _currentContext.EnterBlock("when", new WhenStatement(options, new List<Statement>()));
+        }
+
         /// <summary>
         /// Invoked when a block is entered to assign subsequent
         /// statements to it.
@@ -602,6 +629,7 @@ namespace Fluid
 
                 case "number":
                     return new LiteralExpression(new NumberValue(Convert.ToDouble(node.Token.Value)));
+
                 case "boolean":
                     if (!bool.TryParse(node.ChildNodes[0].Token.Text, out var boolean))
                     {

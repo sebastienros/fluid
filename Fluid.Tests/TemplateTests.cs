@@ -200,5 +200,19 @@ namespace Fluid.Tests
 
             Check(template, expected, ctx => { ctx.SetValue("x", x); });
         }
+
+        [Theory]
+        [InlineData(@"
+            {%cycle 'a', 'b'%}
+            {%cycle 'a', 'b'%}
+            {%cycle 'a', 'b'%}", "\r\naba")]
+        [InlineData(@"
+            {%cycle x:'a', 'b'%}
+            {%cycle 'a', 'b'%}
+            {%cycle x:'a', 'b'%}", "\r\naab")]
+        public void ShouldEvaluateCycleStatement(string source, string expected)
+        {
+            Check(source, expected, ctx => { ctx.SetValue("x", 3); });
+        }
     }
 }
