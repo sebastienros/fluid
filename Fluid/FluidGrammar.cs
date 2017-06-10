@@ -17,7 +17,8 @@ namespace Fluid
             var IdentifierPart = new IdentifierTerminal("identifier");
             var Pipe = ToTerm("|");
             var Colon = ToTerm(":");
-            var StringLiteral = new StringLiteral("string", "'", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes);
+            var StringLiteralSingle = new StringLiteral("string1", "'", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes);
+            var StringLiteralDouble = new StringLiteral("string2", "\"", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes);
             var Number = new NumberLiteral("number", NumberOptions.AllowSign);
             var True = ToTerm("true");
             var False = ToTerm("false");
@@ -58,7 +59,7 @@ namespace Fluid
 
             // Expression
             Expression.Rule = MemberAccess | Literal | BinaryExpression;
-            Literal.Rule = StringLiteral | Number | Boolean;
+            Literal.Rule = StringLiteralSingle | StringLiteralDouble | Number | Boolean;
             BinaryExpression.Rule = Expression + BinaryOperator + Expression;
             BinaryOperator.Rule = ToTerm("+") | "-" | "*" | "/" | "%"
                        | "==" | ">" | "<" | ">=" | "<=" | "<>" | "!=" | "contains"
@@ -77,7 +78,7 @@ namespace Fluid
             Filter.Rule = Pipe + IdentifierPart;
             Filter.Rule |= Pipe + IdentifierPart + Colon + FilterArguments;
             FilterArguments.Rule = MakeListRule(FilterArguments, Comma, FilterArgument);
-            FilterArgument.Rule = StringLiteral | Number | Boolean | MemberAccess; // We are not using Expression here to limit the values that can be passed
+            FilterArgument.Rule = StringLiteralSingle | StringLiteralDouble | Number | Boolean | MemberAccess; // We are not using Expression here to limit the values that can be passed
 
             // Known Tags
             var If = new NonTerminal("if");

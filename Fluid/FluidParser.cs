@@ -558,7 +558,8 @@ namespace Fluid
         {
             switch (node.Term.Name)
             {
-                case "string":
+                case "string1":
+                case "string2":
                     return new LiteralExpression(new StringValue(node.Token.ValueString));
 
                 case "number":

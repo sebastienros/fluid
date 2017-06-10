@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Text.Encodings.Web;
 using Fluid.Ast.Values;
 using Fluid.Tests.Domain;
 using Xunit;
@@ -30,14 +32,30 @@ namespace Fluid.Tests
         public void ShouldRenderText(string source, string expected)
         {
             Check(source, expected);
-
         }
 
         [Theory]
         [InlineData("{{ 'abc' }}", "abc")]
+        [InlineData("{{ \"abc\" }}", "abc")]
         public void ShouldEvaluateString(string source, string expected)
         {
             Check(source, expected);
+        }
+
+        [Theory]
+        [InlineData("{{ 'ab''c' }}", "ab&#x27;c", true)]
+        [InlineData("{{ \"a\"\"bc\" }}", "a&quot;bc", true)]
+        [InlineData("{{ 'ab''c' }}", "ab%27c", false)]
+        [InlineData("{{ \"a\"\"bc\" }}", "a%22bc", false)]
+        public void ShouldEncodeString(string source, string expected, bool htmlEncode)
+        {
+            FluidTemplate.TryParse(source, out var template, out var messages);
+            var context = new TemplateContext();
+            var sw = new StringWriter();
+            TextEncoder encoder = htmlEncode ? (TextEncoder)HtmlEncoder.Default : UrlEncoder.Default;
+
+            template.Render(sw, encoder, context);
+            Assert.Equal(expected, sw.ToString());
         }
 
         [Theory]
