@@ -221,5 +221,13 @@ namespace Fluid.Tests
         {
             Check(source, expected);
         }
+
+
+        [Theory]
+        [InlineData("{% capture x %}Hi there{% endcapture %}{{x}}", "Hi there")]
+        public void ShouldEvaluateCaptureStatement(string source, string expected)
+        {
+            Check(source, expected);
+        }
     }
 }

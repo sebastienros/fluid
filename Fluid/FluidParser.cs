@@ -349,6 +349,13 @@ namespace Fluid
                 case "assign":
                     return BuildAssignStatement(tag);
 
+                case "capture":
+                    EnterBlock(tag);
+                    break;
+
+                case "endcapture":
+                    return BuildCaptureStatement();
+
                 default:
                     throw new ParseException("Unknown tag type: " + node.Term.Name);
             }
@@ -356,7 +363,23 @@ namespace Fluid
             return null;
         }
 
-        private Statement BuildAssignStatement(ParseTreeNode tag)
+        private CaptureStatement BuildCaptureStatement()
+        {
+            if (_currentContext.Tag.Term.Name != "capture")
+            {
+                throw new ParseException($"Unexpected tag: endcapture not matching {_currentContext.Tag.Term.Name} tag.");
+            }
+
+            var identifier = _currentContext.Tag.ChildNodes[0].Token.ValueString;
+            
+            var captureStatement = new CaptureStatement(identifier, _currentContext.Statements);
+
+            ExitBlock();
+
+            return captureStatement;
+        }
+
+        private AssignStatement BuildAssignStatement(ParseTreeNode tag)
         {
             var identifier = tag.ChildNodes[0].Token.ValueString;
             var value = BuildExpression(tag.ChildNodes[1]);

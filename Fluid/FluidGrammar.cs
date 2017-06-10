@@ -14,7 +14,7 @@ namespace Fluid
             var TagEnd = ToTerm("%}");
             var Dot = ToTerm(".");
             var Comma = ToTerm(",");
-            var IdentifierPart = new IdentifierTerminal("identifier");
+            var Identifier = new IdentifierTerminal("identifier");
             var Pipe = ToTerm("|");
             var Colon = ToTerm(":");
             var StringLiteralSingle = new StringLiteral("string1", "'", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes);
@@ -51,10 +51,10 @@ namespace Fluid
             Tag.Rule = TagStart + KnownTags + TagEnd;
 
             // Members
-            MemberAccess.Rule = IdentifierPart + MemberAccessSegmentOpt;
+            MemberAccess.Rule = Identifier + MemberAccessSegmentOpt;
             MemberAccessSegmentOpt.Rule = MakeStarRule(MemberAccessSegmentOpt, MemberAccessSegment);
             MemberAccessSegment.Rule = MemberAccessSegmentIdentifier | MemberAccessSegmentIndexer;
-            MemberAccessSegmentIdentifier.Rule = Dot + IdentifierPart;
+            MemberAccessSegmentIdentifier.Rule = Dot + Identifier;
             MemberAccessSegmentIndexer.Rule = "[" + Expression + "]";
 
             // Expression
@@ -75,8 +75,8 @@ namespace Fluid
 
             // Filters
             FilterList.Rule = MakeStarRule(FilterList, Filter);
-            Filter.Rule = Pipe + IdentifierPart;
-            Filter.Rule |= Pipe + IdentifierPart + Colon + FilterArguments;
+            Filter.Rule = Pipe + Identifier;
+            Filter.Rule |= Pipe + Identifier + Colon + FilterArguments;
             FilterArguments.Rule = MakeListRule(FilterArguments, Comma, FilterArgument);
             FilterArgument.Rule = StringLiteralSingle | StringLiteralDouble | Number | Boolean | MemberAccess; // We are not using Expression here to limit the values that can be passed
 
@@ -103,8 +103,11 @@ namespace Fluid
             var ForOffset = new NonTerminal("offset");
             var Range = new NonTerminal("range");
             var RangeIndex = new NonTerminal("rangeIndex");
+
             var Cycle = new NonTerminal("cycle");
             var Assign = new NonTerminal("assign");
+            var Capture = new NonTerminal("capture");
+            var EndCapture = ToTerm("endcapture");
 
             var Continue = ToTerm("continue");
             var Break = ToTerm("break");
@@ -122,7 +125,7 @@ namespace Fluid
                 Continue | Break |
                 Comment | EndComment |
                 Raw | EndRaw |
-                Cycle | Assign;
+                Cycle | Assign | Capture | EndCapture;
 
             If.Rule = "if" + Expression;
             Unless.Rule = "unless" + Expression;
@@ -132,7 +135,7 @@ namespace Fluid
             When.Rule = "when" + LiteralList;
             LiteralList.Rule = MakePlusRule(LiteralList, ToTerm("or"), Literal);
 
-            For.Rule = "for" + IdentifierPart + "in" + ForSource + ForOptions;
+            For.Rule = "for" + Identifier + "in" + ForSource + ForOptions;
             ForSource.Rule = MemberAccess | Range;
             Range.Rule = "(" + RangeIndex + ".." + RangeIndex + ")";
             RangeIndex.Rule = Number | MemberAccess;
@@ -144,11 +147,13 @@ namespace Fluid
             Cycle.Rule = "cycle" + FilterArguments;
             Cycle.Rule |= "cycle" + FilterArgument + Colon + FilterArguments;
 
-            Assign.Rule = "assign" + IdentifierPart + "=" + Expression;
+            Assign.Rule = "assign" + Identifier + "=" + Expression;
+
+            Capture.Rule = "capture" + Identifier;
 
             MarkPunctuation(
                 "[", "]", ":", "|", "=",
-                "if", "elsif", "unless", "assign",
+                "if", "elsif", "unless", "assign", "capture",
                 "case",
                 "for", "in", "(", ")", "..",
                 "when", "cycle", "limit", "offset"
