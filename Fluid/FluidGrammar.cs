@@ -99,6 +99,7 @@ namespace Fluid
             var ForSource = new NonTerminal("forSource");
             var Range = new NonTerminal("range");
             var RangeIndex = new NonTerminal("rangeIndex");
+            var Cycle = new NonTerminal("cycle");
 
             var Continue = ToTerm("continue");
             var Break = ToTerm("break");
@@ -115,7 +116,8 @@ namespace Fluid
                 For | EndFor |
                 Continue | Break |
                 Comment | EndComment |
-                Raw | EndRaw;
+                Raw | EndRaw |
+                Cycle;
 
             If.Rule = "if" + Expression;
             Unless.Rule = "unless" + Expression;
@@ -130,12 +132,15 @@ namespace Fluid
             Range.Rule = "(" + RangeIndex + ".." + RangeIndex + ")";
             RangeIndex.Rule = Number | MemberAccess;
 
+            Cycle.Rule = "cycle" + FilterArguments;
+            Cycle.Rule |= "cycle" + FilterArgument + Colon + FilterArguments;
+
             MarkPunctuation(
                 "[", "]", ":", "|",
                 "if", "unless", "elsif",
                 "case",
                 "for", "in", "(", ")", "..",
-                "when"
+                "when", "cycle"
                 );
             MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd, Colon);
             MarkTransient(Statement, KnownTags, ForSource, FilterArgument, RangeIndex, BinaryOperator);
