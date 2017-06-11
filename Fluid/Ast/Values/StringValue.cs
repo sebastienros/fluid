@@ -42,7 +42,7 @@ namespace Fluid.Ast.Values
 
         public override bool ToBooleanValue()
         {
-            return _value != null;
+            return true;
         }
 
         public override double ToNumberValue()
