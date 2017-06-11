@@ -15,29 +15,10 @@ namespace Fluid.Ast.BinaryExpressions
             var leftValue = Left.Evaluate(context);
             var rightValue = Right.Evaluate(context);
 
-            switch (leftValue)
-            {
-                case StringValue leftStringValue:
-                    if (leftStringValue.ToStringValue().Contains(rightValue.ToStringValue()))
-                    {
-                        return BooleanValue.True;
-                    }
-                    break;
-
-                case ArrayValue arrayValue:
-                    return arrayValue.Contains(rightValue)
-                        ? BooleanValue.True
-                        : BooleanValue.False
-                        ;
-
-                case DictionaryValue dictionaryValue:
-                    return dictionaryValue.Contains(rightValue)
-                        ? BooleanValue.True
-                        : BooleanValue.False
-                        ;
-            }
-
-            return BooleanValue.False;
+            return leftValue.Contains(rightValue)
+                ? BooleanValue.True
+                : BooleanValue.False
+                ;
         }
     }
 }

@@ -91,7 +91,7 @@ namespace Fluid.Ast.Values
             return _value;
         }
 
-        public bool Contains(FluidValue value)
+        public override bool Contains(FluidValue value)
         {
             foreach (var item in _value.Values)
             {

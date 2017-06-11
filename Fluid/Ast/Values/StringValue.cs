@@ -65,5 +65,9 @@ namespace Fluid.Ast.Values
             return _value;
         }
 
+        public override bool Contains(FluidValue value)
+        {
+            return _value.Contains(value.ToStringValue());
+        }
     }
 }

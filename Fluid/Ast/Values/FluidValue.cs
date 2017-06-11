@@ -78,5 +78,11 @@ namespace Fluid.Ast.Values
                     throw new InvalidOperationException();
             }
         }
+
+        public virtual bool Contains(FluidValue value)
+        {
+            // Used by the 'contains' keyword
+            return false;
+        }
     }
 }
