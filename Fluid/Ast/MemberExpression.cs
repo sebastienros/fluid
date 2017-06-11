@@ -17,7 +17,7 @@ namespace Fluid.Ast
 
             foreach(var segment in Segments)
             {
-                var namedSet = ((object)value ?? context.LocalScope) as INamedSet;
+                var namedSet = value  as INamedSet ?? context.LocalScope as INamedSet;
 
                 if (namedSet == null)
                 {

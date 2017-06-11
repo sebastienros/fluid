@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 using Fluid.Ast.Values;
@@ -222,12 +223,55 @@ namespace Fluid.Tests
             Check(source, expected);
         }
 
-
         [Theory]
         [InlineData("{% capture x %}Hi there{% endcapture %}{{x}}", "Hi there")]
         public void ShouldEvaluateCaptureStatement(string source, string expected)
         {
             Check(source, expected);
+        }
+
+        [Theory]
+        [InlineData("{{x == empty}} {{y == empty}}", "false true")]
+        public void ArrayCompareEmptyValue(string source, string expected)
+        {
+            Check(source, expected, ctx =>
+            {
+                ctx.SetValue("x", new[] { 1, 2, 3 });
+                ctx.SetValue("y", new int[0]);
+            });
+        }
+
+        [Theory]
+        [InlineData("{{x == empty}} {{y == empty}}", "false true")]
+        public void DictionaryCompareEmptyValue(string source, string expected)
+        {
+            Check(source, expected, ctx =>
+            {
+                ctx.SetValue("x", new Dictionary<string, int> { { "1", 1 }, { "2", 2 }, { "3", 3 } });
+                ctx.SetValue("y", new Dictionary<string, int>());
+            });
+        }
+
+        [Theory]
+        [InlineData("{{x.size}} {{y.size}}", "3 0")]
+        public void ArrayEvaluatesSize(string source, string expected)
+        {
+            Check(source, expected, ctx =>
+            {
+                ctx.SetValue("x", new[] { 1, 2, 3 });
+                ctx.SetValue("y", new int[0]);
+            });
+        }
+
+        [Theory]
+        [InlineData("{{x.size}} {{y.size}}", "3 0")]
+        public void DictionaryEvaluatesSize(string source, string expected)
+        {
+            Check(source, expected, ctx =>
+            {
+                ctx.SetValue("x", new Dictionary<string, int> { { "1", 1 }, { "2", 2 }, { "3", 3 } });
+                ctx.SetValue("y", new Dictionary<string, int>());
+            });
         }
     }
 }

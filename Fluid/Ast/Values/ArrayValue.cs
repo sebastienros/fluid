@@ -1,16 +1,27 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast.Values
 {
-    public class DictionaryValue : FluidValue, INamedSet
+    public class ArrayValue : FluidValue, INamedSet
     {
-        private readonly IDictionary _value;
+        private readonly IList _value;
 
-        public DictionaryValue(IDictionary value)
+        public ArrayValue(IList value)
         {
             _value = value;
+        }
+
+        public ArrayValue(IEnumerable value)
+        {
+            _value = new List<object>();
+            
+            foreach(var item in value)
+            {
+                _value.Add(item);
+            }
         }
 
         public override bool Equals(FluidValue other)
@@ -20,22 +31,17 @@ namespace Fluid.Ast.Values
                 return _value.Count == 0;
             }
 
-            if (other is DictionaryValue otherDictionary)
+            if (other is ArrayValue arrayValue)
             {
-                if (_value.Count != otherDictionary._value.Count)
+                if (_value.Count != arrayValue._value.Count)
                 {
                     return false;
                 }
 
-                foreach (var key in _value.Keys)
+                for (var i=0; i<_value.Count; i++)
                 {
-                    if (!otherDictionary._value.Contains(key))
-                    {
-                        return false;
-                    }
-
-                    var item = _value[key];
-                    var otherItem = otherDictionary._value[key];
+                    var item = _value[i];
+                    var otherItem = arrayValue._value[i];
 
                     if (!item.Equals(otherItem))
                     {
@@ -54,17 +60,19 @@ namespace Fluid.Ast.Values
                 return new NumberValue(_value.Count);
             }
 
-            if (!_value.Contains(name))
-            {
-                return NilValue.Instance;
-            }
-
-            return FluidValue.Create(_value[name]); 
+            return NilValue.Instance;
         }
 
         public FluidValue GetIndex(FluidValue index)
         {
-            return GetValue(index.ToStringValue());
+            var i = (int)index.ToNumberValue();
+
+            if (i >= 0 && i < _value.Count)
+            {
+                return FluidValue.Create(_value[i]);
+            }
+
+            return NilValue.Instance;
         }
 
         public override bool ToBooleanValue()
@@ -93,7 +101,7 @@ namespace Fluid.Ast.Values
 
         public bool Contains(FluidValue value)
         {
-            foreach (var item in _value.Values)
+            foreach (var item in _value)
             {
                 if (item.Equals(value.ToObjectValue()))
                 {

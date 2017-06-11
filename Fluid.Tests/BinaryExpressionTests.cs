@@ -102,7 +102,7 @@ namespace Fluid.Tests
         {
             Check("{{" + source + "}}", expected, context =>
             {
-                context.SetValue("x", new[] { "a", "b", "c" });
+                context.SetValue("x", new [] { "a", "b", "c" });
                 context.SetValue("y", new List<string> { "a", "b", "c" });
             });
         }

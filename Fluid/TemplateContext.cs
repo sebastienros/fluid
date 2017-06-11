@@ -70,7 +70,7 @@ namespace Fluid
 
         public void SetValue(string name, object value)
         {
-            SetValue(name, new ObjectValue(value));
+            SetValue(name, FluidValue.Create(value));
         }
     }
 }

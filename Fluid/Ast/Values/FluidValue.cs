@@ -61,6 +61,12 @@ namespace Fluid.Ast.Values
 
                         case IDictionary dictionary:
                             return new DictionaryValue(dictionary);
+
+                        case IList list:
+                            return new ArrayValue(list);
+
+                        case IEnumerable enumerable:
+                            return new ArrayValue(enumerable);
                     }
 
                     return new ObjectValue(value);

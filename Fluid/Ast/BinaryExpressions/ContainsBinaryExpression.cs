@@ -15,43 +15,26 @@ namespace Fluid.Ast.BinaryExpressions
             var leftValue = Left.Evaluate(context);
             var rightValue = Right.Evaluate(context);
 
-            if (leftValue is StringValue && rightValue is StringValue)
+            switch (leftValue)
             {
-                if (leftValue.ToStringValue().Contains(rightValue.ToStringValue()))
-                {
-                    return BooleanValue.True;
-                }
+                case StringValue leftStringValue:
+                    if (leftStringValue.ToStringValue().Contains(rightValue.ToStringValue()))
+                    {
+                        return BooleanValue.True;
+                    }
+                    break;
 
-                return BooleanValue.False;
-            }
+                case ArrayValue arrayValue:
+                    return arrayValue.Contains(rightValue)
+                        ? BooleanValue.True
+                        : BooleanValue.False
+                        ;
 
-            if (leftValue is ObjectValue objectValue)
-            {
-                var value = objectValue.ToObjectValue();
-                switch (value)
-                {
-                    case Array array:
-                        return Array.IndexOf(array, rightValue.ToObjectValue()) != -1
-                            ? BooleanValue.True
-                            : BooleanValue.False;
-
-                    case IEnumerable enumerable:
-                        var target = rightValue.ToObjectValue();
-                        foreach (var item in enumerable)
-                        {
-                            if (item != null)
-                            {
-                                if (item.Equals(target))
-                                {
-                                    return BooleanValue.True;
-                                }
-                            }
-                        }
-
-                        return BooleanValue.False;
-                }
-
-                return BooleanValue.False;
+                case DictionaryValue dictionaryValue:
+                    return dictionaryValue.Contains(rightValue)
+                        ? BooleanValue.True
+                        : BooleanValue.False
+                        ;
             }
 
             return BooleanValue.False;
