@@ -82,7 +82,9 @@ namespace Fluid.Tests
         {
             var statements = Parse(@"{% for a in b %}  
 {% endfor %}");
+
             Assert.Equal(1, statements.Count);
+            Assert.Equal(0, ((ForStatement)statements[0]).Statements.Count);
         }
 
         [Fact]
@@ -92,6 +94,17 @@ namespace Fluid.Tests
 
 {% endfor %}");
             Assert.Equal(1, statements.Count);
+            var text = ((ForStatement)statements[0]).Statements[0] as TextStatement;
+            Assert.Equal("\r\n", text.Text);
+        }
+
+        [Fact]
+        public void ShouldReadSingleCharInTag()
+        {
+            var statements = Parse(@"{% for a in b %};{% endfor %}");
+            Assert.Equal(1, statements.Count);
+            var text = ((ForStatement)statements[0]).Statements[0] as TextStatement;
+            Assert.Equal(";", text.Text);
         }
 
         [Fact]

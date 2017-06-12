@@ -52,34 +52,18 @@ namespace Fluid.Ast
 
             if (Member != null)
             {
-                var member = Member.Evaluate(context);
-                var objectValue = member.ToObjectValue();
-
-                switch (objectValue)
-                {
-                    case IEnumerable<FluidValue> l:
-                        elements = l.ToArray();
-                        break;
-
-                    case IEnumerable<object> o:
-                        elements = o.Select(FluidValue.Create);
-                        break;
-
-                    case IEnumerable e:
-                        var es = new List<FluidValue>();
-                        foreach (var item in e)
-                        {
-                            es.Add(FluidValue.Create(item));
-                        }
-                        elements = es;
-                        break;
-                }
+                elements = Member.Evaluate(context).Enumerate();
             }
             else if (Range != null)
             {
                 int start = Convert.ToInt32(Range.From.Evaluate(context).ToNumberValue());
                 int end = Convert.ToInt32(Range.To.Evaluate(context).ToNumberValue());
                 elements = Enumerable.Range(start, end - start + 1).Select(x => new NumberValue(x));
+            }
+
+            if (!elements.Any())
+            {
+                return Completion.Normal;
             }
 
             // Apply options
@@ -103,14 +87,17 @@ namespace Fluid.Ast
 
             var list = elements.ToList();
 
-            var length = list.Count;
+            if (!list.Any())
+            {
+                return Completion.Normal;
+            }
 
             var forScope = context.EnterChildScope();
 
             try
             {
                 var forloop = new Dictionary<string, FluidValue>();
-                forloop.Add("length", new NumberValue(length));
+                forloop.Add("length", new NumberValue(list.Count));
                 forScope.SetValue("forloop", new DictionaryValue(forloop));
 
 

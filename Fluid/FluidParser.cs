@@ -125,9 +125,9 @@ namespace Fluid
                 {
                     _currentContext.AddStatement(textSatement);
                 }
-
             }
         }
+
         /// <summary>
         /// Returns a <see cref="TextStatement"/> where the extra whitespace is stripped 
         /// for a Tag that is the only content on a line
@@ -148,7 +148,7 @@ namespace Fluid
                 while (true)
                 {
                     // Reach beginning of section?
-                    if (index == start)
+                    if (index == start - 1)
                     {
                         end = start;
                         break;

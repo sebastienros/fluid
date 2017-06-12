@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast.Values
@@ -102,6 +103,14 @@ namespace Fluid.Ast.Values
         public override bool Contains(FluidValue value)
         {
             return _value.Contains(value.ToObjectValue());
+        }
+
+        public override IEnumerable<FluidValue> Enumerate()
+        {
+            foreach (var item in _value)
+            {
+                yield return FluidValue.Create(item);
+            }
         }
     }
 }

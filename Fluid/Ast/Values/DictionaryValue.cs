@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 
@@ -102,6 +103,17 @@ namespace Fluid.Ast.Values
             }
 
             return false;
+        }
+
+        public override IEnumerable<FluidValue> Enumerate()
+        {
+            foreach (DictionaryEntry entry in _value)
+            {
+                yield return new ArrayValue(new FluidValue[] {
+                    FluidValue.Create(entry.Key),
+                    FluidValue.Create(entry.Value)
+                });
+            }
         }
     }
 }

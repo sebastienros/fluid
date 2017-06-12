@@ -273,5 +273,16 @@ namespace Fluid.Tests
                 ctx.SetValue("y", new Dictionary<string, int>());
             });
         }
+
+        [Theory]
+        [InlineData("{%for x in dic %}{{ x[0] }} {{ x[1] }};{%endfor%}", "a 1;b 2;c 3;")]
+        public void DictionaryIteratesKeyValue(string source, string expected)
+        {
+            Check(source, expected, ctx =>
+            {
+                ctx.SetValue("dic", new Dictionary<string, int> { { "a", 1 }, { "b", 2 }, { "c", 3 } });
+            });
+        }
+
     }
 }

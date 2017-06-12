@@ -29,6 +29,11 @@ namespace Fluid.Ast.Values
 
         public static FluidValue Create(object value)
         {
+            if (value == null)
+            {
+                return NilValue.Instance;
+            }
+
             switch (Type.GetTypeCode(value.GetType()))
             {
                 case TypeCode.Boolean:
@@ -83,6 +88,11 @@ namespace Fluid.Ast.Values
         {
             // Used by the 'contains' keyword
             return false;
+        }
+
+        public virtual IEnumerable<FluidValue> Enumerate()
+        {
+            return Array.Empty<FluidValue>();
         }
     }
 }
