@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using Fluid.Ast.Values;
+using Fluid.Values;
 using Fluid.Filters;
 
 namespace Fluid

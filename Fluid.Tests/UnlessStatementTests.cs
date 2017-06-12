@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using System.Text.Encodings.Web;
 using Fluid.Ast;
-using Fluid.Ast.Values;
+using Fluid.Values;
 using Xunit;
 
 namespace Fluid.Tests

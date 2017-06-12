@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Fluid.Ast.Values;
+using Fluid.Values;
 
 namespace Fluid.Filters
 {

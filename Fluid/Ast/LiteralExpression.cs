@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Fluid.Ast.Values;
+using Fluid.Values;
 
 namespace Fluid.Ast
 {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Fluid.Ast;
 using Fluid.Ast.BinaryExpressions;
-using Fluid.Ast.Values;
+using Fluid.Values;
 using Irony.Parsing;
 using Microsoft.Extensions.Primitives;
 

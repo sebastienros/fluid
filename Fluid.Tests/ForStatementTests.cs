@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
 using Fluid.Ast;
-using Fluid.Ast.Values;
+using Fluid.Values;
 using Xunit;
 
 namespace Fluid.Tests

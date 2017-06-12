@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
-using Fluid.Ast.Values;
+using Fluid.Values;
 
 namespace Fluid.Ast
 {

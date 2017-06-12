@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
-using Fluid.Ast.Values;
+using Fluid.Values;
 using Fluid.Tests.Domain;
 using Xunit;
 

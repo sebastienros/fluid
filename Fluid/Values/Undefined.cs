@@ -1,32 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Text.Encodings.Web;
 
-namespace Fluid.Ast.Values
+namespace Fluid.Values
 {
-    public class EmptyValue : FluidValue
+    public class UndefinedValue : FluidValue
     {
-        public static readonly EmptyValue Instance = new EmptyValue();
+        public static readonly UndefinedValue Instance = new UndefinedValue();
 
-        private EmptyValue()
+        private UndefinedValue()
         {
         }
 
-        public override FluidValues Type => FluidValues.Empty;
+        public override FluidValues Type => FluidValues.Undefined;
 
         public override bool Equals(FluidValue other)
         {
-            switch (other)
-            {
-                case StringValue stringValue:
-                    return stringValue.Equals(this);
-
-                case ObjectValue objectValue:
-                    return objectValue.Equals(this);
-            }
-
-            return false;
+            return other == Instance;
         }
 
         public override bool ToBooleanValue()

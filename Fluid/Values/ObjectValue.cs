@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Encodings.Web;
 
-namespace Fluid.Ast.Values
+namespace Fluid.Values
 {
     public class ObjectValue : FluidValue
     {

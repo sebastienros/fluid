@@ -1,5 +1,5 @@
 ﻿using System.Linq;
-using Fluid.Ast.Values;
+using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
 
@@ -98,6 +98,7 @@ namespace Fluid.Tests
             Assert.Equal("Hello<br />World", result.ToStringValue());
         }
 
+        [Fact]
         public void Prepend()
         {
             var input = new StringValue("World");

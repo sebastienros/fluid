@@ -1,5 +1,5 @@
 ﻿using System.Linq;
-using Fluid.Ast.Values;
+using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
 

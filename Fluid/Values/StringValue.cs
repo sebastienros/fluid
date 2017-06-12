@@ -2,7 +2,7 @@
 using System.IO;
 using System.Text.Encodings.Web;
 
-namespace Fluid.Ast.Values
+namespace Fluid.Values
 {
     public class StringValue : FluidValue
     {

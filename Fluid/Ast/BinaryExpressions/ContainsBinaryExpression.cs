@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections;
-using Fluid.Ast.Values;
+using Fluid.Values;
 
 namespace Fluid.Ast.BinaryExpressions
 {

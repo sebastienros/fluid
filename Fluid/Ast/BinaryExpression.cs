@@ -1,5 +1,5 @@
 ﻿using System;
-using Fluid.Ast.Values;
+using Fluid.Values;
 
 namespace Fluid.Ast
 {

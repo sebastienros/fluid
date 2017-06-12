@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 
-namespace Fluid.Ast.Values
+namespace Fluid.Values
 {
     public abstract class FluidValue : IEquatable<FluidValue>
     {
