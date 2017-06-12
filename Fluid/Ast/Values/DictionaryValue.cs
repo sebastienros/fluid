@@ -5,7 +5,7 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Ast.Values
 {
-    public class DictionaryValue : FluidValue, INamedSet
+    public class DictionaryValue : FluidValue
     {
         private readonly IDictionary _value;
 
@@ -13,6 +13,8 @@ namespace Fluid.Ast.Values
         {
             _value = value;
         }
+
+        public override FluidValues Type => FluidValues.Dictionary;
 
         public override bool Equals(FluidValue other)
         {
@@ -48,7 +50,7 @@ namespace Fluid.Ast.Values
             return false;
         }
 
-        public FluidValue GetValue(string name)
+        public override FluidValue GetValue(string name)
         {
             if (name == "size")
             {
@@ -63,7 +65,7 @@ namespace Fluid.Ast.Values
             return FluidValue.Create(_value[name]); 
         }
 
-        public FluidValue GetIndex(FluidValue index)
+        public override FluidValue GetIndex(FluidValue index)
         {
             return GetValue(index.ToStringValue());
         }

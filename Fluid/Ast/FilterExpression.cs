@@ -27,7 +27,7 @@ namespace Fluid.Ast
                 return input;
             }
 
-            return filter(input, arguments);
+            return filter(input, arguments, context);
         }
     }
 }

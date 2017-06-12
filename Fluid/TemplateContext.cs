@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Fluid.Ast.Values;
+using Fluid.Filters;
 
 namespace Fluid
 {
@@ -9,7 +10,7 @@ namespace Fluid
         public static Scope GlobalScope = new Scope();
 
         public Dictionary<string, FilterDelegate> Filters { get; } = new Dictionary<string, FilterDelegate>();
-        public static Dictionary<string, FilterDelegate> GlobalFilters { get; } = new Dictionary<string, FilterDelegate>();
+        public static FiltersCollection GlobalFilters { get; } = new FiltersCollection();
 
         protected Scope _scope;
         public Scope LocalScope { get; private set; }
@@ -20,6 +21,8 @@ namespace Fluid
             GlobalScope.SetValue("empty", EmptyValue.Instance);
 
             // Initialize Global Filters
+            GlobalFilters
+                .WithArrayFilters();
         }
 
         public TemplateContext()

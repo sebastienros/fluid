@@ -11,6 +11,8 @@ namespace Fluid.Ast.Values
         {
         }
 
+        public override FluidValues Type => FluidValues.Nil;
+
         public override bool Equals(FluidValue other)
         {
             return other == Instance;

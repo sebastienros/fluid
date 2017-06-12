@@ -4,7 +4,8 @@ namespace Fluid.Ast
 {
     public abstract class MemberSegment
     {
-        public abstract FluidValue Resolve(INamedSet properties, TemplateContext context);
+        public abstract FluidValue Resolve(FluidValue value, TemplateContext context);
+        public abstract FluidValue Resolve(Scope value, TemplateContext context);
     }
 
     public class IdentifierSegment : MemberSegment
@@ -16,9 +17,14 @@ namespace Fluid.Ast
 
         public string Identifier { get; }
 
-        public override FluidValue Resolve(INamedSet properties, TemplateContext context)
+        public override FluidValue Resolve(FluidValue value, TemplateContext context)
         {
-            return properties.GetValue(Identifier);
+            return value.GetValue(Identifier);
+        }
+
+        public override FluidValue Resolve(Scope value, TemplateContext context)
+        {
+            return value.GetValue(Identifier);
         }
     }
 
@@ -31,10 +37,16 @@ namespace Fluid.Ast
 
         public Expression Expression { get; }
 
-        public override FluidValue Resolve(INamedSet properties, TemplateContext context)
+        public override FluidValue Resolve(FluidValue value, TemplateContext context)
         {
             var index = Expression.Evaluate(context);
-            return properties.GetIndex(index);
+            return value.GetIndex(index);
+        }
+
+        public override FluidValue Resolve(Scope value, TemplateContext context)
+        {
+            var index = Expression.Evaluate(context);
+            return value.GetIndex(index);
         }
     }
 }

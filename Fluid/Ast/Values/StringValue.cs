@@ -4,7 +4,7 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Ast.Values
 {
-    public class StringValue : FluidValue, INamedSet
+    public class StringValue : FluidValue
     {
         private readonly string _value;
 
@@ -12,6 +12,8 @@ namespace Fluid.Ast.Values
         {
             _value = value;
         }
+
+        public override FluidValues Type => FluidValues.String;
 
         public override bool Equals(FluidValue other)
         {
@@ -23,7 +25,7 @@ namespace Fluid.Ast.Values
             return _value == other.ToStringValue();
         }
 
-        public FluidValue GetIndex(FluidValue index)
+        public override FluidValue GetIndex(FluidValue index)
         {
             var i = Convert.ToInt32(index.ToNumberValue());
 
@@ -32,12 +34,18 @@ namespace Fluid.Ast.Values
                 return Create(_value[i]);
             }
 
-            return UndefinedValue.Instance;
+            return NilValue.Instance;
         }
 
-        public FluidValue GetValue(string name)
+        public override FluidValue GetValue(string name)
         {
-            return UndefinedValue.Instance;
+            switch (name)
+            {
+                case "size":
+                    return new NumberValue(_value.Length);
+            }
+
+            return NilValue.Instance;
         }
 
         public override bool ToBooleanValue()

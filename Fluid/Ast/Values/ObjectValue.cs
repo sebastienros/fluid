@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -8,7 +6,7 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Ast.Values
 {
-    public class ObjectValue : FluidValue, INamedSet
+    public class ObjectValue : FluidValue
     {
         private readonly object _value;
 
@@ -16,6 +14,8 @@ namespace Fluid.Ast.Values
         {
             _value = value;
         }
+
+        public override FluidValues Type => FluidValues.Object;
 
         public override bool Equals(FluidValue other)
         {
@@ -36,13 +36,13 @@ namespace Fluid.Ast.Values
             return other is ObjectValue && ((ObjectValue)other)._value == _value;
         }
 
-        public FluidValue GetValue(string name)
+        public override FluidValue GetValue(string name)
         {
             var propertyInfo = _value.GetType().GetTypeInfo().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
             return Create(propertyInfo.GetValue(_value));
         }
 
-        public FluidValue GetIndex(FluidValue index)
+        public override FluidValue GetIndex(FluidValue index)
         {
             PropertyInfo indexProperty = _value.GetType().GetProperties().FirstOrDefault(p => p.GetIndexParameters().Length == 1 && p.GetIndexParameters()[0].ParameterType == typeof(string));
 

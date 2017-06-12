@@ -89,7 +89,7 @@ namespace Fluid.Tests
             FluidTemplate.TryParse(source, out var template, out var messages);
             var context = new TemplateContext();
 
-            context.Filters.Add("inc", (i, args) => 
+            context.Filters.Add("inc", (i, args, ctx) => 
             {
                 var increment = 1;
                 if (args.Length > 0)
@@ -100,7 +100,7 @@ namespace Fluid.Tests
                 return new NumberValue(i.ToNumberValue() + increment);
             });
 
-            context.Filters.Add("append", (i, args) =>
+            context.Filters.Add("append", (i, args, ctx) =>
             {
                 var s = i.ToStringValue();
 

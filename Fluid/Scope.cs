@@ -4,7 +4,7 @@ using Fluid.Ast.Values;
 
 namespace Fluid
 {
-    public class Scope : INamedSet
+    public class Scope
     {
         private Dictionary<string, FluidValue> _properties = new Dictionary<string, FluidValue>();
         private readonly Scope _parent;

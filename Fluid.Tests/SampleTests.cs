@@ -67,9 +67,9 @@ namespace Fluid.Tests
 
             var context = new TemplateContext();
             context.SetValue("products", _products);
-            context.Filters.Add("prettyprint", (input, args) => input);
-            context.Filters.Add("paragraph", (input, args) => input);
-            context.Filters.Add("price", (input, args) => input);
+            context.Filters.Add("prettyprint", (input, args, ctx) => input);
+            context.Filters.Add("paragraph", (input, args, ctx) => input);
+            context.Filters.Add("price", (input, args, ctx) => input);
 
             var result = template.Render(context);
             Assert.Equal(expected, result);

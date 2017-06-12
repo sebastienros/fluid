@@ -12,7 +12,9 @@ namespace Fluid.Ast.Values
         private EmptyValue()
         {
         }
-        
+
+        public override FluidValues Type => FluidValues.Empty;
+
         public override bool Equals(FluidValue other)
         {
             switch (other)

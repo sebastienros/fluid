@@ -15,6 +15,8 @@ namespace Fluid.Ast.Values
             _value = value;
         }
 
+        public override FluidValues Type => FluidValues.Boolean;
+
         public override bool Equals(FluidValue other)
         {
             return _value == other.ToBooleanValue();

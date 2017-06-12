@@ -17,6 +17,17 @@ namespace Fluid.Ast.Values
         public abstract string ToStringValue();
         public abstract object ToObjectValue();
 
+        public virtual FluidValue GetValue(string name)
+        {
+            return NilValue.Instance;
+        }
+
+        public virtual FluidValue GetIndex(FluidValue index)
+        {
+            return NilValue.Instance;
+        }
+
+        public abstract FluidValues Type { get; }
         public virtual bool IsUndefined()
         {
             return false;
@@ -34,7 +45,7 @@ namespace Fluid.Ast.Values
                 return NilValue.Instance;
             }
 
-            switch (Type.GetTypeCode(value.GetType()))
+            switch (System.Type.GetTypeCode(value.GetType()))
             {
                 case TypeCode.Boolean:
                     return new BooleanValue(Convert.ToBoolean(value));

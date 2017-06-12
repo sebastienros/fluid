@@ -17,14 +17,9 @@ namespace Fluid.Ast
 
             foreach(var segment in Segments)
             {
-                var namedSet = value  as INamedSet ?? context.LocalScope as INamedSet;
-
-                if (namedSet == null)
-                {
-                    return UndefinedValue.Instance;
-                }
-
-                value = segment.Resolve(namedSet, context);
+                value = value != null
+                    ? segment.Resolve(value, context)
+                    : segment.Resolve(context.LocalScope, context);
 
                 // Stop processing as soon as a member returns nothing
                 if (value.IsUndefined())

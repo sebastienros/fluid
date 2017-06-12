@@ -1,14 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast.Values
 {
-    public class ArrayValue : FluidValue, INamedSet
+    public class ArrayValue : FluidValue
     {
         private readonly IList _value;
+
+        public override FluidValues Type => FluidValues.Array;
 
         public ArrayValue(IList value)
         {
@@ -54,17 +55,33 @@ namespace Fluid.Ast.Values
             return false;
         }
 
-        public FluidValue GetValue(string name)
+        public override FluidValue GetValue(string name)
         {
-            if (name == "size")
+            switch (name)
             {
-                return new NumberValue(_value.Count);
+                case "size":
+                    return new NumberValue(_value.Count);
+
+                case "first":
+                    if (_value.Count > 0)
+                    {
+                        return FluidValue.Create(_value[0]);
+                    }
+                    break;
+
+                case "last":
+                    if (_value.Count > 0)
+                    {
+                        return FluidValue.Create(_value[_value.Count - 1]);
+                    }
+                    break;
+
             }
 
             return NilValue.Instance;
         }
 
-        public FluidValue GetIndex(FluidValue index)
+        public override FluidValue GetIndex(FluidValue index)
         {
             var i = (int)index.ToNumberValue();
 
