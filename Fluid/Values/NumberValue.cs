@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Globalization;
+using System.IO;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -31,7 +32,7 @@ namespace Fluid.Values
 
         public override string ToStringValue()
         {
-            return _value.ToString();
+            return _value.ToString(CultureInfo.InvariantCulture);
         }
 
         public override void WriteTo(TextWriter writer, TextEncoder encoder)

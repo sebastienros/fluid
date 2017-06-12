@@ -109,7 +109,7 @@ namespace Fluid.Values
 
         public override string ToStringValue()
         {
-            return null;
+            return "";
         }
 
         public override object ToObjectValue()

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -17,16 +15,8 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other)
         {
-            switch (other)
-            {
-                case StringValue stringValue:
-                    return stringValue.Equals(this);
-
-                case ObjectValue objectValue:
-                    return objectValue.Equals(this);
-            }
-
-            return false;
+            // The 'empty' comparison is delegated to each value type
+            return other.Equals(this);
         }
 
         public override bool ToBooleanValue()
@@ -46,7 +36,7 @@ namespace Fluid.Values
 
         public override string ToStringValue()
         {
-            return null;
+            return "";
         }
 
         public override bool IsUndefined()
