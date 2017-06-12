@@ -50,7 +50,7 @@ namespace Fluid.Values
             return false;
         }
 
-        public override FluidValue GetValue(string name)
+        public override FluidValue GetValue(string name, TemplateContext context)
         {
             if (name == "size")
             {
@@ -65,9 +65,9 @@ namespace Fluid.Values
             return FluidValue.Create(_value[name]); 
         }
 
-        public override FluidValue GetIndex(FluidValue index)
+        public override FluidValue GetIndex(FluidValue index, TemplateContext context)
         {
-            return GetValue(index.ToStringValue());
+            return GetValue(index.ToStringValue(), context);
         }
 
         public override bool ToBooleanValue()

@@ -93,7 +93,7 @@ namespace Fluid.Filters
 
             foreach(var item in input.Enumerate())
             {
-                list.Add(item.GetValue(member));
+                list.Add(item.GetValue(member, context));
             }
 
             return new ArrayValue(list);
@@ -113,12 +113,12 @@ namespace Fluid.Filters
         {
             if (input.Type == FluidValues.Array)
             {
-                return ((ArrayValue)input).GetValue("size");
+                return ((ArrayValue)input).GetValue("size", context);
             }
 
             if (input.Type == FluidValues.String)
             {
-                return ((StringValue)input).GetValue("size");
+                return ((StringValue)input).GetValue("size", context);
             }
 
             return NilValue.Instance;
@@ -128,7 +128,7 @@ namespace Fluid.Filters
         {
             var member = arguments[0].ToStringValue();
 
-            return new ArrayValue(input.Enumerate().OrderBy(x => x.GetValue(member).ToObjectValue()).ToArray());
+            return new ArrayValue(input.Enumerate().OrderBy(x => x.GetValue(member, context).ToObjectValue()).ToArray());
         }
 
         public static FluidValue Uniq(FluidValue input, FluidValue[] arguments, TemplateContext context)

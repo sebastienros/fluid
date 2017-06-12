@@ -19,7 +19,7 @@ namespace Fluid.Ast
 
         public override FluidValue Resolve(FluidValue value, TemplateContext context)
         {
-            return value.GetValue(Identifier);
+            return value.GetValue(Identifier, context);
         }
 
         public override FluidValue Resolve(Scope value, TemplateContext context)
@@ -40,7 +40,7 @@ namespace Fluid.Ast
         public override FluidValue Resolve(FluidValue value, TemplateContext context)
         {
             var index = Expression.Evaluate(context);
-            return value.GetIndex(index);
+            return value.GetIndex(index, context);
         }
 
         public override FluidValue Resolve(Scope value, TemplateContext context)

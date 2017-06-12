@@ -17,12 +17,12 @@ namespace Fluid.Values
         public abstract string ToStringValue();
         public abstract object ToObjectValue();
 
-        public virtual FluidValue GetValue(string name)
+        public virtual FluidValue GetValue(string name, TemplateContext context)
         {
             return NilValue.Instance;
         }
 
-        public virtual FluidValue GetIndex(FluidValue index)
+        public virtual FluidValue GetIndex(FluidValue index, TemplateContext context)
         {
             return NilValue.Instance;
         }
