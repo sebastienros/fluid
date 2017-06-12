@@ -22,7 +22,8 @@ namespace Fluid
 
             // Initialize Global Filters
             GlobalFilters
-                .WithArrayFilters();
+                .WithArrayFilters()
+                .WithStringFilters();
         }
 
         public TemplateContext()
