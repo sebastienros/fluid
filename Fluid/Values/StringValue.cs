@@ -55,6 +55,11 @@ namespace Fluid.Values
 
         public override double ToNumberValue()
         {
+            if (double.TryParse(_value, out var value))
+            {
+                return value;
+            }
+
             return 0;
         }
 

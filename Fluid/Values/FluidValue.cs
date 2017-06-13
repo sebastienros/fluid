@@ -105,5 +105,15 @@ namespace Fluid.Values
         {
             return Array.Empty<FluidValue>();
         }
+
+        public FluidValue Or(FluidValue other)
+        {
+            if (this == NilValue.Instance || this == UndefinedValue.Instance)
+            {
+                return other;
+            }
+
+            return this;
+        }
     }
 }

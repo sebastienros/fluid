@@ -38,6 +38,36 @@ namespace Fluid
             }
         }
 
+        public FilterArguments()
+        {
+        }
+        
+        public FilterArguments(params FluidValue[] values)
+        {
+            foreach(var value in values)
+            {
+                Add(value);
+            }    
+        }
+
+        public FilterArguments(params object[] values)
+        {
+            foreach(var value in values)
+            {
+                Add(value);
+            }    
+        }
+
+        public FilterArguments Add(object value)
+        {
+            return Add(null, value);
+        }
+
+        public FilterArguments Add(string name, object value)
+        {
+            return Add(name, FluidValue.Create(value));
+        }
+
         public FilterArguments Add(FluidValue value)
         {
             return Add(null, value);

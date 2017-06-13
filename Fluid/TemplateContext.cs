@@ -37,7 +37,8 @@ namespace Fluid
             // Initialize Global Filters
             GlobalFilters
                 .WithArrayFilters()
-                .WithStringFilters();
+                .WithStringFilters()
+                .WithNumberFilters();
         }
 
         public TemplateContext()
