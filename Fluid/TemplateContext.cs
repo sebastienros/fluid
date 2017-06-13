@@ -7,13 +7,27 @@ namespace Fluid
 {
     public class TemplateContext
     {
-        public static Scope GlobalScope = new Scope();
+        // Scopes
 
+        public static Scope GlobalScope = new Scope();
+        public Scope LocalScope { get; private set; }
+        protected Scope _scope;
+
+        // Filters
         public Dictionary<string, FilterDelegate> Filters { get; } = new Dictionary<string, FilterDelegate>();
         public static FiltersCollection GlobalFilters { get; } = new FiltersCollection();
 
-        protected Scope _scope;
-        public Scope LocalScope { get; private set; }
+        // Members
+
+        /// <summary>
+        /// Represent a global list of members than can be accessed in any template.
+        /// </summary>
+        /// <remarks>
+        /// This property should only be set by static constructores to prevent concurrency issues.
+        /// </remarks>
+        public static IMemberAccessStrategy GlobalMemberAccessStrategy = new MemberAccessStrategy(); 
+
+        public IMemberAccessStrategy MemberAccessStrategy = new MemberAccessStrategy(GlobalMemberAccessStrategy);
 
         static TemplateContext()
         {

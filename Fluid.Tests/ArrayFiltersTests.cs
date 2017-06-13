@@ -93,7 +93,9 @@ namespace Fluid.Tests
             var arguments = new[] {
                 new StringValue("Title")
             };
+
             var context = new TemplateContext();
+            context.MemberAccessStrategy.Register(new { Title = "a" }.GetType());
 
             var result = ArrayFilters.Map(input, arguments, context);
 
@@ -149,10 +151,10 @@ namespace Fluid.Tests
                 new ObjectValue(new { Title = "b" })
                 });
 
-            var arguments = new[] {
-                new StringValue("Title")
-            };
+            var arguments = new[] { new StringValue("Title") };
+
             var context = new TemplateContext();
+            context.MemberAccessStrategy.Register(new { Title = "" }.GetType(), "Title");
 
             var result = ArrayFilters.Sort(input, arguments, context);
 

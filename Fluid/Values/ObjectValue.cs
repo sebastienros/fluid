@@ -38,20 +38,14 @@ namespace Fluid.Values
 
         public override FluidValue GetValue(string name, TemplateContext context)
         {
-            var propertyInfo = _value.GetType().GetTypeInfo().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-            return Create(propertyInfo.GetValue(_value));
+            var value = context.MemberAccessStrategy.Get(_value, name);
+            return Create(value);
         }
 
         public override FluidValue GetIndex(FluidValue index, TemplateContext context)
         {
-            PropertyInfo indexProperty = _value.GetType().GetProperties().FirstOrDefault(p => p.GetIndexParameters().Length == 1 && p.GetIndexParameters()[0].ParameterType == typeof(string));
-
-            if (indexProperty == null)
-            {
-                return NilValue.Instance;
-            }
-
-            return Create(indexProperty.GetValue(_value, new[] { index.ToObjectValue() }));
+            // Indexers are not exposed for security.
+            return NilValue.Instance;
         }
 
         public override bool ToBooleanValue()

@@ -70,6 +70,7 @@ namespace Fluid.Tests
             context.Filters.Add("prettyprint", (input, args, ctx) => input);
             context.Filters.Add("paragraph", (input, args, ctx) => input);
             context.Filters.Add("price", (input, args, ctx) => input);
+            context.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
 
             var result = template.Render(context);
             Assert.Equal(expected, result);

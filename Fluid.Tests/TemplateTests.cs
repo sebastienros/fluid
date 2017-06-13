@@ -22,6 +22,7 @@ namespace Fluid.Tests
             FluidTemplate.TryParse(source, out var template, out var messages);
 
             var context = new TemplateContext();
+            context.MemberAccessStrategy.Register(new { name = "product 1", price = 1 }.GetType());
             init?.Invoke(context);
 
             var result = template.Render(context);
@@ -153,8 +154,10 @@ namespace Fluid.Tests
         public void ShouldEvaluateObjectProperty()
         {
             FluidTemplate.TryParse("{{ p.Name }}", out var template, out var messages);
+
             var context = new TemplateContext();
             context.SetValue("p", new Person { Name = "John" });
+            context.MemberAccessStrategy.Register<Person>();
 
             var result = template.Render(context);
             Assert.Equal("John", result);
