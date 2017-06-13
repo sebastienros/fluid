@@ -93,9 +93,9 @@ namespace Fluid.Tests
             context.Filters.Add("inc", (i, args, ctx) => 
             {
                 var increment = 1;
-                if (args.Length > 0)
+                if (args.Count > 0)
                 {
-                    increment = (int)args[0].ToNumberValue();
+                    increment = (int)args.At(0).ToNumberValue();
                 }
 
                 return new NumberValue(i.ToNumberValue() + increment);
@@ -105,9 +105,9 @@ namespace Fluid.Tests
             {
                 var s = i.ToStringValue();
 
-                foreach(var a in args)
+                for (var k = 0; k < args.Count; k++)
                 {
-                    s += a.ToStringValue();
+                    s += args.At(k).ToStringValue();
                 }
 
                 return new StringValue(s);

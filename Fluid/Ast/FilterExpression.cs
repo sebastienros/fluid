@@ -6,9 +6,9 @@ namespace Fluid.Ast
     public class FilterExpression
     {
         private readonly string _name;
-        private readonly Expression[] _parameters;
+        private readonly (string Name, Expression Expression)[] _parameters;
 
-        public FilterExpression(string name, Expression[] parameters)
+        public FilterExpression(string name, (string Name, Expression Expression)[] parameters)
         {
             _name = name;
             _parameters = parameters;
@@ -16,7 +16,12 @@ namespace Fluid.Ast
 
         public FluidValue Evaluate(FluidValue input, TemplateContext context)
         {
-            var arguments = _parameters.Select(f => f.Evaluate(context)).ToArray();
+            var arguments = new FilterArguments();
+
+            foreach(var parameter in _parameters)
+            {
+                arguments.Add(parameter.Name, parameter.Expression.Evaluate(context));
+            }
 
             FilterDelegate filter = null;
 

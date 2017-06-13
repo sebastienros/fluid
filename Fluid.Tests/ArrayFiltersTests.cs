@@ -16,7 +16,7 @@ namespace Fluid.Tests
                 new StringValue("c")
                 });
 
-            var arguments = new[] { new StringValue(", ") };
+            var arguments = new FilterArguments().Add(new StringValue(", "));
             var context = new TemplateContext();
 
             var result = ArrayFilters.Join(input, arguments, context);
@@ -33,7 +33,7 @@ namespace Fluid.Tests
                 new StringValue("c")
                 });
 
-            var arguments = new FluidValue[0];
+            var arguments = new FilterArguments();
             var context = new TemplateContext();
 
             var result = ArrayFilters.First(input, arguments, context);
@@ -50,7 +50,7 @@ namespace Fluid.Tests
                 new StringValue("c")
                 });
 
-            var arguments = new FluidValue[0];
+            var arguments = new FilterArguments();
             var context = new TemplateContext();
 
             var result = ArrayFilters.Last(input, arguments, context);
@@ -67,13 +67,14 @@ namespace Fluid.Tests
                 new StringValue("c")
                 });
 
-            var arguments = new[] {
+            var arguments = new FilterArguments().Add(
                 new ArrayValue(new[] {
                     new StringValue("1"),
                     new StringValue("2"),
                     new StringValue("3")
                     })
-            };
+            );
+
             var context = new TemplateContext();
 
             var result = ArrayFilters.Concat(input, arguments, context);
@@ -90,9 +91,7 @@ namespace Fluid.Tests
                 new ObjectValue(new { Title = "c" })
                 });
 
-            var arguments = new[] {
-                new StringValue("Title")
-            };
+            var arguments = new FilterArguments().Add(new StringValue("Title"));
 
             var context = new TemplateContext();
             context.MemberAccessStrategy.Register(new { Title = "a" }.GetType());
@@ -114,7 +113,7 @@ namespace Fluid.Tests
                 new StringValue("c")
                 });
 
-            var arguments = new FluidValue[0];
+            var arguments = new FilterArguments();
             var context = new TemplateContext();
 
             var result = ArrayFilters.Reverse(input, arguments, context);
@@ -134,7 +133,7 @@ namespace Fluid.Tests
                 new StringValue("c")
                 });
 
-            var arguments = new FluidValue[0];
+            var arguments = new FilterArguments();
             var context = new TemplateContext();
 
             var result = ArrayFilters.Size(input, arguments, context);
@@ -151,7 +150,7 @@ namespace Fluid.Tests
                 new ObjectValue(new { Title = "b" })
                 });
 
-            var arguments = new[] { new StringValue("Title") };
+            var arguments = new FilterArguments().Add(new StringValue("Title"));
 
             var context = new TemplateContext();
             context.MemberAccessStrategy.Register(new { Title = "" }.GetType(), "Title");
@@ -173,7 +172,7 @@ namespace Fluid.Tests
                 new StringValue("b")
                 });
 
-            var arguments = new FluidValue[0];
+            var arguments = new FilterArguments();
             var context = new TemplateContext();
 
             var result = ArrayFilters.Uniq(input, arguments, context);

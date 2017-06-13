@@ -35,11 +35,13 @@ namespace Fluid
             var FilterList = new NonTerminal("filterList");
             var Filter = new NonTerminal("filter");
             var Expression = new NonTerminal("expression");
-            var Literal = new NonTerminal("literal");
+            var Term = new NonTerminal("term");
             var BinaryExpression = new NonTerminal("binaryExpression");
             var BinaryOperator = new NonTerminal("binaryOperator");
             var FilterArguments = new NonTerminal("filterArguments");
             var FilterArgument = new NonTerminal("filterArgument");
+            var CycleArguments = new NonTerminal("cycleArguments");
+            var CycleArgument = new NonTerminal("cycleArgument");
             var Boolean = new NonTerminal("boolean");
             var KnownTags = new NonTerminal("knownTags");
 
@@ -58,8 +60,8 @@ namespace Fluid
             MemberAccessSegmentIndexer.Rule = "[" + Expression + "]";
 
             // Expression
-            Expression.Rule = MemberAccess | Literal | BinaryExpression;
-            Literal.Rule = StringLiteralSingle | StringLiteralDouble | Number | Boolean;
+            Expression.Rule = Term | BinaryExpression;
+            Term.Rule = MemberAccess | StringLiteralSingle | StringLiteralDouble | Number | Boolean;
             BinaryExpression.Rule = Expression + BinaryOperator + Expression;
             BinaryOperator.Rule = ToTerm("+") | "-" | "*" | "/" | "%"
                        | "==" | ">" | "<" | ">=" | "<=" | "<>" | "!=" | "contains"
@@ -78,7 +80,8 @@ namespace Fluid
             Filter.Rule = Pipe + Identifier;
             Filter.Rule |= Pipe + Identifier + Colon + FilterArguments;
             FilterArguments.Rule = MakeListRule(FilterArguments, Comma, FilterArgument);
-            FilterArgument.Rule = StringLiteralSingle | StringLiteralDouble | Number | Boolean | MemberAccess; // We are not using Expression here to limit the values that can be passed
+            FilterArgument.Rule = Identifier + Colon + Term;
+            FilterArgument.Rule |= Term;
 
             // Known Tags
             var If = new NonTerminal("if");
@@ -92,7 +95,7 @@ namespace Fluid
             var Case = new NonTerminal("case");
             var EndCase = ToTerm("endcase");
             var When = new NonTerminal("when");
-            var LiteralList = new NonTerminal("literalList");
+            var TermList = new NonTerminal("termList");
 
             var For = new NonTerminal("for");
             var EndFor = ToTerm("endfor");
@@ -132,8 +135,8 @@ namespace Fluid
             Elsif.Rule = "elsif" + Expression;
 
             Case.Rule = "case" + Expression;
-            When.Rule = "when" + LiteralList;
-            LiteralList.Rule = MakePlusRule(LiteralList, ToTerm("or"), Literal);
+            When.Rule = "when" + TermList;
+            TermList.Rule = MakePlusRule(TermList, ToTerm("or"), Term);
 
             For.Rule = "for" + Identifier + "in" + ForSource + ForOptions;
             ForSource.Rule = MemberAccess | Range;
@@ -144,8 +147,9 @@ namespace Fluid
             ForOffset.Rule = "offset" + Colon + Number;
             ForLimit.Rule = "limit" + Colon + Number;
 
-            Cycle.Rule = "cycle" + FilterArguments;
-            Cycle.Rule |= "cycle" + FilterArgument + Colon + FilterArguments;
+            Cycle.Rule = "cycle" + Term + Colon + CycleArguments;
+            Cycle.Rule |= "cycle" + CycleArguments;
+            CycleArguments.Rule = MakePlusRule(CycleArguments, Comma, Term);
 
             Assign.Rule = "assign" + Identifier + "=" + Expression;
 
@@ -159,7 +163,7 @@ namespace Fluid
                 "when", "cycle", "limit", "offset"
                 );
             MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd, Colon);
-            MarkTransient(Statement, KnownTags, ForSource, FilterArgument, RangeIndex, BinaryOperator, ForOption);
+            MarkTransient(Statement, KnownTags, ForSource, RangeIndex, BinaryOperator, ForOption, Term);
         }
     }
 }

@@ -392,15 +392,15 @@ namespace Fluid
             Expression group = null;
             IList<Expression> values;
 
-            if (tag.ChildNodes[0].Term.Name == "filterArguments")
+            if (tag.ChildNodes[0].Term.Name == "cycleArguments")
             {
                 // No group name
-                values = tag.ChildNodes[0].ChildNodes.Select(BuildFilter).ToArray();
+                values = tag.ChildNodes[0].ChildNodes.Select(BuildTermExpression).ToArray();
             }
             else
             {
-                group = BuildFilter(tag.ChildNodes[0]);
-                values = tag.ChildNodes[1].ChildNodes.Select(BuildFilter).ToArray();
+                group = BuildTermExpression(tag.ChildNodes[0]);
+                values = tag.ChildNodes[1].ChildNodes.Select(BuildTermExpression).ToArray();
             }
 
             return new CycleStatement(group, values);
@@ -408,7 +408,7 @@ namespace Fluid
 
         private void BuildWhenStatement(ParseTreeNode tag)
         {
-            var options = tag.ChildNodes[0].ChildNodes[0].ChildNodes.Select(BuildLiteral).ToList();
+            var options = tag.ChildNodes[0].ChildNodes.Select(BuildTermExpression).ToList();
             _currentContext.EnterBlock("when", new WhenStatement(options, new List<Statement>()));
         }
 
@@ -541,10 +541,10 @@ namespace Fluid
                     switch (option.Term.Name)
                     {
                         case "limit":
-                            limit = BuildLiteral(option.ChildNodes[0]);
+                            limit = BuildLiteralExpression(option.ChildNodes[0]);
                             break;
                         case "offset":
-                            offset = BuildLiteral(option.ChildNodes[0]);
+                            offset = BuildLiteralExpression(option.ChildNodes[0]);
                             break;
                         case "reversed":
                             reversed = true;
@@ -593,14 +593,14 @@ namespace Fluid
             var fromNode = node.ChildNodes[0];
 
             from = fromNode.Term.Name == "number"
-                ? (Expression)BuildLiteral(fromNode)
+                ? (Expression)BuildLiteralExpression(fromNode)
                 : BuildMemberExpression(fromNode)
                 ;
 
             var toNode = node.ChildNodes[1];
 
             to = toNode.Term.Name == "number"
-                ? (Expression)BuildLiteral(toNode)
+                ? (Expression)BuildLiteralExpression(toNode)
                 : BuildMemberExpression(toNode)
                 ;
 
@@ -613,14 +613,22 @@ namespace Fluid
 
             switch (child.Term.Name)
             {
-                case "memberAccess":
-                    return BuildMemberExpression(child);
-                case "literal":
-                    return BuildLiteralExpression(child);
                 case "binaryExpression":
                     return BuildBinaryExpression(child);
                 default:
-                    throw new ParseException("Unknown expression type: " + node.Term.Name);
+                    return BuildTermExpression(child);
+            }
+        }
+
+        private Expression BuildTermExpression(ParseTreeNode child)
+        {
+            if (child.Term.Name == "memberAccess")
+            {
+                return BuildMemberExpression(child);
+            }
+            else
+            {
+                return BuildLiteralExpression(child);
             }
         }
 
@@ -683,15 +691,8 @@ namespace Fluid
                     throw new ParseException("Unknown expression type: " + node.Term.Name);
             }
         }
-
+        
         private LiteralExpression BuildLiteralExpression(ParseTreeNode node)
-        {
-            var child = node.ChildNodes[0];
-
-            return BuildLiteral(child);
-        }
-
-        private LiteralExpression BuildLiteral(ParseTreeNode node)
         {
             switch (node.Term.Name)
             {
@@ -720,23 +721,29 @@ namespace Fluid
 
             var arguments = node.ChildNodes.Count > 1
                 ? node.ChildNodes[1].ChildNodes.Select(BuildFilter).ToArray()
-                : Array.Empty<Expression>()
+                : Array.Empty<(string Name, Expression Expression)>()
                 ;
 
             return new FilterExpression(identifier, arguments);
         }
 
-        public Expression BuildFilter(ParseTreeNode node)
+        public (string Name, Expression Expression) BuildFilter(ParseTreeNode node)
         {
-            if (node.Term.Name == "memberAccess")
+            string identifier = null;
+            Expression term = null;
+            if (node.ChildNodes[0].Term.Name == "identifier")
             {
-                return BuildMemberExpression(node);
+                identifier = node.ChildNodes[0].Token.ValueString;
+                term = BuildTermExpression(node.ChildNodes[1]);
             }
             else
             {
-                return BuildLiteral(node);
+                term = BuildTermExpression(node.ChildNodes[0]);
             }
+
+            return (identifier, term);
         }
+
         #endregion
 
         private class BlockContext

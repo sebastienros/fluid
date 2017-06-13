@@ -30,14 +30,14 @@ namespace Fluid.Filters
             return filters;
         }
 
-        public static FluidValue Append(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Append(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue() + arguments[0].ToStringValue());
+            return new StringValue(input.ToStringValue() + arguments.At(0).ToStringValue());
         }
 
         public static char[] CapitalizeDelimiters = new char [] { '-', '.' };
 
-        public static FluidValue Capitalize(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Capitalize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var source = input.ToStringValue().ToCharArray();
 
@@ -52,34 +52,34 @@ namespace Fluid.Filters
             return new StringValue(new String(source));
         }
 
-        public static FluidValue Downcase(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().ToLower());
         }
 
-        public static FluidValue LStrip(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue LStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().TrimStart());
         }
 
-        public static FluidValue RStrip(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue RStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().TrimEnd());
         }
 
-        public static FluidValue NewLineToBr(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue NewLineToBr(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().Replace("\r\n", "<br />").Replace("\n", "<br />"));
         }
 
-        public static FluidValue Prepend(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Prepend(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(arguments[0].ToStringValue() + input.ToStringValue());
+            return new StringValue(arguments.At(0).ToStringValue() + input.ToStringValue());
         }
 
-        public static FluidValue RemoveFirst(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue RemoveFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            string remove = arguments[0].ToStringValue();
+            string remove = arguments.At(0).ToStringValue();
             var value = input.ToStringValue();
 
             var index = value.IndexOf(remove);
@@ -92,36 +92,36 @@ namespace Fluid.Filters
             return input;
         }
 
-        public static FluidValue Remove(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Remove(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().Replace(arguments[0].ToStringValue(), ""));
+            return new StringValue(input.ToStringValue().Replace(arguments.At(0).ToStringValue(), ""));
         }
 
-        public static FluidValue ReplaceFirst(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue ReplaceFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            string remove = arguments[0].ToStringValue();
+            string remove = arguments.At(0).ToStringValue();
             var value = input.ToStringValue();
 
             var index = value.IndexOf(remove);
 
             if (index != -1)
             {
-                return new StringValue(value.Substring(0, index) + arguments[1].ToStringValue() + value.Substring(index + remove.Length));
+                return new StringValue(value.Substring(0, index) + arguments.At(1).ToStringValue() + value.Substring(index + remove.Length));
             }
 
             return input;
         }
 
-        public static FluidValue Replace(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Replace(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().Replace(arguments[0].ToStringValue(), arguments[1].ToStringValue()));
+            return new StringValue(input.ToStringValue().Replace(arguments.At(0).ToStringValue(), arguments.At(1).ToStringValue()));
         }
 
-        public static FluidValue Slice(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Slice(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var source = input.ToStringValue();
-            var start = Convert.ToInt32(arguments[0].ToNumberValue());
-            var length = Convert.ToInt32(arguments[1].ToNumberValue());
+            var start = Convert.ToInt32(arguments.At(0).ToNumberValue());
+            var length = Convert.ToInt32(arguments.At(1).ToNumberValue());
 
             var len = source.Length;
             var from = start < 0 ? Math.Max(len + start, 0) : Math.Min(start, len);
@@ -129,35 +129,35 @@ namespace Fluid.Filters
             return new StringValue(source.Substring(from, length));
         }
 
-        public static FluidValue Split(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Split(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new ArrayValue(input.ToStringValue()
-                .Split(new [] { arguments[0].ToStringValue() }, StringSplitOptions.RemoveEmptyEntries)
+                .Split(new [] { arguments.At(0).ToStringValue() }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(FluidValue.Create)
                 .ToArray()
             );
         }
 
-        public static FluidValue Strip(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Strip(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().Trim());
         }
 
-        public static FluidValue Truncate(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var source = input.ToStringValue().Substring(0, Convert.ToInt32(arguments[0].ToNumberValue()));
+            var source = input.ToStringValue().Substring(0, Convert.ToInt32(arguments.At(0).ToNumberValue()));
 
-            if (arguments.Length > 1)
+            if (arguments.Count > 1)
             {
-                source += arguments[1].ToStringValue();
+                source += arguments.At(1).ToStringValue();
             }
 
             return new StringValue(source);
         }
-        public static FluidValue TruncateWords(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var source = input.ToStringValue();
-            var n = Convert.ToInt32(arguments[0].ToNumberValue());
+            var n = Convert.ToInt32(arguments.At(0).ToNumberValue());
 
             var words = 0;
             for (int i=0; i < source.Length;)
@@ -173,15 +173,15 @@ namespace Fluid.Filters
                 }
             }
 
-            if (arguments.Length > 1)
+            if (arguments.Count > 1)
             {
-                source += arguments[1].ToStringValue();
+                source += arguments.At(1).ToStringValue();
             }
 
             return new StringValue(source);
         }
 
-        public static FluidValue Upcase(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Upcase(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().ToUpper());
         }

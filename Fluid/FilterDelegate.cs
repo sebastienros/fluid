@@ -2,5 +2,5 @@
 
 namespace Fluid
 {
-    public delegate FluidValue FilterDelegate(FluidValue input, FluidValue[] arguments, TemplateContext context);
+    public delegate FluidValue FilterDelegate(FluidValue input, FilterArguments arguments, TemplateContext context);
 }

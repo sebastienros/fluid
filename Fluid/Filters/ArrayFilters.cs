@@ -22,18 +22,18 @@ namespace Fluid.Filters
             return filters;
         }
 
-        public static FluidValue Join(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Join(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.Type != FluidValues.Array)
             {
                 return input;
             }
 
-            return new StringValue(String.Join(arguments[0].ToStringValue(), input.Enumerate().Select(x => x.ToStringValue()).ToArray()));
+            return new StringValue(String.Join(arguments.At(0).ToStringValue(), input.Enumerate().Select(x => x.ToStringValue()).ToArray()));
         }
 
 
-        public static FluidValue First(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue First(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.Type != FluidValues.Array)
             {
@@ -43,7 +43,7 @@ namespace Fluid.Filters
             return input.Enumerate().First();
         }
 
-        public static FluidValue Last(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Last(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.Type != FluidValues.Array)
             {
@@ -53,14 +53,14 @@ namespace Fluid.Filters
             return input.Enumerate().Last();
         }
 
-        public static FluidValue Concat(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Concat(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.Type != FluidValues.Array)
             {
                 return input;
             }
 
-            if (arguments[0].Type != FluidValues.Array)
+            if (arguments.At(0).Type != FluidValues.Array)
             {
                 return input;
             }
@@ -72,7 +72,7 @@ namespace Fluid.Filters
                 concat.Add(item);
             }
 
-            foreach (var item in arguments[0].Enumerate())
+            foreach (var item in arguments.At(0).Enumerate())
             {
                 concat.Add(item);
             }
@@ -80,14 +80,14 @@ namespace Fluid.Filters
             return new ArrayValue(concat);
         }
 
-        public static FluidValue Map(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Map(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.Type != FluidValues.Array)
             {
                 return input;
             }
 
-            var member = arguments[0].ToStringValue();
+            var member = arguments.At(0).ToStringValue();
 
             var list = new List<FluidValue>();
 
@@ -99,7 +99,7 @@ namespace Fluid.Filters
             return new ArrayValue(list);
         }
 
-        public static FluidValue Reverse(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.Type != FluidValues.Array)
             {
@@ -109,7 +109,7 @@ namespace Fluid.Filters
             return new ArrayValue(input.Enumerate().Reverse());
         }
 
-        public static FluidValue Size(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Size(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.Type == FluidValues.Array)
             {
@@ -124,14 +124,14 @@ namespace Fluid.Filters
             return NilValue.Instance;
         }
 
-        public static FluidValue Sort(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Sort(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var member = arguments[0].ToStringValue();
+            var member = arguments.At(0).ToStringValue();
 
             return new ArrayValue(input.Enumerate().OrderBy(x => x.GetValue(member, context).ToObjectValue()).ToArray());
         }
 
-        public static FluidValue Uniq(FluidValue input, FluidValue[] arguments, TemplateContext context)
+        public static FluidValue Uniq(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new ArrayValue(input.Enumerate().Select(x => x.ToObjectValue()).Distinct().ToArray());
         }

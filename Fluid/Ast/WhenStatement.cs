@@ -6,12 +6,12 @@ namespace Fluid.Ast
 {
     public class WhenStatement : TagStatement
     {
-        public WhenStatement(IList<LiteralExpression> options, IList<Statement> statements) : base(statements)
+        public WhenStatement(IList<Expression> options, IList<Statement> statements) : base(statements)
         {
             Options = options;
         }
 
-        public IList<LiteralExpression> Options { get; }
+        public IList<Expression> Options { get; }
 
         public override Completion WriteTo(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
