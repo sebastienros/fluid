@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
@@ -13,7 +14,7 @@ namespace Fluid.Ast
 
         public string Identifier { get; }
 
-        public override Completion WriteTo(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var completion = Completion.Normal;
 
@@ -21,7 +22,7 @@ namespace Fluid.Ast
             {
                 for (var index = 0; index < Statements.Count; index++)
                 {
-                    completion = Statements[index].WriteTo(sw, encoder, context);
+                    completion = await Statements[index].WriteToAsync(sw, encoder, context);
 
                     if (completion != Completion.Normal)
                     {

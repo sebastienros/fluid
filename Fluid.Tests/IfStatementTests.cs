@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Values;
 using Xunit;
@@ -17,7 +18,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void IfCanProcessWhenTrue()
+        public async Task IfCanProcessWhenTrue()
         {
             var e = new IfStatement(
                 TRUE,
@@ -25,13 +26,13 @@ namespace Fluid.Tests
                 );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("x", sw.ToString());
         }
 
         [Fact]
-        public void IfDoesntProcessWhenFalse()
+        public async Task IfDoesntProcessWhenFalse()
         {
             var e = new IfStatement(
                 FALSE,
@@ -39,13 +40,13 @@ namespace Fluid.Tests
                 );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("", sw.ToString());
         }
 
         [Fact]
-        public void IfDoesntProcessElseWhenTrue()
+        public async Task IfDoesntProcessElseWhenTrue()
         {
             var e = new IfStatement(
                 TRUE,
@@ -57,13 +58,13 @@ namespace Fluid.Tests
                     }));
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("x", sw.ToString());
         }
 
         [Fact]
-        public void IfProcessElseWhenFalse()
+        public async Task IfProcessElseWhenFalse()
         {
             var e = new IfStatement(
                 FALSE,
@@ -76,13 +77,13 @@ namespace Fluid.Tests
                 );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("y", sw.ToString());
         }
 
         [Fact]
-        public void IfProcessElseWhenNoOther()
+        public async Task IfProcessElseWhenNoOther()
         {
             var e = new IfStatement(
                 FALSE,
@@ -92,13 +93,13 @@ namespace Fluid.Tests
                 );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("b", sw.ToString());
         }
 
         [Fact]
-        public void IfProcessElseIf()
+        public async Task IfProcessElseIf()
         {
             var e = new IfStatement(
                 FALSE,
@@ -108,13 +109,13 @@ namespace Fluid.Tests
                 );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("c", sw.ToString());
         }
 
         [Fact]
-        public void IfProcessMultipleElseIf()
+        public async Task IfProcessMultipleElseIf()
         {
             var e = new IfStatement(
                 FALSE,
@@ -126,13 +127,13 @@ namespace Fluid.Tests
                 );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("d", sw.ToString());
         }
 
         [Fact]
-        public void IfProcessFirstElseIf()
+        public async Task IfProcessFirstElseIf()
         {
             var e = new IfStatement(
                 FALSE,
@@ -144,13 +145,13 @@ namespace Fluid.Tests
                 );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("c", sw.ToString());
         }
 
         [Fact]
-        public void IfProcessNoMatchElseIf()
+        public async Task IfProcessNoMatchElseIf()
         {
             var e = new IfStatement(
                 FALSE,
@@ -162,7 +163,7 @@ namespace Fluid.Tests
                 );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("", sw.ToString());
         }

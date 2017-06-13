@@ -7,25 +7,25 @@ namespace Fluid.Filters
 {
     public static class StringFilters
     {
-        public static FiltersCollection WithStringFilters(this FiltersCollection filters)
+        public static FilterCollection WithStringFilters(this FilterCollection filters)
         {
-            filters.Add("append", Append);
-            filters.Add("capitalize", Capitalize);
-            filters.Add("downcase", Downcase);
-            filters.Add("lstrip", LStrip);
-            filters.Add("rstrip", RStrip);
-            filters.Add("newline_to_br", NewLineToBr);
-            filters.Add("prepend", Prepend);
-            filters.Add("removefirst", RemoveFirst);
-            filters.Add("remove", Remove);
-            filters.Add("replacefirst", ReplaceFirst);
-            filters.Add("replace", Replace);
-            filters.Add("slice", Slice);
-            filters.Add("split", Split);
-            filters.Add("strip", Strip);
-            filters.Add("truncate", Truncate);
-            filters.Add("truncatewords", TruncateWords);
-            filters.Add("upcase", Upcase);
+            filters.AddFilter("append", Append);
+            filters.AddFilter("capitalize", Capitalize);
+            filters.AddFilter("downcase", Downcase);
+            filters.AddFilter("lstrip", LStrip);
+            filters.AddFilter("rstrip", RStrip);
+            filters.AddFilter("newline_to_br", NewLineToBr);
+            filters.AddFilter("prepend", Prepend);
+            filters.AddFilter("removefirst", RemoveFirst);
+            filters.AddFilter("remove", Remove);
+            filters.AddFilter("replacefirst", ReplaceFirst);
+            filters.AddFilter("replace", Replace);
+            filters.AddFilter("slice", Slice);
+            filters.AddFilter("split", Split);
+            filters.AddFilter("strip", Strip);
+            filters.AddFilter("truncate", Truncate);
+            filters.AddFilter("truncatewords", TruncateWords);
+            filters.AddFilter("upcase", Upcase);
 
             return filters;
         }

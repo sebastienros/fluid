@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -16,7 +17,7 @@ namespace Fluid.Ast
         public Expression Group { get; }
         public IList<Expression> Values { get; }
 
-        public override Completion WriteTo(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var groupValue = Group == null ? "$defautGroup" : Group.Evaluate(context).ToStringValue();
 
@@ -33,7 +34,7 @@ namespace Fluid.Ast
 
             value.WriteTo(writer, encoder);
 
-            return Completion.Normal;
+            return Task.FromResult(Completion.Normal);
         }
     }
 }

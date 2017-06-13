@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
@@ -12,9 +13,9 @@ namespace Fluid.Ast
 
         public string Text { get; }
 
-        public override Completion WriteTo(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            return Completion.Normal;
+            return Task.FromResult(Completion.Normal);
         }
     }
 }

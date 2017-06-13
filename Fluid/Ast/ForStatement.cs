@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -45,7 +46,7 @@ namespace Fluid.Ast
         public LiteralExpression Offset { get; }
         public bool Reversed { get; }
 
-        public override Completion WriteTo(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             IEnumerable<FluidValue> elements = Array.Empty<FluidValue>();
 
@@ -118,7 +119,7 @@ namespace Fluid.Ast
 
                     foreach (var statement in Statements)
                     {
-                        completion = statement.WriteTo(writer, encoder, context);
+                        completion = await statement.WriteToAsync(writer, encoder, context);
 
                         if (completion != Completion.Normal)
                         {

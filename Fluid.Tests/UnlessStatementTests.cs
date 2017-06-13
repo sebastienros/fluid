@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Values;
 using Xunit;
@@ -17,7 +18,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void UnlessDoesntProcessWhenTrue()
+        public async Task UnlessDoesntProcessWhenTrue()
         {
             var e = new UnlessStatement(
                 TRUE,
@@ -25,13 +26,13 @@ namespace Fluid.Tests
                 );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("", sw.ToString());
         }
 
         [Fact]
-        public void IfCanProcessWhenFalse()
+        public async Task IfCanProcessWhenFalse()
         {
             var e = new UnlessStatement(
                 FALSE,
@@ -39,7 +40,7 @@ namespace Fluid.Tests
                 );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("x", sw.ToString());
         }

@@ -1,4 +1,5 @@
-﻿using BenchmarkDotNet.Attributes;
+﻿using System.Threading.Tasks;
+using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Attributes.Jobs;
 using DotLiquid;
 
@@ -67,12 +68,12 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
         }
 
         [Benchmark]
-        public string RenderSimpleOuputFluid()
+        public Task<string> RenderSimpleOuputFluid()
         {
             FluidTemplate.TryParse(_source2, out var template, out var messages);
             var context = new TemplateContext();
             context.SetValue("image", "kitten.jpg");
-            return template.Render(context);
+            return template.RenderAsync(context);
         }
 
         [Benchmark]
@@ -85,12 +86,12 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
 
 
         [Benchmark]
-        public string RenderLoremSimpleOuputFluid()
+        public Task<string> RenderLoremSimpleOuputFluid()
         {
             FluidTemplate.TryParse(_source4, out var template, out var messages);
             var context = new TemplateContext();
             context.SetValue("image", "kitten.jpg");
-            return template.Render(context);
+            return template.RenderAsync(context);
         }
 
         [Benchmark]

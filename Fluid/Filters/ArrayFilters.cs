@@ -7,17 +7,17 @@ namespace Fluid.Filters
 {
     public static class ArrayFilters
     {
-        public static FiltersCollection WithArrayFilters(this FiltersCollection filters)
+        public static FilterCollection WithArrayFilters(this FilterCollection filters)
         {
-            filters.Add("join", Join);
-            filters.Add("first", First);
-            filters.Add("last", Last);
-            filters.Add("concat", Concat);
-            filters.Add("map", Map);
-            filters.Add("reverse", Reverse);
-            filters.Add("size", Size);
-            filters.Add("sort", Sort);
-            filters.Add("uniq", Uniq);
+            filters.AddFilter("join", Join);
+            filters.AddFilter("first", First);
+            filters.AddFilter("last", Last);
+            filters.AddFilter("concat", Concat);
+            filters.AddFilter("map", Map);
+            filters.AddFilter("reverse", Reverse);
+            filters.AddFilter("size", Size);
+            filters.AddFilter("sort", Sort);
+            filters.AddFilter("uniq", Uniq);
 
             return filters;
         }
@@ -31,7 +31,6 @@ namespace Fluid.Filters
 
             return new StringValue(String.Join(arguments.At(0).ToStringValue(), input.Enumerate().Select(x => x.ToStringValue()).ToArray()));
         }
-
 
         public static FluidValue First(FluidValue input, FilterArguments arguments, TemplateContext context)
         {

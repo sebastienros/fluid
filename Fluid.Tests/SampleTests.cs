@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Fluid.Ast;
 using Irony.Parsing;
 using Microsoft.Extensions.Primitives;
@@ -18,7 +19,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void ShouldRenderSample1()
+        public async Task ShouldRenderSample1()
         {
             var sample = @"
 <ul id=""products"">
@@ -67,12 +68,12 @@ namespace Fluid.Tests
 
             var context = new TemplateContext();
             context.SetValue("products", _products);
-            context.Filters.Add("prettyprint", (input, args, ctx) => input);
-            context.Filters.Add("paragraph", (input, args, ctx) => input);
-            context.Filters.Add("price", (input, args, ctx) => input);
+            context.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
+            context.Filters.AddFilter("paragraph", (input, args, ctx) => input);
+            context.Filters.AddFilter("price", (input, args, ctx) => input);
             context.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
 
-            var result = template.Render(context);
+            var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
         }        
     }

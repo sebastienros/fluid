@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
@@ -22,7 +23,7 @@ namespace Fluid.Ast
         public ElseStatement Else { get; }
         public IList<WhenStatement> Whens { get; } = new List<WhenStatement>();
 
-        public override Completion WriteTo(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var value = Expression.Evaluate(context);
 
@@ -34,14 +35,14 @@ namespace Fluid.Ast
 
                     if (condition)
                     {
-                        return when.WriteTo(writer, encoder, context);
+                        return await when.WriteToAsync(writer, encoder, context);
                     }
                 }
             }
 
             if (Else != null)
             {
-                Else.WriteTo(writer, encoder, context);
+              await Else.WriteToAsync(writer, encoder, context);
             }
 
             return Completion.Normal;

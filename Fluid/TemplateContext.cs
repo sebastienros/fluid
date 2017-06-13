@@ -14,8 +14,8 @@ namespace Fluid
         protected Scope _scope;
 
         // Filters
-        public Dictionary<string, FilterDelegate> Filters { get; } = new Dictionary<string, FilterDelegate>();
-        public static FiltersCollection GlobalFilters { get; } = new FiltersCollection();
+        public FilterCollection Filters { get; } = new FilterCollection();
+        public static FilterCollection GlobalFilters { get; } = new FilterCollection();
 
         // Members
 

@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Values;
 using Xunit;
@@ -19,7 +20,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void CaseCanProcessWhenMatch()
+        public async Task CaseCanProcessWhenMatch()
         {
             var e = new CaseStatement(
                 A,
@@ -30,13 +31,13 @@ namespace Fluid.Tests
             );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("x", sw.ToString());
         }
 
         [Fact]
-        public void CaseCanProcessWhenMatchMultiple()
+        public async Task CaseCanProcessWhenMatchMultiple()
         {
             var e = new CaseStatement(
                 A,
@@ -47,13 +48,13 @@ namespace Fluid.Tests
             );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("x", sw.ToString());
         }
 
         [Fact]
-        public void CaseDoesntProcessWhenNoMatch()
+        public async Task CaseDoesntProcessWhenNoMatch()
         {
             var e = new CaseStatement(
                 A,
@@ -64,13 +65,13 @@ namespace Fluid.Tests
             );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("", sw.ToString());
         }
 
         [Fact]
-        public void CaseDoesntProcessElseWhenMatch()
+        public async Task CaseDoesntProcessElseWhenMatch()
         {
             var e = new CaseStatement(
                 A,
@@ -81,13 +82,13 @@ namespace Fluid.Tests
             );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("x", sw.ToString());
         }
 
         [Fact]
-        public void CaseProcessElseWhenNoMatch()
+        public async Task CaseProcessElseWhenNoMatch()
         {
             var e = new CaseStatement(
                 A,
@@ -98,14 +99,14 @@ namespace Fluid.Tests
             );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("y", sw.ToString());
         }
         
 
         [Fact]
-        public void CaseProcessFirstWhen()
+        public async Task CaseProcessFirstWhen()
         {
             var e = new CaseStatement(
                 B,
@@ -118,13 +119,13 @@ namespace Fluid.Tests
             );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("2", sw.ToString());
         }
 
         [Fact]
-        public void CaseProcessNoMatchWhen()
+        public async Task CaseProcessNoMatchWhen()
         {
             var e = new CaseStatement(
                 A,
@@ -136,7 +137,7 @@ namespace Fluid.Tests
             );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("", sw.ToString());
         }

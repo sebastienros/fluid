@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
@@ -22,7 +23,7 @@ namespace Fluid.Ast
         public ElseStatement Else { get; }
         public IList<ElseIfStatement> ElseIfs { get; } = new List<ElseIfStatement>();
 
-        public override Completion WriteTo(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var result = Condition.Evaluate(context).ToBooleanValue();
 
@@ -30,7 +31,7 @@ namespace Fluid.Ast
             {
                 foreach (var statement in Statements)
                 {
-                    var completion = statement.WriteTo(writer, encoder, context);
+                    var completion = await statement.WriteToAsync(writer, encoder, context);
 
                     if (completion != Completion.Normal)
                     {
@@ -50,14 +51,14 @@ namespace Fluid.Ast
                     {
                         if (elseIf.Condition.Evaluate(context).ToBooleanValue())
                         {
-                            return elseIf.WriteTo(writer, encoder, context);
+                            return await elseIf.WriteToAsync(writer, encoder, context);
                         }
                     }
                 }
 
                 if (Else != null)
                 {
-                    Else.WriteTo(writer, encoder, context);
+                    await Else.WriteToAsync(writer, encoder, context);
                 }
             }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
@@ -15,12 +16,12 @@ namespace Fluid.Ast
         public string Identifier { get; }
         public Expression Value { get; }
 
-        public override Completion WriteTo(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var value = Value.Evaluate(context);
             context.SetValue(Identifier, value);
 
-            return Completion.Normal;
+            return Task.FromResult(Completion.Normal);
         }
     }
 }

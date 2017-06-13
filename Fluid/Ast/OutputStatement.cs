@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
@@ -18,13 +19,13 @@ namespace Fluid.Ast
 
         public IList<FilterExpression> Filters { get ; }
 
-        public override Completion WriteTo(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var value = Expression.Evaluate(context);
 
             foreach(var filter in Filters)
             {
-                value = filter.Evaluate(value, context);
+                value = await filter.EvaluateAsync(value, context);
             }
 
             value.WriteTo(writer, encoder);

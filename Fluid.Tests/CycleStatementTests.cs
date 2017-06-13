@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Values;
 using Xunit;
@@ -19,7 +20,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void CycleEvaluatesEachValue()
+        public async Task CycleEvaluatesEachValue()
         {
             var e = new CycleStatement(
                 null,
@@ -33,14 +34,14 @@ namespace Fluid.Tests
             var sw = new StringWriter();
             for (var i=1; i<=10; i++)
             {
-                e.WriteTo(sw, HtmlEncoder.Default, context);
+                await e.WriteToAsync(sw, HtmlEncoder.Default, context);
             }
 
             Assert.Equal("abcabcabca", sw.ToString());
         }
 
         [Fact]
-        public void CycleEvaluatesGroupsValue()
+        public async Task CycleEvaluatesGroupsValue()
         {
             var group1 = new CycleStatement(
                 LIT("x"),
@@ -61,15 +62,15 @@ namespace Fluid.Tests
             var sw = new StringWriter();
             for (var i = 1; i <= 5; i++)
             {
-                group1.WriteTo(sw, HtmlEncoder.Default, context);
-                group2.WriteTo(sw, HtmlEncoder.Default, context);
+                await group1.WriteToAsync(sw, HtmlEncoder.Default, context);
+                await group2.WriteToAsync(sw, HtmlEncoder.Default, context);
             }
 
             Assert.Equal("aabbccaabb", sw.ToString());
         }
 
         [Fact]
-        public void CycleAlternateValuesList()
+        public async Task CycleAlternateValuesList()
         {
             var group1 = new CycleStatement(
                 null,
@@ -90,8 +91,8 @@ namespace Fluid.Tests
             var sw = new StringWriter();
             for (var i = 1; i <= 5; i++)
             {
-                group1.WriteTo(sw, HtmlEncoder.Default, context);
-                group2.WriteTo(sw, HtmlEncoder.Default, context);
+                await group1.WriteToAsync(sw, HtmlEncoder.Default, context);
+                await group2.WriteToAsync(sw, HtmlEncoder.Default, context);
             }
 
             Assert.Equal("aecdbfaecd", sw.ToString());

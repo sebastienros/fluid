@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Values;
 using Xunit;
@@ -13,7 +14,7 @@ namespace Fluid.Tests
     public class ForStatementTests
     {
         [Fact]
-        public void ShouldLoopRange()
+        public async Task ShouldLoopRange()
         {
             var e = new ForStatement(
                 new[] { new TextStatement("x") },
@@ -26,13 +27,13 @@ namespace Fluid.Tests
             );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("xxx", sw.ToString());
         }
 
         [Fact]
-        public void ShouldLoopArrays()
+        public async Task ShouldLoopArrays()
         {
             var e = new ForStatement(
                 new[] { new TextStatement("x") },
@@ -46,13 +47,13 @@ namespace Fluid.Tests
             var sw = new StringWriter();
             var context = new TemplateContext();
             context.SetValue("items", new[] { 1, 2, 3 });
-            e.WriteTo(sw, HtmlEncoder.Default, context);
+            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal("xxx", sw.ToString());
         }
 
         [Fact]
-        public void ShouldHandleBreak()
+        public async Task ShouldHandleBreak()
         {
             var e = new ForStatement(
                 new Statement[] {
@@ -70,13 +71,13 @@ namespace Fluid.Tests
             var sw = new StringWriter();
             var context = new TemplateContext();
             context.SetValue("items", new[] { 1, 2, 3 });
-            e.WriteTo(sw, HtmlEncoder.Default, context);
+            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal("x", sw.ToString());
         }
 
         [Fact]
-        public void ShouldHandleContinue()
+        public async Task ShouldHandleContinue()
         {
             var e = new ForStatement(
                 new Statement[] {
@@ -94,13 +95,13 @@ namespace Fluid.Tests
             var sw = new StringWriter();
             var context = new TemplateContext();
             context.SetValue("items", new[] { 1, 2, 3 });
-            e.WriteTo(sw, HtmlEncoder.Default, context);
+            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal("xxx", sw.ToString());
         }
 
         [Fact]
-        public void ForShouldProvideHelperVariables()
+        public async Task ForShouldProvideHelperVariables()
         {
 
             var e = new ForStatement(
@@ -123,13 +124,13 @@ namespace Fluid.Tests
             var sw = new StringWriter();
             var context = new TemplateContext();
             context.SetValue("items", new[] { 1, 2, 3 });
-            e.WriteTo(sw, HtmlEncoder.Default, context);
+            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal("31023truefalse32112falsefalse33201falsetrue", sw.ToString());
         }
 
         [Fact]
-        public void ForEvaluatesOptions()
+        public async Task ForEvaluatesOptions()
         {
             var e = new ForStatement(
                 new[] { CreateMemberStatement("i") },
@@ -144,7 +145,7 @@ namespace Fluid.Tests
             );
 
             var sw = new StringWriter();
-            e.WriteTo(sw, HtmlEncoder.Default, new TemplateContext());
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("543", sw.ToString());
         }

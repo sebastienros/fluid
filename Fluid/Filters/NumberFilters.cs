@@ -7,16 +7,16 @@ namespace Fluid.Filters
 {
     public static class NumberFilters
     {
-        public static FiltersCollection WithNumberFilters(this FiltersCollection filters)
+        public static FilterCollection WithNumberFilters(this FilterCollection filters)
         {
-            filters.Add("ceil", Ceil);
-            filters.Add("divided_by", DividedBy);
-            filters.Add("floor", Floor);
-            filters.Add("minus", Minus);
-            filters.Add("modulo", Modulo);
-            filters.Add("plus", Plus);
-            filters.Add("round", Round);
-            filters.Add("times", Times);
+            filters.AddFilter("ceil", Ceil);
+            filters.AddFilter("divided_by", DividedBy);
+            filters.AddFilter("floor", Floor);
+            filters.AddFilter("minus", Minus);
+            filters.AddFilter("modulo", Modulo);
+            filters.AddFilter("plus", Plus);
+            filters.AddFilter("round", Round);
+            filters.AddFilter("times", Times);
 
             return filters;
         }

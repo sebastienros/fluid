@@ -5,6 +5,7 @@ using System.Text.Encodings.Web;
 using Fluid.Values;
 using Fluid.Tests.Domain;
 using Xunit;
+using System.Threading.Tasks;
 
 namespace Fluid.Tests
 {
@@ -17,7 +18,7 @@ namespace Fluid.Tests
             new { name = "product 3", price = 3 },
         };
 
-        private void Check(string source, string expected, Action<TemplateContext> init = null)
+        private async Task CheckAsync(string source, string expected, Action<TemplateContext> init = null)
         {
             FluidTemplate.TryParse(source, out var template, out var messages);
 
@@ -25,23 +26,23 @@ namespace Fluid.Tests
             context.MemberAccessStrategy.Register(new { name = "product 1", price = 1 }.GetType());
             init?.Invoke(context);
 
-            var result = template.Render(context);
+            var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
         }
 
         [Theory]
         [InlineData("Hello World", "Hello World")]
-        public void ShouldRenderText(string source, string expected)
+        public Task ShouldRenderText(string source, string expected)
         {
-            Check(source, expected);
+            return CheckAsync(source, expected);
         }
 
         [Theory]
         [InlineData("{{ 'abc' }}", "abc")]
         [InlineData("{{ \"abc\" }}", "abc")]
-        public void ShouldEvaluateString(string source, string expected)
+        public Task ShouldEvaluateString(string source, string expected)
         {
-            Check(source, expected);
+            return CheckAsync(source, expected);
         }
 
         [Theory]
@@ -49,14 +50,14 @@ namespace Fluid.Tests
         [InlineData("{{ \"a\"\"bc\" }}", "a&quot;bc", true)]
         [InlineData("{{ 'ab''c' }}", "ab%27c", false)]
         [InlineData("{{ \"a\"\"bc\" }}", "a%22bc", false)]
-        public void ShouldEncodeString(string source, string expected, bool htmlEncode)
+        public async Task ShouldEncodeString(string source, string expected, bool htmlEncode)
         {
             FluidTemplate.TryParse(source, out var template, out var messages);
             var context = new TemplateContext();
             var sw = new StringWriter();
             TextEncoder encoder = htmlEncode ? (TextEncoder)HtmlEncoder.Default : UrlEncoder.Default;
 
-            template.Render(sw, encoder, context);
+            await template.RenderAsync(sw, encoder, context);
             Assert.Equal(expected, sw.ToString());
         }
 
@@ -67,17 +68,17 @@ namespace Fluid.Tests
         [InlineData("{{ 123.456 }}", "123.456")]
         [InlineData("{{ -123.456 }}", "-123.456")]
         [InlineData("{{ +123.456 }}", "123.456")]
-        public void ShouldEvaluateNumber(string source, string expected)
+        public Task ShouldEvaluateNumber(string source, string expected)
         {
-            Check(source, expected);
+            return CheckAsync(source, expected);
         }
 
         [Theory]
         [InlineData("{{ true }}", "true")]
         [InlineData("{{ false }}", "false")]
-        public void ShouldEvaluateBoolean(string source, string expected)
+        public Task ShouldEvaluateBoolean(string source, string expected)
         {
-            Check(source, expected);
+            return CheckAsync(source, expected);
         }
 
         [Theory]
@@ -85,12 +86,12 @@ namespace Fluid.Tests
         [InlineData("{{ 1 | inc | inc }}", "3")]
         [InlineData("{{ 1 | inc:2 | inc }}", "4")]
         [InlineData("{{ 'a' | append:'b', 'c' }}", "abc")]
-        public void ShouldEvaluateFilters(string source, string expected)
+        public async Task ShouldEvaluateFilters(string source, string expected)
         {
             FluidTemplate.TryParse(source, out var template, out var messages);
             var context = new TemplateContext();
 
-            context.Filters.Add("inc", (i, args, ctx) => 
+            context.Filters.AddFilter("inc", (i, args, ctx) => 
             {
                 var increment = 1;
                 if (args.Count > 0)
@@ -101,7 +102,7 @@ namespace Fluid.Tests
                 return new NumberValue(i.ToNumberValue() + increment);
             });
 
-            context.Filters.Add("append", (i, args, ctx) =>
+            context.Filters.AddFilter("append", (i, args, ctx) =>
             {
                 var s = i.ToStringValue();
 
@@ -113,45 +114,45 @@ namespace Fluid.Tests
                 return new StringValue(s);
             });
 
-            var result = template.Render(context);
+            var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
         }
 
         [Fact]
-        public void ShouldEvaluateBooleanValue()
+        public async Task ShouldEvaluateBooleanValue()
         {
             FluidTemplate.TryParse("{{ x }}", out var template, out var messages);
             var context = new TemplateContext();
             context.SetValue("x", true);
 
-            var result = template.Render(context);
+            var result = await template.RenderAsync(context);
             Assert.Equal("true", result);
         }
 
         [Fact]
-        public void ShouldEvaluateStringValue()
+        public async Task ShouldEvaluateStringValue()
         {
             FluidTemplate.TryParse("{{ x }}", out var template, out var messages);
             var context = new TemplateContext();
             context.SetValue("x", "abc");
 
-            var result = template.Render(context);
+            var result = await template.RenderAsync(context);
             Assert.Equal("abc", result);
         }
 
         [Fact]
-        public void ShouldEvaluateNumberValue()
+        public async Task ShouldEvaluateNumberValue()
         {
             FluidTemplate.TryParse("{{ x }}", out var template, out var messages);
             var context = new TemplateContext();
             context.SetValue("x", 1);
 
-            var result = template.Render(context);
+            var result = await template.RenderAsync(context);
             Assert.Equal("1", result);
         }
 
         [Fact]
-        public void ShouldEvaluateObjectProperty()
+        public async Task ShouldEvaluateObjectProperty()
         {
             FluidTemplate.TryParse("{{ p.Name }}", out var template, out var messages);
 
@@ -159,27 +160,27 @@ namespace Fluid.Tests
             context.SetValue("p", new Person { Name = "John" });
             context.MemberAccessStrategy.Register<Person>();
 
-            var result = template.Render(context);
+            var result = await template.RenderAsync(context);
             Assert.Equal("John", result);
         }
 
         [Fact]
-        public void ShouldEvaluateStringIndex()
+        public async Task ShouldEvaluateStringIndex()
         {
             FluidTemplate.TryParse("{{ x[1] }}", out var template, out var messages);
             var context = new TemplateContext();
             context.SetValue("x", "abc");
 
-            var result = template.Render(context);
+            var result = await template.RenderAsync(context);
             Assert.Equal("b", result);
         }
 
         [Theory]
         [InlineData("{% for i in (1..3) %}{{i}}{% endfor %}", "123")]
         [InlineData("{% for p in products %}{{p.price}}{% endfor %}", "123")]
-        public void ShouldEvaluateForStatement(string source, string expected)
+        public Task ShouldEvaluateForStatement(string source, string expected)
         {
-            Check(source, expected, ctx => { ctx.SetValue("products", _products); });
+            return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
         }
 
         [Theory]
@@ -187,22 +188,22 @@ namespace Fluid.Tests
         [InlineData(2, "x2")]
         [InlineData(3, "x3")]
         [InlineData(4, "other")]
-        public void ShouldEvaluateElseIfStatement(int x, string expected)
+        public Task ShouldEvaluateElseIfStatement(int x, string expected)
         {
             var template = "{% if x == 1 %}x1{%elsif x == 2%}x2{%elsif x == 3%}x3{%else%}other{% endif %}";
 
-            Check(template, expected, ctx => { ctx.SetValue("x", x); });
+            return CheckAsync(template, expected, ctx => { ctx.SetValue("x", x); });
         }
 
         [Theory]
         [InlineData(1, "x1")]
         [InlineData(2, "x2")]
         [InlineData(3, "other")]
-        public void ShouldEvaluateCaseStatement(int x, string expected)
+        public Task ShouldEvaluateCaseStatement(int x, string expected)
         {
             var template = "{% case x %}{%when 1%}x1{%when 2%}x2{%else%}other{% endcase %}";
 
-            Check(template, expected, ctx => { ctx.SetValue("x", x); });
+            return CheckAsync(template, expected, ctx => { ctx.SetValue("x", x); });
         }
 
         [Theory]
@@ -214,30 +215,30 @@ namespace Fluid.Tests
             {%cycle x:'a', 'b'%}
             {%cycle 'a', 'b'%}
             {%cycle x:'a', 'b'%}", "\r\naab")]
-        public void ShouldEvaluateCycleStatement(string source, string expected)
+        public Task ShouldEvaluateCycleStatement(string source, string expected)
         {
-            Check(source, expected, ctx => { ctx.SetValue("x", 3); });
+            return CheckAsync(source, expected, ctx => { ctx.SetValue("x", 3); });
         }
 
         [Theory]
         [InlineData("{% assign x = 123 %} {{x}}", "123")]
-        public void ShouldEvaluateAssignStatement(string source, string expected)
+        public Task ShouldEvaluateAssignStatement(string source, string expected)
         {
-            Check(source, expected);
+            return CheckAsync(source, expected);
         }
 
         [Theory]
         [InlineData("{% capture x %}Hi there{% endcapture %}{{x}}", "Hi there")]
-        public void ShouldEvaluateCaptureStatement(string source, string expected)
+        public Task ShouldEvaluateCaptureStatement(string source, string expected)
         {
-            Check(source, expected);
+            return CheckAsync(source, expected);
         }
 
         [Theory]
         [InlineData("{{x == empty}} {{y == empty}}", "false true")]
-        public void ArrayCompareEmptyValue(string source, string expected)
+        public Task ArrayCompareEmptyValue(string source, string expected)
         {
-            Check(source, expected, ctx =>
+            return CheckAsync(source, expected, ctx =>
             {
                 ctx.SetValue("x", new[] { 1, 2, 3 });
                 ctx.SetValue("y", new int[0]);
@@ -246,9 +247,9 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("{{x == empty}} {{y == empty}}", "false true")]
-        public void DictionaryCompareEmptyValue(string source, string expected)
+        public Task DictionaryCompareEmptyValue(string source, string expected)
         {
-            Check(source, expected, ctx =>
+            return CheckAsync(source, expected, ctx =>
             {
                 ctx.SetValue("x", new Dictionary<string, int> { { "1", 1 }, { "2", 2 }, { "3", 3 } });
                 ctx.SetValue("y", new Dictionary<string, int>());
@@ -257,9 +258,9 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("{{x.size}} {{y.size}}", "3 0")]
-        public void ArrayEvaluatesSize(string source, string expected)
+        public Task ArrayEvaluatesSize(string source, string expected)
         {
-            Check(source, expected, ctx =>
+            return CheckAsync(source, expected, ctx =>
             {
                 ctx.SetValue("x", new[] { 1, 2, 3 });
                 ctx.SetValue("y", new int[0]);
@@ -268,9 +269,9 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("{{x.size}} {{y.size}}", "3 0")]
-        public void DictionaryEvaluatesSize(string source, string expected)
+        public Task DictionaryEvaluatesSize(string source, string expected)
         {
-            Check(source, expected, ctx =>
+            return CheckAsync(source, expected, ctx =>
             {
                 ctx.SetValue("x", new Dictionary<string, int> { { "1", 1 }, { "2", 2 }, { "3", 3 } });
                 ctx.SetValue("y", new Dictionary<string, int>());
@@ -279,9 +280,9 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("{%for x in dic %}{{ x[0] }} {{ x[1] }};{%endfor%}", "a 1;b 2;c 3;")]
-        public void DictionaryIteratesKeyValue(string source, string expected)
+        public Task DictionaryIteratesKeyValue(string source, string expected)
         {
-            Check(source, expected, ctx =>
+            return CheckAsync(source, expected, ctx =>
             {
                 ctx.SetValue("dic", new Dictionary<string, int> { { "a", 1 }, { "b", 2 }, { "c", 3 } });
             });

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
@@ -13,12 +14,12 @@ namespace Fluid.Ast
 
         public IList<Expression> Options { get; }
 
-        public override Completion WriteTo(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             // Process statements until next block or end of statements
             for (var index = 0; index < Statements.Count; index++)
             {
-                var completion = Statements[index].WriteTo(writer, encoder, context);
+                var completion = await Statements[index].WriteToAsync(writer, encoder, context);
 
                 if (completion != Completion.Normal)
                 {

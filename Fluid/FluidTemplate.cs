@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 using Fluid.Ast;
 using Microsoft.Extensions.Primitives;
 
@@ -34,15 +35,15 @@ namespace Fluid
                 return false;
             }            
         }
-        public void Render(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public async Task RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             foreach(var statement in _statements)
             {
-                statement.WriteTo(writer, encoder, context);
+                await statement.WriteToAsync(writer, encoder, context);
             }
         }
 
-        public string Render(TemplateContext context)
+        public async Task<string> RenderAsync(TemplateContext context)
         {
             if (context == null)
             {
@@ -51,14 +52,14 @@ namespace Fluid
 
              using(var writer = new StringWriter())
             {
-                Render(writer, HtmlEncoder.Default, context);
+                await RenderAsync(writer, HtmlEncoder.Default, context);
                 return writer.ToString();
             }
         }
 
-        public string Render()
+        public Task<string> RenderAsync()
         {
-            return Render(new TemplateContext());
+            return RenderAsync(new TemplateContext());
         }
     }
 }

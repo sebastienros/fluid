@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Threading.Tasks;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -14,7 +15,7 @@ namespace Fluid.Ast
             _parameters = parameters;
         }
 
-        public FluidValue Evaluate(FluidValue input, TemplateContext context)
+        public Task<FluidValue> EvaluateAsync(FluidValue input, TemplateContext context)
         {
             var arguments = new FilterArguments();
 
@@ -23,13 +24,13 @@ namespace Fluid.Ast
                 arguments.Add(parameter.Name, parameter.Expression.Evaluate(context));
             }
 
-            FilterDelegate filter = null;
+            AsyncFilterDelegate filter = null;
 
             if (!context.Filters.TryGetValue(_name, out filter) && 
                 !TemplateContext.GlobalFilters.TryGetValue(_name, out filter))
             {
                 // TODO: What to do when the filter is not defined?
-                return input;
+                return Task.FromResult(input);
             }
 
             return filter(input, arguments, context);
