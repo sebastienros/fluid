@@ -62,5 +62,21 @@ namespace Fluid
         {
             return RenderAsync(new TemplateContext());
         }
+
+
+        public void Render(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        {
+            RenderAsync(writer, encoder, context).GetAwaiter().GetResult();
+        }
+
+        public string Render(TemplateContext context)
+        {
+            return RenderAsync(context).GetAwaiter().GetResult();
+        }
+
+        public string Render()
+        {
+            return RenderAsync().GetAwaiter().GetResult();
+        }
     }
 }
