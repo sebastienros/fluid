@@ -26,6 +26,7 @@ Fluid is different from other .NET implementations by not relying on code compil
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
 - [Performance](#performance)
+- [Used by](#used-by)
 
 <br>
 
@@ -231,6 +232,11 @@ Some performance boost can be gained in your application if you decide to cache 
 
 These object are thread-safe as long as each call to `Render()` uses a dedicated `TemplateContext` instance.
 
-### Benchmark
+### Benchmarks
 
 A performance benchmark application is provided in the source code. Run it locally to analyze the time it takes to execute specific templates.
+
+## Used by
+
+Fluid is known to be in the following projects:
+- [Orchard Core CMS](https://github.com/OrchardCMS/Orchard2)
