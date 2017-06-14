@@ -3,8 +3,7 @@
   <PropertyGroup>
     <PackageId>Fluid.Core</PackageId>
     <Title>Fluid: Not quite Liquid!</Title>
-    <Description>Fluid is a template engine based on the Liquid markup, with focus on performance 
-    and .NET programming patterns.</Description>
+    <Description>Fluid is a template engine based on the Liquid markup, with focus on performance and .NET programming patterns.</Description>
     <Copyright>Sebastien Ros</Copyright>
     <Authors>Sebastien Ros</Authors>
     <PackageTags>fluid;liquid;template;view engine</PackageTags>
