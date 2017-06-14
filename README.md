@@ -84,6 +84,10 @@ In the standard Liquid implementation this behavior requires the use of the spec
 </ul>
 ```
 
+Notice
+- The `<li>` tags are at the same index as in the template, even though the `{% for }` tag had some leading spaces
+- The `<ul>` and `<li>` tags are on contiguous lines even though the `{% for }` is taking a full line.
+
 <br>
 
 ## Using Fluid in your project
