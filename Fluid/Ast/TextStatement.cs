@@ -15,7 +15,8 @@ namespace Fluid.Ast
 
         public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            writer.Write(Text, encoder);
+            // The Text fragments are not encoded, but kept as-is
+            writer.Write(Text);
 
             return Task.FromResult(Completion.Normal);
         }

@@ -60,7 +60,7 @@ namespace Fluid.Values
 
         public override void WriteTo(TextWriter writer, TextEncoder encoder)
         {
-            writer.Write(encoder.Encode(ToStringValue()));
+            encoder.Encode(writer, ToStringValue());
         }
 
         public override string ToStringValue()

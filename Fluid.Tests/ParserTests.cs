@@ -159,5 +159,41 @@ namespace Fluid.Tests
             Assert.NotNull(ifStatement.Else);
             Assert.NotNull(ifStatement.ElseIfs);
         }
+
+        [Theory]
+        [InlineData("abc { def")]
+        [InlineData("abc } def")]
+        [InlineData("abc {{ def")]
+        [InlineData("abc }} def")]
+        [InlineData("abc {{ def }")]
+        [InlineData("abc { def }}")]
+        [InlineData("abc {% def")]
+        [InlineData("abc %} def")]
+        [InlineData("{% def")]
+        [InlineData("abc %}")]
+        [InlineData("%} def")]
+        [InlineData("abc {%")]
+        [InlineData("abc {{% def")]
+        [InlineData("abc }%} def")]
+        public void ShouldSucceedParseValidTemplate(string source)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Empty(errors);
+        }
+
+        [Theory]
+        [InlineData("abc {% {{ %} def")]
+        [InlineData("abc {% { %} def")]
+        public void ShouldFailParseInvalidTemplate(string source)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.False(result);
+            Assert.Null(template);
+            Assert.NotEmpty(errors);
+        }
     }
 }

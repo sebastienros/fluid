@@ -48,9 +48,10 @@ namespace Fluid.Tests
         [Theory]
         [InlineData("{{ 'ab''c' }}", "ab&#x27;c", true)]
         [InlineData("{{ \"a\"\"bc\" }}", "a&quot;bc", true)]
+        [InlineData("{{ '<br />' }}", "&lt;br /&gt;", true)]
         [InlineData("{{ 'ab''c' }}", "ab%27c", false)]
         [InlineData("{{ \"a\"\"bc\" }}", "a%22bc", false)]
-        public async Task ShouldEncodeString(string source, string expected, bool htmlEncode)
+        public async Task ShouldUseEncoder(string source, string expected, bool htmlEncode)
         {
             FluidTemplate.TryParse(source, out var template, out var messages);
             var context = new TemplateContext();
@@ -307,5 +308,24 @@ namespace Fluid.Tests
             Assert.Equal("abcdefg", result);
         }
 
+        [Theory]
+        [InlineData("abc { def", "abc { def")]
+        [InlineData("abc } def", "abc } def")]
+        [InlineData("abc {{ def", "abc {{ def")]
+        [InlineData("abc }} def", "abc }} def")]
+        [InlineData("abc {{ def }", "abc {{ def }")]
+        [InlineData("abc { def }}", "abc { def }}")]
+        [InlineData("abc {% def", "abc {% def")]
+        [InlineData("abc %} def", "abc %} def")]
+        [InlineData("{% def", "{% def")]
+        [InlineData("abc %}", "abc %}")]
+        [InlineData("%} def", "%} def")]
+        [InlineData("abc {%", "abc {%")]
+        [InlineData("abc {{% def", "abc {{% def")]
+        [InlineData("abc }%} def", "abc }%} def")]
+        public Task ShouldSucceedParseValidTemplate(string source, string expected)
+        {
+            return CheckAsync(source, expected);
+        }
     }
 }
