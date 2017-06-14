@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Fluid.Values;
 
 namespace Fluid
@@ -95,6 +97,6 @@ namespace Fluid
             return this;
         }
 
-        public IEnumerable<string> Names => _named.Keys;
+        public IEnumerable<string> Names => _named?.Keys ?? Enumerable.Empty<string>();
     }
 }
