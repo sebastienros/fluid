@@ -6,9 +6,9 @@ namespace Fluid.Ast
     public class FilterExpression : Expression
     {
         private readonly string _name;
-        private readonly (string Name, Expression Expression)[] _parameters;
+        private readonly FilterArgument[] _parameters;
 
-        public FilterExpression(Expression input, string name, (string Name, Expression Expression)[] parameters)
+        public FilterExpression(Expression input, string name, FilterArgument[] parameters)
         {
             Input = input;
             _name = name;
@@ -28,12 +28,10 @@ namespace Fluid.Ast
 
             var input = await Input.EvaluateAsync(context);
 
-            AsyncFilterDelegate filter = null;
-
-            if (!context.Filters.TryGetValue(_name, out filter) && 
+            if (!context.Filters.TryGetValue(_name, out AsyncFilterDelegate filter) &&
                 !TemplateContext.GlobalFilters.TryGetValue(_name, out filter))
             {
-                // TODO: What to do when the filter is not defined?
+                // When a filter is not defined, return the input
                 return input;
             }
 

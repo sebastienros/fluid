@@ -734,7 +734,7 @@ namespace Fluid
 
                 var arguments = filterNode.ChildNodes.Count > 1
                     ? filterNode.ChildNodes[1].ChildNodes.Select(BuildFilterArgument).ToArray()
-                    : Array.Empty<(string Name, Expression Expression)>()
+                    : Array.Empty<FilterArgument>()
                     ;
 
                 outer = new FilterExpression(outer, identifier, arguments);
@@ -743,7 +743,7 @@ namespace Fluid
             return outer;
         }
         
-        public (string Name, Expression Expression) BuildFilterArgument(ParseTreeNode node)
+        public FilterArgument BuildFilterArgument(ParseTreeNode node)
         {
             string identifier = null;
             Expression term = null;
@@ -757,7 +757,7 @@ namespace Fluid
                 term = BuildTermExpression(node.ChildNodes[0]);
             }
 
-            return (identifier, term);
+            return new FilterArgument(identifier, term);
         }
 
         #endregion
