@@ -52,7 +52,8 @@ namespace Fluid.Ast
 
             if (Member != null)
             {
-                elements = (await Member.EvaluateAsync(context)).Enumerate();
+                var member = await Member.EvaluateAsync(context);
+                elements = member.Enumerate();
             }
             else if (Range != null)
             {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
 
@@ -8,6 +9,7 @@ namespace Fluid.Values
 {
     public abstract class FluidValue : IEquatable<FluidValue>
     {
+        public static Dictionary<Type, Func<object, FluidValue>> TypeMappings = new Dictionary<System.Type, Func<object, FluidValue>>();
         public abstract void WriteTo(TextWriter writer, TextEncoder encoder);
 
         public abstract bool Equals(FluidValue other);
@@ -45,7 +47,16 @@ namespace Fluid.Values
                 return NilValue.Instance;
             }
 
-            switch (System.Type.GetTypeCode(value.GetType()))
+            var typeOfValue = value.GetType();
+
+            // First check for a specific type conversion before falling back 
+            // to an automatic one
+            if (TypeMappings.TryGetValue(typeOfValue, out var mapping))
+            {
+                return mapping(value);
+            }
+
+            switch (System.Type.GetTypeCode(typeOfValue))
             {
                 case TypeCode.Boolean:
                     return new BooleanValue(Convert.ToBoolean(value));
@@ -89,7 +100,7 @@ namespace Fluid.Values
                 case TypeCode.DateTime:
                 case TypeCode.Char:
                 case TypeCode.String:
-                    return new StringValue(Convert.ToString(value));
+                    return new StringValue(Convert.ToString(value, CultureInfo.InvariantCulture));
                 default:
                     throw new InvalidOperationException();
             }
@@ -108,7 +119,7 @@ namespace Fluid.Values
 
         public FluidValue Or(FluidValue other)
         {
-            if (this == NilValue.Instance || this == UndefinedValue.Instance)
+            if (IsNil() || IsUndefined())
             {
                 return other;
             }

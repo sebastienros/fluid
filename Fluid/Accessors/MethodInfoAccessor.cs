@@ -11,7 +11,7 @@ namespace Fluid.Accessors
             _methodInfo = methodInfo;
         }
 
-        public object Get(object obj)
+        public object Get(object obj, string name)
         {
             return _methodInfo.Invoke(obj, null);
         }

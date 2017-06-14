@@ -2,6 +2,6 @@
 {
     public interface IMemberAccessor
     {
-        object Get(object obj);
+        object Get(object obj, string name);
     }
 }
