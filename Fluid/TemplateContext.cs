@@ -43,7 +43,8 @@ namespace Fluid
             GlobalFilters
                 .WithArrayFilters()
                 .WithStringFilters()
-                .WithNumberFilters();
+                .WithNumberFilters()
+                .WithMiscFilters();
         }
 
         public TemplateContext()
