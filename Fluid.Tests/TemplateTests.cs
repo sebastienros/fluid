@@ -63,6 +63,15 @@ namespace Fluid.Tests
         }
 
         [Theory]
+        [InlineData("{{ 'ab''c' | raw}}", "ab'c")]
+        [InlineData("{{ \"a\"\"bc\" | raw}}", "a\"bc")]
+        [InlineData("{{ '<br />' | raw}}", "<br />")]
+        public Task ShouldNotEncodeRawString(string source, string expected)
+        {
+            return CheckAsync(source, expected);
+        }
+
+        [Theory]
         [InlineData("{{ 0 }}", "0")]
         [InlineData("{{ 0 }}", "0")]
         [InlineData("{{ 123 }}", "123")]

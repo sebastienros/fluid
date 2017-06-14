@@ -9,11 +9,13 @@ namespace Fluid.Values
     public class StringValue : FluidValue
     {
         private readonly string _value;
-
+        
         public StringValue(string value)
         {
             _value = value;
         }
+
+        public bool Encode { get; set; } = true;
 
         public override FluidValues Type => FluidValues.String;
 
@@ -72,7 +74,14 @@ namespace Fluid.Values
 
         public override void WriteTo(TextWriter writer, TextEncoder encoder)
         {
-            writer.Write(encoder.Encode(ToStringValue()));
+            if (Encode)
+            {
+                encoder.Encode(writer, _value);
+            }
+            else
+            {
+                writer.Write(_value);
+            }
         }
 
         public override object ToObjectValue()
