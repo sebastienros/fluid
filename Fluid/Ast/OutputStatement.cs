@@ -9,10 +9,9 @@ namespace Fluid.Ast
     public class OutputStatement : Statement
     {
 
-        public OutputStatement(Expression expression, IList<FilterExpression> filters)
+        public OutputStatement(Expression expression)
         {
             Expression = expression;
-            Filters = filters ?? Array.Empty<FilterExpression>();
         }
 
         public Expression Expression { get; }
@@ -21,12 +20,7 @@ namespace Fluid.Ast
 
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            var value = Expression.Evaluate(context);
-
-            foreach(var filter in Filters)
-            {
-                value = await filter.EvaluateAsync(value, context);
-            }
+            var value = await Expression.EvaluateAsync(context);
 
             value.WriteTo(writer, encoder);
 

@@ -35,6 +35,7 @@ namespace Fluid
                 return false;
             }            
         }
+
         public async Task RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             foreach(var statement in _statements)

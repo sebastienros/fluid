@@ -25,17 +25,18 @@ namespace Fluid.Ast
 
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            var value = Expression.Evaluate(context);
+            var value = await Expression.EvaluateAsync(context);
 
             if (Whens != null)
             {
                 foreach (var when in Whens)
                 {
-                    var condition = when.Options.Any(x => value.Equals(x.Evaluate(context)));
-
-                    if (condition)
+                    foreach(var option in when.Options)
                     {
-                        return await when.WriteToAsync(writer, encoder, context);
+                        if (value.Equals(await option.EvaluateAsync(context)))
+                        {
+                            return await when.WriteToAsync(writer, encoder, context);
+                        }
                     }
                 }
             }

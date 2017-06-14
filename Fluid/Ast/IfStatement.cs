@@ -25,7 +25,7 @@ namespace Fluid.Ast
 
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            var result = Condition.Evaluate(context).ToBooleanValue();
+            var result = (await Condition.EvaluateAsync(context)).ToBooleanValue();
 
             if (result)
             {
@@ -49,7 +49,7 @@ namespace Fluid.Ast
                 {
                     foreach (var elseIf in ElseIfs)
                     {
-                        if (elseIf.Condition.Evaluate(context).ToBooleanValue())
+                        if ((await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue())
                         {
                             return await elseIf.WriteToAsync(writer, encoder, context);
                         }

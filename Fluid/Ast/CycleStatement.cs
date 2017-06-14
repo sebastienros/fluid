@@ -17,9 +17,9 @@ namespace Fluid.Ast
         public Expression Group { get; }
         public IList<Expression> Values { get; }
 
-        public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            var groupValue = Group == null ? "$defautGroup" : Group.Evaluate(context).ToStringValue();
+            var groupValue = Group == null ? "$defautGroup" : (await Group.EvaluateAsync(context)).ToStringValue();
 
             var currentValue = context.GetValue(groupValue);
 
@@ -29,12 +29,12 @@ namespace Fluid.Ast
             }
 
             var index = (int)currentValue.ToNumberValue() % Values.Count;
-            var value = Values[index].Evaluate(context);
+            var value = await Values[index].EvaluateAsync(context);
             context.SetValue(groupValue, new NumberValue(index + 1));
 
             value.WriteTo(writer, encoder);
 
-            return Task.FromResult(Completion.Normal);
+            return Completion.Normal;
         }
     }
 }

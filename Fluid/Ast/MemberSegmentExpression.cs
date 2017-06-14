@@ -1,11 +1,12 @@
-﻿using Fluid.Values;
+﻿using System.Threading.Tasks;
+using Fluid.Values;
 
 namespace Fluid.Ast
 {
     public abstract class MemberSegment
     {
-        public abstract FluidValue Resolve(FluidValue value, TemplateContext context);
-        public abstract FluidValue Resolve(Scope value, TemplateContext context);
+        public abstract Task<FluidValue> ResolveAsync(FluidValue value, TemplateContext context);
+        public abstract Task<FluidValue> ResolveAsync(Scope value, TemplateContext context);
     }
 
     public class IdentifierSegment : MemberSegment
@@ -17,14 +18,14 @@ namespace Fluid.Ast
 
         public string Identifier { get; }
 
-        public override FluidValue Resolve(FluidValue value, TemplateContext context)
+        public override Task<FluidValue> ResolveAsync(FluidValue value, TemplateContext context)
         {
-            return value.GetValue(Identifier, context);
+            return Task.FromResult(value.GetValue(Identifier, context));
         }
 
-        public override FluidValue Resolve(Scope value, TemplateContext context)
+        public override Task<FluidValue> ResolveAsync(Scope value, TemplateContext context)
         {
-            return value.GetValue(Identifier);
+            return Task.FromResult(value.GetValue(Identifier));
         }
     }
 
@@ -37,15 +38,15 @@ namespace Fluid.Ast
 
         public Expression Expression { get; }
 
-        public override FluidValue Resolve(FluidValue value, TemplateContext context)
+        public override async Task<FluidValue> ResolveAsync(FluidValue value, TemplateContext context)
         {
-            var index = Expression.Evaluate(context);
+            var index = await Expression.EvaluateAsync(context);
             return value.GetIndex(index, context);
         }
 
-        public override FluidValue Resolve(Scope value, TemplateContext context)
+        public override async Task<FluidValue> ResolveAsync(Scope value, TemplateContext context)
         {
-            var index = Expression.Evaluate(context);
+            var index = await Expression.EvaluateAsync(context);
             return value.GetIndex(index);
         }
     }

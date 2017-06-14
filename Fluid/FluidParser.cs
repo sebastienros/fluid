@@ -432,13 +432,10 @@ namespace Fluid
         public OutputStatement BuildOutputStatement(ParseTreeNode node)
         {
             var expressionNode = node.ChildNodes[0];
-            var filterListNode = node.ChildNodes[1];
 
             var expression = BuildExpression(expressionNode);
 
-            var filters = filterListNode.ChildNodes.Select(BuildFilterExpression).ToArray();
-
-            return new OutputStatement(expression, filters);
+            return new OutputStatement(expression);
         }
 
         private IfStatement BuildIfStatement()
@@ -615,20 +612,31 @@ namespace Fluid
             {
                 case "binaryExpression":
                     return BuildBinaryExpression(child);
+
                 default:
-                    return BuildTermExpression(child);
+                    var term = BuildTermExpression(node.ChildNodes[0]);
+
+                    // Filters ?
+                    if (node.ChildNodes.Count > 1)
+                    {
+                        return BuildFilterExpression(term, node.ChildNodes[1]);
+                    }
+                    else
+                    {
+                        return term;
+                    }
             }
         }
 
-        private Expression BuildTermExpression(ParseTreeNode child)
+        private Expression BuildTermExpression(ParseTreeNode node)
         {
-            if (child.Term.Name == "memberAccess")
+            if (node.Term.Name == "memberAccess")
             {
-                return BuildMemberExpression(child);
+                return BuildMemberExpression(node);
             }
             else
             {
-                return BuildLiteralExpression(child);
+                return BuildLiteralExpression(node);
             }
         }
 
@@ -715,19 +723,27 @@ namespace Fluid
             }
         }
 
-        private FilterExpression BuildFilterExpression(ParseTreeNode node)
+        private Expression BuildFilterExpression(Expression input, ParseTreeNode node)
         {
-            var identifier = node.ChildNodes[0].Token.Text;
+            Expression outer = input;
 
-            var arguments = node.ChildNodes.Count > 1
-                ? node.ChildNodes[1].ChildNodes.Select(BuildFilter).ToArray()
-                : Array.Empty<(string Name, Expression Expression)>()
-                ;
+            // From last to first filter 
+            foreach (var filterNode in node.ChildNodes)
+            {
+                var identifier = filterNode.ChildNodes[0].Token.Text;
 
-            return new FilterExpression(identifier, arguments);
+                var arguments = filterNode.ChildNodes.Count > 1
+                    ? filterNode.ChildNodes[1].ChildNodes.Select(BuildFilterArgument).ToArray()
+                    : Array.Empty<(string Name, Expression Expression)>()
+                    ;
+
+                outer = new FilterExpression(outer, identifier, arguments);
+            }
+
+            return outer;
         }
-
-        public (string Name, Expression Expression) BuildFilter(ParseTreeNode node)
+        
+        public (string Name, Expression Expression) BuildFilterArgument(ParseTreeNode node)
         {
             string identifier = null;
             Expression term = null;

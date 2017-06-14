@@ -49,7 +49,7 @@ namespace Fluid
 
             // Statements
             Statement.Rule = Output | Tag;
-            Output.Rule = OutputStart + Expression + FilterList + OutputEnd;
+            Output.Rule = OutputStart + Expression + OutputEnd;
             Tag.Rule = TagStart + KnownTags + TagEnd;
 
             // Members
@@ -60,7 +60,8 @@ namespace Fluid
             MemberAccessSegmentIndexer.Rule = "[" + Expression + "]";
 
             // Expression
-            Expression.Rule = Term | BinaryExpression;
+            Expression.Rule = Term + FilterList;
+            Expression.Rule |= BinaryExpression;
             Term.Rule = MemberAccess | StringLiteralSingle | StringLiteralDouble | Number | Boolean;
             BinaryExpression.Rule = Expression + BinaryOperator + Expression;
             BinaryOperator.Rule = ToTerm("+") | "-" | "*" | "/" | "%"

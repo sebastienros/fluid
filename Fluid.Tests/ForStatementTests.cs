@@ -153,7 +153,7 @@ namespace Fluid.Tests
 
         Statement CreateMemberStatement(string p)
         {
-            return new OutputStatement(new MemberExpression(p.Split('.').Select(x => new IdentifierSegment(x)).ToArray()), null);
+            return new OutputStatement(new MemberExpression(p.Split('.').Select(x => new IdentifierSegment(x)).ToArray()));
         }
     }
 }

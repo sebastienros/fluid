@@ -52,12 +52,12 @@ namespace Fluid.Ast
 
             if (Member != null)
             {
-                elements = Member.Evaluate(context).Enumerate();
+                elements = (await Member.EvaluateAsync(context)).Enumerate();
             }
             else if (Range != null)
             {
-                int start = Convert.ToInt32(Range.From.Evaluate(context).ToNumberValue());
-                int end = Convert.ToInt32(Range.To.Evaluate(context).ToNumberValue());
+                int start = Convert.ToInt32((await Range.From.EvaluateAsync(context)).ToNumberValue());
+                int end = Convert.ToInt32((await Range.To.EvaluateAsync(context)).ToNumberValue());
                 elements = Enumerable.Range(start, end - start + 1).Select(x => new NumberValue(x));
             }
 
@@ -70,13 +70,13 @@ namespace Fluid.Ast
 
             if (Offset != null)
             {
-                var offset = (int)Offset.Evaluate(context).ToNumberValue();
+                var offset = (int)(await Offset.EvaluateAsync(context)).ToNumberValue();
                 elements = elements.Skip(offset);
             }
 
             if (Limit != null)
             {
-                var limit = (int)Limit.Evaluate(context).ToNumberValue();
+                var limit = (int)(await Limit.EvaluateAsync(context)).ToNumberValue();
                 elements = elements.Take(limit);
             }
 

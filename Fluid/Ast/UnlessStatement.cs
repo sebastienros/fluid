@@ -19,7 +19,7 @@ namespace Fluid.Ast
 
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            var result = Condition.Evaluate(context).ToBooleanValue();
+            var result = (await Condition.EvaluateAsync(context)).ToBooleanValue();
 
             if (!result)
             {

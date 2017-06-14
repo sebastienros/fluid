@@ -16,12 +16,12 @@ namespace Fluid.Ast
         public string Identifier { get; }
         public Expression Value { get; }
 
-        public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            var value = Value.Evaluate(context);
+            var value = await Value.EvaluateAsync(context);
             context.SetValue(Identifier, value);
 
-            return Task.FromResult(Completion.Normal);
+            return Completion.Normal;
         }
     }
 }

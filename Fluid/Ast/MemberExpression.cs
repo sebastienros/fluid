@@ -1,4 +1,5 @@
-﻿using Fluid.Values;
+﻿using System.Threading.Tasks;
+using Fluid.Values;
 
 namespace Fluid.Ast
 {
@@ -11,15 +12,15 @@ namespace Fluid.Ast
 
         public MemberSegment[] Segments { get; }
 
-        public override FluidValue Evaluate(TemplateContext context)
+        public override async Task<FluidValue> EvaluateAsync(TemplateContext context)
         {
             FluidValue value = null;
 
             foreach(var segment in Segments)
             {
                 value = value != null
-                    ? segment.Resolve(value, context)
-                    : segment.Resolve(context.LocalScope, context);
+                    ? await segment.ResolveAsync(value, context)
+                    : await segment.ResolveAsync(context.LocalScope, context);
 
                 // Stop processing as soon as a member returns nothing
                 if (value.IsUndefined())

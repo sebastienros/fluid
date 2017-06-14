@@ -51,6 +51,11 @@ namespace Fluid
             _properties[name] = value;
         }
 
+        public void SetValue(string name, object value)
+        {
+            _properties[name] = FluidValue.Create(value);
+        }
+
         public Scope EnterChildScope()
         {
             return new Scope(this);

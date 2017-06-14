@@ -288,5 +288,24 @@ namespace Fluid.Tests
             });
         }
 
+        [Fact]
+        public async Task AsyncFiltersAreEvaluated()
+        {
+            var source = "{% assign result = 'abcd' | query: 'efg' %}{%for x in result %}{{ x }}{%endfor%}";
+
+            FluidTemplate.TryParse(source, out var template, out var messages);
+
+            var context = new TemplateContext();
+
+            context.Filters.AddAsyncFilter("query", async (input, arguments, ctx) =>
+            {
+                await Task.Delay(10);
+                return FluidValue.Create(input.ToStringValue() + arguments.At(0).ToStringValue());
+            });
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("abcdefg", result);
+        }
+
     }
 }

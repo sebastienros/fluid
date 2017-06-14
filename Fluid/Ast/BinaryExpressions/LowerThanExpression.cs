@@ -1,4 +1,5 @@
-﻿using Fluid.Values;
+﻿using System.Threading.Tasks;
+using Fluid.Values;
 
 namespace Fluid.Ast.BinaryExpressions
 {
@@ -11,10 +12,10 @@ namespace Fluid.Ast.BinaryExpressions
 
         public bool Strict { get; }
 
-        public override FluidValue Evaluate(TemplateContext context)
+        public override async Task<FluidValue> EvaluateAsync(TemplateContext context)
         {
-            var leftValue = Left.Evaluate(context);
-            var rightValue = Right.Evaluate(context);
+            var leftValue = await Left.EvaluateAsync(context);
+            var rightValue = await Right.EvaluateAsync(context);
 
             if (leftValue is NumberValue)
             {

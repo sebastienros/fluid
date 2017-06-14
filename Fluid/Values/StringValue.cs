@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -81,6 +83,11 @@ namespace Fluid.Values
         public override bool Contains(FluidValue value)
         {
             return _value.Contains(value.ToStringValue());
+        }
+
+        public override IEnumerable<FluidValue> Enumerate()
+        {
+            return _value.Select(x => new StringValue(x.ToString())).ToArray();
         }
     }
 }

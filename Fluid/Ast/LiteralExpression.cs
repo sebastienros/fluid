@@ -1,4 +1,5 @@
-﻿using Fluid.Values;
+﻿using System.Threading.Tasks;
+using Fluid.Values;
 
 namespace Fluid.Ast
 {
@@ -11,9 +12,9 @@ namespace Fluid.Ast
             _value = value;
         }
 
-        public override FluidValue Evaluate(TemplateContext context)
+        public override Task<FluidValue> EvaluateAsync(TemplateContext context)
         {
-            return _value;    
+            return Task.FromResult(_value);    
         }
     }
 }
