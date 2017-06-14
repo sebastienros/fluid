@@ -7,15 +7,20 @@ namespace Fluid
 {
     public class TemplateContext
     {
-        // Scopes
-
-        public static Scope GlobalScope = new Scope();
-        public Scope LocalScope { get; private set; }
         protected Scope _scope;
 
+        // Scopes
+        public static Scope GlobalScope = new Scope();
+        public Scope LocalScope { get; private set; }
+        
         // Filters
         public FilterCollection Filters { get; } = new FilterCollection();
         public static FilterCollection GlobalFilters { get; } = new FilterCollection();
+
+        /// <summary>
+        /// Used to define custom object on this instance to be used in filters for instance.
+        /// </summary>
+        public Dictionary<string, object> AmbientValues = new Dictionary<string, object>();
 
         // Members
 
