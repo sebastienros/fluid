@@ -112,6 +112,8 @@ namespace Fluid
             var Assign = new NonTerminal("assign");
             var Capture = new NonTerminal("capture");
             var EndCapture = ToTerm("endcapture");
+            var Increment = new NonTerminal("increment");
+            var Decrement = new NonTerminal("decrement");
 
             var Continue = ToTerm("continue");
             var Break = ToTerm("break");
@@ -129,7 +131,8 @@ namespace Fluid
                 Continue | Break |
                 Comment | EndComment |
                 Raw | EndRaw |
-                Cycle | Assign | Capture | EndCapture;
+                Cycle | Assign | Capture | EndCapture |
+                Increment | Decrement;
 
             If.Rule = "if" + Expression;
             Unless.Rule = "unless" + Expression;
@@ -153,12 +156,15 @@ namespace Fluid
             CycleArguments.Rule = MakePlusRule(CycleArguments, Comma, Term);
 
             Assign.Rule = "assign" + Identifier + "=" + Expression;
+            Increment.Rule = "increment" + Identifier;
+            Decrement.Rule = "decrement" + Identifier;
 
             Capture.Rule = "capture" + Identifier;
 
             MarkPunctuation(
                 "[", "]", ":", "|", "=",
                 "if", "elsif", "unless", "assign", "capture",
+                "increment", "decrement",
                 "case",
                 "for", "in", "(", ")", "..",
                 "when", "cycle", "limit", "offset"

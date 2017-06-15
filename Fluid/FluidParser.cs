@@ -349,6 +349,12 @@ namespace Fluid
                 case "assign":
                     return BuildAssignStatement(tag);
 
+                case "increment":
+                    return BuildIncrementStatement(tag);
+
+                case "decrement":
+                    return BuildDecrementStatement(tag);
+
                 case "capture":
                     EnterBlock(tag);
                     break;
@@ -385,6 +391,20 @@ namespace Fluid
             var value = BuildExpression(tag.ChildNodes[1]);
 
             return new AssignStatement(identifier, value);
+        }
+
+        private IncrementStatement BuildIncrementStatement(ParseTreeNode tag)
+        {
+            var identifier = tag.ChildNodes[0].Token.ValueString;
+
+            return new IncrementStatement(identifier);
+        }
+
+        private DecrementStatement BuildDecrementStatement(ParseTreeNode tag)
+        {
+            var identifier = tag.ChildNodes[0].Token.ValueString;
+
+            return new DecrementStatement(identifier);
         }
 
         private CycleStatement BuildCycleStatement(ParseTreeNode tag)

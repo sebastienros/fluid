@@ -336,5 +336,13 @@ namespace Fluid.Tests
         {
             return CheckAsync(source, expected);
         }
+
+        [Theory]
+        [InlineData("{% assign var = 10 %}{% increment var %}{% increment var %}{{ var }}", "0110")]
+        [InlineData("{% assign var = 10 %}{% decrement var %}{% decrement var %}{{ var }}", "0-110")]
+        public Task IncrementDoesntAffectVariable(string source, string expected)
+        {
+            return CheckAsync(source, expected);
+        } 
     }
 }
