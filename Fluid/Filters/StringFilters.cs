@@ -185,6 +185,5 @@ namespace Fluid.Filters
         {
             return new StringValue(input.ToStringValue().ToUpper());
         }
-
     }
 }
