@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Irony" Version="1.0.6" />
+    <PackageReference Include="Irony.Core" Version="1.0.6" />
     <PackageReference Include="Microsoft.Extensions.Primitives" Version="1.1.1" />
     <PackageReference Include="System.Text.Encodings.Web" Version="4.3.1" />
   </ItemGroup>
