@@ -13,7 +13,8 @@ namespace Fluid.Filters
             filters.AddFilter("compat", Compact);
             filters.AddFilter("url_encode", UrlEncode);
             filters.AddFilter("url_decode", UrlDecode);
-
+            filters.AddFilter("strip_html", StripHtml);
+            
             return filters;
         }
 
@@ -52,6 +53,37 @@ namespace Fluid.Filters
         public static FluidValue UrlDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(WebUtility.UrlDecode(input.ToStringValue()));
+        }
+
+        public static FluidValue StripHtml(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var html = input.ToStringValue();
+            
+            var result = new char[html.Length];
+
+            var cursor = 0;
+            var inside = false;
+            for (var i = 0; i < html.Length; i++)
+            {
+                char current = html[i];
+
+                switch (current)
+                {
+                    case '<':
+                        inside = true;
+                        continue;
+                    case '>':
+                        inside = false;
+                        continue;
+                }
+
+                if (!inside)
+                {
+                    result[cursor++] = current;
+                }
+            }
+
+            return new StringValue(new string(result, 0, cursor));
         }
     }
 }

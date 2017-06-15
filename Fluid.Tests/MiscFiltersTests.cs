@@ -78,5 +78,19 @@ namespace Fluid.Tests
             Assert.Equal("john@liquid.com", result.ToStringValue());
         }
         
+        [Fact]
+        public void StripHtml()
+        {
+            var input = new StringValue("Have <em>you</em> read <strong>Ulysses</strong>?");
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = MiscFilters.StripHtml(input, arguments, context);
+
+            Assert.Equal("Have you read Ulysses?", result.ToStringValue());
+        }
+        
+        
     }
 }
