@@ -1,4 +1,5 @@
-﻿using Fluid.Values;
+﻿using System.Collections.Generic;
+using Fluid.Values;
 
 namespace Fluid.Filters
 {
@@ -8,6 +9,7 @@ namespace Fluid.Filters
         {
             filters.AddFilter("default", Default);
             filters.AddFilter("raw", Raw);
+            filters.AddFilter("compat", Compact);
 
             return filters;
         }
@@ -23,6 +25,20 @@ namespace Fluid.Filters
             stringValue.Encode = false;
 
             return stringValue;
+        }
+
+        public static FluidValue Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var compacted = new List<FluidValue>();
+            foreach(var value in input.Enumerate()) 
+            {
+                if (!value.IsNil())
+                {
+                    compacted.Add(value);
+                }
+            } 
+
+            return new ArrayValue(compacted);
         }
     }
 }
