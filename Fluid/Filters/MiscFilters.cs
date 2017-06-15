@@ -14,7 +14,9 @@ namespace Fluid.Filters
             filters.AddFilter("url_encode", UrlEncode);
             filters.AddFilter("url_decode", UrlDecode);
             filters.AddFilter("strip_html", StripHtml);
-            
+            filters.AddFilter("escape", StripHtml);
+            filters.AddFilter("escape_once", StripHtml);
+
             return filters;
         }
 
@@ -85,5 +87,16 @@ namespace Fluid.Filters
 
             return new StringValue(new string(result, 0, cursor));
         }
+
+        public static FluidValue Escape(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            return new StringValue(WebUtility.HtmlEncode(input.ToStringValue()));
+        }
+
+        public static FluidValue EscapeOnce(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            return new StringValue(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())));
+        }
+
     }
 }

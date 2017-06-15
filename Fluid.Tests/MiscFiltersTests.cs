@@ -90,6 +90,32 @@ namespace Fluid.Tests
 
             Assert.Equal("Have you read Ulysses?", result.ToStringValue());
         }
+
+        [Fact]
+        public void Escape()
+        {
+            var input = new StringValue("Have you read 'James & the Giant Peach'?");
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = MiscFilters.Escape(input, arguments, context);
+
+            Assert.Equal("Have you read &#39;James &amp; the Giant Peach&#39;?", result.ToStringValue());
+        }
+
+        [Fact]
+        public void EscapeOnce()
+        {
+            var input = new StringValue("1 &lt; 2 &amp; 3");
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = MiscFilters.EscapeOnce(input, arguments, context);
+
+            Assert.Equal("1 &lt; 2 &amp; 3", result.ToStringValue());
+        }
         
         
     }
