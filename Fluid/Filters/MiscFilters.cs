@@ -10,7 +10,7 @@ namespace Fluid.Filters
         {
             filters.AddFilter("default", Default);
             filters.AddFilter("raw", Raw);
-            filters.AddFilter("compat", Compact);
+            filters.AddFilter("compact", Compact);
             filters.AddFilter("url_encode", UrlEncode);
             filters.AddFilter("url_decode", UrlDecode);
             filters.AddFilter("strip_html", StripHtml);
