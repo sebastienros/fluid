@@ -50,5 +50,33 @@ namespace Fluid.Tests
 
             Assert.Equal(3, result.Enumerate().Count());
         }
+
+        
+        [Fact]
+        public void EncodeUrl()
+        {
+            var input = new StringValue("john@liquid.com");
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = MiscFilters.UrlEncode(input, arguments, context);
+
+            Assert.Equal("john%40liquid.com", result.ToStringValue());
+        }
+        
+        [Fact]
+        public void DecodeUrl()
+        {
+            var input = new StringValue("john%40liquid.com");
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = MiscFilters.UrlDecode(input, arguments, context);
+
+            Assert.Equal("john@liquid.com", result.ToStringValue());
+        }
+        
     }
 }

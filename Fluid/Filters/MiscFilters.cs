@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Net;
 using Fluid.Values;
 
 namespace Fluid.Filters
@@ -10,6 +11,8 @@ namespace Fluid.Filters
             filters.AddFilter("default", Default);
             filters.AddFilter("raw", Raw);
             filters.AddFilter("compat", Compact);
+            filters.AddFilter("url_encode", UrlEncode);
+            filters.AddFilter("url_decode", UrlDecode);
 
             return filters;
         }
@@ -39,6 +42,16 @@ namespace Fluid.Filters
             } 
 
             return new ArrayValue(compacted);
+        }
+
+        public static FluidValue UrlEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            return new StringValue(WebUtility.UrlEncode(input.ToStringValue()));
+        }
+
+        public static FluidValue UrlDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            return new StringValue(WebUtility.UrlDecode(input.ToStringValue()));
         }
     }
 }
