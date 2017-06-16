@@ -275,7 +275,7 @@ and a **Range** to use each value of the range in a loop.
   3
 ```
 
-To see a complete example of a customized Fluid grammar, look at this class: [CustomGrammarTests](/tree/dev/Fluid.Tests/CustomGrammarTests.cs)
+To see a complete example of a customized Fluid grammar, look at this class: [CustomGrammarTests](https://github.com/sebastienros/fluid/blob/dev/Fluid.Tests/CustomGrammarTests.cs)
 
 <br>
 
