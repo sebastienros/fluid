@@ -40,7 +40,7 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
 
 
         [Benchmark]
-        public FluidTemplate ParseSampleFluid()
+        public IFluidTemplate ParseSampleFluid()
         {
             FluidTemplate.TryParse(_source1, out var template, out var messages);
             return template;
@@ -54,7 +54,7 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
         }
 
         [Benchmark]
-        public FluidTemplate ParseLoremIpsumFluid()
+        public IFluidTemplate ParseLoremIpsumFluid()
         {
             FluidTemplate.TryParse(_source3, out var template, out var messages);
             return template;

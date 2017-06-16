@@ -12,10 +12,10 @@ namespace Fluid.Tests
     {
         private static LanguageData _language = new LanguageData(new FluidGrammar());
 
-        private IList<Statement> Parse(string template)
+        private IList<Statement> Parse(string source)
         {
-            new FluidParser().TryParse(new StringSegment(template), out var statements, out var errors);
-            return statements;
+            FluidTemplate.TryParse(new StringSegment(source), out var template, out var errors);
+            return template.Statements;
         }
 
         [Fact]

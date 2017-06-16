@@ -5,6 +5,51 @@ namespace Fluid
     [Language("Fluid", "0.2", "Liquid based syntax")]
     public class FluidGrammar : Grammar
     {
+        protected IdentifierTerminal Identifier = new IdentifierTerminal("identifier");
+        protected NonTerminal MemberAccess = new NonTerminal("memberAccess");
+        protected NonTerminal MemberAccessSegmentOpt = new NonTerminal("memberAccessSegmentOpt");
+        protected NonTerminal MemberAccessSegment = new NonTerminal("memberAccessSegment");
+        protected NonTerminal MemberAccessSegmentIdentifier = new NonTerminal("memberAccessSegmentIdentifier");
+        protected NonTerminal MemberAccessSegmentIndexer = new NonTerminal("memberAccessSegmentIndexer");
+        protected NonTerminal Statement = new NonTerminal("statement");
+        protected NonTerminal Output = new NonTerminal("output");
+        protected NonTerminal Tag = new NonTerminal("tag");
+        protected NonTerminal FilterList = new NonTerminal("filterList");
+        protected NonTerminal Filter = new NonTerminal("filter");
+        protected NonTerminal Expression = new NonTerminal("expression");
+        protected NonTerminal Term = new NonTerminal("term");
+        protected NonTerminal BinaryExpression = new NonTerminal("binaryExpression");
+        protected NonTerminal BinaryOperator = new NonTerminal("binaryOperator");
+        protected NonTerminal FilterArguments = new NonTerminal("filterArguments");
+        protected NonTerminal FilterArgument = new NonTerminal("filterArgument");
+        protected NonTerminal CycleArguments = new NonTerminal("cycleArguments");
+        protected NonTerminal CycleArgument = new NonTerminal("cycleArgument");
+        protected NonTerminal Boolean = new NonTerminal("boolean");
+        protected NonTerminal KnownTags = new NonTerminal("knownTags");
+ 
+        protected NonTerminal If = new NonTerminal("if");
+        protected NonTerminal Elsif = new NonTerminal("elsif");
+        protected NonTerminal Unless = new NonTerminal("unless");
+ 
+        protected NonTerminal Case = new NonTerminal("case");
+        protected NonTerminal When = new NonTerminal("when");
+        protected NonTerminal TermList = new NonTerminal("termList");
+
+        protected NonTerminal For = new NonTerminal("for");
+        protected NonTerminal ForSource = new NonTerminal("forSource");
+        protected NonTerminal ForOptions = new NonTerminal("forOptions");
+        protected NonTerminal ForOption = new NonTerminal("forOption");
+        protected NonTerminal ForLimit = new NonTerminal("limit");
+        protected NonTerminal ForOffset = new NonTerminal("offset");
+        protected NonTerminal Range = new NonTerminal("range");
+        protected NonTerminal RangeIndex = new NonTerminal("rangeIndex");
+ 
+        protected NonTerminal Cycle = new NonTerminal("cycle");
+        protected NonTerminal Assign = new NonTerminal("assign");
+        protected NonTerminal Capture = new NonTerminal("capture");
+        protected NonTerminal Increment = new NonTerminal("increment");
+        protected NonTerminal Decrement = new NonTerminal("decrement");
+ 
         public FluidGrammar() : base(caseSensitive: true)
         {
             // Terminals
@@ -14,7 +59,6 @@ namespace Fluid
             var TagEnd = ToTerm("%}");
             var Dot = ToTerm(".");
             var Comma = ToTerm(",");
-            var Identifier = new IdentifierTerminal("identifier");
             var Pipe = ToTerm("|");
             var Colon = ToTerm(":");
             var StringLiteralSingle = new StringLiteral("string1", "'", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes);
@@ -24,26 +68,6 @@ namespace Fluid
             var False = ToTerm("false");
 
             // Non-terminals
-            var MemberAccess = new NonTerminal("memberAccess");
-            var MemberAccessSegmentOpt = new NonTerminal("memberAccessSegmentOpt");
-            var MemberAccessSegment = new NonTerminal("memberAccessSegment");
-            var MemberAccessSegmentIdentifier = new NonTerminal("memberAccessSegmentIdentifier");
-            var MemberAccessSegmentIndexer = new NonTerminal("memberAccessSegmentIndexer");
-            var Statement = new NonTerminal("statement");
-            var Output = new NonTerminal("output");
-            var Tag = new NonTerminal("tag");
-            var FilterList = new NonTerminal("filterList");
-            var Filter = new NonTerminal("filter");
-            var Expression = new NonTerminal("expression");
-            var Term = new NonTerminal("term");
-            var BinaryExpression = new NonTerminal("binaryExpression");
-            var BinaryOperator = new NonTerminal("binaryOperator");
-            var FilterArguments = new NonTerminal("filterArguments");
-            var FilterArgument = new NonTerminal("filterArgument");
-            var CycleArguments = new NonTerminal("cycleArguments");
-            var CycleArgument = new NonTerminal("cycleArgument");
-            var Boolean = new NonTerminal("boolean");
-            var KnownTags = new NonTerminal("knownTags");
 
             this.Root = Statement;
 
@@ -85,36 +109,12 @@ namespace Fluid
             FilterArgument.Rule |= Term;
 
             // Known Tags
-            var If = new NonTerminal("if");
             var EndIf = ToTerm("endif");
-
             var Else = ToTerm("else");
-            var Elsif = new NonTerminal("elsif");
-            var Unless = new NonTerminal("unless");
             var EndUnless = ToTerm("endunless");
-
-            var Case = new NonTerminal("case");
             var EndCase = ToTerm("endcase");
-            var When = new NonTerminal("when");
-            var TermList = new NonTerminal("termList");
-
-            var For = new NonTerminal("for");
             var EndFor = ToTerm("endfor");
-            var ForSource = new NonTerminal("forSource");
-            var ForOptions = new NonTerminal("forOptions");
-            var ForOption = new NonTerminal("forOption");
-            var ForLimit = new NonTerminal("limit");
-            var ForOffset = new NonTerminal("offset");
-            var Range = new NonTerminal("range");
-            var RangeIndex = new NonTerminal("rangeIndex");
-
-            var Cycle = new NonTerminal("cycle");
-            var Assign = new NonTerminal("assign");
-            var Capture = new NonTerminal("capture");
             var EndCapture = ToTerm("endcapture");
-            var Increment = new NonTerminal("increment");
-            var Decrement = new NonTerminal("decrement");
-
             var Continue = ToTerm("continue");
             var Break = ToTerm("break");
             var Comment = ToTerm("comment");

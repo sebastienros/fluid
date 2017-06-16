@@ -29,6 +29,7 @@ Fluid is different from other .NET implementations by not relying on code compil
 - [White-listing object members](#white-listing-object-members)
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
+- [Customizing tags](#customizing-tags)
 - [Performance](#performance)
 - [Used by](#used-by)
 
@@ -228,6 +229,55 @@ Not encoded: {{ html | raw }
 &lt;em%gt;This is some html&lt;/em%gt;
 <em>This is some html</em>
 ```
+
+<br>
+
+## Customizing tags
+
+Fluid's grammar can be modified to accept any new tags with any custom parameters. It is even possible to use
+different grammars in the same application.
+
+### Parsers and Abstract Syntax Tree
+
+A parser in Fluid can be implemented by using the `IFluidParser` interface and its corresponding `IFuildParserFactory`.
+
+The goal of a parser is to return an object implementing `IFluidTemplate` which contains all the `Statement` object 
+that a templat will execute. In the Liquid language statements are either `OutputStatement` representing `{{ }}` tags, `TagStatement`
+representing `{% %}` or `TextStatement` which is pure plain text. A parser will return specialized versions of these to build a 
+template instance. The list of these statements is called the Abstract Syntax Tree (AST).
+
+It allows anyone to extend Fluid and provide specific implementations that vary in performance and features.
+
+### Extending the default parser
+
+The default Fluid parser is based on the Irony project which allows a grammar to be defined by code. In Fluid it's the 
+`FluidGrammar` class.
+
+The default parser is a generic type that accepts a custom grammar class. It means anyone can alter the grammar to define
+new tags with exepected elements like tokens and expressions that will be parsed natively. As a developer you don't receive 
+an `object` but `LiteralExpression`, `BinaryExpression`, and so on. The parser can also provide better error messages and 
+there is much less code to do for the developer.
+
+Here is an example of what can be achieved by customizing the parser, by adding a custom `yolo` tag that accepts an **Identifer** 
+and a **Range** to use each value of the range in a loop.
+
+#### Source
+```Liquid
+{% yolo a (1..3) %}
+  {{ a }}
+{% oloy %}
+```
+
+#### Result
+```html
+  1
+  2
+  3
+```
+
+To see a complete example of a customized Fluid grammar, look at this class: [CustomGrammarTests](/tree/dev/Fluid.Tests/CustomGrammarTests.cs)
+
+<br>
 
 ## Performance
 

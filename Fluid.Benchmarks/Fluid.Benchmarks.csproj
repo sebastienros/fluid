@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.10.7" />
     <PackageReference Include="DotLiquid" Version="2.0.99" />
+    <PackageReference Include="Irony.Core" Version="1.0.6" />
   </ItemGroup>
 
   <ItemGroup>
