@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26531.1
+VisualStudioVersion = 15.0.26615.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid", "Fluid\Fluid.csproj", "{8CD687F1-AC65-4E4A-A510-67768999C81C}"
 EndProject
@@ -9,9 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.Tests", "Fluid.Tests\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.Benchmarks", "Fluid.Benchmarks\Fluid.Benchmarks.csproj", "{709AF319-CBB1-42F0-A9CD-90441F2BD0DD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.MvcSample", "Fluid.MvcSample\Fluid.MvcSample.csproj", "{709AF319-CBB1-42F0-A9CD-90441F2BD0DD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.MvcSample", "Fluid.MvcSample\Fluid.MvcSample.csproj", "{5CBA5602-0579-41E8-BE69-F2FFFD95DE70}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.MvcViewEngine", "Fluid.MvcViewEngine\Fluid.MvcViewEngine.csproj", "{709AF319-CBB1-42F0-A9CD-90441F2BD0DD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.MvcViewEngine", "Fluid.MvcViewEngine\Fluid.MvcViewEngine.csproj", "{8387DE36-8B53-4437-B16F-40C6FD525A1D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,8 +31,19 @@ Global
 		{709AF319-CBB1-42F0-A9CD-90441F2BD0DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{709AF319-CBB1-42F0-A9CD-90441F2BD0DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{709AF319-CBB1-42F0-A9CD-90441F2BD0DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5CBA5602-0579-41E8-BE69-F2FFFD95DE70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CBA5602-0579-41E8-BE69-F2FFFD95DE70}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CBA5602-0579-41E8-BE69-F2FFFD95DE70}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CBA5602-0579-41E8-BE69-F2FFFD95DE70}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8387DE36-8B53-4437-B16F-40C6FD525A1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8387DE36-8B53-4437-B16F-40C6FD525A1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8387DE36-8B53-4437-B16F-40C6FD525A1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8387DE36-8B53-4437-B16F-40C6FD525A1D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D2E67D40-987E-4A7A-96AB-D1018E0FCBC7}
 	EndGlobalSection
 EndGlobal
