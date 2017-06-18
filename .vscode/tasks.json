@@ -7,7 +7,7 @@
         {
             "taskName": "build",
             "args": [
-                "${workspaceRoot}/Fluid.Benchmarks/Fluid.Benchmarks.csproj"
+                "${workspaceRoot}/Fluid/Fluid.csproj"
             ],
             "isBuildCommand": true,
             "problemMatcher": "$msCompile"

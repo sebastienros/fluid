@@ -9,6 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.Tests", "Fluid.Tests\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.Benchmarks", "Fluid.Benchmarks\Fluid.Benchmarks.csproj", "{709AF319-CBB1-42F0-A9CD-90441F2BD0DD}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.MvcSample", "Fluid.MvcSample\Fluid.MvcSample.csproj", "{709AF319-CBB1-42F0-A9CD-90441F2BD0DD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.MvcViewEngine", "Fluid.MvcViewEngine\Fluid.MvcViewEngine.csproj", "{709AF319-CBB1-42F0-A9CD-90441F2BD0DD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

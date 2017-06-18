@@ -51,7 +51,9 @@ namespace Fluid
 
     public class FluidTemplate : FluidTemplate<IronyFluidParserFactory>
     {
-         
+        public FluidTemplate(IList<Statement> statements) : base(statements)
+        {
+        }
     }
 
     public class FluidTemplate<T> : IFluidTemplate where T : IFluidParserFactory, new()
