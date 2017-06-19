@@ -1,9 +1,5 @@
-﻿using Microsoft.AspNetCore.Razor.TagHelpers;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using Microsoft.AspNetCore.Razor.TagHelpers;
 
 namespace FluidMvcViewEngine
 {
@@ -25,7 +21,7 @@ namespace FluidMvcViewEngine
 
         public override async Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
         {
-            var result = await _fluidRendering.Render(new FileInfo(View), Model, null, null);
+            var result = await _fluidRendering.Render(View, Model, null, null);
             output.TagName = null;
             output.Content.AppendHtml(result);
         }

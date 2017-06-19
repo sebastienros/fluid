@@ -1,28 +1,30 @@
-﻿using Microsoft.AspNetCore.Mvc.ViewEngines;
-using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Microsoft.AspNetCore.Mvc.Razor;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewEngines;
 using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.IO;
 
 namespace FluidMvcViewEngine
 {
     public class FluidViewEngine : IFluidViewEngine
     {
         private IFluidRendering _fluidRendering;
+        private readonly IHostingEnvironment _hostingEnvironment;
         public static readonly string ViewExtension = ".liquid";
         private const string ControllerKey = "controller";
         private const string AreaKey = "area";
         private FluidViewEngineOptions _options;
 
         public FluidViewEngine(IFluidRendering fluidRendering,
-            IOptions<FluidViewEngineOptions> optionsAccessor)
+            IOptions<FluidViewEngineOptions> optionsAccessor,
+            IHostingEnvironment hostingEnvironment)
         {
             _options = optionsAccessor.Value;
             _fluidRendering = fluidRendering;
+            _hostingEnvironment = hostingEnvironment;
         }
 
         public ViewEngineResult FindView(ActionContext context, string viewName, bool isMainPage)
@@ -38,11 +40,13 @@ namespace FluidMvcViewEngine
             var controllerName = GetNormalizedRouteValue(actionContext, ControllerKey);
             var areaName = GetNormalizedRouteValue(actionContext, AreaKey);
 
+            var fileProvider = _options.FileProvider ?? _hostingEnvironment.ContentRootFileProvider;
+
             var checkedLocations = new List<string>();
             foreach (var location in _options.ViewLocationFormats)
             {
                 var view = string.Format(location, viewName, controllerName);
-                if(File.Exists(view))
+                if(fileProvider.GetFileInfo(view).Exists)
                     return ViewEngineResult.Found("Default", new FluidView(view, _fluidRendering));
                 checkedLocations.Add(view);
             }

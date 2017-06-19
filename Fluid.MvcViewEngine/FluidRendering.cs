@@ -1,15 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Collections.Concurrent;
 using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
-using System.IO.Compression;
-using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Fluid;
-using Fluid.Ast;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft​.Extensions​.Caching​.Memory;
+using Microsoft.Extensions.Options;
 
 namespace FluidMvcViewEngine
 {
@@ -17,18 +14,35 @@ namespace FluidMvcViewEngine
     {
         static FluidRendering()
         {
-            TemplateContext.GlobalMemberAccessStrategy.Register<ViewDataDictionary>();
+            // TemplateContext.GlobalMemberAccessStrategy.Register<ViewDataDictionary>();
             TemplateContext.GlobalMemberAccessStrategy.Register<ModelStateDictionary>();
         }
 
-        private ConcurrentDictionary<string, IList<Statement>> _fluidCache = new ConcurrentDictionary<string, IList<Statement>>();
-
-        public Task<string> Render(FileInfo fluidFile, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
+        public FluidRendering(
+            IMemoryCache memoryCache,
+            IOptions<FluidViewEngineOptions> optionsAccessor,
+            IHostingEnvironment hostingEnvironment)
         {
-            var statements = _fluidCache.GetOrAdd(fluidFile.FullName, filename =>
+            _memoryCache = memoryCache;
+            _hostingEnvironment = hostingEnvironment;
+            _options = optionsAccessor.Value;
+        }
+
+        private readonly IMemoryCache _memoryCache;
+        private readonly IHostingEnvironment _hostingEnvironment;
+        private FluidViewEngineOptions _options;
+
+        public Task<string> Render(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
+        {
+            var statements = _memoryCache.GetOrCreate(path, entry =>
             {
-                var source= File.ReadAllText(filename);
-                           
+                entry.SlidingExpiration = TimeSpan.FromHours(1);
+
+                var fileProvider = _options.FileProvider ?? _hostingEnvironment.ContentRootFileProvider;
+                entry.ExpirationTokens.Add(fileProvider.Watch(path));
+                
+                var source = File.ReadAllText(path);
+
                 if (FluidTemplate.TryParse(source, out var temp, out var errors))
                 {
                     return temp.Statements;

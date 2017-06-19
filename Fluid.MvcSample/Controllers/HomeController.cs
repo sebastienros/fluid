@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
-using Fluid.MvcSample.Models;
 using System.Collections.Generic;
+using Fluid.MvcSample.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Fluid.MvcSample.Controllers
 {
