@@ -18,7 +18,8 @@ namespace Fluid
         public static FilterCollection GlobalFilters { get; } = new FilterCollection();
 
         /// <summary>
-        /// Used to define custom object on this instance to be used in filters for instance.
+        /// Used to define custom object on this instance to be used in filters and statements
+        /// but which are not available from the template.
         /// </summary>
         public Dictionary<string, object> AmbientValues = new Dictionary<string, object>();
 
