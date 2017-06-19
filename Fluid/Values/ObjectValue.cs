@@ -39,7 +39,7 @@ namespace Fluid.Values
         public override FluidValue GetValue(string name, TemplateContext context)
         {
             var value = context.MemberAccessStrategy.Get(_value, name);
-            return Create(value);
+            return FluidValue.Create(value);
         }
 
         public override FluidValue GetIndex(FluidValue index, TemplateContext context)

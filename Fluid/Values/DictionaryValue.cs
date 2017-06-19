@@ -1,17 +1,32 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
 {
     public class DictionaryValue : FluidValue
     {
-        private readonly IDictionary _value;
+        private readonly IDictionary<string, object> _value;
 
         public DictionaryValue(IDictionary value)
         {
+            _value = new Dictionary<string, object>();
+            foreach(string key in value.Keys)
+            {
+                _value.Add(key, value[key]);
+            }
+        }
+
+        public DictionaryValue(IDictionary<string, object> value)
+        {
             _value = value;
+        }
+
+        public DictionaryValue(IDictionary<string, string> value)
+        {
+            _value = value.ToDictionary(x => x.Key, y => (object)y);
         }
 
         public override FluidValues Type => FluidValues.Dictionary;
@@ -32,7 +47,7 @@ namespace Fluid.Values
 
                 foreach (var key in _value.Keys)
                 {
-                    if (!otherDictionary._value.Contains(key))
+                    if (!otherDictionary._value.ContainsKey(key))
                     {
                         return false;
                     }
@@ -57,17 +72,20 @@ namespace Fluid.Values
                 return new NumberValue(_value.Count);
             }
 
-            if (!_value.Contains(name))
-            {
-                return NilValue.Instance;
-            }
-
-            return FluidValue.Create(_value[name]); 
+            var value = context.MemberAccessStrategy.Get(_value, name);
+            return FluidValue.Create(value);
         }
 
         public override FluidValue GetIndex(FluidValue index, TemplateContext context)
         {
-            return GetValue(index.ToStringValue(), context);
+            var name = index.ToStringValue();
+
+            if (!_value.ContainsKey(name))
+            {
+                return NilValue.Instance;
+            }
+
+            return FluidValue.Create(_value[name]);
         }
 
         public override bool ToBooleanValue()
@@ -109,7 +127,7 @@ namespace Fluid.Values
 
         public override IEnumerable<FluidValue> Enumerate()
         {
-            foreach (DictionaryEntry entry in _value)
+            foreach (var entry in _value)
             {
                 yield return new ArrayValue(new FluidValue[] {
                     FluidValue.Create(entry.Key),
