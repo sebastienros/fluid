@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Fluid;
 using Fluid.Ast;
+using Fluid.MvcViewEngine;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -14,9 +14,14 @@ using Microsoft.Extensions.Options;
 
 namespace FluidMvcViewEngine
 {
+    /// <summary>
+    /// This class is registered as a singleton. As such it can store application wide 
+    /// state.
+    /// </summary>
     public class FluidRendering : IFluidRendering
     {
         private const string ViewStartFilename = "_ViewStart.liquid";
+        public const string ViewPath = "ViewPath";
 
         static FluidRendering()
         {
@@ -38,53 +43,12 @@ namespace FluidMvcViewEngine
         private readonly IHostingEnvironment _hostingEnvironment;
         private FluidViewEngineOptions _options;
 
-        public Task<string> Render(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
+        public async Task<string> RenderAsync(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
         {
-            var statements = _memoryCache.GetOrCreate(path, entry =>
-            {
-                var result = new List<Statement>();
+            // Check for a custom file provider
+            var fileProvider = _options.FileProvider ?? _hostingEnvironment.ContentRootFileProvider;
 
-                // Default sliding expiration to prevent the entries for being kept indefinitely
-                entry.SlidingExpiration = TimeSpan.FromHours(1);
-
-                // Check for a custom file provider
-                var fileProvider = _options.FileProvider ?? _hostingEnvironment.ContentRootFileProvider;
-                
-                var fileInfo = fileProvider.GetFileInfo(path);
-                entry.ExpirationTokens.Add(fileProvider.Watch(path));
-
-                var source = File.ReadAllText(path);
-
-                if (FluidTemplate.TryParse(source, out var temp, out var errors))
-                {
-                    // Add ViewStart files
-
-                    foreach (var viewStartPath in FindViewStarts(path, fileProvider))
-                    {
-                        using (var stream = fileProvider.GetFileInfo(viewStartPath).CreateReadStream())
-                        {
-                            using (var sr = new StreamReader(stream))
-                            {
-                                if (FluidTemplate.TryParse(sr.ReadToEnd(), out var viewStartTemplate, out errors))
-                                {
-                                    result.AddRange(viewStartTemplate.Statements);
-                                    entry.ExpirationTokens.Add(fileProvider.Watch(viewStartPath));
-                                }
-                                else
-                                {
-                                    throw new Exception(String.Join(Environment.NewLine, errors));
-                                }
-                            }
-                        }
-                    }
-
-                    result.AddRange(temp.Statements);
-
-                    return result;
-                }
-
-                throw new Exception(String.Join(Environment.NewLine, errors));
-            });
+            var statements = ParseLiquidFile(path, fileProvider, true);
 
             var template = new FluidTemplate(statements);
 
@@ -92,8 +56,27 @@ namespace FluidMvcViewEngine
             context.LocalScope.SetValue("Model", model);
             context.LocalScope.SetValue("ViewData", viewData);
             context.LocalScope.SetValue("ModelState", modelState);
-                        
-            return template.RenderAsync(context);
+
+            // Provide some services to all statements
+            context.AmbientValues.Add("FileProvider", fileProvider);
+            context.AmbientValues[ViewPath] = path;
+            context.AmbientValues.Add("Sections", new Dictionary<string, IList<Statement>>());
+
+            var body = await template.RenderAsync(context);
+
+            // If a layout is specified while rendering a view, execute it
+            if (context.AmbientValues.TryGetValue("Layout", out var layoutPath))
+            {
+                context.AmbientValues[ViewPath] = layoutPath;
+                context.AmbientValues.Add("Body", body);
+                var layoutStatements = ParseLiquidFile((string)layoutPath, fileProvider, false);
+
+                var layoutTemplate = new FluidTemplate(layoutStatements);
+
+                return await layoutTemplate.RenderAsync(context); 
+            }
+
+            return body;
         }
 
         public IEnumerable<string> FindViewStarts(string viewPath, IFileProvider fileProvider)
@@ -122,6 +105,53 @@ namespace FluidMvcViewEngine
             }
 
             return viewStarts;
+        }
+
+        public IList<Statement> ParseLiquidFile(string path, IFileProvider fileProvider, bool includeViewStarts)
+        {
+            return _memoryCache.GetOrCreate(path, viewEntry =>
+            {
+                var statements = new List<Statement>();
+
+                // Default sliding expiration to prevent the entries for being kept indefinitely
+                viewEntry.SlidingExpiration = TimeSpan.FromHours(1);
+
+                var fileInfo = fileProvider.GetFileInfo(path);
+                viewEntry.ExpirationTokens.Add(fileProvider.Watch(path));
+
+                if (includeViewStarts)
+                {
+                    // Add ViewStart files
+                    foreach (var viewStartPath in FindViewStarts(path, fileProvider))
+                    {
+                        // Redefine the current view path while processing ViewStart files
+                        statements.Add(new CallbackStatement((writer, encoder, context) =>
+                        {
+                            context.AmbientValues[ViewPath] = viewStartPath;
+                            return Task.FromResult(Completion.Normal);
+                        }));
+
+                        statements.AddRange(ParseLiquidFile(viewStartPath, fileProvider, false));
+                    }
+                }
+
+                using (var stream = fileInfo.CreateReadStream())
+                {
+                    using (var sr = new StreamReader(stream))
+                    {
+                        if (FluidViewTemplate.TryParse(sr.ReadToEnd(), out var template, out var errors))
+                        {
+                            statements.AddRange(template.Statements);
+                        }
+                        else
+                        {
+                            throw new Exception(String.Join(Environment.NewLine, errors));
+                        }
+                    }
+                }
+
+                return statements;
+            });
         }
     }
 }

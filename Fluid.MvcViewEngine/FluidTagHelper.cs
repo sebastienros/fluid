@@ -21,7 +21,7 @@ namespace FluidMvcViewEngine
 
         public override async Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
         {
-            var result = await _fluidRendering.Render(View, Model, null, null);
+            var result = await _fluidRendering.RenderAsync(View, Model, null, null);
             output.TagName = null;
             output.Content.AppendHtml(result);
         }
