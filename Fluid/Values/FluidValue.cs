@@ -86,14 +86,14 @@ namespace Fluid.Values
                         case FluidValue fluid:
                             return fluid;
 
-                        case IDictionary dictionary:
-                            return new DictionaryValue(dictionary);
-
-                        case IDictionary<string, string> dictionary:
-                            return new DictionaryValue(dictionary);
-
                         case IDictionary<string, object> dictionary:
-                            return new DictionaryValue(dictionary);
+                            return new DictionaryValue(new ObjectDictionaryFluidIndexable(dictionary));
+
+                        case IDictionary<string, FluidValue> fluidDictionary:
+                            return new DictionaryValue(new FluidValueDictionaryFluidIndexable(fluidDictionary));
+
+                        case IDictionary otherDictionary:
+                            return new DictionaryValue(new DictionaryDictionaryFluidIndexable(otherDictionary));
 
                         case IList list:
                             return new ArrayValue(list);

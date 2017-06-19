@@ -99,7 +99,7 @@ namespace Fluid.Ast
             {
                 var forloop = new Dictionary<string, FluidValue>();
                 forloop.Add("length", new NumberValue(list.Count));
-                forScope.SetValue("forloop", new DictionaryValue(forloop));
+                forScope.SetValue("forloop", new DictionaryValue(new FluidValueDictionaryFluidIndexable(forloop)));
 
 
                 for (var i = 0; i < list.Count; i++)

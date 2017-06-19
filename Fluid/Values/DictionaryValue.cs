@@ -8,25 +8,11 @@ namespace Fluid.Values
 {
     public class DictionaryValue : FluidValue
     {
-        private readonly IDictionary<string, object> _value;
+        private readonly IFluidIndexable _value;
 
-        public DictionaryValue(IDictionary value)
-        {
-            _value = new Dictionary<string, object>();
-            foreach(string key in value.Keys)
-            {
-                _value.Add(key, value[key]);
-            }
-        }
-
-        public DictionaryValue(IDictionary<string, object> value)
+        public DictionaryValue(IFluidIndexable value)
         {
             _value = value;
-        }
-
-        public DictionaryValue(IDictionary<string, string> value)
-        {
-            _value = value.ToDictionary(x => x.Key, y => (object)y);
         }
 
         public override FluidValues Type => FluidValues.Dictionary;
@@ -47,13 +33,12 @@ namespace Fluid.Values
 
                 foreach (var key in _value.Keys)
                 {
-                    if (!otherDictionary._value.ContainsKey(key))
+                    if (!otherDictionary._value.TryGetValue(key, out var otherItem))
                     {
                         return false;
                     }
 
-                    var item = _value[key];
-                    var otherItem = otherDictionary._value[key];
+                    _value.TryGetValue(key, out var item);
 
                     if (!item.Equals(otherItem))
                     {
@@ -73,6 +58,12 @@ namespace Fluid.Values
             }
 
             var value = context.MemberAccessStrategy.Get(_value, name);
+
+            if (value == null)
+            {
+                return GetIndex(new StringValue(name), context);
+            }
+
             return FluidValue.Create(value);
         }
 
@@ -80,12 +71,12 @@ namespace Fluid.Values
         {
             var name = index.ToStringValue();
 
-            if (!_value.ContainsKey(name))
+            if (!_value.TryGetValue(name, out var value))
             {
                 return NilValue.Instance;
             }
 
-            return FluidValue.Create(_value[name]);
+            return value;
         }
 
         public override bool ToBooleanValue()
@@ -114,9 +105,9 @@ namespace Fluid.Values
 
         public override bool Contains(FluidValue value)
         {
-            foreach (var item in _value.Values)
+            foreach (var key in _value.Keys)
             {
-                if (item.Equals(value.ToObjectValue()))
+                if (_value.TryGetValue(key, out var item) && item.Equals(value.ToObjectValue()))
                 {
                     return true;
                 }
@@ -127,11 +118,12 @@ namespace Fluid.Values
 
         public override IEnumerable<FluidValue> Enumerate()
         {
-            foreach (var entry in _value)
+            foreach (var key in _value.Keys)
             {
+                _value.TryGetValue(key, out var value);
                 yield return new ArrayValue(new FluidValue[] {
-                    FluidValue.Create(entry.Key),
-                    FluidValue.Create(entry.Value)
+                    new StringValue(key),
+                    value
                 });
             }
         }
