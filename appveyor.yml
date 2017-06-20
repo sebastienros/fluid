@@ -14,7 +14,8 @@ build_script:
 test_script:
   - dotnet test .\Fluid.Tests\Fluid.Tests.csproj
 artifacts:
-- path: 'Fluid\**\*.nupkg', 'Fluid.MvcViewEngine\**\*.nupkg'
+  - path: 'Fluid\**\*.nupkg'
+  - path: 'Fluid.MvcViewEngine\**\*.nupkg'
 deploy:
   - provider: NuGet
     on:
