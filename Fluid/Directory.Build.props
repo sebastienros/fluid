@@ -2,28 +2,11 @@
 
   <PropertyGroup>
     <PackageId>Fluid.Core</PackageId>
-    <Title>Fluid: Not quite Liquid!</Title>
+    <Title>Fluid Template Engine</Title>
     <Description>Fluid is a template engine based on the Liquid markup, with focus on performance and .NET programming patterns.</Description>
-    <Copyright>Sebastien Ros</Copyright>
-    <Authors>Sebastien Ros</Authors>
-    <PackageIconUrl>https://github.com/sebastienros/fluid/raw/dev/Assets/logo-only.png</PackageIconUrl>
     <PackageTags>fluid;liquid;template;view engine</PackageTags>
-    <PackageProjectUrl>https://github.com/sebastienros/fluid</PackageProjectUrl>
-    <PackageLicenseUrl>https://github.com/sebastienros/fluid/blob/master/LICENSE.txt</PackageLicenseUrl>
-    <TargetFrameworks>netstandard1.6</TargetFrameworks>
     <VersionPrefix>1.0.0</VersionPrefix>
     <VersionSuffix>beta</VersionSuffix>
-    <VersionSuffix Condition="'$(VersionSuffix)'!='' AND '$(BuildNumber)' != ''">$(VersionSuffix)-$(BuildNumber)</VersionSuffix>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <DebugType>portable</DebugType>
-    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
   </PropertyGroup>
 
 </Project>
