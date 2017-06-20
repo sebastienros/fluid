@@ -30,7 +30,7 @@ Fluid is different from other .NET implementations by not relying on code compil
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
 - [Customizing tags](#customizing-tags)
-- [ASP.NET MVC View Engine](#asp-net-mvc-view-engine)
+- [ASP.NET MVC View Engine](#aspnet-mvc-view-engine)
 - [Performance](#performance)
 - [Used by](#used-by)
 
@@ -283,6 +283,43 @@ To see a complete example of a customized Fluid grammar, look at this class: [Cu
 ## ASP.NET MVC View Engine
 
 To provide a convenient view engine implementation for ASP.NET Core MVC the grammar is extended as described in [Customizing tags](#customizing-tags) by adding these new tags:
+
+### Configuration
+
+#### Registering the view engine
+
+1- Reference the `Fluid.MvcViewEngine` nuget package
+2- Add a `using` statement on `FluidMvcViewEngine`
+3- Call `AddFluid()` in your `Startup.cs`.
+
+#### Sample
+```csharp
+using FluidMvcViewEngine;
+
+public class Startup
+{
+  public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddMvc().AddFluid();
+    }
+}
+```
+#### Registering view models
+
+Because the Liquid language only accepts known members to be accessed, the View Model classes need to be registered in Fluid. Usually from a static constructor such that the code is run only once for the application.
+
+#### View Model registration
+```csharp
+public class Startup
+{
+    static Startup()
+    {
+        TemplateContext.GlobalMemberAccessStrategy.Register<Person>();
+    }
+}
+```
+
+More way to register types and members can be found in the [White-listing object members](#white-listing-object-members) section.
 
 ### Layouts
 
