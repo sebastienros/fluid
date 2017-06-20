@@ -20,7 +20,7 @@ deploy:
   - provider: NuGet
     on:
       branch: dev
-    server: https://www.myget.org/F/jint/api/v2/package
+    server: https://www.myget.org/F/fluid/api/v2/package
     api_key:
       secure: 7PQvuxXn5P39X5QDlDKWbNpOKJKivpqkq7umakIirAZ12CSTAiCwjtJhSBGVboPm
     skip_symbols: true
