@@ -1,5 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
+  <Import Project="../Common.props"/>
+  
   <PropertyGroup>
     <PackageId>Fluid.MvcViewEngine</PackageId>
     <Description>Fluid.MvcViewEngine is a view engine for ASP.NET Core MVC based on the Liquid markup.</Description>

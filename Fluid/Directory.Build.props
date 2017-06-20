@@ -1,5 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
+  <Import Project="../Common.props"/>
+  
   <PropertyGroup>
     <PackageId>Fluid.Core</PackageId>
     <Title>Fluid Template Engine</Title>
