@@ -1,7 +1,5 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-  <Import Project="../Common.props"/>
-  
   <PropertyGroup>
     <PackageId>Fluid.Core</PackageId>
     <Title>Fluid Template Engine</Title>
@@ -10,5 +8,8 @@
     <VersionPrefix>1.0.0</VersionPrefix>
     <VersionSuffix>beta</VersionSuffix>
   </PropertyGroup>
+
+  <!-- Called after so that the <VersionSuffix> is built after the local ones -->
+  <Import Project="../Common.props"/>
 
 </Project>
