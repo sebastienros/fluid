@@ -6,7 +6,7 @@
 
 ## Basic Overview
 
-Fluild is an open-source .NET template engine that is as close as possible to the [Liquid template language](https://shopify.github.io/liquid/). If a **secure** template language that is also **very accessible** for non-programmer audiences.
+Fluild is an open-source .NET template engine that is as close as possible to the [Liquid template language](https://shopify.github.io/liquid/). If a **secure** template language that is also **very accessible** for non-programmer audiences. It also contains an ASP.NET Core MVC View Engine.
 
 Fluid is different from other .NET implementations by not relying on code compilation but instead interpreting the templates.
 
@@ -30,6 +30,7 @@ Fluid is different from other .NET implementations by not relying on code compil
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
 - [Customizing tags](#customizing-tags)
+- [ASP.NET MVC View Engine](#asp-net-mvc-view-engine)
 - [Performance](#performance)
 - [Used by](#used-by)
 
@@ -276,6 +277,105 @@ and a **Range** to use each value of the range in a loop.
 ```
 
 To see a complete example of a customized Fluid grammar, look at this class: [CustomGrammarTests](https://github.com/sebastienros/fluid/blob/dev/Fluid.Tests/CustomGrammarTests.cs)
+
+<br>
+
+## ASP.NET MVC View Engine
+
+To provide a convenient view engine implementation for ASP.NET Core MVC the grammar is extended as described in [Customizing tags](#customizing-tags) by adding these new tags:
+
+### Layouts
+
+#### Index.liquid
+
+```Liquid
+{% layout '_layout.liquid' %}
+
+This is is the home page
+```
+
+The `{% layout [template] %}` tag accepts one argument which can be any expression that return the relative location of a liquid template that will be used as the master template.
+
+The layout tag is optional in a view. It can also be defined multiple times or conditionally.
+
+From a layout template the `{% renderbody %}` tag is used to depict the location of the view's content inside the layout itself.
+
+#### Layout.liquid
+
+```Liquid
+<html>
+  <body>
+    <div class="menu"></div>
+    
+    <div class="content">
+      {% renderbody %}
+    </div>
+    
+    <div class="footer"></div>
+  </body>
+</html>
+```
+
+### Sections
+
+Sections are defined in a layout as for views to render content in specific locations. For instance a view can render some content in a **menu** or a **footer** section.
+
+#### Rendering content in a section
+
+```Liquid
+{% layout '_layout.liquid' %}
+
+This is is the home page
+
+{% section menu %}
+  <a href="h#">This link goes in the menu</a>
+{% endsection %}
+
+{% section footer %}
+  This text will go in the footer
+{% endsection %}
+```
+
+#### Rendering the content of a section
+
+```Liquid
+<html>
+  <body>
+    <div class="menu">
+      {% rendersection menu %}
+    </div>
+    
+    <div class="content">
+      {% renderbody %}
+    </div>
+    
+    <div class="footer">
+      {% rendersection footer %}
+    </div>
+  </body>
+</html>
+```
+
+### ViewStart files
+
+Defining the layout template in each view might me cumbersome and make it difficult to change it globally. To prevent that it can be defined in a `_ViewStart.liquid` file.
+
+When a view is rendered all `_ViewStart.liquid` files from its current and parent directories are executed before. This means multiple files can be defined to defined settings for a group of views.
+
+#### _ViewStart.liquid
+
+```Liquid
+{% layout '_layout.liquid' %}
+{% assign background = 'ffffff' }
+```
+
+You can also define other variables or render some content.
+
+### Execution
+
+The content of a view is parsed once and kept in memory until the file or one of its dependencies changes. Once parsed, the tag are executed every time the view is called. To compare this with Razor, where views are first compiled then instantiated every time they are rendered. This means that on startup or when the view is changed, views with Fluid will run faster than those in Razor, unless you are using precompiled Razor views. In all cases Razor views will be faster on subsequent calls as they are compiled directly to C#.
+
+This difference makes Fluid very adapted for rapid development cycles where the views can be deployed and updated frequently. And because the Liquid language is secure, developers give access to them with more confidence.  
 
 <br>
 
