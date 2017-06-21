@@ -49,7 +49,9 @@ namespace Fluid
         protected NonTerminal Capture = new NonTerminal("capture");
         protected NonTerminal Increment = new NonTerminal("increment");
         protected NonTerminal Decrement = new NonTerminal("decrement");
- 
+
+        protected NonTerminal Include = new NonTerminal("include");
+
         public FluidGrammar() : base(caseSensitive: true)
         {
             // Terminals
@@ -132,7 +134,8 @@ namespace Fluid
                 Comment | EndComment |
                 Raw | EndRaw |
                 Cycle | Assign | Capture | EndCapture |
-                Increment | Decrement;
+                Increment | Decrement |
+                Include;
 
             If.Rule = "if" + Expression;
             Unless.Rule = "unless" + Expression;
@@ -161,13 +164,16 @@ namespace Fluid
 
             Capture.Rule = "capture" + Identifier;
 
+            Include.Rule = "include" + Term;
+
             MarkPunctuation(
                 "[", "]", ":", "|", "=",
                 "if", "elsif", "unless", "assign", "capture",
                 "increment", "decrement",
                 "case",
                 "for", "in", "(", ")", "..",
-                "when", "cycle", "limit", "offset"
+                "when", "cycle", "limit", "offset",
+                "include"
                 );
             MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd, Colon);
             MarkTransient(Statement, KnownTags, ForSource, RangeIndex, BinaryOperator, ForOption, Term);

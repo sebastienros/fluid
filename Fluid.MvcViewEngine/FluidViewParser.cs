@@ -28,6 +28,9 @@ namespace Fluid.MvcViewEngine
                 case "endsection":
                     return BuildRegisterSectionStatement("section");
 
+                case "include":
+                    return BuildIncludeStatement(tag);
+
                 default:
                     return base.BuildTagStatement(node);
             }
@@ -64,6 +67,12 @@ namespace Fluid.MvcViewEngine
             ExitBlock();
 
             return registerSectionStatement;
+        }
+
+        private IncludeStatement BuildIncludeStatement(ParseTreeNode tag)
+        {
+            var pathExpression = BuildTermExpression(tag.ChildNodes[0]);
+            return new IncludeStatement(pathExpression);
         }
     }
 }
