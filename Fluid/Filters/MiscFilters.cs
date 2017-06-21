@@ -27,8 +27,7 @@ namespace Fluid.Filters
 
         public static FluidValue Raw(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var stringValue = new StringValue(input.ToStringValue());
-            stringValue.Encode = false;
+            var stringValue = new StringValue(input.ToStringValue(), false);
 
             return stringValue;
         }

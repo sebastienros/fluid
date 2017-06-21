@@ -9,12 +9,21 @@ namespace Fluid.Values
     public class StringValue : FluidValue
     {
         private readonly string _value;
-        
+
         public StringValue(string value)
         {
             _value = value;
         }
 
+        public StringValue(string value, bool encode)
+        {
+            _value = value;
+            Encode = encode;
+        }
+
+        /// <summary>
+        /// Gets or sets whether the string is encoded (default) or not when rendered.
+        /// </summary>
         public bool Encode { get; set; } = true;
 
         public override FluidValues Type => FluidValues.String;
