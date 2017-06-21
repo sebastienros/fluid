@@ -112,10 +112,10 @@ var source = "Hello {{ p.Firstname }} {{ p.Lastname }}";
 if (FluidTemplate.TryParse(source, out var template))
 {   
     var context = new TemplateContext();
-    context.Register(model.GetType()); // Allows any public property of the model to be used
+    context.MemberAccessStrategy.Register(model.GetType()); // Allows any public property of the model to be used
     context.SetValue("p", model);
 
-    Console.WriteLine(template.Render());
+    Console.WriteLine(template.Render(context));
 }
 ```
 
