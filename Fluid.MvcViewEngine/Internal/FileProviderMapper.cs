@@ -4,17 +4,17 @@ using System.IO;
 
 namespace Fluid.MvcViewEngine.Internal
 {
-    public class FileProviderWrapper : IFileProvider
+    public class FileProviderMapper : IFileProvider
     {
         private readonly IFileProvider _fileProvider;
         private readonly string _partialsFolder;
 
-        public FileProviderWrapper(IFileProvider fileProvider)
+        public FileProviderMapper(IFileProvider fileProvider)
         {
             _fileProvider = fileProvider;
         }
 
-        public FileProviderWrapper(IFileProvider fileProvider, string partialsFolder = "Partials")
+        public FileProviderMapper(IFileProvider fileProvider, string partialsFolder = "Partials")
         {
             _fileProvider = fileProvider;
             _partialsFolder = partialsFolder;

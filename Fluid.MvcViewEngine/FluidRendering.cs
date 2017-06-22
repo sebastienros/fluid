@@ -62,7 +62,7 @@ namespace FluidMvcViewEngine
             context.AmbientValues.Add("FileProvider", fileProvider);
             context.AmbientValues[ViewPath] = path;
             context.AmbientValues.Add("Sections", new Dictionary<string, IList<Statement>>());
-            context.FileProvider = new FileProviderWrapper(fileProvider, "Views");
+            context.FileProvider = new FileProviderMapper(fileProvider, "Views");
 
             var body = await template.RenderAsync(context);
 
