@@ -2,15 +2,16 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using Fluid;
-using Fluid.Ast;
-using Fluid.MvcViewEngine;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft​.Extensions​.Caching​.Memory;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
+using Fluid;
+using Fluid.Ast;
+using Fluid.MvcViewEngine;
+using Fluid.MvcViewEngine.Internal;
 
 namespace FluidMvcViewEngine
 {
@@ -61,6 +62,7 @@ namespace FluidMvcViewEngine
             context.AmbientValues.Add("FileProvider", fileProvider);
             context.AmbientValues[ViewPath] = path;
             context.AmbientValues.Add("Sections", new Dictionary<string, IList<Statement>>());
+            context.FileProvider = new FileProviderMapper(fileProvider, "Views");
 
             var body = await template.RenderAsync(context);
 

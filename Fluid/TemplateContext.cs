@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.FileProviders;
 using Fluid.Values;
 using Fluid.Filters;
 
@@ -31,9 +32,13 @@ namespace Fluid
         /// <remarks>
         /// This property should only be set by static constructores to prevent concurrency issues.
         /// </remarks>
-        public static IMemberAccessStrategy GlobalMemberAccessStrategy = new MemberAccessStrategy(); 
+        public static IMemberAccessStrategy GlobalMemberAccessStrategy = new MemberAccessStrategy();
+
+        public static IFileProvider GlobalFileProvider { get; set; } = new NullFileProvider();
 
         public IMemberAccessStrategy MemberAccessStrategy = new MemberAccessStrategy(GlobalMemberAccessStrategy);
+
+        public IFileProvider FileProvider { get; set; }
 
         static TemplateContext()
         {
