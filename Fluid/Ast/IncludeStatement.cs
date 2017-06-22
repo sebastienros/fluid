@@ -1,14 +1,11 @@
 ﻿using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-using Microsoft.Extensions.FileProviders;
 
 namespace Fluid.Ast
 {
     public class IncludeStatement : Statement
     {
-        private static readonly IFileProvider _blankFileProvider = new NullFileProvider();
-
         public IncludeStatement(Expression path)
         {
             Path = path;
@@ -19,7 +16,7 @@ namespace Fluid.Ast
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
-            var fileProvider = context.FileProvider ?? _blankFileProvider;
+            var fileProvider = context.FileProvider ?? TemplateContext.GlobalFileProvider;
             var fileInfo = fileProvider.GetFileInfo(relativePath);
             string partialContent;
 
@@ -31,7 +28,7 @@ namespace Fluid.Ast
 
             await writer.WriteAsync(partialContent);
 
-            return Completion.Continue;
+            return Completion.Normal;
         }
     }
 }

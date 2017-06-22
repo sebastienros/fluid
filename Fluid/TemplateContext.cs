@@ -34,7 +34,7 @@ namespace Fluid
         /// </remarks>
         public static IMemberAccessStrategy GlobalMemberAccessStrategy = new MemberAccessStrategy();
 
-        public static IFileProvider GlobalFileProvider { get; set; }
+        public static IFileProvider GlobalFileProvider { get; set; } = new NullFileProvider();
 
         public IMemberAccessStrategy MemberAccessStrategy = new MemberAccessStrategy(GlobalMemberAccessStrategy);
 
