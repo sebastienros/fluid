@@ -46,17 +46,25 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData("{{ 'ab''c' }}", "ab&#x27;c", true)]
-        [InlineData("{{ \"a\"\"bc\" }}", "a&quot;bc", true)]
-        [InlineData("{{ '<br />' }}", "&lt;br /&gt;", true)]
-        [InlineData("{{ 'ab''c' }}", "ab%27c", false)]
-        [InlineData("{{ \"a\"\"bc\" }}", "a%22bc", false)]
-        public async Task ShouldUseEncoder(string source, string expected, bool htmlEncode)
+        [InlineData("{{ 'ab''c' }}", "ab&#x27;c", "html")]
+        [InlineData("{{ \"a\"\"bc\" }}", "a&quot;bc", "html")]
+        [InlineData("{{ '<br />' }}", "&lt;br /&gt;", "html")]
+        [InlineData("{{ 'ab''c' }}", "ab%27c", "url")]
+        [InlineData("{{ \"a\"\"bc\" }}", "a%22bc", "url")]
+        [InlineData("{{ 'a\"\"bc<>&' }}", "a\"\"bc<>&", "null")]
+        public async Task ShouldUseEncoder(string source, string expected, string encoderType)
         {
             FluidTemplate.TryParse(source, out var template, out var messages);
             var context = new TemplateContext();
             var sw = new StringWriter();
-            TextEncoder encoder = htmlEncode ? (TextEncoder)HtmlEncoder.Default : UrlEncoder.Default;
+            TextEncoder encoder = null;
+            
+            switch (encoderType)
+            {
+                case "html" : encoder = HtmlEncoder.Default; break;
+                case "url" : encoder = UrlEncoder.Default; break;
+                case "null" : encoder = NullEncoder.Default; break;
+            }
 
             await template.RenderAsync(sw, encoder, context);
             Assert.Equal(expected, sw.ToString());
