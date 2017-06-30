@@ -6,6 +6,8 @@ namespace Fluid.Ast
 {
     public class IncludeStatement : Statement
     {
+        public static readonly string ViewExtension = ".liquid";
+
         public IncludeStatement(Expression path)
         {
             Path = path;
@@ -16,6 +18,11 @@ namespace Fluid.Ast
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
+            if (!relativePath.EndsWith(ViewExtension))
+            {
+                relativePath += ViewExtension;
+            }
+
             var fileProvider = context.FileProvider ?? TemplateContext.GlobalFileProvider;
             var fileInfo = fileProvider.GetFileInfo(relativePath);
             string partialContent;
