@@ -9,7 +9,6 @@ namespace Fluid
     public class TemplateContext
     {
         protected Scope _scope;
-
         // Scopes
         public static Scope GlobalScope = new Scope();
         public Scope LocalScope { get; private set; }
@@ -27,7 +26,7 @@ namespace Fluid
         // Members
 
         /// <summary>
-        /// Represent a global list of members than can be accessed in any template.
+        /// Represent a global list of object members than can be accessed in any template.
         /// </summary>
         /// <remarks>
         /// This property should only be set by static constructores to prevent concurrency issues.
@@ -36,9 +35,18 @@ namespace Fluid
 
         public static IFileProvider GlobalFileProvider { get; set; } = new NullFileProvider();
 
+        /// <summary>
+        /// Represent a local list of object members than can be accessed with this context.
+        /// </summary>
         public IMemberAccessStrategy MemberAccessStrategy = new MemberAccessStrategy(GlobalMemberAccessStrategy);
 
         public IFileProvider FileProvider { get; set; }
+
+        /// <summary>
+        /// Gets or sets a model object that is used to resolve properties in a template. This object is used if local and 
+        /// global scopes are unsuccessfull.
+        /// </summary>
+        public object Model { get; set; }
 
         static TemplateContext()
         {

@@ -18,9 +18,15 @@ namespace Fluid.Ast
 
             foreach(var segment in Segments)
             {
-                value = value != null
-                    ? await segment.ResolveAsync(value, context)
-                    : await segment.ResolveAsync(context.LocalScope, context);
+                if (value == null)
+                {
+                    // Root property
+                    value = await segment.ResolveAsync(context.LocalScope, context);
+                }
+                else
+                {
+                    value = await segment.ResolveAsync(value, context);
+                }
 
                 // Stop processing as soon as a member returns nothing
                 if (value.IsUndefined())

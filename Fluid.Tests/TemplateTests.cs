@@ -351,6 +351,23 @@ namespace Fluid.Tests
         public Task IncrementDoesntAffectVariable(string source, string expected)
         {
             return CheckAsync(source, expected);
-        } 
+        }
+
+        [Fact]
+        public async Task ModelIsUsedAsFallback()
+        {
+            var source = "hello {{ firstname }} {{ lastname }}";
+            var expected = "hello sebastien ros";
+
+            FluidTemplate.TryParse(source, out var template, out var messages);
+            var context = new TemplateContext();
+            context.SetValue("firstname", "sebastien");
+            context.Model = new { lastname = "ros" };
+            context.MemberAccessStrategy.Register(context.Model.GetType());
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(expected, result);
+
+        }
     }
 }

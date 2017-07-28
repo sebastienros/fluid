@@ -25,7 +25,15 @@ namespace Fluid.Ast
 
         public override Task<FluidValue> ResolveAsync(Scope value, TemplateContext context)
         {
-            return Task.FromResult(value.GetValue(Identifier));
+            var result = value.GetValue(Identifier);
+
+            if (result.IsUndefined() && context.Model != null)
+            {
+                // Look into the Model if defined
+                result = FluidValue.Create(context.MemberAccessStrategy.Get(context.Model, Identifier));
+            }
+
+            return Task.FromResult(result);
         }
     }
 
