@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Reflection;
 using Fluid.Accessors;
 
@@ -13,6 +15,59 @@ namespace Fluid
 
     public static class MemberAccessStrategyExtensions
     {
+        internal static ConcurrentDictionary<string, IMemberAccessor> _namedAccessors = new ConcurrentDictionary<string, IMemberAccessor>();
+        private static ConcurrentDictionary<Type, List<string>> _typeMembers = new ConcurrentDictionary<Type, List<string>>();
+
+        private static List<string> GetAllMembers(Type type)
+        {
+            return _typeMembers.GetOrAdd(type, t =>
+            {
+                var list = new List<string>();
+
+                foreach (var propertyInfo in type.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    list.Add(propertyInfo.Name);
+                    _namedAccessors.TryAdd($"{type.Name}-{propertyInfo.Name}", new MethodInfoAccessor(propertyInfo.GetGetMethod()));
+                }
+
+                foreach (var fieldInfo in type.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    list.Add(fieldInfo.Name);
+                    _namedAccessors.TryAdd($"{type.Name}-{fieldInfo.Name}", new DelegateAccessor((o, n) => fieldInfo.GetValue(o)));
+                }
+
+                return list;
+            });
+        }
+
+        public static IMemberAccessor GetNamedAccessor(Type type, string name)
+        {
+            IMemberAccessor result = null;
+
+            return _namedAccessors.GetOrAdd($"{type.Name}-{name}", key =>
+            {
+                var propertyInfo = type.GetTypeInfo().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
+
+                if (propertyInfo != null)
+                {
+                    result = new MethodInfoAccessor(propertyInfo.GetGetMethod());
+                }
+
+                if (result == null)
+                {
+                    var fieldInfo = type.GetTypeInfo().GetField(name, BindingFlags.Public | BindingFlags.Instance);
+
+                    if (fieldInfo != null)
+                    {
+                        result = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
+                    }
+                }
+
+                return result;
+            });
+        }
+
+
         /// <summary>
         /// Registers a type and all its public properties.
         /// </summary>
@@ -28,14 +83,9 @@ namespace Fluid
         /// <param name="type">The type to register.</param>
         public static void Register(this IMemberAccessStrategy strategy, Type type)
         {
-            foreach (var propertyInfo in type.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            foreach (var name in GetAllMembers(type))
             {
-                strategy.Register(type, propertyInfo.Name, new MethodInfoAccessor(propertyInfo.GetGetMethod()));
-            }
-
-            foreach (var fieldInfo in type.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))
-            {
-                strategy.Register(type, fieldInfo.Name, new DelegateAccessor((o, n) => fieldInfo.GetValue(o)));
+                strategy.Register(type, name, GetNamedAccessor(type, name));
             }
         }
 
@@ -58,21 +108,7 @@ namespace Fluid
         {
             foreach (var name in names)
             {
-                var propertyInfo = type.GetTypeInfo().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-
-                if (propertyInfo != null)
-                {
-                    strategy.Register(type, name, new MethodInfoAccessor(propertyInfo.GetGetMethod()));
-                }
-                else
-                {
-                    var fieldInfo = type.GetTypeInfo().GetField(name, BindingFlags.Public | BindingFlags.Instance);
-
-                    if (fieldInfo != null)
-                    {
-                        strategy.Register(type, name, new DelegateAccessor((o, n) => fieldInfo.GetValue(o)));
-                    }
-                }
+                strategy.Register(type, GetNamedAccessor(type, name));
             }
         }
 
