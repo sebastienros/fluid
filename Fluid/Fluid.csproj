@@ -7,7 +7,7 @@
 
 
   <ItemGroup Condition="'$(TargetFramework)'=='net46'">
-      <PackageReference Include="Irony" Version="0.9.1" />
+    <PackageReference Include="Irony" Version="0.9.1" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='netstandard1.6'">
