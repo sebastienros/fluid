@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading;
 using System.Threading.Tasks;
 using Fluid.Tests.Domain;
 using Fluid.Values;
@@ -388,6 +389,27 @@ namespace Fluid.Tests
 
             Assert.Equal(expectedFR, resultFR);
             Assert.Equal(expectedUS, resultUS);
+        }
+
+        [Fact]
+        public async Task NumbersAreCultureInvariant()
+        {
+            var source = "{{ 1234.567 }}";
+
+            var expected = "1234.567";
+            CultureInfo.CurrentCulture = new CultureInfo("fr-FR");
+            FluidTemplate.TryParse(source, out var templateFR, out var messages);
+
+            CultureInfo.CurrentCulture = new CultureInfo("en-US");
+            FluidTemplate.TryParse(source, out var templateUS, out messages);
+
+            var context = new TemplateContext();
+
+            var resultUS = await templateUS.RenderAsync(context);
+            var resultFR = await templateFR.RenderAsync(context);
+
+            Assert.Equal(expected, resultFR);
+            Assert.Equal(expected, resultUS);
         }
     }
 }

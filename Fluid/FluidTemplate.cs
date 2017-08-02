@@ -28,16 +28,23 @@ namespace Fluid
                 throw new ArgumentNullException(nameof(context));
             }
 
-             using(var writer = new StringWriter())
+            if (template == null)
+            {
+                throw new ArgumentNullException(nameof(template));
+            }
+
+            using (var writer = new StringWriter())
             {
                 await template.RenderAsync(writer, HtmlEncoder.Default, context);
                 return writer.ToString();
             }
         }
+
         public static string Render(this IFluidTemplate template, TemplateContext context)
         {
             return template.RenderAsync(context).GetAwaiter().GetResult();
-        }        
+        }
+
         public static Task<string> RenderAsync(this IFluidTemplate template)
         {
             return template.RenderAsync(new TemplateContext());
@@ -85,19 +92,19 @@ namespace Fluid
         {
             if (_factory.CreateParser().TryParse(text, out var statements, out errors))
             {
-                result =  new FluidTemplate<T>(statements);
+                result = new FluidTemplate<T>(statements);
                 return true;
             }
             else
             {
                 result = null;
                 return false;
-            }            
+            }
         }
 
         public async Task RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            foreach(var statement in Statements)
+            foreach (var statement in Statements)
             {
                 await statement.WriteToAsync(writer, encoder, context);
             }
