@@ -22,7 +22,7 @@ namespace Fluid.Ast
         {
             var value = await Expression.EvaluateAsync(context);
 
-            value.WriteTo(writer, encoder);
+            value.WriteTo(writer, encoder, context.CultureInfo);
 
             return Completion.Normal;
         }

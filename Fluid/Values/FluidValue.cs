@@ -9,8 +9,8 @@ namespace Fluid.Values
 {
     public abstract class FluidValue : IEquatable<FluidValue>
     {
-        public static Dictionary<Type, Func<object, FluidValue>> TypeMappings = new Dictionary<System.Type, Func<object, FluidValue>>();
-        public abstract void WriteTo(TextWriter writer, TextEncoder encoder);
+        public static Dictionary<Type, Func<object, FluidValue>> TypeMappings = new Dictionary<Type, Func<object, FluidValue>>();
+        public abstract void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
 
         public abstract bool Equals(FluidValue other);
 

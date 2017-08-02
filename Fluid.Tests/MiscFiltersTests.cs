@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Linq;
 using Fluid.Filters;
 using Fluid.Values;
@@ -123,10 +124,10 @@ namespace Fluid.Tests
         [InlineData("%A", "Tuesday")]
         [InlineData("%b", "Aug")]
         [InlineData("%B", "August")]
-        [InlineData("%c", "Tue Aug 01 17:04:36 2017")]
+        [InlineData("%c", "Tuesday, August 1, 2017 5:04:36 PM")]
         [InlineData("%C", "20")]
         [InlineData("%d", "01")]
-        [InlineData("%D", "08/01/17")]
+        [InlineData("%D", "8/1/2017")]
         [InlineData("%e", " 1")]
         [InlineData("%F", "2017-08-01")]
         [InlineData("%H", "17")]
@@ -139,27 +140,28 @@ namespace Fluid.Tests
         [InlineData("%M", "04")]
         [InlineData("%p", "PM")]
         [InlineData("%P", "pm")]
-        [InlineData("%r", "05:04:36 PM")]
-        [InlineData("%R", "17:04")]
+        [InlineData("%r", "5:04:36 PM")]
+        [InlineData("%R", "5:04 PM")]
         [InlineData("%s", "1501578276")]
         [InlineData("%S", "36")]
-        [InlineData("%T", "17:04:36")]
+        [InlineData("%T", "5:04:36 PM")]
         [InlineData("%u", "2")]
         [InlineData("%U", "31")]
-        [InlineData("%v", " 1-Aug-2017")]
+        [InlineData("%v", "Tuesday, August 1, 2017")]
         [InlineData("%V", "31")]
         [InlineData("%W", "32")]
         [InlineData("%y", "17")]
         [InlineData("%Y", "2017")]
         [InlineData("%z", "+08:00")]
         [InlineData("%%", "%")]
-        [InlineData("It is %r", "It is 05:04:36 PM")]
+        [InlineData("It is %r", "It is 5:04:36 PM")]
         public void Date(string format, string expected)
         {
             var input = new ObjectValue(new DateTimeOffset(new DateTime(2017, 8, 1, 17, 4, 36, 123), TimeSpan.FromHours(8)));
 
             var arguments = new FilterArguments(new StringValue(format));
             var context = new TemplateContext();
+            context.CultureInfo = new CultureInfo("en-US");
 
             var result = MiscFilters.Date(input, arguments, context);
 
@@ -175,11 +177,27 @@ namespace Fluid.Tests
             var arguments = new FilterArguments(new StringValue(format));
             var context = new TemplateContext();
             context.Now = () => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0));
-            context.CultureInfo = System.Globalization.CultureInfo.InvariantCulture;
+            context.CultureInfo = CultureInfo.InvariantCulture;
 
             var result = MiscFilters.Date(input, arguments, context);
 
-            Assert.Equal("08/01/17", result.ToStringValue());
+            Assert.Equal("08/01/2017", result.ToStringValue());
+        }
+
+        [Fact]
+        public void DateResolvesToday()
+        {
+            var input = new StringValue("today");
+            var format = "%D";
+
+            var arguments = new FilterArguments(new StringValue(format));
+            var context = new TemplateContext();
+            context.Now = () => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0));
+            context.CultureInfo = CultureInfo.InvariantCulture;
+
+            var result = MiscFilters.Date(input, arguments, context);
+
+            Assert.Equal("08/01/2017", result.ToStringValue());
         }
 
         [Fact]
@@ -191,11 +209,64 @@ namespace Fluid.Tests
             var arguments = new FilterArguments(new StringValue(format));
             var context = new TemplateContext();
             context.Now = () => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0));
-            context.CultureInfo = System.Globalization.CultureInfo.InvariantCulture;
+            context.CultureInfo = CultureInfo.InvariantCulture;
 
             var result = MiscFilters.FormatDate(input, arguments, context);
 
             Assert.Equal("08/01/2017", result.ToStringValue());
+        }
+
+        [Fact]
+        public void DateIsParsed()
+        {
+            var input = new StringValue("08/01/2017");
+            var format = "%D";
+
+            var arguments = new FilterArguments(new StringValue(format));
+            var context = new TemplateContext();
+            context.CultureInfo = CultureInfo.InvariantCulture;
+
+            var result = MiscFilters.Date(input, arguments, context);
+
+            Assert.Equal("08/01/2017", result.ToStringValue());
+        }
+
+        [Fact]
+        public void DateIsParsedWithCulture()
+        {
+            var input = new StringValue("08/01/2017");
+            var format = "%d/%m/%Y";
+
+            var arguments = new FilterArguments(new StringValue(format));
+            var context = new TemplateContext();
+
+            context.CultureInfo = new CultureInfo("fr-FR");
+            var resultFR = MiscFilters.Date(input, arguments, context);
+
+            context.CultureInfo = new CultureInfo("en-US");
+            var resultUS = MiscFilters.Date(input, arguments, context);
+
+            Assert.Equal("08/01/2017", resultFR.ToStringValue());
+            Assert.Equal("01/08/2017", resultUS.ToStringValue());
+        }
+
+        [Fact]
+        public void DateIsRenderedWithCulture()
+        {
+            var input = new StringValue("08/01/2017");
+            var format = "%c";
+
+            var arguments = new FilterArguments(new StringValue(format));
+            var context = new TemplateContext();
+
+            context.CultureInfo = new CultureInfo("fr-FR");
+            var resultFR = MiscFilters.Date(input, arguments, context);
+
+            context.CultureInfo = new CultureInfo("en-US");
+            var resultUS = MiscFilters.Date(input, arguments, context);
+
+            Assert.Equal("dimanche 8 janvier 2017 00:00:00", resultFR.ToStringValue());
+            Assert.Equal("Tuesday, August 1, 2017 12:00:00 AM", resultUS.ToStringValue());
         }
     }
 }

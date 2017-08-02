@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Net;
 using System.Text;
 using Fluid.Values;
@@ -8,6 +9,9 @@ namespace Fluid.Filters
 {
     public static class MiscFilters
     {
+        private const string Now = "now";
+        private const string Today = "today";
+
         public static FilterCollection WithMiscFilters(this FilterCollection filters)
         {
             filters.AddFilter("default", Default);
@@ -103,27 +107,9 @@ namespace Fluid.Filters
 
         public static FluidValue Date(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            DateTimeOffset value;
-
-            if (input.Type == FluidValues.String && input.ToStringValue() == "now")
+            if (!TryGetDateTimeInput(input, context, out var value))
             {
-                value = context.Now();
-            }
-            else
-            {
-                switch (input.ToObjectValue())
-                {
-                    case DateTime dateTime:
-                        value = dateTime;
-                        break;
-
-                    case DateTimeOffset dateTimeOffset:
-                        value = dateTimeOffset;
-                        break;
-
-                    default:
-                        return NilValue.Instance;
-                }
+                return NilValue.Instance;
             }
 
             if (arguments.At(0).IsNil())
@@ -158,15 +144,10 @@ namespace Fluid.Filters
                         case 'A': result.Append(context.CultureInfo.DateTimeFormat.DayNames[(int)value.DayOfWeek]); break;
                         case 'b': result.Append(context.CultureInfo.DateTimeFormat.AbbreviatedMonthNames[value.Month - 1]); break;
                         case 'B': result.Append(context.CultureInfo.DateTimeFormat.MonthNames[value.Month - 1]); break;
-                        case 'c': result.Append(value.ToString("ddd MMM dd HH:mm:ss yyyy", context.CultureInfo)); break;
+                        case 'c': result.Append(value.ToString("F", context.CultureInfo)); break;
                         case 'C': result.Append(value.Year / 100); break;
                         case 'd': result.Append(value.Day.ToString(context.CultureInfo).PadLeft(2, '0')); break;
-                        case 'D':
-                            result
-                                .Append(value.Month.ToString(context.CultureInfo).PadLeft(2, '0'))
-                                .Append('/').Append(value.Day.ToString(context.CultureInfo).PadLeft(2, '0'))
-                                .Append('/').Append((value.Year % 100).ToString(context.CultureInfo).PadLeft(2, '0'));
-                            break;
+                        case 'D': result.Append(value.ToString("d", context.CultureInfo)); break;
                         case 'e': result.Append(value.Day.ToString(context.CultureInfo).PadLeft(2, ' ')); break;
                         case 'F': result.Append(value.ToString("yyyy-MM-dd", context.CultureInfo)); break;
                         case 'H': result.Append(value.Hour.ToString(context.CultureInfo).PadLeft(2, '0')); break;
@@ -179,39 +160,16 @@ namespace Fluid.Filters
                         case 'M': result.Append(value.Minute.ToString(context.CultureInfo).PadLeft(2, '0')); break;
                         case 'p': result.Append(value.ToString("tt", context.CultureInfo).ToUpper()); break;
                         case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLower()); break;
-                        case 'r':
-                            result
-                                .Append((value.Hour % 12).ToString(context.CultureInfo).PadLeft(2, '0')).Append(":")
-                                .Append(value.Minute.ToString(context.CultureInfo).PadLeft(2, '0')).Append(":")
-                                .Append(value.Second.ToString(context.CultureInfo).PadLeft(2, '0')).Append(" ")
-                                .Append(value.ToString("tt", context.CultureInfo).ToUpper())
-                                ;
-                            break;
-                        case 'R':
-                            result
-                              .Append(value.Hour.ToString(context.CultureInfo).PadLeft(2, '0')).Append(":")
-                              .Append(value.Minute.ToString(context.CultureInfo).PadLeft(2, '0'));
-                            break;
+                        case 'T':
+                        case 'r': result.Append(value.ToString("T", context.CultureInfo).ToUpper()); break;
+                        case 'R': result.Append(value.ToString("t", context.CultureInfo).ToUpper()); break;
                         case 's': result.Append(value.ToUnixTimeSeconds()); break;
                         case 'S': result.Append(value.Second.ToString(context.CultureInfo).PadLeft(2, '0')); break;
-                        case 'T':
-                            result
-                              .Append(value.Hour.ToString(context.CultureInfo).PadLeft(2, '0')).Append(":")
-                              .Append(value.Minute.ToString(context.CultureInfo).PadLeft(2, '0')).Append(":")
-                              .Append(value.Second.ToString(context.CultureInfo).PadLeft(2, '0'))
-                              ;
-                            break;
                         case 'u': result.Append((int)value.DayOfWeek); break;
-                        case 'U': result.Append(context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, System.Globalization.CalendarWeekRule.FirstDay, DayOfWeek.Sunday).ToString().PadLeft(2, '0')); break;
-                        case 'v':
-                            result
-                                .Append(value.Day.ToString(context.CultureInfo).PadLeft(2, ' ')).Append("-")
-                                .Append(context.CultureInfo.DateTimeFormat.AbbreviatedMonthNames[value.Month - 1]).Append("-")
-                                .Append(value.Year)
-                                ;
-                            break;
+                        case 'U': result.Append(context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstDay, DayOfWeek.Sunday).ToString().PadLeft(2, '0')); break;
+                        case 'v': result.Append(value.ToString("D", context.CultureInfo)); break;
                         case 'V': result.Append((value.DayOfYear / 7 + 1).ToString(context.CultureInfo).PadLeft(2, '0')); break;
-                        case 'W': result.Append(context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, System.Globalization.CalendarWeekRule.FirstDay, DayOfWeek.Monday).ToString().PadLeft(2, '0')); break;
+                        case 'W': result.Append(context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstDay, DayOfWeek.Monday).ToString().PadLeft(2, '0')); break;
                         case 'y': result.Append(value.ToString("yy", context.CultureInfo)); break;
                         case 'Y': result.Append(value.Year); break;
                         case 'z': result.Append(value.ToString("zzz", context.CultureInfo)); break;
@@ -229,28 +187,10 @@ namespace Fluid.Filters
 
         public static FluidValue FormatDate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            DateTimeOffset value;
-
-            if (input.Type == FluidValues.String && input.ToStringValue() == "now")
+            if (!TryGetDateTimeInput(input, context, out var value))
             {
-                value = context.Now();
-            }
-            else
-            {
-                switch (input.ToObjectValue())
-                {
-                    case DateTime dateTime:
-                        value = dateTime;
-                        break;
-
-                    case DateTimeOffset dateTimeOffset:
-                        value = dateTimeOffset;
-                        break;
-
-                    default:
-                        return NilValue.Instance;
-                }
-            }
+                return NilValue.Instance;
+            }            
 
             if (arguments.At(0).IsNil())
             {
@@ -260,6 +200,43 @@ namespace Fluid.Filters
             var format = arguments.At(0).ToStringValue();
 
             return new StringValue(value.ToString(format, context.CultureInfo));
+        }
+
+        private static bool TryGetDateTimeInput(FluidValue input, TemplateContext context, out DateTimeOffset result)
+        {
+            result = context.Now();
+
+            if (input.Type == FluidValues.String)
+            {
+                var stringValue = input.ToStringValue();
+
+                if (stringValue == Now || stringValue == Today)
+                {
+                    return true;
+                }
+                else
+                {
+                    return DateTimeOffset.TryParse(stringValue, context.CultureInfo, DateTimeStyles.AssumeUniversal, out result);
+                }
+            }
+            else
+            {
+                switch (input.ToObjectValue())
+                {
+                    case DateTime dateTime:
+                        result = dateTime;
+                        break;
+
+                    case DateTimeOffset dateTimeOffset:
+                        result = dateTimeOffset;
+                        break;
+
+                    default:
+                        return false;
+                }
+            }
+
+            return true;
         }
     }
 }

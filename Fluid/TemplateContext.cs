@@ -46,7 +46,7 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
         /// </summary>
-        public CultureInfo CultureInfo { get; set; } = CultureInfo.CurrentCulture;
+        public CultureInfo CultureInfo { get; set; } = CultureInfo.InvariantCulture;
 
         /// <summary>
         /// Gets or sets the way to return the current date and time for the template.

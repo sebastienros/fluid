@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
 
@@ -103,7 +104,7 @@ namespace Fluid.Values
             return 0;
         }
 
-        public override void WriteTo(TextWriter writer, TextEncoder encoder)
+        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
         }
 
