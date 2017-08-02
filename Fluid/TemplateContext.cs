@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using Microsoft.Extensions.FileProviders;
-using Fluid.Values;
-using Fluid.Filters;
 using System.Globalization;
+using Fluid.Filters;
+using Fluid.Values;
+using Microsoft.Extensions.FileProviders;
 
 namespace Fluid
 {
