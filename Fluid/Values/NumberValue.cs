@@ -35,9 +35,9 @@ namespace Fluid.Values
             return _value.ToString(CultureInfo.InvariantCulture);
         }
 
-        public override void WriteTo(TextWriter writer, TextEncoder encoder)
+        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            encoder.Encode(writer, ToStringValue());
+            encoder.Encode(writer, _value.ToString(cultureInfo));
         }
 
         public override object ToObjectValue()

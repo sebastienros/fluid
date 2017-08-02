@@ -32,7 +32,7 @@ namespace Fluid.Ast
             var value = await Values[index].EvaluateAsync(context);
             context.SetValue(groupValue, new NumberValue(index + 1));
 
-            value.WriteTo(writer, encoder);
+            value.WriteTo(writer, encoder, context.CultureInfo);
 
             return Completion.Normal;
         }

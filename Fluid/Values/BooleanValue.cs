@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Globalization;
+using System.IO;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -37,7 +38,7 @@ namespace Fluid.Values
             return _value ? "true" : "false";
         }
 
-        public override void WriteTo(TextWriter writer, TextEncoder encoder)
+        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             encoder.Encode(writer, ToStringValue());
         }

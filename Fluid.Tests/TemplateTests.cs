@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
-using Fluid.Values;
-using Fluid.Tests.Domain;
-using Xunit;
 using System.Threading.Tasks;
+using Fluid.Tests.Domain;
+using Fluid.Values;
+using Xunit;
 
 namespace Fluid.Tests
 {
@@ -367,7 +368,26 @@ namespace Fluid.Tests
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
+        }
 
+        [Fact]
+        public async Task NumbersAreFormattedUsingCulture()
+        {
+            var source = "{{ 1234.567 }}";
+            var expectedFR = "1234,567";
+            var expectedUS = "1234.567";
+
+            FluidTemplate.TryParse(source, out var template, out var messages);
+            var context = new TemplateContext();
+
+            context.CultureInfo = new CultureInfo("en-US");
+            var resultUS = await template.RenderAsync(context);
+
+            context.CultureInfo = new CultureInfo("fr-FR");
+            var resultFR = await template.RenderAsync(context);
+
+            Assert.Equal(expectedFR, resultFR);
+            Assert.Equal(expectedUS, resultUS);
         }
     }
 }

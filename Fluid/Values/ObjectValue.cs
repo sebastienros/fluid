@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -58,9 +59,9 @@ namespace Fluid.Values
             return 0;
         }
 
-        public override void WriteTo(TextWriter writer, TextEncoder encoder)
+        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            encoder.Encode(writer, ToStringValue());
+            encoder.Encode(writer, _value.ToString());
         }
 
         public override string ToStringValue()
