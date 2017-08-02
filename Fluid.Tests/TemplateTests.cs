@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
-using Fluid.Values;
-using Fluid.Tests.Domain;
-using Xunit;
 using System.Threading.Tasks;
-using System.Globalization;
+using Fluid.Tests.Domain;
+using Fluid.Values;
+using Xunit;
 
 namespace Fluid.Tests
 {
