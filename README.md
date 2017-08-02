@@ -460,3 +460,4 @@ A performance benchmark application is provided in the source code. Run it local
 
 Fluid is known to be in the following projects:
 - [Orchard Core CMS](https://github.com/OrchardCMS/Orchard2)
+- [MaltReport](https://github.com/oldrev/maltreport) OpenDocument/OfficeOpenXML powered reporting engine for .NET and Mono
