@@ -29,6 +29,7 @@ Fluid is different from other .NET implementations by not relying on code compil
 - [White-listing object members](#white-listing-object-members)
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
+- [Localization](#localization)
 - [Customizing tags](#customizing-tags)
 - [ASP.NET MVC View Engine](#aspnet-mvc-view-engine)
 - [Performance](#performance)
@@ -229,6 +230,33 @@ Not encoded: {{ html | raw }
 ```html
 &lt;em%gt;This is some html&lt;/em%gt;
 <em>This is some html</em>
+```
+
+<br>
+
+## Localization
+
+By default templates are rendered using an _invariant_ culture so that the results are consistent across systems. This is important for instance when rendering dates, times and numbers.
+
+However it is possible to define a specific culture to use when rendering a template using the `TemplateContext.CultureInfo` property. 
+
+#### Source
+
+```csharp
+var context = new TemplateContext();
+context.CultureInfo = new CultureInfo("en-US");
+var result = template.Render(context);
+```
+
+```Liquid
+{{ 1234.56 }}
+{{ "now" | date: "%v" }}
+```
+
+#### Result
+```html
+1234.56
+Tuesday, August 1, 2017
 ```
 
 <br>
