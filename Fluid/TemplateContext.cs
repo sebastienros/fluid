@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Extensions.FileProviders;
 using Fluid.Values;
 using Fluid.Filters;
+using System.Globalization;
 
 namespace Fluid
 {
@@ -41,6 +42,16 @@ namespace Fluid
         public IMemberAccessStrategy MemberAccessStrategy = new MemberAccessStrategy(GlobalMemberAccessStrategy);
 
         public IFileProvider FileProvider { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
+        /// </summary>
+        public CultureInfo CultureInfo { get; set; } = CultureInfo.CurrentCulture;
+
+        /// <summary>
+        /// Gets or sets the way to return the current date and time for the template.
+        /// </summary>
+        public Func<DateTimeOffset> Now { get; set; } = () => DateTimeOffset.Now;
 
         /// <summary>
         /// Gets or sets a model object that is used to resolve properties in a template. This object is used if local and 
