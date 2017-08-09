@@ -45,8 +45,7 @@ namespace Fluid.Values
 
         public override FluidValue GetIndex(FluidValue index, TemplateContext context)
         {
-            // Indexers are not exposed for security.
-            return NilValue.Instance;
+            return GetValue(index.ToStringValue(), context);
         }
 
         public override bool ToBooleanValue()

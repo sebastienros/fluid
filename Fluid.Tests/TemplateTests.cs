@@ -411,5 +411,24 @@ namespace Fluid.Tests
             Assert.Equal(expected, resultFR);
             Assert.Equal(expected, resultUS);
         }
+
+        [Fact]
+        public Task IndexersAccessProperties()
+        {
+            var source = "{% for p in products %}{{p['price']}}{% endfor %}";
+            var expected = "123";
+
+            return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
+        }
+
+
+        [Fact]
+        public Task IndexersCanUseVariables()
+        {
+            var source = "{% assign x = 'price' %} {% for p in products %}{{p[x]}}{% endfor %}";
+            var expected = "123";
+
+            return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
+        }
     }
 }
