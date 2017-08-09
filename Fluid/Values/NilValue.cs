@@ -7,6 +7,7 @@ namespace Fluid.Values
     public class NilValue : FluidValue
     {
         public static readonly NilValue Instance = new NilValue();
+        public static readonly NilValue Empty = new NilValue();
 
         private NilValue()
         {
@@ -21,7 +22,8 @@ namespace Fluid.Values
 
         public override bool ToBooleanValue()
         {
-            return false;
+            // Empty is a NilValue that is Truthy
+            return this == Empty;
         }
 
         public override double ToNumberValue()
@@ -43,7 +45,7 @@ namespace Fluid.Values
         {
             return true;
         }
-
+        
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
         }

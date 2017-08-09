@@ -62,7 +62,8 @@ namespace Fluid
         static TemplateContext()
         {
             // Global properties
-            GlobalScope.SetValue("empty", NilValue.Instance);
+            GlobalScope.SetValue("empty", NilValue.Empty);
+            GlobalScope.SetValue("blank", new StringValue(""));
 
             // Initialize Global Filters
             GlobalFilters

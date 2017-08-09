@@ -137,5 +137,20 @@ namespace Fluid.Tests
                 context.SetValue("y", new List<string>{ "foo" });
             });
         }
+
+        [Theory]
+        [InlineData("''", "true")]
+        [InlineData("'a'", "true")]
+        [InlineData("blank", "true")]
+        [InlineData("empty", "true")]
+        [InlineData("0", "true")]
+        [InlineData("1", "true")]
+        [InlineData("abc", "false")]
+        [InlineData("false", "false")]
+        public Task TruthyFalsy(string source, string expected)
+        {
+            return CheckAsync("{% if " + source + " %}true{% else %}false{% endif %}", expected);
+        }
+
     }
 }

@@ -22,7 +22,7 @@ namespace Fluid.Values
 
         public override bool ToBooleanValue()
         {
-            return _value != 0;
+            return true;
         }
 
         public override double ToNumberValue()
