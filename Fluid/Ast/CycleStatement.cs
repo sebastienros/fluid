@@ -23,7 +23,7 @@ namespace Fluid.Ast
 
             var currentValue = context.GetValue(groupValue);
 
-            if (currentValue.IsUndefined())
+            if (currentValue.IsNil())
             {
                 currentValue = new NumberValue(0);
             }

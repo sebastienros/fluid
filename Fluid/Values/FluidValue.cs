@@ -30,10 +30,6 @@ namespace Fluid.Values
         }
 
         public abstract FluidValues Type { get; }
-        public virtual bool IsUndefined()
-        {
-            return false;
-        }
 
         public virtual bool IsNil()
         {
@@ -125,7 +121,7 @@ namespace Fluid.Values
 
         public FluidValue Or(FluidValue other)
         {
-            if (IsNil() || IsUndefined())
+            if (IsNil())
             {
                 return other;
             }

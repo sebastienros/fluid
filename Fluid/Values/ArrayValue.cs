@@ -20,8 +20,8 @@ namespace Fluid.Values
         public ArrayValue(IEnumerable value)
         {
             _value = new List<object>();
-            
-            foreach(var item in value)
+
+            foreach (var item in value)
             {
                 _value.Add(item);
             }
@@ -29,7 +29,7 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other)
         {
-            if (other == EmptyValue.Instance)
+            if (other.IsNil())
             {
                 return _value.Count == 0;
             }
@@ -41,7 +41,7 @@ namespace Fluid.Values
                     return false;
                 }
 
-                for (var i=0; i<_value.Count; i++)
+                for (var i = 0; i < _value.Count; i++)
                 {
                     var item = _value[i];
                     var otherItem = arrayValue._value[i];

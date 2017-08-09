@@ -1,8 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -20,7 +18,7 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other)
         {
-            if (other == EmptyValue.Instance)
+            if (other.IsNil())
             {
                 return _value.Count == 0;
             }

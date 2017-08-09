@@ -31,8 +31,8 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other)
         {
-            if (other == EmptyValue.Instance)
-            {   
+            if (other.IsNil())
+            {
                 return _value.Length == 0;
             }
 

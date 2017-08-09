@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
-using System.Threading;
 using System.Threading.Tasks;
 using Fluid.Tests.Domain;
 using Fluid.Values;

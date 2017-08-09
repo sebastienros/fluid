@@ -27,7 +27,7 @@ namespace Fluid.Ast
         {
             var result = value.GetValue(Identifier);
 
-            if (result.IsUndefined() && context.Model != null)
+            if (result.IsNil() && context.Model != null)
             {
                 // Look into the Model if defined
                 result = FluidValue.Create(context.MemberAccessStrategy.Get(context.Model, Identifier));

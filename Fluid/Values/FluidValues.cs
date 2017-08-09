@@ -6,10 +6,8 @@
         Array,
         Boolean,
         Dictionary,
-        Empty,
         Number,
         Object,
-        String,
-        Undefined
+        String
     }
 }

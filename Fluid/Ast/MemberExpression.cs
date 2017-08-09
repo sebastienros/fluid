@@ -29,7 +29,7 @@ namespace Fluid.Ast
                 }
 
                 // Stop processing as soon as a member returns nothing
-                if (value.IsUndefined())
+                if (value.IsNil())
                 {
                     return value;
                 }

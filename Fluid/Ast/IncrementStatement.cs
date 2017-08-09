@@ -27,7 +27,7 @@ namespace Fluid.Ast
 
             var value = context.GetValue(prefixedIdentifier);
             
-            if (value.IsUndefined()) 
+            if (value.IsNil()) 
             {
                 value = new NumberValue(0);
             }

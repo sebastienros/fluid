@@ -25,7 +25,7 @@ namespace Fluid.Tests
         [Fact]
         public void DefaultReturnsDefaultIfNotDefined()
         {
-            var input = EmptyValue.Instance;
+            var input = NilValue.Instance;
 
             var arguments = new FilterArguments().Add(new StringValue("bar"));
             var context = new TemplateContext();
