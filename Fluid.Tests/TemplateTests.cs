@@ -420,12 +420,20 @@ namespace Fluid.Tests
             return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
         }
 
-
         [Fact]
         public Task IndexersCanUseVariables()
         {
             var source = "{% assign x = 'price' %} {% for p in products %}{{p[x]}}{% endfor %}";
             var expected = "123";
+
+            return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
+        }
+
+        [Fact]
+        public Task CanAccessContextInElseCase()
+        {
+            var source = "{% if false %}{% else %}{{ products.size }}{% endif %}";
+            var expected = "3";
 
             return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
         }

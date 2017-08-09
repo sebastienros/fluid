@@ -122,7 +122,7 @@ namespace Fluid
 
                         if (s != null)
                         {
-                            _currentContext.Statements.Add(s);
+                            _currentContext.AddStatement(s);
                         }
 
                         index = end + 1;
@@ -820,17 +820,18 @@ namespace Fluid
             // This value is initialized the first time a sub-block is found
             private Dictionary<string, IList<Statement>> _blocks;
 
-            private IList<Statement> _statements;
+            // Statements that are added while parsing a sub-block (else, elsif, when)
+            private IList<Statement> transientStatements;
 
             public BlockContext(ParseTreeNode tag)
             {
                 Tag = tag;
                 Statements = new List<Statement>();
-                _statements = Statements;
+                transientStatements = Statements;
             }
 
             public ParseTreeNode Tag { get; }
-            public IList<Statement> Statements { get; }
+            public IList<Statement> Statements { get; private set; }
             
             public void EnterBlock(string name, TagStatement statement)
             {
@@ -845,12 +846,12 @@ namespace Fluid
                 }
 
                 blockStatements.Add(statement);
-                _statements = statement.Statements;
+                transientStatements = statement.Statements;
             }
 
             public void AddStatement(Statement statement)
             {
-                _statements.Add(statement);
+                transientStatements.Add(statement);
             }
 
             public IList<TStatement> GetBlockStatements<TStatement>(string name)
