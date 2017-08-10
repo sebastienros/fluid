@@ -102,8 +102,7 @@ namespace Fluid.Tests
             await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("y", sw.ToString());
-        }
-        
+        }        
 
         [Fact]
         public async Task CaseProcessFirstWhen()

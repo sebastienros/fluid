@@ -304,8 +304,8 @@ namespace Fluid
         }
 
         /// <summary>
-        /// Invoked when a block is entered to assign subsequent
-        /// statements to it.
+        /// Invoked when a block is entered to create a new statements context
+        /// which will received all subsequent statements.
         /// </summary>
         protected void EnterBlock(ParseTreeNode tag)
         {
@@ -313,13 +313,25 @@ namespace Fluid
             _currentContext = new BlockContext(tag);
         }
 
+        /// <summary>
+        /// Invoked when a section is entered to create a new statements context
+        /// which will received all subsequent statements.
+        /// </summary>
+        protected void EnterBlockSection(string name, TagStatement statement)
+        {
+            _currentContext.EnterBlock(name, statement);
+        }
+
+        /// <summary>
+        /// Invoked when the end of a block has been reached.
+        /// It resets the current statements context to the outer block.
+        /// </summary>
         protected void ExitBlock()
         {
             _currentContext = _contexts.Pop();
         }
 
         #region Build methods
-
 
         protected virtual Statement BuildTagStatement(ParseTreeNode node)
         {
@@ -332,18 +344,18 @@ namespace Fluid
                     break;
 
                 case "endfor":
-                    return BuildForStatement("for");
+                    return BuildForStatement();
 
                 case "case":
                     EnterBlock(tag);
                     break;
 
                 case "when":
-                    BuildWhenStatement(tag);
+                    EnterWhenSection(tag);
                     break;
 
                 case "endcase":
-                    return BuildCaseStatement("case");
+                    return BuildCaseStatement();
 
                 case "if":
                     EnterBlock(tag);
@@ -354,17 +366,17 @@ namespace Fluid
                     break;
 
                 case "endif":
-                    return BuildIfStatement("if");
+                    return BuildIfStatement();
 
                 case "endunless":
-                    return BuildUnlessStatement("unless");
+                    return BuildUnlessStatement();
 
                 case "else":
-                    _currentContext.EnterBlock("else", new ElseStatement(new List<Statement>()));
+                    EnterElseSection();
                     break;
 
                 case "elsif":
-                    _currentContext.EnterBlock("elsif", new ElseIfStatement(BuildExpression(tag.ChildNodes[0]), new List<Statement>()));
+                    EnterElsifSection(tag);
                     break;
 
                 case "break":
@@ -417,7 +429,7 @@ namespace Fluid
         {
             if (_currentContext.Tag.Term.Name != expectedBeginTag)
             {
-                throw new ParseException($"Unexpected tag: ${_currentContext.Tag.Term.Name} not matching {expectedBeginTag} tag.");
+                throw new ParseException($"Unexpected tag: '{_currentContext.Tag.Term.Name}' not matching {expectedBeginTag} tag.");
             }
 
             var identifier = _currentContext.Tag.ChildNodes[0].Token.ValueString;
@@ -470,12 +482,22 @@ namespace Fluid
             return new CycleStatement(group, values);
         }
 
-        protected virtual void BuildWhenStatement(ParseTreeNode tag)
+        protected virtual void EnterWhenSection(ParseTreeNode tag)
         {
             var options = tag.ChildNodes[0].ChildNodes.Select(BuildTermExpression).ToList();
-            _currentContext.EnterBlock("when", new WhenStatement(options, new List<Statement>()));
+            EnterBlockSection("when", new WhenStatement(options, new List<Statement>()));
         }
-        
+
+        protected virtual void EnterElseSection()
+        {
+            EnterBlockSection("else", new ElseStatement(new List<Statement>()));
+        }
+
+        protected virtual void EnterElsifSection(ParseTreeNode tag)
+        {
+            EnterBlockSection("elsif", new ElseIfStatement(BuildExpression(tag.ChildNodes[0]), new List<Statement>()));
+        }
+
         protected virtual OutputStatement BuildOutputStatement(ParseTreeNode node)
         {
             var expressionNode = node.ChildNodes[0];
@@ -485,11 +507,11 @@ namespace Fluid
             return new OutputStatement(expression);
         }
 
-        protected virtual IfStatement BuildIfStatement(string expectedBeginTag)
+        protected virtual IfStatement BuildIfStatement()
         {
-            if (_currentContext.Tag.Term.Name != expectedBeginTag)
+            if (_currentContext.Tag.Term.Name != "if")
             {
-                throw new ParseException($"Unexpected tag: ${_currentContext.Tag.Term.Name} not matching {expectedBeginTag} tag.");
+                throw new ParseException($"Unexpected tag: '{_currentContext.Tag.Term.Name}' not matching 'if' tag.");
             }
 
             var elseStatements = _currentContext.GetBlockStatements<ElseStatement>("else");
@@ -507,16 +529,16 @@ namespace Fluid
             return ifStatement;
         }
 
-        protected virtual CaseStatement BuildCaseStatement(string expectedBeginTag)
+        protected virtual CaseStatement BuildCaseStatement()
         {
-            if (_currentContext.Tag.Term.Name != expectedBeginTag)
+            if (_currentContext.Tag.Term.Name != "case")
             {
-                throw new ParseException($"Unexpected tag: {_currentContext.Tag.Term.Name} not matching {expectedBeginTag} tag.");
+                throw new ParseException($"Unexpected tag: '{_currentContext.Tag.Term.Name}' not matching 'case' tag.");
             }
 
-            if (_currentContext.Statements.Any())
+            if (_currentContext.Statements.Count > 0)
             {
-                throw new ParseException($"Unexpected content in '{expectedBeginTag}' tag. Only 'when' and 'else' are allowed.");
+                throw new ParseException($"Unexpected content in 'case' tag. Only 'when' and 'else' are allowed.");
             }
 
             var elseStatements = _currentContext.GetBlockStatements<ElseStatement>("else");
@@ -533,11 +555,11 @@ namespace Fluid
             return caseStatement;
         }
 
-        protected virtual UnlessStatement BuildUnlessStatement(string expectedBeginTag)
+        protected virtual UnlessStatement BuildUnlessStatement()
         {
-            if (_currentContext.Tag.Term.Name != expectedBeginTag)
+            if (_currentContext.Tag.Term.Name != "unless")
             {
-                throw new ParseException($"Unexpected tag: ${_currentContext.Tag.Term.Name} not matching {expectedBeginTag} tag.");
+                throw new ParseException($"Unexpected tag: '{_currentContext.Tag.Term.Name}' not matching 'unless' tag.");
             }
 
             var elseStatements = _currentContext.GetBlockStatements<ElseStatement>("else");
@@ -545,12 +567,12 @@ namespace Fluid
 
             if (elseStatements.Count > 0)
             {
-                throw new ParseException($"Unexpected tag 'else' in '{expectedBeginTag}'.");
+                throw new ParseException($"Unexpected tag 'else' in 'unless'.");
             }
 
             if (elseIfStatements.Count > 0)
             {
-                throw new ParseException($"Unexpected tag 'elsif' in '{expectedBeginTag}'.");
+                throw new ParseException($"Unexpected tag 'elsif' in 'unless'.");
             }
 
             var unlessStatement = new UnlessStatement(
@@ -563,11 +585,11 @@ namespace Fluid
             return unlessStatement;
         }
 
-        protected virtual Statement BuildForStatement(string expectedBeginTag)
+        protected virtual Statement BuildForStatement()
         {
-            if (_currentContext.Tag.Term.Name != expectedBeginTag)
+            if (_currentContext.Tag.Term.Name != "for")
             {
-                throw new ParseException($"Unexpected tag: ${_currentContext.Tag.Term.Name} not matching {expectedBeginTag} tag.");
+                throw new ParseException($"Unexpected tag: '{_currentContext.Tag.Term.Name}' not matching 'for' tag.");
             }
 
             var identifier = _currentContext.Tag.ChildNodes[0].Token.Text;

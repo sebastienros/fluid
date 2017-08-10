@@ -26,7 +26,7 @@ namespace Fluid.MvcViewEngine
                     return null;
 
                 case "endsection":
-                    return BuildRegisterSectionStatement("section");
+                    return BuildRegisterSectionStatement();
 
                 case "include":
                     return BuildIncludeStatement(tag);
@@ -53,11 +53,11 @@ namespace Fluid.MvcViewEngine
             return new RenderSectionStatement(sectionName);
         }
 
-        private RegisterSectionStatement BuildRegisterSectionStatement(string expectedBeginTag)
+        private RegisterSectionStatement BuildRegisterSectionStatement()
         {
-            if (_currentContext.Tag.Term.Name != expectedBeginTag)
+            if (_currentContext.Tag.Term.Name != "section")
             {
-                throw new ParseException($"Unexpected tag: ${_currentContext.Tag.Term.Name} not matching {expectedBeginTag} tag.");
+                throw new ParseException($"Unexpected tag: '{_currentContext.Tag.Term.Name}' not matching 'section' tag.");
             }
 
             var identifier = _currentContext.Tag.ChildNodes[0].Token.Text;
