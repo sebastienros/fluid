@@ -186,10 +186,15 @@ namespace Fluid
                 // There is a tag after, we can try to strip the end of the section
                 while (true)
                 {
-                    // Reach beginning of section?
+                    // We strip the text if all chars down to the beginning of the line
+                    // are white spaces.
                     if (index == start - 1)
                     {
-                        end = start;
+                        if (index >= 0 && segment.Value[index] == '\n' || index == -1)
+                        {
+                            end = start;
+                        }
+
                         break;
                     }
 

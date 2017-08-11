@@ -2,15 +2,12 @@
 using System.Threading.Tasks;
 using Fluid.Ast;
 using Irony.Parsing;
-using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Fluid.Tests
 {
-    public class SampleTests
+    public class WhiteSpaceTests
     {
-        private static LanguageData _language = new LanguageData(new FluidGrammar());
-
         private IList<Statement> Parse(string source)
         {
             FluidTemplate.TryParse(source, out var template, out var errors);
@@ -74,6 +71,42 @@ namespace Fluid.Tests
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
-        }        
+        }
+
+        [Fact]
+        public async Task EndBlockShouldMaintainWhiteSpaceWhenNotEmpty()
+        {
+            var source = "{% for i in (1..3) %} Hi! {{ i }} {% endfor %}";
+            var expected = " Hi! 1  Hi! 2  Hi! 3 ";
+
+            FluidTemplate.TryParse(source, out var template, out var messages);
+            var result = await template.RenderAsync();
+
+            Assert.Equal(expected, result);
+        }
+
+
+        [Fact]
+        public async Task EndBlockShouldMaintainWhiteSpaceWhenNotEmpty2()
+        {
+            var source = "{{'a'}} {% for i in (1..3) %}{{ i }}{% endfor %}";
+            var expected = "a 123";
+
+            FluidTemplate.TryParse(source, out var template, out var messages);
+            var result = await template.RenderAsync();
+
+            Assert.Equal(expected, result);
+        }
+        [Fact]
+        public async Task TemplateShouldNotTrimOutputTag()
+        {
+            var source = " {{ 1 }} ";
+            var expected = " 1 ";
+
+            FluidTemplate.TryParse(source, out var template, out var messages);
+            var result = await template.RenderAsync();
+
+            Assert.Equal(expected, result);
+        }
     }
 }

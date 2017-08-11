@@ -56,12 +56,12 @@ namespace Fluid.Tests
         {
             FluidTemplate.Factory.RegisterBlock<YoloBlock>("yolo");
 
-            var success = FluidTemplate.TryParse("{% yolo (1..3) %}foo{{ i }}{% endyolo %}", out var template);
+            var success = FluidTemplate.TryParse("{% yolo (1..3) %}foo {{ i }} {% endyolo %}", out var template);
             Assert.True(success);
 
             var result = template.Render();
 
-            Assert.Equal("foo1foo2foo3", result);
+            Assert.Equal("foo 1 foo 2 foo 3 ", result);
         }
 
         [Fact]
