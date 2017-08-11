@@ -1,16 +1,16 @@
-﻿using System;
+﻿#if NETCOREAPP1_1
+using System;
 using System.IO;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using Fluid.Ast;
+using Fluid.MvcViewEngine.Tags;
+using Fluid.Values;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Primitives;
-using Fluid.Ast;
-using Fluid.Values;
 using Xunit;
-using Fluid.MvcViewEngine.Tags;
 
-#if NETCOREAPP1_1
 namespace Fluid.Tests
 {
     public class IncludeStatementTests
