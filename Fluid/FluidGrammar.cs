@@ -5,52 +5,52 @@ namespace Fluid
     [Language("Fluid", "0.2", "Liquid based syntax")]
     public class FluidGrammar : Grammar
     {
-        protected IdentifierTerminal Identifier = new IdentifierTerminal("identifier");
-        protected NonTerminal MemberAccess = new NonTerminal("memberAccess");
-        protected NonTerminal MemberAccessSegmentOpt = new NonTerminal("memberAccessSegmentOpt");
-        protected NonTerminal MemberAccessSegment = new NonTerminal("memberAccessSegment");
-        protected NonTerminal MemberAccessSegmentIdentifier = new NonTerminal("memberAccessSegmentIdentifier");
-        protected NonTerminal MemberAccessSegmentIndexer = new NonTerminal("memberAccessSegmentIndexer");
-        protected NonTerminal Statement = new NonTerminal("statement");
-        protected NonTerminal Output = new NonTerminal("output");
-        protected NonTerminal Tag = new NonTerminal("tag");
-        protected NonTerminal FilterList = new NonTerminal("filterList");
-        protected NonTerminal Filter = new NonTerminal("filter");
-        protected NonTerminal Expression = new NonTerminal("expression");
-        protected NonTerminal Term = new NonTerminal("term");
-        protected NonTerminal BinaryExpression = new NonTerminal("binaryExpression");
-        protected NonTerminal BinaryOperator = new NonTerminal("binaryOperator");
-        protected NonTerminal FilterArguments = new NonTerminal("filterArguments");
-        protected NonTerminal FilterArgument = new NonTerminal("filterArgument");
-        protected NonTerminal CycleArguments = new NonTerminal("cycleArguments");
-        protected NonTerminal CycleArgument = new NonTerminal("cycleArgument");
-        protected NonTerminal Boolean = new NonTerminal("boolean");
-        protected NonTerminal KnownTags = new NonTerminal("knownTags");
- 
-        protected NonTerminal If = new NonTerminal("if");
-        protected NonTerminal Elsif = new NonTerminal("elsif");
-        protected NonTerminal Unless = new NonTerminal("unless");
- 
-        protected NonTerminal Case = new NonTerminal("case");
-        protected NonTerminal When = new NonTerminal("when");
-        protected NonTerminal TermList = new NonTerminal("termList");
+        public IdentifierTerminal Identifier = new IdentifierTerminal("identifier");
+        public NonTerminal MemberAccess = new NonTerminal("memberAccess");
+        public NonTerminal MemberAccessSegmentOpt = new NonTerminal("memberAccessSegmentOpt");
+        public NonTerminal MemberAccessSegment = new NonTerminal("memberAccessSegment");
+        public NonTerminal MemberAccessSegmentIdentifier = new NonTerminal("memberAccessSegmentIdentifier");
+        public NonTerminal MemberAccessSegmentIndexer = new NonTerminal("memberAccessSegmentIndexer");
+        public NonTerminal Statement = new NonTerminal("statement");
+        public NonTerminal Output = new NonTerminal("output");
+        public NonTerminal Tag = new NonTerminal("tag");
+        public NonTerminal FilterList = new NonTerminal("filterList");
+        public NonTerminal Filter = new NonTerminal("filter");
+        public NonTerminal Expression = new NonTerminal("expression");
+        public NonTerminal Term = new NonTerminal("term");
+        public NonTerminal BinaryExpression = new NonTerminal("binaryExpression");
+        public NonTerminal BinaryOperator = new NonTerminal("binaryOperator");
+        public NonTerminal FilterArguments = new NonTerminal("filterArguments");
+        public NonTerminal FilterArgument = new NonTerminal("filterArgument");
+        public NonTerminal CycleArguments = new NonTerminal("cycleArguments");
+        public NonTerminal CycleArgument = new NonTerminal("cycleArgument");
+        public NonTerminal Boolean = new NonTerminal("boolean");
+        public NonTerminal KnownTags = new NonTerminal("knownTags");
 
-        protected NonTerminal For = new NonTerminal("for");
-        protected NonTerminal ForSource = new NonTerminal("forSource");
-        protected NonTerminal ForOptions = new NonTerminal("forOptions");
-        protected NonTerminal ForOption = new NonTerminal("forOption");
-        protected NonTerminal ForLimit = new NonTerminal("limit");
-        protected NonTerminal ForOffset = new NonTerminal("offset");
-        protected NonTerminal Range = new NonTerminal("range");
-        protected NonTerminal RangeIndex = new NonTerminal("rangeIndex");
- 
-        protected NonTerminal Cycle = new NonTerminal("cycle");
-        protected NonTerminal Assign = new NonTerminal("assign");
-        protected NonTerminal Capture = new NonTerminal("capture");
-        protected NonTerminal Increment = new NonTerminal("increment");
-        protected NonTerminal Decrement = new NonTerminal("decrement");
+        public NonTerminal If = new NonTerminal("if");
+        public NonTerminal Elsif = new NonTerminal("elsif");
+        public NonTerminal Unless = new NonTerminal("unless");
+        
+        public NonTerminal Case = new NonTerminal("case");
+        public NonTerminal When = new NonTerminal("when");
+        public NonTerminal TermList = new NonTerminal("termList");
 
-        protected NonTerminal Include = new NonTerminal("include");
+        public NonTerminal For = new NonTerminal("for");
+        public NonTerminal ForSource = new NonTerminal("forSource");
+        public NonTerminal ForOptions = new NonTerminal("forOptions");
+        public NonTerminal ForOption = new NonTerminal("forOption");
+        public NonTerminal ForLimit = new NonTerminal("limit");
+        public NonTerminal ForOffset = new NonTerminal("offset");
+        public NonTerminal Range = new NonTerminal("range");
+        public NonTerminal RangeIndex = new NonTerminal("rangeIndex");
+
+        public NonTerminal Cycle = new NonTerminal("cycle");
+        public NonTerminal Assign = new NonTerminal("assign");
+        public NonTerminal Capture = new NonTerminal("capture");
+        public NonTerminal Increment = new NonTerminal("increment");
+        public NonTerminal Decrement = new NonTerminal("decrement");
+        
+        public NonTerminal Include = new NonTerminal("include");
 
         public FluidGrammar() : base(caseSensitive: true)
         {
@@ -90,9 +90,9 @@ namespace Fluid
             Expression.Rule |= BinaryExpression;
             Term.Rule = MemberAccess | StringLiteralSingle | StringLiteralDouble | Number | Boolean;
             BinaryExpression.Rule = Expression + BinaryOperator + Expression;
-            BinaryOperator.Rule = ToTerm("+") | "-" | "*" | "/" | "%"
-                       | "==" | ">" | "<" | ">=" | "<=" | "<>" | "!=" | "contains"
-                       | "and" | "or";
+            BinaryOperator.Rule = ToTerm("+") | ToTerm("-") | ToTerm("*") | ToTerm("/") | ToTerm("%")
+                       | ToTerm("==") | ToTerm(">") | ToTerm("<") | ToTerm(">=") | ToTerm("<=") | ToTerm("<>") | ToTerm("!=") | ToTerm("contains")
+                       | ToTerm("and") | ToTerm("or");
             Boolean.Rule = True | False;
 
             // Operators
@@ -137,34 +137,34 @@ namespace Fluid
                 Increment | Decrement |
                 Include;
 
-            If.Rule = "if" + Expression;
-            Unless.Rule = "unless" + Expression;
-            Elsif.Rule = "elsif" + Expression;
+            If.Rule = ToTerm("if") + Expression;
+            Unless.Rule = ToTerm("unless") + Expression;
+            Elsif.Rule = ToTerm("elsif") + Expression;
 
-            Case.Rule = "case" + Expression;
-            When.Rule = "when" + TermList;
+            Case.Rule = ToTerm("case") + Expression;
+            When.Rule = ToTerm("when") + TermList;
             TermList.Rule = MakePlusRule(TermList, ToTerm("or"), Term);
 
-            For.Rule = "for" + Identifier + "in" + ForSource + ForOptions;
+            For.Rule = ToTerm("for") + Identifier + ToTerm("in") + ForSource + ForOptions;
             ForSource.Rule = MemberAccess | Range;
-            Range.Rule = "(" + RangeIndex + ".." + RangeIndex + ")";
+            Range.Rule = ToTerm("(") + RangeIndex + ToTerm("..") + RangeIndex + ToTerm(")");
             RangeIndex.Rule = Number | MemberAccess;
             ForOptions.Rule = MakeStarRule(ForOptions, ForOption);
-            ForOption.Rule = ForLimit | ForOffset | "reversed";
-            ForOffset.Rule = "offset" + Colon + Number;
-            ForLimit.Rule = "limit" + Colon + Number;
+            ForOption.Rule = ForLimit | ForOffset | ToTerm("reversed");
+            ForOffset.Rule = ToTerm("offset") + Colon + Number;
+            ForLimit.Rule = ToTerm("limit") + Colon + Number;
 
-            Cycle.Rule = "cycle" + Term + Colon + CycleArguments;
-            Cycle.Rule |= "cycle" + CycleArguments;
+            Cycle.Rule = ToTerm("cycle") + Term + Colon + CycleArguments;
+            Cycle.Rule |= ToTerm("cycle") + CycleArguments;
             CycleArguments.Rule = MakePlusRule(CycleArguments, Comma, Term);
 
-            Assign.Rule = "assign" + Identifier + "=" + Expression;
-            Increment.Rule = "increment" + Identifier;
-            Decrement.Rule = "decrement" + Identifier;
+            Assign.Rule = ToTerm("assign") + Identifier + ToTerm("=") + Expression;
+            Increment.Rule = ToTerm("increment") + Identifier;
+            Decrement.Rule = ToTerm("decrement") + Identifier;
 
-            Capture.Rule = "capture" + Identifier;
+            Capture.Rule = ToTerm("capture") + Identifier;
 
-            Include.Rule = "include" + Term;
+            Include.Rule = ToTerm("include") + Term;
 
             MarkPunctuation(
                 "[", "]", ":", "|", "=",

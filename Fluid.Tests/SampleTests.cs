@@ -13,7 +13,7 @@ namespace Fluid.Tests
 
         private IList<Statement> Parse(string source)
         {
-            FluidTemplate.TryParse(new StringSegment(source), out var template, out var errors);
+            FluidTemplate.TryParse(source, out var template, out var errors);
             return template.Statements;
         }
 

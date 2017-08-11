@@ -4,7 +4,6 @@ using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
-using Microsoft.Extensions.Primitives;
 
 namespace Fluid
 {
@@ -56,43 +55,27 @@ namespace Fluid
         }
     }
 
-    public class FluidTemplate : FluidTemplate<IronyFluidParserFactory>
+    public class BaseFluidTemplate<T> : IFluidTemplate
     {
-        public FluidTemplate(IList<Statement> statements) : base(statements)
-        {
-        }
-    }
+        public static FluidParserFactory Factory { get; } = new FluidParserFactory();
 
-    public class FluidTemplate<T> : IFluidTemplate where T : IFluidParserFactory, new()
-    {
-        private static IFluidParserFactory _factory = new T();
         public IList<Statement> Statements { get; }
 
-        public FluidTemplate()
+        public BaseFluidTemplate()
         {
             Statements = new List<Statement>();
         }
 
-        public FluidTemplate(IList<Statement> statements)
+        public BaseFluidTemplate(IList<Statement> statements)
         {
             Statements = statements;
         }
 
-        public static bool TryParse(string text, out IFluidTemplate result)
+        public static bool TryParse(string template, out IFluidTemplate result, out IEnumerable<string> errors)
         {
-            return TryParse(new StringSegment(text), out result, out var errors);
-        }
-
-        public static bool TryParse(string text, out IFluidTemplate result, out IEnumerable<string> errors)
-        {
-            return TryParse(new StringSegment(text), out result, out errors);
-        }
-
-        public static bool TryParse(StringSegment text, out IFluidTemplate result, out IEnumerable<string> errors)
-        {
-            if (_factory.CreateParser().TryParse(text, out var statements, out errors))
+            if (Factory.CreateParser().TryParse(template, out var statements, out errors))
             {
-                result = new FluidTemplate<T>(statements);
+                result = new BaseFluidTemplate<T>(statements);
                 return true;
             }
             else
@@ -102,6 +85,11 @@ namespace Fluid
             }
         }
 
+        public static bool TryParse(string template, out IFluidTemplate result)
+        {
+            return TryParse(template, out result, out var errors);
+        }
+
         public async Task RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             foreach (var statement in Statements)
@@ -109,5 +97,9 @@ namespace Fluid
                 await statement.WriteToAsync(writer, encoder, context);
             }
         }
+    }
+
+    public class FluidTemplate : BaseFluidTemplate<FluidTemplate>
+    {
     }
 }
