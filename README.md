@@ -261,48 +261,110 @@ Tuesday, August 1, 2017
 
 <br>
 
-## Customizing tags
+## Customizing tags and blocks
 
-Fluid's grammar can be modified to accept any new tags with any custom parameters. It is even possible to use
-different grammars in the same application.
+Fluid's grammar can be modified to accept any new tags and blocks with 
+any custom parameters. It is even possible to use different grammars in 
+the same application.
 
-### Parsers and Abstract Syntax Tree
+Unlike blocks, tags don't have a closing element (e.g., `cycle`, `increment`).
+A closing element will match the name of the opening tag with and `end` suffix, like `endfor`.
+Blocks are useful when manipulating a section of a a template as a set of statements.
 
-A parser in Fluid can be implemented by using the `IFluidParser` interface and its corresponding `IFuildParserFactory`.
+To create a custom tag or block it is necessary to create a class implementing the `ITag` interface,
+or for most common cases to just inherit from some of the availabe base classes.
 
-The goal of a parser is to return an object implementing `IFluidTemplate` which contains all the `Statement` object 
-that a templat will execute. In the Liquid language statements are either `OutputStatement` representing `{{ }}` tags, `TagStatement`
-representing `{% %}` or `TextStatement` which is pure plain text. A parser will return specialized versions of these to build a 
-template instance. The list of these statements is called the Abstract Syntax Tree (AST).
 
-It allows anyone to extend Fluid and provide specific implementations that vary in performance and features.
+### Creating a custom tag
 
-### Extending the default parser
+Custom tags can use these base types:
+- `SimpleTag`: Tag with no parameter, like `{% renderbody %}`
+- `IdentifierTag`: Tag taking an identifier as parameter, like `{% increment my_variable %}`
+- `ExpressionTag`: Tag taking an expression as parameter, like `{% layout template | default: 'layout' %}`
+- `ITag`: Tag that can define any custom grammar.
 
-The default Fluid parser is based on the Irony project which allows a grammar to be defined by code. In Fluid it's the 
-`FluidGrammar` class.
-
-The default parser is a generic type that accepts a custom grammar class. It means anyone can alter the grammar to define
-new tags with exepected elements like tokens and expressions that will be parsed natively. As a developer you don't receive 
-an `object` but `LiteralExpression`, `BinaryExpression`, and so on. The parser can also provide better error messages and 
-there is much less code to do for the developer.
-
-Here is an example of what can be achieved by customizing the parser, by adding a custom `yolo` tag that accepts an **Identifer** 
-and a **Range** to use each value of the range in a loop.
-
+Here are some examples:
 #### Source
+
+```csharp
+public class QuoteTag : ExpressionTag
+{
+  public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression)
+  {
+    var value = (await expression.EvaluateAsync(context)).ToStringValue();
+    await writer.WriteAsync("'" + value + "'");
+    
+    return Completion.Normal;
+  }
+}
+```
 ```Liquid
-{% yolo a (1..3) %}
-  {{ a }}
-{% oloy %}
+{% quote 5 + 11 %}
 ```
 
 #### Result
 ```html
-  1
-  2
-  3
+'16'
 ```
+
+### Creating a custom block
+
+Blocks are created the same way as tags, with these classes: `SimpleBlock`, `IdentifierBlock`, `ExpressionBlock`, or `ITag`.
+
+#### Source
+
+```csharp
+public class RepeatBlock : ExpressionBlock
+{
+  public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression, IList<Statements> statements)
+  {
+    var value = (await expression.EvaluateAsync(context)).ToNumberValue();
+    for (var i=0; i < value; i++)
+    {
+      foreach(var statement in section)
+      {
+          await statement.WriteToAsync(writer, encoder, context);
+      }
+    }
+
+    return Completion.Normal;
+  }
+}
+```
+
+```Liquid
+{% repeat 1 + 2 %}Hi! {% endrepeat %}
+```
+
+#### Result
+```html
+Hi! Hi! Hi!
+```
+
+### Defining a new template type
+
+To prevent your customization from altering the default Liquid syntax, it is recommended to 
+create a custom template type. 
+
+#### Source
+```csharp
+using Fluid;
+
+public class MyFluidTemplate : BaseFluidTemplate<MyFluidTemplate>
+{
+  static MyFluidTemplate()
+  {
+      Factory.RegisterTag<QuoteTag>("quote");
+      Factory.RegisterBlock<RepeatBlock>("repeat");
+  }
+}
+```
+
+```csharp
+MyFluidTemplate.TryParse(source, out var template);
+```
+
+### Examples
 
 To see a complete example of a customized Fluid grammar, look at this class: [CustomGrammarTests](https://github.com/sebastienros/fluid/blob/dev/Fluid.Tests/CustomGrammarTests.cs)
 
