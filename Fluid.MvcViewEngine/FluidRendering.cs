@@ -49,9 +49,7 @@ namespace FluidMvcViewEngine
             // Check for a custom file provider
             var fileProvider = _options.FileProvider ?? _hostingEnvironment.ContentRootFileProvider;
 
-            var statements = ParseLiquidFile(path, fileProvider, true);
-
-            var template = new FluidTemplate(statements);
+            var template = ParseLiquidFile(path, fileProvider, true);
 
             var context = new TemplateContext();
             context.LocalScope.SetValue("Model", model);
@@ -71,9 +69,7 @@ namespace FluidMvcViewEngine
             {
                 context.AmbientValues[ViewPath] = layoutPath;
                 context.AmbientValues.Add("Body", body);
-                var layoutStatements = ParseLiquidFile((string)layoutPath, fileProvider, false);
-
-                var layoutTemplate = new FluidTemplate(layoutStatements);
+                var layoutTemplate = ParseLiquidFile((string)layoutPath, fileProvider, false);
 
                 return await layoutTemplate.RenderAsync(context); 
             }
@@ -109,7 +105,7 @@ namespace FluidMvcViewEngine
             return viewStarts;
         }
 
-        public IList<Statement> ParseLiquidFile(string path, IFileProvider fileProvider, bool includeViewStarts)
+        public FluidViewTemplate ParseLiquidFile(string path, IFileProvider fileProvider, bool includeViewStarts)
         {
             return _memoryCache.GetOrCreate(path, viewEntry =>
             {
@@ -133,7 +129,9 @@ namespace FluidMvcViewEngine
                             return Task.FromResult(Completion.Normal);
                         }));
 
-                        statements.AddRange(ParseLiquidFile(viewStartPath, fileProvider, false));
+                        var viewStartTemplate = ParseLiquidFile(viewStartPath, fileProvider, false);
+
+                        statements.AddRange(viewStartTemplate.Statements);
                     }
                 }
 
@@ -144,6 +142,8 @@ namespace FluidMvcViewEngine
                         if (FluidViewTemplate.TryParse(sr.ReadToEnd(), out var template, out var errors))
                         {
                             statements.AddRange(template.Statements);
+                            template.Statements = statements;
+                            return template;
                         }
                         else
                         {
@@ -151,8 +151,6 @@ namespace FluidMvcViewEngine
                         }
                     }
                 }
-
-                return statements;
             });
         }
     }

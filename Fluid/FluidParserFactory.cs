@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Fluid.Tags;
 using Irony.Parsing;
 
 namespace Fluid

@@ -1,26 +1,20 @@
 ﻿using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using Fluid.Ast;
+using Fluid.Tags;
+using FluidMvcViewEngine;
 
-namespace Fluid.Ast
+namespace Fluid.MvcViewEngine.Tags
 {
-    public class IncludeStatement : Statement
+    public class IncludeTag : ExpressionTag
     {
-        public static readonly string ViewExtension = ".liquid";
-
-        public IncludeStatement(Expression path)
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression path)
         {
-            Path = path;
-        }
-
-        public Expression Path { get; }
-
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
-        {
-            var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
-            if (!relativePath.EndsWith(ViewExtension))
+            var relativePath = (await path.EvaluateAsync(context)).ToStringValue();
+            if (!relativePath.EndsWith(FluidViewEngine.ViewExtension))
             {
-                relativePath += ViewExtension;
+                relativePath += FluidViewEngine.ViewExtension;
             }
 
             var fileProvider = context.FileProvider ?? TemplateContext.GlobalFileProvider;

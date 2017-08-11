@@ -2,6 +2,7 @@
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
+using Fluid.Tags;
 using Fluid.Values;
 using Irony.Parsing;
 using Xunit;
@@ -38,7 +39,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void CanAddTermTag()
+        public void CanAddExpressionTag()
         {
             FluidTemplate.Factory.RegisterTag<MoreTag>("more");
 

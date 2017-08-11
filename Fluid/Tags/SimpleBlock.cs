@@ -1,0 +1,25 @@
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Text.Encodings.Web;
+using System.Threading.Tasks;
+using Fluid.Ast;
+using Irony.Parsing;
+
+namespace Fluid.Tags
+{
+    public abstract class SimpleBlock : ITag
+    {
+        public BnfTerm GetSyntax(FluidGrammar grammar)
+        {
+            return grammar.Empty;
+        }
+
+        public Statement Parse(ParseTreeNode node, ParserContext context)
+        {
+            var statements = context.CurrentBlock.Statements;
+            return new DelegateStatement((writer, encoder, ctx) => WriteToAsync(writer, encoder, ctx, statements));
+        }
+
+        public abstract Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, IList<Statement> statements);
+    }
+}

@@ -9,7 +9,7 @@ namespace Fluid
 {
     public interface IFluidTemplate
     {
-        IList<Statement> Statements { get; }
+        IList<Statement> Statements { get; set; }
         Task RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context);
     }
 
@@ -52,50 +52,6 @@ namespace Fluid
         public static string Render(this IFluidTemplate template)
         {
             return template.RenderAsync().GetAwaiter().GetResult();
-        }
-    }
-
-    public class BaseFluidTemplate<T> : IFluidTemplate
-    {
-        public static FluidParserFactory Factory { get; } = new FluidParserFactory();
-
-        public IList<Statement> Statements { get; }
-
-        public BaseFluidTemplate()
-        {
-            Statements = new List<Statement>();
-        }
-
-        public BaseFluidTemplate(IList<Statement> statements)
-        {
-            Statements = statements;
-        }
-
-        public static bool TryParse(string template, out IFluidTemplate result, out IEnumerable<string> errors)
-        {
-            if (Factory.CreateParser().TryParse(template, out var statements, out errors))
-            {
-                result = new BaseFluidTemplate<T>(statements);
-                return true;
-            }
-            else
-            {
-                result = null;
-                return false;
-            }
-        }
-
-        public static bool TryParse(string template, out IFluidTemplate result)
-        {
-            return TryParse(template, out result, out var errors);
-        }
-
-        public async Task RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
-        {
-            foreach (var statement in Statements)
-            {
-                await statement.WriteToAsync(writer, encoder, context);
-            }
         }
     }
 
