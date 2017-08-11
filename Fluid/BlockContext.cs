@@ -13,13 +13,13 @@ namespace Fluid
         private Dictionary<string, IList<Statement>> _blocks;
 
         // Statements that are added while parsing a sub-block (else, elsif, when)
-        private IList<Statement> transientStatements;
+        private IList<Statement> _transientStatements;
 
         public BlockContext(ParseTreeNode tag)
         {
             Tag = tag;
             Statements = new List<Statement>();
-            transientStatements = Statements;
+            _transientStatements = Statements;
         }
 
         public ParseTreeNode Tag { get; }
@@ -38,12 +38,12 @@ namespace Fluid
             }
 
             blockStatements.Add(statement);
-            transientStatements = statement.Statements;
+            _transientStatements = statement.Statements;
         }
 
         public void AddStatement(Statement statement)
         {
-            transientStatements.Add(statement);
+            _transientStatements.Add(statement);
         }
 
         public IList<TStatement> GetBlockStatements<TStatement>(string name)

@@ -63,7 +63,7 @@ namespace Fluid
         public bool TryParse(string template, out IList<Statement> result, out IEnumerable<string> errors)
         {
             errors = Array.Empty<string>();
-            var templateSegment = new StringSegment(template);
+            var segment = new StringSegment(template);
             Parser parser = null;
             _context = new ParserContext();
             result = _context.CurrentBlock.Statements;
@@ -77,14 +77,14 @@ namespace Fluid
                 {
                     previous = index;
 
-                    if (!MatchTag(templateSegment, index, out var start, out var end))
+                    if (!MatchTag(segment, index, out var start, out var end))
                     {
-                        index = template.Length;
+                        index = segment.Length;
 
                         if (index != previous)
                         {
                             // Consume last Text statement
-                            ConsumeTextStatement(templateSegment, previous, index);
+                            ConsumeTextStatement(segment, previous, index);
                         }
 
                         break;
@@ -100,10 +100,10 @@ namespace Fluid
                         if (start != previous)
                         {
                             // Consume current Text statement
-                            ConsumeTextStatement(templateSegment, previous, start);
+                            ConsumeTextStatement(segment, previous, start);
                         }
 
-                        var tag = template.Substring(start, end - start + 1);
+                        var tag = segment.Substring(start, end - start + 1);
                         var tree = parser.Parse(tag);
 
                         if (tree.HasErrors())
@@ -150,9 +150,9 @@ namespace Fluid
             return false;
         }
 
-        private void ConsumeTextStatement(StringSegment template, int start, int end)
+        private void ConsumeTextStatement(StringSegment segment, int start, int end)
         {
-            var textSatement = CreateTextStatement(template, start, end);
+            var textSatement = CreateTextStatement(segment, start, end);
 
             if (textSatement != null)
             {

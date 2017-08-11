@@ -10,22 +10,22 @@ namespace Fluid
         private readonly Dictionary<string, ITag> _tags = new Dictionary<string, ITag>();
         private readonly Dictionary<string, ITag> _blocks = new Dictionary<string, ITag>();
 
-        private LanguageData _language;
+        private LanguageData _languageData;
 
         public IFluidParser CreateParser()
         {
-            if (_language == null)
+            if (_languageData == null)
             {
                 lock (_grammar)
                 {
-                    if (_language == null)
+                    if (_languageData == null)
                     {
-                        _language = new LanguageData(_grammar);
+                        _languageData = new LanguageData(_grammar);
                     }
                 }
             }
 
-            return new DefaultFluidParser(_language, _tags, _blocks);
+            return new DefaultFluidParser(_languageData, _tags, _blocks);
         }
 
         public void RegisterTag<T>(string name) where T : ITag, new()
@@ -34,7 +34,7 @@ namespace Fluid
             {
                 var tag = new T();
 
-                _language = null;
+                _languageData = null;
                 _tags[name] = tag;
 
                 // Configure the grammar to add support for the custom syntax
@@ -55,7 +55,7 @@ namespace Fluid
             {
                 var tag = new T();
 
-                _language = null;
+                _languageData = null;
                 _blocks[name] = tag;
 
                 // Configure the grammar to add support for the custom syntax
