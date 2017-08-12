@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Fluid.Ast;
-using Irony.Parsing;
 using Xunit;
 
 namespace Fluid.Tests
@@ -15,7 +15,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task ShouldRenderSample1()
+        public async Task ShouldRenderSample()
         {
             var sample = @"
 <ul id=""products"">
@@ -27,6 +27,65 @@ namespace Fluid.Tests
       {{ product.name | prettyprint | paragraph }}
     </li>
   {% endfor %}
+</ul>
+";
+
+            var expected = @"
+<ul id=""products"">
+    <li>
+      <h2>product 1</h2>
+      Only 1
+
+      product 1
+    </li>
+    <li>
+      <h2>product 2</h2>
+      Only 2
+
+      product 2
+    </li>
+    <li>
+      <h2>product 3</h2>
+      Only 3
+
+      product 3
+    </li>
+</ul>
+";
+
+            var _products = new[]
+            {
+                new { name = "product 1", price = 1 },
+                new { name = "product 2", price = 2 },
+                new { name = "product 3", price = 3 },
+            };
+
+            FluidTemplate.TryParse(sample, out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("products", _products);
+            context.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
+            context.Filters.AddFilter("paragraph", (input, args, ctx) => input);
+            context.Filters.AddFilter("price", (input, args, ctx) => input);
+            context.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public async Task ShouldRenderSampleWithDashes()
+        {
+            var sample = @"
+<ul id=""products"">
+  {%- for product in products -%}
+    <li>
+      <h2>{{ product.name }}</h2>
+      Only {{ product.price | price }}
+
+      {{ product.name | prettyprint | paragraph }}
+    </li>
+  {%- endfor -%}
 </ul>
 ";
 
@@ -97,13 +156,29 @@ namespace Fluid.Tests
 
             Assert.Equal(expected, result);
         }
-        [Fact]
-        public async Task TemplateShouldNotTrimOutputTag()
-        {
-            var source = " {{ 1 }} ";
-            var expected = " 1 ";
 
-            FluidTemplate.TryParse(source, out var template, out var messages);
+        [Theory]
+        [InlineData(" {{ 1 }} ", " 1 ")]
+        [InlineData(" {{ 1 }} \n", " 1 \n")]
+        [InlineData(" {{ 1 }} \n ", " 1 \n ")]
+        public async Task ShouldNotTrimOutputTag(string source, string expected)
+        {
+            var success = FluidTemplate.TryParse(source, out var template, out var messages);
+            Assert.True(success, String.Join(", ", messages));
+            var result = await template.RenderAsync();
+
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        //[InlineData(" {{- 1 }} ", "1 ")]
+        [InlineData(" {{ 1 -}} ", " 1")]
+        //[InlineData(" {{ 1 -}} \n", " 1")]
+        //[InlineData(" {{ 1 -}} \n ", " 1 ")]
+        public async Task DashShouldTrimOutputTag(string source, string expected)
+        {
+            var success = FluidTemplate.TryParse(source, out var template, out var messages);
+            Assert.True(success, String.Join(", ", messages));
             var result = await template.RenderAsync();
 
             Assert.Equal(expected, result);

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Fluid.Ast;
 using Fluid.Ast.BinaryExpressions;
 using Fluid.Tags;
@@ -70,6 +71,9 @@ namespace Fluid
 
             try
             {
+                bool trimBefore = false;
+                bool trimAfter = false;
+
                 int previous = 0, index = 0;
                 Statement s;
 
@@ -84,13 +88,15 @@ namespace Fluid
                         if (index != previous)
                         {
                             // Consume last Text statement
-                            ConsumeTextStatement(segment, previous, index);
+                            ConsumeTextStatement(segment, previous, index, trimAfter, false);
                         }
 
                         break;
                     }
                     else
                     {
+                        trimBefore = segment.Buffer[start + 2] == '-';
+
                         // Only create a parser if there are tags in the template
                         if (parser == null)
                         {
@@ -100,10 +106,32 @@ namespace Fluid
                         if (start != previous)
                         {
                             // Consume current Text statement
-                            ConsumeTextStatement(segment, previous, start);
+                            ConsumeTextStatement(segment, previous, start, trimAfter, trimBefore);
                         }
 
+                        trimAfter = segment.Buffer[end - 2] == '-';
+
                         var tag = segment.Substring(start, end - start + 1);
+
+                        if (trimAfter || trimBefore)
+                        {
+                            // Remove the dashes for the parser
+
+                            StringBuilder sb = new StringBuilder(tag);
+
+                            if (trimBefore)
+                            {
+                                sb[2] = ' ';
+                            }
+
+                            if (trimAfter)
+                            {
+                                sb[end - start - 2] = ' ';
+                            }
+
+                            tag = sb.ToString();
+                        }
+
                         var tree = parser.Parse(tag);
 
                         if (tree.HasErrors())
@@ -150,9 +178,9 @@ namespace Fluid
             return false;
         }
 
-        private void ConsumeTextStatement(StringSegment segment, int start, int end)
+        private void ConsumeTextStatement(StringSegment segment, int start, int end, bool trimStart, bool trimEnd)
         {
-            var textSatement = CreateTextStatement(segment, start, end);
+            var textSatement = CreateTextStatement(segment, start, end, trimStart, trimEnd);
 
             if (textSatement != null)
             {
@@ -175,18 +203,20 @@ namespace Fluid
         /// <param name="start"></param>
         /// <param name="end"></param>
         /// <returns></returns>
-        private TextStatement CreateTextStatement(StringSegment segment, int start, int end)
+        private TextStatement CreateTextStatement(StringSegment segment, int start, int end, bool trimStart, bool trimEnd)
         {
             int index;
 
-            if (end < segment.Length - 1 && segment.Value[end + 1] == '%')
+            trimEnd |= end < segment.Length - 1 && segment.Value[end + 1] == '%';
+
+            if (trimEnd)
             {
                 index = end - 1;
 
                 // There is a tag after, we can try to strip the end of the section
                 while (true)
                 {
-                    // We strip the text if all chars down to the beginning of the line
+                    // We strip the text if all chars down to the begining of the line
                     // are white spaces.
                     if (index == start - 1)
                     {
@@ -217,7 +247,9 @@ namespace Fluid
                 }
             }
 
-            if (start > 2 && segment.Value[start - 2] == '%')
+            trimStart |= start > 2 && segment.Value[start - 2] == '%';
+
+            if (trimStart)
             {
                 index = start;
 
