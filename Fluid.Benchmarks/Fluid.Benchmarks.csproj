@@ -6,8 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.10.7" />
-    <PackageReference Include="DotLiquid" Version="2.0.99" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.10.9" />
+    <PackageReference Include="DotLiquid" Version="2.0.158" />
   </ItemGroup>
 
   <ItemGroup>
