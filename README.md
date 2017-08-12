@@ -6,9 +6,7 @@
 
 ## Basic Overview
 
-Fluid is an open-source .NET template engine that is as close as possible to the [Liquid template language](https://shopify.github.io/liquid/). If a **secure** template language that is also **very accessible** for non-programmer audiences. It also contains an ASP.NET Core MVC View Engine.
-
-Fluid is different from other .NET implementations by not relying on code compilation but instead interpreting the templates.
+Fluid is an open-source .NET template engine that is as close as possible to the [Liquid template language](https://shopify.github.io/liquid/). It's a **secure** template language that is also **very accessible** for non-programmer audiences. It also contains an ASP.NET Core MVC View Engine.
 
 <br>
 
@@ -46,11 +44,9 @@ In Fluid a **Filter** doesn't need to have a default parameter, you can name all
 {% assign customers = 'allcustomers' | query: limit:10 %}
 ```
 
-### Maintained indentation
+### Whitespace
 
-Fluid will automatically maintain the indentation from the original template and won't inject extra lines where tags are used.
-
-In the standard Liquid implementation this behavior requires the use of the special `-%}` end tag, not with Fluid.
+Fluid will automatically maintain the whitespaces from the original template and won't inject extra lines where tags are used. This means that templates don't need to add extra `-%}` to the end of their tags to maintain consistent whitespaces. However it's supported and will be applied on output tags when used.
 
 #### Source
 
@@ -321,10 +317,7 @@ public class RepeatBlock : ExpressionBlock
     var value = (await expression.EvaluateAsync(context)).ToNumberValue();
     for (var i=0; i < value; i++)
     {
-      foreach(var statement in section)
-      {
-          await statement.WriteToAsync(writer, encoder, context);
-      }
+      await RenderStatementsAsync(writer, encoder, context, statements);
     }
 
     return Completion.Normal;

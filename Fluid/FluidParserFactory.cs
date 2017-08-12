@@ -40,8 +40,8 @@ namespace Fluid
                 // Configure the grammar to add support for the custom syntax
 
                 var terminal = new NonTerminal(name);
-
                 terminal.Rule = _grammar.ToTerm(name) + tag.GetSyntax(_grammar);
+
                 _grammar.KnownTags.Rule |= terminal;
 
                 // Prevent the text from being added in the parsed tree.
@@ -61,10 +61,11 @@ namespace Fluid
                 // Configure the grammar to add support for the custom syntax
 
                 var terminal = new NonTerminal(name);
-                var endTerminal = _grammar.ToTerm("end" + name);
-
                 terminal.Rule = _grammar.ToTerm(name) + tag.GetSyntax(_grammar);
-                _grammar.KnownTags.Rule |= terminal | endTerminal;
+                var endName = "end" + name;
+
+                _grammar.KnownTags.Rule |= terminal;
+                _grammar.KnownTags.Rule |= _grammar.ToTerm(endName);
 
                 // Prevent the text from being added in the parsed tree.
                 _grammar.MarkPunctuation(name);

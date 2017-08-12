@@ -450,6 +450,9 @@ namespace Fluid
                     _context.ExitBlock();
                     return captureStatement;
 
+                case "include":
+                    return BuildIncludeStatement(tag);
+
                 default:
 
                     if (tag.Term.Name.StartsWith("end"))
@@ -471,7 +474,7 @@ namespace Fluid
 
                     if (_tags.TryGetValue(tag.Term.Name, out ITag customTag))
                     {
-                        return customTag.Parse(tag.ChildNodes[0], _context);
+                        return customTag.Parse(tag, _context);
                     }
 
                     if (_blocks.TryGetValue(tag.Term.Name, out ITag customBlock))
@@ -519,6 +522,12 @@ namespace Fluid
             var identifier = tag.ChildNodes[0].Token.ValueString;
 
             return new DecrementStatement(identifier);
+        }
+
+        public static IncludeStatement BuildIncludeStatement(ParseTreeNode tag)
+        {
+            var pathExpression = BuildTermExpression(tag.ChildNodes[0]);
+            return new IncludeStatement(pathExpression);
         }
 
         public static CycleStatement BuildCycleStatement(ParseTreeNode tag)

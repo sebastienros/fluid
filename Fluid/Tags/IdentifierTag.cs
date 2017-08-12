@@ -15,7 +15,7 @@ namespace Fluid.Tags
 
         public Statement Parse(ParseTreeNode node, ParserContext context)
         {
-            var identifier = node.Token.ValueString;
+            var identifier = node.ChildNodes[0].Token.ValueString;
             return new DelegateStatement((writer, encoder, ctx) => WriteToAsync(writer, encoder, ctx, identifier));
         }
 

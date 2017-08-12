@@ -8,6 +8,13 @@ namespace Fluid
 {
     public class BaseFluidTemplate<T> : IFluidTemplate where T : IFluidTemplate, new()
     {
+        static BaseFluidTemplate()
+        {
+            // Necessary to force the custom template class static constructor
+            // c.f. https://github.com/sebastienros/fluid/issues/19
+            new T();
+        }
+
         public static FluidParserFactory Factory { get; } = new FluidParserFactory();
 
         public IList<Statement> Statements { get; set; }

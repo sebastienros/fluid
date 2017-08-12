@@ -7,16 +7,16 @@ using Irony.Parsing;
 
 namespace Fluid.Tags
 {
-    public abstract class ExpressionBlock : ITag
+    public abstract class ExpressionBlock : CustomBlock
     {
-        public BnfTerm GetSyntax(FluidGrammar grammar)
+        public override BnfTerm GetSyntax(FluidGrammar grammar)
         {
             return grammar.Expression;
         }
 
-        public Statement Parse(ParseTreeNode node, ParserContext context)
+        public override Statement Parse(ParseTreeNode node, ParserContext context)
         {
-            var expression = DefaultFluidParser.BuildExpression(node);
+            var expression = DefaultFluidParser.BuildExpression(context.CurrentBlock.Tag.ChildNodes[0]);
             var statements = context.CurrentBlock.Statements;
             return new DelegateStatement((writer, encoder, ctx) => WriteToAsync(writer, encoder, ctx, expression, statements));
         }

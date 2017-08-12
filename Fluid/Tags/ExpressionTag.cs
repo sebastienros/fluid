@@ -15,7 +15,7 @@ namespace Fluid.Tags
 
         public Statement Parse(ParseTreeNode node, ParserContext context)
         {
-            var expression = DefaultFluidParser.BuildExpression(node);
+            var expression = DefaultFluidParser.BuildExpression(node.ChildNodes[0]);
             return new DelegateStatement((writer, encoder, ctx) => WriteToAsync(writer, encoder, ctx, expression));
         }
 

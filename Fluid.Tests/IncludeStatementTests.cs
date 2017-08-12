@@ -22,7 +22,7 @@ namespace Fluid.Tests
             var sw = new StringWriter();
 
             await Assert.ThrowsAsync<FileNotFoundException>(() =>
-                new IncludeTag().WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext(), expression)
+                new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext())
             );
         }
 
@@ -38,7 +38,7 @@ namespace Fluid.Tests
                 {
                     FileProvider = new TestFileProvider("NonPartials")
                 };
-                return new IncludeTag().WriteToAsync(sw, HtmlEncoder.Default, context, expression);
+                return new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
             });
         }
 
@@ -53,7 +53,7 @@ namespace Fluid.Tests
                 FileProvider = new TestFileProvider("Partials")
             };
 
-            await new IncludeTag().WriteToAsync(sw, HtmlEncoder.Default, context, expression);
+            await new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal("Partial Content", sw.ToString());
         }
@@ -96,7 +96,7 @@ namespace Fluid.Tests
                 Name = name;
             }
 
-            public bool Exists => false;
+            public bool Exists => true;
 
             public bool IsDirectory => false;
 

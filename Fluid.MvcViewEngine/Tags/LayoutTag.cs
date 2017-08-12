@@ -9,9 +9,9 @@ namespace Fluid.MvcViewEngine.Tags
 {
     public class LayoutTag : ExpressionTag
     {
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression path)
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression)
         {
-            var relativeLayoutPath = (await path.EvaluateAsync(context)).ToStringValue();
+            var relativeLayoutPath = (await expression.EvaluateAsync(context)).ToStringValue();
             if (!relativeLayoutPath.EndsWith(FluidViewEngine.ViewExtension))
             {
                 relativeLayoutPath += FluidViewEngine.ViewExtension;
