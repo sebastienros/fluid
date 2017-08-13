@@ -18,12 +18,7 @@ namespace Fluid
         public static FluidParserFactory Factory { get; } = new FluidParserFactory();
 
         public IList<Statement> Statements { get; set; } = new List<Statement>();
-
-        public BaseFluidTemplate(IList<Statement> statements)
-        {
-            Statements = statements;
-        }
-
+        
         public static bool TryParse(string template, out T result, out IEnumerable<string> errors)
         {
             if (Factory.CreateParser().TryParse(template, out var statements, out errors))
