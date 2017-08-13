@@ -17,12 +17,7 @@ namespace Fluid
 
         public static FluidParserFactory Factory { get; } = new FluidParserFactory();
 
-        public IList<Statement> Statements { get; set; }
-
-        public BaseFluidTemplate()
-        {
-            Statements = new List<Statement>();
-        }
+        public IList<Statement> Statements { get; set; } = new List<Statement>();
 
         public BaseFluidTemplate(IList<Statement> statements)
         {

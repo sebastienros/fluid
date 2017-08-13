@@ -8,5 +8,3 @@ namespace Fluid
         bool TryParse(string template, out IList<Statement> result, out IEnumerable<string> errors);
     }
 }
-
-
