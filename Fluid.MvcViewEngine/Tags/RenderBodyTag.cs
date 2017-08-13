@@ -2,10 +2,11 @@
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
+using Fluid.Tags;
 
-namespace Fluid.MvcViewEngine.Statements
+namespace Fluid.MvcViewEngine.Tags
 {
-    public class RenderBodyStatement : Statement
+    public class RenderBodyTag : SimpleTag
     {
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {

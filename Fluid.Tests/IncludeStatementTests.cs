@@ -3,10 +3,10 @@ using System.IO;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Primitives;
 using Fluid.Ast;
 using Fluid.Values;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Fluid.Tests
@@ -14,47 +14,44 @@ namespace Fluid.Tests
     public class IncludeStatementTests
     {
         [Fact]
-        public async Task IncludeSatement_ShouldThrowsFileNotFoundException_IfTheFileProviderIsNotPresent()
+        public async Task IncludeSatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()
         {
-            var stmt = new IncludeStatement(
-                new LiteralExpression(new StringValue("_Partial.liquid"))
-            );
+            var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var sw = new StringWriter();
 
-            await Assert.ThrowsAsync<FileNotFoundException>(async () =>
-                await stmt.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext())
+            await Assert.ThrowsAsync<FileNotFoundException>(() =>
+                new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext())
             );
         }
 
         [Fact]
-        public async Task IncludeSatement_ShouldThrowsDirectoryNotFoundException_IfThePartialsFolderNotExist()
+        public async Task IncludeSatement_ShouldThrowDirectoryNotFoundException_IfThePartialsFolderNotExist()
         {
-            var stmt = new IncludeStatement(
-                new LiteralExpression(new StringValue("_Partial.liquid"))
-            );      
-            await Assert.ThrowsAsync<DirectoryNotFoundException>(async () =>
+            var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
+
+            await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
             {
                 var sw = new StringWriter();
                 var context = new TemplateContext
                 {
                     FileProvider = new TestFileProvider("NonPartials")
                 };
-                await stmt.WriteToAsync(sw, HtmlEncoder.Default, context);
+                return new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
             });
         }
 
         [Fact]
         public async Task IncludeSatement_ShouldLoadPartial_IfThePartialsFolderExist()
         {
-            var stmt = new IncludeStatement(
-                new LiteralExpression(new StringValue("_Partial.liquid"))
-            );
+            var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
+
             var sw = new StringWriter();
             var context = new TemplateContext
             {
                 FileProvider = new TestFileProvider("Partials")
             };
-            await stmt.WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            await new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal("Partial Content", sw.ToString());
         }
@@ -97,7 +94,7 @@ namespace Fluid.Tests
                 Name = name;
             }
 
-            public bool Exists => false;
+            public bool Exists => true;
 
             public bool IsDirectory => false;
 

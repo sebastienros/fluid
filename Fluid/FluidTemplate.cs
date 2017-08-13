@@ -4,13 +4,12 @@ using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
-using Microsoft.Extensions.Primitives;
 
 namespace Fluid
 {
     public interface IFluidTemplate
     {
-        IList<Statement> Statements { get; }
+        IList<Statement> Statements { get; set; }
         Task RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context);
     }
 
@@ -56,58 +55,7 @@ namespace Fluid
         }
     }
 
-    public class FluidTemplate : FluidTemplate<IronyFluidParserFactory>
+    public class FluidTemplate : BaseFluidTemplate<FluidTemplate>
     {
-        public FluidTemplate(IList<Statement> statements) : base(statements)
-        {
-        }
-    }
-
-    public class FluidTemplate<T> : IFluidTemplate where T : IFluidParserFactory, new()
-    {
-        private static IFluidParserFactory _factory = new T();
-        public IList<Statement> Statements { get; }
-
-        public FluidTemplate()
-        {
-            Statements = new List<Statement>();
-        }
-
-        public FluidTemplate(IList<Statement> statements)
-        {
-            Statements = statements;
-        }
-
-        public static bool TryParse(string text, out IFluidTemplate result)
-        {
-            return TryParse(new StringSegment(text), out result, out var errors);
-        }
-
-        public static bool TryParse(string text, out IFluidTemplate result, out IEnumerable<string> errors)
-        {
-            return TryParse(new StringSegment(text), out result, out errors);
-        }
-
-        public static bool TryParse(StringSegment text, out IFluidTemplate result, out IEnumerable<string> errors)
-        {
-            if (_factory.CreateParser().TryParse(text, out var statements, out errors))
-            {
-                result = new FluidTemplate<T>(statements);
-                return true;
-            }
-            else
-            {
-                result = null;
-                return false;
-            }
-        }
-
-        public async Task RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
-        {
-            foreach (var statement in Statements)
-            {
-                await statement.WriteToAsync(writer, encoder, context);
-            }
-        }
     }
 }

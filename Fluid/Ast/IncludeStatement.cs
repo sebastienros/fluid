@@ -6,7 +6,7 @@ namespace Fluid.Ast
 {
     public class IncludeStatement : Statement
     {
-        public static readonly string ViewExtension = ".liquid";
+        public const string ViewExtension = ".liquid";
 
         public IncludeStatement(Expression path)
         {
@@ -25,6 +25,12 @@ namespace Fluid.Ast
 
             var fileProvider = context.FileProvider ?? TemplateContext.GlobalFileProvider;
             var fileInfo = fileProvider.GetFileInfo(relativePath);
+
+            if (!fileInfo.Exists)
+            {
+                throw new FileNotFoundException(relativePath);
+            }
+
             string partialContent;
 
             using (var stream = fileInfo.CreateReadStream())

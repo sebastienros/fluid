@@ -1,98 +1,137 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Fluid.Ast;
 using Fluid.Ast.BinaryExpressions;
+using Fluid.Tags;
 using Fluid.Values;
 using Irony.Parsing;
 using Microsoft.Extensions.Primitives;
 
 namespace Fluid
 {
-    public interface IFluidParserFactory
+    public class ParserContext
     {
-        IFluidParser CreateParser();
-    }
+        private Stack<BlockContext> _blocks { get; } = new Stack<BlockContext>();
+        public BlockContext CurrentBlock { get; private set; } = new BlockContext(null);
 
-    public class ActivatorFluidParserFactory<T> : IFluidParserFactory where T : IFluidParser, new()
-    {
-        public IFluidParser CreateParser()
+        /// <summary>
+        /// Invoked when a block is entered to create a new statements context
+        /// which will received all subsequent statements.
+        /// </summary>
+        public void EnterBlock(ParseTreeNode tag)
         {
-            return new T();
+            _blocks.Push(CurrentBlock);
+            CurrentBlock = new BlockContext(tag);
+        }
+
+        /// <summary>
+        /// Invoked when a section is entered to create a new statements context
+        /// which will received all subsequent statements.
+        /// </summary>
+        public void EnterBlockSection(string name, TagStatement statement)
+        {
+            CurrentBlock.EnterBlock(name, statement);
+        }
+
+        /// <summary>
+        /// Invoked when the end of a block has been reached.
+        /// It resets the current statements context to the outer block.
+        /// </summary>
+        public void ExitBlock()
+        {
+            CurrentBlock = _blocks.Pop();
         }
     }
 
-    public class IronyFluidParserFactory<T> : IFluidParserFactory where T : FluidGrammar, new() 
-    {
-        public IFluidParser CreateParser()
-        {
-            return new IronyFluidParser<T>();
-        }
-    }
-
-    public class IronyFluidParserFactory : IronyFluidParserFactory<FluidGrammar>
-    {
-
-    }
-
-    public interface IFluidParser
-    {
-        bool TryParse(StringSegment template, out IList<Statement> result, out IEnumerable<string> errors);
-    }
-
-    public class IronyFluidParser<T> : IFluidParser where T : FluidGrammar, new()
-    {
-        protected static LanguageData _language = new LanguageData(new T());
-
-        protected Stack<BlockContext> _contexts;
-        protected BlockContext _currentContext;
+    public class DefaultFluidParser : IFluidParser
+    {        
         protected bool _isComment; // true when the current block is a comment
         protected bool _isRaw; // true when the current block is raw
+        private readonly LanguageData _languageData;
+        private readonly Dictionary<string, ITag> _tags;
+        private readonly Dictionary<string, ITag> _blocks;
+        protected ParserContext _context;
 
-        public bool TryParse(StringSegment template, out IList<Statement> result, out IEnumerable<string> errors)
+        public DefaultFluidParser(LanguageData languageData, Dictionary<string, ITag> tags, Dictionary<string, ITag> blocks)
+        {
+            _languageData = languageData;
+            _tags = tags;
+            _blocks = blocks;
+        }
+
+        public bool TryParse(string template, out IList<Statement> result, out IEnumerable<string> errors)
         {
             errors = Array.Empty<string>();
-            
+            var segment = new StringSegment(template);
             Parser parser = null;
-            _currentContext = new BlockContext(null);
-            _contexts = new Stack<BlockContext>();
-            result = _currentContext.Statements;
+            _context = new ParserContext();
+            result = _context.CurrentBlock.Statements;
 
             try
             {
+                bool trimBefore = false;
+                bool trimAfter = false;
+
                 int previous = 0, index = 0;
                 Statement s;
 
                 while (true)
                 {
                     previous = index;
-                    
-                    if (!MatchTag(template, index, out var start, out var end))                    
+
+                    if (!MatchTag(segment, index, out var start, out var end))
                     {
-                        index = template.Length;
+                        index = segment.Length;
 
                         if (index != previous)
                         {
                             // Consume last Text statement
-                            ConsumeTextStatement(template, previous, index);
+                            ConsumeTextStatement(segment, previous, index, trimAfter, false);
                         }
 
                         break;
                     }
                     else
                     {
-                        if (parser == null) 
+                        trimBefore = segment.Buffer[start + 2] == '-';
+
+                        // Only create a parser if there are tags in the template
+                        if (parser == null)
                         {
-                            parser = new Parser(_language);
-                        } 
-                
+                            parser = new Parser(_languageData);
+                        }
+
                         if (start != previous)
                         {
                             // Consume current Text statement
-                            ConsumeTextStatement(template, previous, start);
+                            ConsumeTextStatement(segment, previous, start, trimAfter, trimBefore);
                         }
 
-                        var tag = template.Substring(start, end - start + 1);
+                        trimAfter = segment.Buffer[end - 2] == '-';
+
+                        var tag = segment.Substring(start, end - start + 1);
+
+                        if (trimAfter || trimBefore)
+                        {
+                            // Remove the dashes for the parser
+
+                            StringBuilder sb = new StringBuilder(tag);
+
+                            if (trimBefore)
+                            {
+                                sb[2] = ' ';
+                            }
+
+                            if (trimAfter)
+                            {
+                                sb[end - start - 2] = ' ';
+                            }
+
+                            tag = sb.ToString();
+                        }
+
                         var tree = parser.Parse(tag);
 
                         if (tree.HasErrors())
@@ -114,7 +153,7 @@ namespace Fluid
                             case "tag":
                                 s = BuildTagStatement(tree.Root);
                                 break;
-                            
+
                             default:
                                 s = null;
                                 break;
@@ -122,7 +161,7 @@ namespace Fluid
 
                         if (s != null)
                         {
-                            _currentContext.AddStatement(s);
+                            _context.CurrentBlock.AddStatement(s);
                         }
 
                         index = end + 1;
@@ -133,25 +172,25 @@ namespace Fluid
             }
             catch (ParseException e)
             {
-                errors = new [] { e.Message };
+                errors = new[] { e.Message };
             }
 
             return false;
         }
 
-        private void ConsumeTextStatement(StringSegment template, int start, int end)
+        private void ConsumeTextStatement(StringSegment segment, int start, int end, bool trimStart, bool trimEnd)
         {
-            var textSatement = CreateTextStatement(template, start, end);
+            var textSatement = CreateTextStatement(segment, start, end, trimStart, trimEnd);
 
             if (textSatement != null)
             {
                 if (_isComment)
                 {
-                    _currentContext.AddStatement(new CommentStatement(textSatement.Text));
+                    _context.CurrentBlock.AddStatement(new CommentStatement(textSatement.Text));
                 }
                 else
                 {
-                    _currentContext.AddStatement(textSatement);
+                    _context.CurrentBlock.AddStatement(textSatement);
                 }
             }
         }
@@ -164,21 +203,28 @@ namespace Fluid
         /// <param name="start"></param>
         /// <param name="end"></param>
         /// <returns></returns>
-        private TextStatement CreateTextStatement(StringSegment segment, int start, int end)
+        private TextStatement CreateTextStatement(StringSegment segment, int start, int end, bool trimStart, bool trimEnd)
         {
             int index;
 
-            if (end < segment.Length - 1 && segment.Value[end + 1] == '%')
+            trimEnd |= end < segment.Length - 1 && segment.Value[end + 1] == '%';
+
+            if (trimEnd)
             {
                 index = end - 1;
 
                 // There is a tag after, we can try to strip the end of the section
                 while (true)
                 {
-                    // Reach beginning of section?
+                    // We strip the text if all chars down to the begining of the line
+                    // are white spaces.
                     if (index == start - 1)
                     {
-                        end = start;
+                        if (index >= 0 && segment.Value[index] == '\n' || index == -1)
+                        {
+                            end = start;
+                        }
+
                         break;
                     }
 
@@ -201,7 +247,9 @@ namespace Fluid
                 }
             }
 
-            if (start > 2 && segment.Value[start - 2] == '%')
+            trimStart |= start > 2 && segment.Value[start - 2] == '%';
+
+            if (trimStart)
             {
                 index = start;
 
@@ -257,7 +305,7 @@ namespace Fluid
             while (startIndex < template.Length)
             {
                 start = template.IndexOf('{', startIndex);
-                
+
                 // No match
                 if (start == -1)
                 {
@@ -297,74 +345,66 @@ namespace Fluid
                 else
                 {
                     return false;
-                }                
+                }
             }
 
             return false;
         }
 
-        /// <summary>
-        /// Invoked when a block is entered to assign subsequent
-        /// statements to it.
-        /// </summary>
-        protected void EnterBlock(ParseTreeNode tag)
-        {
-            _contexts.Push(_currentContext);
-            _currentContext = new BlockContext(tag);
-        }
-
-        protected void ExitBlock()
-        {
-            _currentContext = _contexts.Pop();
-        }
-
         #region Build methods
 
-
-        protected virtual Statement BuildTagStatement(ParseTreeNode node)
+        public virtual Statement BuildTagStatement(ParseTreeNode node)
         {
             var tag = node.ChildNodes[0];
 
             switch (tag.Term.Name)
             {
                 case "for":
-                    EnterBlock(tag);
+                    _context.EnterBlock(tag);
                     break;
 
                 case "endfor":
-                    return BuildForStatement("for");
+                    var forStatement = BuildForStatement(_context.CurrentBlock);
+                    _context.ExitBlock();
+                    return forStatement;
 
                 case "case":
-                    EnterBlock(tag);
+                    _context.EnterBlock(tag);
                     break;
 
                 case "when":
-                    BuildWhenStatement(tag);
+                    EnterWhenSection(tag);
                     break;
 
                 case "endcase":
-                    return BuildCaseStatement("case");
+                    var caseStatement = BuildCaseStatement(_context.CurrentBlock);
+                    _context.ExitBlock();
+                    return caseStatement;
 
                 case "if":
-                    EnterBlock(tag);
+                    _context.EnterBlock(tag);
                     break;
 
                 case "unless":
-                    EnterBlock(tag);
+                    _context.EnterBlock(tag);
                     break;
 
                 case "endif":
-                    return BuildIfStatement("if");
+                    var ifStatement = BuildIfStatement(_context.CurrentBlock);
+                    _context.ExitBlock();
+                    return ifStatement;
 
                 case "endunless":
-                    return BuildUnlessStatement("unless");
+                    var unlessStatement = BuildUnlessStatement(_context.CurrentBlock);
+                    _context.ExitBlock();
+                    return unlessStatement;
 
                 case "else":
-                    _currentContext.EnterBlock("else", new ElseStatement(new List<Statement>()));
+                    EnterElseSection();
                     break;
 
                 case "elsif":
-                    _currentContext.EnterBlock("elsif", new ElseIfStatement(BuildExpression(tag.ChildNodes[0]), new List<Statement>()));
+                    EnterElsifSection(tag);
                     break;
 
                 case "break":
@@ -402,34 +442,67 @@ namespace Fluid
                     return BuildDecrementStatement(tag);
 
                 case "capture":
-                    EnterBlock(tag);
+                    _context.EnterBlock(tag);
                     break;
 
                 case "endcapture":
-                    return BuildCaptureStatement("capture");
+                    var captureStatement = BuildCaptureStatement(_context.CurrentBlock);
+                    _context.ExitBlock();
+                    return captureStatement;
 
+                case "include":
+                    return BuildIncludeStatement(tag);
+
+                default:
+
+                    if (tag.Term.Name.StartsWith("end"))
+                    {
+                        var tagName = tag.Term.Name.Substring(3);
+
+                        if (_blocks.TryGetValue(tagName, out ITag customEndBlock))
+                        {
+                            if (_context.CurrentBlock.Tag.Term.Name != tagName)
+                            {
+                                throw new ParseException($"Unexpected tag: '{tag.Term.Name}' not matching '{_context.CurrentBlock.Tag.Term.Name}' tag.");
+                            }
+
+                            var statement = customEndBlock.Parse(_context.CurrentBlock.Tag, _context);
+                            _context.ExitBlock();
+                            return statement;
+                        }
+                    }
+
+                    if (_tags.TryGetValue(tag.Term.Name, out ITag customTag))
+                    {
+                        return customTag.Parse(tag, _context);
+                    }
+
+                    if (_blocks.TryGetValue(tag.Term.Name, out ITag customBlock))
+                    {
+                        _context.EnterBlock(tag);
+                    }
+
+                    break;
             }
 
             return null;
         }
 
-        protected virtual CaptureStatement BuildCaptureStatement(string expectedBeginTag)
+        public static CaptureStatement BuildCaptureStatement(BlockContext context)
         {
-            if (_currentContext.Tag.Term.Name != expectedBeginTag)
+            if (context.Tag.Term.Name != "capture")
             {
-                throw new ParseException($"Unexpected tag: ${_currentContext.Tag.Term.Name} not matching {expectedBeginTag} tag.");
+                throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'capture' tag.");
             }
 
-            var identifier = _currentContext.Tag.ChildNodes[0].Token.ValueString;
-            
-            var captureStatement = new CaptureStatement(identifier, _currentContext.Statements);
+            var identifier = context.Tag.ChildNodes[0].Token.ValueString;
 
-            ExitBlock();
+            var captureStatement = new CaptureStatement(identifier, context.Statements);
 
             return captureStatement;
         }
 
-        protected virtual AssignStatement BuildAssignStatement(ParseTreeNode tag)
+        public static AssignStatement BuildAssignStatement(ParseTreeNode tag)
         {
             var identifier = tag.ChildNodes[0].Token.ValueString;
             var value = BuildExpression(tag.ChildNodes[1]);
@@ -437,21 +510,27 @@ namespace Fluid
             return new AssignStatement(identifier, value);
         }
 
-        protected virtual IncrementStatement BuildIncrementStatement(ParseTreeNode tag)
+        public static IncrementStatement BuildIncrementStatement(ParseTreeNode tag)
         {
             var identifier = tag.ChildNodes[0].Token.ValueString;
 
             return new IncrementStatement(identifier);
         }
 
-        protected virtual DecrementStatement BuildDecrementStatement(ParseTreeNode tag)
+        public static DecrementStatement BuildDecrementStatement(ParseTreeNode tag)
         {
             var identifier = tag.ChildNodes[0].Token.ValueString;
 
             return new DecrementStatement(identifier);
         }
 
-        protected virtual CycleStatement BuildCycleStatement(ParseTreeNode tag)
+        public static IncludeStatement BuildIncludeStatement(ParseTreeNode tag)
+        {
+            var pathExpression = BuildTermExpression(tag.ChildNodes[0]);
+            return new IncludeStatement(pathExpression);
+        }
+
+        public static CycleStatement BuildCycleStatement(ParseTreeNode tag)
         {
             Expression group = null;
             IList<Expression> values;
@@ -470,13 +549,23 @@ namespace Fluid
             return new CycleStatement(group, values);
         }
 
-        protected virtual void BuildWhenStatement(ParseTreeNode tag)
+        public void EnterWhenSection(ParseTreeNode tag)
         {
             var options = tag.ChildNodes[0].ChildNodes.Select(BuildTermExpression).ToList();
-            _currentContext.EnterBlock("when", new WhenStatement(options, new List<Statement>()));
+            _context.EnterBlockSection("when", new WhenStatement(options, new List<Statement>()));
         }
-        
-        protected virtual OutputStatement BuildOutputStatement(ParseTreeNode node)
+
+        public void EnterElseSection()
+        {
+            _context.EnterBlockSection("else", new ElseStatement(new List<Statement>()));
+        }
+
+        public void EnterElsifSection(ParseTreeNode tag)
+        {
+            _context.EnterBlockSection("elsif", new ElseIfStatement(BuildExpression(tag.ChildNodes[0]), new List<Statement>()));
+        }
+
+        public virtual OutputStatement BuildOutputStatement(ParseTreeNode node)
         {
             var expressionNode = node.ChildNodes[0];
 
@@ -485,102 +574,96 @@ namespace Fluid
             return new OutputStatement(expression);
         }
 
-        protected virtual IfStatement BuildIfStatement(string expectedBeginTag)
+        public static IfStatement BuildIfStatement(BlockContext context)
         {
-            if (_currentContext.Tag.Term.Name != expectedBeginTag)
+            if (context.Tag.Term.Name != "if")
             {
-                throw new ParseException($"Unexpected tag: ${_currentContext.Tag.Term.Name} not matching {expectedBeginTag} tag.");
+                throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'if' tag.");
             }
 
-            var elseStatements = _currentContext.GetBlockStatements<ElseStatement>("else");
-            var elseIfStatements = _currentContext.GetBlockStatements<ElseIfStatement>("elsif");
+            var elseStatements = context.GetBlockStatements<ElseStatement>("else");
+            var elseIfStatements = context.GetBlockStatements<ElseIfStatement>("elsif");
 
             var ifStatement = new IfStatement(
-                BuildExpression(_currentContext.Tag.ChildNodes[0]),
-                _currentContext.Statements,
+                BuildExpression(context.Tag.ChildNodes[0]),
+                context.Statements,
                 elseStatements.FirstOrDefault(),
                 elseIfStatements
                 );
 
-            ExitBlock();
-
             return ifStatement;
         }
 
-        protected virtual CaseStatement BuildCaseStatement(string expectedBeginTag)
+        public static CaseStatement BuildCaseStatement(BlockContext context)
         {
-            if (_currentContext.Tag.Term.Name != expectedBeginTag)
+            if (context.Tag.Term.Name != "case")
             {
-                throw new ParseException($"Unexpected tag: {_currentContext.Tag.Term.Name} not matching {expectedBeginTag} tag.");
+                throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'case' tag.");
             }
 
-            if (_currentContext.Statements.Any())
+            if (context.Statements.Count > 0)
             {
-                throw new ParseException($"Unexpected content in '{expectedBeginTag}' tag. Only 'when' and 'else' are allowed.");
+                throw new ParseException($"Unexpected content in 'case' tag. Only 'when' and 'else' are allowed.");
             }
 
-            var elseStatements = _currentContext.GetBlockStatements<ElseStatement>("else");
-            var whenStatements = _currentContext.GetBlockStatements<WhenStatement>("when");
+            var elseStatements = context.GetBlockStatements<ElseStatement>("else");
+            var whenStatements = context.GetBlockStatements<WhenStatement>("when");
 
             var caseStatement = new CaseStatement(
-                BuildExpression(_currentContext.Tag.ChildNodes[0]),
+                BuildExpression(context.Tag.ChildNodes[0]),
                 elseStatements.FirstOrDefault(),
                 whenStatements
                 );
 
-            ExitBlock();
-
             return caseStatement;
         }
 
-        protected virtual UnlessStatement BuildUnlessStatement(string expectedBeginTag)
+        public virtual UnlessStatement BuildUnlessStatement(BlockContext context)
         {
-            if (_currentContext.Tag.Term.Name != expectedBeginTag)
+            if (context.Tag.Term.Name != "unless")
             {
-                throw new ParseException($"Unexpected tag: ${_currentContext.Tag.Term.Name} not matching {expectedBeginTag} tag.");
+                throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'unless' tag.");
             }
 
-            var elseStatements = _currentContext.GetBlockStatements<ElseStatement>("else");
-            var elseIfStatements = _currentContext.GetBlockStatements<ElseIfStatement>("elsif");
+            var elseStatements = context.GetBlockStatements<ElseStatement>("else");
+            var elseIfStatements = context.GetBlockStatements<ElseIfStatement>("elsif");
 
             if (elseStatements.Count > 0)
             {
-                throw new ParseException($"Unexpected tag 'else' in '{expectedBeginTag}'.");
+                throw new ParseException($"Unexpected tag 'else' in 'unless'.");
             }
 
             if (elseIfStatements.Count > 0)
             {
-                throw new ParseException($"Unexpected tag 'elsif' in '{expectedBeginTag}'.");
+                throw new ParseException($"Unexpected tag 'elsif' in 'unless'.");
             }
 
             var unlessStatement = new UnlessStatement(
-                BuildExpression(_currentContext.Tag.ChildNodes[0]),
-                _currentContext.Statements
+                BuildExpression(_context.CurrentBlock.Tag.ChildNodes[0]),
+                _context.CurrentBlock.Statements
                 );
-
-            ExitBlock();
 
             return unlessStatement;
         }
 
-        protected virtual Statement BuildForStatement(string expectedBeginTag)
+        public static Statement BuildForStatement(BlockContext context)
         {
-            if (_currentContext.Tag.Term.Name != expectedBeginTag)
+            if (context.Tag.Term.Name != "for")
             {
-                throw new ParseException($"Unexpected tag: ${_currentContext.Tag.Term.Name} not matching {expectedBeginTag} tag.");
+                throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'for' tag.");
             }
 
-            var identifier = _currentContext.Tag.ChildNodes[0].Token.Text;
-            var source = _currentContext.Tag.ChildNodes[1];
+            var identifier = context.Tag.ChildNodes[0].Token.Text;
+            var source = context.Tag.ChildNodes[1];
 
             LiteralExpression limit = null;
             LiteralExpression offset = null;
             var reversed = false;
 
             // Options?
-            if (_currentContext.Tag.ChildNodes.Count > 2)
+            if (context.Tag.ChildNodes.Count > 2)
             {
-                foreach(var option in _currentContext.Tag.ChildNodes[2].ChildNodes)
+                foreach (var option in context.Tag.ChildNodes[2].ChildNodes)
                 {
                     switch (option.Term.Name)
                     {
@@ -603,8 +686,8 @@ namespace Fluid
             {
                 case "memberAccess":
                     forStatement = new ForStatement(
-                        _currentContext.Statements, 
-                        identifier, 
+                        context.Statements,
+                        identifier,
                         BuildMemberExpression(source),
                         limit,
                         offset,
@@ -612,9 +695,9 @@ namespace Fluid
                     break;
 
                 case "range":
-                    forStatement =  new ForStatement(
-                        _currentContext.Statements, 
-                        identifier, 
+                    forStatement = new ForStatement(
+                        context.Statements,
+                        identifier,
                         BuildRangeExpression(source),
                         limit,
                         offset,
@@ -625,12 +708,10 @@ namespace Fluid
                     throw new InvalidOperationException();
             }
 
-            ExitBlock();
-
             return forStatement;
         }
 
-        protected virtual RangeExpression BuildRangeExpression(ParseTreeNode node)
+        public static RangeExpression BuildRangeExpression(ParseTreeNode node)
         {
             var from = BuildRangePart(node.ChildNodes[0]);
             var to = BuildRangePart(node.ChildNodes[1]);
@@ -641,7 +722,7 @@ namespace Fluid
         /// <summary>
         /// Parses either a Number or a MemberAccess
         /// </summary>
-        protected virtual Expression BuildRangePart(ParseTreeNode node)
+        public static Expression BuildRangePart(ParseTreeNode node)
         {
             switch (node.Term.Name)
             {
@@ -656,7 +737,7 @@ namespace Fluid
             }
         }
 
-        protected virtual Expression BuildExpression(ParseTreeNode node)
+        public static Expression BuildExpression(ParseTreeNode node)
         {
             var child = node.ChildNodes[0];
 
@@ -680,7 +761,7 @@ namespace Fluid
             }
         }
 
-        protected virtual Expression BuildTermExpression(ParseTreeNode node)
+        public static Expression BuildTermExpression(ParseTreeNode node)
         {
             if (node.Term.Name == "memberAccess")
             {
@@ -692,7 +773,7 @@ namespace Fluid
             }
         }
 
-        protected virtual Expression BuildBinaryExpression(ParseTreeNode node)
+        public static Expression BuildBinaryExpression(ParseTreeNode node)
         {
             var left = BuildExpression(node.ChildNodes[0]);
             var op = node.ChildNodes[1].Term.Name;
@@ -701,7 +782,7 @@ namespace Fluid
             switch (op)
             {
                 case "==": return new EqualBinaryExpression(left, right);
-                case "<>": 
+                case "<>":
                 case "!=": return new NotEqualBinaryExpression(left, right);
                 case "+": return new AddBinaryExpression(left, right);
                 case "-": return new SubstractBinaryExpression(left, right);
@@ -720,7 +801,7 @@ namespace Fluid
             return null;
         }
 
-        protected virtual MemberExpression BuildMemberExpression(ParseTreeNode node)
+        public static MemberExpression BuildMemberExpression(ParseTreeNode node)
         {
             var identifierNode = node.ChildNodes[0];
             var segmentNodes = node.ChildNodes[1].ChildNodes;
@@ -737,7 +818,7 @@ namespace Fluid
             return new MemberExpression(segments);
         }
 
-        protected virtual MemberSegment BuildMemberSegment(ParseTreeNode node)
+        public static MemberSegment BuildMemberSegment(ParseTreeNode node)
         {
             var child = node.ChildNodes[0];
 
@@ -751,8 +832,8 @@ namespace Fluid
                     throw new ParseException("Unknown expression type: " + node.Term.Name);
             }
         }
-        
-        protected virtual LiteralExpression BuildLiteralExpression(ParseTreeNode node)
+
+        public static LiteralExpression BuildLiteralExpression(ParseTreeNode node)
         {
             switch (node.Term.Name)
             {
@@ -775,7 +856,7 @@ namespace Fluid
             }
         }
 
-        protected virtual Expression BuildFilterExpression(Expression input, ParseTreeNode node)
+        public static Expression BuildFilterExpression(Expression input, ParseTreeNode node)
         {
             Expression outer = input;
 
@@ -794,8 +875,8 @@ namespace Fluid
 
             return outer;
         }
-        
-        protected virtual FilterArgument BuildFilterArgument(ParseTreeNode node)
+
+        public static FilterArgument BuildFilterArgument(ParseTreeNode node)
         {
             string identifier = null;
             Expression term = null;
@@ -813,57 +894,6 @@ namespace Fluid
         }
 
         #endregion
-
-        protected class BlockContext
-        {
-            // Some types of sub-block can be repeated (when, case)
-            // This value is initialized the first time a sub-block is found
-            private Dictionary<string, IList<Statement>> _blocks;
-
-            // Statements that are added while parsing a sub-block (else, elsif, when)
-            private IList<Statement> transientStatements;
-
-            public BlockContext(ParseTreeNode tag)
-            {
-                Tag = tag;
-                Statements = new List<Statement>();
-                transientStatements = Statements;
-            }
-
-            public ParseTreeNode Tag { get; }
-            public IList<Statement> Statements { get; private set; }
-            
-            public void EnterBlock(string name, TagStatement statement)
-            {
-                if (_blocks == null)
-                {
-                    _blocks = new Dictionary<string, IList<Statement>>();
-                }
-
-                if (!_blocks.TryGetValue(name, out var blockStatements))
-                {
-                    _blocks.Add(name, blockStatements = new List<Statement>());
-                }
-
-                blockStatements.Add(statement);
-                transientStatements = statement.Statements;
-            }
-
-            public void AddStatement(Statement statement)
-            {
-                transientStatements.Add(statement);
-            }
-
-            public IList<TStatement> GetBlockStatements<TStatement>(string name)
-            {
-                if (_blocks != null && _blocks.TryGetValue(name, out var statements))
-                {
-                    return statements.Cast<TStatement>().ToList();
-                }
-
-                return Array.Empty<TStatement>();
-            }
-        }
     }
 }
 

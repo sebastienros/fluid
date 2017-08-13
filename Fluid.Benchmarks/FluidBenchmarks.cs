@@ -22,6 +22,13 @@ namespace Fluid.Benchmarks
 </ul>
 ";
 
+        private object[] _products = new[]
+        {
+            new { name = "product 1", price = 1 },
+            new { name = "product 2", price = 2 },
+            new { name = "product 3", price = 3 },
+        };
+
         private const string _source2 = @"{{ image }}";
 
         private const string _source3 = @"
@@ -38,6 +45,15 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
 
         private const string _source4 = @"Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, {{ image }} eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?";
 
+        private FluidTemplate _sampleTemplateFluid;
+        private Template _sampleTemplateDotLiquid;
+
+        public FluidBenchmarks()
+        {
+            FluidTemplate.TryParse(_source1, out _sampleTemplateFluid, out var messages);
+            _sampleTemplateDotLiquid = Template.Parse(_source1);
+            _sampleTemplateDotLiquid.MakeThreadSafe();
+        }
 
         [Benchmark]
         public IFluidTemplate ParseSampleFluid()
@@ -51,6 +67,38 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
         {
             var template = Template.Parse(_source1);
             return template;
+        }
+
+        [Benchmark]
+        public Task<string> ParseAndRenderSampleFluid()
+        {
+            var context = new TemplateContext();
+            context.SetValue("products", _products);
+
+            FluidTemplate.TryParse(_source1, out var template, out var messages);
+            return template.RenderAsync(context);
+        }
+
+        [Benchmark]
+        public string ParseAndRenderSampleDotLiquid()
+        {
+            var template = Template.Parse(_source1);
+            return template.Render(Hash.FromAnonymousObject(new { products = _products }));
+        }
+
+        [Benchmark]
+        public string RenderSampleFluid()
+        {
+            var context = new TemplateContext();
+            context.SetValue("products", _products);
+
+            return _sampleTemplateFluid.Render(context);
+        }
+
+        [Benchmark]
+        public string RenderSampleDotLiquid()
+        {
+            return _sampleTemplateDotLiquid.Render(Hash.FromAnonymousObject(new { products = _products }));
         }
 
         [Benchmark]

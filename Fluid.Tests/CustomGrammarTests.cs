@@ -1,85 +1,188 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Encodings.Web;
-using Fluid.Values;
-using Fluid.Tests.Domain;
-using Irony.Parsing;
-using Xunit;
 using System.Threading.Tasks;
 using Fluid.Ast;
+using Fluid.Tags;
+using Fluid.Values;
+using Irony.Parsing;
+using Xunit;
 
 namespace Fluid.Tests
 {
     public class CustomGrammarTests
     {
+        public CustomGrammarTests()
+        {
+            new FluidTemplate2();
+        }
 
         [Fact]
         public void CanAddCustomTag()
         {
-            var success = YoloTemplate.TryParse("{% yolo a (1..3) %}{{ a }}{% oloy %}", out var template);
+            var success = FluidTemplate2.TryParse("{% shout stuff (1..3) %}", out var template);
             Assert.True(success);
             
             var result = template.Render();
 
-            Assert.Equal("123", result);
+            Assert.Equal("stuffstuffstuff", result);
+        }
+
+        [Fact]
+        public void CanAddIdentifierTag()
+        {
+            var success = FluidTemplate2.TryParse("{% ice pranav %}", out var template);
+            Assert.True(success);
+
+            var result = template.Render();
+
+            Assert.Equal("here is some ice pranav", result);
+        }
+
+        [Theory]
+        [InlineData("{% more '2' | append: 'pack' %}", "here is some more 2pack")]
+        [InlineData("{% more '_Layout' %}", "here is some more _Layout")]
+        [InlineData("{% more foo %}", "here is some more bar")]
+        public void CanAddExpressionTag(string source, string expected)
+        {
+            var context = new TemplateContext();
+            context.SetValue("foo", "bar");
+
+            var success = FluidTemplate2.TryParse(source, out var template);
+            Assert.True(success);
+
+            var result = template.Render(context);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData("{% repeat (1..3) %}foo {{ i }} {% endrepeat %}", "foo 1 foo 2 foo 3 ")]
+        [InlineData("{% simple %} bar {% endsimple %}", "simple bar ")]
+        [InlineData("{% identifier foo %} bar {% endidentifier %}", "foo bar ")]
+        [InlineData("{% exp 'f' | append: 'oo' %} bar {% endexp %}", "foo bar ")]
+        public void CanAddCustomBlock(string source, string expected)
+        {
+            var success = FluidTemplate2.TryParse(source, out var template, out var message);
+            Assert.True(success, message.FirstOrDefault());
+
+            var result = template.Render();
+
+            Assert.Equal(expected, result);
         }
     }
 
-    public class YoloGrammar : FluidGrammar
+    public class ShoutTag : ITag
     {
-        public YoloGrammar() : base()
+        public BnfTerm GetSyntax(FluidGrammar grammar)
         {
-            var Yolo = new NonTerminal("yolo");
-            var EndYolo = ToTerm("oloy");
-
-            Yolo.Rule = "yolo" + Identifier + Range;
-            KnownTags.Rule |= Yolo | EndYolo;
-
-            // Prevent the text from being added in the parsed tree.
-            // Only Identifier and Range will be in the tree.
-            MarkPunctuation("yolo");
-        }
-    }
-
-    public class YoloTemplate : FluidTemplate<ActivatorFluidParserFactory<YoloParser>> { }
-
-    public class YoloParser : IronyFluidParser<YoloGrammar> 
-    {
-        protected override Statement BuildTagStatement(ParseTreeNode node)
-        {
-            var tag = node.ChildNodes[0];
-
-            switch (tag.Term.Name)
-            {
-                case "yolo":
-                    EnterBlock(tag);
-                    return null;
-
-                case "oloy":
-                    return BuildYoloStatement();
-
-                default:
-                    return base.BuildTagStatement(node);
-            }
+            return grammar.Identifier + grammar.Range;
         }
 
-        private Statement BuildYoloStatement()
+        public Statement Parse(ParseTreeNode node, ParserContext context)
         {
-            var identifier = _currentContext.Tag.ChildNodes[0].Token.Text;
-            var source = _currentContext.Tag.ChildNodes[1];
+            var identifier = node.ChildNodes[0].ChildNodes[0].Token.Text;
+            var range = node.ChildNodes[0].ChildNodes[1];
 
-            ForStatement yoloStatement = new ForStatement(
-                _currentContext.Statements, 
-                identifier, 
-                BuildRangeExpression(source),
+            return new ForStatement(
+                new[] { new OutputStatement(new LiteralExpression(new StringValue(identifier))) },
+                identifier,
+                DefaultFluidParser.BuildRangeExpression(range),
                 null,
                 null,
                 false);
+        }        
+    }
 
-            ExitBlock();
+    public class IceTag : IdentifierTag
+    {
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, string identifier)
+        {
+            await writer.WriteAsync("here is some ice " + identifier);
+            return Completion.Normal;
+        }
+    }
 
-            return yoloStatement;
+    public class MoreTag : ExpressionTag
+    {
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression)
+        {
+            var value = await expression.EvaluateAsync(context);
+            await writer.WriteAsync("here is some more " + value.ToStringValue());
+            return Completion.Normal;
+        }
+    }
+
+    public class RepeatBlock : ITag
+    {
+        public BnfTerm GetSyntax(FluidGrammar grammar)
+        {
+            return grammar.Range;
+        }
+
+        public Statement Parse(ParseTreeNode node, ParserContext context)
+        {
+            var range = context.CurrentBlock.Tag.ChildNodes[0];
+
+            return new ForStatement(
+                context.CurrentBlock.Statements,
+                "i",
+                DefaultFluidParser.BuildRangeExpression(range),
+                null,
+                null,
+                false);
+        }
+    }
+
+    public class CustomIdentifierBlock : IdentifierBlock
+    {
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, string identifier, IList<Statement> statements)
+        {
+            await writer.WriteAsync(identifier);
+
+            await RenderStatementsAsync(writer, encoder, context, statements);
+
+            return Completion.Normal;
+        }
+    }
+
+    public class CustomExpressionBlock : ExpressionBlock
+    {
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression, IList<Statement> statements)
+        {
+            await writer.WriteAsync((await expression.EvaluateAsync(context)).ToStringValue());
+
+            await RenderStatementsAsync(writer, encoder, context, statements);
+
+            return Completion.Normal;
+        }
+    }
+
+    public class CustomSimpleBlock : SimpleBlock
+    {
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, IList<Statement> statements)
+        {
+            await writer.WriteAsync("simple");
+
+            await RenderStatementsAsync(writer, encoder, context, statements);
+
+            return Completion.Normal;
+        }
+    }
+
+    public class FluidTemplate2 : BaseFluidTemplate<FluidTemplate2>
+    {
+        static FluidTemplate2()
+        {
+            Factory.RegisterTag<ShoutTag>("shout");
+            Factory.RegisterTag<IceTag>("ice");
+            Factory.RegisterTag<MoreTag>("more");
+
+            Factory.RegisterBlock<RepeatBlock>("repeat");
+            Factory.RegisterBlock<CustomIdentifierBlock>("identifier");
+            Factory.RegisterBlock<CustomSimpleBlock>("simple");
+            Factory.RegisterBlock<CustomExpressionBlock>("exp");
         }
     }
 }
