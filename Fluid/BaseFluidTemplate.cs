@@ -11,8 +11,8 @@ namespace Fluid
         static BaseFluidTemplate()
         {
             // Necessary to force the custom template class static constructor
-            // c.f. https://github.com/sebastienros/fluid/issues/19
-            new T();
+            // as the only member accessed is defined on this class
+            System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
         }
 
         public static FluidParserFactory Factory { get; } = new FluidParserFactory();
