@@ -18,33 +18,14 @@ namespace Fluid.Tests
             new FluidTemplate2();
         }
 
-        [Fact]
-        public void CanAddCustomTag()
-        {
-            var success = FluidTemplate2.TryParse("{% shout stuff (1..3) %}", out var template);
-            Assert.True(success);
-            
-            var result = template.Render();
-
-            Assert.Equal("stuffstuffstuff", result);
-        }
-
-        [Fact]
-        public void CanAddIdentifierTag()
-        {
-            var success = FluidTemplate2.TryParse("{% ice pranav %}", out var template);
-            Assert.True(success);
-
-            var result = template.Render();
-
-            Assert.Equal("here is some ice pranav", result);
-        }
-
         [Theory]
         [InlineData("{% more '2' | append: 'pack' %}", "here is some more 2pack")]
         [InlineData("{% more '_Layout' %}", "here is some more _Layout")]
         [InlineData("{% more foo %}", "here is some more bar")]
-        public void CanAddExpressionTag(string source, string expected)
+        [InlineData("{% ice pranav %}", "here is some ice pranav")]
+        [InlineData("{% shout stuff (1..3) %}", "stuffstuffstuff")]
+        [InlineData("{% argumentstag 'defaultvalue', arg1: 'value1', arg2: 123 %}", ":defaultvaluearg1:value1arg2:123")]
+        public void CanAddCustomTag(string source, string expected)
         {
             var context = new TemplateContext();
             context.SetValue("foo", "bar");
@@ -62,6 +43,7 @@ namespace Fluid.Tests
         [InlineData("{% simple %} bar {% endsimple %}", "simple bar ")]
         [InlineData("{% identifier foo %} bar {% endidentifier %}", "foo bar ")]
         [InlineData("{% exp 'f' | append: 'oo' %} bar {% endexp %}", "foo bar ")]
+        [InlineData("{% argumentsblock 'defaultvalue', arg1: 'value1', arg2: 123 %}bar{% endargumentsblock %}", ":defaultvaluearg1:value1arg2:123bar")]
         public void CanAddCustomBlock(string source, string expected)
         {
             var success = FluidTemplate2.TryParse(source, out var template, out var message);
@@ -171,6 +153,36 @@ namespace Fluid.Tests
         }
     }
 
+    public class CustomArgumentsBlock : ArgumentsBlock
+    {
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, FilterArgument[] arguments, IList<Statement> statements)
+        {
+            foreach (var argument in arguments)
+            {
+                await writer.WriteAsync(argument.Name + ":");
+                await writer.WriteAsync((await argument.Expression.EvaluateAsync(context)).ToStringValue());
+            }            
+
+            await RenderStatementsAsync(writer, encoder, context, statements);
+
+            return Completion.Normal;
+        }
+    }
+
+    public class CustomArgumentsTag : ArgumentsTag
+    {
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, FilterArgument[] arguments)
+        {
+            foreach (var argument in arguments)
+            {
+                await writer.WriteAsync(argument.Name + ":");
+                await writer.WriteAsync((await argument.Expression.EvaluateAsync(context)).ToStringValue());
+            }
+
+            return Completion.Normal;
+        }
+    }
+
     public class FluidTemplate2 : BaseFluidTemplate<FluidTemplate2>
     {
         static FluidTemplate2()
@@ -178,11 +190,13 @@ namespace Fluid.Tests
             Factory.RegisterTag<ShoutTag>("shout");
             Factory.RegisterTag<IceTag>("ice");
             Factory.RegisterTag<MoreTag>("more");
+            Factory.RegisterTag<CustomArgumentsTag>("argumentstag");
 
             Factory.RegisterBlock<RepeatBlock>("repeat");
             Factory.RegisterBlock<CustomIdentifierBlock>("identifier");
             Factory.RegisterBlock<CustomSimpleBlock>("simple");
             Factory.RegisterBlock<CustomExpressionBlock>("exp");
+            Factory.RegisterBlock<CustomArgumentsBlock>("argumentsblock");
         }
     }
 }

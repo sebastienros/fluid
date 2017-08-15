@@ -277,6 +277,7 @@ Custom tags can use these base types:
 - `SimpleTag`: Tag with no parameter, like `{% renderbody %}`
 - `IdentifierTag`: Tag taking an identifier as parameter, like `{% increment my_variable %}`
 - `ExpressionTag`: Tag taking an expression as parameter, like `{% layout template | default: 'layout' %}`
+- `ArgumentsTag`: Tag taking a list of arguments as parameter, like `{% display 'default', arg1: 1 + 1 %}`
 - `ITag`: Tag that can define any custom grammar.
 
 Here are some examples:
@@ -305,7 +306,7 @@ public class QuoteTag : ExpressionTag
 
 ### Creating a custom block
 
-Blocks are created the same way as tags, with these classes: `SimpleBlock`, `IdentifierBlock`, `ExpressionBlock`, or `ITag`.
+Blocks are created the same way as tags, with these classes: `SimpleBlock`, `IdentifierBlock`, `ExpressionBlock`, 'ArgumentsBlock` or `ITag`.
 
 #### Source
 
