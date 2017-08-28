@@ -2,12 +2,13 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp1.1</TargetFramework>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.10.9" />
-    <PackageReference Include="DotLiquid" Version="2.0.158" />
+    <PackageReference Include="DotLiquid" Version="2.0.174" />
+    <PackageReference Include="Liquid.NET" Version="0.9.6" />
   </ItemGroup>
 
   <ItemGroup>

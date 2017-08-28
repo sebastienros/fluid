@@ -2,6 +2,9 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Attributes.Jobs;
 using DotLiquid;
+using Liquid.NET;
+using Liquid.NET.Constants;
+using Liquid.NET.Utils;
 
 namespace Fluid.Benchmarks
 {
@@ -47,12 +50,15 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
 
         private FluidTemplate _sampleTemplateFluid;
         private Template _sampleTemplateDotLiquid;
+        private LiquidParsingResult _sampleTemplateLiquidNet;
 
         public FluidBenchmarks()
         {
             FluidTemplate.TryParse(_source1, out _sampleTemplateFluid, out var messages);
             _sampleTemplateDotLiquid = Template.Parse(_source1);
             _sampleTemplateDotLiquid.MakeThreadSafe();
+            _sampleTemplateLiquidNet = LiquidTemplate.Create(_source1);
+
         }
 
         [Benchmark]
@@ -67,6 +73,12 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
         {
             var template = Template.Parse(_source1);
             return template;
+        }
+
+        [Benchmark]
+        public LiquidParsingResult ParseSampleLiquidNet()
+        {
+            return LiquidTemplate.Create(_source1);
         }
 
         [Benchmark]
@@ -87,6 +99,15 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
         }
 
         [Benchmark]
+        public string ParseAndRenderSampleLiquidNet()
+        {
+            var context = new Liquid.NET.TemplateContext();
+            context.DefineLocalVariable("products", _products.ToLiquid());
+            var parsingResult = LiquidTemplate.Create(_source1);
+            return parsingResult.LiquidTemplate.Render(context).Result;
+        }
+
+        [Benchmark]
         public string RenderSampleFluid()
         {
             var context = new TemplateContext();
@@ -102,6 +123,14 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
         }
 
         [Benchmark]
+        public string RenderSampleLiquidNet()
+        {
+            var context = new Liquid.NET.TemplateContext();
+            context.DefineLocalVariable("products", _products.ToLiquid());			
+            return _sampleTemplateLiquidNet.LiquidTemplate.Render(context).Result;
+        }
+
+        [Benchmark]
         public IFluidTemplate ParseLoremIpsumFluid()
         {
             FluidTemplate.TryParse(_source3, out var template, out var messages);
@@ -113,6 +142,12 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
         {
             var template = Template.Parse(_source3);
             return template;
+        }
+
+        [Benchmark]
+        public LiquidParsingResult ParseLoremIpsumLiquidNet()
+        {
+            return LiquidTemplate.Create(_source3);
         }
 
         [Benchmark]
@@ -132,6 +167,14 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             return template.Render();
         }
 
+        [Benchmark]
+        public string RenderSimpleOuputLiquidNet()
+        {
+            var context = new Liquid.NET.TemplateContext();
+            context.DefineLocalVariable("image", LiquidString.Create("kitten.jpg"));
+            var parsingResult = LiquidTemplate.Create(_source2);
+            return parsingResult.LiquidTemplate.Render(context).Result;
+        }
 
         [Benchmark]
         public Task<string> RenderLoremSimpleOuputFluid()
@@ -148,6 +191,15 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             var template = Template.Parse(_source4);
             template.Assigns.Add("image", "kitten.jpg");
             return template.Render();
+        }
+
+        [Benchmark]
+        public string RenderLoreSimpleOuputLiquidNet()
+        {
+            var context = new Liquid.NET.TemplateContext();
+            context.DefineLocalVariable("image", LiquidString.Create("kitten.jpg"));
+            var parsingResult = LiquidTemplate.Create(_source4);
+            return parsingResult.LiquidTemplate.Render(context).Result;
         }
     }
 }
