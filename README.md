@@ -514,7 +514,7 @@ A performance benchmark application is provided in the source code to compare Fl
 
 #### Sample results
 
-<p align="center"><img width=25% src="https://github.com/sebastienros/fluid/raw/dev/Assets/benchmarks.jpg"></p>
+<p align="center"><img src="https://github.com/sebastienros/fluid/raw/dev/Assets/benchmarks.jpg"></p>
 
 ##### Legend
 
