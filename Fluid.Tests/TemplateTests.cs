@@ -437,5 +437,14 @@ namespace Fluid.Tests
 
             return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
         }
+
+        [Theory]
+        [InlineData("{{ products | map: 'price' }}", "123")]
+        [InlineData("{{ products | map: 'price' | join: ' ' }}", "1 2 3")]
+        public Task ShouldProcessMapFilter(string source, string expected)
+        {
+            return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
+        }
+
     }
 }

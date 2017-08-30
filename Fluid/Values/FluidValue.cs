@@ -91,11 +91,20 @@ namespace Fluid.Values
                         case IDictionary otherDictionary:
                             return new DictionaryValue(new DictionaryDictionaryFluidIndexable(otherDictionary));
 
-                        case IList list:
+                        case IList<FluidValue> list:
                             return new ArrayValue(list);
 
-                        case IEnumerable enumerable:
+                        case IEnumerable<FluidValue> enumerable:
                             return new ArrayValue(enumerable);
+
+                        case IEnumerable enumerable:
+                            var fluidValues = new List<FluidValue>();
+                            foreach(var item in enumerable)
+                            {
+                                fluidValues.Add(Create(item));
+                            }
+
+                            return new ArrayValue(fluidValues);
                     }
 
                     return new ObjectValue(value);

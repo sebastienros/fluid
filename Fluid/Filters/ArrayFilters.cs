@@ -132,7 +132,7 @@ namespace Fluid.Filters
 
         public static FluidValue Uniq(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new ArrayValue(input.Enumerate().Select(x => x.ToObjectValue()).Distinct().ToArray());
+            return new ArrayValue(input.Enumerate().Distinct().ToArray());
         }
     }
 }

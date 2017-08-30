@@ -126,5 +126,21 @@ namespace Fluid.Values
                 });
             }
         }
+
+        public override bool Equals(object other)
+        {
+            // The is operator will return false if null
+            if (other is DictionaryValue otherValue)
+            {
+                return _value.Equals(otherValue._value);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return _value.GetHashCode();
+        }
     }
 }

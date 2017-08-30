@@ -49,5 +49,21 @@ namespace Fluid.Values
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
         }
+
+        public override bool Equals(object other)
+        {
+            // The is operator will return false if null
+            if (other is NilValue otherValue)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return Instance.GetHashCode();
+        }
     }
 }

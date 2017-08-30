@@ -1,25 +1,26 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
 {
     public class ArrayValue : FluidValue
     {
-        private readonly IList _value;
+        private readonly IList<FluidValue> _value;
 
         public override FluidValues Type => FluidValues.Array;
 
-        public ArrayValue(IList value)
+        public ArrayValue(IList<FluidValue> value)
         {
             _value = value;
         }
 
-        public ArrayValue(IEnumerable value)
+        public ArrayValue(IEnumerable<FluidValue> value)
         {
-            _value = new List<object>();
+            _value = new List<FluidValue>();
 
             foreach (var item in value)
             {
@@ -106,29 +107,43 @@ namespace Fluid.Values
 
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
+            encoder.Encode(writer, ToStringValue());
         }
 
         public override string ToStringValue()
         {
-            return "";
+            return String.Join("", _value.Select(x => x.ToStringValue()));
         }
 
         public override object ToObjectValue()
         {
-            return _value;
+            return _value.Select(x => x.ToObjectValue()).ToArray();
         }
 
         public override bool Contains(FluidValue value)
         {
-            return _value.Contains(value.ToObjectValue());
+            return _value.Contains(value);
         }
 
         public override IEnumerable<FluidValue> Enumerate()
         {
-            foreach (var item in _value)
+            return _value;
+        }
+
+        public override bool Equals(object other)
+        {
+            // The is operator will return false if null
+            if (other is ArrayValue otherValue)
             {
-                yield return FluidValue.Create(item);
+                return _value.Equals(otherValue._value);
             }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return _value.GetHashCode();
         }
     }
 }

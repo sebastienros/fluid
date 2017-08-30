@@ -108,5 +108,21 @@ namespace Fluid.Values
         {
             return _value.Select(x => new StringValue(x.ToString())).ToArray();
         }
+
+        public override bool Equals(object other)
+        {
+            // The is operator will return false if null
+            if (other is StringValue otherValue)
+            {
+                return _value.Equals(otherValue._value);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return _value.GetHashCode();
+        }
     }
 }

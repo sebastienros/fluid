@@ -70,5 +70,21 @@ namespace Fluid.Values
         {
             return _value;
         }
+
+        public override bool Equals(object other)
+        {
+            // The is operator will return false if null
+            if (other is ObjectValue otherValue)
+            {
+                return _value.Equals(otherValue._value);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return _value.GetHashCode();
+        }
     }
 }
