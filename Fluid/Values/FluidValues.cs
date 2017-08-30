@@ -8,6 +8,7 @@
         Dictionary,
         Number,
         Object,
-        String
+        String,
+        DateTime
     }
 }

@@ -157,7 +157,7 @@ namespace Fluid.Tests
         [InlineData("It is %r", "It is 5:04:36 PM")]
         public void Date(string format, string expected)
         {
-            var input = new ObjectValue(new DateTimeOffset(new DateTime(2017, 8, 1, 17, 4, 36, 123), TimeSpan.FromHours(8)));
+            var input = new DateTimeValue(new DateTimeOffset(new DateTime(2017, 8, 1, 17, 4, 36, 123), TimeSpan.FromHours(8)));
 
             var arguments = new FilterArguments(new StringValue(format));
             var context = new TemplateContext();

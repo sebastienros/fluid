@@ -82,6 +82,9 @@ namespace Fluid.Values
                         case FluidValue fluid:
                             return fluid;
 
+                        case DateTimeOffset dateTimeOffset:
+                            return new DateTimeValue((DateTimeOffset)value);
+
                         case IDictionary<string, object> dictionary:
                             return new DictionaryValue(new ObjectDictionaryFluidIndexable(dictionary));
 
@@ -109,6 +112,7 @@ namespace Fluid.Values
 
                     return new ObjectValue(value);
                 case TypeCode.DateTime:
+                    return new DateTimeValue((DateTime)value);
                 case TypeCode.Char:
                 case TypeCode.String:
                     return new StringValue(Convert.ToString(value, CultureInfo.InvariantCulture));
