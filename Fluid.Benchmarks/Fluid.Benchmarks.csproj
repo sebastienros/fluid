@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.10.9" />
-    <PackageReference Include="DotLiquid" Version="2.0.174" />
+    <PackageReference Include="DotLiquid" Version="2.0.183" />
     <PackageReference Include="Liquid.NET" Version="0.9.6" />
   </ItemGroup>
 
