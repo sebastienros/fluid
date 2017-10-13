@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26615.0
+VisualStudioVersion = 15.0.27004.2002
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid", "Fluid\Fluid.csproj", "{8CD687F1-AC65-4E4A-A510-67768999C81C}"
 EndProject
@@ -12,6 +12,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.MvcSample", "Fluid.MvcSample\Fluid.MvcSample.csproj", "{5CBA5602-0579-41E8-BE69-F2FFFD95DE70}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.MvcViewEngine", "Fluid.MvcViewEngine\Fluid.MvcViewEngine.csproj", "{8387DE36-8B53-4437-B16F-40C6FD525A1D}"
+EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Fluid.MVCSampleVB", "Fluid.MvcSampleVB\Fluid.MvcSampleVB.vbproj", "{3011BAD5-752F-454D-A9A9-1446F8352DD1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{8387DE36-8B53-4437-B16F-40C6FD525A1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8387DE36-8B53-4437-B16F-40C6FD525A1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8387DE36-8B53-4437-B16F-40C6FD525A1D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3011BAD5-752F-454D-A9A9-1446F8352DD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3011BAD5-752F-454D-A9A9-1446F8352DD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3011BAD5-752F-454D-A9A9-1446F8352DD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3011BAD5-752F-454D-A9A9-1446F8352DD1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
