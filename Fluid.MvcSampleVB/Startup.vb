@@ -5,7 +5,7 @@ Imports Microsoft.AspNetCore.Hosting
 Imports Microsoft.Extensions.Logging
 
 Public Class Startup
-    Shared Sub New()
+    Sub New()
         TemplateContext.GlobalMemberAccessStrategy.Register(Of Person)()
     End Sub
 
