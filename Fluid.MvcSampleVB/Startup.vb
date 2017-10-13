@@ -10,7 +10,9 @@ Public Class Startup
     End Sub
 
     Public Sub ConfigureServices(services As IServiceCollection)
-        services.AddMvc().AddFluid()
+        services.
+            AddMvc().
+            AddFluid()
     End Sub
 
     Public Sub Configure(app As IApplicationBuilder, env As IHostingEnvironment, loggerFactory As ILoggerFactory)
