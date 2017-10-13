@@ -4,7 +4,7 @@ Imports Microsoft.AspNetCore.Hosting
 
 Module Program
     Sub Main(args As String())
-        Dim host = New WebHostBuilder().
+        Dim host As IWebHost = New WebHostBuilder().
             UseKestrel().
             UseContentRoot(Directory.GetCurrentDirectory()).
             UseIISIntegration().
