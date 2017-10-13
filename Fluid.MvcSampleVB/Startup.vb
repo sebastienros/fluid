@@ -1,7 +1,7 @@
-﻿Imports Microsoft.Extensions.DependencyInjection
-Imports FluidMvcViewEngine
+﻿Imports FluidMvcViewEngine
 Imports Microsoft.AspNetCore.Builder
 Imports Microsoft.AspNetCore.Hosting
+Imports Microsoft.Extensions.DependencyInjection
 Imports Microsoft.Extensions.Logging
 
 Public Class Startup
