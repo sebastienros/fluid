@@ -5,7 +5,7 @@
     <Authors>Sebastien Ros</Authors>
     <PackageProjectUrl>https://github.com/sebastienros/fluid</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/sebastienros/fluid/blob/master/LICENSE.txt</PackageLicenseUrl>
-    <TargetFrameworks>netstandard1.6</TargetFrameworks>
+    <TargetFrameworks>netstandard1.6;netstandard2.0</TargetFrameworks>
     <VersionSuffix Condition="'$(VersionSuffix)'!='' AND '$(BuildNumber)' != ''">$(VersionSuffix)-$(BuildNumber)</VersionSuffix>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <DebugType>portable</DebugType>
