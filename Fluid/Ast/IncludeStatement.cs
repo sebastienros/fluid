@@ -7,6 +7,8 @@ namespace Fluid.Ast
 {
     public class IncludeStatement : Statement
     {
+        public const string FluidParserFactoryKey = "FluidParserFactory";
+        public const string FluidTemplateKey = "FluidTemplate";
         public const string ViewExtension = ".liquid";
 
         public IncludeStatement(Expression path)
@@ -18,19 +20,6 @@ namespace Fluid.Ast
 
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            if (!context.AmbientValues.ContainsKey("FluidParser"))
-            {
-                throw new ArgumentException("The 'FluidParser' key was not present in the AmbientValues dictionary.", nameof(context));
-            }
-
-            if (!context.AmbientValues.ContainsKey("FluidTemplate"))
-            {
-                throw new ArgumentException("The 'FluidTemplate' key was not present in the AmbientValues dictionary.", nameof(context));
-            }
-
-            IFluidParser parser = (IFluidParser)context.AmbientValues["FluidParser"];
-            IFluidTemplate template = (IFluidTemplate)context.AmbientValues["FluidTemplate"];
-
             var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
             if (!relativePath.EndsWith(ViewExtension))
             {
@@ -44,6 +33,19 @@ namespace Fluid.Ast
             {
                 throw new FileNotFoundException(relativePath);
             }
+
+            if (!context.AmbientValues.ContainsKey(FluidParserFactoryKey))
+            {
+                throw new ArgumentException($"The '{FluidParserFactoryKey}' key was not present in the AmbientValues dictionary.", nameof(context));
+            }
+            if (!context.AmbientValues.ContainsKey(FluidTemplateKey))
+            {
+                throw new ArgumentException($"The '{FluidTemplateKey}' key was not present in the AmbientValues dictionary.", nameof(context));
+            }
+
+            FluidParserFactory factory = (FluidParserFactory)context.AmbientValues[FluidParserFactoryKey];
+            IFluidParser parser = factory.CreateParser();
+            IFluidTemplate template = (IFluidTemplate)context.AmbientValues[FluidTemplateKey];
 
             using (var stream = fileInfo.CreateReadStream())
             using (var streamReader = new StreamReader(stream))
