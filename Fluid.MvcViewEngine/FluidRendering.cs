@@ -60,6 +60,8 @@ namespace FluidMvcViewEngine
             context.AmbientValues.Add("FileProvider", fileProvider);
             context.AmbientValues[ViewPath] = path;
             context.AmbientValues.Add("Sections", new Dictionary<string, IList<Statement>>());
+            context.AmbientValues["FluidParser"] = FluidViewTemplate.Factory.CreateParser();
+            context.AmbientValues["FluidTemplate"] = new FluidViewTemplate();
             context.FileProvider = new FileProviderMapper(fileProvider, "Views");
 
             var body = await template.RenderAsync(context);
@@ -70,6 +72,7 @@ namespace FluidMvcViewEngine
                 context.AmbientValues[ViewPath] = layoutPath;
                 context.AmbientValues.Add("Body", body);
                 var layoutTemplate = ParseLiquidFile((string)layoutPath, fileProvider, false);
+                context.AmbientValues["FluidTemplate"] = new FluidViewTemplate();
 
                 return await layoutTemplate.RenderAsync(context); 
             }
