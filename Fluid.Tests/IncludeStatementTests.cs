@@ -36,6 +36,7 @@ namespace Fluid.Tests
                 {
                     FileProvider = new TestFileProvider("NonPartials")
                 };
+
                 return new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
             });
         }
@@ -108,7 +109,7 @@ namespace Fluid.Tests
 
             public Stream CreateReadStream()
             {
-                var data = Encoding.UTF8.GetBytes("Partial Content");
+                var data = Encoding.UTF8.GetBytes("{{ 'Partial Content' }}");
                 return new MemoryStream(data);
             }
         }

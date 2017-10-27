@@ -23,6 +23,7 @@ namespace FluidMvcViewEngine
     {
         private const string ViewStartFilename = "_ViewStart.liquid";
         public const string ViewPath = "ViewPath";
+        private static readonly Func<IFluidTemplate> FluidTemplateFactory = () => new FluidViewTemplate();
 
         static FluidRendering()
         {
@@ -60,6 +61,8 @@ namespace FluidMvcViewEngine
             context.AmbientValues.Add("FileProvider", fileProvider);
             context.AmbientValues[ViewPath] = path;
             context.AmbientValues.Add("Sections", new Dictionary<string, IList<Statement>>());
+            context.AmbientValues[IncludeStatement.FluidParserFactoryKey] = FluidViewTemplate.Factory;
+            context.AmbientValues[IncludeStatement.FluidTemplateFactoryKey] = FluidTemplateFactory;
             context.FileProvider = new FileProviderMapper(fileProvider, "Views");
 
             var body = await template.RenderAsync(context);
@@ -71,17 +74,18 @@ namespace FluidMvcViewEngine
                 context.AmbientValues.Add("Body", body);
                 var layoutTemplate = ParseLiquidFile((string)layoutPath, fileProvider, false);
 
-                return await layoutTemplate.RenderAsync(context); 
+                return await layoutTemplate.RenderAsync(context);
             }
 
             return body;
         }
 
+
         public IEnumerable<string> FindViewStarts(string viewPath, IFileProvider fileProvider)
         {
             var viewStarts = new List<string>();
             int index = viewPath.Length - 1;
-            while(! String.IsNullOrEmpty(viewPath) &&
+            while (!String.IsNullOrEmpty(viewPath) &&
                 !(String.Equals(viewPath, "Views", StringComparison.OrdinalIgnoreCase)))
             {
                 index = viewPath.LastIndexOf('/', index);
