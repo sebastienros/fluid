@@ -22,13 +22,6 @@ namespace Fluid.Ast
         public const string FluidTemplateFactoryKey = "FluidTemplateFactory";
         public const string ViewExtension = ".liquid";
 
-        /// <summary>
-        /// Get or set the default <see cref="Func{IFluidTemplate}"/> used by <see cref="IncludeStatement"/>.
-        /// It can be overridden per <see cref="TemplateContext"/> by setting an ambient
-        /// value with a key matching the value of the <see cref="FluidTemplateFactoryKey"/>.
-        /// </summary>
-        public static Func<IFluidTemplate> FluidTemplateFactory { get; set; } = () => new FluidTemplate();
-
         public IncludeStatement(Expression path)
         {
             Path = path;
