@@ -80,7 +80,6 @@ namespace FluidMvcViewEngine
             return body;
         }
 
-
         public IEnumerable<string> FindViewStarts(string viewPath, IFileProvider fileProvider)
         {
             var viewStarts = new List<string>();
