@@ -18,12 +18,9 @@ namespace Fluid.Tests
         {
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var sw = new StringWriter();
-            var context = new TemplateContext();
-            context.AmbientValues[IncludeStatement.FluidParserFactoryKey] = FluidTemplate.Factory;
-            context.AmbientValues[IncludeStatement.FluidTemplateKey] = new FluidTemplate();
 
             await Assert.ThrowsAsync<FileNotFoundException>(() =>
-                new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context)
+                new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext())
             );
         }
 
@@ -39,8 +36,6 @@ namespace Fluid.Tests
                 {
                     FileProvider = new TestFileProvider("NonPartials")
                 };
-                context.AmbientValues[IncludeStatement.FluidParserFactoryKey] = FluidTemplate.Factory;
-                context.AmbientValues[IncludeStatement.FluidTemplateKey] = new FluidTemplate();
 
                 return new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
             });
@@ -56,8 +51,6 @@ namespace Fluid.Tests
             {
                 FileProvider = new TestFileProvider("Partials")
             };
-            context.AmbientValues[IncludeStatement.FluidParserFactoryKey] = FluidTemplate.Factory;
-            context.AmbientValues[IncludeStatement.FluidTemplateKey] = new FluidTemplate();
 
             await new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
 

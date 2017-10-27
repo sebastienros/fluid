@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -7,9 +8,26 @@ namespace Fluid.Ast
 {
     public class IncludeStatement : Statement
     {
+        /// <summary>
+        /// Override <see cref="IFluidParserFactory"/> used by a <see cref="TemplateContext"/>
+        /// by setting an ambient value with a key matching the value of the
+        /// <see cref="FluidParserFactoryKey"/>.
+        /// </summary>
         public const string FluidParserFactoryKey = "FluidParserFactory";
-        public const string FluidTemplateKey = "FluidTemplate";
+        /// <summary>
+        /// Override <see cref="Func{IFluidTemplate}"/> used by a <see cref="TemplateContext"/>
+        /// by setting an ambient value with a key matching the value of the
+        /// <see cref="FluidTemplateFactoryKey"/>.
+        /// </summary>
+        public const string FluidTemplateFactoryKey = "FluidTemplateFactory";
         public const string ViewExtension = ".liquid";
+
+        /// <summary>
+        /// Get or set the default <see cref="Func{IFluidTemplate}"/> used by <see cref="IncludeStatement"/>.
+        /// It can be overridden per <see cref="TemplateContext"/> by setting an ambient
+        /// value with a key matching the value of the <see cref="FluidTemplateFactoryKey"/>.
+        /// </summary>
+        public static Func<IFluidTemplate> FluidTemplateFactory { get; set; } = () => new FluidTemplate();
 
         public IncludeStatement(Expression path)
         {
@@ -34,28 +52,16 @@ namespace Fluid.Ast
                 throw new FileNotFoundException(relativePath);
             }
 
-            if (!context.AmbientValues.ContainsKey(FluidParserFactoryKey))
-            {
-                throw new ArgumentException($"The '{FluidParserFactoryKey}' key was not present in the AmbientValues dictionary.", nameof(context));
-            }
-            if (!context.AmbientValues.ContainsKey(FluidTemplateKey))
-            {
-                throw new ArgumentException($"The '{FluidTemplateKey}' key was not present in the AmbientValues dictionary.", nameof(context));
-            }
-
-            FluidParserFactory factory = (FluidParserFactory)context.AmbientValues[FluidParserFactoryKey];
-            IFluidParser parser = factory.CreateParser();
-            IFluidTemplate template = (IFluidTemplate)context.AmbientValues[FluidTemplateKey];
-
             using (var stream = fileInfo.CreateReadStream())
             using (var streamReader = new StreamReader(stream))
             {
                 var childScope = context.EnterChildScope();
 
                 string partialTemplate = await streamReader.ReadToEndAsync();
+                var parser = CreateParser(context);
                 if (parser.TryParse(partialTemplate, out var statements, out var errors))
                 {
-                    template.Statements = statements;
+                    var template = CreateTemplate(context, statements);
                     await template.RenderAsync(writer, encoder, context);
                 }
                 else
@@ -67,6 +73,33 @@ namespace Fluid.Ast
             }
 
             return Completion.Normal;
+        }
+
+        private static IFluidParser CreateParser(TemplateContext context)
+        {
+            if (context.AmbientValues.TryGetValue(FluidParserFactoryKey, out var factory))
+            {
+                return ((IFluidParserFactory)factory).CreateParser();
+            }
+            else
+            {
+                return FluidTemplate.Factory.CreateParser();
+            }
+        }
+
+        private static IFluidTemplate CreateTemplate(TemplateContext context, IList<Statement> statements)
+        {
+            IFluidTemplate template;
+            if (context.AmbientValues.TryGetValue(FluidTemplateFactoryKey, out var factory))
+            {
+                template = ((Func<IFluidTemplate>)factory)();
+            }
+            else
+            {
+                template = new FluidTemplate();
+            }
+            template.Statements = statements;
+            return template;
         }
     }
 }
