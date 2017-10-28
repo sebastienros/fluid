@@ -54,6 +54,8 @@ namespace Fluid
         private readonly Dictionary<string, ITag> _blocks;
         protected ParserContext _context;
 
+        private static IList<AssignStatement> _assignStatements;
+
         public DefaultFluidParser(LanguageData languageData, Dictionary<string, ITag> tags, Dictionary<string, ITag> blocks)
         {
             _languageData = languageData;
@@ -527,15 +529,14 @@ namespace Fluid
         public static IncludeStatement BuildIncludeStatement(ParseTreeNode tag)
         {
             var pathExpression = BuildTermExpression(tag.ChildNodes[0]);
-            IList<AssignStatement> assignStatements = null;
 
             if (tag.ChildNodes.Count > 1)
             {
-                assignStatements = new List<AssignStatement>();
-                Traverse(tag.ChildNodes[2], ref assignStatements);
+                _assignStatements = new List<AssignStatement>();
+                Traverse(tag.ChildNodes[2]);
             }
 
-            return new IncludeStatement(pathExpression, assignStatements);
+            return new IncludeStatement(pathExpression, _assignStatements);
         }
 
         public static CycleStatement BuildCycleStatement(ParseTreeNode tag)
@@ -911,16 +912,16 @@ namespace Fluid
 
         #endregion
 
-        private static void Traverse(ParseTreeNode tag, ref IList<AssignStatement> statements)
+        private static void Traverse(ParseTreeNode tag)
         {
             if (tag.ChildNodes.Count == 1)
             {
-                statements.Add(BuildIncludeAssignStatement(tag.ChildNodes[0]));
+                _assignStatements.Add(BuildIncludeAssignStatement(tag.ChildNodes[0]));
             }
             else
             {
-                Traverse(tag.ChildNodes[0], ref statements);
-                statements.Add(BuildIncludeAssignStatement(tag.ChildNodes[2]));
+                Traverse(tag.ChildNodes[0]);
+                _assignStatements.Add(BuildIncludeAssignStatement(tag.ChildNodes[2]));
             }
         }
     }
