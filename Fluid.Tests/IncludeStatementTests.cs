@@ -51,10 +51,33 @@ namespace Fluid.Tests
             {
                 FileProvider = new TestFileProvider("Partials")
             };
+            var expectedResult = @"Partial Content
+color: ''
+shape: ''";
 
             await new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
 
-            Assert.Equal("Partial Content", sw.ToString());
+            Assert.Equal(expectedResult, sw.ToString());
+        }
+
+        [Fact]
+        public async Task IncludeSatement_WithTagParams_ShouldBeEvaluated()
+        {
+            var pathExpression = new LiteralExpression(new StringValue("color"));
+            var valueExpression = new LiteralExpression(new StringValue("blue"));
+
+            var sw = new StringWriter();
+            var context = new TemplateContext
+            {
+                FileProvider = new TestFileProvider("Partials")
+            };
+            var expectedResult = @"Partial Content
+color: 'blue'
+shape: ''";
+
+            await new IncludeStatement(pathExpression, valueExpression).WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal(expectedResult, sw.ToString());
         }
 
         public class TestFileProvider : IFileProvider
@@ -109,7 +132,11 @@ namespace Fluid.Tests
 
             public Stream CreateReadStream()
             {
-                var data = Encoding.UTF8.GetBytes("{{ 'Partial Content' }}");
+                var content = @"{{ 'Partial Content' }}
+color: '{{ color }}'
+shape: '{{ shape }}'";
+                var data = Encoding.UTF8.GetBytes(content);
+
                 return new MemoryStream(data);
             }
         }
