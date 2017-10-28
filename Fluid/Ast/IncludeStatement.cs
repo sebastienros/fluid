@@ -22,7 +22,7 @@ namespace Fluid.Ast
         public const string FluidTemplateFactoryKey = "FluidTemplateFactory";
         public const string ViewExtension = ".liquid";
 
-        public IncludeStatement(Expression path, IList<AssignStatement> assignStatements)
+        public IncludeStatement(Expression path, IList<AssignStatement> assignStatements = null)
         {
             Path = path;
             AssignStatements = assignStatements;
