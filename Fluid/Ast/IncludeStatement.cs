@@ -22,12 +22,15 @@ namespace Fluid.Ast
         public const string FluidTemplateFactoryKey = "FluidTemplateFactory";
         public const string ViewExtension = ".liquid";
 
-        public IncludeStatement(Expression path)
+        public IncludeStatement(Expression path, IList<AssignStatement> assignStatements)
         {
             Path = path;
+            AssignStatements = assignStatements;
         }
 
         public Expression Path { get; }
+
+        public IList<AssignStatement> AssignStatements { get; }
 
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -43,6 +46,14 @@ namespace Fluid.Ast
             if (!fileInfo.Exists)
             {
                 throw new FileNotFoundException(relativePath);
+            }
+
+            if (AssignStatements != null)
+            {
+                foreach (var assignStatement in AssignStatements)
+                {
+                    await assignStatement.WriteToAsync(writer, encoder, context);
+                }
             }
 
             using (var stream = fileInfo.CreateReadStream())

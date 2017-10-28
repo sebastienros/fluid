@@ -46,7 +46,7 @@ namespace Fluid
     }
 
     public class DefaultFluidParser : IFluidParser
-    {        
+    {
         protected bool _isComment; // true when the current block is a comment
         protected bool _isRaw; // true when the current block is raw
         private readonly LanguageData _languageData;
@@ -527,7 +527,15 @@ namespace Fluid
         public static IncludeStatement BuildIncludeStatement(ParseTreeNode tag)
         {
             var pathExpression = BuildTermExpression(tag.ChildNodes[0]);
-            return new IncludeStatement(pathExpression);
+            IList<AssignStatement> assignStatements = null;
+
+            if (tag.ChildNodes.Count > 1)
+            {
+                assignStatements = new List<AssignStatement>();
+                Traverse(tag.ChildNodes[2], ref assignStatements);
+            }
+
+            return new IncludeStatement(pathExpression, assignStatements);
         }
 
         public static CycleStatement BuildCycleStatement(ParseTreeNode tag)
@@ -893,7 +901,28 @@ namespace Fluid
             return new FilterArgument(identifier, term);
         }
 
+        private static AssignStatement BuildIncludeAssignStatement(ParseTreeNode tag)
+        {
+            var identifier = tag.ChildNodes[0].Token.ValueString;
+            var value = BuildTermExpression(tag.ChildNodes[1]);
+
+            return new AssignStatement(identifier, value);
+        }
+
         #endregion
+
+        private static void Traverse(ParseTreeNode tag, ref IList<AssignStatement> statements)
+        {
+            if (tag.ChildNodes.Count == 1)
+            {
+                statements.Add(BuildIncludeAssignStatement(tag.ChildNodes[0]));
+            }
+            else
+            {
+                Traverse(tag.ChildNodes[0], ref statements);
+                statements.Add(BuildIncludeAssignStatement(tag.ChildNodes[2]));
+            }
+        }
     }
 }
 
