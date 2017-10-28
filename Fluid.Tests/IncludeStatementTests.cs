@@ -78,7 +78,26 @@ shape: ''";
 color: 'blue'
 shape: 'circle'";
 
-            await new IncludeStatement(expression, assignStatements).WriteToAsync(sw, HtmlEncoder.Default, context);
+            await new IncludeStatement(expression, assignStatements: assignStatements).WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal(expectedResult, sw.ToString());
+        }
+
+        [Fact]
+        public async Task IncludeSatement_WithTagParams_ShouldBeEvaluated()
+        {
+            var pathExpression = new LiteralExpression(new StringValue("color"));
+            var withExpression = new LiteralExpression(new StringValue("blue"));
+            var sw = new StringWriter();
+            var context = new TemplateContext
+            {
+                FileProvider = new TestFileProvider("Partials")
+            };
+            var expectedResult = @"Partial Content
+color: 'blue'
+shape: ''";
+
+            await new IncludeStatement(pathExpression, with: withExpression).WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal(expectedResult, sw.ToString());
         }
@@ -139,6 +158,7 @@ shape: 'circle'";
 color: '{{ color }}'
 shape: '{{ shape }}'";
                 var data = Encoding.UTF8.GetBytes(content);
+
                 return new MemoryStream(data);
             }
         }

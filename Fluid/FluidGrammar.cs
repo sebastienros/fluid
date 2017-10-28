@@ -166,7 +166,7 @@ namespace Fluid
 
             Capture.Rule = ToTerm("capture") + Identifier;
 
-            Include.Rule = (ToTerm("include") + Term) | (ToTerm("include") + Term + Comma + IncludeAssignments);
+            Include.Rule = (ToTerm("include") + Term) | (ToTerm("include") + Term + ToTerm("with") + Term) | (ToTerm("include") + Term + Comma + IncludeAssignments);
             IncludeAssignments.Rule = (IncludeAssignments + Comma + IncludeAssignment) | IncludeAssignment;
             IncludeAssignment.Rule = Identifier + Colon + Term;
 
@@ -177,7 +177,7 @@ namespace Fluid
                 "case",
                 "for", "in", "(", ")", "..",
                 "when", "cycle", "limit", "offset",
-                "include"
+                "include", "with"
                 );
             MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd, Colon);
             MarkTransient(Statement, KnownTags, ForSource, RangeIndex, BinaryOperator, ForOption, Term);

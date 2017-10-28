@@ -22,15 +22,18 @@ namespace Fluid.Ast
         public const string FluidTemplateFactoryKey = "FluidTemplateFactory";
         public const string ViewExtension = ".liquid";
 
-        public IncludeStatement(Expression path, IList<AssignStatement> assignStatements = null)
+        public IncludeStatement(Expression path, Expression with = null, IList<AssignStatement> assignStatements = null)
         {
             Path = path;
+            With = with;
             AssignStatements = assignStatements;
         }
 
         public Expression Path { get; }
 
         public IList<AssignStatement> AssignStatements { get; }
+
+        public Expression With { get; }
 
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -51,7 +54,7 @@ namespace Fluid.Ast
             if (AssignStatements != null)
             {
                 context.EnterChildScope();
-                
+
                 try
                 {
                     foreach (var assignStatement in AssignStatements)
@@ -63,6 +66,13 @@ namespace Fluid.Ast
                 {
                     context.ReleaseScope();
                 }
+            }
+
+            if (With != null)
+            {
+                var identifier = (await Path.EvaluateAsync(context)).ToStringValue();
+
+                await new AssignStatement(identifier, With).WriteToAsync(writer, encoder, context);
             }
 
             using (var stream = fileInfo.CreateReadStream())
