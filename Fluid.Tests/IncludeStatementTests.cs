@@ -1,12 +1,9 @@
-﻿using System;
-using System.IO;
-using System.Text;
+﻿using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Values;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Primitives;
+using Fluid.Tests.Mocks;
 using Xunit;
 
 namespace Fluid.Tests
@@ -34,7 +31,7 @@ namespace Fluid.Tests
                 var sw = new StringWriter();
                 var context = new TemplateContext
                 {
-                    FileProvider = new TestFileProvider("NonPartials")
+                    FileProvider = new MockFileProvider("NonPartials")
                 };
 
                 return new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
@@ -49,69 +46,12 @@ namespace Fluid.Tests
             var sw = new StringWriter();
             var context = new TemplateContext
             {
-                FileProvider = new TestFileProvider("Partials")
+                FileProvider = new MockFileProvider("Partials")
             };
 
             await new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal("Partial Content", sw.ToString());
-        }
-
-        public class TestFileProvider : IFileProvider
-        {
-            private string _partialsFolderPath;
-
-            public TestFileProvider(string path)
-            {
-                if (path != "Partials")
-                {
-                    throw new DirectoryNotFoundException();
-                }
-
-                _partialsFolderPath = path;
-            }
-
-            public IDirectoryContents GetDirectoryContents(string subpath)
-            {
-                throw new NotImplementedException();
-            }
-
-            public IFileInfo GetFileInfo(string subpath)
-            {
-                var path = Path.Combine(_partialsFolderPath, subpath);
-                return new TestFileInfo(path);
-            }
-
-            public IChangeToken Watch(string filter)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public class TestFileInfo : IFileInfo
-        {
-            public TestFileInfo(string name)
-            {
-                Name = name;
-            }
-
-            public bool Exists => true;
-
-            public bool IsDirectory => false;
-
-            public DateTimeOffset LastModified => DateTimeOffset.MinValue;
-
-            public long Length => -1;
-
-            public string Name { get; }
-
-            public string PhysicalPath => null;
-
-            public Stream CreateReadStream()
-            {
-                var data = Encoding.UTF8.GetBytes("{{ 'Partial Content' }}");
-                return new MemoryStream(data);
-            }
         }
     }
 }

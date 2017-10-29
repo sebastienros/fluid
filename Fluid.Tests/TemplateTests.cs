@@ -6,6 +6,7 @@ using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Tests.Domain;
 using Fluid.Values;
+using Fluid.Tests.Mocks;
 using Xunit;
 
 namespace Fluid.Tests
@@ -446,5 +447,24 @@ namespace Fluid.Tests
             return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
         }
 
+        [Fact]
+        public async Task CodeInsideCommentShouldNotBeExecuted()
+        {
+            var source = @"{% comment %}
+This code should not be executed.
+{{ 3 + 54 }}
+{% include '_Partial' %}
+{% endcomment %}
+{% include '_Partial' %}";
+            var expected = "Partial Content";
+            FluidTemplate.TryParse(source, out var template, out var messages);
+            var context = new TemplateContext
+            {
+                FileProvider = new MockFileProvider("Partials")
+            };
+            var result = await template.RenderAsync(context);
+
+            Assert.Equal(expected, result);
+        }
     }
 }
