@@ -84,7 +84,8 @@ namespace Fluid.Tests
 
             public IChangeToken Watch(string filter)
             {
-                throw new NotImplementedException();
+                // Makes the test happy with IMemoryCache 
+                return NullChangeToken.Singleton;
             }
         }
 

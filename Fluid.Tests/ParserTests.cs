@@ -195,5 +195,22 @@ namespace Fluid.Tests
             Assert.Null(template);
             Assert.NotEmpty(errors);
         }
+
+        [Fact]
+        public void CodeInsideCommentShouldNotBeExecuted()
+        {
+            var statements = Parse(@"{% comment %}
+This code should not be executed.
+{{ 3 + 54 }}
+{% endcomment %}");
+            var expectedResult = @"This code should not be executed.
+{{ 3 + 54 }}
+";
+            var textStatement = statements.First() as CommentStatement;
+
+            Assert.Equal(1, statements.Count);
+            Assert.NotNull(textStatement);
+            Assert.Equal(expectedResult, textStatement.Text);
+        }
     }
 }
