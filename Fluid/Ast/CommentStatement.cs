@@ -15,6 +15,7 @@ namespace Fluid.Ast
 
         public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
+            context.LocalScope.SetValue("IsComment", true);
             return Task.FromResult(Completion.Normal);
         }
     }

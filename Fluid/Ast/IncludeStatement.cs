@@ -50,10 +50,16 @@ namespace Fluid.Ast
                 throw new FileNotFoundException(relativePath);
             }
 
-            var childScope = context.EnterChildScope();
-            var template = ParseTemplate(relativePath, fileProvider, context);
-            await template.RenderAsync(writer, encoder, context);
-            childScope.ReleaseScope();
+            var isComment = context.GetValue("IsComment").ToBooleanValue();
+            if (!isComment)
+            {
+                var childScope = context.EnterChildScope();
+                var template = ParseTemplate(relativePath, fileProvider, context);
+                await template.RenderAsync(writer, encoder, context);
+                childScope.ReleaseScope();
+            }
+
+            context.SetValue("IsComment", false);
 
             return Completion.Normal;
         }
@@ -110,6 +116,11 @@ namespace Fluid.Ast
             template.Statements = statements;
 
             return template;
+        }
+
+        private class FluidViewTemplate : BaseFluidTemplate<FluidViewTemplate>
+        {
+
         }
     }
 }
