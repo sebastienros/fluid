@@ -50,13 +50,13 @@ namespace Fluid.Ast
 
             if (AssignStatements != null)
             {
-                var parametersContext = context.EnterChildScope();
+                context.EnterChildScope();
                 
                 try
                 {
                     foreach (var assignStatement in AssignStatements)
                     {
-                        await assignStatement.WriteToAsync(writer, encoder, parametersContext);
+                        await assignStatement.WriteToAsync(writer, encoder, context);
                     }
                 }
                 finally
