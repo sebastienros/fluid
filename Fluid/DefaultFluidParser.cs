@@ -159,12 +159,26 @@ namespace Fluid
                                 break;
                         }
 
+                        index = end + 1;
+
+                        // Entered a comment block?
+                        if (_isComment)
+                        {
+                            s = new CommentStatement(ConsumeTag(segment, end + 1, "endcomment", out end));
+                            index = end;
+                        }
+
+                        // Entered a comment?
+                        if (_isRaw)
+                        {
+                            s = new TextStatement(ConsumeTag(segment, end + 1, "endraw", out end));
+                            index = end;
+                        }
+
                         if (s != null)
                         {
                             _context.CurrentBlock.AddStatement(s);
                         }
-
-                        index = end + 1;
                     }
                 }
 
@@ -184,15 +198,53 @@ namespace Fluid
 
             if (textSatement != null)
             {
-                if (_isComment)
+                _context.CurrentBlock.AddStatement(textSatement);
+            }
+        }
+
+        /// <summary>
+        /// Creates a <see cref="TextStatement"/> by reading the text until the specific end tag is found,
+        /// or the end of the segment reached.
+        /// </summary>
+        private string ConsumeTag(StringSegment segment, int start, string endTag, out int end)
+        {
+            int index = start;
+
+            while (index < segment.Length - 1)
+            {
+                var pos = index;
+
+                if (segment.Value[index] == '{' && segment.Value[index + 1] == '%')
                 {
-                    _context.CurrentBlock.AddStatement(new CommentStatement(textSatement.Text));
+                    var tagStart = index;
+
+                    index = index + 2;
+
+                    while (index < segment.Length && Char.IsWhiteSpace(segment.Value[index]))
+                    {
+                        index++;
+                    }
+
+                    if (index + endTag.Length < segment.Length && segment.Substring(index, endTag.Length) == endTag)
+                    {
+                        end = pos;
+                        return segment.Substring(start, tagStart - start);
+                    }
+                    else
+                    {
+                        index++;
+                    }
                 }
                 else
                 {
-                    _context.CurrentBlock.AddStatement(textSatement);
+                    index++;
                 }
             }
+
+            // We reached the end of the segment without finding the matched tag.
+            // Ideally we could return a parsing error, right now we just return the text.
+            end = segment.Length - 1;
+            return segment.Substring(start, index - start);
         }
 
         /// <summary>
