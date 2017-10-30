@@ -118,6 +118,16 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void ShouldParseRawWithBlocks()
+        {
+            var statements = Parse(@"{% raw %} {%if true%} {%endif%} {% endraw %}");
+
+            Assert.Equal(1, statements.Count);
+            Assert.IsType<TextStatement>(statements.ElementAt(0));
+            Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as TextStatement).Text);
+        }
+
+        [Fact]
         public void ShouldParseComment()
         {
             var statements = Parse(@"{% comment %} on {{ this }} and {{{ that }}} {% endcomment %}");
@@ -125,6 +135,16 @@ namespace Fluid.Tests
             Assert.Equal(1, statements.Count);
             Assert.IsType<CommentStatement>(statements.ElementAt(0));
             Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as CommentStatement).Text);
+        }
+
+        [Fact]
+        public void ShouldParseCommentWithBlocks()
+        {
+            var statements = Parse(@"{% comment %} {%if true%} {%endif%} {% endcomment %}");
+
+            Assert.Equal(1, statements.Count);
+            Assert.IsType<CommentStatement>(statements.ElementAt(0));
+            Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as CommentStatement).Text);
         }
 
         [Fact]
