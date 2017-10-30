@@ -50,14 +50,19 @@ namespace Fluid.Ast
 
             if (AssignStatements != null)
             {
-                context.EnterChildScope();
-
-                foreach (var assignStatement in AssignStatements)
+                var parametersContext = context.EnterChildScope();
+                
+                try
                 {
-                    await assignStatement.WriteToAsync(writer, encoder, context);
+                    foreach (var assignStatement in AssignStatements)
+                    {
+                        await assignStatement.WriteToAsync(writer, encoder, parametersContext);
+                    }
                 }
-
-                context.ReleaseScope();
+                finally
+                {
+                    context.ReleaseScope();
+                }
             }
 
             using (var stream = fileInfo.CreateReadStream())
