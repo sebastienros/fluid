@@ -51,6 +51,13 @@ namespace Fluid.Ast
                 throw new FileNotFoundException(relativePath);
             }
 
+            if (With != null)
+            {
+                var identifier = (await Path.EvaluateAsync(context)).ToStringValue();
+
+                await new AssignStatement(identifier, With).WriteToAsync(writer, encoder, context);
+            }
+
             if (AssignStatements != null)
             {
                 context.EnterChildScope();
@@ -66,13 +73,6 @@ namespace Fluid.Ast
                 {
                     context.ReleaseScope();
                 }
-            }
-
-            if (With != null)
-            {
-                var identifier = (await Path.EvaluateAsync(context)).ToStringValue();
-
-                await new AssignStatement(identifier, With).WriteToAsync(writer, encoder, context);
             }
 
             using (var stream = fileInfo.CreateReadStream())
