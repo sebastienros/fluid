@@ -51,8 +51,16 @@ namespace Fluid.Ast
             if (With != null)
             {
                 var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
+                var withContext = context.EnterChildScope();
 
-                await new AssignStatement(identifier, With).WriteToAsync(writer, encoder, context);
+                try
+                {
+                    await new AssignStatement(identifier, With).WriteToAsync(writer, encoder, withContext);
+                }
+                catch
+                {
+                    context.ReleaseScope();
+                }
             }
 
             using (var stream = fileInfo.CreateReadStream())
