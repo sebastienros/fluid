@@ -51,11 +51,11 @@ namespace Fluid.Ast
             if (With != null)
             {
                 var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
-                var withContext = context.EnterChildScope();
+                context.EnterChildScope();
 
                 try
                 {
-                    await new AssignStatement(identifier, With).WriteToAsync(writer, encoder, withContext);
+                    await new AssignStatement(identifier, With).WriteToAsync(writer, encoder, context);
                 }
                 catch
                 {
