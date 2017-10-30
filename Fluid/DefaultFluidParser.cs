@@ -168,7 +168,7 @@ namespace Fluid
                             index = end;
                         }
 
-                        // Entered a comment?
+                        // Entered a raw block?
                         if (_isRaw)
                         {
                             s = new TextStatement(ConsumeTag(segment, end + 1, "endraw", out end));
