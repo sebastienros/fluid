@@ -53,7 +53,7 @@ namespace Fluid.Ast
 
             if (With != null)
             {
-                var identifier = (await Path.EvaluateAsync(context)).ToStringValue();
+                var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
 
                 await new AssignStatement(identifier, With).WriteToAsync(writer, encoder, context);
             }
