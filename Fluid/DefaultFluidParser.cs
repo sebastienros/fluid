@@ -527,13 +527,13 @@ namespace Fluid
         public static IncludeStatement BuildIncludeStatement(ParseTreeNode tag)
         {
             var pathExpression = BuildTermExpression(tag.ChildNodes[0]);
-            Expression valueExpression = null;
+            Expression withExpression = null;
             if (tag.ChildNodes.Count > 1)
             {
-                valueExpression = BuildTermExpression(tag.ChildNodes[2]);
+                withExpression = BuildTermExpression(tag.ChildNodes[2]);
             }
 
-            return new IncludeStatement(pathExpression, valueExpression);
+            return new IncludeStatement(pathExpression, withExpression);
         }
 
         public static CycleStatement BuildCycleStatement(ParseTreeNode tag)
