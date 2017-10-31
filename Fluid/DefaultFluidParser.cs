@@ -581,14 +581,22 @@ namespace Fluid
         public static IncludeStatement BuildIncludeStatement(ParseTreeNode tag)
         {
             var pathExpression = BuildTermExpression(tag.ChildNodes[0]);
+            Expression withExpression = null;
 
-            if (tag.ChildNodes.Count > 1)
+            if (tag.ChildNodes.Count == 2)
+            {
+                withExpression = BuildTermExpression(tag.ChildNodes[1]);
+                return new IncludeStatement(pathExpression, with: withExpression);
+            }
+
+            if (tag.ChildNodes.Count >= 3)
             {
                 _assignStatements = new List<AssignStatement>();
                 Traverse(tag.ChildNodes[2]);
+                return new IncludeStatement(pathExpression, assignStatements: _assignStatements);
             }
 
-            return new IncludeStatement(pathExpression, _assignStatements);
+            return new IncludeStatement(pathExpression);
         }
 
         public static CycleStatement BuildCycleStatement(ParseTreeNode tag)
@@ -978,5 +986,3 @@ namespace Fluid
         }
     }
 }
-
-

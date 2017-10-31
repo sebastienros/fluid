@@ -5,6 +5,7 @@ using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Tests.Domain;
+using Fluid.Tests.Mocks;
 using Fluid.Values;
 using Xunit;
 
@@ -378,9 +379,10 @@ namespace Fluid.Tests
             var expectedUS = "1234.567";
 
             FluidTemplate.TryParse(source, out var template, out var messages);
-            var context = new TemplateContext();
-
-            context.CultureInfo = new CultureInfo("en-US");
+            var context = new TemplateContext
+            {
+                CultureInfo = new CultureInfo("en-US")
+            };
             var resultUS = await template.RenderAsync(context);
 
             context.CultureInfo = new CultureInfo("fr-FR");
@@ -446,5 +448,41 @@ namespace Fluid.Tests
             return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
         }
 
+        [Fact]
+        public async Task IncludeParamsShouldNotBeSetInTheParentTemplate()
+        {
+            var source = @"{% include 'Partials', color: 'red', shape: 'circle' %}
+{% assign color = 'blue' %}";
+            var expected = @"Partial Content
+color: 'red'
+shape: 'circle'";
+            FluidTemplate.TryParse(source, out var template, out var messages);
+            var context = new TemplateContext
+            {
+                FileProvider = new MockFileProvider("Partials")
+            };
+            var result = await template.RenderAsync(context);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public async Task IncludeWithTagParamShouldNotBeSetInTheParentTemplate()
+        {
+            var source = @"{% include 'Partials' with 'value' %}
+{% assign Partials = 'another value' %}
+{{ Partials }}";
+            var expected = @"Partial Content
+color: ''
+shape: ''value";
+            FluidTemplate.TryParse(source, out var template, out var messages);
+            var context = new TemplateContext
+            {
+                FileProvider = new MockFileProvider("Partials")
+            };
+            var result = await template.RenderAsync(context);
+
+            Assert.Equal(expected, result);
+        }
     }
 }

@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
+using Fluid.Tests.Mocks;
 using Fluid.Values;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Fluid.Tests
@@ -35,7 +32,7 @@ namespace Fluid.Tests
                 var sw = new StringWriter();
                 var context = new TemplateContext
                 {
-                    FileProvider = new TestFileProvider("NonPartials")
+                    FileProvider = new MockFileProvider("NonPartials")
                 };
 
                 return new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
@@ -49,7 +46,7 @@ namespace Fluid.Tests
             var sw = new StringWriter();
             var context = new TemplateContext
             {
-                FileProvider = new TestFileProvider("Partials")
+                FileProvider = new MockFileProvider("Partials")
             };
             var expectedResult = @"Partial Content
 color: ''
@@ -72,75 +69,34 @@ shape: ''";
             var sw = new StringWriter();
             var context = new TemplateContext
             {
-                FileProvider = new TestFileProvider("Partials")
+                FileProvider = new MockFileProvider("Partials")
             };
             var expectedResult = @"Partial Content
 color: 'blue'
 shape: 'circle'";
 
-            await new IncludeStatement(expression, assignStatements).WriteToAsync(sw, HtmlEncoder.Default, context);
+            await new IncludeStatement(expression, assignStatements: assignStatements).WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal(expectedResult, sw.ToString());
         }
 
-        public class TestFileProvider : IFileProvider
+        [Fact]
+        public async Task IncludeSatement_WithTagParams_ShouldBeEvaluated()
         {
-            private string _partialsFolderPath;
-
-            public TestFileProvider(string path)
+            var pathExpression = new LiteralExpression(new StringValue("color"));
+            var withExpression = new LiteralExpression(new StringValue("blue"));
+            var sw = new StringWriter();
+            var context = new TemplateContext
             {
-                if (path != "Partials")
-                {
-                    throw new DirectoryNotFoundException();
-                }
+                FileProvider = new MockFileProvider("Partials")
+            };
+            var expectedResult = @"Partial Content
+color: 'blue'
+shape: ''";
 
-                _partialsFolderPath = path;
-            }
+            await new IncludeStatement(pathExpression, with: withExpression).WriteToAsync(sw, HtmlEncoder.Default, context);
 
-            public IDirectoryContents GetDirectoryContents(string subpath)
-            {
-                throw new NotImplementedException();
-            }
-
-            public IFileInfo GetFileInfo(string subpath)
-            {
-                var path = Path.Combine(_partialsFolderPath, subpath);
-                return new TestFileInfo(path);
-            }
-
-            public IChangeToken Watch(string filter)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public class TestFileInfo : IFileInfo
-        {
-            public TestFileInfo(string name)
-            {
-                Name = name;
-            }
-
-            public bool Exists => true;
-
-            public bool IsDirectory => false;
-
-            public DateTimeOffset LastModified => DateTimeOffset.MinValue;
-
-            public long Length => -1;
-
-            public string Name { get; }
-
-            public string PhysicalPath => null;
-
-            public Stream CreateReadStream()
-            {
-                var content = @"{{ 'Partial Content' }}
-color: '{{ color }}'
-shape: '{{ shape }}'";
-                var data = Encoding.UTF8.GetBytes(content);
-                return new MemoryStream(data);
-            }
+            Assert.Equal(expectedResult, sw.ToString());
         }
     }
 }
