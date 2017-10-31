@@ -475,7 +475,7 @@ shape: 'circle'";
 {{ Partials }}";
             var expected = @"Partial Content
 color: ''
-shape: ''another value";
+shape: ''value";
             FluidTemplate.TryParse(source, out var template, out var messages);
             var context = new TemplateContext
             {

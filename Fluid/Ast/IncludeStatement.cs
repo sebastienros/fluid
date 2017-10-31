@@ -55,40 +55,27 @@ namespace Fluid.Ast
             using (var streamReader = new StreamReader(stream))
             {
                 var childScope = context.EnterChildScope();
-
-                if (With != null)
-                {
-                    var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
-                    await new AssignStatement(identifier, With).WriteToAsync(writer, encoder, context);
-                }
-            }
-
-            if (AssignStatements != null)
-            {
-                context.EnterChildScope();
-
-                try
-                {
-                    foreach (var assignStatement in AssignStatements)
-                    {
-                        await assignStatement.WriteToAsync(writer, encoder, context);
-                    }
-                }
-                finally
-                {
-                    context.ReleaseScope();
-                }
-            }
-
-            using (var stream = fileInfo.CreateReadStream())
-            using (var streamReader = new StreamReader(stream))
-            {
-                var childScope = context.EnterChildScope();
                 string partialTemplate = await streamReader.ReadToEndAsync();
                 var parser = CreateParser(context);
                 if (parser.TryParse(partialTemplate, out var statements, out var errors))
                 {
                     var template = CreateTemplate(context, statements);
+                    if (With != null)
+                    {
+                        var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
+                        var value = (await With.EvaluateAsync(context)).ToStringValue();
+                        childScope.SetValue(identifier, value);
+                        await new AssignStatement(identifier, With).WriteToAsync(writer, encoder, context);
+                    }
+
+                    if (AssignStatements != null)
+                    {
+                        foreach (var assignStatement in AssignStatements)
+                        {
+                            await assignStatement.WriteToAsync(writer, encoder, context);
+                        }
+                    }
+
                     await template.RenderAsync(writer, encoder, context);
                 }
                 else
