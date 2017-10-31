@@ -115,7 +115,7 @@ namespace FluidMvcViewEngine
                 var statements = new List<Statement>();
 
                 // Default sliding expiration to prevent the entries for being kept indefinitely
-                viewEntry.SlidingExpiration = TimeSpan.FromHours(1);
+                viewEntry.SlidingExpiration = _options.CacheDuration;
 
                 var fileInfo = fileProvider.GetFileInfo(path);
                 viewEntry.ExpirationTokens.Add(fileProvider.Watch(path));
