@@ -46,13 +46,15 @@ namespace Fluid
     }
 
     public class DefaultFluidParser : IFluidParser
-    {        
+    {
         protected bool _isComment; // true when the current block is a comment
         protected bool _isRaw; // true when the current block is raw
         private readonly LanguageData _languageData;
         private readonly Dictionary<string, ITag> _tags;
         private readonly Dictionary<string, ITag> _blocks;
         protected ParserContext _context;
+
+        private static IList<AssignStatement> _assignStatements;
 
         public DefaultFluidParser(LanguageData languageData, Dictionary<string, ITag> tags, Dictionary<string, ITag> blocks)
         {
@@ -579,7 +581,14 @@ namespace Fluid
         public static IncludeStatement BuildIncludeStatement(ParseTreeNode tag)
         {
             var pathExpression = BuildTermExpression(tag.ChildNodes[0]);
-            return new IncludeStatement(pathExpression);
+
+            if (tag.ChildNodes.Count > 1)
+            {
+                _assignStatements = new List<AssignStatement>();
+                Traverse(tag.ChildNodes[2]);
+            }
+
+            return new IncludeStatement(pathExpression, _assignStatements);
         }
 
         public static CycleStatement BuildCycleStatement(ParseTreeNode tag)
@@ -945,7 +954,28 @@ namespace Fluid
             return new FilterArgument(identifier, term);
         }
 
+        private static AssignStatement BuildIncludeAssignStatement(ParseTreeNode tag)
+        {
+            var identifier = tag.ChildNodes[0].Token.ValueString;
+            var value = BuildTermExpression(tag.ChildNodes[1]);
+
+            return new AssignStatement(identifier, value);
+        }
+
         #endregion
+
+        private static void Traverse(ParseTreeNode tag)
+        {
+            if (tag.ChildNodes.Count == 1)
+            {
+                _assignStatements.Add(BuildIncludeAssignStatement(tag.ChildNodes[0]));
+            }
+            else
+            {
+                Traverse(tag.ChildNodes[0]);
+                _assignStatements.Add(BuildIncludeAssignStatement(tag.ChildNodes[2]));
+            }
+        }
     }
 }
 

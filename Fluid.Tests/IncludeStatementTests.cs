@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -45,16 +46,41 @@ namespace Fluid.Tests
         public async Task IncludeSatement_ShouldLoadPartial_IfThePartialsFolderExist()
         {
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
-
             var sw = new StringWriter();
             var context = new TemplateContext
             {
                 FileProvider = new TestFileProvider("Partials")
             };
+            var expectedResult = @"Partial Content
+color: ''
+shape: ''";
 
             await new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
 
-            Assert.Equal("Partial Content", sw.ToString());
+            Assert.Equal(expectedResult, sw.ToString());
+        }
+
+        [Fact]
+        public async Task IncludeSatement_WithInlinevariableAssignment_ShouldBeEvaluated()
+        {
+            var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
+            var assignStatements = new List<AssignStatement>
+            {
+                new AssignStatement("color", new LiteralExpression(new StringValue("blue"))),
+                new AssignStatement("shape", new LiteralExpression(new StringValue("circle")))
+            };
+            var sw = new StringWriter();
+            var context = new TemplateContext
+            {
+                FileProvider = new TestFileProvider("Partials")
+            };
+            var expectedResult = @"Partial Content
+color: 'blue'
+shape: 'circle'";
+
+            await new IncludeStatement(expression, assignStatements).WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal(expectedResult, sw.ToString());
         }
 
         public class TestFileProvider : IFileProvider
@@ -109,7 +135,10 @@ namespace Fluid.Tests
 
             public Stream CreateReadStream()
             {
-                var data = Encoding.UTF8.GetBytes("{{ 'Partial Content' }}");
+                var content = @"{{ 'Partial Content' }}
+color: '{{ color }}'
+shape: '{{ shape }}'";
+                var data = Encoding.UTF8.GetBytes(content);
                 return new MemoryStream(data);
             }
         }

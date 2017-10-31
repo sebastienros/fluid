@@ -51,6 +51,8 @@ namespace Fluid
         public NonTerminal Decrement = new NonTerminal("decrement");
         
         public NonTerminal Include = new NonTerminal("include");
+        public NonTerminal IncludeAssignments = new NonTerminal("includeAssignments");
+        public NonTerminal IncludeAssignment = new NonTerminal("includeAssignment");
 
         public FluidGrammar() : base(caseSensitive: true)
         {
@@ -164,7 +166,9 @@ namespace Fluid
 
             Capture.Rule = ToTerm("capture") + Identifier;
 
-            Include.Rule = ToTerm("include") + Term;
+            Include.Rule = (ToTerm("include") + Term) | (ToTerm("include") + Term + Comma + IncludeAssignments);
+            IncludeAssignments.Rule = (IncludeAssignments + Comma + IncludeAssignment) | IncludeAssignment;
+            IncludeAssignment.Rule = Identifier + Colon + Term;
 
             MarkPunctuation(
                 "[", "]", ":", "|", "=",
