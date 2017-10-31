@@ -89,6 +89,7 @@ namespace Fluid.Ast
             return _memoryCache.GetOrCreate(path, entry =>
             {
                 var fileInfo = fileProvider.GetFileInfo(path);
+                var statements = new List<Statement>();
                 entry.SlidingExpiration = TimeSpan.FromHours(1);
                 entry.ExpirationTokens.Add(fileProvider.Watch(path));
 
@@ -96,10 +97,11 @@ namespace Fluid.Ast
                 {
                     using (var sr = new StreamReader(stream))
                     {
-                        var parser = CreateParser(context);
-                        if (parser.TryParse(sr.ReadToEnd(), out var statements, out var errors))
+                        if (FluidTemplate.TryParse(sr.ReadToEnd(), out var template, out var errors))
                         {
-                            return CreateTemplate(context, statements);
+                            statements.AddRange(template.Statements);
+                            template.Statements = statements;
+                            return template;
                         }
                         else
                         {
@@ -108,33 +110,6 @@ namespace Fluid.Ast
                     }
                 }
             });
-        }
-
-        private static IFluidParser CreateParser(TemplateContext context)
-        {
-            if (context.AmbientValues.TryGetValue(FluidParserFactoryKey, out var factory))
-            {
-                return ((IFluidParserFactory)factory).CreateParser();
-            }
-            else
-            {
-                return FluidTemplate.Factory.CreateParser();
-            }
-        }
-
-        private static IFluidTemplate CreateTemplate(TemplateContext context, IList<Statement> statements)
-        {
-            IFluidTemplate template;
-            if (context.AmbientValues.TryGetValue(FluidTemplateFactoryKey, out var factory))
-            {
-                template = ((Func<IFluidTemplate>)factory)();
-            }
-            else
-            {
-                template = new FluidTemplate();
-            }
-            template.Statements = statements;
-            return template;
         }
     }
 }
