@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Tests.Domain;
 using Fluid.Values;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Fluid.Tests
@@ -446,5 +449,102 @@ namespace Fluid.Tests
             return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
         }
 
+        [Fact]
+        public async Task IncludeParamsShouldNotBeSetInTheParentTemplate()
+        {
+            var source = @"{% include 'Partials', color: 'red', shape: 'circle' %}
+{% assign color = 'blue' %}";
+            var expected = @"Partial Content
+color: 'red'
+shape: 'circle'";
+            FluidTemplate.TryParse(source, out var template, out var messages);
+            var context = new TemplateContext
+            {
+                FileProvider = new TestFileProvider("Partials")
+            };
+            var result = await template.RenderAsync(context);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public async Task IncludeWithTagParamShouldNotBeSetInTheParentTemplate()
+        {
+            var source = @"{% include 'Partials' with 'value' %}
+{% assign Partials = 'another value' %}
+{{ Partials }}";
+            var expected = @"Partial Content
+color: ''
+shape: ''value";
+            FluidTemplate.TryParse(source, out var template, out var messages);
+            var context = new TemplateContext
+            {
+                FileProvider = new TestFileProvider("Partials")
+            };
+            var result = await template.RenderAsync(context);
+
+            Assert.Equal(expected, result);
+        }
+
+        public class TestFileProvider : IFileProvider
+        {
+            private string _partialsFolderPath;
+
+            public TestFileProvider(string path)
+            {
+                if (path != "Partials")
+                {
+                    throw new DirectoryNotFoundException();
+                }
+
+                _partialsFolderPath = path;
+            }
+
+            public IDirectoryContents GetDirectoryContents(string subpath)
+            {
+                throw new NotImplementedException();
+            }
+
+            public IFileInfo GetFileInfo(string subpath)
+            {
+                var path = Path.Combine(_partialsFolderPath, subpath);
+                return new TestFileInfo(path);
+            }
+
+            public IChangeToken Watch(string filter)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public class TestFileInfo : IFileInfo
+        {
+            public TestFileInfo(string name)
+            {
+                Name = name;
+            }
+
+            public bool Exists => true;
+
+            public bool IsDirectory => false;
+
+            public DateTimeOffset LastModified => DateTimeOffset.MinValue;
+
+            public long Length => -1;
+
+            public string Name { get; }
+
+            public string PhysicalPath => null;
+
+            public Stream CreateReadStream()
+            {
+                var content = @"{{ 'Partial Content' }}
+color: '{{ color }}'
+shape: '{{ shape }}'";
+                var data = Encoding.UTF8.GetBytes(content);
+
+                return new MemoryStream(data);
+            }
+        }
     }
 }
