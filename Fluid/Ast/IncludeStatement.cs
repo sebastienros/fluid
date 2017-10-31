@@ -63,9 +63,8 @@ namespace Fluid.Ast
                     if (With != null)
                     {
                         var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
-                        var value = (await With.EvaluateAsync(context)).ToStringValue();
-                        childScope.SetValue(identifier, value);
-                        await new AssignStatement(identifier, With).WriteToAsync(writer, encoder, context);
+                        var with = await With.EvaluateAsync(context);
+                        childScope.SetValue(identifier, with);
                     }
 
                     if (AssignStatements != null)
