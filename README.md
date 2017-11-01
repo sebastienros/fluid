@@ -183,6 +183,11 @@ This example demonstrates how to intercept calls to a `JObject` and return the c
 TemplateContext.GlobalMemberAccessStrategy.Register<JObject>((obj, name) => return obj[name]);
 ``` 
 
+### Inheritance
+
+All the members of the class hierarchy are registered. Besides, all inherited classes will be correctly evaluated when a base class is registered and
+a member of the base class is accessed.
+
 <br>
 
 ## Converting CLR types

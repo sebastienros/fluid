@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace Fluid
 {
@@ -17,21 +18,37 @@ namespace Fluid
             _parent = parent;
         }
 
-        public object Get(object obj, string name)
+        public IMemberAccessor GetAccessor(object obj, string name)
         {
-            // Look for specific property map
-            if (_map.TryGetValue(Key(obj.GetType(), name), out var getter))
+            var type = obj.GetType();
+
+            while (type != null)
             {
-                return getter.Get(obj, name);
+                // Look for specific property map
+                if (_map.TryGetValue(Key(type, name), out var accessor))
+                {
+                    return accessor;
+                }
+
+                // Look for a catch-all getter
+                if (_map.TryGetValue(Key(type, "*"), out accessor))
+                {
+                    return accessor;
+                }
+
+                type = type.GetTypeInfo().BaseType;
             }
 
-            // Look for a catch-all getter
-            if (_map.TryGetValue(Key(obj.GetType(), "*"), out getter))
-            {
-                return getter.Get(obj, name);
+            var parentAccessor = _parent?.GetAccessor(obj, name);
+
+            if (parentAccessor == null)
+            {   
+                // Register a null accessor to prevent any further lookups
+                _map.Add(Key(obj.GetType(), name), NullMemberAccessor.Instance);
+                return NullMemberAccessor.Instance;
             }
 
-            return _parent?.Get(obj, name);
+            return parentAccessor;
         }
 
         public void Register(Type type, string name, IMemberAccessor getter)

@@ -185,6 +185,48 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task ShouldEvaluateInheritedObjectProperty()
+        {
+            FluidTemplate.TryParse("{{ e.Name }} {{ e.Salary }}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("e", new Employee { Name = "John", Salary = 550 });
+            context.MemberAccessStrategy.Register<Employee>();
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("John 550", result);
+        }
+
+        [Fact]
+        public async Task ShouldNotAllowNotRegisteredMember()
+        {
+            FluidTemplate.TryParse("{{ c.Director.Name }} {{ c.Director.Salary }}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("c", new Company { Director = new Employee { Name = "John", Salary = 550 } });
+            context.MemberAccessStrategy.Register<Company>();
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(" ", result);
+        }
+
+        [Fact]
+        public async Task ShouldOnlyAllowInheritedMember()
+        {
+            // The Employee class is not registered, hence any access to its properties should return nothing
+            // but the Person class is registered, so Name should be available
+            FluidTemplate.TryParse("{{ c.Director.Name }} {{ c.Director.Salary }}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("c", new Company { Director = new Employee { Name = "John", Salary = 550 } });
+            context.MemberAccessStrategy.Register<Company>();
+            context.MemberAccessStrategy.Register<Person>();
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("John ", result);
+        }
+
+        [Fact]
         public async Task ShouldEvaluateStringIndex()
         {
             FluidTemplate.TryParse("{{ x[1] }}", out var template, out var messages);

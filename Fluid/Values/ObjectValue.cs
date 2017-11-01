@@ -37,7 +37,7 @@ namespace Fluid.Values
 
         public override FluidValue GetValue(string name, TemplateContext context)
         {
-            var value = context.MemberAccessStrategy.Get(_value, name);
+            var value = context.MemberAccessStrategy.GetAccessor(_value, name)?.Get(_value, name);
             return FluidValue.Create(value);
         }
 

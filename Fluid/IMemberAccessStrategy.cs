@@ -8,7 +8,7 @@ namespace Fluid
 {
     public interface IMemberAccessStrategy
     {
-        object Get(object obj, string name);
+        IMemberAccessor GetAccessor(object obj, string name);
 
         void Register(Type type, string name, IMemberAccessor getter);
     }

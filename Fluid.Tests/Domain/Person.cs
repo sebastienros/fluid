@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Fluid.Tests.Domain
+﻿namespace Fluid.Tests.Domain
 {
     public class Person
     {

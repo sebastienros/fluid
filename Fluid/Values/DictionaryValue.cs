@@ -56,7 +56,7 @@ namespace Fluid.Values
                 return new NumberValue(_value.Count);
             }
 
-            var value = context.MemberAccessStrategy.Get(_value, name);
+            var value = context.MemberAccessStrategy.GetAccessor(_value, name)?.Get(_value, name);
 
             if (value == null)
             {
