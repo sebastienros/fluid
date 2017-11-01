@@ -40,17 +40,9 @@ namespace Fluid
 
                     type = type.GetTypeInfo().BaseType;
                 }
-
-                // Register a null accessor to prevent any further lookups
-                _map.TryAdd(Key(obj.GetType(), name), NullMemberAccessor.Instance);
             }
 
-            if (_parent == null)
-            {
-                return NullMemberAccessor.Instance;
-            }
-
-            return _parent.GetAccessor(obj, name);
+            return _parent?.GetAccessor(obj, name);
         }
 
         public void Register(Type type, string name, IMemberAccessor getter)
