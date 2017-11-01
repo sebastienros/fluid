@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace Fluid
 {
     public class MemberAccessStrategy : IMemberAccessStrategy
     {
-        private Dictionary<string, IMemberAccessor> _map = new Dictionary<string, IMemberAccessor>();
+        private ConcurrentDictionary<string, IMemberAccessor> _map = new ConcurrentDictionary<string, IMemberAccessor>();
         private readonly IMemberAccessStrategy _parent;
 
         public MemberAccessStrategy()
@@ -22,33 +22,35 @@ namespace Fluid
         {
             var type = obj.GetType();
 
-            while (type != null)
+            if (_map.Count > 0)
             {
-                // Look for specific property map
-                if (_map.TryGetValue(Key(type, name), out var accessor))
+                while (type != null)
                 {
-                    return accessor;
+                    // Look for specific property map
+                    if (_map.TryGetValue(Key(type, name), out var accessor))
+                    {
+                        return accessor;
+                    }
+
+                    // Look for a catch-all getter
+                    if (_map.TryGetValue(Key(type, "*"), out accessor))
+                    {
+                        return accessor;
+                    }
+
+                    type = type.GetTypeInfo().BaseType;
                 }
 
-                // Look for a catch-all getter
-                if (_map.TryGetValue(Key(type, "*"), out accessor))
-                {
-                    return accessor;
-                }
-
-                type = type.GetTypeInfo().BaseType;
+                // Register a null accessor to prevent any further lookups
+                _map.TryAdd(Key(obj.GetType(), name), NullMemberAccessor.Instance);
             }
 
-            var parentAccessor = _parent?.GetAccessor(obj, name);
-
-            if (parentAccessor == null)
-            {   
-                // Register a null accessor to prevent any further lookups
-                _map.Add(Key(obj.GetType(), name), NullMemberAccessor.Instance);
+            if (_parent == null)
+            {
                 return NullMemberAccessor.Instance;
             }
 
-            return parentAccessor;
+            return _parent.GetAccessor(obj, name);
         }
 
         public void Register(Type type, string name, IMemberAccessor getter)
