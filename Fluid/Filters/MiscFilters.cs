@@ -22,8 +22,8 @@ namespace Fluid.Filters
             filters.AddFilter("url_encode", UrlEncode);
             filters.AddFilter("url_decode", UrlDecode);
             filters.AddFilter("strip_html", StripHtml);
-            filters.AddFilter("escape", StripHtml);
-            filters.AddFilter("escape_once", StripHtml);
+            filters.AddFilter("escape", Escape);
+            filters.AddFilter("escape_once", EscapeOnce);
 
             return filters;
         }
