@@ -3,12 +3,20 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using Fluid.Values;
 
 namespace Fluid.Filters
 {
     public static class MiscFilters
     {
+
+        private static readonly Regex HtmlCaseRegex =
+            new Regex(
+                "(?<!^)((?<=[a-zA-Z0-9])[A-Z][a-z])|((?<=[a-z])[A-Z])",
+                RegexOptions.None,
+                TimeSpan.FromMilliseconds(500));
+
         private const string Now = "now";
         private const string Today = "today";
 
@@ -24,8 +32,18 @@ namespace Fluid.Filters
             filters.AddFilter("strip_html", StripHtml);
             filters.AddFilter("escape", Escape);
             filters.AddFilter("escape_once", EscapeOnce);
+            filters.AddFilter("handle", Handleize);
+            filters.AddFilter("handleize", Handleize);
 
             return filters;
+        }
+
+        /// <summary>
+        /// Converts from pascal/camel case to lower kebab-case.
+        /// </summary>
+        public static FluidValue Handleize(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            return new StringValue(HtmlCaseRegex.Replace(input.ToStringValue(), "-$1$2").ToLowerInvariant());
         }
 
         public static FluidValue Default(FluidValue input, FilterArguments arguments, TemplateContext context)

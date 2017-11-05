@@ -268,5 +268,25 @@ namespace Fluid.Tests
             Assert.Equal("dimanche 8 janvier 2017 00:00:00", resultFR.ToStringValue());
             Assert.Equal("Tuesday, August 1, 2017 12:00:00 AM", resultUS.ToStringValue());
         }
+
+        [Theory]
+        [InlineData("SomeThing", "some-thing")]
+        [InlineData("capsONInside", "caps-on-inside")]
+        [InlineData("CAPSOnOUTSIDE", "caps-on-outside")]
+        [InlineData("ALLCAPS", "allcaps")]
+        [InlineData("One1Two2Three3", "one1-two2-three3")]
+        [InlineData("ONE1TWO2THREE3", "one1two2three3")]
+        [InlineData("First_Second_ThirdHi", "first_second_third-hi")]
+        public void Handleize(string text, string expected)
+        {
+            var input = new StringValue(text);
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = MiscFilters.Handleize(input, arguments, context);
+
+            Assert.Equal(expected, result.ToStringValue());
+        }
     }
 }
