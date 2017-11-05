@@ -1,7 +1,4 @@
-﻿using System;
-using Fluid.Values;
-
-namespace Fluid.Ast
+﻿namespace Fluid.Ast
 {
     public abstract class BinaryExpression : Expression
     {
@@ -12,6 +9,7 @@ namespace Fluid.Ast
         }
 
         public Expression Left { get; }
+
         public Expression Right { get; }
     }
 }

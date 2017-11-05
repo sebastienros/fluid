@@ -16,8 +16,7 @@ namespace Fluid.Ast.BinaryExpressions
 
             return leftValue.Contains(rightValue)
                     ? BooleanValue.True
-                    : BooleanValue.False
-                    ;
+                    : BooleanValue.False;
         }
     }
 }

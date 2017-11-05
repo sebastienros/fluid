@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
@@ -20,7 +19,9 @@ namespace Fluid.Ast
         }
 
         public Expression Expression { get; }
+
         public ElseStatement Else { get; }
+
         public IList<WhenStatement> Whens { get; } = new List<WhenStatement>();
 
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)

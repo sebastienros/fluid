@@ -15,8 +15,11 @@ namespace Fluid.Values
         public abstract bool Equals(FluidValue other);
 
         public abstract bool ToBooleanValue();
+
         public abstract double ToNumberValue();
+
         public abstract string ToStringValue();
+
         public abstract object ToObjectValue();
 
         public virtual FluidValue GetValue(string name, TemplateContext context)

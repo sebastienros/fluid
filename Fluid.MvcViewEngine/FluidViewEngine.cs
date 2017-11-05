@@ -128,8 +128,7 @@ namespace FluidMvcViewEngine
                 throw new ArgumentNullException(nameof(key));
             }
 
-            object routeValue;
-            if (!context.RouteData.Values.TryGetValue(key, out routeValue))
+            if (!context.RouteData.Values.TryGetValue(key, out object routeValue))
             {
                 return null;
             }
@@ -137,8 +136,7 @@ namespace FluidMvcViewEngine
             var actionDescriptor = context.ActionDescriptor;
             string normalizedValue = null;
 
-            string value;
-            if (actionDescriptor.RouteValues.TryGetValue(key, out value) &&
+            if (actionDescriptor.RouteValues.TryGetValue(key, out string value) &&
                 !string.IsNullOrEmpty(value))
             {
                 normalizedValue = value;

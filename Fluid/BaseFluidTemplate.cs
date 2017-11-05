@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
@@ -12,7 +13,7 @@ namespace Fluid
         {
             // Necessary to force the custom template class static constructor
             // as the only member accessed is defined on this class
-            System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
+            RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
         }
 
         public static FluidParserFactory Factory { get; } = new FluidParserFactory();
@@ -23,8 +24,10 @@ namespace Fluid
         {
             if (Factory.CreateParser().TryParse(template, out var statements, out errors))
             {
-                result = new T();
-                result.Statements = statements;
+                result = new T
+                {
+                    Statements = statements
+                };
                 return true;
             }
             else

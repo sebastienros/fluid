@@ -9,6 +9,7 @@
         }
 
         public Expression From { get; }
+
         public Expression To { get; }
     }
 }
