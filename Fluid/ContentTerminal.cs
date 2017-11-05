@@ -87,7 +87,6 @@ namespace Fluid
 
             return source.CreateToken(this.OutputTerminal);
         }
-
         #endregion
     }
 }

@@ -39,8 +39,10 @@ namespace Fluid
 
                 // Configure the grammar to add support for the custom syntax
 
-                var terminal = new NonTerminal(name);
-                terminal.Rule = _grammar.ToTerm(name) + tag.GetSyntax(_grammar);
+                var terminal = new NonTerminal(name)
+                {
+                    Rule = _grammar.ToTerm(name) + tag.GetSyntax(_grammar)
+                };
 
                 _grammar.KnownTags.Rule |= terminal;
 
@@ -60,8 +62,10 @@ namespace Fluid
 
                 // Configure the grammar to add support for the custom syntax
 
-                var terminal = new NonTerminal(name);
-                terminal.Rule = _grammar.ToTerm(name) + tag.GetSyntax(_grammar);
+                var terminal = new NonTerminal(name)
+                {
+                    Rule = _grammar.ToTerm(name) + tag.GetSyntax(_grammar)
+                };
                 var endName = "end" + name;
 
                 _grammar.KnownTags.Rule |= terminal;

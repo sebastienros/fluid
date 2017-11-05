@@ -9,6 +9,7 @@
         }
 
         public string Name { get; }
+
         public Expression Expression { get; }
     }
 }

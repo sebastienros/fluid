@@ -12,10 +12,12 @@ namespace Fluid
         protected Scope _scope;
         // Scopes
         public static Scope GlobalScope = new Scope();
+
         public Scope LocalScope { get; private set; }
         
         // Filters
         public FilterCollection Filters { get; } = new FilterCollection();
+
         public static FilterCollection GlobalFilters { get; } = new FilterCollection();
 
         /// <summary>

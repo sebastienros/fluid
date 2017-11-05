@@ -13,6 +13,7 @@ namespace Fluid.Ast
         }
 
         public string Identifier { get; }
+
         public Expression Value { get; }
 
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)

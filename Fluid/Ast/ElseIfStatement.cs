@@ -31,6 +31,5 @@ namespace Fluid.Ast
 
             return Completion.Normal;
         }
-
     }
 }

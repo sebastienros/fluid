@@ -23,6 +23,7 @@ namespace Fluid
         }
 
         public ParseTreeNode Tag { get; }
+
         public IList<Statement> Statements { get; private set; }
 
         public void EnterBlock(string name, TagStatement statement)
