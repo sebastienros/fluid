@@ -171,10 +171,10 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        //[InlineData(" {{- 1 }} ", "1 ")]
+        [InlineData(" {{- 1 }} ", "1 ")]
         [InlineData(" {{ 1 -}} ", " 1")]
-        //[InlineData(" {{ 1 -}} \n", " 1")]
-        //[InlineData(" {{ 1 -}} \n ", " 1 ")]
+        [InlineData(" {{ 1 -}} \n", " 1")]
+        [InlineData(" {{ 1 -}} \n ", " 1 ")]
         public async Task DashShouldTrimOutputTag(string source, string expected)
         {
             var success = FluidTemplate.TryParse(source, out var template, out var messages);

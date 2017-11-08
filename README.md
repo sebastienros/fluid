@@ -92,6 +92,43 @@ Notice
 - The `<li>` tags are at the same index as in the template, even though the `{% for }` tag had some leading spaces
 - The `<ul>` and `<li>` tags are on contiguous lines even though the `{% for }` is taking a full line.
 
+### Indenting blocks
+
+Fluid provides a custom `{% indent %}` tag to indent a block of text. This can be useful when including external files 
+with the `{% include %}` tag and keep the result of the included template indented.
+
+The tag accepts two optional parameters
+- __count:__ the number of time the space is repeated, default is `2`
+- __space:__ the string that is repeated on each string, default is a single space (`' '`)
+
+_If no parameters are specified, two spaces are added._
+
+#### Source
+
+```Liquid
+<ul id="products">
+  {% indent 4 %}
+	{% include 'products.liquid' %}
+  {% endindent %}
+</ul>
+```
+
+#### products.liquid
+```html
+<li>Apple</li>
+<li>Orange</li>
+<li>Banana</li>
+```
+
+#### Result
+
+```html
+<ul id="products">
+    <li>Apple</li>
+    <li>Orange</li>
+    <li>Banana</li>
+</ul>
+```
 <br>
 
 ## Using Fluid in your project

@@ -470,6 +470,15 @@ namespace Fluid
                     _context.ExitBlock();
                     return captureStatement;
 
+                case "indent":
+                    _context.EnterBlock(tag);
+                    break;
+
+                case "endindent":
+                    var indentStatement = BuildIndentStatement(_context.CurrentBlock);
+                    _context.ExitBlock();
+                    return indentStatement;
+
                 case "include":
                     return BuildIncludeStatement(tag);
 
@@ -520,6 +529,32 @@ namespace Fluid
             var captureStatement = new CaptureStatement(identifier, context.Statements);
 
             return captureStatement;
+        }
+
+        public static IndentStatement BuildIndentStatement(BlockContext context)
+        {
+            if (context.Tag.Term.Name != "indent")
+            {
+                throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'indent' tag.");
+            }
+
+            int count = 2;
+
+            if (context.Tag.ChildNodes.Count > 0)
+            {
+                int.TryParse(context.Tag.ChildNodes[0].Token.ValueString, out count);
+            }
+
+            var separator = " ";
+
+            if (context.Tag.ChildNodes.Count > 1)
+            {
+                separator = context.Tag.ChildNodes[1].ChildNodes[0].Token.ValueString;
+            }
+
+            var indentStatement = new IndentStatement(count, separator, context.Statements);
+
+            return indentStatement;
         }
 
         public static AssignStatement BuildAssignStatement(ParseTreeNode tag)

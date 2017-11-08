@@ -493,15 +493,17 @@ namespace Fluid.Tests
         [Fact]
         public async Task IncludeParamsShouldNotBeSetInTheParentTemplate()
         {
-            var source = @"{% include 'Partials', color: 'red', shape: 'circle' %}
-{% assign color = 'blue' %}";
-            var expected = @"Partial Content
-color: 'red'
-shape: 'circle'";
+            var source = @"{% include 'Partials', color: 'red', shape: 'circle' %}{% assign color = 'blue' %}";
+
+            var fileProvider = new MockFileProvider()
+                .AddTextFile("Partials.liquid", @"color: '{{ color }}' shape: '{{ shape }}'");
+
+            var expected = @"color: 'red' shape: 'circle'";
+
             FluidTemplate.TryParse(source, out var template, out var messages);
             var context = new TemplateContext
             {
-                FileProvider = new MockFileProvider("Partials")
+                FileProvider = fileProvider
             };
             var result = await template.RenderAsync(context);
 
@@ -511,16 +513,16 @@ shape: 'circle'";
         [Fact]
         public async Task IncludeWithTagParamShouldNotBeSetInTheParentTemplate()
         {
-            var source = @"{% include 'Partials' with 'value' %}
-{% assign Partials = 'another value' %}
-{{ Partials }}";
-            var expected = @"Partial Content
-color: ''
-shape: ''value";
+            var source = @"{% assign color = 'red' %} {% include 'custom.liquid' with 'custom value' %} {{ custom }}";
+            var expected = @"color: 'red' custom value ";
+
+            var fileProvider = new MockFileProvider()
+                .AddTextFile("custom.liquid", @"color: '{{ color }}' {{ custom }} ");
+
             FluidTemplate.TryParse(source, out var template, out var messages);
             var context = new TemplateContext
             {
-                FileProvider = new MockFileProvider("Partials")
+                FileProvider = fileProvider
             };
             var result = await template.RenderAsync(context);
 

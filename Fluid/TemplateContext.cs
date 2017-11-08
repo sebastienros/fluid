@@ -98,12 +98,12 @@ namespace Fluid
 
         public FluidValue GetValue(string name)
         {
-            return _scope.GetValue(name);
+            return LocalScope.GetValue(name);
         }
 
         public void SetValue(string name, FluidValue value)
         {
-            _scope.SetValue(name, value);
+            LocalScope.SetValue(name, value);
         }
 
         public void SetValue(string name, int value)

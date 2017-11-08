@@ -11,6 +11,15 @@ namespace Fluid.Tests
 {
     public class IncludeStatementTests
     {
+        MockFileProvider _fileProvider;
+
+        public IncludeStatementTests()
+        {
+            _fileProvider = new MockFileProvider()
+                .AddTextFile("_Partial.liquid", @"color: '{{ color }}' shape: '{{ shape }}'")
+                .AddTextFile("color.liquid", @"color: '{{ color }}' shape: '{{ shape }}'");
+        }
+
         [Fact]
         public async Task IncludeSatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()
         {
@@ -23,34 +32,15 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task IncludeSatement_ShouldThrowDirectoryNotFoundException_IfThePartialsFolderNotExist()
-        {
-            var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
-
-            await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
-            {
-                var sw = new StringWriter();
-                var context = new TemplateContext
-                {
-                    FileProvider = new MockFileProvider("NonPartials")
-                };
-
-                return new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
-            });
-        }
-
-        [Fact]
         public async Task IncludeSatement_ShouldLoadPartial_IfThePartialsFolderExist()
         {
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var sw = new StringWriter();
             var context = new TemplateContext
             {
-                FileProvider = new MockFileProvider("Partials")
+                FileProvider = _fileProvider
             };
-            var expectedResult = @"Partial Content
-color: ''
-shape: ''";
+            var expectedResult = @"color: '' shape: ''";
 
             await new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
 
@@ -69,11 +59,9 @@ shape: ''";
             var sw = new StringWriter();
             var context = new TemplateContext
             {
-                FileProvider = new MockFileProvider("Partials")
+                FileProvider = _fileProvider
             };
-            var expectedResult = @"Partial Content
-color: 'blue'
-shape: 'circle'";
+            var expectedResult = @"color: 'blue' shape: 'circle'";
 
             await new IncludeStatement(expression, assignStatements: assignStatements).WriteToAsync(sw, HtmlEncoder.Default, context);
 
@@ -88,11 +76,9 @@ shape: 'circle'";
             var sw = new StringWriter();
             var context = new TemplateContext
             {
-                FileProvider = new MockFileProvider("Partials")
+                FileProvider = _fileProvider
             };
-            var expectedResult = @"Partial Content
-color: 'blue'
-shape: ''";
+            var expectedResult = @"color: 'blue' shape: ''";
 
             await new IncludeStatement(pathExpression, with: withExpression).WriteToAsync(sw, HtmlEncoder.Default, context);
 

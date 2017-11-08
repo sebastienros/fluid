@@ -47,6 +47,7 @@ namespace Fluid
         public NonTerminal Cycle = new NonTerminal("cycle");
         public NonTerminal Assign = new NonTerminal("assign");
         public NonTerminal Capture = new NonTerminal("capture");
+        public new NonTerminal Indent = new NonTerminal("indent");
         public NonTerminal Increment = new NonTerminal("increment");
         public NonTerminal Decrement = new NonTerminal("decrement");
         
@@ -119,6 +120,7 @@ namespace Fluid
             var EndCase = ToTerm("endcase");
             var EndFor = ToTerm("endfor");
             var EndCapture = ToTerm("endcapture");
+            var EndIndent = ToTerm("endindent");
             var Continue = ToTerm("continue");
             var Break = ToTerm("break");
             var Comment = ToTerm("comment");
@@ -135,7 +137,9 @@ namespace Fluid
                 Continue | Break |
                 Comment | EndComment |
                 Raw | EndRaw |
-                Cycle | Assign | Capture | EndCapture |
+                Cycle | Assign | 
+                Capture | EndCapture |
+                Indent | EndIndent |
                 Increment | Decrement |
                 Include;
 
@@ -166,13 +170,15 @@ namespace Fluid
 
             Capture.Rule = ToTerm("capture") + Identifier;
 
+            Indent.Rule = ToTerm("indent") | ToTerm("indent") + Number | ToTerm("indent") + Number + (StringLiteralSingle | StringLiteralDouble);
+
             Include.Rule = (ToTerm("include") + Term) | (ToTerm("include") + Term + ToTerm("with") + Term) | (ToTerm("include") + Term + Comma + IncludeAssignments);
             IncludeAssignments.Rule = (IncludeAssignments + Comma + IncludeAssignment) | IncludeAssignment;
             IncludeAssignment.Rule = Identifier + Colon + Term;
 
             MarkPunctuation(
                 "[", "]", ":", "|", "=",
-                "if", "elsif", "unless", "assign", "capture",
+                "if", "elsif", "unless", "assign", "capture", "indent",
                 "increment", "decrement",
                 "case",
                 "for", "in", "(", ")", "..",
