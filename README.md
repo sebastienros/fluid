@@ -180,7 +180,7 @@ This will provide a method to intercept when a member is accessed and either ret
 This example demonstrates how to intercept calls to a `JObject` and return the corresponding property.
 
 ```csharp
-TemplateContext.GlobalMemberAccessStrategy.Register<JObject>((obj, name) => return obj[name]);
+TemplateContext.GlobalMemberAccessStrategy.Register<JObject>((obj, name) => obj[name]);
 ``` 
 
 ### Inheritance
