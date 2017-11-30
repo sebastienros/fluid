@@ -54,7 +54,8 @@ namespace Fluid.Ast
             using (var stream = fileInfo.CreateReadStream())
             using (var streamReader = new StreamReader(stream))
             {
-                var childScope = context.EnterChildScope();
+                context.EnterChildScope();
+
                 string partialTemplate = await streamReader.ReadToEndAsync();
                 var parser = CreateParser(context);
                 if (parser.TryParse(partialTemplate, out var statements, out var errors))
@@ -64,7 +65,7 @@ namespace Fluid.Ast
                     {
                         var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
                         var with = await With.EvaluateAsync(context);
-                        childScope.SetValue(identifier, with);
+                        context.SetValue(identifier, with);
                     }
 
                     if (AssignStatements != null)
@@ -82,7 +83,7 @@ namespace Fluid.Ast
                     throw new Exception(String.Join(Environment.NewLine, errors));
                 }
 
-                childScope.ReleaseScope();
+                context.ReleaseScope();
             }
 
             return Completion.Normal;

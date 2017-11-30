@@ -9,7 +9,6 @@ namespace Fluid
 {
     public class TemplateContext
     {
-        protected Scope _scope;
         // Scopes
         public static Scope GlobalScope = new Scope();
 
@@ -77,13 +76,12 @@ namespace Fluid
 
         public TemplateContext()
         {
-            _scope = new Scope(GlobalScope);
-            LocalScope = _scope;
+            LocalScope = new Scope(GlobalScope);
         }
 
-        public Scope EnterChildScope()
+        public void EnterChildScope()
         {
-            return LocalScope = LocalScope.EnterChildScope();
+            LocalScope = LocalScope.EnterChildScope();
         }
 
         public void ReleaseScope()
@@ -98,12 +96,12 @@ namespace Fluid
 
         public FluidValue GetValue(string name)
         {
-            return _scope.GetValue(name);
+            return LocalScope.GetValue(name);
         }
 
         public void SetValue(string name, FluidValue value)
         {
-            _scope.SetValue(name, value);
+            LocalScope.SetValue(name, value);
         }
 
         public void SetValue(string name, int value)
