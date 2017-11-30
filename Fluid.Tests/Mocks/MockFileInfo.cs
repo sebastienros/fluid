@@ -27,6 +27,7 @@ namespace Fluid.Tests.Mocks
         public Stream CreateReadStream()
         {
             var content = @"{{ 'Partial Content' }}
+Partials: '{{ Partials }}'
 color: '{{ color }}'
 shape: '{{ shape }}'";
             var data = Encoding.UTF8.GetBytes(content);
