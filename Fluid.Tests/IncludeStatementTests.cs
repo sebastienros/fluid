@@ -49,6 +49,7 @@ namespace Fluid.Tests
                 FileProvider = new MockFileProvider("Partials")
             };
             var expectedResult = @"Partial Content
+Partials: ''
 color: ''
 shape: ''";
 
@@ -72,6 +73,7 @@ shape: ''";
                 FileProvider = new MockFileProvider("Partials")
             };
             var expectedResult = @"Partial Content
+Partials: ''
 color: 'blue'
 shape: 'circle'";
 
@@ -91,6 +93,7 @@ shape: 'circle'";
                 FileProvider = new MockFileProvider("Partials")
             };
             var expectedResult = @"Partial Content
+Partials: ''
 color: 'blue'
 shape: ''";
 

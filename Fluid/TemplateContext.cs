@@ -9,7 +9,6 @@ namespace Fluid
 {
     public class TemplateContext
     {
-        protected Scope _scope;
         // Scopes
         public static Scope GlobalScope = new Scope();
 
@@ -77,15 +76,21 @@ namespace Fluid
 
         public TemplateContext()
         {
-            _scope = new Scope(GlobalScope);
-            LocalScope = _scope;
+            LocalScope = new Scope(GlobalScope);
         }
 
-        public Scope EnterChildScope()
+        /// <summary>
+        /// Creates a new isolated scope. After than any value added to this content object will be released once
+        /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
+        /// </summary>
+        public void EnterChildScope()
         {
-            return LocalScope = LocalScope.EnterChildScope();
+            LocalScope = LocalScope.EnterChildScope();
         }
 
+        /// <summary>
+        /// Exits the current scope that has been created by <see cref="EnterChildScope" />
+        /// </summary>
         public void ReleaseScope()
         {
             LocalScope = LocalScope.ReleaseScope();
@@ -98,12 +103,12 @@ namespace Fluid
 
         public FluidValue GetValue(string name)
         {
-            return _scope.GetValue(name);
+            return LocalScope.GetValue(name);
         }
 
         public void SetValue(string name, FluidValue value)
         {
-            _scope.SetValue(name, value);
+            LocalScope.SetValue(name, value);
         }
 
         public void SetValue(string name, int value)

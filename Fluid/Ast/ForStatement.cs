@@ -93,20 +93,20 @@ namespace Fluid.Ast
                 return Completion.Normal;
             }
 
-            var forScope = context.EnterChildScope();
+            context.EnterChildScope();
 
             try
             {
                 var forloop = new Dictionary<string, FluidValue>();
                 forloop.Add("length", new NumberValue(list.Count));
-                forScope.SetValue("forloop", new DictionaryValue(new FluidValueDictionaryFluidIndexable(forloop)));
+                context.SetValue("forloop", new DictionaryValue(new FluidValueDictionaryFluidIndexable(forloop)));
 
 
                 for (var i = 0; i < list.Count; i++)
                 {
                     var item = list[i];
 
-                    forScope.SetValue(Identifier, item);
+                    context.SetValue(Identifier, item);
 
                     // Set helper variables
                     forloop["index"] = new NumberValue(i + 1);

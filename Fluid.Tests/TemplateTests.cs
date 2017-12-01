@@ -493,11 +493,19 @@ namespace Fluid.Tests
         [Fact]
         public async Task IncludeParamsShouldNotBeSetInTheParentTemplate()
         {
-            var source = @"{% include 'Partials', color: 'red', shape: 'circle' %}
-{% assign color = 'blue' %}";
+            var source = @"{% assign color = 'blue' %}
+{% include 'Partials', color: 'red', shape: 'circle' %}
+
+Parent Content
+color: '{{ color }}'
+shape: '{{ shape }}'";
             var expected = @"Partial Content
+Partials: ''
 color: 'red'
-shape: 'circle'";
+shape: 'circle'
+Parent Content
+color: 'blue'
+shape: ''";
             FluidTemplate.TryParse(source, out var template, out var messages);
             var context = new TemplateContext
             {
@@ -511,12 +519,17 @@ shape: 'circle'";
         [Fact]
         public async Task IncludeWithTagParamShouldNotBeSetInTheParentTemplate()
         {
-            var source = @"{% include 'Partials' with 'value' %}
-{% assign Partials = 'another value' %}
+            var source = @"{% assign Partials = 'parent value' %}
+{% include 'Partials' with 'included value' %}
+
+Parent Content
 {{ Partials }}";
             var expected = @"Partial Content
+Partials: 'included value'
 color: ''
-shape: ''value";
+shape: ''
+Parent Content
+parent value";
             FluidTemplate.TryParse(source, out var template, out var messages);
             var context = new TemplateContext
             {
