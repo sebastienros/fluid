@@ -79,11 +79,18 @@ namespace Fluid
             LocalScope = new Scope(GlobalScope);
         }
 
+        /// <summary>
+        /// Creates a new isolated scope. After than any value added to this content object will be released once
+        /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
+        /// </summary>
         public void EnterChildScope()
         {
             LocalScope = LocalScope.EnterChildScope();
         }
 
+        /// <summary>
+        /// Exits the current scope that has been created by <see cref="EnterChildScope" />
+        /// </summary>
         public void ReleaseScope()
         {
             LocalScope = LocalScope.ReleaseScope();
