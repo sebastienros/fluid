@@ -208,6 +208,32 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void TruncateShortString()
+        {
+            var input = new StringValue("Hello");
+
+            var arguments = new FilterArguments().Add(new NumberValue(5)).Add(new StringValue("..."));
+            var context = new TemplateContext();
+
+            var result = StringFilters.Truncate(input, arguments, context);
+
+            Assert.Equal("Hello", result.ToStringValue());
+        }
+
+        [Fact]
+        public void TruncateNullString()
+        {
+            var input = new StringValue(null);
+
+            var arguments = new FilterArguments().Add(new NumberValue(5)).Add(new StringValue("..."));
+            var context = new TemplateContext();
+
+            var result = StringFilters.Truncate(input, arguments, context);
+
+            Assert.Null(result.ToStringValue());
+        }
+
+        [Fact]
         public void TruncateWords()
         {
             var input = new StringValue("This is a nice story with a bad end.");
