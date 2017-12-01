@@ -145,14 +145,24 @@ namespace Fluid.Filters
 
         public static FluidValue Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var source = input.ToStringValue().Substring(0, Convert.ToInt32(arguments.At(0).ToNumberValue()));
+            string text = input.ToStringValue();
+            int length = Convert.ToInt32(arguments.At(0).ToNumberValue());
 
-            if (arguments.Count > 1)
+            if (text == null || text.Length <= length)
             {
-                source += arguments.At(1).ToStringValue();
+                return input;
             }
+            else
+            {
+                var source = text.Substring(0, length);
 
-            return new StringValue(source);
+                if (arguments.Count > 1)
+                {
+                    source += arguments.At(1).ToStringValue();
+                }
+
+                return new StringValue(source);
+            }
         }
         public static FluidValue TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
