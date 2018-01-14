@@ -42,6 +42,19 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void First_EmptyArray()
+        {
+            var input = new ArrayValue(new StringValue[0]);
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = ArrayFilters.First(input, arguments, context);
+
+            Assert.IsType<NilValue>(result);
+        }
+
+        [Fact]
         public void Last()
         {
             var input = new ArrayValue(new[] {
@@ -56,6 +69,19 @@ namespace Fluid.Tests
             var result = ArrayFilters.Last(input, arguments, context);
 
             Assert.Equal(new StringValue("c"), result);
+        }
+
+        [Fact]
+        public void Last_EmptyArray()
+        {
+            var input = new ArrayValue(new StringValue[0]);
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = ArrayFilters.Last(input, arguments, context);
+
+            Assert.IsType<NilValue>(result);
         }
 
         [Fact]

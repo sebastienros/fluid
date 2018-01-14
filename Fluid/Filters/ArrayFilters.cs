@@ -39,7 +39,7 @@ namespace Fluid.Filters
                 return input;
             }
 
-            return input.Enumerate().First();
+            return input.Enumerate().FirstOrDefault() ?? NilValue.Instance;
         }
 
         public static FluidValue Last(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -49,7 +49,7 @@ namespace Fluid.Filters
                 return input;
             }
 
-            return input.Enumerate().Last();
+            return input.Enumerate().LastOrDefault() ?? NilValue.Instance;
         }
 
         public static FluidValue Concat(FluidValue input, FilterArguments arguments, TemplateContext context)
