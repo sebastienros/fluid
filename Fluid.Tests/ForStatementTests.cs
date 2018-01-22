@@ -33,6 +33,32 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task ShouldUseCurrentContext()
+        {
+            var e = new ForStatement(
+                new Statement[] {
+                    new AssignStatement("z", new LiteralExpression(new NumberValue(1)))
+                    },
+                "i",
+                new RangeExpression(
+                    new LiteralExpression(new NumberValue(1)),
+                    new LiteralExpression(new NumberValue(3))
+                ),
+                null, null, false
+            );
+
+            var t = new TemplateContext();
+            t.SetValue("z", 0);
+
+            Assert.Equal(0, t.GetValue("z").ToNumberValue());
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, t);
+
+            Assert.Equal(1, t.GetValue("z").ToNumberValue());
+        }
+
+        [Fact]
         public async Task ShouldLoopArrays()
         {
             var e = new ForStatement(
