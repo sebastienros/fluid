@@ -46,6 +46,14 @@ namespace Fluid
             return NilValue.Instance;
         }
 
+        public void Delete(string name)
+        {
+            if (_properties.ContainsKey(name))
+            {
+                _properties.Remove(name);
+            }
+        }
+
         public void SetValue(string name, FluidValue value)
         {
             _properties[name] = value;

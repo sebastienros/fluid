@@ -93,14 +93,11 @@ namespace Fluid.Ast
                 return Completion.Normal;
             }
 
-            context.EnterChildScope();
-
             try
             {
                 var forloop = new Dictionary<string, FluidValue>();
                 forloop.Add("length", new NumberValue(list.Count));
                 context.SetValue("forloop", new DictionaryValue(new FluidValueDictionaryFluidIndexable(forloop)));
-
 
                 for (var i = 0; i < list.Count; i++)
                 {
@@ -144,7 +141,7 @@ namespace Fluid.Ast
             }
             finally
             {
-                context.ReleaseScope();
+                context.LocalScope.Delete("forloop");
             }
 
             return Completion.Normal;
