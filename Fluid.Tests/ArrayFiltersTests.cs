@@ -170,16 +170,18 @@ namespace Fluid.Tests
         [Fact]
         public void Sort()
         {
+            var sample = new { Title = "", Address = new { Zip = 0 } };
+
             var input = new ArrayValue(new[] {
-                new ObjectValue(new { Title = "c" }),
-                new ObjectValue(new { Title = "a" }),
-                new ObjectValue(new { Title = "b" })
+                new ObjectValue(new { Title = "c", Address = new { Zip = 2 } }),
+                new ObjectValue(new { Title = "a", Address = new { Zip = 3 } }),
+                new ObjectValue(new { Title = "b", Address = new { Zip = 1 } })
                 });
 
             var arguments = new FilterArguments().Add(new StringValue("Title"));
 
             var context = new TemplateContext();
-            context.MemberAccessStrategy.Register(new { Title = "" }.GetType(), "Title");
+            context.MemberAccessStrategy.Register(sample.GetType(), "Title");
 
             var result = ArrayFilters.Sort(input, arguments, context);
 
@@ -187,6 +189,20 @@ namespace Fluid.Tests
             Assert.Equal("a", ((dynamic)result.Enumerate().ElementAt(0).ToObjectValue()).Title);
             Assert.Equal("b", ((dynamic)result.Enumerate().ElementAt(1).ToObjectValue()).Title);
             Assert.Equal("c", ((dynamic)result.Enumerate().ElementAt(2).ToObjectValue()).Title);
+
+            arguments = new FilterArguments().Add(new StringValue("Address.Zip"));
+
+            context = new TemplateContext();
+            context.MemberAccessStrategy.Register(sample.GetType(), "Title");
+            context.MemberAccessStrategy.Register(sample.GetType(), "Address");
+            context.MemberAccessStrategy.Register(sample.Address.GetType(), "Zip");
+
+            result = ArrayFilters.Sort(input, arguments, context);
+
+            Assert.Equal(3, result.Enumerate().Count());
+            Assert.Equal("b", ((dynamic)result.Enumerate().ElementAt(0).ToObjectValue()).Title);
+            Assert.Equal("c", ((dynamic)result.Enumerate().ElementAt(1).ToObjectValue()).Title);
+            Assert.Equal("a", ((dynamic)result.Enumerate().ElementAt(2).ToObjectValue()).Title);
         }
 
         [Fact]

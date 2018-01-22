@@ -127,7 +127,22 @@ namespace Fluid.Filters
         {
             var member = arguments.At(0).ToStringValue();
 
-            return new ArrayValue(input.Enumerate().OrderBy(x => x.GetValue(member, context).ToObjectValue()).ToArray());
+            return new ArrayValue(input.Enumerate().OrderBy(x =>
+            {
+                if (member.Contains("."))
+                {
+                    foreach(var prop in member.Split('.'))
+                    {
+                        x = x.GetValue(prop, context);
+                    }
+
+                    return x.ToObjectValue();
+                }
+                else
+                {
+                    return x.GetValue(member, context).ToObjectValue();
+                }
+            }).ToArray());
         }
 
         public static FluidValue Uniq(FluidValue input, FilterArguments arguments, TemplateContext context)
