@@ -213,6 +213,35 @@ FluidValue.TypeMappings.Add(typeof(JValue), o => FluidValue.Create(((JValue)o).V
 
 <br>
 
+## Using Json.NET object in models
+
+The classes that are used in Json.NET don't have direct named properties like classes, which makes them unusable out of the box
+in a Liquid template.
+
+To remedy that we can configure Fluid to map names to `JObject` properties, and convert `JValue` objects to the ones used by Fluid.
+
+```csharp
+// When a property of a JObject value is accessed, try to look into its properties
+TemplateContext.GlobalMemberAccessStrategy.Register<JObject>((source, name) => source[name]);
+
+// Convert JToken to FluidValue
+FluidValue.TypeMappings.Add(typeof(JObject), o => new ObjectValue(o));
+FluidValue.TypeMappings.Add(typeof(JValue), o => FluidValue.Create(((JValue)o).Value));
+
+var expression = "{{ Model.Name }}";
+var model = JObject.Parse("{\"Name\": \"Bill\"}");
+
+if (FluidTemplate.TryParse(expression, out var template))
+{
+    var context = new TemplateContext();
+    context.SetValue("Model", model);
+
+    Console.WriteLine(template.Render(context));
+}
+```
+
+<br>
+
 ## Encoding
 
 By default Fluid will encode any output variable into HTML using the `System.Text.Encodings.Web.HtmlEncoder` class. The encoder can be specified when calling `Render()` on the template. To render a template without any encoding use the `Fluid.NullEncoder.Default` instance.
