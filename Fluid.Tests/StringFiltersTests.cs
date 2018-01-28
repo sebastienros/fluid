@@ -212,12 +212,12 @@ namespace Fluid.Tests
         {
             var input = new StringValue("Hello");
 
-            var arguments = new FilterArguments().Add(new NumberValue(5));
+            var arguments = new FilterArguments().Add(new NumberValue(2));
             var context = new TemplateContext();
 
             var result = StringFilters.Truncate(input, arguments, context);
 
-            Assert.Equal("Hello", result.ToStringValue());
+            Assert.Equal("...", result.ToStringValue());
         }
 
         [Fact]
@@ -230,7 +230,7 @@ namespace Fluid.Tests
 
             var result = StringFilters.Truncate(input, arguments, context);
 
-            Assert.Null(result.ToStringValue());
+            Assert.Same(NilValue.Empty, result);
         }
 
         [Fact]

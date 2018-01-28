@@ -149,9 +149,13 @@ namespace Fluid.Filters
             var text = input.ToStringValue();
             var length = Convert.ToInt32(arguments.At(0).ToNumberValue());
 
-            if (text == null || text.Length <= length)
+            if (text == null)
             {
-                return input;
+                return NilValue.Empty;
+            }
+            else if (ellipsis.Length >= length)
+            {
+                return new StringValue(ellipsis);
             }
             else
             {
