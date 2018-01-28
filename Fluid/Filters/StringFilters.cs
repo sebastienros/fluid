@@ -154,18 +154,21 @@ namespace Fluid.Filters
             }
             else
             {
+                const string ellipsis = "...";
                 var source = text.Substring(0, length);
 
                 if (arguments.Count > 1)
                 {
                     source += arguments.At(1).ToStringValue();
                 }
+                source += ellipsis;
 
                 return new StringValue(source);
             }
         }
         public static FluidValue TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            const string ellipsis = "...";
             var source = input.ToStringValue();
             var n = Convert.ToInt32(arguments.At(0).ToNumberValue());
 
@@ -187,6 +190,7 @@ namespace Fluid.Filters
             {
                 source += arguments.At(1).ToStringValue();
             }
+            source += ellipsis;
 
             return new StringValue(source);
         }

@@ -199,7 +199,7 @@ namespace Fluid.Tests
         {
             var input = new StringValue("Hello World");
 
-            var arguments = new FilterArguments().Add(new NumberValue(5)).Add(new StringValue("..."));
+            var arguments = new FilterArguments().Add(new NumberValue(5));
             var context = new TemplateContext();
 
             var result = StringFilters.Truncate(input, arguments, context);
@@ -212,7 +212,7 @@ namespace Fluid.Tests
         {
             var input = new StringValue("Hello");
 
-            var arguments = new FilterArguments().Add(new NumberValue(5)).Add(new StringValue("..."));
+            var arguments = new FilterArguments().Add(new NumberValue(5));
             var context = new TemplateContext();
 
             var result = StringFilters.Truncate(input, arguments, context);
@@ -225,7 +225,7 @@ namespace Fluid.Tests
         {
             var input = new StringValue(null);
 
-            var arguments = new FilterArguments().Add(new NumberValue(5)).Add(new StringValue("..."));
+            var arguments = new FilterArguments().Add(new NumberValue(5));
             var context = new TemplateContext();
 
             var result = StringFilters.Truncate(input, arguments, context);
@@ -238,7 +238,7 @@ namespace Fluid.Tests
         {
             var input = new StringValue("This is a nice story with a bad end.");
 
-            var arguments = new FilterArguments().Add(new NumberValue(5)).Add(new StringValue("..."));
+            var arguments = new FilterArguments().Add(new NumberValue(5));
             var context = new TemplateContext();
 
             var result = StringFilters.TruncateWords(input, arguments, context);
