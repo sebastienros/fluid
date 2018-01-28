@@ -199,7 +199,7 @@ namespace Fluid.Tests
         {
             var input = new StringValue("Hello World");
 
-            var arguments = new FilterArguments().Add(new NumberValue(5));
+            var arguments = new FilterArguments().Add(new NumberValue(8));
             var context = new TemplateContext();
 
             var result = StringFilters.Truncate(input, arguments, context);

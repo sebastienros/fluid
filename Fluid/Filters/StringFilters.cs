@@ -145,8 +145,9 @@ namespace Fluid.Filters
 
         public static FluidValue Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            string text = input.ToStringValue();
-            int length = Convert.ToInt32(arguments.At(0).ToNumberValue());
+            var ellipsis = "...";
+            var text = input.ToStringValue();
+            var length = Convert.ToInt32(arguments.At(0).ToNumberValue());
 
             if (text == null || text.Length <= length)
             {
@@ -154,8 +155,7 @@ namespace Fluid.Filters
             }
             else
             {
-                const string ellipsis = "...";
-                var source = text.Substring(0, length);
+                var source = text.Substring(0, length - ellipsis.Length);
 
                 if (arguments.Count > 1)
                 {
@@ -168,7 +168,7 @@ namespace Fluid.Filters
         }
         public static FluidValue TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            const string ellipsis = "...";
+            var ellipsis = "...";
             var source = input.ToStringValue();
             var n = Convert.ToInt32(arguments.At(0).ToNumberValue());
 
