@@ -7,6 +7,8 @@ namespace Fluid.Filters
 {
     public static class StringFilters
     {
+        private const string Ellipsis = "...";
+
         public static FilterCollection WithStringFilters(this FilterCollection filters)
         {
             filters.AddFilter("append", Append);
@@ -145,7 +147,6 @@ namespace Fluid.Filters
 
         public static FluidValue Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var ellipsis = "...";
             var text = input.ToStringValue();
             var length = Convert.ToInt32(arguments.At(0).ToNumberValue());
 
@@ -153,26 +154,25 @@ namespace Fluid.Filters
             {
                 return NilValue.Empty;
             }
-            else if (ellipsis.Length >= length)
+            else if (Ellipsis.Length >= length)
             {
-                return new StringValue(ellipsis);
+                return new StringValue(Ellipsis);
             }
             else
             {
-                var source = text.Substring(0, length - ellipsis.Length);
+                var source = text.Substring(0, length - Ellipsis.Length);
 
                 if (arguments.Count > 1)
                 {
                     source += arguments.At(1).ToStringValue();
                 }
-                source += ellipsis;
+                source += Ellipsis;
 
                 return new StringValue(source);
             }
         }
         public static FluidValue TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var ellipsis = "...";
             var source = input.ToStringValue();
             var n = Convert.ToInt32(arguments.At(0).ToNumberValue());
 
@@ -194,7 +194,7 @@ namespace Fluid.Filters
             {
                 source += arguments.At(1).ToStringValue();
             }
-            source += ellipsis;
+            source += Ellipsis;
 
             return new StringValue(source);
         }

@@ -194,43 +194,18 @@ namespace Fluid.Tests
             Assert.Equal(new StringValue("c"), result.Enumerate().ElementAt(2));
         }
 
-        [Fact]
-        public void Truncate()
+        [Theory]
+        [InlineData("Hello World", 8, "Hello...")]
+        [InlineData("Hello", 2, "...")]
+        [InlineData(null, 5, "")]
+        public void Truncate(string input, int size, string output)
         {
-            var input = new StringValue("Hello World");
-
-            var arguments = new FilterArguments().Add(new NumberValue(8));
+            var source = new StringValue(input);
+            var arguments = new FilterArguments().Add(new NumberValue(size));
             var context = new TemplateContext();
+            var result = StringFilters.Truncate(source, arguments, context);
 
-            var result = StringFilters.Truncate(input, arguments, context);
-
-            Assert.Equal("Hello...", result.ToStringValue());
-        }
-
-        [Fact]
-        public void TruncateShortString()
-        {
-            var input = new StringValue("Hello");
-
-            var arguments = new FilterArguments().Add(new NumberValue(2));
-            var context = new TemplateContext();
-
-            var result = StringFilters.Truncate(input, arguments, context);
-
-            Assert.Equal("...", result.ToStringValue());
-        }
-
-        [Fact]
-        public void TruncateNullString()
-        {
-            var input = new StringValue(null);
-
-            var arguments = new FilterArguments().Add(new NumberValue(5));
-            var context = new TemplateContext();
-
-            var result = StringFilters.Truncate(input, arguments, context);
-
-            Assert.Same(NilValue.Empty, result);
+            Assert.Equal(output, result.ToStringValue());
         }
 
         [Fact]
