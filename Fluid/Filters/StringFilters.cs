@@ -6,7 +6,7 @@ namespace Fluid.Filters
 {
     public static class StringFilters
     {
-        private static StringValue Ellipsis = new StringValue("...");
+        private static readonly StringValue Ellipsis = new StringValue("...");
 
         public static FilterCollection WithStringFilters(this FilterCollection filters)
         {
