@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using Fluid.Values;
 
@@ -7,6 +6,8 @@ namespace Fluid.Filters
 {
     public static class StringFilters
     {
+        private static readonly StringValue Ellipsis = new StringValue("...");
+
         public static FilterCollection WithStringFilters(this FilterCollection filters)
         {
             filters.AddFilter("append", Append);
@@ -145,48 +146,58 @@ namespace Fluid.Filters
 
         public static FluidValue Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            string text = input.ToStringValue();
-            int length = Convert.ToInt32(arguments.At(0).ToNumberValue());
+            var text = input.ToStringValue();
+            var size = Math.Max(0, Convert.ToInt32(arguments.At(0).ToNumberValue()));
+            var ellipsis = arguments.At(1).Or(Ellipsis).ToStringValue();
 
-            if (text == null || text.Length <= length)
+            if (text == null)
             {
-                return input;
+                return NilValue.Empty;
+            }
+            else if (ellipsis.Length >= size)
+            {
+                return new StringValue(ellipsis);
+            }
+            else if (text.Length > size - ellipsis.Length)
+            {
+                var source = text.Substring(0, size - ellipsis.Length) + ellipsis;
+
+                return new StringValue(source);
             }
             else
             {
-                var source = text.Substring(0, length);
-
-                if (arguments.Count > 1)
-                {
-                    source += arguments.At(1).ToStringValue();
-                }
-
-                return new StringValue(source);
+                return new StringValue(text + ellipsis);
             }
         }
         public static FluidValue TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var source = input.ToStringValue();
-            var n = Convert.ToInt32(arguments.At(0).ToNumberValue());
+            var size = Math.Max(0, Convert.ToInt32(arguments.At(0).ToNumberValue()));
+            var ellipsis = arguments.At(1).Or(Ellipsis).ToStringValue();
 
             var words = 0;
-            for (int i=0; i < source.Length;)
-            {
-                while(i < source.Length && Char.IsWhiteSpace(source[i])) i++;
-                while(i < source.Length && !Char.IsWhiteSpace(source[i])) i++;
-                words++;
 
-                if (words == n)
+            if (size > 0)
+            {
+                for (var i = 0; i < source.Length;)
                 {
-                    source = source.Substring(0, i);   
-                    break;
+                    while (i < source.Length && Char.IsWhiteSpace(source[i])) i++;
+                    while (i < source.Length && !Char.IsWhiteSpace(source[i])) i++;
+                    words++;
+
+                    if (words >= size)
+                    {
+                        source = source.Substring(0, i);
+                        break;
+                    }
                 }
             }
-
-            if (arguments.Count > 1)
+            else
             {
-                source += arguments.At(1).ToStringValue();
+                source = "";
             }
+            
+            source += ellipsis;
 
             return new StringValue(source);
         }
