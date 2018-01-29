@@ -195,8 +195,10 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData("Hello World", 8, "Hello...")]
-        [InlineData("Hello", 2, "...")]
+        [InlineData("The cat came back the very next day", 13, "The cat ca...")]
+        [InlineData("Hello", 3, "...")]
+        [InlineData("Hello", 10, "Hello...")]
+        [InlineData("Hello", 0, "...")]
         [InlineData(null, 5, "")]
         public void Truncate(string input, int size, string output)
         {
@@ -208,17 +210,57 @@ namespace Fluid.Tests
             Assert.Equal(output, result.ToStringValue());
         }
 
-        [Fact]
-        public void TruncateWords()
+        [Theory]
+        [InlineData("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 18, ", and so on", "ABCDEFG, and so on")]
+        [InlineData("I'm a little teapot, short and stout.", 15, "", "I'm a little te")]
+        [InlineData("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 5, ", and so on", ", and so on")]
+        [InlineData("ABCD EFGH IJKLM NOPQRS TUVWXYZ", 3, "", "ABC")]
+        [InlineData("ABCD EFGH IJKLM NOPQRS TUVWXYZ", 0, "", "")]
+        public void TruncateWithCustomEllipsis(string input, int size, string ellipsis, string output)
         {
-            var input = new StringValue("This is a nice story with a bad end.");
+            var source = new StringValue(input);
+            var arguments = new FilterArguments()
+                .Add(new NumberValue(size))
+                .Add(new StringValue(ellipsis));
+            var context = new TemplateContext();
+            var result = StringFilters.Truncate(source, arguments, context);
 
-            var arguments = new FilterArguments().Add(new NumberValue(5));
+            Assert.Equal(output, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("The cat came back the very next day", 4, "The cat came back...")]
+        [InlineData("The cat came back the very next day", 1, "The...")]
+        [InlineData("The cat came back the very next day", 0, "...")]
+        [InlineData("The    cat came  back", 10, "The    cat came  back...")]
+        public void TruncateWords(string input, int size, string output)
+        {
+            var source = new StringValue(input);
+            var arguments = new FilterArguments()
+                .Add(new NumberValue(size));
             var context = new TemplateContext();
 
-            var result = StringFilters.TruncateWords(input, arguments, context);
+            var result = StringFilters.TruncateWords(source, arguments, context);
 
-            Assert.Equal("This is a nice story...", result.ToStringValue());
+            Assert.Equal(output, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("The cat came back the very next day", 4, "--", "The cat came back--")]
+        [InlineData("The cat came back the very next day", 4, "", "The cat came back")]
+        [InlineData("The cat came back the very next day", 0, "", "")]
+        public void TruncateWordsWithCustomEllipsis(string input, int size, string ellispsis, string output)
+        {
+            var source = new StringValue(input);
+            var arguments = new FilterArguments()
+                .Add(new NumberValue(size))
+                .Add(new StringValue(ellispsis));
+
+            var context = new TemplateContext();
+
+            var result = StringFilters.TruncateWords(source, arguments, context);
+
+            Assert.Equal(output, result.ToStringValue());
         }
 
         [Fact]
