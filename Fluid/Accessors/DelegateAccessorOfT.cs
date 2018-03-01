@@ -4,21 +4,21 @@ namespace Fluid.Accessors
 {
     public class DelegateAccessor<T> : IMemberAccessor
     {
-        private readonly Func<T, string, object> _getter;
+        private readonly Func<T, string, TemplateContext, object> _getter;
 
-        public DelegateAccessor(Func<T, string, object> getter)
+        public DelegateAccessor(Func<T, string, TemplateContext, object> getter)
         {
             _getter = getter;
         }
 
-        public object Get(T obj, string name)
+        public object Get(T obj, string name, TemplateContext ctx)
         {
-            return _getter(obj, name);
+            return _getter(obj, name, ctx);
         }
 
-        object IMemberAccessor.Get(object obj, string name)
+        object IMemberAccessor.Get(object obj, string name, TemplateContext ctx)
         {
-            return _getter((T)obj, name);
+            return _getter((T)obj, name, ctx);
         }
     }
 }
