@@ -9,7 +9,7 @@
 
         }
         
-        object IMemberAccessor.Get(object obj, string name)
+        object IMemberAccessor.Get(object obj, string name, TemplateContext ctx)
         {
             return null;
         }

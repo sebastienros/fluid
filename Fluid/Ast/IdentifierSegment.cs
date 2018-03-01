@@ -24,7 +24,7 @@ namespace Fluid.Ast
             if (result.IsNil() && context.Model != null)
             {
                 // Look into the Model if defined
-                result = FluidValue.Create(context.MemberAccessStrategy.GetAccessor(context.Model, Identifier)?.Get(context.Model, Identifier));
+                result = FluidValue.Create(context.MemberAccessStrategy.GetAccessor(context.Model, Identifier)?.Get(context.Model, Identifier, context));
             }
 
             return Task.FromResult(result);

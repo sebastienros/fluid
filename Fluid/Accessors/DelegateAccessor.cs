@@ -4,7 +4,7 @@ namespace Fluid.Accessors
 {
     public class DelegateAccessor : DelegateAccessor<object>
     {
-        public DelegateAccessor(Func<object, string, object> getter) : base(getter)
+        public DelegateAccessor(Func<object, string, object> getter) : base((obj, name, ctx) => getter(obj, name))
         {
         }
     }
