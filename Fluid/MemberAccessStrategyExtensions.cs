@@ -148,7 +148,6 @@ namespace Fluid
         public static void Register<T>(this IMemberAccessStrategy strategy, Func<T, string, object> accessor)
         {
             Register<T>(strategy, (obj, name, ctx) => accessor(obj, name));
-            //strategy.Register(typeof(T), "*", new DelegateAccessor<T>(accessor));
         }
 
         /// <summary>
