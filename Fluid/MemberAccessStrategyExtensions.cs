@@ -160,5 +160,27 @@ namespace Fluid
         {
             strategy.Register(typeof(T), "*", new DelegateAccessor<T>(accessor));
         }
+
+        /// <summary>
+        /// Registers a type with a <see cref="Func{T, Object}"/> to retrieve the property specified. 
+        /// </summary>
+        /// <param name="type">The type to register.</param>
+        /// <param name="name">The name of the property.</param>
+        /// <param name="accessor">The <see cref="Func{T, Object}"/> instance used to retrieve the value.</param>
+        public static void Register<T>(this IMemberAccessStrategy strategy, string name, Func<T, object> accessor)
+        {
+            Register<T>(strategy, name, (obj, ctx) => accessor(obj));
+        }
+
+        /// <summary>
+        /// Registers a type with a <see cref="Func{T, TemplateContext, Object}"/> to retrieve the property specified. 
+        /// </summary>
+        /// <param name="type">The type to register.</param>
+        /// <param name="name">The name of the property.</param>
+        /// <param name="accessor">The <see cref="Func{T, TemplateContext, Object}"/> instance used to retrieve the value.</param>
+        public static void Register<T>(this IMemberAccessStrategy strategy, string name, Func<T, TemplateContext, object> accessor)
+        {
+            strategy.Register(typeof(T), name, new DelegateAccessor<T>((obj, propertyName, ctx) => accessor(obj, ctx)));
+        }
     }
 }
