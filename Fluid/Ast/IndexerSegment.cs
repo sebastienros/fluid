@@ -15,7 +15,7 @@ namespace Fluid.Ast
         public override async Task<FluidValue> ResolveAsync(FluidValue value, TemplateContext context)
         {
             var index = await Expression.EvaluateAsync(context);
-            return value.GetIndex(index, context);
+            return await value.GetIndexAsync(index, context);
         }
 
         public override async Task<FluidValue> ResolveAsync(Scope value, TemplateContext context)

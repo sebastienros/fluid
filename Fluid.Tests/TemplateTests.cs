@@ -539,5 +539,33 @@ parent value";
 
             Assert.Equal(expected, result);
         }
+
+        [Fact]
+        public async Task ShouldEvaluateAsyncMember()
+        {
+            FluidTemplate.TryParse("{{ Content.Foo }}{{ Content.Baz }}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("Content", new Content());
+            context.MemberAccessStrategy.Register<Content>("Foo", async (obj, name) => { await Task.Delay(100); return "Bar"; });
+            context.MemberAccessStrategy.Register<Content>(async (obj, name) => { await Task.Delay(100); return name; });
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("BarBaz", result);
+        }
+
+        [Fact]
+        public async Task ShouldSetFactoryValue()
+        {
+            FluidTemplate.TryParse("{{ Test }}", out var template, out var messages);
+            bool set = false;
+            var context = new TemplateContext();
+            context.SetValue("Test", () => { set = true; return set; });
+
+            Assert.False(set);
+            var result = await template.RenderAsync(context);
+            Assert.Equal("true", result);
+            Assert.True(set);
+        }
     }
 }

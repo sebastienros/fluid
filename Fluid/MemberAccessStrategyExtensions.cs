@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading.Tasks;
 using Fluid.Accessors;
 
 namespace Fluid
@@ -159,6 +160,52 @@ namespace Fluid
         public static void Register<T>(this IMemberAccessStrategy strategy, Func<T, string, TemplateContext, object> accessor)
         {
             strategy.Register(typeof(T), "*", new DelegateAccessor<T>(accessor));
+        }
+
+        /// <summary>
+        /// Registers a type with a <see cref="Func{T, string, Task{Object}}"/> to retrieve any of
+        /// its property values.
+        /// </summary>
+        /// <param name="type">The type to register.</param>
+        /// <param name="accessor">The <see cref="Func{T, string, Task{Object}}"/> instance used to retrieve the value.</param>
+        public static void Register<T>(this IMemberAccessStrategy strategy, Func<T, string, Task<object>> accessor)
+        {
+            Register<T>(strategy, (obj, name, ctx) => accessor(obj, name));
+        }
+
+        /// <summary>
+        /// Registers a type with a <see cref="Func{T, string, TemplateContext, Task{Object}}"/> to retrieve any of
+        /// its property values.
+        /// </summary>
+        /// <param name="type">The type to register.</param>
+        /// <param name="accessor">The <see cref="Func{T, string, TemplateContext, Task{Object}}"/> instance used to retrieve the value.</param>
+        public static void Register<T>(this IMemberAccessStrategy strategy, Func<T, string, TemplateContext, Task<object>> accessor)
+        {
+            strategy.Register(typeof(T), "*", new AsyncDelegateAccessor<T>(accessor));
+        }
+
+        /// <summary>
+        /// Registers a type with a <see cref="Func{T, string, Task{Object}}"/> to retrieve any of
+        /// its property values.
+        /// </summary>
+        /// <param name="type">The type to register.</param>
+        /// <param name="name">The name of the property</param>
+        /// <param name="accessor">The <see cref="Func{T, string, Task{Object}}"/> instance used to retrieve the value.</param>
+        public static void Register<T>(this IMemberAccessStrategy strategy, string name, Func<T, string, Task<object>> accessor)
+        {
+            Register<T>(strategy, name, (obj, propertyName, ctx) => accessor(obj, propertyName));
+        }
+
+        /// <summary>
+        /// Registers a type with a <see cref="Func{T, string, TemplateContext, Task{Object}}"/> to retrieve any of
+        /// its property values.
+        /// </summary>
+        /// <param name="type">The type to register.</param>
+        /// <param name="name">The name of the property</param>
+        /// <param name="accessor">The <see cref="Func{T, string, TemplateContext, Task{Object}}"/> instance used to retrieve the value.</param>
+        public static void Register<T>(this IMemberAccessStrategy strategy, string name, Func<T, string, TemplateContext, Task<object>> accessor)
+        {
+            strategy.Register(typeof(T), name, new AsyncDelegateAccessor<T>(accessor));
         }
     }
 }

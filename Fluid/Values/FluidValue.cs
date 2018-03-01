@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
@@ -22,12 +23,22 @@ namespace Fluid.Values
 
         public abstract object ToObjectValue();
 
-        public virtual FluidValue GetValue(string name, TemplateContext context)
+        public virtual Task<FluidValue> GetValueAsync(string name, TemplateContext context)
+        {
+            return Task.FromResult(GetValue(name, context));
+        }
+
+        protected virtual FluidValue GetValue(string name, TemplateContext context)
         {
             return NilValue.Instance;
         }
 
-        public virtual FluidValue GetIndex(FluidValue index, TemplateContext context)
+        public virtual Task<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
+        {
+            return Task.FromResult(GetIndex(index, context));
+        }
+
+        protected virtual FluidValue GetIndex(FluidValue index, TemplateContext context)
         {
             return NilValue.Instance;
         }
@@ -44,6 +55,11 @@ namespace Fluid.Values
             if (value == null)
             {
                 return NilValue.Instance;
+            }
+
+            if (value is FluidValue fluidValue)
+            {
+                return fluidValue;
             }
 
             var typeOfValue = value.GetType();

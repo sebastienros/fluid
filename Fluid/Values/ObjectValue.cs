@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
@@ -35,15 +36,27 @@ namespace Fluid.Values
             return other is ObjectValue && ((ObjectValue)other)._value == _value;
         }
 
-        public override FluidValue GetValue(string name, TemplateContext context)
+        public override async Task<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
-            var value = context.MemberAccessStrategy.GetAccessor(_value, name)?.Get(_value, name, context);
-            return FluidValue.Create(value);
+            var accessor = context.MemberAccessStrategy.GetAccessor(_value, name);
+
+            if (accessor != null)
+            {
+
+                if (accessor is IAsyncMemberAccessor asyncAccessor)
+                {
+                    return FluidValue.Create(await asyncAccessor.GetAsync(_value, name, context));
+                }
+
+                return FluidValue.Create(accessor.Get(_value, name, context));
+            }
+
+            return NilValue.Instance;
         }
 
-        public override FluidValue GetIndex(FluidValue index, TemplateContext context)
+        public override Task<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
-            return GetValue(index.ToStringValue(), context);
+            return GetValueAsync(index.ToStringValue(), context);
         }
 
         public override bool ToBooleanValue()
