@@ -3,11 +3,11 @@ using System.Threading.Tasks;
 
 namespace Fluid.Accessors
 {
-    public class AsyncDelegateAccessor<T> : IAsyncMemberAccessor
+    public class AsyncDelegateAccessor<T, TResult> : IAsyncMemberAccessor
     {
-        private readonly Func<T, string, TemplateContext, Task<object>> _getter;
+        private readonly Func<T, string, TemplateContext, Task<TResult>> _getter;
 
-        public AsyncDelegateAccessor(Func<T, string, TemplateContext, Task<object>> getter)
+        public AsyncDelegateAccessor(Func<T, string, TemplateContext, Task<TResult>> getter)
         {
             _getter = getter;
         }
@@ -17,14 +17,14 @@ namespace Fluid.Accessors
             throw new NotImplementedException();
         }
 
-        public Task<object> GetAsync(T obj, string name, TemplateContext ctx)
+        public Task<TResult> GetAsync(T obj, string name, TemplateContext ctx)
         {
             return _getter(obj, name, ctx);
         }
 
-        Task<object> IAsyncMemberAccessor.GetAsync(object obj, string name, TemplateContext ctx)
+        async Task<object> IAsyncMemberAccessor.GetAsync(object obj, string name, TemplateContext ctx)
         {
-            return _getter((T)obj, name, ctx);
+            return await _getter((T)obj, name, ctx);
         }
     }
 }

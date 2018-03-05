@@ -2,16 +2,16 @@
 
 namespace Fluid.Accessors
 {
-    public class DelegateAccessor<T> : IMemberAccessor
+    public class DelegateAccessor<T, TResult> : IMemberAccessor
     {
-        private readonly Func<T, string, TemplateContext, object> _getter;
+        private readonly Func<T, string, TemplateContext, TResult> _getter;
 
-        public DelegateAccessor(Func<T, string, TemplateContext, object> getter)
+        public DelegateAccessor(Func<T, string, TemplateContext, TResult> getter)
         {
             _getter = getter;
         }
 
-        public object Get(T obj, string name, TemplateContext ctx)
+        public TResult Get(T obj, string name, TemplateContext ctx)
         {
             return _getter(obj, name, ctx);
         }

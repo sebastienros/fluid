@@ -547,8 +547,8 @@ parent value";
 
             var context = new TemplateContext();
             context.SetValue("Content", new Content());
-            context.MemberAccessStrategy.Register<Content>("Foo", async (obj, name) => { await Task.Delay(100); return "Bar"; });
-            context.MemberAccessStrategy.Register<Content>(async (obj, name) => { await Task.Delay(100); return name; });
+            context.MemberAccessStrategy.Register<Content, string>("Foo", async (obj, name) => { await Task.Delay(100); return "Bar"; });
+            context.MemberAccessStrategy.Register<Content, string>(async (obj, name) => { await Task.Delay(100); return name; });
 
             var result = await template.RenderAsync(context);
             Assert.Equal("BarBaz", result);
