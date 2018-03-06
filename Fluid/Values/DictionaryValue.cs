@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
@@ -49,14 +50,28 @@ namespace Fluid.Values
             return false;
         }
 
-        public override FluidValue GetValue(string name, TemplateContext context)
+        public override async Task<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             if (name == "size")
             {
                 return new NumberValue(_value.Count);
             }
 
-            var value = context.MemberAccessStrategy.GetAccessor(_value, name)?.Get(_value, name, context);
+            object value = null;
+
+            var accessor = context.MemberAccessStrategy.GetAccessor(_value, name);
+
+            if (accessor != null)
+            {
+                if (accessor is IAsyncMemberAccessor asyncAccessor)
+                {
+                    value = await asyncAccessor.GetAsync(_value, name, context);
+                }
+                else
+                {
+                    value = accessor.Get(_value, name, context);
+                }
+            }
 
             if (value == null)
             {
@@ -66,7 +81,7 @@ namespace Fluid.Values
             return FluidValue.Create(value);
         }
 
-        public override FluidValue GetIndex(FluidValue index, TemplateContext context)
+        protected override FluidValue GetIndex(FluidValue index, TemplateContext context)
         {
             var name = index.ToStringValue();
 

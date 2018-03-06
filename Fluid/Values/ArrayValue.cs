@@ -57,7 +57,7 @@ namespace Fluid.Values
             return false;
         }
 
-        public override FluidValue GetValue(string name, TemplateContext context)
+        protected override FluidValue GetValue(string name, TemplateContext context)
         {
             switch (name)
             {
@@ -83,7 +83,7 @@ namespace Fluid.Values
             return NilValue.Instance;
         }
 
-        public override FluidValue GetIndex(FluidValue index, TemplateContext context)
+        protected override FluidValue GetIndex(FluidValue index, TemplateContext context)
         {
             var i = (int)index.ToNumberValue();
 

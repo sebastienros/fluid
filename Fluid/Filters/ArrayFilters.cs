@@ -92,7 +92,7 @@ namespace Fluid.Filters
 
             foreach(var item in input.Enumerate())
             {
-                list.Add(item.GetValue(member, context));
+                list.Add(item.GetValueAsync(member, context).GetAwaiter().GetResult());
             }
 
             return new ArrayValue(list);
@@ -112,12 +112,12 @@ namespace Fluid.Filters
         {
             if (input.Type == FluidValues.Array)
             {
-                return ((ArrayValue)input).GetValue("size", context);
+                return ((ArrayValue)input).GetValueAsync("size", context).GetAwaiter().GetResult();
             }
 
             if (input.Type == FluidValues.String)
             {
-                return ((StringValue)input).GetValue("size", context);
+                return ((StringValue)input).GetValueAsync("size", context).GetAwaiter().GetResult();
             }
 
             return NilValue.Instance;
@@ -133,14 +133,14 @@ namespace Fluid.Filters
                 {
                     foreach(var prop in member.Split('.'))
                     {
-                        x = x.GetValue(prop, context);
+                        x = x.GetValueAsync(prop, context).GetAwaiter().GetResult();
                     }
 
                     return x.ToObjectValue();
                 }
                 else
                 {
-                    return x.GetValue(member, context).ToObjectValue();
+                    return x.GetValueAsync(member, context).GetAwaiter().GetResult().ToObjectValue();
                 }
             }).ToArray());
         }

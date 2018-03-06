@@ -130,5 +130,10 @@ namespace Fluid
         {
             SetValue(name, FluidValue.Create(value));
         }
+
+        public void SetValue<T>(string name, Func<T> factory)
+        {
+            SetValue(name, new FactoryValue<T>(factory));
+        }
     }
 }
