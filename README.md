@@ -83,7 +83,7 @@ Fluid will automatically maintain the whitespaces from the original template and
       <h2>Banana</h2>
       $99
 
-      Peal it.
+      Peel it.
     </li>
 </ul>
 ```
