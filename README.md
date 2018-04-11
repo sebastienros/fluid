@@ -340,7 +340,7 @@ public class QuoteTag : ExpressionTag
 
 ### Creating a custom block
 
-Blocks are created the same way as tags, with these classes: `SimpleBlock`, `IdentifierBlock`, `ExpressionBlock`, 'ArgumentsBlock` or `ITag`.
+Blocks are created the same way as tags, with these classes: `SimpleBlock`, `IdentifierBlock`, `ExpressionBlock`, `ArgumentsBlock` or `ITag`.
 
 #### Source
 
