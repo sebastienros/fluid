@@ -52,6 +52,11 @@ namespace Fluid.Values
 
         public static FluidValue Create(object value)
         {
+            return Create(value, true);
+        }
+
+        public static FluidValue Create(object value, bool encode)
+        {
             if (value == null)
             {
                 return NilValue.Instance;
@@ -121,7 +126,7 @@ namespace Fluid.Values
 
                         case IEnumerable enumerable:
                             var fluidValues = new List<FluidValue>();
-                            foreach(var item in enumerable)
+                            foreach (var item in enumerable)
                             {
                                 fluidValues.Add(Create(item));
                             }
@@ -134,7 +139,7 @@ namespace Fluid.Values
                     return new DateTimeValue((DateTime)value);
                 case TypeCode.Char:
                 case TypeCode.String:
-                    return new StringValue(Convert.ToString(value, CultureInfo.InvariantCulture));
+                    return new StringValue(Convert.ToString(value, CultureInfo.InvariantCulture), encode);
                 default:
                     throw new InvalidOperationException();
             }
