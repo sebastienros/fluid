@@ -638,7 +638,13 @@ namespace Fluid
 
             if (context.Statements.Count > 0)
             {
-                throw new ParseException($"Unexpected content in 'case' tag. Only 'when' and 'else' are allowed.");
+                foreach (var statement in context.Statements)
+                {
+                    if (!(statement is TextStatement textStatement) || !string.IsNullOrWhiteSpace(textStatement.Text))
+                    {
+                        throw new ParseException($"Unexpected content in 'case' tag. Only 'when' and 'else' are allowed.");
+                    }
+                }
             }
 
             var elseStatements = context.GetBlockStatements<ElseStatement>("else");
