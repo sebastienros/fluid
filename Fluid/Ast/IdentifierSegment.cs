@@ -24,7 +24,7 @@ namespace Fluid.Ast
             if (result.IsNil() && context.Model != null)
             {
                 // Look into the Model if defined
-                var accessor = context.MemberAccessStrategy.GetAccessor(context.Model, Identifier);
+                var accessor = context.MemberAccessStrategy.GetAccessor(context.Model.GetType(), Identifier);
 
                 if (accessor != null)
                 {

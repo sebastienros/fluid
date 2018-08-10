@@ -38,7 +38,7 @@ namespace Fluid.Values
 
         public override async Task<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
-            var accessor = context.MemberAccessStrategy.GetAccessor(_value, name);
+            var accessor = context.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
 
             if (accessor != null)
             {
