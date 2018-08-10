@@ -84,6 +84,11 @@ namespace Fluid.Values
 
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
+            if (String.IsNullOrEmpty(_value))
+            {
+                return;
+            }
+
             if (Encode)
             {
                 encoder.Encode(writer, _value);

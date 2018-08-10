@@ -34,7 +34,9 @@ namespace Fluid
         {
             if (_map.Count > 0)
             {
-                while (type != null)
+                var baseType = type;
+
+                while (baseType != null)
                 {
                     // Look for specific property map
                     if (_map.TryGetValue(type, out var typeMap))
@@ -51,7 +53,7 @@ namespace Fluid
                         }
                     }
 
-                    type = type.GetTypeInfo().BaseType;
+                    baseType = baseType.GetTypeInfo().BaseType;
                 }
             }
 
