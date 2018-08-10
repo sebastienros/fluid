@@ -32,32 +32,33 @@ namespace Fluid
 
         public IMemberAccessor GetAccessor(Type type, string name)
         {
+            IMemberAccessor accessor = null;
+
             if (_map.Count > 0)
             {
-                var baseType = type;
-
-                while (baseType != null)
-                {
+                while (type != typeof(object))
+                {                    
                     // Look for specific property map
                     if (_map.TryGetValue(type, out var typeMap))
                     {
-                        if (typeMap.TryGetValue(name, out var accessor))
-                        {
-                            return accessor;
-                        }
-
-                        // Look for a catch-all getter
-                        if (typeMap.TryGetValue("*", out accessor))
+                        if (typeMap.TryGetValue(name, out accessor) || typeMap.TryGetValue("*", out accessor))
                         {
                             return accessor;
                         }
                     }
 
-                    baseType = baseType.GetTypeInfo().BaseType;
+                    accessor = accessor ?? _parent?.GetAccessor(type, name);
+
+                    if (accessor != null)
+                    {
+                        return accessor;
+                    }
+
+                    type = type.GetTypeInfo().BaseType;
                 }
             }
 
-            return _parent?.GetAccessor(type, name);
+            return null;
         }
 
         public void Register(Type type, string name, IMemberAccessor getter)

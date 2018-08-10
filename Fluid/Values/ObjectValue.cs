@@ -42,7 +42,6 @@ namespace Fluid.Values
 
             if (accessor != null)
             {
-
                 if (accessor is IAsyncMemberAccessor asyncAccessor)
                 {
                     return FluidValue.Create(await asyncAccessor.GetAsync(_value, name, context));

@@ -5,6 +5,8 @@ namespace Fluid.Ast
 {
     public class IdentifierSegment : MemberSegment
     {
+        private IMemberAccessor _accessor;
+
         public IdentifierSegment(string identifier)
         {
             Identifier = identifier;
@@ -24,18 +26,18 @@ namespace Fluid.Ast
             if (result.IsNil() && context.Model != null)
             {
                 // Look into the Model if defined
-                var accessor = context.MemberAccessStrategy.GetAccessor(context.Model.GetType(), Identifier);
+                _accessor = _accessor ?? context.MemberAccessStrategy.GetAccessor(context.Model.GetType(), Identifier);
 
-                if (accessor != null)
+                if (_accessor != null)
                 {
 
-                    if (accessor is IAsyncMemberAccessor asyncAccessor)
+                    if (_accessor is IAsyncMemberAccessor asyncAccessor)
                     {
                         var o = await asyncAccessor.GetAsync(context.Model, Identifier, context);
                         return FluidValue.Create(o);
                     }
 
-                    return FluidValue.Create(accessor.Get(context.Model, Identifier, context));
+                    return FluidValue.Create(_accessor.Get(context.Model, Identifier, context));
                 }
                 else
                 {
