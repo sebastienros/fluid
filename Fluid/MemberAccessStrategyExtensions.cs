@@ -102,7 +102,7 @@ namespace Fluid
         {
             foreach (var name in names)
             {
-                strategy.Register(type, GetNamedAccessor(type, name));
+                strategy.Register(type, name, GetNamedAccessor(type, name));
             }
         }
 

@@ -40,7 +40,7 @@ namespace Fluid
         /// <summary>
         /// Represent a local list of object members than can be accessed with this context.
         /// </summary>
-        public IMemberAccessStrategy MemberAccessStrategy = new MemberAccessStrategy(GlobalMemberAccessStrategy);
+        public IMemberAccessStrategy MemberAccessStrategy = new MemberAccessStrategy(GlobalMemberAccessStrategy, false);
 
         public IFileProvider FileProvider { get; set; }
 
