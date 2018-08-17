@@ -215,5 +215,30 @@ namespace Fluid.Tests
             Assert.Null(template);
             Assert.NotEmpty(errors);
         }
+
+        [Theory]
+        [InlineData(@"abc 
+  {% {{ %}
+def", "at line:2, col:6")]
+        [InlineData(@"{% assign username = ""John G. Chalmers-Smith"" %}
+{% if username and username.size > 10 %}
+  Wow, {{ username }}, you have a long name!
+{% else %}
+  Hello there {{ { }}!
+{% endif %}", "at line:5, col:18")]
+        [InlineData(@"{% assign username = ""John G. Chalmers-Smith"" %}
+{% if username and 
+      username.size > 5 &&
+      username.size < 10 %}
+  Wow, {{ username }}, you have a longish name!
+{% else %}
+  Hello there!
+{% endif %}", "at line:3, col:25")]
+        public void ShouldFailParseInvalidTemplateWithCorrectLineNumber(string source, string expectedErrorEndString)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.EndsWith(expectedErrorEndString, errors.FirstOrDefault());
+        }
     }
 }
