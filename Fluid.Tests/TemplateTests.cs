@@ -83,7 +83,6 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("{{ 0 }}", "0")]
-        [InlineData("{{ 0 }}", "0")]
         [InlineData("{{ 123 }}", "123")]
         [InlineData("{{ 123.456 }}", "123.456")]
         [InlineData("{{ -123.456 }}", "-123.456")]

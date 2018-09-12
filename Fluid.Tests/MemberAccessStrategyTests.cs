@@ -13,7 +13,7 @@ namespace Fluid.Tests
 
             Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field1)));
             Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field2)));
-            Assert.Null(strategy.GetAccessor(typeof(Class1), "PrivateField"));
+            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateField)));
         }
 
         [Fact]
@@ -26,7 +26,7 @@ namespace Fluid.Tests
             Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1)));
             Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property2)));
 
-            Assert.Null(strategy.GetAccessor(typeof(Class1), "PrivateProperty"));
+            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateProperty)));
         }
 
         [Fact]
@@ -69,7 +69,7 @@ namespace Fluid.Tests
     {
         public static string StaticField;
         public static string StaticProperty { get; set; }
-        internal string PrivateField;
+        internal string PrivateField = null;
         internal string PrivateProperty { get; set; }
         public string Field1;
         public int Field2;
