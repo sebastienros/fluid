@@ -131,6 +131,30 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void Map_DeepProperties() 
+        {
+            var sample = new { Title = new { Text = "a" } };
+            var input = new ArrayValue(new[] {
+                new ObjectValue(new { Title = new { Text = "a" }}),
+                new ObjectValue(new { Title = new { Text = "b" }}),
+                new ObjectValue(new { Title = new { Text = "c" }})
+                });
+
+            var arguments = new FilterArguments().Add(new StringValue("Title.Text"));
+
+            var context = new TemplateContext();
+            context.MemberAccessStrategy.Register(sample.GetType());
+            context.MemberAccessStrategy.Register(sample.Title.GetType());
+
+            var result = ArrayFilters.Map(input, arguments, context);
+
+            Assert.Equal(3, result.Enumerate().Count());
+            Assert.Equal(new StringValue("a"), result.Enumerate().ElementAt(0));
+            Assert.Equal(new StringValue("b"), result.Enumerate().ElementAt(1));
+            Assert.Equal(new StringValue("c"), result.Enumerate().ElementAt(2));
+        }
+
+        [Fact]
         public void Reverse()
         {
             var input = new ArrayValue(new[] {

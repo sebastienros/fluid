@@ -38,16 +38,46 @@ namespace Fluid.Values
 
         public override async Task<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
-            var accessor = context.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
-
-            if (accessor != null)
+            if (name.Contains("."))
             {
-                if (accessor is IAsyncMemberAccessor asyncAccessor)
+                var members = name.Split('.');
+
+                IMemberAccessor accessor;
+                object target = _value;
+
+                foreach (var prop in members)
                 {
-                    return FluidValue.Create(await asyncAccessor.GetAsync(_value, name, context));
+                    accessor = context.MemberAccessStrategy.GetAccessor(target.GetType(), prop);
+                    if (accessor == null)
+                    {
+                        return NilValue.Instance;
+                    }
+
+                    if (accessor is IAsyncMemberAccessor asyncAccessor)
+                    {
+                        target = await asyncAccessor.GetAsync(target, prop, context);
+                    }
+                    else
+                    {
+                        target = accessor.Get(target, prop, context);
+                    }
                 }
 
-                return FluidValue.Create(accessor.Get(_value, name, context));
+                return FluidValue.Create(target);
+            }
+            else
+            {
+                var accessor = context.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
+
+                if (accessor != null)
+                {
+                    if (accessor is IAsyncMemberAccessor asyncAccessor)
+                    {
+                        return FluidValue.Create(await asyncAccessor.GetAsync(_value, name, context));
+                    }
+
+                    return FluidValue.Create(accessor.Get(_value, name, context));
+                }
             }
 
             return NilValue.Instance;
