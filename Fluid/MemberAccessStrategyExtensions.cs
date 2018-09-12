@@ -21,13 +21,13 @@ namespace Fluid
                 foreach (var propertyInfo in type.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {
                     list.Add(propertyInfo.Name);
-                    _namedAccessors.TryAdd($"{type.Name}-{propertyInfo.Name}", new MethodInfoAccessor(propertyInfo.GetGetMethod()));
+                    _namedAccessors.TryAdd($"({type.FullName})-{propertyInfo.Name}", new MethodInfoAccessor(propertyInfo.GetGetMethod()));
                 }
 
                 foreach (var fieldInfo in type.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))
                 {
                     list.Add(fieldInfo.Name);
-                    _namedAccessors.TryAdd($"{type.Name}-{fieldInfo.Name}", new DelegateAccessor((o, n) => fieldInfo.GetValue(o)));
+                    _namedAccessors.TryAdd($"({type.FullName})-{fieldInfo.Name}", new DelegateAccessor((o, n) => fieldInfo.GetValue(o)));
                 }
 
                 return list;
@@ -38,7 +38,7 @@ namespace Fluid
         {
             IMemberAccessor result = null;
 
-            return _namedAccessors.GetOrAdd($"{type.Name}-{name}", key =>
+            return _namedAccessors.GetOrAdd($"({type.FullName})-{name}", key =>
             {
                 var propertyInfo = type.GetTypeInfo().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
 
