@@ -50,35 +50,38 @@ namespace Fluid.Values
             return false;
         }
 
-        public override async Task<FluidValue> GetValueAsync(string name, TemplateContext context)
+        public override Task<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             if (name == "size")
             {
-                return new NumberValue(_value.Count);
+                return Task.FromResult<FluidValue>(new NumberValue(_value.Count));
             }
 
             object value = null;
 
-            var accessor = context.MemberAccessStrategy.GetAccessor(_value, name);
+            // NOTE: This code block doesn't seem to make any sense for a dictionary, just keeping it 
+            // as a comment in case it breaks something at some point.
 
-            if (accessor != null)
-            {
-                if (accessor is IAsyncMemberAccessor asyncAccessor)
-                {
-                    value = await asyncAccessor.GetAsync(_value, name, context);
-                }
-                else
-                {
-                    value = accessor.Get(_value, name, context);
-                }
-            }
+            //var accessor = context.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
+
+            //if (accessor != null)
+            //{
+            //    if (accessor is IAsyncMemberAccessor asyncAccessor)
+            //    {
+            //        value = await asyncAccessor.GetAsync(_value, name, context);
+            //    }
+            //    else
+            //    {
+            //        value = accessor.Get(_value, name, context);
+            //    }
+            //}
 
             if (value == null)
             {
-                return GetIndex(new StringValue(name), context);
+                return Task.FromResult(GetIndex(new StringValue(name), context));
             }
 
-            return FluidValue.Create(value);
+            return Task.FromResult(FluidValue.Create(value));
         }
 
         protected override FluidValue GetIndex(FluidValue index, TemplateContext context)

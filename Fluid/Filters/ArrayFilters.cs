@@ -129,19 +129,7 @@ namespace Fluid.Filters
 
             return new ArrayValue(input.Enumerate().OrderBy(x =>
             {
-                if (member.Contains("."))
-                {
-                    foreach(var prop in member.Split('.'))
-                    {
-                        x = x.GetValueAsync(prop, context).GetAwaiter().GetResult();
-                    }
-
-                    return x.ToObjectValue();
-                }
-                else
-                {
-                    return x.GetValueAsync(member, context).GetAwaiter().GetResult().ToObjectValue();
-                }
+                return x.GetValueAsync(member, context).GetAwaiter().GetResult().ToObjectValue();
             }).ToArray());
         }
 

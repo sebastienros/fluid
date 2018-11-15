@@ -104,9 +104,26 @@ namespace Fluid
 
                         if (tree.HasErrors())
                         {
+                            int line = 1, col = 1;
+                            foreach (var ch in segment.Buffer.Take(start))
+                            {
+                                switch (ch)
+                                {
+                                    case '\n':
+                                        line++;
+                                        col = 1;
+                                        break;
+                                    case '\r':
+                                        // Ignore
+                                        break;
+                                    default:
+                                        col++;
+                                        break;
+                                }
+                            }
                             errors = tree
                                 .ParserMessages
-                                .Select(x => $"{x.Message} at line:{x.Location.Line}, col:{x.Location.Column}")
+                                .Select(x => $"{x.Message} at line:{line + x.Location.Line}, col:{col + x.Location.Column}")
                                 .ToArray();
 
                             return false;

@@ -427,6 +427,7 @@ public class Startup
 Because the Liquid language only accepts known members to be accessed, the View Model classes need to be registered in Fluid. Usually from a static constructor such that the code is run only once for the application.
 
 #### View Model registration
+
 ```csharp
 public class Startup
 {
@@ -438,6 +439,20 @@ public class Startup
 ```
 
 More way to register types and members can be found in the [White-listing object members](#white-listing-object-members) section.
+
+#### Registering custom tags
+
+When using the MVC View engine, custom tags can be added to the `FluidViewTemplate` class. Refer to [this section](https://github.com/sebastienros/fluid#creating-a-custom-tag) on how to create custom tags.
+
+```csharp
+public class Startup
+{
+    static Startup()
+    {
+        FluidViewTemplate.Factory.RegisterTag<MyTag>("mytag");
+    }
+}
+```
 
 ### Layouts
 
