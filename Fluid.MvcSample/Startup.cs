@@ -1,4 +1,5 @@
 ﻿using Fluid.MvcSample.Models;
+using Fluid.MvcViewEngine;
 using FluidMvcViewEngine;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -12,6 +13,7 @@ namespace Fluid.MvcSample
         static Startup()
         {
             TemplateContext.GlobalMemberAccessStrategy.Register<Person>();
+            FluidViewTemplate.Factory.RegisterTag<MyTag>("mytag");
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
