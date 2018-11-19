@@ -65,7 +65,7 @@ namespace FluidMvcViewEngine
             context.AmbientValues[IncludeStatement.FluidTemplateFactoryKey] = FluidTemplateFactory;
             context.FileProvider = new FileProviderMapper(fileProvider, "Views");
 
-            var body = await template.RenderAsync(context);
+            var body = await template.RenderAsync(_options.TextEncoder, context);
 
             // If a layout is specified while rendering a view, execute it
             if (context.AmbientValues.TryGetValue("Layout", out var layoutPath))
@@ -74,7 +74,7 @@ namespace FluidMvcViewEngine
                 context.AmbientValues.Add("Body", body);
                 var layoutTemplate = ParseLiquidFile((string)layoutPath, fileProvider, false);
 
-                return await layoutTemplate.RenderAsync(context);
+                return await layoutTemplate.RenderAsync(_options.TextEncoder, context);
             }
 
             return body;
