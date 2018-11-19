@@ -22,7 +22,8 @@ namespace Fluid.Ast
             {
                 for (var index = 0; index < Statements.Count; index++)
                 {
-                    completion = await Statements[index].WriteToAsync(sw, encoder, context);
+                    // Don't encode captured blocks
+                    completion = await Statements[index].WriteToAsync(sw, NullEncoder.Default, context);
 
                     if (completion != Completion.Normal)
                     {
