@@ -492,7 +492,7 @@ namespace Fluid
 
                 default:
 
-                    if (tag.Term.Name.StartsWith("end"))
+                    if (tag.Term.Name.StartsWith("end", StringComparison.Ordinal))
                     {
                         var tagName = tag.Term.Name.Substring(3);
 

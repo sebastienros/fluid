@@ -38,7 +38,7 @@ namespace Fluid.Ast
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
-            if (!relativePath.EndsWith(ViewExtension))
+            if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))
             {
                 relativePath += ViewExtension;
             }

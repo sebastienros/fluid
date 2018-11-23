@@ -12,7 +12,7 @@ namespace Fluid.MvcViewEngine.Tags
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression)
         {
             var relativeLayoutPath = (await expression.EvaluateAsync(context)).ToStringValue();
-            if (!relativeLayoutPath.EndsWith(FluidViewEngine.ViewExtension))
+            if (!relativeLayoutPath.EndsWith(FluidViewEngine.ViewExtension, StringComparison.OrdinalIgnoreCase))
             {
                 relativeLayoutPath += FluidViewEngine.ViewExtension;
             }
