@@ -166,7 +166,11 @@ namespace Fluid
                         }
                     }
                 }
-
+                // Make sure we aren't still in a block
+                if(_context.AreInBlock())
+                {
+                    throw (new ParseException($"Expected end of block: {_context.CurrentBlock.Tag}"));
+                }
                 return true;
             }
             catch (ParseException e)

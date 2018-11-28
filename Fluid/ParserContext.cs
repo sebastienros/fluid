@@ -37,5 +37,12 @@ namespace Fluid
         {
             CurrentBlock = _blocks.Pop();
         }
+        /// <summary>
+        /// Invoked at the end of parsing to ensure we closed all blocks
+        /// </summary>
+        public bool AreInBlock()
+        {
+            return(_blocks.Count > 0);
+        }
     }
 }
