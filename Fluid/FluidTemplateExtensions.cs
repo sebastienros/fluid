@@ -12,7 +12,12 @@ namespace Fluid
             template.RenderAsync(writer, encoder, context).GetAwaiter().GetResult();
         }
 
-        public static async Task<string> RenderAsync(this IFluidTemplate template, TemplateContext context)
+        public static Task<string> RenderAsync(this IFluidTemplate template, TemplateContext context)
+        {
+            return template.RenderAsync(HtmlEncoder.Default, context);
+        }
+
+        public static async Task<string> RenderAsync(this IFluidTemplate template, TextEncoder encoder, TemplateContext context)
         {
             if (context == null)
             {
@@ -26,7 +31,7 @@ namespace Fluid
 
             using (var writer = new StringWriter())
             {
-                await template.RenderAsync(writer, HtmlEncoder.Default, context);
+                await template.RenderAsync(writer, encoder, context);
                 return writer.ToString();
             }
         }

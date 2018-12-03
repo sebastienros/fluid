@@ -240,5 +240,35 @@ def", "at line:2, col:6")]
 
             Assert.EndsWith(expectedErrorEndString, errors.FirstOrDefault());
         }
+
+        [Theory]
+        [InlineData("{% for a in b %}")]
+        [InlineData("{% if true %}")]
+        [InlineData("{% unless true %}")]
+        [InlineData("{% case a %}")]
+        [InlineData("{% capture myVar %}")]
+        public void ShouldFailNotClosedBlock(string source)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.False(result);
+            Assert.NotEmpty(errors);
+        }
+
+        [Theory]
+        [InlineData("{% for a in b %} {% endfor %}")]
+        [InlineData("{% if true %} {% endif %}")]
+        [InlineData("{% unless true %} {% endunless %}")]
+        [InlineData("{% case a %} {% when 'cake' %} blah {% endcase %}")]
+        [InlineData("{% capture myVar %} capture me! {% endcapture %}")]
+        public void ShouldSucceedClosedBlock(string source)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Empty(errors);
+        }
+
     }
 }

@@ -166,7 +166,12 @@ namespace Fluid
                         }
                     }
                 }
-
+                
+                // Make sure we aren't still in a block
+                if (_context._blocks.Count > 0)
+                {
+                    throw (new ParseException($"Expected end of block: {_context.CurrentBlock.Tag}"));
+                }
                 return true;
             }
             catch (ParseException e)
@@ -492,7 +497,7 @@ namespace Fluid
 
                 default:
 
-                    if (tag.Term.Name.StartsWith("end"))
+                    if (tag.Term.Name.StartsWith("end", StringComparison.Ordinal))
                     {
                         var tagName = tag.Term.Name.Substring(3);
 
