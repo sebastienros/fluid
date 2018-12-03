@@ -6,7 +6,7 @@ namespace Fluid
 {
     public class ParserContext
     {
-        private Stack<BlockContext> _blocks { get; } = new Stack<BlockContext>();
+        internal Stack<BlockContext> _blocks { get; } = new Stack<BlockContext>();
 
         public BlockContext CurrentBlock { get; private set; } = new BlockContext(null);
 
