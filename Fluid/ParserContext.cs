@@ -6,7 +6,7 @@ namespace Fluid
 {
     public class ParserContext
     {
-        private Stack<BlockContext> _blocks { get; } = new Stack<BlockContext>();
+        internal Stack<BlockContext> _blocks { get; } = new Stack<BlockContext>();
 
         public BlockContext CurrentBlock { get; private set; } = new BlockContext(null);
 
@@ -36,13 +36,6 @@ namespace Fluid
         public void ExitBlock()
         {
             CurrentBlock = _blocks.Pop();
-        }
-        /// <summary>
-        /// Invoked at the end of parsing to ensure we closed all blocks
-        /// </summary>
-        public bool AreInBlock()
-        {
-            return(_blocks.Count > 0);
         }
     }
 }

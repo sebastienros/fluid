@@ -167,7 +167,7 @@ namespace Fluid
                     }
                 }
                 // Make sure we aren't still in a block
-                if(_context.AreInBlock())
+                if(_context._blocks.Count > 0)
                 {
                     throw (new ParseException($"Expected end of block: {_context.CurrentBlock.Tag}"));
                 }
