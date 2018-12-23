@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
@@ -12,9 +13,9 @@ namespace Fluid.Tests
         private Expression TRUE = new LiteralExpression(new BooleanValue(true));
         private Expression FALSE = new LiteralExpression(new BooleanValue(false));
 
-        private Statement[] TEXT(string text)
+        private List<Statement> TEXT(string text)
         {
-            return new Statement[] { new TextStatement(text) };
+            return new List<Statement> { new TextStatement(text) };
         }
 
         [Fact]
@@ -22,7 +23,7 @@ namespace Fluid.Tests
         {
             var e = new IfStatement(
                 TRUE,
-                new[] { new TextStatement("x") }
+                new List<Statement> { new TextStatement("x") }
                 );
 
             var sw = new StringWriter();
@@ -36,7 +37,7 @@ namespace Fluid.Tests
         {
             var e = new IfStatement(
                 FALSE,
-                new[] { new TextStatement("x") }
+                new List<Statement> { new TextStatement("x") }
                 );
 
             var sw = new StringWriter();
@@ -50,10 +51,10 @@ namespace Fluid.Tests
         {
             var e = new IfStatement(
                 TRUE,
-                new Statement[] {
+                new List<Statement> {
                     new TextStatement("x")
                 },
-                new ElseStatement(new[] {
+                new ElseStatement(new List<Statement> {
                         new TextStatement("y")
                     }));
 
@@ -68,10 +69,10 @@ namespace Fluid.Tests
         {
             var e = new IfStatement(
                 FALSE,
-                new Statement[] {
+                new List<Statement> {
                     new TextStatement("x")
                 },
-                new ElseStatement(new[] {
+                new ElseStatement(new List<Statement> {
                         new TextStatement("y")
                     })
                 );
@@ -89,7 +90,7 @@ namespace Fluid.Tests
                 FALSE,
                 TEXT("a"),
                 new ElseStatement(TEXT("b")),
-                new[] { new ElseIfStatement(FALSE, TEXT("c")) }
+                new List<ElseIfStatement> { new ElseIfStatement(FALSE, TEXT("c")) }
                 );
 
             var sw = new StringWriter();
@@ -105,7 +106,7 @@ namespace Fluid.Tests
                 FALSE,
                 TEXT("a"),
                 new ElseStatement(TEXT("b")),
-                new[] { new ElseIfStatement(TRUE, TEXT("c")) }
+                new List<ElseIfStatement> { new ElseIfStatement(TRUE, TEXT("c")) }
                 );
 
             var sw = new StringWriter();
@@ -121,7 +122,7 @@ namespace Fluid.Tests
                 FALSE,
                 TEXT("a"),
                 new ElseStatement(TEXT("b")),
-                new[] {
+                new List<ElseIfStatement> {
                     new ElseIfStatement(FALSE, TEXT("c")),
                     new ElseIfStatement(TRUE, TEXT("d"))}
                 );
@@ -139,7 +140,7 @@ namespace Fluid.Tests
                 FALSE,
                 TEXT("a"),
                 new ElseStatement(TEXT("b")),
-                new[] {
+                new List<ElseIfStatement> {
                     new ElseIfStatement(TRUE, TEXT("c")),
                     new ElseIfStatement(TRUE, TEXT("d"))}
                 );
@@ -157,7 +158,7 @@ namespace Fluid.Tests
                 FALSE,
                 TEXT("a"),
                 null,
-                new[] {
+                new List<ElseIfStatement> {
                     new ElseIfStatement(FALSE, TEXT("c")),
                     new ElseIfStatement(FALSE, TEXT("d"))}
                 );

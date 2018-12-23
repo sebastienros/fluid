@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
@@ -17,7 +15,7 @@ namespace Fluid.Tests
         public async Task ShouldLoopRange()
         {
             var e = new ForStatement(
-                new[] { new TextStatement("x") },
+                new List<Statement> { new TextStatement("x") },
                 "i",
                 new RangeExpression(
                     new LiteralExpression(new NumberValue(1)),
@@ -36,7 +34,7 @@ namespace Fluid.Tests
         public async Task ShouldUseCurrentContext()
         {
             var e = new ForStatement(
-                new Statement[] {
+                new List<Statement> {
                     new AssignStatement("z", new LiteralExpression(new NumberValue(1)))
                     },
                 "i",
@@ -62,7 +60,7 @@ namespace Fluid.Tests
         public async Task ShouldLoopArrays()
         {
             var e = new ForStatement(
-                new[] { new TextStatement("x") },
+                new List<Statement> { new TextStatement("x") },
                 "i",
                 new MemberExpression(
                     new IdentifierSegment("items")
@@ -82,7 +80,7 @@ namespace Fluid.Tests
         public async Task ShouldHandleBreak()
         {
             var e = new ForStatement(
-                new Statement[] {
+                new List<Statement> {
                     new TextStatement("x"),
                     new BreakStatement(),
                     new TextStatement("y")
@@ -106,7 +104,7 @@ namespace Fluid.Tests
         public async Task ShouldHandleContinue()
         {
             var e = new ForStatement(
-                new Statement[] {
+                new List<Statement> {
                     new TextStatement("x"),
                     new ContinueStatement(),
                     new TextStatement("y")
@@ -131,7 +129,7 @@ namespace Fluid.Tests
         {
 
             var e = new ForStatement(
-                new Statement[] {
+                new List<Statement> {
                     CreateMemberStatement("forloop.length"),
                     CreateMemberStatement("forloop.index"),
                     CreateMemberStatement("forloop.index0"),
@@ -159,7 +157,7 @@ namespace Fluid.Tests
         public async Task ForEvaluatesOptions()
         {
             var e = new ForStatement(
-                new[] { CreateMemberStatement("i") },
+                new List<Statement> { CreateMemberStatement("i") },
                 "i",
                 new RangeExpression(
                     new LiteralExpression(new NumberValue(1)),

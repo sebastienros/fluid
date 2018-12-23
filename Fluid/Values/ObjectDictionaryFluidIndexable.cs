@@ -4,12 +4,18 @@ namespace Fluid.Values
 {
     public class ObjectDictionaryFluidIndexable : IFluidIndexable
     {
-        private readonly IDictionary<string, object> _dictionary;
+        private readonly Dictionary<string, object> _dictionary;
 
-        public ObjectDictionaryFluidIndexable(IDictionary<string, object> dictionary)
+        public ObjectDictionaryFluidIndexable(Dictionary<string, object> dictionary)
         {
             _dictionary = dictionary;
         }
+
+        public ObjectDictionaryFluidIndexable(IDictionary<string, object> dictionary)
+        {
+            _dictionary = new Dictionary<string, object>(dictionary);
+        }
+
 
         public int Count => _dictionary.Count;
 

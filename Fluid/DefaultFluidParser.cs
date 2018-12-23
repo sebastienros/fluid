@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Fluid.Ast;
 using Fluid.Ast.BinaryExpressions;
@@ -29,7 +30,7 @@ namespace Fluid
             _blocks = blocks;
         }
 
-        public bool TryParse(string template, out IList<Statement> result, out IEnumerable<string> errors)
+        public bool TryParse(string template, out List<Statement> result, out IEnumerable<string> errors)
         {
             errors = Array.Empty<string>();
             var segment = new StringSegment(template);
@@ -182,6 +183,7 @@ namespace Fluid
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ConsumeTextStatement(StringSegment segment, int start, int end, bool trimStart, bool trimEnd)
         {
             var textSatement = CreateTextStatement(segment, start, end, trimStart, trimEnd);
@@ -364,7 +366,7 @@ namespace Fluid
                         // Start tag found
                         var endTag = c == '{' ? "}}" : "%}";
 
-                        end = template.Value.IndexOf(endTag, start + 2);
+                        end = template.Value.IndexOf(endTag, start + 2, StringComparison.Ordinal);
 
                         if (end == -1)
                         {

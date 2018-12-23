@@ -9,8 +9,7 @@ namespace Fluid.Ast
     {
         public UnlessStatement(
             Expression condition,
-            IList<Statement> statements
-            ) : base(statements)
+            List<Statement> statements) : base(statements)
         {
             Condition = condition;
         }
@@ -23,8 +22,9 @@ namespace Fluid.Ast
 
             if (!result)
             {
-                foreach (var statement in Statements)
+                for (var i = 0; i < Statements.Count; i++)
                 {
+                    var statement = Statements[i];
                     var completion = await statement.WriteToAsync(writer, encoder, context);
 
                     if (completion != Completion.Normal)

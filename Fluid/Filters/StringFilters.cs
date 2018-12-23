@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using Fluid.Values;
 
 namespace Fluid.Filters
@@ -36,21 +35,20 @@ namespace Fluid.Filters
             return new StringValue(input.ToStringValue() + arguments.At(0).ToStringValue());
         }
 
-        public static char[] CapitalizeDelimiters = new char [] { '-', '.' };
-
         public static FluidValue Capitalize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var source = input.ToStringValue().ToCharArray();
 
             for (var i = 0; i < source.Length; i++)
             {
-                if (i == 0 || Char.IsWhiteSpace(source[i - 1]) || CapitalizeDelimiters.Contains(source[i - 1]))
+                char c;
+                if (i == 0 || char.IsWhiteSpace(c = source[i - 1]) || c == '-' || c == '.')
                 {
                     source[i] = char.ToUpper(source[i]);
                 }
             }
 
-            return new StringValue(new String(source));
+            return new StringValue(new string(source));
         }
 
         public static FluidValue Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -132,11 +130,16 @@ namespace Fluid.Filters
 
         public static FluidValue Split(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new ArrayValue(input.ToStringValue()
-                .Split(new [] { arguments.At(0).ToStringValue() }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(FluidValue.Create)
-                .ToArray()
-            );
+            var strings = input.ToStringValue()
+                .Split(new [] { arguments.At(0).ToStringValue() }, StringSplitOptions.RemoveEmptyEntries);
+
+            var values = new FluidValue[strings.Length];
+            for (var i = 0; i < strings.Length; i++)
+            {
+                values[i] = FluidValue.Create(strings[i]);
+            }
+
+            return new ArrayValue(values);
         }
 
         public static FluidValue Strip(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -181,8 +184,8 @@ namespace Fluid.Filters
             {
                 for (var i = 0; i < source.Length;)
                 {
-                    while (i < source.Length && Char.IsWhiteSpace(source[i])) i++;
-                    while (i < source.Length && !Char.IsWhiteSpace(source[i])) i++;
+                    while (i < source.Length && char.IsWhiteSpace(source[i])) i++;
+                    while (i < source.Length && !char.IsWhiteSpace(source[i])) i++;
                     words++;
 
                     if (words >= size)

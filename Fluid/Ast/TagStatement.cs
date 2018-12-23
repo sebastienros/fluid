@@ -1,15 +1,21 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace Fluid.Ast
 {
     public abstract class TagStatement : Statement
     {
+        private readonly List<Statement> _statements;
 
-        public TagStatement(IList<Statement> statements)
+        protected TagStatement(List<Statement> statements)
         {
-            Statements = statements;
+            _statements = statements;
         }
 
-        public IList<Statement> Statements { get; }        
+        public List<Statement> Statements
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _statements;
+        }
     }
 }

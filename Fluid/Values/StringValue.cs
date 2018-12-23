@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -111,7 +110,10 @@ namespace Fluid.Values
 
         public override IEnumerable<FluidValue> Enumerate()
         {
-            return _value.Select(x => new StringValue(x.ToString())).ToArray();
+            foreach (var c in _value)
+            {
+                yield return new StringValue(c.ToString());
+            }
         }
 
         public override bool Equals(object other)
