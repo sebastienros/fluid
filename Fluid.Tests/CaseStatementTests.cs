@@ -38,6 +38,46 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task CaseProcessesMultipleStatements()
+        {
+            var e = new CaseStatement(
+                A,
+                null,
+                new[] {
+                    new WhenStatement(new List<Expression> { A }, 
+                    new List<Statement> { new TextStatement("x"), new TextStatement("y") })
+                }
+            );
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+
+            Assert.Equal("xy", sw.ToString());
+        }
+
+        [Fact]
+        public async Task CaseEvaluateMember()
+        {
+            var e = new CaseStatement(
+                new MemberExpression(
+                    new IdentifierSegment("val")
+                ),
+                null,
+                new[] {
+                    new WhenStatement(new List<Expression> { A }, TEXT("x"))
+                }
+            );
+
+            var sw = new StringWriter();
+            var context = new TemplateContext();
+            context.SetValue("val", "a");
+
+            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal("x", sw.ToString());
+        }
+
+        [Fact]
         public async Task CaseCanProcessWhenMatchMultiple()
         {
             var e = new CaseStatement(

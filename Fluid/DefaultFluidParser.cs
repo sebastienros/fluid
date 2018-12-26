@@ -660,7 +660,7 @@ namespace Fluid
                 throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'case' tag.");
             }
 
-            if (context.Statements.Count > 0)
+            if (context.Statements.Count > 0 && context.Statements.Any(x => x is TextStatement text && !String.IsNullOrWhiteSpace(text.Text)))
             {
                 throw new ParseException($"Unexpected content in 'case' tag. Only 'when' and 'else' are allowed.");
             }

@@ -28,7 +28,7 @@ namespace Fluid.Tests
             Assert.NotNull(textStatement);
             Assert.Equal("Hello World", textStatement.Text);
         }
-        
+
         [Fact]
         public void ShouldParseOutput()
         {
@@ -270,5 +270,27 @@ def", "at line:2, col:6")]
             Assert.Empty(errors);
         }
 
+        [Fact]
+        public void ShouldAllowNewLinesInCase()
+        {
+            var result = FluidTemplate.TryParse(@"
+                {% case food %}
+                    
+
+
+                    {% when 'cake' %}
+                        yum
+                    {% when 'rock' %}
+                        yuck
+                {% endcase %}
+                ", out var template, out var errors);
+
+            var context = new TemplateContext();
+            context.SetValue("food", "cake");
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Empty(errors);
+        }
     }
 }
