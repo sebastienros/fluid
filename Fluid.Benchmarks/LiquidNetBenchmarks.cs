@@ -1,6 +1,5 @@
 ﻿using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Attributes.Jobs;
 using Liquid.NET;
 using Liquid.NET.Constants;
 using Liquid.NET.Utils;
@@ -8,7 +7,6 @@ using Liquid.NET.Utils;
 namespace Fluid.Benchmarks
 {
     [MemoryDiagnoser]
-    [ShortRunJob]
     public class LiquidNetBenchmarks : BaseBenchmarks
     {
         private LiquidParsingResult _sampleTemplateLiquidNet;

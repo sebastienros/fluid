@@ -84,7 +84,7 @@ namespace Fluid.Tests
 {% endfor %}");
 
             Assert.Equal(1, statements.Count);
-            Assert.Equal(0, ((ForStatement)statements[0]).Statements.Count);
+            Assert.Empty(((ForStatement)statements[0]).Statements);
         }
 
         [Fact]
@@ -163,9 +163,9 @@ namespace Fluid.Tests
 
             var ifStatement = statements.ElementAt(0) as IfStatement;
             Assert.NotNull(ifStatement);
-            Assert.Equal(1, ifStatement.Statements.Count);
+            Assert.Single(ifStatement.Statements);
             Assert.NotNull(ifStatement.Else);
-            Assert.Equal(0, ifStatement.ElseIfs.Count);
+            Assert.Empty(ifStatement.ElseIfs);
         }
 
         [Fact]
@@ -175,7 +175,7 @@ namespace Fluid.Tests
 
             var ifStatement = statements.ElementAt(0) as IfStatement;
             Assert.NotNull(ifStatement);
-            Assert.Equal(1, ifStatement.Statements.Count);
+            Assert.Single(ifStatement.Statements);
             Assert.NotNull(ifStatement.Else);
             Assert.NotNull(ifStatement.ElseIfs);
         }

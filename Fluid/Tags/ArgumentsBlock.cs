@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
@@ -18,7 +17,12 @@ namespace Fluid.Tags
         public override Statement Parse(ParseTreeNode node, ParserContext context)
         {
             var e = context.CurrentBlock.Tag.ChildNodes[0];
-            var arguments = e.ChildNodes.Select(DefaultFluidParser.BuildFilterArgument).ToArray();
+            var arguments = new FilterArgument[e.ChildNodes.Count];
+            for (var i = 0; i < e.ChildNodes.Count; i++)
+            {
+                arguments[i] = DefaultFluidParser.BuildFilterArgument(e.ChildNodes[i]);
+            }
+
             var statements = context.CurrentBlock.Statements;
             return new DelegateStatement((writer, encoder, ctx) => WriteToAsync(writer, encoder, ctx, arguments, statements));
         }

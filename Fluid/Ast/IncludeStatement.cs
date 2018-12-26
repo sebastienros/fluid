@@ -101,7 +101,7 @@ namespace Fluid.Ast
             }
         }
 
-        private static IFluidTemplate CreateTemplate(TemplateContext context, IList<Statement> statements)
+        private static IFluidTemplate CreateTemplate(TemplateContext context, List<Statement> statements)
         {
             IFluidTemplate template;
             if (context.AmbientValues.TryGetValue(FluidTemplateFactoryKey, out var factory))

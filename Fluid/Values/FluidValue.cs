@@ -104,8 +104,14 @@ namespace Fluid.Values
                         case DateTimeOffset dateTimeOffset:
                             return new DateTimeValue((DateTimeOffset)value);
 
+                        case Dictionary<string, object> dictionary:
+                            return new DictionaryValue(new ObjectDictionaryFluidIndexable(dictionary));
+
                         case IDictionary<string, object> dictionary:
                             return new DictionaryValue(new ObjectDictionaryFluidIndexable(dictionary));
+
+                        case Dictionary<string, FluidValue> fluidDictionary:
+                            return new DictionaryValue(new FluidValueDictionaryFluidIndexable(fluidDictionary));
 
                         case IDictionary<string, FluidValue> fluidDictionary:
                             return new DictionaryValue(new FluidValueDictionaryFluidIndexable(fluidDictionary));

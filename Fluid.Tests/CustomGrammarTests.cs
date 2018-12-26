@@ -68,7 +68,7 @@ namespace Fluid.Tests
             var range = node.ChildNodes[0].ChildNodes[1];
 
             return new ForStatement(
-                new[] { new OutputStatement(new LiteralExpression(new StringValue(identifier))) },
+                new List<Statement> { new OutputStatement(new LiteralExpression(new StringValue(identifier))) },
                 identifier,
                 DefaultFluidParser.BuildRangeExpression(range),
                 null,

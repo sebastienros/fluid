@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
@@ -16,7 +15,13 @@ namespace Fluid.Tags
 
         public Statement Parse(ParseTreeNode node, ParserContext context)
         {
-            var arguments = node.ChildNodes[0].ChildNodes.Select(DefaultFluidParser.BuildFilterArgument).ToArray();
+            var nodes = node.ChildNodes[0].ChildNodes;
+            var arguments = new FilterArgument[nodes.Count];
+            for (var i = 0; i < nodes.Count; i++)
+            {
+                arguments[i] = DefaultFluidParser.BuildFilterArgument(nodes[i]);
+            }
+
             return new DelegateStatement((writer, encoder, ctx) => WriteToAsync(writer, encoder, ctx, arguments));
         }
 

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
@@ -7,12 +8,18 @@ namespace Fluid.Ast
 {
     public class WhenStatement : TagStatement
     {
-        public WhenStatement(IList<Expression> options, IList<Statement> statements) : base(statements)
+        private readonly List<Expression> _options;
+
+        public WhenStatement(List<Expression> options, List<Statement> statements) : base(statements)
         {
-            Options = options;
+            _options = options;
         }
 
-        public IList<Expression> Options { get; }
+        public List<Expression> Options
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _options;
+        }
 
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {

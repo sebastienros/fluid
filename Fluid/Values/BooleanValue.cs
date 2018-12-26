@@ -6,8 +6,11 @@ namespace Fluid.Values
 {
     public class BooleanValue : FluidValue
     {
-        public static BooleanValue False = new BooleanValue(false);
-        public static BooleanValue True = new BooleanValue(true);
+        public static readonly BooleanValue False = new BooleanValue(false);
+        public static readonly BooleanValue True = new BooleanValue(true);
+
+        private static readonly object BoxedTrue = true;
+        private static readonly object BoxedFalse = false;
 
         private readonly bool _value;
 
@@ -45,7 +48,7 @@ namespace Fluid.Values
 
         public override object ToObjectValue()
         {
-            return _value;
+            return _value ? BoxedTrue : BoxedFalse;
         }
 
         public override bool Equals(object other)

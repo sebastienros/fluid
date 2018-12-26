@@ -9,13 +9,18 @@ namespace Fluid.Values
 {
     public class ArrayValue : FluidValue
     {
-        private readonly IList<FluidValue> _value;
+        private readonly List<FluidValue> _value;
 
         public override FluidValues Type => FluidValues.Array;
 
-        public ArrayValue(IList<FluidValue> value)
+        public ArrayValue(List<FluidValue> value)
         {
             _value = value;
+        }
+
+        public ArrayValue(FluidValue[] value)
+        {
+            _value = new List<FluidValue>(value);
         }
 
         public ArrayValue(IEnumerable<FluidValue> value)

@@ -1,12 +1,10 @@
 ﻿using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Attributes.Jobs;
 using DotLiquid;
 
 namespace Fluid.Benchmarks
 {
     [MemoryDiagnoser]
-    [ShortRunJob]
     public class DotLiquidBenchmarks : BaseBenchmarks
     {
         

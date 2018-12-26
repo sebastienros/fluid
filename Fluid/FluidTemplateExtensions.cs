@@ -29,10 +29,13 @@ namespace Fluid
                 throw new ArgumentNullException(nameof(template));
             }
 
-            using (var writer = new StringWriter())
+            using (var sb = StringBuilderPool.GetInstance())
             {
-                await template.RenderAsync(writer, encoder, context);
-                return writer.ToString();
+                using (var writer = new StringWriter(sb.Builder))
+                {
+                    await template.RenderAsync(writer, encoder, context);
+                    return writer.ToString();
+                }
             }
         }
 

@@ -1,11 +1,9 @@
 ﻿using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Attributes.Jobs;
 
 namespace Fluid.Benchmarks
 {
     [MemoryDiagnoser]
-    [ShortRunJob]
     public class FluidBenchmarks : BaseBenchmarks
     {
         private FluidTemplate _sampleTemplateFluid;

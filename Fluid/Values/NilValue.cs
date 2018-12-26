@@ -23,7 +23,7 @@ namespace Fluid.Values
         public override bool ToBooleanValue()
         {
             // Empty is a NilValue that is Truthy
-            return this == Empty;
+            return ReferenceEquals(this, Empty);
         }
 
         public override double ToNumberValue()
@@ -53,12 +53,7 @@ namespace Fluid.Values
         public override bool Equals(object other)
         {
             // The is operator will return false if null
-            if (other is NilValue otherValue)
-            {
-                return true;
-            }
-
-            return false;
+            return other is NilValue;
         }
 
         public override int GetHashCode()

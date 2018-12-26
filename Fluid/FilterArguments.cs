@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Fluid.Values;
 
 namespace Fluid
@@ -15,6 +16,7 @@ namespace Fluid
 
         public int Count => _positional != null ? _positional.Count : 0;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public FluidValue At(int index)
         {
             if (_positional == null || index >= _positional.Count)
