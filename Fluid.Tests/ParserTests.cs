@@ -292,5 +292,22 @@ def", "at line:2, col:6")]
             Assert.NotNull(template);
             Assert.Empty(errors);
         }
+
+        [Theory]
+        [InlineData("{{ 20 | divided_by: 7.0 | round: 2 }}", "2.86")]
+        [InlineData("{{ 20 | divided_by: 7 | round: 2 }}", "2")]
+        public void ShouldParseIntegralNumbers(string source, string expected)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Empty(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal(expected, rendered);
+
+        }
     }
 }

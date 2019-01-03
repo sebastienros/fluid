@@ -901,7 +901,8 @@ namespace Fluid
                     return new LiteralExpression(new StringValue(node.Token.ValueString));
 
                 case "number":
-                    return new LiteralExpression(new NumberValue(Convert.ToDouble(node.Token.Value)));
+                    var decimalSeparator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
+                    return new LiteralExpression(new NumberValue(Convert.ToDouble(node.Token.Value), !node.Token.Text.Contains(decimalSeparator)));
 
                 case "boolean":
                     if (!bool.TryParse(node.ChildNodes[0].Token.Text, out var boolean))
