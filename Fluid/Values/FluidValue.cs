@@ -75,12 +75,12 @@ namespace Fluid.Values
             {
                 case TypeCode.Boolean:
                     return new BooleanValue(Convert.ToBoolean(value));
-                case TypeCode.Byte:
                 case TypeCode.Decimal:
                 case TypeCode.Double:
-                case TypeCode.SByte:
                 case TypeCode.Single:
                     return new NumberValue(Convert.ToDouble(value));
+                case TypeCode.SByte:
+                case TypeCode.Byte:
                 case TypeCode.Int16:
                 case TypeCode.Int32:
                 case TypeCode.Int64:
