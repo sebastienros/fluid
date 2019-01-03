@@ -135,13 +135,10 @@ namespace Fluid
             // We will interlock only when we have a candidate. in a worst case we may miss some
             // recently returned objects. Not a big deal.
             T inst = _firstItem;
-            if (!ReferenceEquals(inst, null))
+            if (inst == null || inst != Interlocked.CompareExchange(ref _firstItem, null, inst))
             {
-                _firstItem = null;
-                return inst;
+                inst = AllocateSlow();
             }
-
-            inst = AllocateSlow();
 
 #if DETECT_LEAKS
             var tracker = new LeakTracker();
@@ -161,11 +158,16 @@ namespace Fluid
 
             for (int i = 0; i < items.Length; i++)
             {
+                // Note that the initial read is optimistically not synchronized. That is intentional.
+                // We will interlock only when we have a candidate. in a worst case we may miss some
+                // recently returned objects. Not a big deal.
                 T inst = items[i].Value;
-                if (!ReferenceEquals(inst, null))
+                if (inst != null)
                 {
-                    items[i].Value = null;
-                    return inst;
+                    if (inst == Interlocked.CompareExchange(ref items[i].Value, null, inst))
+                    {
+                        return inst;
+                    }
                 }
             }
 
@@ -185,7 +187,7 @@ namespace Fluid
             Validate(obj);
             ForgetTrackedObject(obj);
 
-            if (ReferenceEquals(_firstItem, null))
+            if (_firstItem == null)
             {
                 // Intentionally not using interlocked here.
                 // In a worst case scenario two objects may be stored into same slot.
@@ -203,7 +205,7 @@ namespace Fluid
             var items = _items;
             for (int i = 0; i < items.Length; i++)
             {
-                if (ReferenceEquals(items[i].Value, null))
+                if (items[i].Value == null)
                 {
                     // Intentionally not using interlocked here.
                     // In a worst case scenario two objects may be stored into same slot.
@@ -266,7 +268,7 @@ namespace Fluid
             for (int i = 0; i < items.Length; i++)
             {
                 var value = items[i].Value;
-                if (ReferenceEquals(value, null))
+                if (value == null)
                 {
                     return;
                 }
@@ -341,5 +343,4 @@ namespace Fluid
             }
         }
     }
-
 }
