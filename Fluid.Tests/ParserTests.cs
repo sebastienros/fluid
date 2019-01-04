@@ -1,8 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Fluid.Ast;
+﻿using Fluid.Ast;
 using Irony.Parsing;
-using Microsoft.Extensions.Primitives;
+using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace Fluid.Tests
@@ -60,42 +59,6 @@ namespace Fluid.Tests
             var statements = Parse("{% for a in b %}{% endfor %}");
 
             Assert.IsType<ForStatement>(statements.ElementAt(0));
-        }
-
-        [Fact]
-        public void ShouldTrimTextOnStart()
-        {
-            var statements = Parse("  {% for a in b %}{% endfor %}");
-            Assert.IsType<ForStatement>(statements.ElementAt(0));
-        }
-
-        [Fact]
-        public void ShouldTrimTextOnEnd()
-        {
-            var statements = Parse("{% for a in b %}{% endfor %}   ");
-            Assert.Equal(1, statements.Count);
-            Assert.IsType<ForStatement>(statements.ElementAt(0));
-        }
-
-        [Fact]
-        public void ShouldTrimTextOnLineBreak()
-        {
-            var statements = Parse(@"{% for a in b %}  
-{% endfor %}");
-
-            Assert.Equal(1, statements.Count);
-            Assert.Empty(((ForStatement)statements[0]).Statements);
-        }
-
-        [Fact]
-        public void ShouldTrimTextOnNewLineBreak()
-        {
-            var statements = Parse(@"{% for a in b %}   
-
-{% endfor %}");
-            Assert.Equal(1, statements.Count);
-            var text = ((ForStatement)statements[0]).Statements[0] as TextStatement;
-            Assert.Equal("\r\n", text.Text);
         }
 
         [Fact]

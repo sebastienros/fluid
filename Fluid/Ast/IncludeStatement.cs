@@ -58,7 +58,7 @@ namespace Fluid.Ast
 
                 string partialTemplate = await streamReader.ReadToEndAsync();
                 var parser = CreateParser(context);
-                if (parser.TryParse(partialTemplate, out var statements, out var errors))
+                if (parser.TryParse(partialTemplate, true, out var statements, out var errors))
                 {
                     var template = CreateTemplate(context, statements);
                     if (With != null)
