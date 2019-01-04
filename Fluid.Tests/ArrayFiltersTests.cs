@@ -230,6 +230,48 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void SortWithoutArgument()
+        {
+            var input = new ArrayValue(new[] {
+                new StringValue("c"),
+                new StringValue("a"),
+                new StringValue("B"),
+                });
+
+            var arguments = new FilterArguments();
+
+            var context = new TemplateContext();
+
+            var result = ArrayFilters.Sort(input, arguments, context);
+
+            Assert.Equal(3, result.Enumerate().Count());
+            Assert.Equal("B", result.Enumerate().ElementAt(0).ToStringValue());
+            Assert.Equal("a", result.Enumerate().ElementAt(1).ToStringValue());
+            Assert.Equal("c", result.Enumerate().ElementAt(2).ToStringValue());
+        }
+
+        [Fact]
+        public void SortNaturalWithoutArgument()
+        {
+            var input = new ArrayValue(new[] {
+                new StringValue("c"),
+                new StringValue("a"),
+                new StringValue("B"),
+                });
+
+            var arguments = new FilterArguments();
+
+            var context = new TemplateContext();
+
+            var result = ArrayFilters.SortNatural(input, arguments, context);
+
+            Assert.Equal(3, result.Enumerate().Count());
+            Assert.Equal("a", result.Enumerate().ElementAt(0).ToStringValue());
+            Assert.Equal("B", result.Enumerate().ElementAt(1).ToStringValue());
+            Assert.Equal("c", result.Enumerate().ElementAt(2).ToStringValue());
+        }
+
+        [Fact]
         public void Uniq()
         {
             var input = new ArrayValue(new[] {
