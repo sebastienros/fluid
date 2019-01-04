@@ -2,6 +2,7 @@
 using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
+using System;
 
 namespace Fluid.Tests
 {
@@ -20,17 +21,19 @@ namespace Fluid.Tests
             Assert.Equal(5, result.ToNumberValue());
         }
 
-        [Fact]
-        public void DividedBy()
+        [Theory]
+        [InlineData(4, 5, 0)]
+        [InlineData(4, 5.0, 0.8)]
+        public void DividedByReturnsSameTypeAsDivisor(double value, object divisor, double expected)
         {
-            var input = new NumberValue(6);
+            var input = new NumberValue(value);
 
-            var arguments = new FilterArguments(3);
+            var arguments = new FilterArguments(new NumberValue(Convert.ToDouble(divisor), divisor is int));
             var context = new TemplateContext();
 
             var result = NumberFilters.DividedBy(input, arguments, context);
 
-            Assert.Equal(2, result.ToNumberValue());
+            Assert.Equal(expected, result.ToNumberValue());
         }
 
         [Fact]
@@ -101,7 +104,7 @@ namespace Fluid.Tests
         [Fact]
         public void Times()
         {
-            var input = new NumberValue(6);
+            var input = new NumberValue(6, true);
 
             var arguments = new FilterArguments(3);
             var context = new TemplateContext();
@@ -109,6 +112,21 @@ namespace Fluid.Tests
             var result = NumberFilters.Times(input, arguments, context);
 
             Assert.Equal(18, result.ToNumberValue());
+            Assert.True(((NumberValue)result).IsIntegral);
+        }
+
+        [Fact]
+        public void TimesCanChangeToFloat()
+        {
+            var input = new NumberValue(6, true);
+
+            var arguments = new FilterArguments(1.0);
+            var context = new TemplateContext();
+
+            var result = NumberFilters.Times(input, arguments, context);
+
+            Assert.Equal(6, result.ToNumberValue());
+            Assert.False(((NumberValue)result).IsIntegral);
         }
     }
 }
