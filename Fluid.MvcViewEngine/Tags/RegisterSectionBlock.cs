@@ -9,11 +9,11 @@ namespace Fluid.MvcViewEngine.Tags
 {
     public class RegisterSectionBlock : IdentifierBlock
     {
-        public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, string sectionName, IList<Statement> statements)
+        public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, string sectionName, List<Statement> statements)
         {
             if (context.AmbientValues.TryGetValue("Sections", out var sections))
             {
-                var dictionary = sections as Dictionary<string, IList<Statement>>;
+                var dictionary = sections as Dictionary<string, List<Statement>>;
                 dictionary[sectionName] = statements;
             }
 

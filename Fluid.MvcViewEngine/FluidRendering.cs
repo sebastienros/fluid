@@ -60,7 +60,7 @@ namespace FluidMvcViewEngine
             // Provide some services to all statements
             context.AmbientValues.Add("FileProvider", fileProvider);
             context.AmbientValues[ViewPath] = path;
-            context.AmbientValues.Add("Sections", new Dictionary<string, IList<Statement>>());
+            context.AmbientValues.Add("Sections", new Dictionary<string, List<Statement>>());
             context.AmbientValues[IncludeStatement.FluidParserFactoryKey] = FluidViewTemplate.Factory;
             context.AmbientValues[IncludeStatement.FluidTemplateFactoryKey] = FluidTemplateFactory;
             context.FileProvider = new FileProviderMapper(fileProvider, "Views");

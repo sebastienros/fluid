@@ -119,7 +119,7 @@ namespace Fluid.Tests
 
     public class CustomIdentifierBlock : IdentifierBlock
     {
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, string identifier, IList<Statement> statements)
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, string identifier, List<Statement> statements)
         {
             await writer.WriteAsync(identifier);
 
@@ -131,7 +131,7 @@ namespace Fluid.Tests
 
     public class CustomExpressionBlock : ExpressionBlock
     {
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression, IList<Statement> statements)
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression, List<Statement> statements)
         {
             await writer.WriteAsync((await expression.EvaluateAsync(context)).ToStringValue());
 
@@ -143,7 +143,7 @@ namespace Fluid.Tests
 
     public class CustomSimpleBlock : SimpleBlock
     {
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, IList<Statement> statements)
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, List<Statement> statements)
         {
             await writer.WriteAsync("simple");
 
@@ -155,7 +155,7 @@ namespace Fluid.Tests
 
     public class CustomArgumentsBlock : ArgumentsBlock
     {
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, FilterArgument[] arguments, IList<Statement> statements)
+        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, FilterArgument[] arguments, List<Statement> statements)
         {
             foreach (var argument in arguments)
             {

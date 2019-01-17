@@ -13,7 +13,7 @@ namespace Fluid.MvcViewEngine.Tags
         {
             if (context.AmbientValues.TryGetValue("Sections", out var sections))
             {
-                var dictionary = sections as Dictionary<string, IList<Statement>>;
+                var dictionary = sections as Dictionary<string, List<Statement>>;
                 if (dictionary.TryGetValue(sectionName, out var section))
                 {
                     foreach(var statement in section)

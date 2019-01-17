@@ -27,6 +27,6 @@ namespace Fluid.Tags
             return new DelegateStatement((writer, encoder, ctx) => WriteToAsync(writer, encoder, ctx, arguments, statements));
         }
 
-        public abstract Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, FilterArgument[] arguments, IList<Statement> statements);
+        public abstract Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, FilterArgument[] arguments, List<Statement> statements);
     }
 }

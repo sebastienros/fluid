@@ -10,7 +10,7 @@ namespace Fluid.Tests
     {
         private static LanguageData _language = new LanguageData(new FluidGrammar());
 
-        private IList<Statement> Parse(string source)
+        private List<Statement> Parse(string source)
         {
             FluidTemplate.TryParse(source, out var template, out var errors);
             return template.Statements;
@@ -23,7 +23,7 @@ namespace Fluid.Tests
 
             var textStatement = statements.First() as TextStatement;
 
-            Assert.Equal(1, statements.Count);
+            Assert.Single(statements);
             Assert.NotNull(textStatement);
             Assert.Equal("Hello World", textStatement.Text);
         }
@@ -35,7 +35,7 @@ namespace Fluid.Tests
 
             var outputStatement = statements.First() as OutputStatement;
 
-            Assert.Equal(1, statements.Count);
+            Assert.Single(statements);
             Assert.NotNull(outputStatement);
         }
 
@@ -49,7 +49,7 @@ namespace Fluid.Tests
 
             var outputStatement = statements.First() as OutputStatement;
 
-            Assert.Equal(1, statements.Count);
+            Assert.Single(statements);
             Assert.NotNull(outputStatement);
         }
 
@@ -65,7 +65,7 @@ namespace Fluid.Tests
         public void ShouldReadSingleCharInTag()
         {
             var statements = Parse(@"{% for a in b %};{% endfor %}");
-            Assert.Equal(1, statements.Count);
+            Assert.Single(statements);
             var text = ((ForStatement)statements[0]).Statements[0] as TextStatement;
             Assert.Equal(";", text.Text);
         }
@@ -75,7 +75,7 @@ namespace Fluid.Tests
         {
             var statements = Parse(@"{% raw %} on {{ this }} and {{{ that }}} {% endraw %}");
 
-            Assert.Equal(1, statements.Count);
+            Assert.Single(statements);
             Assert.IsType<TextStatement>(statements.ElementAt(0));
             Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as TextStatement).Text);
         }
@@ -85,7 +85,7 @@ namespace Fluid.Tests
         {
             var statements = Parse(@"{% raw %} {%if true%} {%endif%} {% endraw %}");
 
-            Assert.Equal(1, statements.Count);
+            Assert.Single(statements);
             Assert.IsType<TextStatement>(statements.ElementAt(0));
             Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as TextStatement).Text);
         }
@@ -95,7 +95,7 @@ namespace Fluid.Tests
         {
             var statements = Parse(@"{% comment %} on {{ this }} and {{{ that }}} {% endcomment %}");
 
-            Assert.Equal(1, statements.Count);
+            Assert.Single(statements);
             Assert.IsType<CommentStatement>(statements.ElementAt(0));
             Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as CommentStatement).Text);
         }
@@ -105,7 +105,7 @@ namespace Fluid.Tests
         {
             var statements = Parse(@"{% comment %} {%if true%} {%endif%} {% endcomment %}");
 
-            Assert.Equal(1, statements.Count);
+            Assert.Single(statements);
             Assert.IsType<CommentStatement>(statements.ElementAt(0));
             Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as CommentStatement).Text);
         }

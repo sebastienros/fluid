@@ -9,7 +9,7 @@ namespace Fluid.Tests
 {
     public class WhiteSpaceTests
     {
-        private IList<Statement> Parse(string source)
+        private List<Statement> Parse(string source)
         {
             FluidTemplate.TryParse(source, out var template, out var errors);
             return template.Statements;
@@ -312,7 +312,7 @@ namespace Fluid.Tests
         public void ShouldTrimTextOnEnd()
         {
             var statements = Parse("{% for a in b %}{% endfor %}   ");
-            Assert.Equal(1, statements.Count);
+            Assert.Single(statements);
             Assert.IsType<ForStatement>(statements.ElementAt(0));
         }
 
@@ -322,7 +322,7 @@ namespace Fluid.Tests
             var statements = Parse(@"{% for a in b %}  
 {% endfor %}");
 
-            Assert.Equal(1, statements.Count);
+            Assert.Single(statements);
             Assert.Empty(((ForStatement)statements[0]).Statements);
         }
 
@@ -332,7 +332,7 @@ namespace Fluid.Tests
             var statements = Parse(@"{% for a in b %}   
 
 {% endfor %}");
-            Assert.Equal(1, statements.Count);
+            Assert.Single(statements);
             Assert.Empty(((ForStatement)statements[0]).Statements);
         }
 
@@ -342,7 +342,7 @@ namespace Fluid.Tests
             var statements = Parse(@"{% for a in b %}   
 a
 {% endfor %}");
-            Assert.Equal(1, statements.Count);
+            Assert.Single(statements);
             var text = ((ForStatement)statements[0]).Statements[0] as TextStatement;
             Assert.Equal("a\r\n", text.Text);
         }
