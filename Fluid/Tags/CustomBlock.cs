@@ -13,7 +13,7 @@ namespace Fluid.Tags
 
         public abstract Statement Parse(ParseTreeNode node, ParserContext context);
 
-        public async Task<Completion> RenderStatementsAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, IList<Statement> statements)
+        public async Task<Completion> RenderStatementsAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, List<Statement> statements)
         {
             Completion completion;
 
