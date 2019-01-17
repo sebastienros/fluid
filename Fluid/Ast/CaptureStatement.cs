@@ -7,7 +7,7 @@ namespace Fluid.Ast
 {
     public class CaptureStatement : TagStatement
     {
-        public CaptureStatement(string identifier, IList<Statement> statements): base(statements)
+        public CaptureStatement(string identifier, List<Statement> statements): base(statements)
         {
             Identifier = identifier;
         }
@@ -18,22 +18,25 @@ namespace Fluid.Ast
         {
             var completion = Completion.Normal;
 
-            using (var sw = new StringWriter())
+            using (var sb = StringBuilderPool.GetInstance())
             {
-                for (var index = 0; index < Statements.Count; index++)
+                using (var sw = new StringWriter(sb.Builder))
                 {
-                    // Don't encode captured blocks
-                    completion = await Statements[index].WriteToAsync(sw, NullEncoder.Default, context);
-
-                    if (completion != Completion.Normal)
+                    for (var index = 0; index < Statements.Count; index++)
                     {
-                        // Stop processing the block statements
-                        // We return the completion to flow it to the outer loop
-                        break;
-                    }
-                }
+                        // Don't encode captured blocks
+                        completion = await Statements[index].WriteToAsync(sw, NullEncoder.Default, context);
 
-                context.SetValue(Identifier, sw.ToString());
+                        if (completion != Completion.Normal)
+                        {
+                            // Stop processing the block statements
+                            // We return the completion to flow it to the outer loop
+                            break;
+                        }
+                    }
+
+                    context.SetValue(Identifier, sw.ToString());
+                }
             }           
 
             return completion;

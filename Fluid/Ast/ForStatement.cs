@@ -11,7 +11,7 @@ namespace Fluid.Ast
     public class ForStatement : TagStatement
     {
         public ForStatement(
-            IList<Statement> statements, 
+            List<Statement> statements,
             string identifier, 
             MemberExpression member,
             LiteralExpression limit,
@@ -25,7 +25,7 @@ namespace Fluid.Ast
             Reversed = reversed;
         }
         public ForStatement(
-            IList<Statement> statements, 
+            List<Statement> statements,
             string identifier, 
             RangeExpression range,
             LiteralExpression limit,
@@ -115,8 +115,9 @@ namespace Fluid.Ast
 
                     Completion completion = Completion.Normal;
 
-                    foreach (var statement in Statements)
+                    for (var index = 0; index < Statements.Count; index++)
                     {
+                        var statement = Statements[index];
                         completion = await statement.WriteToAsync(writer, encoder, context);
 
                         if (completion != Completion.Normal)

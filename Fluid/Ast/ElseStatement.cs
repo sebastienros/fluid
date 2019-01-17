@@ -7,14 +7,15 @@ namespace Fluid.Ast
 {
     public class ElseStatement : TagStatement
     {
-        public ElseStatement(IList<Statement> statements) : base(statements)
+        public ElseStatement(List<Statement> statements) : base(statements)
         {
         }
 
         public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            foreach (var statement in Statements)
+            for (var i = 0; i < Statements.Count; i++)
             {
+                var statement = Statements[i];
                 var completion = await statement.WriteToAsync(writer, encoder, context);
 
                 if (completion != Completion.Normal)

@@ -1,8 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Fluid.Ast;
+﻿using Fluid.Ast;
 using Irony.Parsing;
-using Microsoft.Extensions.Primitives;
+using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace Fluid.Tests
@@ -28,7 +27,7 @@ namespace Fluid.Tests
             Assert.NotNull(textStatement);
             Assert.Equal("Hello World", textStatement.Text);
         }
-        
+
         [Fact]
         public void ShouldParseOutput()
         {
@@ -60,42 +59,6 @@ namespace Fluid.Tests
             var statements = Parse("{% for a in b %}{% endfor %}");
 
             Assert.IsType<ForStatement>(statements.ElementAt(0));
-        }
-
-        [Fact]
-        public void ShouldTrimTextOnStart()
-        {
-            var statements = Parse("  {% for a in b %}{% endfor %}");
-            Assert.IsType<ForStatement>(statements.ElementAt(0));
-        }
-
-        [Fact]
-        public void ShouldTrimTextOnEnd()
-        {
-            var statements = Parse("{% for a in b %}{% endfor %}   ");
-            Assert.Equal(1, statements.Count);
-            Assert.IsType<ForStatement>(statements.ElementAt(0));
-        }
-
-        [Fact]
-        public void ShouldTrimTextOnLineBreak()
-        {
-            var statements = Parse(@"{% for a in b %}  
-{% endfor %}");
-
-            Assert.Equal(1, statements.Count);
-            Assert.Equal(0, ((ForStatement)statements[0]).Statements.Count);
-        }
-
-        [Fact]
-        public void ShouldTrimTextOnNewLineBreak()
-        {
-            var statements = Parse(@"{% for a in b %}   
-
-{% endfor %}");
-            Assert.Equal(1, statements.Count);
-            var text = ((ForStatement)statements[0]).Statements[0] as TextStatement;
-            Assert.Equal("\r\n", text.Text);
         }
 
         [Fact]
@@ -163,9 +126,9 @@ namespace Fluid.Tests
 
             var ifStatement = statements.ElementAt(0) as IfStatement;
             Assert.NotNull(ifStatement);
-            Assert.Equal(1, ifStatement.Statements.Count);
+            Assert.Single(ifStatement.Statements);
             Assert.NotNull(ifStatement.Else);
-            Assert.Equal(0, ifStatement.ElseIfs.Count);
+            Assert.Empty(ifStatement.ElseIfs);
         }
 
         [Fact]
@@ -175,7 +138,7 @@ namespace Fluid.Tests
 
             var ifStatement = statements.ElementAt(0) as IfStatement;
             Assert.NotNull(ifStatement);
-            Assert.Equal(1, ifStatement.Statements.Count);
+            Assert.Single(ifStatement.Statements);
             Assert.NotNull(ifStatement.Else);
             Assert.NotNull(ifStatement.ElseIfs);
         }
@@ -270,5 +233,44 @@ def", "at line:2, col:6")]
             Assert.Empty(errors);
         }
 
+        [Fact]
+        public void ShouldAllowNewLinesInCase()
+        {
+            var result = FluidTemplate.TryParse(@"
+                {% case food %}
+                    
+
+
+                    {% when 'cake' %}
+                        yum
+                    {% when 'rock' %}
+                        yuck
+                {% endcase %}
+                ", out var template, out var errors);
+
+            var context = new TemplateContext();
+            context.SetValue("food", "cake");
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Empty(errors);
+        }
+
+        [Theory]
+        [InlineData("{{ 20 | divided_by: 7.0 | round: 2 }}", "2.86")]
+        [InlineData("{{ 20 | divided_by: 7 | round: 2 }}", "2")]
+        public void ShouldParseIntegralNumbers(string source, string expected)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Empty(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal(expected, rendered);
+
+        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
@@ -14,9 +15,9 @@ namespace Fluid.Tests
         private LiteralExpression C = new LiteralExpression(new StringValue("c"));
         private LiteralExpression D = new LiteralExpression(new StringValue("d"));
 
-        private Statement[] TEXT(string text)
+        private List<Statement> TEXT(string text)
         {
-            return new Statement[] { new TextStatement(text) };
+            return new List<Statement> { new TextStatement(text) };
         }
 
         [Fact]
@@ -26,12 +27,52 @@ namespace Fluid.Tests
                 A,
                 null,
                 new[] {
-                    new WhenStatement(new [] { A }, TEXT("x"))
+                    new WhenStatement(new List<Expression> { A }, TEXT("x"))
                 }
             );
 
             var sw = new StringWriter();
             await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+
+            Assert.Equal("x", sw.ToString());
+        }
+
+        [Fact]
+        public async Task CaseProcessesMultipleStatements()
+        {
+            var e = new CaseStatement(
+                A,
+                null,
+                new[] {
+                    new WhenStatement(new List<Expression> { A }, 
+                    new List<Statement> { new TextStatement("x"), new TextStatement("y") })
+                }
+            );
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+
+            Assert.Equal("xy", sw.ToString());
+        }
+
+        [Fact]
+        public async Task CaseEvaluateMember()
+        {
+            var e = new CaseStatement(
+                new MemberExpression(
+                    new IdentifierSegment("val")
+                ),
+                null,
+                new[] {
+                    new WhenStatement(new List<Expression> { A }, TEXT("x"))
+                }
+            );
+
+            var sw = new StringWriter();
+            var context = new TemplateContext();
+            context.SetValue("val", "a");
+
+            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal("x", sw.ToString());
         }
@@ -43,7 +84,7 @@ namespace Fluid.Tests
                 A,
                 null,
                 new[] {
-                    new WhenStatement(new [] { A, B, C }, TEXT("x"))
+                    new WhenStatement(new List<Expression> { A, B, C }, TEXT("x"))
                 }
             );
 
@@ -60,7 +101,7 @@ namespace Fluid.Tests
                 A,
                 null,
                 new[] {
-                    new WhenStatement(new [] { B, C, D }, TEXT("x"))
+                    new WhenStatement(new List<Expression> { B, C, D }, TEXT("x"))
                 }
             );
 
@@ -75,9 +116,9 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 A,
-                new ElseStatement(new[] { new TextStatement("y")}),
+                new ElseStatement(new List<Statement> { new TextStatement("y")}),
                 new[] {
-                    new WhenStatement(new [] { A }, TEXT("x"))
+                    new WhenStatement(new List<Expression> { A }, TEXT("x"))
                 }
             );
 
@@ -92,9 +133,9 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 A,
-                new ElseStatement(new[] { new TextStatement("y") }),
+                new ElseStatement(new List<Statement> { new TextStatement("y") }),
                 new[] {
-                    new WhenStatement(new [] { B, C }, TEXT("x"))
+                    new WhenStatement(new List<Expression> { B, C }, TEXT("x"))
                 }
             );
 
@@ -109,11 +150,11 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 B,
-                new ElseStatement(new[] { new TextStatement("y") }),
+                new ElseStatement(new List<Statement> { new TextStatement("y") }),
                 new[] {
-                    new WhenStatement(new [] { A, C }, TEXT("1")),
-                    new WhenStatement(new [] { B, C }, TEXT("2")),
-                    new WhenStatement(new [] { C }, TEXT("3"))
+                    new WhenStatement(new List<Expression> { A, C }, TEXT("1")),
+                    new WhenStatement(new List<Expression> { B, C }, TEXT("2")),
+                    new WhenStatement(new List<Expression> { C }, TEXT("3"))
                 }
             );
 
@@ -130,8 +171,8 @@ namespace Fluid.Tests
                 A,
                 null,
                 new[] {
-                    new WhenStatement(new [] { B }, TEXT("2")),
-                    new WhenStatement(new [] { C }, TEXT("3"))
+                    new WhenStatement(new List<Expression> { B }, TEXT("2")),
+                    new WhenStatement(new List<Expression> { C }, TEXT("3"))
                 }
             );
 

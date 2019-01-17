@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Fluid.Ast;
 using Fluid.Ast.BinaryExpressions;
@@ -29,7 +30,7 @@ namespace Fluid
             _blocks = blocks;
         }
 
-        public bool TryParse(string template, out IList<Statement> result, out IEnumerable<string> errors)
+        public bool TryParse(string template, bool stripEmptyLines, out List<Statement> result, out IEnumerable<string> errors)
         {
             errors = Array.Empty<string>();
             var segment = new StringSegment(template);
@@ -56,7 +57,7 @@ namespace Fluid
                         if (index != previous)
                         {
                             // Consume last Text statement
-                            ConsumeTextStatement(segment, previous, index, trimAfter, false);
+                            ConsumeTextStatement(segment, previous, index, trimAfter, false, stripEmptyLines);
                         }
 
                         break;
@@ -74,7 +75,7 @@ namespace Fluid
                         if (start != previous)
                         {
                             // Consume current Text statement
-                            ConsumeTextStatement(segment, previous, start, trimAfter, trimBefore);
+                            ConsumeTextStatement(segment, previous, start, trimAfter, trimBefore, stripEmptyLines);
                         }
 
                         trimAfter = segment.Buffer[end - 2] == '-';
@@ -182,13 +183,14 @@ namespace Fluid
             return false;
         }
 
-        private void ConsumeTextStatement(StringSegment segment, int start, int end, bool trimStart, bool trimEnd)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ConsumeTextStatement(StringSegment segment, int start, int end, bool trimStart, bool trimEnd, bool stripEmptyLines)
         {
-            var textSatement = CreateTextStatement(segment, start, end, trimStart, trimEnd);
+            var textStatement = CreateTextStatement(segment, start, end, trimStart, trimEnd, stripEmptyLines);
 
-            if (textSatement != null)
+            if (textStatement != null)
             {
-                _context.CurrentBlock.AddStatement(textSatement);
+                _context.CurrentBlock.AddStatement(textStatement);
             }
         }
 
@@ -245,11 +247,14 @@ namespace Fluid
         /// <param name="start"></param>
         /// <param name="end"></param>
         /// <returns></returns>
-        private TextStatement CreateTextStatement(StringSegment segment, int start, int end, bool trimStart, bool trimEnd)
+        private TextStatement CreateTextStatement(StringSegment segment, int start, int end, bool trimStart, bool trimEnd, bool stripEmptyLines)
         {
             int index;
 
-            trimEnd |= end < segment.Length - 1 && segment.Value[end + 1] == '%';
+            var endIsPercent = end < segment.Length - 1 && segment.Value[end + 1] == '%';
+            var startIsPercent = start > 2 && segment.Value[start - 2] == '%';
+
+            //trimEnd |= end < segment.Length - 1 && segment.Value[end + 1] == '%';
 
             if (trimEnd)
             {
@@ -281,6 +286,8 @@ namespace Fluid
 
                     if (!Char.IsWhiteSpace(c))
                     {
+                        end = index + 1;
+
                         // This is not just whitespace
                         break;
                     }
@@ -289,7 +296,7 @@ namespace Fluid
                 }
             }
 
-            trimStart |= start > 2 && segment.Value[start - 2] == '%';
+            //trimStart |= start > 2 && segment.Value[start - 2] == '%';
 
             if (trimStart)
             {
@@ -322,11 +329,88 @@ namespace Fluid
 
                     if (!Char.IsWhiteSpace(c))
                     {
+                        start = index;
+
                         // This is not just whitespace
                         break;
                     }
 
                     index++;
+                }
+            }
+
+            // Did the text get completely removed?
+            if (end == start)
+            {
+                return null;
+            }
+
+            if (stripEmptyLines)
+            {
+                if (startIsPercent && endIsPercent)
+                {
+                    // Remove all whitespace between two statements
+
+                    bool hasNonWhitespace = false;
+                    for (var i = start; i < end; i++)
+                    {
+                        var c = segment.Value[i];
+
+                        if (!Char.IsWhiteSpace(c))
+                        {
+                            hasNonWhitespace = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasNonWhitespace)
+                    {
+                        end = start;
+                    }
+                }
+
+                if (startIsPercent)
+                {
+                    for (var i = start; i <= end; i++)
+                    {
+                        var c = segment.Value[i];
+
+                        if (!Char.IsWhiteSpace(c))
+                        {
+                            break;
+                        }
+
+                        if (c == '\n' || i == segment.Length - 1)
+                        {
+                            start = i + 1;
+                            break;
+                        }
+                    }
+                }
+
+                if (endIsPercent)
+                {
+                    for (var i = end - 1; i >= start; i--)
+                    {
+                        var c = segment.Value[i];
+
+                        if (!Char.IsWhiteSpace(c))
+                        {
+                            break;
+                        }
+
+                        if (c == '\n')
+                        {
+                            end = i + 1;
+                            break;
+                        }
+
+                        if (i == 0)
+                        {
+                            end = i;
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -364,7 +448,7 @@ namespace Fluid
                         // Start tag found
                         var endTag = c == '{' ? "}}" : "%}";
 
-                        end = template.Value.IndexOf(endTag, start + 2);
+                        end = template.Value.IndexOf(endTag, start + 2, StringComparison.Ordinal);
 
                         if (end == -1)
                         {
@@ -658,7 +742,7 @@ namespace Fluid
                 throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'case' tag.");
             }
 
-            if (context.Statements.Count > 0)
+            if (context.Statements.Count > 0 && context.Statements.Any(x => x is TextStatement text && !String.IsNullOrWhiteSpace(text.Text)))
             {
                 throw new ParseException($"Unexpected content in 'case' tag. Only 'when' and 'else' are allowed.");
             }
@@ -899,7 +983,8 @@ namespace Fluid
                     return new LiteralExpression(new StringValue(node.Token.ValueString));
 
                 case "number":
-                    return new LiteralExpression(new NumberValue(Convert.ToDouble(node.Token.Value)));
+                    var decimalSeparator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
+                    return new LiteralExpression(new NumberValue(Convert.ToDouble(node.Token.Value), !node.Token.Text.Contains(decimalSeparator)));
 
                 case "boolean":
                     if (!bool.TryParse(node.ChildNodes[0].Token.Text, out var boolean))

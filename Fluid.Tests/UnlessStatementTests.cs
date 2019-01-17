@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
@@ -22,7 +23,7 @@ namespace Fluid.Tests
         {
             var e = new UnlessStatement(
                 TRUE,
-                new[] { new TextStatement("x") }
+                new List<Statement> { new TextStatement("x") }
                 );
 
             var sw = new StringWriter();
@@ -36,7 +37,7 @@ namespace Fluid.Tests
         {
             var e = new UnlessStatement(
                 FALSE,
-                new[] { new TextStatement("x") }
+                new List<Statement> { new TextStatement("x") }
                 );
 
             var sw = new StringWriter();

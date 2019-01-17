@@ -282,7 +282,7 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData("{% assign x = 123 %} {{x}}", "123")]
+        [InlineData("{% assign x = 123 %} {{x}}", " 123")]
         public Task ShouldEvaluateAssignStatement(string source, string expected)
         {
             return CheckAsync(source, expected);

@@ -5,31 +5,30 @@ namespace Fluid.Ast
 {
     public class FilterExpression : Expression
     {
-        private readonly string _name;
-        private readonly FilterArgument[] _parameters;
-
         public FilterExpression(Expression input, string name, FilterArgument[] parameters)
         {
             Input = input;
-            _name = name;
-            _parameters = parameters;
+            Name = name;
+            Parameters = parameters;
         }
 
         public Expression Input { get; }
+        public string Name { get; }
+        public FilterArgument[] Parameters { get; }
 
         public override async Task<FluidValue> EvaluateAsync(TemplateContext context)
         {
             var arguments = new FilterArguments();
 
-            foreach(var parameter in _parameters)
+            foreach(var parameter in Parameters)
             {
                 arguments.Add(parameter.Name, await parameter.Expression.EvaluateAsync(context));
             }
 
             var input = await Input.EvaluateAsync(context);
 
-            if (!context.Filters.TryGetValue(_name, out AsyncFilterDelegate filter) &&
-                !TemplateContext.GlobalFilters.TryGetValue(_name, out filter))
+            if (!context.Filters.TryGetValue(Name, out AsyncFilterDelegate filter) &&
+                !TemplateContext.GlobalFilters.TryGetValue(Name, out filter))
             {
                 // When a filter is not defined, return the input
                 return input;

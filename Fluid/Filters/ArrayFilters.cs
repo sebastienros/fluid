@@ -17,6 +17,7 @@ namespace Fluid.Filters
             filters.AddFilter("reverse", Reverse);
             filters.AddFilter("size", Size);
             filters.AddFilter("sort", Sort);
+            filters.AddFilter("sort_natural", SortNatural);
             filters.AddFilter("uniq", Uniq);
 
             return filters;
@@ -125,12 +126,42 @@ namespace Fluid.Filters
 
         public static FluidValue Sort(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var member = arguments.At(0).ToStringValue();
-
-            return new ArrayValue(input.Enumerate().OrderBy(x =>
+            if (arguments.Count > 0)
             {
-                return x.GetValueAsync(member, context).GetAwaiter().GetResult().ToObjectValue();
-            }).ToArray());
+                var member = arguments.At(0).ToStringValue();
+
+                return new ArrayValue(input.Enumerate().OrderBy(x =>
+                {
+                    return x.GetValueAsync(member, context).GetAwaiter().GetResult().ToObjectValue();
+                }).ToArray());
+            }
+            else
+            {
+                return new ArrayValue(input.Enumerate().OrderBy(x =>
+                {
+                    return x.ToStringValue();
+                }, StringComparer.Ordinal).ToArray());
+            }
+        }
+
+        public static FluidValue SortNatural(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (arguments.Count > 0)
+            {
+                var member = arguments.At(0).ToStringValue();
+
+                return new ArrayValue(input.Enumerate().OrderBy(x =>
+                {
+                    return x.GetValueAsync(member, context).GetAwaiter().GetResult().ToObjectValue();
+                }).ToArray());
+            }
+            else
+            {
+                return new ArrayValue(input.Enumerate().OrderBy(x =>
+                {
+                    return x.ToStringValue();
+                }, StringComparer.OrdinalIgnoreCase).ToArray());
+            }
         }
 
         public static FluidValue Uniq(FluidValue input, FilterArguments arguments, TemplateContext context)
