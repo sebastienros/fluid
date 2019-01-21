@@ -346,5 +346,13 @@ a
             var text = ((ForStatement)statements[0]).Statements[0] as TextStatement;
             Assert.Equal("a\r\n", text.Text);
         }
+
+        [Fact]
+        public void ShouldTrimMultipleUnixLineBreaks()
+        {
+            var result = FluidTemplate.TryParse("{% assign foo = 1 %}\n\n{% assign foo = 1 %}", out var template, out var errors);
+
+            Assert.True(result);
+        }
     }
 }

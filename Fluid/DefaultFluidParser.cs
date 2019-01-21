@@ -254,8 +254,6 @@ namespace Fluid
             var endIsPercent = end < segment.Length - 1 && segment.Value[end + 1] == '%';
             var startIsPercent = start > 2 && segment.Value[start - 2] == '%';
 
-            //trimEnd |= end < segment.Length - 1 && segment.Value[end + 1] == '%';
-
             if (trimEnd)
             {
                 index = end - 1;
@@ -295,8 +293,6 @@ namespace Fluid
                     index--;
                 }
             }
-
-            //trimStart |= start > 2 && segment.Value[start - 2] == '%';
 
             if (trimStart)
             {
@@ -371,7 +367,7 @@ namespace Fluid
 
                 if (startIsPercent)
                 {
-                    for (var i = start; i <= end; i++)
+                    for (var i = start; i < end; i++)
                     {
                         var c = segment.Value[i];
 
