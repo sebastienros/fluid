@@ -99,6 +99,35 @@ namespace Fluid.Filters
             return new ArrayValue(list);
         }
 
+        // https://github.com/Shopify/liquid/commit/842986a9721de11e71387732be51951285225977
+        public static FluidValue Where(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (input.Type != FluidValues.Array)
+            {
+                return input;
+            }
+
+            // First argument is the property name to match
+            var member = arguments.At(0).ToStringValue();
+
+            // Second argument is the value to match, or 'true' if none is defined
+            var targetValue = arguments.At(1).Or(BooleanValue.True).ToObjectValue();
+
+            var list = new List<FluidValue>();
+
+            foreach (var item in input.Enumerate())
+            {
+                var itemValue = item.GetValueAsync(member, context).GetAwaiter().GetResult();
+
+                if (itemValue.ToObjectValue().Equals(targetValue))
+                {
+                    list.Add(item);
+                }
+            }
+
+            return new ArrayValue(list);
+        }
+
         public static FluidValue Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.Type != FluidValues.Array)

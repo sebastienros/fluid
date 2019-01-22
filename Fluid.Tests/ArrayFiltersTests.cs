@@ -287,5 +287,41 @@ namespace Fluid.Tests
 
             Assert.Equal(2, result.Enumerate().Count());
         }
+
+        [Fact]
+        public void Where()
+        {
+            var input = new ArrayValue(new[] {
+                new ObjectValue(new { Title = "a", Pinned = true }),
+                new ObjectValue(new { Title = "b", Pinned = false }),
+                new ObjectValue(new { Title = "c", Pinned = true })
+                });
+
+            var context = new TemplateContext();
+            context.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
+
+            var arguments1 = new FilterArguments().Add(new StringValue("Pinned"));
+
+            var result1 = ArrayFilters.Where(input, arguments1, context);
+
+            Assert.Equal(2, result1.Enumerate().Count());
+
+            var arguments2 = new FilterArguments()
+                .Add(new StringValue("Pinned"))
+                .Add(new BooleanValue(false))
+                ;
+
+            var result2 = ArrayFilters.Where(input, arguments2, context);
+
+            Assert.Single(result2.Enumerate());
+
+            var arguments3 = new FilterArguments()
+                .Add(new StringValue("Title"))
+                .Add(new StringValue("c"));
+
+            var result3 = ArrayFilters.Where(input, arguments3, context);
+
+            Assert.Single(result3.Enumerate());
+        }
     }
 }

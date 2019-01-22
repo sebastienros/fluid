@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
@@ -95,7 +96,7 @@ namespace Fluid.Values
 
         public override double ToNumberValue()
         {
-            return 0;
+            return Convert.ToDouble(_value);
         }
 
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
@@ -105,7 +106,7 @@ namespace Fluid.Values
 
         public override string ToStringValue()
         {
-            return _value.ToString();
+            return Convert.ToString(_value);
         }
 
         public override object ToObjectValue()
