@@ -89,6 +89,19 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void PlusConvertsObjectToNumber()
+        {   
+            var input = new ObjectValue("6");
+
+            var arguments = new FilterArguments(3);
+            var context = new TemplateContext();
+
+            var result = NumberFilters.Plus(input, arguments, context);
+
+            Assert.Equal(9, result.ToNumberValue());
+        }
+
+        [Fact]
         public void Round()
         {
             var input = new NumberValue(4.1234);
