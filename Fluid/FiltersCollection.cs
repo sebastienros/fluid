@@ -10,12 +10,12 @@ namespace Fluid
 
         public void AddFilter(string name, FilterDelegate d)
         {
-            _delegates.Add(name, (input, arguments, context) => Task.FromResult<FluidValue>(d(input, arguments, context)));
+            _delegates[name] = (input, arguments, context) => Task.FromResult<FluidValue>(d(input, arguments, context));
         }
 
         public void AddAsyncFilter(string name, AsyncFilterDelegate d)
         {
-            _delegates.Add(name, d);
+            _delegates[name] = d;
         }
 
         public bool TryGetValue(string name, out AsyncFilterDelegate filter)
