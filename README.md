@@ -28,7 +28,7 @@ Fluid is an open-source .NET template engine that is as close as possible to the
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
 - [Localization](#localization)
-- [Customizing tags](#customizing-tags)
+- [Customizing tags and blocks](#customizing-tags-and-blocks)
 - [ASP.NET MVC View Engine](#aspnet-mvc-view-engine)
 - [Performance](#performance)
 - [Used by](#used-by)
