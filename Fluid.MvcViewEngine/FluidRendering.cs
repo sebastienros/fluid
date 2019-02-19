@@ -61,8 +61,8 @@ namespace FluidMvcViewEngine
             context.AmbientValues["FileProvider"] = fileProvider;
             context.AmbientValues[ViewPath] = path;
             context.AmbientValues["Sections"] = new Dictionary<string, List<Statement>>();
-            context.AmbientValues[IncludeStatement.FluidParserFactoryKey] = FluidViewTemplate.Factory;
-            context.AmbientValues[IncludeStatement.FluidTemplateFactoryKey] = FluidTemplateFactory;
+            context.ParserFactory = FluidViewTemplate.Factory;
+            context.TemplateFactory = FluidTemplateFactory;
             context.FileProvider = new FileProviderMapper(fileProvider, "Views");
 
             var body = await template.RenderAsync(_options.TextEncoder, context);

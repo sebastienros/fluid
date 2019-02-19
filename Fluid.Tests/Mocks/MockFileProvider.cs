@@ -1,22 +1,16 @@
-﻿using System;
-using System.IO;
-using Microsoft.Extensions.FileProviders;
+﻿using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Primitives;
+using System;
+using System.Collections.Generic;
 
 namespace Fluid.Tests.Mocks
 {
     public class MockFileProvider : IFileProvider
     {
-        private string _partialsFolderPath;
+        private Dictionary<string, MockFileInfo> _files = new Dictionary<string, MockFileInfo>();
 
-        public MockFileProvider(string path)
+        public MockFileProvider()
         {
-            if (path != "Partials")
-            {
-                throw new DirectoryNotFoundException();
-            }
-
-            _partialsFolderPath = path;
         }
 
         public IDirectoryContents GetDirectoryContents(string subpath)
@@ -24,10 +18,22 @@ namespace Fluid.Tests.Mocks
             throw new NotImplementedException();
         }
 
-        public IFileInfo GetFileInfo(string subpath)
+        public IFileInfo GetFileInfo(string path)
         {
-            var path = Path.Combine(_partialsFolderPath, subpath);
-            return new MockFileInfo(path);
+            if (_files.ContainsKey(path))
+            {
+                return _files[path];
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public MockFileProvider Add(string path, string content)
+        {
+            _files[path] = new MockFileInfo(path, content);
+            return this;
         }
 
         public IChangeToken Watch(string filter)

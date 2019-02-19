@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
@@ -17,6 +18,7 @@ namespace Fluid
         }
 
         public static FluidParserFactory Factory { get; } = new FluidParserFactory();
+        private static Func<IFluidTemplate> TemplateFactory { get; } = () => new T();
 
         public List<Statement> Statements { get; set; } = new List<Statement>();
 
@@ -49,6 +51,9 @@ namespace Fluid
 
         public async Task RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
+            context.ParserFactory = Factory;
+            context.TemplateFactory = TemplateFactory;
+
             foreach (var statement in Statements)
             {
                 await statement.WriteToAsync(writer, encoder, context);

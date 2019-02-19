@@ -23,30 +23,20 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task IncludeSatement_ShouldThrowDirectoryNotFoundException_IfThePartialsFolderNotExist()
-        {
-            var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
-
-            await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
-            {
-                var sw = new StringWriter();
-                var context = new TemplateContext
-                {
-                    FileProvider = new MockFileProvider("NonPartials")
-                };
-
-                return new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
-            });
-        }
-
-        [Fact]
         public async Task IncludeSatement_ShouldLoadPartial_IfThePartialsFolderExist()
         {
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var sw = new StringWriter();
+
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("_Partial.liquid", @"{{ 'Partial Content' }}
+Partials: '{{ Partials }}'
+color: '{{ color }}'
+shape: '{{ shape }}'");
+
             var context = new TemplateContext
             {
-                FileProvider = new MockFileProvider("Partials")
+                FileProvider = fileProvider
             };
             var expectedResult = @"Partial Content
 Partials: ''
@@ -68,9 +58,16 @@ shape: ''";
                 new AssignStatement("shape", new LiteralExpression(new StringValue("circle")))
             };
             var sw = new StringWriter();
+
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("_Partial.liquid", @"{{ 'Partial Content' }}
+Partials: '{{ Partials }}'
+color: '{{ color }}'
+shape: '{{ shape }}'");
+
             var context = new TemplateContext
             {
-                FileProvider = new MockFileProvider("Partials")
+                FileProvider = fileProvider
             };
             var expectedResult = @"Partial Content
 Partials: ''
@@ -88,9 +85,16 @@ shape: 'circle'";
             var pathExpression = new LiteralExpression(new StringValue("color"));
             var withExpression = new LiteralExpression(new StringValue("blue"));
             var sw = new StringWriter();
+
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("color.liquid", @"{{ 'Partial Content' }}
+Partials: '{{ Partials }}'
+color: '{{ color }}'
+shape: '{{ shape }}'");
+
             var context = new TemplateContext
             {
-                FileProvider = new MockFileProvider("Partials")
+                FileProvider = fileProvider
             };
             var expectedResult = @"Partial Content
 Partials: ''

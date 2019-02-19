@@ -7,11 +7,13 @@ namespace Fluid.Tests.Mocks
 {
     public class MockFileInfo : IFileInfo
     {
-        public MockFileInfo(string name)
+        public MockFileInfo(string name, string content)
         {
             Name = name;
+            Content = content;
         }
 
+        public string Content { get; set; }
         public bool Exists => true;
 
         public bool IsDirectory => false;
@@ -26,12 +28,7 @@ namespace Fluid.Tests.Mocks
 
         public Stream CreateReadStream()
         {
-            var content = @"{{ 'Partial Content' }}
-Partials: '{{ Partials }}'
-color: '{{ color }}'
-shape: '{{ shape }}'";
-            var data = Encoding.UTF8.GetBytes(content);
-
+            var data = Encoding.UTF8.GetBytes(Content);
             return new MemoryStream(data);
         }
     }

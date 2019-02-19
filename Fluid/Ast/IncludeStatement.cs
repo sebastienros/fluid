@@ -8,18 +8,6 @@ namespace Fluid.Ast
 {
     public class IncludeStatement : Statement
     {
-        /// <summary>
-        /// Override <see cref="IFluidParserFactory"/> used by a <see cref="TemplateContext"/>
-        /// by setting an ambient value with a key matching the value of the
-        /// <see cref="FluidParserFactoryKey"/>.
-        /// </summary>
-        public const string FluidParserFactoryKey = "FluidParserFactory";
-        /// <summary>
-        /// Override <see cref="Func{IFluidTemplate}"/> used by a <see cref="TemplateContext"/>
-        /// by setting an ambient value with a key matching the value of the
-        /// <see cref="FluidTemplateFactoryKey"/>.
-        /// </summary>
-        public const string FluidTemplateFactoryKey = "FluidTemplateFactory";
         public const string ViewExtension = ".liquid";
 
         public IncludeStatement(Expression path, Expression with = null, IList<AssignStatement> assignStatements = null)
@@ -91,27 +79,19 @@ namespace Fluid.Ast
 
         private static IFluidParser CreateParser(TemplateContext context)
         {
-            if (context.AmbientValues.TryGetValue(FluidParserFactoryKey, out var factory))
-            {
-                return ((IFluidParserFactory)factory).CreateParser();
-            }
-            else
-            {
-                return FluidTemplate.Factory.CreateParser();
-            }
+            return context.ParserFactory != null
+                ? context.ParserFactory.CreateParser()
+                : FluidTemplate.Factory.CreateParser()
+                ;
         }
 
         private static IFluidTemplate CreateTemplate(TemplateContext context, List<Statement> statements)
         {
-            IFluidTemplate template;
-            if (context.AmbientValues.TryGetValue(FluidTemplateFactoryKey, out var factory))
-            {
-                template = ((Func<IFluidTemplate>)factory)();
-            }
-            else
-            {
-                template = new FluidTemplate();
-            }
+            IFluidTemplate template = context.TemplateFactory != null 
+                ? context.TemplateFactory()
+                : new FluidTemplate()
+                ;
+
             template.Statements = statements;
             return template;
         }

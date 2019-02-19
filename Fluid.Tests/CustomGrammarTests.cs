@@ -5,6 +5,7 @@ using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Tags;
+using Fluid.Tests.Mocks;
 using Fluid.Values;
 using Irony.Parsing;
 using Xunit;
@@ -50,6 +51,26 @@ namespace Fluid.Tests
             Assert.True(success, message.FirstOrDefault());
 
             var result = template.Render();
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void IncludeTagsFlowTemplateType()
+        {
+            var source = "A {% include 'test.liquid' %} B";
+            var include = "{% more '2' | append: 'pack' %}";
+            var expected = "A here is some more 2pack B";
+
+            var fileProvider = new MockFileProvider()
+                .Add("test.liquid", include);
+
+            var context = new TemplateContext() { FileProvider = fileProvider };
+
+            var success = FluidTemplate2.TryParse(source, out var template);
+            Assert.True(success);
+
+            var result = template.Render(context);
 
             Assert.Equal(expected, result);
         }

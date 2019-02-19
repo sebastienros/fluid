@@ -507,10 +507,18 @@ Parent Content
 color: 'blue'
 shape: ''";
             FluidTemplate.TryParse(source, out var template, out var messages);
+
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("Partials.liquid", @"{{ 'Partial Content' }}
+Partials: '{{ Partials }}'
+color: '{{ color }}'
+shape: '{{ shape }}'");
+
             var context = new TemplateContext
             {
-                FileProvider = new MockFileProvider("Partials")
+                FileProvider = fileProvider
             };
+
             var result = await template.RenderAsync(context);
 
             Assert.Equal(expected, result);
@@ -530,11 +538,19 @@ color: ''
 shape: ''
 Parent Content
 parent value";
+
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("Partials.liquid", @"{{ 'Partial Content' }}
+Partials: '{{ Partials }}'
+color: '{{ color }}'
+shape: '{{ shape }}'");
+
             FluidTemplate.TryParse(source, out var template, out var messages);
             var context = new TemplateContext
             {
-                FileProvider = new MockFileProvider("Partials")
-            };
+                FileProvider = fileProvider
+            };           
+
             var result = await template.RenderAsync(context);
 
             Assert.Equal(expected, result);
