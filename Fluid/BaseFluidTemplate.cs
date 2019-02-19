@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -22,14 +23,31 @@ namespace Fluid
 
         public List<Statement> Statements { get; set; } = new List<Statement>();
 
+        public static T Parse(string template)
+        {
+            if (!TryParse(template, out var result, out var errors))
+            {
+                throw new ParseException(errors.FirstOrDefault() ?? "");
+            }
+            else
+            {
+                return result;
+            }
+        }
+
         public static bool TryParse(string template, out T result, out IEnumerable<string> errors)
         {
             return TryParse(template, true, out result, out errors);
         }
 
-        public static bool TryParse(string template, bool stipEmptyLines, out T result, out IEnumerable<string> errors)
+        public static bool TryParse(string template, out T result)
         {
-            if (Factory.CreateParser().TryParse(template, stipEmptyLines, out var statements, out errors))
+            return TryParse(template, out result, out var errors);
+        }
+
+        public static bool TryParse(string template, bool stripEmptyLines, out T result, out IEnumerable<string> errors)
+        {
+            if (Factory.CreateParser().TryParse(template, stripEmptyLines, out var statements, out errors))
             {
                 result = new T
                 {
@@ -42,11 +60,6 @@ namespace Fluid
                 result = default(T);
                 return false;
             }
-        }
-
-        public static bool TryParse(string template, out T result)
-        {
-            return TryParse(template, out result, out var errors);
         }
 
         public async Task RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
