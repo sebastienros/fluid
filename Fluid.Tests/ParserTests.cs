@@ -1,5 +1,6 @@
 ﻿using Fluid.Ast;
 using Irony.Parsing;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -180,6 +181,22 @@ namespace Fluid.Tests
         }
 
         [Theory]
+        [InlineData("{% assign _foo = 1 %}")]
+        [InlineData("{% assign __foo = 1 %}")]
+        [InlineData("{% assign -foo = 1 %}")]
+        [InlineData("{% assign --foo = 1 %}")]
+        [InlineData("{% assign fo-o = 1 %}")]
+        [InlineData("{% assign fo_o = 1 %}")]
+        [InlineData("{% assign fo--o = 1 %}")]
+        [InlineData("{% assign fo__o = 1 %}")]
+        public void ShouldAcceptDashesInIdentifiers(string source)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.True(result);
+        }
+
+        [Theory]
         [InlineData(@"abc 
   {% {{ %}
 def", "at line:2, col:6")]
@@ -263,7 +280,7 @@ def", "at line:2, col:6")]
         {
             var result = FluidTemplate.TryParse(source, out var template, out var errors);
 
-            Assert.True(result);
+            Assert.True(result, String.Join(", ", errors));
             Assert.NotNull(template);
             Assert.Empty(errors);
 
