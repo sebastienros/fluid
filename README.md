@@ -541,6 +541,16 @@ When a view is rendered all `_ViewStart.liquid` files from its current and paren
 
 You can also define other variables or render some content.
 
+### Custom views locations
+
+It is possible to add custom file locations containing views by adding them to `FluidViewEngineOptions.ViewLocationFormats`.
+
+The default ones are:
+- `Views/{1}/{0}`
+- `Views/Shared/{0}`
+
+Where `{0}` is the view name, and `{1}` is the controller name.
+
 ### Execution
 
 The content of a view is parsed once and kept in memory until the file or one of its dependencies changes. Once parsed, the tag are executed every time the view is called. To compare this with Razor, where views are first compiled then instantiated every time they are rendered. This means that on startup or when the view is changed, views with Fluid will run faster than those in Razor, unless you are using precompiled Razor views. In all cases Razor views will be faster on subsequent calls as they are compiled directly to C#.
