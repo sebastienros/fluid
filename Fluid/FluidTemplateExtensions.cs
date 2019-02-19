@@ -14,7 +14,7 @@ namespace Fluid
 
         public static Task<string> RenderAsync(this IFluidTemplate template, TemplateContext context)
         {
-            return template.RenderAsync(HtmlEncoder.Default, context);
+            return template.RenderAsync(NullEncoder.Default, context);
         }
 
         public static async Task<string> RenderAsync(this IFluidTemplate template, TextEncoder encoder, TemplateContext context)

@@ -290,7 +290,7 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("{% capture x %}Hi there{% endcapture %}{{x}}", "Hi there")]
-        [InlineData("{% capture x %}some <b>bold</b> statement{% endcapture %}{{x}}", "some &lt;b&gt;bold&lt;/b&gt; statement")]
+        [InlineData("{% capture x %}some <b>bold</b> statement{% endcapture %}{{x}}", "some <b>bold</b> statement")]
         public Task ShouldEvaluateCaptureStatement(string source, string expected)
         {
             return CheckAsync(source, expected);

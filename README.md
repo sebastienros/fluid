@@ -244,9 +244,17 @@ if (FluidTemplate.TryParse(expression, out var template))
 
 ## Encoding
 
-By default Fluid will encode any output variable into HTML using the `System.Text.Encodings.Web.HtmlEncoder` class. The encoder can be specified when calling `Render()` on the template. To render a template without any encoding use the `Fluid.NullEncoder.Default` instance.
+By default Fluid doesn't encode the output. Encoders can be specified when calling `Render()` or `RenderAsync()` on the template.
 
-Alternatively you can use a special `raw` filter to prevent a value from being encoded, for instance if you know that the content is HTML and is safe.
+### HTML encoding
+
+To render a template with HTML encoding use the `System.Text.Encodings.Web.HtmlEncoder.Default` instance.
+
+This encoder is used by default for the MVC View engine.
+
+### Disabling encoding contextually
+
+When an encoder is defined you can use a special `raw` filter or `{% raw %} ... {% endraw %}` tag to prevent a value from being encoded, for instance if you know that the content is HTML and is safe.
 
 #### Source
 ```Liquid
