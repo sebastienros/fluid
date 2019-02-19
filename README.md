@@ -180,7 +180,7 @@ This will provide a method to intercept when a member is accessed and either ret
 This example demonstrates how to intercept calls to a `JObject` and return the corresponding property.
 
 ```csharp
-TemplateContext.GlobalMemberAccessStrategy.Register<JObject>((obj, name) => obj[name]);
+TemplateContext.GlobalMemberAccessStrategy.Register<JObject, object>((obj, name) => obj[name]);
 ``` 
 
 ### Inheritance
@@ -222,7 +222,7 @@ To remedy that we can configure Fluid to map names to `JObject` properties, and 
 
 ```csharp
 // When a property of a JObject value is accessed, try to look into its properties
-TemplateContext.GlobalMemberAccessStrategy.Register<JObject>((source, name) => source[name]);
+TemplateContext.GlobalMemberAccessStrategy.Register<JObject, object>((source, name) => source[name]);
 
 // Convert JToken to FluidValue
 FluidValue.TypeMappings.Add(typeof(JObject), o => new ObjectValue(o));
