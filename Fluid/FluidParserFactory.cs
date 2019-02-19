@@ -28,12 +28,10 @@ namespace Fluid
             return new DefaultFluidParser(_languageData, _tags, _blocks);
         }
 
-        public void RegisterTag<T>(string name) where T : ITag, new()
+        public void RegisterTag(string name, ITag tag)
         {
             lock (_grammar)
             {
-                var tag = new T();
-
                 _languageData = null;
                 _tags[name] = tag;
 
@@ -51,12 +49,15 @@ namespace Fluid
             }
         }
 
-        public void RegisterBlock<T>(string name) where T : ITag, new()
+        public void RegisterTag<T>(string name) where T : ITag, new()
+        {
+            RegisterTag(name, new T());
+        }
+
+        public void RegisterBlock(string name, ITag tag)
         {
             lock (_grammar)
             {
-                var tag = new T();
-
                 _languageData = null;
                 _blocks[name] = tag;
 
@@ -74,6 +75,12 @@ namespace Fluid
                 // Prevent the text from being added in the parsed tree.
                 _grammar.MarkPunctuation(name);
             }
+
+        }
+
+        public void RegisterBlock<T>(string name) where T : ITag, new()
+        {
+            RegisterBlock(name, new T());
         }
     }
 }
