@@ -120,7 +120,7 @@ namespace Fluid.Filters
         {
             var source = input.ToStringValue();
             var start = Convert.ToInt32(arguments.At(0).ToNumberValue());
-            var length = Convert.ToInt32(arguments.At(1).ToNumberValue());
+            var length = Convert.ToInt32(arguments.At(1).Or(new NumberValue(1)).ToNumberValue());
 
             var len = source.Length;
             var from = start < 0 ? Math.Max(len + start, 0) : Math.Min(start, len);

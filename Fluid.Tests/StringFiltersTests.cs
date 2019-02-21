@@ -135,9 +135,7 @@ namespace Fluid.Tests
             var result = StringFilters.Remove(input, arguments, context);
 
             Assert.Equal("acac", result.ToStringValue());
-        }
-
-        
+        }        
                 
         [Fact]
         public void ReplaceFirst()
@@ -165,17 +163,21 @@ namespace Fluid.Tests
             Assert.Equal("aBcaBc", result.ToStringValue());
         }
 
-        [Fact]
-        public void Slice()
-        {
-            var input = new StringValue("hello");
+        [Theory]
 
-            var arguments = new FilterArguments().Add(new NumberValue(-3)).Add(new NumberValue(3));
+        [InlineData("hello", new object[] { 0 }, "h")]
+        [InlineData("hello", new object[] { 1 }, "e")]
+        [InlineData("hello", new object[] { 1, 3 }, "ell")]
+        [InlineData("hello", new object[] { -3, 3 }, "llo")]
+        public void Slice(object input, object[] arguments, string expected)
+        {
+            var filterInput = FluidValue.Create(input);
+            var filterArguments = new FilterArguments(arguments);
             var context = new TemplateContext();
 
-            var result = StringFilters.Slice(input, arguments, context);
+            var result = StringFilters.Slice(filterInput, filterArguments, context);
 
-            Assert.Equal("llo", result.ToStringValue());
+            Assert.Equal(expected, result.ToStringValue());
         }
 
         [Fact]
