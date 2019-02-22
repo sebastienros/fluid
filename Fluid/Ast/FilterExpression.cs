@@ -20,8 +20,10 @@ namespace Fluid.Ast
         {
             var arguments = new FilterArguments();
 
-            foreach(var parameter in Parameters)
+            var length = Parameters.Length;
+            for(var i = 0; i< length; i++)
             {
+                var parameter = Parameters[i];
                 arguments.Add(parameter.Name, await parameter.Expression.EvaluateAsync(context));
             }
 

@@ -106,6 +106,7 @@ namespace Fluid
                         if (tree.HasErrors())
                         {
                             int line = 1, col = 1;
+
                             foreach (var ch in segment.Buffer.Take(start))
                             {
                                 switch (ch)
@@ -999,14 +1000,28 @@ namespace Fluid
             Expression outer = input;
 
             // From last to first filter 
-            foreach (var filterNode in node.ChildNodes)
+            var length = node.ChildNodes.Count;
+
+            for (var i = 0; i < length; i++)
             {
+                var filterNode = node.ChildNodes[i];
                 var identifier = filterNode.ChildNodes[0].Token.Text;
 
-                var arguments = filterNode.ChildNodes.Count > 1
-                    ? filterNode.ChildNodes[1].ChildNodes.Select(BuildFilterArgument).ToArray()
-                    : Array.Empty<FilterArgument>()
-                    ;
+                var arguments = Array.Empty<FilterArgument>();
+
+                if (filterNode.ChildNodes.Count > 1)
+                {
+                    var nodes = filterNode.ChildNodes[1].ChildNodes;
+                    var nodesLength = nodes.Count;
+                    var argumentsList = new List<FilterArgument>(nodesLength);
+
+                    for (var k = 0; k < nodesLength; k++)
+                    {
+                        argumentsList.Add(BuildFilterArgument(nodes[k]));
+                    }
+
+                    arguments = argumentsList.ToArray();
+                }
 
                 outer = new FilterExpression(outer, identifier, arguments);
             }
@@ -1018,7 +1033,8 @@ namespace Fluid
         {
             string identifier = null;
             Expression term = null;
-            if (node.ChildNodes[0].Term.Name == "identifier")
+
+            if (String.Equals(node.ChildNodes[0].Term.Name, "identifier", StringComparison.Ordinal))
             {
                 identifier = node.ChildNodes[0].Token.ValueString;
                 term = BuildTermExpression(node.ChildNodes[1]);

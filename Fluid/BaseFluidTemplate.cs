@@ -67,9 +67,10 @@ namespace Fluid
             context.ParserFactory = Factory;
             context.TemplateFactory = TemplateFactory;
 
-            foreach (var statement in Statements)
+            var count = Statements.Count;
+            for (var i = 0; i < count; i++)
             {
-                await statement.WriteToAsync(writer, encoder, context);
+                await Statements[i].WriteToAsync(writer, encoder, context);
             }
         }
     }

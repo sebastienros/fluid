@@ -16,16 +16,18 @@ namespace Fluid.Ast
         {
             FluidValue value = null;
 
-            foreach(var segment in Segments)
+            var length = Segments.Length;
+
+            for (var i = 0; i< length; i++)
             {
                 if (value == null)
                 {
                     // Root property
-                    value = await segment.ResolveAsync(context.LocalScope, context);
+                    value = await Segments[i].ResolveAsync(context.LocalScope, context);
                 }
                 else
                 {
-                    value = await segment.ResolveAsync(value, context);
+                    value = await Segments[i].ResolveAsync(value, context);
                 }
 
                 // Stop processing as soon as a member returns nothing
