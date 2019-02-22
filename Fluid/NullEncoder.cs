@@ -53,7 +53,7 @@ namespace Fluid
                 return;
             }
 
-            output.Write(value.Substring(startIndex, characterCount));
+            output.Write(value, startIndex, characterCount);
         }
 
         public override unsafe int FindFirstCharacterToEncode(char* text, int textLength)
