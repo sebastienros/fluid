@@ -17,20 +17,17 @@ namespace ConsoleApp1
 
             var sw = new Stopwatch();
 
-            Console.ReadLine();
+            for (var iteration = 0; iteration < 3; iteration++)
+            {
+                sw.Restart();
 
-            //for (var iteration = 0; iteration < 3; iteration++)
-            //{
-            //    sw.Restart();
-
-                for (var i = 0; i < 100; i++)
+                for (var i = 0; i < 1024; i++)
                 {
                     benchmark.Render();
                 }
 
-            //Console.WriteLine(sw.ElapsedMilliseconds);
-
-            Console.ReadLine();
+                Console.WriteLine(sw.ElapsedMilliseconds);
+            }
         }
     }
 }

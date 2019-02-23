@@ -68,7 +68,7 @@ namespace Fluid.Benchmarks
         {
             var templateContext = new TemplateContext();
             templateContext.SetValue("products", _products);
-            return _fluidTemplate.RenderAsync(templateContext, NullEncoder.Default);
+            return _fluidTemplate.RenderAsync(templateContext);
         }
     }
 }

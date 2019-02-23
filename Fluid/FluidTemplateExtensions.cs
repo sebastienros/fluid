@@ -9,7 +9,7 @@ namespace Fluid
     {
         public static Task<string> RenderAsync(this IFluidTemplate template, TemplateContext context)
         {
-            return template.RenderAsync(context, HtmlEncoder.Default);
+            return template.RenderAsync(context, NullEncoder.Default);
         }
 
         public static string Render(this IFluidTemplate template, TemplateContext context, TextEncoder encoder)
