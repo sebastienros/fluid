@@ -150,7 +150,7 @@ namespace Fluid.Filters
         public static FluidValue Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var text = input.ToStringValue();
-            var size = Math.Max(0, Convert.ToInt32(arguments.At(0).ToNumberValue()));
+            var size = Math.Max(0, (int) arguments.At(0).ToNumberValue());
             var ellipsis = arguments.At(1).Or(Ellipsis).ToStringValue();
 
             if (text == null)
@@ -163,12 +163,13 @@ namespace Fluid.Filters
             }
             else if (text.Length > size - ellipsis.Length)
             {
+                // PERF: using StringBuilder/StringBuilderPool is slower
                 var source = text.Substring(0, size - ellipsis.Length) + ellipsis;
-
                 return new StringValue(source);
             }
             else
             {
+                // PERF: using StringBuilder/StringBuilderPool is slower
                 return new StringValue(text + ellipsis);
             }
         }

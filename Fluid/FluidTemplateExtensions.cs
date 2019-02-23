@@ -7,17 +7,22 @@ namespace Fluid
 {
     public static class FluidTemplateExtensions
     {
-        public static void Render(this IFluidTemplate template, TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public static Task<string> RenderAsync(this IFluidTemplate template, TemplateContext context)
+        {
+            return template.RenderAsync(context, HtmlEncoder.Default);
+        }
+
+        public static string Render(this IFluidTemplate template, TemplateContext context, TextEncoder encoder)
+        {
+            return template.RenderAsync(context, encoder).GetAwaiter().GetResult();
+        }
+
+        public static void Render(this IFluidTemplate template, TemplateContext context, TextEncoder encoder, TextWriter writer)
         {
             template.RenderAsync(writer, encoder, context).GetAwaiter().GetResult();
         }
 
-        public static Task<string> RenderAsync(this IFluidTemplate template, TemplateContext context)
-        {
-            return template.RenderAsync(NullEncoder.Default, context);
-        }
-
-        public static async Task<string> RenderAsync(this IFluidTemplate template, TextEncoder encoder, TemplateContext context)
+        public static async Task<string> RenderAsync(this IFluidTemplate template, TemplateContext context, TextEncoder encoder)
         {
             if (context == null)
             {

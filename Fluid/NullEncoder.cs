@@ -1,77 +1,35 @@
 using System;
-using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 
 namespace Fluid
 {
     // An HTML encoder which passes through all input data. Does no encoding.
-    // Copied from Microsoft.AspNetCore.Razor.TagHelpers.NullHtmlEncoder.
-    public class NullEncoder : HtmlEncoder
+    public class NullEncoder : TextEncoder
     {
         private NullEncoder()
         {
         }
 
-        public static new NullEncoder Default { get; } = new NullEncoder();
+        public static NullEncoder Default { get; } = new NullEncoder();
 
-        public override int MaxOutputCharactersPerInputCharacter => 1;
+        public override int MaxOutputCharactersPerInputCharacter => throw new NotImplementedException();
 
-        public override string Encode(string value)
-        {
-            return value;
-        }
-
-        public override void Encode(TextWriter output, char[] value, int startIndex, int characterCount)
-        {
-            if (output == null)
-            {
-                throw new ArgumentNullException(nameof(output));
-            }
-
-            if (characterCount == 0)
-            {
-                return;
-            }
-
-            output.Write(value, startIndex, characterCount);
-        }
-
-        public override void Encode(TextWriter output, string value, int startIndex, int characterCount)
-        {
-            if (output == null)
-            {
-                throw new ArgumentNullException(nameof(output));
-            }
-
-            if (value == null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
-
-            if (characterCount == 0)
-            {
-                return;
-            }
-
-            output.Write(value, startIndex, characterCount);
-        }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override unsafe int FindFirstCharacterToEncode(char* text, int textLength)
         {
             return -1;
         }
 
-        public override unsafe bool TryEncodeUnicodeScalar(
-            int unicodeScalar,
-            char* buffer,
-            int bufferLength,
-            out int numberOfCharactersWritten)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override unsafe bool TryEncodeUnicodeScalar(int unicodeScalar, char* buffer, int bufferLength, out int numberOfCharactersWritten)
         {
             numberOfCharactersWritten = 0;
 
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool WillEncode(int unicodeScalar)
         {
             return false;

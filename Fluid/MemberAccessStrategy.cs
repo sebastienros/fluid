@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -7,25 +6,15 @@ namespace Fluid
 {
     public class MemberAccessStrategy : IMemberAccessStrategy
     {
-        private IDictionary<Type, IDictionary<string, IMemberAccessor>> _map;
+        private Dictionary<Type, IDictionary<string, IMemberAccessor>> _map;
         private readonly IMemberAccessStrategy _parent;
-        private readonly bool _concurrent;
 
-        public MemberAccessStrategy(bool concurrent = true)
+        public MemberAccessStrategy()
         {
-            if (concurrent)
-            {
-                _map = new ConcurrentDictionary<Type, IDictionary<string, IMemberAccessor>>();
-            }
-            else
-            {
-                _map = new Dictionary<Type, IDictionary<string, IMemberAccessor>>();
-            }
-
-            _concurrent = concurrent;
+            _map = new Dictionary<Type, IDictionary<string, IMemberAccessor>>();
         }
 
-        public MemberAccessStrategy(IMemberAccessStrategy parent, bool concurrent = true) : this(concurrent)
+        public MemberAccessStrategy(IMemberAccessStrategy parent) : this()
         {
             _parent = parent;
         }
@@ -68,18 +57,11 @@ namespace Fluid
             typeMap[name] = getter;
         }
 
-        private IDictionary<String, IMemberAccessor> CreateTypeMap(Type type)
+        private Dictionary<String, IMemberAccessor> CreateTypeMap(Type type)
         {
-            IDictionary<String, IMemberAccessor> typeMap;
+            Dictionary<String, IMemberAccessor> typeMap;
 
-            if (_concurrent)
-            {
-                typeMap = new ConcurrentDictionary<string, IMemberAccessor>();
-            }
-            else
-            {
-                typeMap = new Dictionary<string, IMemberAccessor>();
-            }
+            typeMap = new Dictionary<string, IMemberAccessor>();
 
             _map[type] = typeMap;
 

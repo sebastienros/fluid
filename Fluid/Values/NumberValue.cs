@@ -7,12 +7,11 @@ namespace Fluid.Values
     public class NumberValue : FluidValue
     {
         private readonly double _value;
-        private readonly bool _isIntegral;
 
         public NumberValue(double value, bool isIntegral = false)
         {
             _value = value;
-            _isIntegral = isIntegral;
+            IsIntegral = isIntegral;
         }
 
         public override FluidValues Type => FluidValues.Number;
@@ -58,7 +57,7 @@ namespace Fluid.Values
             return false;
         }
 
-        public bool IsIntegral => _isIntegral;
+        public bool IsIntegral { get; private set; }
 
         public override int GetHashCode()
         {
