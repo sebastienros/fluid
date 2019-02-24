@@ -17,9 +17,17 @@ namespace Fluid.Tests
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var sw = new StringWriter();
 
-            //await Assert.Throws<FileNotFoundException>(() =>
-            //    new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext()).GetAwaiter().GetResult()
-            //);
+            try
+            {
+                await new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+                Assert.True(false);
+            }
+            catch (FileNotFoundException)
+            {
+                return;
+            }
+
+            Assert.True(false);
         }
 
         [Fact]

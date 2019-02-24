@@ -51,7 +51,7 @@ namespace Fluid
 
         public FilterArguments(params FluidValue[] values)
         {
-            _positional = new List<FluidValue>(values);    
+            _positional = new List<FluidValue>(values);  
         }
 
         public FilterArguments(params object[] values)
@@ -79,9 +79,7 @@ namespace Fluid
 
         public FilterArguments Add(FluidValue value)
         {
-            _positional.Add(value);
-
-            return this;
+            return Add(null, value);
         }
 
         public FilterArguments Add(string name, FluidValue value)

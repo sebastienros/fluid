@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
@@ -109,7 +110,7 @@ namespace Fluid.Ast
 
             try
             {
-                var forloop = new LoopFluidIndexable();
+                var forloop = new ForLoopValue();
 
                 forloop.Length = list.Count;
                 context.SetValue("forloop", forloop);
@@ -163,10 +164,8 @@ namespace Fluid.Ast
             return Completion.Normal;
         }
 
-        private class LoopFluidIndexable : IFluidIndexable
+        private class ForLoopValue : FluidValue
         {
-            private static string[] _keys = new[] { "length", "index", "index0", "rindex", "rindex0", "first", "last" };
-
             public int Length { get; set; }
             public int Index { get; set; }
             public int Index0 { get; set; }
@@ -177,25 +176,52 @@ namespace Fluid.Ast
 
             public int Count => Length;
 
-            public IEnumerable<string> Keys => _keys;
+            public override FluidValues Type => FluidValues.Dictionary;
 
-            public bool TryGetValue(string name, out FluidValue value)
+            public override bool Equals(FluidValue other)
+            {
+                return false;
+            }
+
+            public override bool ToBooleanValue()
+            {
+                return false;
+            }
+
+            public override double ToNumberValue()
+            {
+                return Length;
+            }
+
+            public override object ToObjectValue()
+            {
+                return null;
+            }
+
+            public override string ToStringValue()
+            {
+                return "forloop";
+            }
+
+            public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
             {
                 switch (name)
                 {
-                    case "length": value = new NumberValue(Length); break;
-                    case "index": value = new NumberValue(Index); break;
-                    case "index0": value = new NumberValue(Index0); break;
-                    case "rindex": value = new NumberValue(RIndex); break;
-                    case "rindex0": value = new NumberValue(RIndex0); break;
-                    case "first": value = new BooleanValue(First); break;
-                    case "last": value = new BooleanValue(Last); break;
+                    case "length": return new ValueTask<FluidValue>(new NumberValue(Length));
+                    case "index": return new ValueTask<FluidValue>(new NumberValue(Index));
+                    case "index0": return new ValueTask<FluidValue>(new NumberValue(Index0));
+                    case "rindex": return new ValueTask<FluidValue>(new NumberValue(RIndex));
+                    case "rindex0": return new ValueTask<FluidValue>(new NumberValue(RIndex0));
+                    case "first": return new ValueTask<FluidValue>(new BooleanValue(First));
+                    case "last": return new ValueTask<FluidValue>(new BooleanValue(Last));
                     default:
-                        value = NilValue.Instance;
-                        return false;
+                        return new ValueTask<FluidValue>(NilValue.Instance);
                 }
+            }
 
-                return true;
+            public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+            {
+                return;
             }
         }
     }

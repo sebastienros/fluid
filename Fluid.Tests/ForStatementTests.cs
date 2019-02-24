@@ -127,7 +127,6 @@ namespace Fluid.Tests
         [Fact]
         public async Task ForShouldProvideHelperVariables()
         {
-
             var e = new ForStatement(
                 new List<Statement> {
                     CreateMemberStatement("forloop.length"),
