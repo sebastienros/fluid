@@ -8,25 +8,27 @@ namespace ConsoleApp1
     {
         static void Main(string[] args)
         {
-            var benchmark = new FastBenchmarks();
+            var benchmark = new FluidBenchmarks();
 
-            for (var i = 0; i < 1024; i++)
+            for (var i = 0; i < 10; i++)
             {
-                benchmark.Render();
+                benchmark.Parse();
             }
 
             var sw = new Stopwatch();
 
-            for (var iteration = 0; iteration < 3; iteration++)
+            for (var iteration = 0; iteration < 1; iteration++)
             {
                 sw.Restart();
 
-                for (var i = 0; i < 1024; i++)
+                Console.ReadLine();
+                for (var i = 0; i < 10; i++)
                 {
-                    benchmark.Render();
+                    benchmark.Parse();
                 }
 
                 Console.WriteLine(sw.ElapsedMilliseconds);
+                Console.ReadLine();
             }
         }
     }

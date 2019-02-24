@@ -288,10 +288,12 @@ namespace Fluid
     /// </summary>
     internal sealed class StringBuilderPool : IDisposable
     {
+        private const int DefaultCapacity = 50 * 1024;
+
         // global pool
         private static readonly ObjectPool<StringBuilderPool> s_poolInstance = CreatePool();
 
-        public readonly StringBuilder Builder = new StringBuilder();
+        public readonly StringBuilder Builder = new StringBuilder(DefaultCapacity);
         private readonly ObjectPool<StringBuilderPool> _pool;
 
         private StringBuilderPool(ObjectPool<StringBuilderPool> pool)
@@ -308,7 +310,7 @@ namespace Fluid
         /// </summary>
         /// <param name="size">The size of the pool.</param>
         /// <returns></returns>
-        internal static ObjectPool<StringBuilderPool> CreatePool(int size = 32)
+        internal static ObjectPool<StringBuilderPool> CreatePool(int size = 16)
         {
             ObjectPool<StringBuilderPool> pool = null;
             pool = new ObjectPool<StringBuilderPool>(() => new StringBuilderPool(pool), size);
@@ -331,8 +333,9 @@ namespace Fluid
         {
             var builder = Builder;
 
-            // do not store builders that are too large.
-            if (builder.Capacity <= 1024)
+            // Do not store builders that are too large.
+
+            if (builder.Capacity == DefaultCapacity)
             {
                 builder.Clear();
                 _pool.Free(this);

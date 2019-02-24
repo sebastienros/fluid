@@ -21,7 +21,7 @@ namespace Fluid.Ast
             get => _options;
         }
 
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             // Process statements until next block or end of statements
             for (var index = 0; index < Statements.Count; index++)

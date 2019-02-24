@@ -31,7 +31,7 @@ namespace Fluid.Ast
             get => _elseIfs;
         }
 
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var result = (await Condition.EvaluateAsync(context)).ToBooleanValue();
 

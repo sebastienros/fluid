@@ -13,12 +13,12 @@ namespace Fluid.Ast
 
         public string Text { get; }
 
-        public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             // The Text fragments are not encoded, but kept as-is
             writer.Write(Text);
 
-            return Task.FromResult(Completion.Normal);
+            return Normal;
         }
     }
 }

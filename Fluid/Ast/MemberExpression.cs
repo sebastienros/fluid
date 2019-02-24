@@ -12,7 +12,7 @@ namespace Fluid.Ast
 
         public MemberSegment[] Segments { get; }
 
-        public override async Task<FluidValue> EvaluateAsync(TemplateContext context)
+        public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
             FluidValue value = null;
 

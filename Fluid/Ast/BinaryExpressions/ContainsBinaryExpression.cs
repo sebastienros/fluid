@@ -9,7 +9,7 @@ namespace Fluid.Ast.BinaryExpressions
         {
         }
 
-        public override async Task<FluidValue> EvaluateAsync(TemplateContext context)
+        public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
             var leftValue = await Left.EvaluateAsync(context);
             var rightValue = await Right.EvaluateAsync(context);

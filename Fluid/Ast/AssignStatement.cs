@@ -16,7 +16,7 @@ namespace Fluid.Ast
 
         public Expression Value { get; }
 
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var value = await Value.EvaluateAsync(context);
             context.SetValue(Identifier, value);

@@ -46,7 +46,10 @@ namespace Fluid.Ast
         public LiteralExpression Offset { get; }
         public bool Reversed { get; }
 
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        private IEnumerable<FluidValue> _rangeElements;
+        private int _rangeStart, _rangeEnd;
+
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             IEnumerable<FluidValue> elements = Array.Empty<FluidValue>();
 
@@ -59,7 +62,18 @@ namespace Fluid.Ast
             {
                 int start = Convert.ToInt32((await Range.From.EvaluateAsync(context)).ToNumberValue());
                 int end = Convert.ToInt32((await Range.To.EvaluateAsync(context)).ToNumberValue());
-                elements = Enumerable.Range(start, end - start + 1).Select(x => new NumberValue(x));
+
+                // Cache range
+                if (_rangeElements == null || _rangeStart != start || _rangeEnd != end)
+                {
+                    _rangeElements = elements = Enumerable.Range(start, end - start + 1).Select(x => new NumberValue(x));
+                    _rangeStart = start;
+                    _rangeEnd = end;
+                }
+                else
+                {
+                    elements = _rangeElements;
+                }
             }
 
             if (!elements.Any())
@@ -95,9 +109,10 @@ namespace Fluid.Ast
 
             try
             {
-                var forloop = new Dictionary<string, FluidValue>();
-                forloop.Add("length", new NumberValue(list.Count));
-                context.SetValue("forloop", new DictionaryValue(new FluidValueDictionaryFluidIndexable(forloop)));
+                var forloop = new LoopFluidIndexable();
+
+                forloop.Length = list.Count;
+                context.SetValue("forloop", forloop);
 
                 for (var i = 0; i < list.Count; i++)
                 {
@@ -106,12 +121,12 @@ namespace Fluid.Ast
                     context.SetValue(Identifier, item);
 
                     // Set helper variables
-                    forloop["index"] = new NumberValue(i + 1);
-                    forloop["index0"] = new NumberValue(i);
-                    forloop["rindex"] = new NumberValue(list.Count - i - 1);
-                    forloop["rindex0"] = new NumberValue(list.Count - i);
-                    forloop["first"] = new BooleanValue(i == 0);
-                    forloop["last"] = new BooleanValue(i == list.Count - 1);
+                    forloop.Index = i + 1;
+                    forloop.Index0 = i;
+                    forloop.RIndex = list.Count - i - 1;
+                    forloop.RIndex0 = list.Count - i;
+                    forloop.First = i == 0;
+                    forloop.Last = i == list.Count - 1;
 
                     Completion completion = Completion.Normal;
 
@@ -146,6 +161,42 @@ namespace Fluid.Ast
             }
 
             return Completion.Normal;
+        }
+
+        private class LoopFluidIndexable : IFluidIndexable
+        {
+            private static string[] _keys = new[] { "length", "index", "index0", "rindex", "rindex0", "first", "last" };
+
+            public int Length { get; set; }
+            public int Index { get; set; }
+            public int Index0 { get; set; }
+            public int RIndex { get; set; }
+            public int RIndex0 { get; set; }
+            public bool First { get; set; }
+            public bool Last { get; set; }
+
+            public int Count => Length;
+
+            public IEnumerable<string> Keys => _keys;
+
+            public bool TryGetValue(string name, out FluidValue value)
+            {
+                switch (name)
+                {
+                    case "length": value = new NumberValue(Length); break;
+                    case "index": value = new NumberValue(Index); break;
+                    case "index0": value = new NumberValue(Index0); break;
+                    case "rindex": value = new NumberValue(RIndex); break;
+                    case "rindex0": value = new NumberValue(RIndex0); break;
+                    case "first": value = new BooleanValue(First); break;
+                    case "last": value = new BooleanValue(Last); break;
+                    default:
+                        value = NilValue.Instance;
+                        return false;
+                }
+
+                return true;
+            }
         }
     }
 }

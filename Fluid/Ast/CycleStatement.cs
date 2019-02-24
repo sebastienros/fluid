@@ -17,7 +17,7 @@ namespace Fluid.Ast
         public Expression Group { get; }
         public IList<Expression> Values { get; }
 
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var groupValue = Group == null ? "$defautGroup" : (await Group.EvaluateAsync(context)).ToStringValue();
 

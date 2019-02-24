@@ -7,7 +7,7 @@ namespace Fluid
 {
     public static class FluidTemplateExtensions
     {
-        public static Task<string> RenderAsync(this IFluidTemplate template, TemplateContext context)
+        public static ValueTask<string> RenderAsync(this IFluidTemplate template, TemplateContext context)
         {
             return template.RenderAsync(context, NullEncoder.Default);
         }
@@ -22,7 +22,7 @@ namespace Fluid
             template.RenderAsync(writer, encoder, context).GetAwaiter().GetResult();
         }
 
-        public static async Task<string> RenderAsync(this IFluidTemplate template, TemplateContext context, TextEncoder encoder)
+        public static async ValueTask<string> RenderAsync(this IFluidTemplate template, TemplateContext context, TextEncoder encoder)
         {
             if (context == null)
             {
@@ -49,7 +49,7 @@ namespace Fluid
             return template.RenderAsync(context).GetAwaiter().GetResult();
         }
 
-        public static Task<string> RenderAsync(this IFluidTemplate template)
+        public static ValueTask<string> RenderAsync(this IFluidTemplate template)
         {
             return template.RenderAsync(new TemplateContext());
         }

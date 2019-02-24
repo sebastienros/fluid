@@ -12,13 +12,13 @@ namespace Fluid.Ast
 
         public Expression Expression { get; }
 
-        public override async Task<FluidValue> ResolveAsync(FluidValue value, TemplateContext context)
+        public override async ValueTask<FluidValue> ResolveAsync(FluidValue value, TemplateContext context)
         {
             var index = await Expression.EvaluateAsync(context);
             return await value.GetIndexAsync(index, context);
         }
 
-        public override async Task<FluidValue> ResolveAsync(Scope value, TemplateContext context)
+        public override async ValueTask<FluidValue> ResolveAsync(Scope value, TemplateContext context)
         {
             var index = await Expression.EvaluateAsync(context);
             return value.GetIndex(index);

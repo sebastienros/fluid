@@ -328,7 +328,7 @@ Here are some examples:
 ```csharp
 public class QuoteTag : ExpressionTag
 {
-  public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression)
+  public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression)
   {
     var value = (await expression.EvaluateAsync(context)).ToStringValue();
     await writer.WriteAsync("'" + value + "'");
@@ -355,7 +355,7 @@ Blocks are created the same way as tags, with these classes: `SimpleBlock`, `Ide
 ```csharp
 public class RepeatBlock : ExpressionBlock
 {
-  public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression, IList<Statements> statements)
+  public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression, IList<Statements> statements)
   {
     var value = (await expression.EvaluateAsync(context)).ToNumberValue();
     for (var i=0; i < value; i++)

@@ -15,7 +15,7 @@ namespace Fluid.Ast
 
         public string Identifier { get; }
 
-        public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             // We prefix the identifier to prevent collisions with variables.
             // Variable identifiers don't represent the same slots as inc/dec ones.
@@ -38,7 +38,7 @@ namespace Fluid.Ast
 
             value.WriteTo(writer, encoder, context.CultureInfo);
 
-            return Task.FromResult(Completion.Normal);
+            return Normal;
         }
     }
 }

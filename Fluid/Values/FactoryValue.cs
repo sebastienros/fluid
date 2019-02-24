@@ -47,12 +47,12 @@ namespace Fluid.Values
             return _factory.Value.GetHashCode();
         }
         
-        public override Task<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
+        public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
             return _factory.Value.GetIndexAsync(index, context);
         }
         
-        public override Task<FluidValue> GetValueAsync(string name, TemplateContext context)
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             return _factory.Value.GetValueAsync(name, context);
         }

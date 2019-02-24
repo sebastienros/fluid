@@ -23,7 +23,7 @@ namespace Fluid.Ast
 
         public Expression With { get; }
 
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
             if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))

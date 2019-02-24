@@ -13,9 +13,9 @@ namespace Fluid.Ast
 
         public string Text { get; }
 
-        public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            return Task.FromResult(Completion.Normal);
+            return Normal;
         }
     }
 }

@@ -8,14 +8,14 @@ namespace Fluid.Tags
 {
     public class DelegateStatement : Statement
     {
-        private readonly Func<TextWriter, TextEncoder, TemplateContext, Task<Completion>> _writeAsync;
+        private readonly Func<TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> _writeAsync;
 
-        public DelegateStatement(Func<TextWriter, TextEncoder, TemplateContext, Task<Completion>> writeAsync)
+        public DelegateStatement(Func<TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> writeAsync)
         {
             _writeAsync = writeAsync;
         }
 
-        public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             return _writeAsync(writer, encoder, context);
         }

@@ -6,9 +6,9 @@ namespace Fluid.Ast
 {
     public class ContinueStatement : Statement
     {
-        public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            return Task.FromResult(Completion.Continue);
+            return Continue;
         }
     }
 }

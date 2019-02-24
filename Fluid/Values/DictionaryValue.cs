@@ -50,11 +50,11 @@ namespace Fluid.Values
             return false;
         }
 
-        public override Task<FluidValue> GetValueAsync(string name, TemplateContext context)
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             if (name == "size")
             {
-                return Task.FromResult<FluidValue>(new NumberValue(_value.Count));
+                return new ValueTask<FluidValue>(new NumberValue(_value.Count));
             }
 
             object value = null;
@@ -78,10 +78,15 @@ namespace Fluid.Values
 
             if (value == null)
             {
-                return Task.FromResult(GetIndex(new StringValue(name), context));
+                if (!_value.TryGetValue(name, out var fluidValue))
+                {
+                    return new ValueTask<FluidValue>(NilValue.Instance);
+                }
+
+                return new ValueTask<FluidValue>(fluidValue);
             }
 
-            return Task.FromResult(FluidValue.Create(value));
+            return new ValueTask<FluidValue>(FluidValue.Create(value));
         }
 
         protected override FluidValue GetIndex(FluidValue index, TemplateContext context)

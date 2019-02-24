@@ -48,7 +48,7 @@ namespace Fluid
         public FilterArguments()
         {
         }
-        
+
         public FilterArguments(params FluidValue[] values)
         {
             _positional = new List<FluidValue>(values);    
