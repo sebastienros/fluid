@@ -1,11 +1,10 @@
-using System;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 
 namespace Fluid
 {
     // An HTML encoder which passes through all input data. Does no encoding.
-    public class NullEncoder : TextEncoder
+    public sealed class NullEncoder : TextEncoder
     {
         private NullEncoder()
         {
@@ -13,7 +12,7 @@ namespace Fluid
 
         public static NullEncoder Default { get; } = new NullEncoder();
 
-        public override int MaxOutputCharactersPerInputCharacter => throw new NotImplementedException();
+        public override int MaxOutputCharactersPerInputCharacter => 1;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override unsafe int FindFirstCharacterToEncode(char* text, int textLength)
