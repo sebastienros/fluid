@@ -5,6 +5,7 @@ using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Values;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Fluid.Tests
@@ -15,7 +16,7 @@ namespace Fluid.Tests
         public async Task ShouldLoopRange()
         {
             var e = new ForStatement(
-                new List<Statement> { new TextStatement("x") },
+                new List<Statement> { new TextStatement(new StringSegment("x")) },
                 "i",
                 new RangeExpression(
                     new LiteralExpression(new NumberValue(1)),
@@ -60,7 +61,7 @@ namespace Fluid.Tests
         public async Task ShouldLoopArrays()
         {
             var e = new ForStatement(
-                new List<Statement> { new TextStatement("x") },
+                new List<Statement> { new TextStatement(new StringSegment("x")) },
                 "i",
                 new MemberExpression(
                     new IdentifierSegment("items")
@@ -81,9 +82,9 @@ namespace Fluid.Tests
         {
             var e = new ForStatement(
                 new List<Statement> {
-                    new TextStatement("x"),
+                    new TextStatement(new StringSegment("x")),
                     new BreakStatement(),
-                    new TextStatement("y")
+                    new TextStatement(new StringSegment("y"))
                 },
                 "i",
                 new MemberExpression(
@@ -105,9 +106,9 @@ namespace Fluid.Tests
         {
             var e = new ForStatement(
                 new List<Statement> {
-                    new TextStatement("x"),
+                    new TextStatement(new StringSegment("x")),
                     new ContinueStatement(),
-                    new TextStatement("y")
+                    new TextStatement(new StringSegment("y"))
                 },
                 "i",
                 new MemberExpression(

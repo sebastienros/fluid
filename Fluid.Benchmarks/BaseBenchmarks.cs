@@ -34,5 +34,8 @@ namespace Fluid.Benchmarks
         public abstract object Parse();
 
         public abstract string Render();
+
+        public abstract string ParseAndRender();
+
     }
 }

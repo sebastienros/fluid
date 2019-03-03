@@ -1,5 +1,4 @@
 ﻿using BenchmarkDotNet.Attributes;
-using System;
 
 namespace Fluid.Benchmarks
 {
@@ -12,18 +11,13 @@ namespace Fluid.Benchmarks
         public FluidBenchmarks()
         {
             FluidTemplate.TryParse(TextTemplate, out _fluidTemplate, out var errors);
-            _context = new TemplateContext();
-            _context.SetValue("products", Products);
+            _context = new TemplateContext().SetValue("products", Products);
         }
 
         [Benchmark]
         public override object Parse()
         {
-            if (!FluidTemplate.TryParse(TextTemplate, false, out var template, out var errors))
-            {
-                throw new InvalidOperationException("Liquid template not parsed");
-            }
-
+            FluidTemplate.TryParse(TextTemplate, false, out var template, out var errors);
             return template;
         }
 
@@ -31,6 +25,16 @@ namespace Fluid.Benchmarks
         public override string Render()
         {
             return _fluidTemplate.Render(_context);
+        }
+
+        [Benchmark]
+        public override string ParseAndRender()
+        {
+            FluidTemplate.TryParse(TextTemplate, false, out var template, out var errors);
+            var context = new TemplateContext()
+                .SetValue("products", Products);
+
+            return template.Render(context);
         }
     }
 }

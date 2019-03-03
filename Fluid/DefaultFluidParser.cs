@@ -64,7 +64,7 @@ namespace Fluid
                     }
                     else
                     {
-                        trimBefore = segment.Buffer[start + 2] == '-';
+                        trimBefore = segment.Index(start + 2) == '-';
 
                         // Only create a parser if there are tags in the template
                         if (parser == null)
@@ -78,9 +78,9 @@ namespace Fluid
                             ConsumeTextStatement(segment, previous, start, trimAfter, trimBefore, stripEmptyLines);
                         }
 
-                        trimAfter = segment.Buffer[end - 2] == '-';
+                        trimAfter = segment.Index(end - 2) == '-';
 
-                        var tag = segment.Substring(start, end - start + 1);
+                        var tag = segment.Subsegment(start, end - start + 1).ToString();
 
                         if (trimAfter || trimBefore)
                         {
@@ -107,8 +107,10 @@ namespace Fluid
                         {
                             int line = 1, col = 1;
 
-                            foreach (var ch in segment.Buffer.Take(start))
+                            for(var i = segment.Offset; i < start; i++)
                             {
+                                var ch = segment.Index(i);
+
                                 switch (ch)
                                 {
                                     case '\n':
@@ -199,7 +201,7 @@ namespace Fluid
         /// Creates a <see cref="TextStatement"/> by reading the text until the specific end tag is found,
         /// or the end of the segment reached.
         /// </summary>
-        private string ConsumeTag(StringSegment segment, int start, string endTag, out int end)
+        private StringSegment ConsumeTag(StringSegment segment, int start, string endTag, out int end)
         {
             int index = start;
 
@@ -207,13 +209,13 @@ namespace Fluid
             {
                 var pos = index;
 
-                if (segment.Value[index] == '{' && segment.Value[index + 1] == '%')
+                if (segment.Index(index) == '{' && segment.Index(index + 1) == '%')
                 {
                     var tagStart = index;
 
                     index = index + 2;
 
-                    while (index < segment.Length && Char.IsWhiteSpace(segment.Value[index]))
+                    while (index < segment.Length && Char.IsWhiteSpace(segment.Index(index)))
                     {
                         index++;
                     }
@@ -221,7 +223,7 @@ namespace Fluid
                     if (index + endTag.Length < segment.Length && segment.Substring(index, endTag.Length) == endTag)
                     {
                         end = pos;
-                        return segment.Substring(start, tagStart - start);
+                        return segment.Subsegment(start, tagStart - start);
                     }
                     else
                     {
@@ -237,7 +239,7 @@ namespace Fluid
             // We reached the end of the segment without finding the matched tag.
             // Ideally we could return a parsing error, right now we just return the text.
             end = segment.Length - 1;
-            return segment.Substring(start, index - start);
+            return segment.Subsegment(start, index - start);
         }
 
         /// <summary>
@@ -252,8 +254,8 @@ namespace Fluid
         {
             int index;
 
-            var endIsPercent = end < segment.Length - 1 && segment.Value[end + 1] == '%';
-            var startIsPercent = start > 2 && segment.Value[start - 2] == '%';
+            var endIsPercent = end < segment.Length - 1 && segment.Index(end + 1) == '%';
+            var startIsPercent = start > 2 && segment.Index(start - 2) == '%';
 
             if (trimEnd)
             {
@@ -266,7 +268,7 @@ namespace Fluid
                     // are white spaces.
                     if (index == start - 1)
                     {
-                        if (index >= 0 && segment.Value[index] == '\n' || index == -1)
+                        if (index >= 0 && segment.Index(index) == '\n' || index == -1)
                         {
                             end = start;
                         }
@@ -274,7 +276,7 @@ namespace Fluid
                         break;
                     }
 
-                    var c = segment.Value[index];
+                    var c = segment.Index(index);
 
                     if (c == '\n')
                     {
@@ -309,7 +311,7 @@ namespace Fluid
                         break;
                     }
 
-                    var c = segment.Value[index];
+                    var c = segment.Index(index);
 
                     if (c == '\n' && index + 1 <= end)
                     {
@@ -318,7 +320,7 @@ namespace Fluid
                         break;
                     }
 
-                    if (c == '\r' && index + 2 < end && segment.Value[index + 1] == '\n')
+                    if (c == '\r' && index + 2 < end && segment.Index(index + 1) == '\n')
                     {
                         start = index + 2;
                         break;
@@ -351,7 +353,7 @@ namespace Fluid
                     bool hasNonWhitespace = false;
                     for (var i = start; i < end; i++)
                     {
-                        var c = segment.Value[i];
+                        var c = segment.Index(i);
 
                         if (!Char.IsWhiteSpace(c))
                         {
@@ -370,7 +372,7 @@ namespace Fluid
                 {
                     for (var i = start; i < end; i++)
                     {
-                        var c = segment.Value[i];
+                        var c = segment.Index(i);
 
                         if (!Char.IsWhiteSpace(c))
                         {
@@ -389,7 +391,7 @@ namespace Fluid
                 {
                     for (var i = end - 1; i >= start; i--)
                     {
-                        var c = segment.Value[i];
+                        var c = segment.Index(i);
 
                         if (!Char.IsWhiteSpace(c))
                         {
@@ -417,7 +419,7 @@ namespace Fluid
                 return null;
             }
 
-            return new TextStatement(segment.Substring(start, end - start));
+            return new TextStatement(segment.Subsegment(start, end - start));
         }
 
         private bool MatchTag(StringSegment template, int startIndex, out int start, out int end)
@@ -438,16 +440,19 @@ namespace Fluid
 
                 if (start < template.Length - 1)
                 {
-                    var c = template.Value[start + 1];
+                    var c = template.Index(start + 1);
 
                     if ((c == '{' && !(_isComment || _isRaw)) || c == '%')
                     {
                         // Start tag found
-                        var endTag = c == '{' ? "}}" : "%}";
+                        var endTag = c == '{' ? '}' : '%';
 
-                        end = template.Value.IndexOf(endTag, start + 2, StringComparison.Ordinal);
+                        do
+                        {
+                            end = template.IndexOf(endTag, start + 2);
+                        } while (end != -1 && end < template.Length - 1 && template.Index(end + 1) != '}');
 
-                        if (end == -1)
+                        if (end == -1 || end >= template.Length - 1)
                         {
                             // No end tag
                             return false;
@@ -739,7 +744,7 @@ namespace Fluid
                 throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'case' tag.");
             }
 
-            if (context.Statements.Count > 0 && context.Statements.Any(x => x is TextStatement text && !String.IsNullOrWhiteSpace(text.Text)))
+            if (context.Statements.Count > 0 && context.Statements.Any(x => x is TextStatement text))
             {
                 throw new ParseException($"Unexpected content in 'case' tag. Only 'when' and 'else' are allowed.");
             }

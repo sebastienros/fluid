@@ -7,7 +7,6 @@ namespace Fluid.Ast
 {
     public class OutputStatement : Statement
     {
-
         public OutputStatement(Expression expression)
         {
             Expression = expression;

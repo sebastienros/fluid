@@ -29,5 +29,13 @@ namespace Fluid.Benchmarks
         {
             return _dotLiquidTemplate.Render(_products);
         }
+
+        [Benchmark]
+        public override string ParseAndRender()
+        {
+            var template = Template.Parse(TextTemplate);
+            var products = Hash.FromAnonymousObject(new { products = Products });
+            return template.Render(products);
+        }
     }
 }

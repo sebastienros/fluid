@@ -27,5 +27,13 @@ namespace Fluid.Benchmarks
         {
             return _scribanTemplate.Render(_scriptObject);
         }
+
+        [Benchmark]
+        public override string ParseAndRender()
+        {
+            var template = Template.ParseLiquid(TextTemplate);
+            var scriptObject = new ScriptObject { { "products", Products } };
+            return template.Render(scriptObject);
+        }
     }
 }
