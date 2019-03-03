@@ -47,7 +47,7 @@ namespace Fluid.Ast
         public LiteralExpression Offset { get; }
         public bool Reversed { get; }
 
-        private IEnumerable<FluidValue> _rangeElements;
+        private List<FluidValue> _rangeElements;
         private int _rangeStart, _rangeEnd;
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
@@ -67,7 +67,14 @@ namespace Fluid.Ast
                 // Cache range
                 if (_rangeElements == null || _rangeStart != start || _rangeEnd != end)
                 {
-                    _rangeElements = elements = Enumerable.Range(start, end - start + 1).Select(x => new NumberValue(x));
+                    _rangeElements = new List<FluidValue>();
+
+                    for (var i = start; i <= end - start + 1; i++)
+                    {
+                        _rangeElements.Add(NumberValue.Create(i));
+                    }
+                    
+                    elements = _rangeElements;
                     _rangeStart = start;
                     _rangeEnd = end;
                 }
@@ -112,10 +119,10 @@ namespace Fluid.Ast
             {
                 var forloop = new ForLoopValue();
 
-                forloop.Length = list.Count;
+                var length = forloop.Length = list.Count;
                 context.SetValue("forloop", forloop);
 
-                for (var i = 0; i < list.Count; i++)
+                for (var i = 0; i < length; i++)
                 {
                     var item = list[i];
 
@@ -124,10 +131,10 @@ namespace Fluid.Ast
                     // Set helper variables
                     forloop.Index = i + 1;
                     forloop.Index0 = i;
-                    forloop.RIndex = list.Count - i - 1;
-                    forloop.RIndex0 = list.Count - i;
+                    forloop.RIndex = length - i - 1;
+                    forloop.RIndex0 = length - i;
                     forloop.First = i == 0;
-                    forloop.Last = i == list.Count - 1;
+                    forloop.Last = i == length - 1;
 
                     Completion completion = Completion.Normal;
 
@@ -207,13 +214,13 @@ namespace Fluid.Ast
             {
                 switch (name)
                 {
-                    case "length": return new ValueTask<FluidValue>(new NumberValue(Length));
-                    case "index": return new ValueTask<FluidValue>(new NumberValue(Index));
-                    case "index0": return new ValueTask<FluidValue>(new NumberValue(Index0));
-                    case "rindex": return new ValueTask<FluidValue>(new NumberValue(RIndex));
-                    case "rindex0": return new ValueTask<FluidValue>(new NumberValue(RIndex0));
-                    case "first": return new ValueTask<FluidValue>(new BooleanValue(First));
-                    case "last": return new ValueTask<FluidValue>(new BooleanValue(Last));
+                    case "length": return new ValueTask<FluidValue>(NumberValue.Create(Length));
+                    case "index": return new ValueTask<FluidValue>(NumberValue.Create(Index));
+                    case "index0": return new ValueTask<FluidValue>(NumberValue.Create(Index0));
+                    case "rindex": return new ValueTask<FluidValue>(NumberValue.Create(RIndex));
+                    case "rindex0": return new ValueTask<FluidValue>(NumberValue.Create(RIndex0));
+                    case "first": return new ValueTask<FluidValue>(BooleanValue.Create(First));
+                    case "last": return new ValueTask<FluidValue>(BooleanValue.Create(Last));
                     default:
                         return new ValueTask<FluidValue>(NilValue.Instance);
                 }

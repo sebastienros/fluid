@@ -54,7 +54,7 @@ namespace Fluid.Values
         {
             if (name == "size")
             { 
-                return new NumberValue(_value.Length);
+                return NumberValue.Create(_value.Length);
             }
 
             return NilValue.Instance;

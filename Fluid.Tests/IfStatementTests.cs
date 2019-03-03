@@ -11,8 +11,8 @@ namespace Fluid.Tests
 {
     public class IfStatementTests
     {
-        private Expression TRUE = new LiteralExpression(new BooleanValue(true));
-        private Expression FALSE = new LiteralExpression(new BooleanValue(false));
+        private Expression TRUE = new LiteralExpression(BooleanValue.True);
+        private Expression FALSE = new LiteralExpression(BooleanValue.False);
 
         private List<Statement> TEXT(string text)
         {

@@ -15,22 +15,23 @@ namespace Fluid
         {
             if (!_typeMembers.TryGetValue(type, out var list))
             {
-
                 list = new List<string>();
 
                 foreach (var propertyInfo in type.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {
                     list.Add(propertyInfo.Name);
-                    _namedAccessors[$"({type.FullName})-{propertyInfo.Name}"] = new MethodInfoAccessor(propertyInfo.GetGetMethod());
+                    var key = String.Concat("(", type.FullName, ")", propertyInfo.Name);
+                    _namedAccessors[key] = new MethodInfoAccessor(propertyInfo.GetGetMethod());
                 }
 
                 foreach (var fieldInfo in type.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))
                 {
                     list.Add(fieldInfo.Name);
-                    _namedAccessors[$"({type.FullName})-{fieldInfo.Name}"] = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
+                    var key = String.Concat("(", type.FullName, ")", fieldInfo.Name);
+                    _namedAccessors[key] = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
                 }
 
-                _typeMembers.Add(type, list);
+                _typeMembers[type] = list;
             }
 
             return list;
@@ -38,7 +39,9 @@ namespace Fluid
 
         public static IMemberAccessor GetNamedAccessor(Type type, string name)
         {
-            if (!_namedAccessors.TryGetValue($"({type.FullName})-{name}", out var result))
+            var key = String.Concat("(", type.FullName, ")", name);
+
+            if (!_namedAccessors.TryGetValue(key, out var result))
             {
                 var propertyInfo = type.GetTypeInfo().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
 

@@ -14,12 +14,17 @@ namespace Fluid.Values
 
         private readonly bool _value;
 
-        public BooleanValue(bool value)
+        private BooleanValue(bool value)
         {
             _value = value;
         }
 
         public override FluidValues Type => FluidValues.Boolean;
+
+        public static BooleanValue Create(bool value)
+        {
+            return value ? True : False;
+        }
 
         public override bool Equals(FluidValue other)
         {

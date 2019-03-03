@@ -14,7 +14,7 @@ namespace Fluid.Ast.BinaryExpressions
             var leftValue = await Left.EvaluateAsync(context);
             var rightValue = await Right.EvaluateAsync(context);
 
-            return new BooleanValue(leftValue.ToBooleanValue() || rightValue.ToBooleanValue());
+            return BooleanValue.Create(leftValue.ToBooleanValue() || rightValue.ToBooleanValue());
         }
     }
 }

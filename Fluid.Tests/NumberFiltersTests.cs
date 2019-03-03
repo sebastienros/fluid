@@ -11,7 +11,7 @@ namespace Fluid.Tests
         [Fact]
         public void Ceil()
         {
-            var input = new NumberValue(4.6);
+            var input = NumberValue.Create(4.6);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -26,9 +26,9 @@ namespace Fluid.Tests
         [InlineData(4, 5.0, 0.8)]
         public void DividedByReturnsSameTypeAsDivisor(double value, object divisor, double expected)
         {
-            var input = new NumberValue(value);
+            var input = NumberValue.Create(value);
 
-            var arguments = new FilterArguments(new NumberValue(Convert.ToDouble(divisor), divisor is int));
+            var arguments = new FilterArguments(NumberValue.Create(Convert.ToDouble(divisor), divisor is int));
             var context = new TemplateContext();
 
             var result = NumberFilters.DividedBy(input, arguments, context);
@@ -39,7 +39,7 @@ namespace Fluid.Tests
         [Fact]
         public void Floor()
         {
-            var input = new NumberValue(4.6);
+            var input = NumberValue.Create(4.6);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -52,7 +52,7 @@ namespace Fluid.Tests
         [Fact]
         public void Minus()
         {
-            var input = new NumberValue(6);
+            var input = NumberValue.Create(6);
 
             var arguments = new FilterArguments(3);
             var context = new TemplateContext();
@@ -65,7 +65,7 @@ namespace Fluid.Tests
         [Fact]
         public void Modulo()
         {
-            var input = new NumberValue(6);
+            var input = NumberValue.Create(6);
 
             var arguments = new FilterArguments(4);
             var context = new TemplateContext();
@@ -78,7 +78,7 @@ namespace Fluid.Tests
         [Fact]
         public void Plus()
         {
-            var input = new NumberValue(6);
+            var input = NumberValue.Create(6);
 
             var arguments = new FilterArguments('3');
             var context = new TemplateContext();
@@ -104,7 +104,7 @@ namespace Fluid.Tests
         [Fact]
         public void Round()
         {
-            var input = new NumberValue(4.1234);
+            var input = NumberValue.Create(4.1234);
 
             var arguments = new FilterArguments(2);
             var context = new TemplateContext();
@@ -117,7 +117,7 @@ namespace Fluid.Tests
         [Fact]
         public void Times()
         {
-            var input = new NumberValue(6, true);
+            var input = NumberValue.Create(6, true);
 
             var arguments = new FilterArguments(3);
             var context = new TemplateContext();
@@ -131,7 +131,7 @@ namespace Fluid.Tests
         [Fact]
         public void TimesCanChangeToFloat()
         {
-            var input = new NumberValue(6, true);
+            var input = NumberValue.Create(6, true);
 
             var arguments = new FilterArguments(1.0);
             var context = new TemplateContext();

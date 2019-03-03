@@ -16,7 +16,7 @@ namespace Fluid.Ast.BinaryExpressions
 
             if (leftValue is NumberValue && rightValue is NumberValue)
             {
-                return new NumberValue(leftValue.ToNumberValue() * rightValue.ToNumberValue());
+                return NumberValue.Create(leftValue.ToNumberValue() * rightValue.ToNumberValue());
             }
 
             return NilValue.Instance;

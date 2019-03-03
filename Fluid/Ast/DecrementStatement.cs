@@ -27,11 +27,11 @@ namespace Fluid.Ast
             
             if (value.IsNil()) 
             {
-                value = new NumberValue(0);
+                value = NumberValue.Zero;
             }
             else
             {
-                value = new NumberValue(value.ToNumberValue() - 1);
+                value = NumberValue.Create(value.ToNumberValue() - 1);
             }
 
             context.SetValue(prefixedIdentifier, value);

@@ -39,8 +39,8 @@ namespace Fluid.Tests
         public void CompactRemovesNilValues()
         {
             var input = new ArrayValue(new FluidValue[] { 
-                new StringValue("a"), 
-                new NumberValue(0),
+                new StringValue("a"),
+                NumberValue.Zero,
                 NilValue.Instance,
                 new StringValue("b")
                 });

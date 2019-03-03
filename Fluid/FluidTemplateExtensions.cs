@@ -39,8 +39,10 @@ namespace Fluid
                 using (var writer = new StringWriter(sb.Builder))
                 {
                     await template.RenderAsync(writer, encoder, context);
-                    return writer.ToString();
+                    await writer.FlushAsync();
                 }
+
+                return sb.ToString();
             }
         }
 

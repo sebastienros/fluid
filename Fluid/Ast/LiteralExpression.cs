@@ -3,7 +3,7 @@ using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class LiteralExpression : Expression
+    public sealed class LiteralExpression : Expression
     {
         private readonly FluidValue _value;
         

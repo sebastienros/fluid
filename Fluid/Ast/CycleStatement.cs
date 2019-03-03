@@ -25,12 +25,12 @@ namespace Fluid.Ast
 
             if (currentValue.IsNil())
             {
-                currentValue = new NumberValue(0);
+                currentValue = NumberValue.Zero;
             }
 
             var index = (int)currentValue.ToNumberValue() % Values.Count;
             var value = await Values[index].EvaluateAsync(context);
-            context.SetValue(groupValue, new NumberValue(index + 1));
+            context.SetValue(groupValue, NumberValue.Create(index + 1));
 
             value.WriteTo(writer, encoder, context.CultureInfo);
 

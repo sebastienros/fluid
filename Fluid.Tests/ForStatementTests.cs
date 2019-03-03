@@ -19,8 +19,8 @@ namespace Fluid.Tests
                 new List<Statement> { new TextStatement(new StringSegment("x")) },
                 "i",
                 new RangeExpression(
-                    new LiteralExpression(new NumberValue(1)),
-                    new LiteralExpression(new NumberValue(3))
+                    new LiteralExpression(NumberValue.Create(1)),
+                    new LiteralExpression(NumberValue.Create(3))
                 ),
                 null, null, false
             );
@@ -36,12 +36,12 @@ namespace Fluid.Tests
         {
             var e = new ForStatement(
                 new List<Statement> {
-                    new AssignStatement("z", new LiteralExpression(new NumberValue(1)))
+                    new AssignStatement("z", new LiteralExpression(NumberValue.Create(1)))
                     },
                 "i",
                 new RangeExpression(
-                    new LiteralExpression(new NumberValue(1)),
-                    new LiteralExpression(new NumberValue(3))
+                    new LiteralExpression(NumberValue.Create(1)),
+                    new LiteralExpression(NumberValue.Create(3))
                 ),
                 null, null, false
             );
@@ -160,11 +160,11 @@ namespace Fluid.Tests
                 new List<Statement> { CreateMemberStatement("i") },
                 "i",
                 new RangeExpression(
-                    new LiteralExpression(new NumberValue(1)),
-                    new LiteralExpression(new NumberValue(5))
+                    new LiteralExpression(NumberValue.Create(1)),
+                    new LiteralExpression(NumberValue.Create(5))
                 ),
-                new LiteralExpression(new NumberValue(3)),
-                new LiteralExpression(new NumberValue(2)),
+                new LiteralExpression(NumberValue.Create(3)),
+                new LiteralExpression(NumberValue.Create(2)),
                 true
             );
 

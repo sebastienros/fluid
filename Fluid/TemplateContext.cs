@@ -124,7 +124,7 @@ namespace Fluid
 
         public TemplateContext SetValue(string name, int value)
         {
-            return SetValue(name, new NumberValue(value));
+            return SetValue(name, NumberValue.Create(value));
         }
 
         public TemplateContext SetValue(string name, string value)
@@ -134,7 +134,7 @@ namespace Fluid
 
         public TemplateContext SetValue(string name, bool value)
         {
-            return SetValue(name, new BooleanValue(value));
+            return SetValue(name, BooleanValue.Create(value));
         }
 
         public TemplateContext SetValue(string name, object value)

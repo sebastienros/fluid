@@ -23,7 +23,7 @@ namespace Fluid.Ast.BinaryExpressions
                     return NilValue.Instance;
                 }
 
-                return new NumberValue(leftValue.ToNumberValue() / rightNumber);
+                return NumberValue.Create(leftValue.ToNumberValue() / rightNumber);
             }
 
             return NilValue.Instance;

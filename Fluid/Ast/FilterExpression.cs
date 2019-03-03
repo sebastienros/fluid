@@ -28,10 +28,8 @@ namespace Fluid.Ast
             {
                 arguments = new FilterArguments();
 
-                var length = Parameters.Length;
-                for (var i = 0; i < length; i++)
+                foreach (var parameter in Parameters)
                 {
-                    var parameter = Parameters[i];
                     _canBeCached = _canBeCached && parameter.Expression is LiteralExpression;
                     arguments.Add(parameter.Name, await parameter.Expression.EvaluateAsync(context));
                 }

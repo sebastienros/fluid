@@ -54,7 +54,7 @@ namespace Fluid.Values
         {
             if (name == "size")
             {
-                return new ValueTask<FluidValue>(new NumberValue(_value.Count));
+                return new ValueTask<FluidValue>(NumberValue.Create(_value.Count));
             }
 
             object value = null;
