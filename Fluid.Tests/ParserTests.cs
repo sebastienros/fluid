@@ -1,5 +1,6 @@
 ﻿using Fluid.Ast;
 using Irony.Parsing;
+using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,7 +27,7 @@ namespace Fluid.Tests
 
             Assert.Single(statements);
             Assert.NotNull(textStatement);
-            Assert.Equal("Hello World", textStatement.Text);
+            Assert.Equal("Hello World", textStatement.Text.ToString());
         }
 
         [Fact]
@@ -68,7 +69,7 @@ namespace Fluid.Tests
             var statements = Parse(@"{% for a in b %};{% endfor %}");
             Assert.Single(statements);
             var text = ((ForStatement)statements[0]).Statements[0] as TextStatement;
-            Assert.Equal(";", text.Text);
+            Assert.Equal(";", text.Text.ToString());
         }
 
         [Fact]
@@ -78,7 +79,7 @@ namespace Fluid.Tests
 
             Assert.Single(statements);
             Assert.IsType<TextStatement>(statements.ElementAt(0));
-            Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as TextStatement).Text);
+            Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as TextStatement).Text.ToString());
         }
 
         [Fact]
@@ -88,7 +89,7 @@ namespace Fluid.Tests
 
             Assert.Single(statements);
             Assert.IsType<TextStatement>(statements.ElementAt(0));
-            Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as TextStatement).Text);
+            Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as TextStatement).Text.ToString());
         }
 
         [Fact]
@@ -98,7 +99,7 @@ namespace Fluid.Tests
 
             Assert.Single(statements);
             Assert.IsType<CommentStatement>(statements.ElementAt(0));
-            Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as CommentStatement).Text);
+            Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as CommentStatement).Text.ToString());
         }
 
         [Fact]
@@ -108,7 +109,7 @@ namespace Fluid.Tests
 
             Assert.Single(statements);
             Assert.IsType<CommentStatement>(statements.ElementAt(0));
-            Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as CommentStatement).Text);
+            Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as CommentStatement).Text.ToString());
         }
 
         [Fact]
@@ -287,7 +288,20 @@ def", "at line:2, col:6")]
             var rendered = template.Render();
 
             Assert.Equal(expected, rendered);
+        }
 
+        [Fact]
+        public void ShouldIndexStringSegment()
+        {
+            var segment = new StringSegment("012345");
+
+            Assert.Equal('0', segment.Index(0));
+            Assert.Equal('5', segment.Index(-1));
+
+            segment = segment.Subsegment(1, 4);
+
+            Assert.Equal('1', segment.Index(0));
+            Assert.Equal('4', segment.Index(-1));
         }
     }
 }

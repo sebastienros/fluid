@@ -21,7 +21,7 @@ namespace Fluid.Filters
 
         public static FluidValue Ceil(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new NumberValue(Math.Ceiling(input.ToNumberValue()), true);
+            return NumberValue.Create(Math.Ceiling(input.ToNumberValue()), true);
         }
 
         public static FluidValue DividedBy(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -36,37 +36,37 @@ namespace Fluid.Filters
             {
                 if (number.IsIntegral)
                 {
-                    return new NumberValue(Math.Floor(input.ToNumberValue() / divisor), true);
+                    return NumberValue.Create(Math.Floor(input.ToNumberValue() / divisor), true);
                 }                
             }
 
-            return new NumberValue(input.ToNumberValue() / divisor);
+            return NumberValue.Create(input.ToNumberValue() / divisor);
         }
 
         public static FluidValue Floor(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new NumberValue(Math.Floor(input.ToNumberValue()), true);
+            return NumberValue.Create(Math.Floor(input.ToNumberValue()), true);
         }
 
         public static FluidValue Minus(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new NumberValue(input.ToNumberValue() - arguments.At(0).ToNumberValue());
+            return NumberValue.Create(input.ToNumberValue() - arguments.At(0).ToNumberValue());
         }
 
         public static FluidValue Modulo(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new NumberValue(Convert.ToInt32(input.ToNumberValue()) % Convert.ToInt32(arguments.At(0).ToNumberValue()));
+            return NumberValue.Create(Convert.ToInt32(input.ToNumberValue()) % Convert.ToInt32(arguments.At(0).ToNumberValue()));
         }
 
         public static FluidValue Plus(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new NumberValue(input.ToNumberValue() + arguments.At(0).ToNumberValue());
+            return NumberValue.Create(input.ToNumberValue() + arguments.At(0).ToNumberValue());
         }
 
         public static FluidValue Round(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var digits = Convert.ToInt32(arguments.At(0).Or(new NumberValue(0)).ToNumberValue());
-            return new NumberValue(Math.Round(input.ToNumberValue(), digits));
+            var digits = Convert.ToInt32(arguments.At(0).Or(NumberValue.Zero).ToNumberValue());
+            return NumberValue.Create(Math.Round(input.ToNumberValue(), digits));
         }
 
         public static FluidValue Times(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -76,7 +76,7 @@ namespace Fluid.Filters
                 input is NumberValue inputNumber && inputNumber.IsIntegral
                 && first is NumberValue firstNumber && firstNumber.IsIntegral;
 
-            return new NumberValue(input.ToNumberValue() * first.ToNumberValue(), resultIsIntegral);
+            return NumberValue.Create(input.ToNumberValue() * first.ToNumberValue(), resultIsIntegral);
         }
     }
 }

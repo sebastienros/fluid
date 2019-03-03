@@ -1,17 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
+﻿using Fluid;
+using Fluid.Ast;
+using Fluid.MvcViewEngine;
+using Fluid.MvcViewEngine.Internal;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
-using Fluid;
-using Fluid.Ast;
-using Fluid.MvcViewEngine;
-using Fluid.MvcViewEngine.Internal;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace FluidMvcViewEngine
 {
@@ -65,7 +65,7 @@ namespace FluidMvcViewEngine
             context.TemplateFactory = FluidTemplateFactory;
             context.FileProvider = new FileProviderMapper(fileProvider, "Views");
 
-            var body = await template.RenderAsync(_options.TextEncoder, context);
+            var body = await template.RenderAsync(context, _options.TextEncoder);
 
             // If a layout is specified while rendering a view, execute it
             if (context.AmbientValues.TryGetValue("Layout", out var layoutPath))
@@ -74,7 +74,7 @@ namespace FluidMvcViewEngine
                 context.AmbientValues["Body"] = body;
                 var layoutTemplate = ParseLiquidFile((string)layoutPath, fileProvider, false);
 
-                return await layoutTemplate.RenderAsync(_options.TextEncoder, context);
+                return await layoutTemplate.RenderAsync(context, _options.TextEncoder);
             }
 
             return body;

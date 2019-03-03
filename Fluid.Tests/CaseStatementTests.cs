@@ -4,6 +4,7 @@ using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Values;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Fluid.Tests
@@ -17,7 +18,7 @@ namespace Fluid.Tests
 
         private List<Statement> TEXT(string text)
         {
-            return new List<Statement> { new TextStatement(text) };
+            return new List<Statement> { new TextStatement(new StringSegment(text)) };
         }
 
         [Fact]
@@ -45,7 +46,7 @@ namespace Fluid.Tests
                 null,
                 new[] {
                     new WhenStatement(new List<Expression> { A }, 
-                    new List<Statement> { new TextStatement("x"), new TextStatement("y") })
+                    new List<Statement> { new TextStatement(new StringSegment("x")), new TextStatement(new StringSegment("y")) })
                 }
             );
 
@@ -116,7 +117,7 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 A,
-                new ElseStatement(new List<Statement> { new TextStatement("y")}),
+                new ElseStatement(new List<Statement> { new TextStatement(new StringSegment("y"))}),
                 new[] {
                     new WhenStatement(new List<Expression> { A }, TEXT("x"))
                 }
@@ -133,7 +134,7 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 A,
-                new ElseStatement(new List<Statement> { new TextStatement("y") }),
+                new ElseStatement(new List<Statement> { new TextStatement(new StringSegment("y")) }),
                 new[] {
                     new WhenStatement(new List<Expression> { B, C }, TEXT("x"))
                 }
@@ -150,7 +151,7 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 B,
-                new ElseStatement(new List<Statement> { new TextStatement("y") }),
+                new ElseStatement(new List<Statement> { new TextStatement(new StringSegment("y")) }),
                 new[] {
                     new WhenStatement(new List<Expression> { A, C }, TEXT("1")),
                     new WhenStatement(new List<Expression> { B, C }, TEXT("2")),

@@ -11,7 +11,7 @@ namespace Fluid.Ast
         {
         }
 
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             for (var i = 0; i < Statements.Count; i++)
             {

@@ -1,31 +1,22 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
 
 namespace Fluid
 {
     public class MemberAccessStrategy : IMemberAccessStrategy
     {
-        private IDictionary<Type, IDictionary<string, IMemberAccessor>> _map;
+        private Dictionary<Type, Dictionary<string, IMemberAccessor>> _map;
         private readonly IMemberAccessStrategy _parent;
-        private readonly bool _concurrent;
+        private bool _initialized;
 
-        public MemberAccessStrategy(bool concurrent = true)
+        public MemberAccessStrategy()
         {
-            if (concurrent)
-            {
-                _map = new ConcurrentDictionary<Type, IDictionary<string, IMemberAccessor>>();
-            }
-            else
-            {
-                _map = new Dictionary<Type, IDictionary<string, IMemberAccessor>>();
-            }
-
-            _concurrent = concurrent;
+            _map = new Dictionary<Type, Dictionary<string, IMemberAccessor>>();
         }
 
-        public MemberAccessStrategy(IMemberAccessStrategy parent, bool concurrent = true) : this(concurrent)
+        public MemberAccessStrategy(IMemberAccessStrategy parent) : this()
         {
             _parent = parent;
         }
@@ -34,10 +25,18 @@ namespace Fluid
         {
             IMemberAccessor accessor = null;
 
+            if (!_initialized)
+            {
+                _initialized = true;
+            }
+
+            // Get a reference on the map as it can be changed by a call to Register
+            var locaMap = _map;
+
             while (type != typeof(object))
             {
                 // Look for specific property map
-                if (_map.TryGetValue(type, out var typeMap))
+                if (locaMap.TryGetValue(type, out var typeMap))
                 {
                     if (typeMap.TryGetValue(name, out accessor) || typeMap.TryGetValue("*", out accessor))
                     {
@@ -60,30 +59,31 @@ namespace Fluid
 
         public void Register(Type type, string name, IMemberAccessor getter)
         {
-            if (!_map.TryGetValue(type, out var typeMap))
+            lock (_map)
             {
-                typeMap = CreateTypeMap(type);
+                var localMap = _map;
+
+                // If it is already being used, we clone the structure
+                if (_initialized)
+                {
+                    localMap = new Dictionary<Type, Dictionary<string, IMemberAccessor>>(_map);
+                    foreach (var entry in localMap)
+                    {
+                        localMap[entry.Key] = new Dictionary<string, IMemberAccessor>(entry.Value);
+                    }
+                }
+
+                if (!localMap.TryGetValue(type, out var typeMap))
+                {
+                    typeMap = new Dictionary<string, IMemberAccessor>();
+
+                    localMap[type] = typeMap;
+                }
+
+                typeMap[name] = getter;
+
+                _map = localMap;
             }
-
-            typeMap[name] = getter;
-        }
-
-        private IDictionary<String, IMemberAccessor> CreateTypeMap(Type type)
-        {
-            IDictionary<String, IMemberAccessor> typeMap;
-
-            if (_concurrent)
-            {
-                typeMap = new ConcurrentDictionary<string, IMemberAccessor>();
-            }
-            else
-            {
-                typeMap = new Dictionary<string, IMemberAccessor>();
-            }
-
-            _map[type] = typeMap;
-
-            return typeMap;
         }
     }
 }

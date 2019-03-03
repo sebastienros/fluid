@@ -3,18 +3,18 @@ using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class LiteralExpression : Expression
+    public sealed class LiteralExpression : Expression
     {
         private readonly FluidValue _value;
-
+        
         public LiteralExpression(FluidValue value)
         {
             _value = value;
         }
 
-        public override Task<FluidValue> EvaluateAsync(TemplateContext context)
+        public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
-            return Task.FromResult(_value);    
+            return new ValueTask<FluidValue>(_value);    
         }
     }
 }

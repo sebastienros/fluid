@@ -4,18 +4,19 @@ using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Values;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Fluid.Tests
 {
     public class IfStatementTests
     {
-        private Expression TRUE = new LiteralExpression(new BooleanValue(true));
-        private Expression FALSE = new LiteralExpression(new BooleanValue(false));
+        private Expression TRUE = new LiteralExpression(BooleanValue.True);
+        private Expression FALSE = new LiteralExpression(BooleanValue.False);
 
         private List<Statement> TEXT(string text)
         {
-            return new List<Statement> { new TextStatement(text) };
+            return new List<Statement> { new TextStatement(new StringSegment(text)) };
         }
 
         [Fact]
@@ -23,7 +24,7 @@ namespace Fluid.Tests
         {
             var e = new IfStatement(
                 TRUE,
-                new List<Statement> { new TextStatement("x") }
+                new List<Statement> { new TextStatement(new StringSegment("x")) }
                 );
 
             var sw = new StringWriter();
@@ -37,7 +38,7 @@ namespace Fluid.Tests
         {
             var e = new IfStatement(
                 FALSE,
-                new List<Statement> { new TextStatement("x") }
+                new List<Statement> { new TextStatement(new StringSegment("x")) }
                 );
 
             var sw = new StringWriter();
@@ -52,10 +53,10 @@ namespace Fluid.Tests
             var e = new IfStatement(
                 TRUE,
                 new List<Statement> {
-                    new TextStatement("x")
+                    new TextStatement(new StringSegment("x"))
                 },
                 new ElseStatement(new List<Statement> {
-                        new TextStatement("y")
+                        new TextStatement(new StringSegment("y"))
                     }));
 
             var sw = new StringWriter();
@@ -70,10 +71,10 @@ namespace Fluid.Tests
             var e = new IfStatement(
                 FALSE,
                 new List<Statement> {
-                    new TextStatement("x")
+                    new TextStatement(new StringSegment("x"))
                 },
                 new ElseStatement(new List<Statement> {
-                        new TextStatement("y")
+                        new TextStatement(new StringSegment("y"))
                     })
                 );
 

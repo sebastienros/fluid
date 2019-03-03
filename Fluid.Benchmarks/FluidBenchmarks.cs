@@ -1,69 +1,40 @@
-﻿using System.Threading.Tasks;
-using BenchmarkDotNet.Attributes;
+﻿using BenchmarkDotNet.Attributes;
 
 namespace Fluid.Benchmarks
 {
     [MemoryDiagnoser]
     public class FluidBenchmarks : BaseBenchmarks
     {
-        private FluidTemplate _sampleTemplateFluid;
+        private FluidTemplate _fluidTemplate;
+        private TemplateContext _context;
 
         public FluidBenchmarks()
         {
-            FluidTemplate.TryParse(_source1, out _sampleTemplateFluid, out var messages);
-
+            FluidTemplate.TryParse(TextTemplate, out _fluidTemplate, out var errors);
+            _context = new TemplateContext().SetValue("products", Products);
         }
 
         [Benchmark]
-        public override object ParseSample()
+        public override object Parse()
         {
-            FluidTemplate.TryParse(_source1, out var template, out var messages);
+            FluidTemplate.TryParse(TextTemplate, false, out var template, out var errors);
             return template;
         }
 
         [Benchmark]
-        public override  Task<string> ParseAndRenderSample()
+        public override string Render()
         {
-            var context = new TemplateContext();
-            context.SetValue("products", _products);
-
-            FluidTemplate.TryParse(_source1, out var template, out var messages);
-            return template.RenderAsync(context);
+            return _fluidTemplate.Render(_context);
         }
 
         [Benchmark]
-        public override string RenderSample()
+        public override string ParseAndRender()
         {
-            var context = new TemplateContext();
-            context.SetValue("products", _products);
+            FluidTemplate.TryParse(TextTemplate, false, out var template, out var errors);
+            var context = new TemplateContext()
+                .SetValue("products", Products);
 
-            return _sampleTemplateFluid.Render(context);
+            return template.Render(context);
         }
-
-        [Benchmark]
-        public override object ParseLoremIpsum()
-        {
-            FluidTemplate.TryParse(_source3, out var template, out var messages);
-            return template;
-        }
-
-        [Benchmark]
-        public override Task<string> RenderSimpleOuput()
-        {
-            FluidTemplate.TryParse(_source2, out var template, out var messages);
-            var context = new TemplateContext();
-            context.SetValue("image", "kitten.jpg");
-            return template.RenderAsync(context);
-        }
-        
-        [Benchmark]
-        public override Task<string> RenderLoremSimpleOuput()
-        {
-            FluidTemplate.TryParse(_source4, out var template, out var messages);
-            var context = new TemplateContext();
-            context.SetValue("image", "kitten.jpg");
-            return template.RenderAsync(context);
-        }
-
     }
 }

@@ -40,7 +40,7 @@ namespace Fluid.Values
 
         protected override FluidValue GetIndex(FluidValue index, TemplateContext context)
         {
-            var i = Convert.ToInt32(index.ToNumberValue());
+            var i = (int) index.ToNumberValue();
 
             if (i < _value.Length)
             {
@@ -52,10 +52,9 @@ namespace Fluid.Values
 
         protected override FluidValue GetValue(string name, TemplateContext context)
         {
-            switch (name)
-            {
-                case "size":
-                    return new NumberValue(_value.Length);
+            if (name == "size")
+            { 
+                return NumberValue.Create(_value.Length);
             }
 
             return NilValue.Instance;

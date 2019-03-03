@@ -100,7 +100,7 @@ namespace Fluid.Tests
 
     public class IceTag : IdentifierTag
     {
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, string identifier)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, string identifier)
         {
             await writer.WriteAsync("here is some ice " + identifier);
             return Completion.Normal;
@@ -109,7 +109,7 @@ namespace Fluid.Tests
 
     public class MoreTag : ExpressionTag
     {
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression)
         {
             var value = await expression.EvaluateAsync(context);
             await writer.WriteAsync("here is some more " + value.ToStringValue());
@@ -140,7 +140,7 @@ namespace Fluid.Tests
 
     public class CustomIdentifierBlock : IdentifierBlock
     {
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, string identifier, List<Statement> statements)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, string identifier, List<Statement> statements)
         {
             await writer.WriteAsync(identifier);
 
@@ -152,7 +152,7 @@ namespace Fluid.Tests
 
     public class CustomExpressionBlock : ExpressionBlock
     {
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression, List<Statement> statements)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression, List<Statement> statements)
         {
             await writer.WriteAsync((await expression.EvaluateAsync(context)).ToStringValue());
 
@@ -164,7 +164,7 @@ namespace Fluid.Tests
 
     public class CustomSimpleBlock : SimpleBlock
     {
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, List<Statement> statements)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, List<Statement> statements)
         {
             await writer.WriteAsync("simple");
 
@@ -176,7 +176,7 @@ namespace Fluid.Tests
 
     public class CustomArgumentsBlock : ArgumentsBlock
     {
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, FilterArgument[] arguments, List<Statement> statements)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, FilterArgument[] arguments, List<Statement> statements)
         {
             foreach (var argument in arguments)
             {
@@ -192,7 +192,7 @@ namespace Fluid.Tests
 
     public class CustomArgumentsTag : ArgumentsTag
     {
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, FilterArgument[] arguments)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, FilterArgument[] arguments)
         {
             foreach (var argument in arguments)
             {

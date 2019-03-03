@@ -7,17 +7,22 @@ namespace Fluid
 {
     public static class FluidTemplateExtensions
     {
-        public static void Render(this IFluidTemplate template, TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public static ValueTask<string> RenderAsync(this IFluidTemplate template, TemplateContext context)
+        {
+            return template.RenderAsync(context, NullEncoder.Default);
+        }
+
+        public static string Render(this IFluidTemplate template, TemplateContext context, TextEncoder encoder)
+        {
+            return template.RenderAsync(context, encoder).GetAwaiter().GetResult();
+        }
+
+        public static void Render(this IFluidTemplate template, TemplateContext context, TextEncoder encoder, TextWriter writer)
         {
             template.RenderAsync(writer, encoder, context).GetAwaiter().GetResult();
         }
 
-        public static Task<string> RenderAsync(this IFluidTemplate template, TemplateContext context)
-        {
-            return template.RenderAsync(NullEncoder.Default, context);
-        }
-
-        public static async Task<string> RenderAsync(this IFluidTemplate template, TextEncoder encoder, TemplateContext context)
+        public static async ValueTask<string> RenderAsync(this IFluidTemplate template, TemplateContext context, TextEncoder encoder)
         {
             if (context == null)
             {
@@ -34,8 +39,10 @@ namespace Fluid
                 using (var writer = new StringWriter(sb.Builder))
                 {
                     await template.RenderAsync(writer, encoder, context);
-                    return writer.ToString();
+                    await writer.FlushAsync();
                 }
+
+                return sb.ToString();
             }
         }
 
@@ -44,7 +51,7 @@ namespace Fluid
             return template.RenderAsync(context).GetAwaiter().GetResult();
         }
 
-        public static Task<string> RenderAsync(this IFluidTemplate template)
+        public static ValueTask<string> RenderAsync(this IFluidTemplate template)
         {
             return template.RenderAsync(new TemplateContext());
         }

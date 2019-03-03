@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using BenchmarkDotNet.Attributes;
+﻿using BenchmarkDotNet.Attributes;
 using DotLiquid;
 
 namespace Fluid.Benchmarks
@@ -8,58 +7,35 @@ namespace Fluid.Benchmarks
     public class DotLiquidBenchmarks : BaseBenchmarks
     {
         
-        private Template _sampleTemplateDotLiquid;
+        private Template _dotLiquidTemplate;
+        private Hash _products;
 
         public DotLiquidBenchmarks()
         {
-            _sampleTemplateDotLiquid = Template.Parse(_source1);
-            _sampleTemplateDotLiquid.MakeThreadSafe();
+            _dotLiquidTemplate = Template.Parse(TextTemplate);
+            _dotLiquidTemplate.MakeThreadSafe();
+            _products = Hash.FromAnonymousObject(new { products = Products });
         }
 
         [Benchmark]
-        public override object ParseSample()
+        public override object Parse()
         {
-            var template = Template.Parse(_source1);
-            return template;
-        }
-
-
-        [Benchmark]
-        public override Task<string> ParseAndRenderSample()
-        {
-            var template = Template.Parse(_source1);
-            return Task.FromResult(template.Render(Hash.FromAnonymousObject(new { products = _products })));
-        }
-
-        [Benchmark]
-        public override string RenderSample()
-        {
-            return _sampleTemplateDotLiquid.Render(Hash.FromAnonymousObject(new { products = _products }));
-        }
-
-
-        [Benchmark]
-        public override object ParseLoremIpsum()
-        {
-            var template = Template.Parse(_source3);
+            var template = Template.Parse(TextTemplate);
             return template;
         }
 
         [Benchmark]
-        public override Task<string> RenderSimpleOuput()
+        public override string Render()
         {
-            var template = Template.Parse(_source2);
-            template.Assigns.Add("image", "kitten.jpg");
-            return Task.FromResult(template.Render());
+            return _dotLiquidTemplate.Render(_products);
         }
 
         [Benchmark]
-        public override Task<string> RenderLoremSimpleOuput()
+        public override string ParseAndRender()
         {
-            var template = Template.Parse(_source4);
-            template.Assigns.Add("image", "kitten.jpg");
-            return Task.FromResult(template.Render());
+            var template = Template.Parse(TextTemplate);
+            var products = Hash.FromAnonymousObject(new { products = Products });
+            return template.Render(products);
         }
-
     }
 }

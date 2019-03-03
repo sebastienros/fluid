@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using BenchmarkDotNet.Attributes;
+﻿using BenchmarkDotNet.Attributes;
 using Liquid.NET;
 using Liquid.NET.Constants;
 using Liquid.NET.Utils;
@@ -9,60 +8,38 @@ namespace Fluid.Benchmarks
     [MemoryDiagnoser]
     public class LiquidNetBenchmarks : BaseBenchmarks
     {
-        private LiquidParsingResult _sampleTemplateLiquidNet;
+        private LiquidParsingResult _liquidNetTemplate;
+        private Option<ILiquidValue> _products;
+        private Liquid.NET.TemplateContext _context;
 
         public LiquidNetBenchmarks()
         {
-            _sampleTemplateLiquidNet = LiquidTemplate.Create(_source1);
-
-        }
-
-
-        [Benchmark]
-        public override object ParseSample()
-        {
-            return LiquidTemplate.Create(_source1);
+            _liquidNetTemplate = LiquidTemplate.Create(TextTemplate);
+            _products = Products.ToLiquid();
+            _context = new Liquid.NET.TemplateContext();
+            _context.DefineLocalVariable("products", _products);
         }
 
         [Benchmark]
-        public override Task<string> ParseAndRenderSample()
+        public override object Parse()
         {
+            return LiquidTemplate.Create(TextTemplate);
+        }
+
+        [Benchmark]
+        public override string Render()
+        {
+            return _liquidNetTemplate.LiquidTemplate.Render(_context).Result;
+        }
+
+        [Benchmark]
+        public override string ParseAndRender()
+        {
+            var template = LiquidTemplate.Create(TextTemplate);
+            var products = Products.ToLiquid();
             var context = new Liquid.NET.TemplateContext();
-            context.DefineLocalVariable("products", _products.ToLiquid());
-            var parsingResult = LiquidTemplate.Create(_source1);
-            return Task.FromResult(parsingResult.LiquidTemplate.Render(context).Result);
-        }
-
-        [Benchmark]
-        public override string RenderSample()
-        {
-            var context = new Liquid.NET.TemplateContext();
-            context.DefineLocalVariable("products", _products.ToLiquid());			
-            return _sampleTemplateLiquidNet.LiquidTemplate.Render(context).Result;
-        }
-
-        [Benchmark]
-        public override object ParseLoremIpsum()
-        {
-            return LiquidTemplate.Create(_source3);
-        }
-
-        [Benchmark]
-        public override Task<string> RenderSimpleOuput()
-        {
-            var context = new Liquid.NET.TemplateContext();
-            context.DefineLocalVariable("image", LiquidString.Create("kitten.jpg"));
-            var parsingResult = LiquidTemplate.Create(_source2);
-            return Task.FromResult(parsingResult.LiquidTemplate.Render(context).Result);
-        }
-        
-        [Benchmark]
-        public override Task<string> RenderLoremSimpleOuput()
-        {
-            var context = new Liquid.NET.TemplateContext();
-            context.DefineLocalVariable("image", LiquidString.Create("kitten.jpg"));
-            var parsingResult = LiquidTemplate.Create(_source4);
-            return Task.FromResult(parsingResult.LiquidTemplate.Render(context).Result);
+            context.DefineLocalVariable("products", products);
+            return template.LiquidTemplate.Render(context).Result;
         }
     }
 }

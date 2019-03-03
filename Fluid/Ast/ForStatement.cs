@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
@@ -46,7 +47,10 @@ namespace Fluid.Ast
         public LiteralExpression Offset { get; }
         public bool Reversed { get; }
 
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        private List<FluidValue> _rangeElements;
+        private int _rangeStart, _rangeEnd;
+
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             IEnumerable<FluidValue> elements = Array.Empty<FluidValue>();
 
@@ -59,7 +63,25 @@ namespace Fluid.Ast
             {
                 int start = Convert.ToInt32((await Range.From.EvaluateAsync(context)).ToNumberValue());
                 int end = Convert.ToInt32((await Range.To.EvaluateAsync(context)).ToNumberValue());
-                elements = Enumerable.Range(start, end - start + 1).Select(x => new NumberValue(x));
+
+                // Cache range
+                if (_rangeElements == null || _rangeStart != start || _rangeEnd != end)
+                {
+                    _rangeElements = new List<FluidValue>();
+
+                    for (var i = start; i <= end - start + 1; i++)
+                    {
+                        _rangeElements.Add(NumberValue.Create(i));
+                    }
+                    
+                    elements = _rangeElements;
+                    _rangeStart = start;
+                    _rangeEnd = end;
+                }
+                else
+                {
+                    elements = _rangeElements;
+                }
             }
 
             if (!elements.Any())
@@ -95,23 +117,24 @@ namespace Fluid.Ast
 
             try
             {
-                var forloop = new Dictionary<string, FluidValue>();
-                forloop.Add("length", new NumberValue(list.Count));
-                context.SetValue("forloop", new DictionaryValue(new FluidValueDictionaryFluidIndexable(forloop)));
+                var forloop = new ForLoopValue();
 
-                for (var i = 0; i < list.Count; i++)
+                var length = forloop.Length = list.Count;
+                context.SetValue("forloop", forloop);
+
+                for (var i = 0; i < length; i++)
                 {
                     var item = list[i];
 
                     context.SetValue(Identifier, item);
 
                     // Set helper variables
-                    forloop["index"] = new NumberValue(i + 1);
-                    forloop["index0"] = new NumberValue(i);
-                    forloop["rindex"] = new NumberValue(list.Count - i - 1);
-                    forloop["rindex0"] = new NumberValue(list.Count - i);
-                    forloop["first"] = new BooleanValue(i == 0);
-                    forloop["last"] = new BooleanValue(i == list.Count - 1);
+                    forloop.Index = i + 1;
+                    forloop.Index0 = i;
+                    forloop.RIndex = length - i - 1;
+                    forloop.RIndex0 = length - i;
+                    forloop.First = i == 0;
+                    forloop.Last = i == length - 1;
 
                     Completion completion = Completion.Normal;
 
@@ -146,6 +169,67 @@ namespace Fluid.Ast
             }
 
             return Completion.Normal;
+        }
+
+        private class ForLoopValue : FluidValue
+        {
+            public int Length { get; set; }
+            public int Index { get; set; }
+            public int Index0 { get; set; }
+            public int RIndex { get; set; }
+            public int RIndex0 { get; set; }
+            public bool First { get; set; }
+            public bool Last { get; set; }
+
+            public int Count => Length;
+
+            public override FluidValues Type => FluidValues.Dictionary;
+
+            public override bool Equals(FluidValue other)
+            {
+                return false;
+            }
+
+            public override bool ToBooleanValue()
+            {
+                return false;
+            }
+
+            public override double ToNumberValue()
+            {
+                return Length;
+            }
+
+            public override object ToObjectValue()
+            {
+                return null;
+            }
+
+            public override string ToStringValue()
+            {
+                return "forloop";
+            }
+
+            public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
+            {
+                switch (name)
+                {
+                    case "length": return new ValueTask<FluidValue>(NumberValue.Create(Length));
+                    case "index": return new ValueTask<FluidValue>(NumberValue.Create(Index));
+                    case "index0": return new ValueTask<FluidValue>(NumberValue.Create(Index0));
+                    case "rindex": return new ValueTask<FluidValue>(NumberValue.Create(RIndex));
+                    case "rindex0": return new ValueTask<FluidValue>(NumberValue.Create(RIndex0));
+                    case "first": return new ValueTask<FluidValue>(BooleanValue.Create(First));
+                    case "last": return new ValueTask<FluidValue>(BooleanValue.Create(Last));
+                    default:
+                        return new ValueTask<FluidValue>(NilValue.Instance);
+                }
+            }
+
+            public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+            {
+                return;
+            }
         }
     }
 }

@@ -4,12 +4,7 @@ namespace Fluid.Values
 {
     public class FluidValueDictionaryFluidIndexable : IFluidIndexable
     {
-        private readonly Dictionary<string, FluidValue> _dictionary;
-
-        public FluidValueDictionaryFluidIndexable(Dictionary<string, FluidValue> dictionary)
-        {
-            _dictionary = dictionary;
-        }
+        private readonly IDictionary<string, FluidValue> _dictionary;
 
         public FluidValueDictionaryFluidIndexable(IDictionary<string, FluidValue> dictionary)
         {

@@ -7,7 +7,6 @@ namespace Fluid.Ast
 {
     public class OutputStatement : Statement
     {
-
         public OutputStatement(Expression expression)
         {
             Expression = expression;
@@ -17,7 +16,7 @@ namespace Fluid.Ast
 
         public IList<FilterExpression> Filters { get ; }
 
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var value = await Expression.EvaluateAsync(context);
 

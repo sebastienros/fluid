@@ -10,7 +10,7 @@ namespace Fluid
 
         public void AddFilter(string name, FilterDelegate d)
         {
-            _delegates[name] = (input, arguments, context) => Task.FromResult<FluidValue>(d(input, arguments, context));
+            _delegates[name] = (input, arguments, context) => new ValueTask<FluidValue>(d(input, arguments, context));
         }
 
         public void AddAsyncFilter(string name, AsyncFilterDelegate d)

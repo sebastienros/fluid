@@ -67,7 +67,7 @@ namespace Fluid.Values
             switch (name)
             {
                 case "size":
-                    return new NumberValue(_value.Count);
+                    return NumberValue.Create(_value.Count);
 
                 case "first":
                     if (_value.Count > 0)

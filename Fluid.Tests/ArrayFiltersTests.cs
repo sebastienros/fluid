@@ -188,7 +188,7 @@ namespace Fluid.Tests
 
             var result = ArrayFilters.Size(input, arguments, context);
 
-            Assert.Equal(new NumberValue(3), result);
+            Assert.Equal(NumberValue.Create(3), result);
         }
 
         [Fact]
@@ -308,7 +308,7 @@ namespace Fluid.Tests
 
             var arguments2 = new FilterArguments()
                 .Add(new StringValue("Pinned"))
-                .Add(new BooleanValue(false))
+                .Add(BooleanValue.Create(false))
                 ;
 
             var result2 = ArrayFilters.Where(input, arguments2, context);

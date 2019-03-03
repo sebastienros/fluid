@@ -9,14 +9,14 @@ namespace Fluid.Ast.BinaryExpressions
         {
         }
 
-        public override async Task<FluidValue> EvaluateAsync(TemplateContext context)
+        public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
             var leftValue = await Left.EvaluateAsync(context);
             var rightValue = await Right.EvaluateAsync(context);
 
             if (leftValue is NumberValue && rightValue is NumberValue)
             {
-                return new NumberValue(leftValue.ToNumberValue() % rightValue.ToNumberValue());
+                return NumberValue.Create(leftValue.ToNumberValue() % rightValue.ToNumberValue());
             }
 
             return NilValue.Instance;

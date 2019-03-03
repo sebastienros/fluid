@@ -50,7 +50,7 @@ namespace Fluid
             if (_blocks != null && _blocks.TryGetValue(name, out var statements))
             {
                 var result = new List<TStatement>(statements.Count);
-                for (int i = 0; i < statements.Count; ++i)
+                for (var i = 0; i < statements.Count; ++i)
                 {
                     result.Add((TStatement) statements[i]);
                 }

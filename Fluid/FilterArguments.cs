@@ -48,26 +48,28 @@ namespace Fluid
         public FilterArguments()
         {
         }
-        
+
         public FilterArguments(params FluidValue[] values)
         {
-            foreach(var value in values)
-            {
-                Add(value);
-            }    
+            _positional = new List<FluidValue>(values);  
         }
 
         public FilterArguments(params object[] values)
         {
-            foreach(var value in values)
+            _positional = new List<FluidValue>(values.Length);
+
+            var length = values.Length;
+            for (var i = 0; i < length; i++)
             {
-                Add(value);
-            }    
+                _positional.Add(FluidValue.Create(values[i]));
+            }
         }
 
         public FilterArguments Add(object value)
         {
-            return Add(null, value);
+            _positional.Add(FluidValue.Create(value));
+
+            return this;
         }
 
         public FilterArguments Add(string name, object value)

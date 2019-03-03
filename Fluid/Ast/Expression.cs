@@ -5,6 +5,6 @@ namespace Fluid.Ast
 {
     public abstract class Expression
     {
-        public abstract Task<FluidValue> EvaluateAsync(TemplateContext context);
+        public abstract ValueTask<FluidValue> EvaluateAsync(TemplateContext context);
     }
 }

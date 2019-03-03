@@ -8,7 +8,7 @@ namespace Fluid.MvcSample
 {
     public class MyTag : SimpleTag
     {
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             await writer.WriteAsync("Hello from MyTag");
 

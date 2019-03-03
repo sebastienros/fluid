@@ -9,7 +9,9 @@ namespace Fluid.MvcViewEngine.Tags
 {
     public class RegisterSectionBlock : IdentifierBlock
     {
-        public override Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, string sectionName, List<Statement> statements)
+        protected static ValueTask<Completion> Normal = new ValueTask<Completion>(Completion.Normal);
+
+        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, string sectionName, List<Statement> statements)
         {
             if (context.AmbientValues.TryGetValue("Sections", out var sections))
             {
@@ -17,7 +19,7 @@ namespace Fluid.MvcViewEngine.Tags
                 dictionary[sectionName] = statements;
             }
 
-            return Task.FromResult(Completion.Normal);
+            return Normal;
         }
     }
 }

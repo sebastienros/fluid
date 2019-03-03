@@ -5,6 +5,7 @@ using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Values;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Fluid.Tests
@@ -15,11 +16,11 @@ namespace Fluid.Tests
         public async Task ShouldLoopRange()
         {
             var e = new ForStatement(
-                new List<Statement> { new TextStatement("x") },
+                new List<Statement> { new TextStatement(new StringSegment("x")) },
                 "i",
                 new RangeExpression(
-                    new LiteralExpression(new NumberValue(1)),
-                    new LiteralExpression(new NumberValue(3))
+                    new LiteralExpression(NumberValue.Create(1)),
+                    new LiteralExpression(NumberValue.Create(3))
                 ),
                 null, null, false
             );
@@ -35,12 +36,12 @@ namespace Fluid.Tests
         {
             var e = new ForStatement(
                 new List<Statement> {
-                    new AssignStatement("z", new LiteralExpression(new NumberValue(1)))
+                    new AssignStatement("z", new LiteralExpression(NumberValue.Create(1)))
                     },
                 "i",
                 new RangeExpression(
-                    new LiteralExpression(new NumberValue(1)),
-                    new LiteralExpression(new NumberValue(3))
+                    new LiteralExpression(NumberValue.Create(1)),
+                    new LiteralExpression(NumberValue.Create(3))
                 ),
                 null, null, false
             );
@@ -60,7 +61,7 @@ namespace Fluid.Tests
         public async Task ShouldLoopArrays()
         {
             var e = new ForStatement(
-                new List<Statement> { new TextStatement("x") },
+                new List<Statement> { new TextStatement(new StringSegment("x")) },
                 "i",
                 new MemberExpression(
                     new IdentifierSegment("items")
@@ -81,9 +82,9 @@ namespace Fluid.Tests
         {
             var e = new ForStatement(
                 new List<Statement> {
-                    new TextStatement("x"),
+                    new TextStatement(new StringSegment("x")),
                     new BreakStatement(),
-                    new TextStatement("y")
+                    new TextStatement(new StringSegment("y"))
                 },
                 "i",
                 new MemberExpression(
@@ -105,9 +106,9 @@ namespace Fluid.Tests
         {
             var e = new ForStatement(
                 new List<Statement> {
-                    new TextStatement("x"),
+                    new TextStatement(new StringSegment("x")),
                     new ContinueStatement(),
-                    new TextStatement("y")
+                    new TextStatement(new StringSegment("y"))
                 },
                 "i",
                 new MemberExpression(
@@ -127,7 +128,6 @@ namespace Fluid.Tests
         [Fact]
         public async Task ForShouldProvideHelperVariables()
         {
-
             var e = new ForStatement(
                 new List<Statement> {
                     CreateMemberStatement("forloop.length"),
@@ -160,11 +160,11 @@ namespace Fluid.Tests
                 new List<Statement> { CreateMemberStatement("i") },
                 "i",
                 new RangeExpression(
-                    new LiteralExpression(new NumberValue(1)),
-                    new LiteralExpression(new NumberValue(5))
+                    new LiteralExpression(NumberValue.Create(1)),
+                    new LiteralExpression(NumberValue.Create(5))
                 ),
-                new LiteralExpression(new NumberValue(3)),
-                new LiteralExpression(new NumberValue(2)),
+                new LiteralExpression(NumberValue.Create(3)),
+                new LiteralExpression(NumberValue.Create(2)),
                 true
             );
 

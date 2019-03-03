@@ -9,7 +9,7 @@ namespace Fluid.MvcViewEngine.Tags
 {
     public class RenderSectionTag : IdentifierTag
     {
-        public override async Task<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, string sectionName)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, string sectionName)
         {
             if (context.AmbientValues.TryGetValue("Sections", out var sections))
             {

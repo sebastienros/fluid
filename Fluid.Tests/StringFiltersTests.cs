@@ -205,7 +205,7 @@ namespace Fluid.Tests
         public void Truncate(string input, int size, string output)
         {
             var source = new StringValue(input);
-            var arguments = new FilterArguments().Add(new NumberValue(size));
+            var arguments = new FilterArguments().Add(NumberValue.Create(size));
             var context = new TemplateContext();
             var result = StringFilters.Truncate(source, arguments, context);
 
@@ -222,7 +222,7 @@ namespace Fluid.Tests
         {
             var source = new StringValue(input);
             var arguments = new FilterArguments()
-                .Add(new NumberValue(size))
+                .Add(NumberValue.Create(size))
                 .Add(new StringValue(ellipsis));
             var context = new TemplateContext();
             var result = StringFilters.Truncate(source, arguments, context);
@@ -239,7 +239,7 @@ namespace Fluid.Tests
         {
             var source = new StringValue(input);
             var arguments = new FilterArguments()
-                .Add(new NumberValue(size));
+                .Add(NumberValue.Create(size));
             var context = new TemplateContext();
 
             var result = StringFilters.TruncateWords(source, arguments, context);
@@ -255,7 +255,7 @@ namespace Fluid.Tests
         {
             var source = new StringValue(input);
             var arguments = new FilterArguments()
-                .Add(new NumberValue(size))
+                .Add(NumberValue.Create(size))
                 .Add(new StringValue(ellispsis));
 
             var context = new TemplateContext();

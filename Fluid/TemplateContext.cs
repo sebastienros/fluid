@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using Microsoft.Extensions.FileProviders;
 using Fluid.Filters;
 using Fluid.Values;
-using Microsoft.Extensions.FileProviders;
 
 namespace Fluid
 {
@@ -50,7 +50,7 @@ namespace Fluid
         /// <summary>
         /// Represent a local list of object members than can be accessed with this context.
         /// </summary>
-        public IMemberAccessStrategy MemberAccessStrategy = new MemberAccessStrategy(GlobalMemberAccessStrategy, false);
+        public IMemberAccessStrategy MemberAccessStrategy = new MemberAccessStrategy(GlobalMemberAccessStrategy);
 
         public IFileProvider FileProvider { get; set; }
 
@@ -116,34 +116,35 @@ namespace Fluid
             return LocalScope.GetValue(name);
         }
 
-        public void SetValue(string name, FluidValue value)
+        public TemplateContext SetValue(string name, FluidValue value)
         {
             LocalScope.SetValue(name, value);
+            return this;
         }
 
-        public void SetValue(string name, int value)
+        public TemplateContext SetValue(string name, int value)
         {
-            SetValue(name, new NumberValue(value));
+            return SetValue(name, NumberValue.Create(value));
         }
 
-        public void SetValue(string name, string value)
+        public TemplateContext SetValue(string name, string value)
         {
-            SetValue(name, new StringValue(value));
+            return SetValue(name, new StringValue(value));
         }
 
-        public void SetValue(string name, bool value)
+        public TemplateContext SetValue(string name, bool value)
         {
-            SetValue(name, new BooleanValue(value));
+            return SetValue(name, BooleanValue.Create(value));
         }
 
-        public void SetValue(string name, object value)
+        public TemplateContext SetValue(string name, object value)
         {
-            SetValue(name, FluidValue.Create(value));
+            return SetValue(name, FluidValue.Create(value));
         }
 
-        public void SetValue<T>(string name, Func<T> factory)
+        public TemplateContext SetValue<T>(string name, Func<T> factory)
         {
-            SetValue(name, new FactoryValue<T>(factory));
+            return SetValue(name, new FactoryValue<T>(factory));
         }
     }
 }

@@ -1,44 +1,47 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using Fluid.Accessors;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
-using Fluid.Accessors;
 
 namespace Fluid
 {
     public static class MemberAccessStrategyExtensions
     {
-        internal static ConcurrentDictionary<string, IMemberAccessor> _namedAccessors = new ConcurrentDictionary<string, IMemberAccessor>();
-        private static ConcurrentDictionary<Type, List<string>> _typeMembers = new ConcurrentDictionary<Type, List<string>>();
+        internal static Dictionary<string, IMemberAccessor> _namedAccessors = new Dictionary<string, IMemberAccessor>();
+        private static Dictionary<Type, List<string>> _typeMembers = new Dictionary<Type, List<string>>();
 
         private static List<string> GetAllMembers(Type type)
         {
-            return _typeMembers.GetOrAdd(type, t =>
+            if (!_typeMembers.TryGetValue(type, out var list))
             {
-                var list = new List<string>();
+                list = new List<string>();
 
                 foreach (var propertyInfo in type.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {
                     list.Add(propertyInfo.Name);
-                    _namedAccessors.TryAdd($"({type.FullName})-{propertyInfo.Name}", new MethodInfoAccessor(propertyInfo.GetGetMethod()));
+                    var key = String.Concat("(", type.FullName, ")", propertyInfo.Name);
+                    _namedAccessors[key] = new MethodInfoAccessor(propertyInfo.GetGetMethod());
                 }
 
                 foreach (var fieldInfo in type.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))
                 {
                     list.Add(fieldInfo.Name);
-                    _namedAccessors.TryAdd($"({type.FullName})-{fieldInfo.Name}", new DelegateAccessor((o, n) => fieldInfo.GetValue(o)));
+                    var key = String.Concat("(", type.FullName, ")", fieldInfo.Name);
+                    _namedAccessors[key] = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
                 }
 
-                return list;
-            });
+                _typeMembers[type] = list;
+            }
+
+            return list;
         }
 
         public static IMemberAccessor GetNamedAccessor(Type type, string name)
         {
-            IMemberAccessor result = null;
+            var key = String.Concat("(", type.FullName, ")", name);
 
-            return _namedAccessors.GetOrAdd($"({type.FullName})-{name}", key =>
+            if (!_namedAccessors.TryGetValue(key, out var result))
             {
                 var propertyInfo = type.GetTypeInfo().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
 
@@ -57,8 +60,9 @@ namespace Fluid
                     }
                 }
 
-                return result;
-            });
+            }
+
+            return result;
         }
 
 

@@ -37,7 +37,7 @@ namespace Fluid.Values
             return other is ObjectValue && ((ObjectValue)other)._value == _value;
         }
 
-        public override async Task<FluidValue> GetValueAsync(string name, TemplateContext context)
+        public override async ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             if (name.Contains("."))
             {
@@ -84,7 +84,7 @@ namespace Fluid.Values
             return NilValue.Instance;
         }
 
-        public override Task<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
+        public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
             return GetValueAsync(index.ToStringValue(), context);
         }

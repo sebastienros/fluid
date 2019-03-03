@@ -14,12 +14,12 @@ namespace Fluid.Ast
 
         public string Identifier { get; }
 
-        public override Task<FluidValue> ResolveAsync(FluidValue value, TemplateContext context)
+        public override ValueTask<FluidValue> ResolveAsync(FluidValue value, TemplateContext context)
         {
             return value.GetValueAsync(Identifier, context);
         }
 
-        public override async Task<FluidValue> ResolveAsync(Scope value, TemplateContext context)
+        public override async ValueTask<FluidValue> ResolveAsync(Scope value, TemplateContext context)
         {
             var result = value.GetValue(Identifier);
 

@@ -16,13 +16,33 @@ namespace Fluid.Ast
         public string Name { get; }
         public FilterArgument[] Parameters { get; }
 
-        public override async Task<FluidValue> EvaluateAsync(TemplateContext context)
-        {
-            var arguments = new FilterArguments();
+        private bool _canBeCached = true;
+        private FilterArguments _cachedArguments;
 
-            foreach(var parameter in Parameters)
+        public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
+        {
+            FilterArguments arguments;
+
+            // The arguments can be cached if all the parameters are LiteralExpression
+            if (_cachedArguments == null)
             {
-                arguments.Add(parameter.Name, await parameter.Expression.EvaluateAsync(context));
+                arguments = new FilterArguments();
+
+                foreach (var parameter in Parameters)
+                {
+                    _canBeCached = _canBeCached && parameter.Expression is LiteralExpression;
+                    arguments.Add(parameter.Name, await parameter.Expression.EvaluateAsync(context));
+                }
+
+                // Can we cache it?
+                if (_canBeCached)
+                {
+                    _cachedArguments = arguments;
+                }
+            }
+            else
+            {
+                arguments = _cachedArguments;
             }
 
             var input = await Input.EvaluateAsync(context);

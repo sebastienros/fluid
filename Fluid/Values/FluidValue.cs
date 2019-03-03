@@ -23,9 +23,9 @@ namespace Fluid.Values
 
         public abstract object ToObjectValue();
 
-        public virtual Task<FluidValue> GetValueAsync(string name, TemplateContext context)
+        public virtual ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
-            return Task.FromResult(GetValue(name, context));
+            return new ValueTask<FluidValue>(GetValue(name, context));
         }
 
         protected virtual FluidValue GetValue(string name, TemplateContext context)
@@ -33,9 +33,9 @@ namespace Fluid.Values
             return NilValue.Instance;
         }
 
-        public virtual Task<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
+        public virtual ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
-            return Task.FromResult(GetIndex(index, context));
+            return new ValueTask<FluidValue>(GetIndex(index, context));
         }
 
         protected virtual FluidValue GetIndex(FluidValue index, TemplateContext context)
@@ -74,11 +74,11 @@ namespace Fluid.Values
             switch (System.Type.GetTypeCode(typeOfValue))
             {
                 case TypeCode.Boolean:
-                    return new BooleanValue(Convert.ToBoolean(value));
+                    return BooleanValue.Create(Convert.ToBoolean(value));
                 case TypeCode.Decimal:
                 case TypeCode.Double:
                 case TypeCode.Single:
-                    return new NumberValue(Convert.ToDouble(value));
+                    return NumberValue.Create(Convert.ToDouble(value));
                 case TypeCode.SByte:
                 case TypeCode.Byte:
                 case TypeCode.Int16:
@@ -87,7 +87,7 @@ namespace Fluid.Values
                 case TypeCode.UInt16:
                 case TypeCode.UInt32:
                 case TypeCode.UInt64:
-                    return new NumberValue(Convert.ToDouble(value), true);
+                    return NumberValue.Create(Convert.ToDouble(value), true);
                 case TypeCode.Empty:
                     return NilValue.Instance;
                 case TypeCode.Object:
@@ -105,14 +105,8 @@ namespace Fluid.Values
                         case DateTimeOffset dateTimeOffset:
                             return new DateTimeValue((DateTimeOffset)value);
 
-                        case Dictionary<string, object> dictionary:
-                            return new DictionaryValue(new ObjectDictionaryFluidIndexable(dictionary));
-
                         case IDictionary<string, object> dictionary:
                             return new DictionaryValue(new ObjectDictionaryFluidIndexable(dictionary));
-
-                        case Dictionary<string, FluidValue> fluidDictionary:
-                            return new DictionaryValue(new FluidValueDictionaryFluidIndexable(fluidDictionary));
 
                         case IDictionary<string, FluidValue> fluidDictionary:
                             return new DictionaryValue(new FluidValueDictionaryFluidIndexable(fluidDictionary));

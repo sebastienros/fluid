@@ -118,7 +118,7 @@ namespace Fluid.Tests
                     increment = (int)args.At(0).ToNumberValue();
                 }
 
-                return new NumberValue(i.ToNumberValue() + increment);
+                return NumberValue.Create(i.ToNumberValue() + increment);
             });
 
             context.Filters.AddFilter("append", (i, args, ctx) =>
