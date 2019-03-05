@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
-    public class DictionaryValue : FluidValue
+    public sealed class DictionaryValue : FluidValue
     {
         private readonly IFluidIndexable _value;
 

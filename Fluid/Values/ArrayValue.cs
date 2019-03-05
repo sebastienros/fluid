@@ -7,7 +7,7 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Values
 {
-    public class ArrayValue : FluidValue
+    public sealed class ArrayValue : FluidValue
     {
         private readonly List<FluidValue> _value;
 

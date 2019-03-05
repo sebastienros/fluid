@@ -4,7 +4,7 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Values
 {
-    public class NilValue : FluidValue
+    public sealed class NilValue : FluidValue
     {
         public static readonly NilValue Instance = new NilValue();
         public static readonly NilValue Empty = new NilValue();

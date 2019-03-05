@@ -5,7 +5,7 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Values
 {
-    public class DateTimeValue : FluidValue
+    public sealed class DateTimeValue : FluidValue
     {
         private readonly DateTimeOffset _value;
 

@@ -6,7 +6,7 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Values
 {
-    public class StringValue : FluidValue
+    public sealed class StringValue : FluidValue
     {
         private readonly string _value;
 

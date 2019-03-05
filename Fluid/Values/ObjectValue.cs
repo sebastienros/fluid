@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
-    public class ObjectValue : FluidValue
+    public sealed class ObjectValue : FluidValue
     {
         private readonly object _value;
 

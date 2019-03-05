@@ -2,7 +2,7 @@
 
 namespace Fluid.Values
 {
-    public class FluidValueDictionaryFluidIndexable : IFluidIndexable
+    public sealed class FluidValueDictionaryFluidIndexable : IFluidIndexable
     {
         private readonly IDictionary<string, FluidValue> _dictionary;
 

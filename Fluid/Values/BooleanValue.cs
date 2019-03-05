@@ -4,7 +4,7 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Values
 {
-    public class BooleanValue : FluidValue
+    public sealed class BooleanValue : FluidValue
     {
         public static readonly BooleanValue False = new BooleanValue(false);
         public static readonly BooleanValue True = new BooleanValue(true);

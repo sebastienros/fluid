@@ -4,7 +4,7 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Values
 {
-    public class NumberValue : FluidValue
+    public sealed class NumberValue : FluidValue
     {
         public static readonly NumberValue Zero = new NumberValue(0);
 

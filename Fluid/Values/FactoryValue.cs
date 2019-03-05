@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
-    public class FactoryValue<T> : FluidValue
+    public sealed class FactoryValue<T> : FluidValue
     {
         private readonly Lazy<FluidValue> _factory;
 

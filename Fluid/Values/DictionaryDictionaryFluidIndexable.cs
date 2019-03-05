@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Fluid.Values
 {
-    public class DictionaryDictionaryFluidIndexable : IFluidIndexable
+    public sealed class DictionaryDictionaryFluidIndexable : IFluidIndexable
     {
         private readonly IDictionary _dictionary;
 
