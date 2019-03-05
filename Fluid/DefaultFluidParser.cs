@@ -447,9 +447,12 @@ namespace Fluid
                         // Start tag found
                         var endTag = c == '{' ? '}' : '%';
 
+                        var from = start + 2;
                         do
                         {
-                            end = template.IndexOf(endTag, start + 2);
+                            end = template.IndexOf(endTag, from);
+                            from = end + 1;
+
                         } while (end != -1 && end < template.Length - 1 && template.Index(end + 1) != '}');
 
                         if (end == -1 || end >= template.Length - 1)

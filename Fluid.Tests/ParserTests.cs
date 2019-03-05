@@ -303,5 +303,11 @@ def", "at line:2, col:6")]
             Assert.Equal('1', segment.Index(0));
             Assert.Equal('4', segment.Index(-1));
         }
+
+        [Fact]
+        public void ShouldParseCurlyBraceInOutputStatements()
+        {
+            Parse("{{ 'on {0}' }}");
+        }
     }
 }
