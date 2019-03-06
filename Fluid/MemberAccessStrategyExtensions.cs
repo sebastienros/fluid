@@ -1,69 +1,53 @@
 ﻿using Fluid.Accessors;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Fluid
 {
-    public static class MemberAccessStrategyExtensions
+  public static class MemberAccessStrategyExtensions
     {
-        internal static Dictionary<string, IMemberAccessor> _namedAccessors = new Dictionary<string, IMemberAccessor>();
-        private static Dictionary<Type, List<string>> _typeMembers = new Dictionary<Type, List<string>>();
+        internal static readonly ConcurrentDictionary<string, IMemberAccessor> NamedAccessors = new ConcurrentDictionary<string, IMemberAccessor>();
+        private static readonly ConcurrentDictionary<Type, List<string>> TypeMembers = new ConcurrentDictionary<Type, List<string>>();
+        private static readonly Func<Type, string, string> KeyGenerator = (type, name) => string.Concat("(", type.FullName, ")", name);
 
-        private static List<string> GetAllMembers(Type type)
+        private static List<string> GetAllMembers(Type type) => TypeMembers.GetOrAdd(type, t =>
         {
-            if (!_typeMembers.TryGetValue(type, out var list))
+            var result = new List<string>();
+
+            foreach (var propertyInfo in type.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
-                list = new List<string>();
-
-                foreach (var propertyInfo in type.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance))
-                {
-                    list.Add(propertyInfo.Name);
-                    var key = String.Concat("(", type.FullName, ")", propertyInfo.Name);
-                    _namedAccessors[key] = new MethodInfoAccessor(propertyInfo.GetGetMethod());
-                }
-
-                foreach (var fieldInfo in type.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))
-                {
-                    list.Add(fieldInfo.Name);
-                    var key = String.Concat("(", type.FullName, ")", fieldInfo.Name);
-                    _namedAccessors[key] = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
-                }
-
-                _typeMembers[type] = list;
+                result.Add(propertyInfo.Name);
+                NamedAccessors.TryAdd(KeyGenerator(type, propertyInfo.Name), new MethodInfoAccessor(propertyInfo.GetGetMethod()));
             }
 
-            return list;
-        }
-
-        public static IMemberAccessor GetNamedAccessor(Type type, string name)
-        {
-            var key = String.Concat("(", type.FullName, ")", name);
-
-            if (!_namedAccessors.TryGetValue(key, out var result))
+            foreach (var fieldInfo in type.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))
             {
-                var propertyInfo = type.GetTypeInfo().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-
-                if (propertyInfo != null)
-                {
-                    result = new MethodInfoAccessor(propertyInfo.GetGetMethod());
-                }
-
-                if (result == null)
-                {
-                    var fieldInfo = type.GetTypeInfo().GetField(name, BindingFlags.Public | BindingFlags.Instance);
-
-                    if (fieldInfo != null)
-                    {
-                        result = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
-                    }
-                }
-
+                result.Add(fieldInfo.Name);
+                NamedAccessors.TryAdd(KeyGenerator(type, fieldInfo.Name), new DelegateAccessor((o, n) => fieldInfo.GetValue(o)));
             }
 
             return result;
-        }
+        });
+
+        public static IMemberAccessor GetNamedAccessor(Type type, string name) => NamedAccessors.GetOrAdd(KeyGenerator(type, name), k =>
+        {
+            var propertyInfo = type.GetTypeInfo().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
+
+            if (propertyInfo != null)
+                return new MethodInfoAccessor(propertyInfo.GetGetMethod());
+
+            var fieldInfo = type.GetTypeInfo().GetField(name, BindingFlags.Public | BindingFlags.Instance);
+
+            if (fieldInfo != null)
+                return new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
+
+            throw new InvalidOperationException("MemberAccessor not found.");
+        });
 
 
         /// <summary>
@@ -95,6 +79,16 @@ namespace Fluid
         public static void Register<T>(this IMemberAccessStrategy strategy, params string[] names)
         {
             strategy.Register(typeof(T), names);
+        }
+
+        /// <summary>
+        /// Registers a limited set of properties in a type.
+        /// </summary>
+        /// <typeparam name="T">The type to register.</typeparam>
+        /// <param name="names">The property's expressions in the type to register.</param>
+        public static void Register<T>(this IMemberAccessStrategy strategy, params Expression<Func<T, object>>[] names)
+        {
+            strategy.Register<T>(names.Select(ExpressionHelper.GetPropertyName).ToArray());
         }
 
         /// <summary>
@@ -209,8 +203,8 @@ namespace Fluid
         {
             strategy.Register(typeof(T), name, new AsyncDelegateAccessor<T, TResult>((obj, propertyName, ctx) => accessor(obj, ctx)));
         }
-      
-        /// Registers a type with a <see cref="Func{T, Object}"/> to retrieve the property specified. 
+
+        /// Registers a type with a <see cref="Func{T, Object}"/> to retrieve the property specified.
         /// </summary>
         /// <param name="type">The type to register.</param>
         /// <param name="name">The name of the property.</param>
@@ -221,7 +215,7 @@ namespace Fluid
         }
 
         /// <summary>
-        /// Registers a type with a <see cref="Func{T, TemplateContext, TResult}"/> to retrieve the property specified. 
+        /// Registers a type with a <see cref="Func{T, TemplateContext, TResult}"/> to retrieve the property specified.
         /// </summary>
         /// <param name="type">The type to register.</param>
         /// <param name="name">The name of the property.</param>
