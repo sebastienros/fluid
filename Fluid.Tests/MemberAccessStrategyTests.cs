@@ -63,6 +63,19 @@ namespace Fluid.Tests
             Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1)));
             Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property2)));
         }
+
+        [Fact]
+        public void RegisterByTypeAndExpression()
+        {
+            var strategy = new MemberAccessStrategy();
+
+            strategy.Register<Class1>(x => x.Field1, x => x.Property1);
+
+            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field1)));
+            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field2)));
+            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1)));
+            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property2)));
+        }
     }
 
     public class Class1
