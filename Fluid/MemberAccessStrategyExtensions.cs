@@ -1,6 +1,8 @@
 ﻿using Fluid.Accessors;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -59,7 +61,6 @@ namespace Fluid
                         result = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
                     }
                 }
-
             }
 
             return result;
@@ -95,6 +96,16 @@ namespace Fluid
         public static void Register<T>(this IMemberAccessStrategy strategy, params string[] names)
         {
             strategy.Register(typeof(T), names);
+        }
+
+        /// <summary>
+        /// Registers a limited set of properties in a type.
+        /// </summary>
+        /// <typeparam name="T">The type to register.</typeparam>
+        /// <param name="names">The property's expressions in the type to register.</param>
+        public static void Register<T>(this IMemberAccessStrategy strategy, params Expression<Func<T, object>>[] names)
+        {
+            strategy.Register<T>(names.Select(ExpressionHelper.GetPropertyName).ToArray());
         }
 
         /// <summary>
@@ -209,8 +220,8 @@ namespace Fluid
         {
             strategy.Register(typeof(T), name, new AsyncDelegateAccessor<T, TResult>((obj, propertyName, ctx) => accessor(obj, ctx)));
         }
-      
-        /// Registers a type with a <see cref="Func{T, Object}"/> to retrieve the property specified. 
+
+        /// Registers a type with a <see cref="Func{T, Object}"/> to retrieve the property specified.
         /// </summary>
         /// <param name="type">The type to register.</param>
         /// <param name="name">The name of the property.</param>
@@ -221,7 +232,7 @@ namespace Fluid
         }
 
         /// <summary>
-        /// Registers a type with a <see cref="Func{T, TemplateContext, TResult}"/> to retrieve the property specified. 
+        /// Registers a type with a <see cref="Func{T, TemplateContext, TResult}"/> to retrieve the property specified.
         /// </summary>
         /// <param name="type">The type to register.</param>
         /// <param name="name">The name of the property.</param>
