@@ -120,6 +120,7 @@ namespace Fluid.Ast
                 var forloop = new ForLoopValue();
 
                 var length = forloop.Length = list.Count;
+
                 context.SetValue("forloop", forloop);
 
                 for (var i = 0; i < length; i++)
@@ -142,6 +143,10 @@ namespace Fluid.Ast
                     {
                         var statement = Statements[index];
                         completion = await statement.WriteToAsync(writer, encoder, context);
+
+                        // Restore the forloop property after every statement in case it replaced it,
+                        // for instance if it contains a nested for loop
+                        context.SetValue("forloop", forloop);
 
                         if (completion != Completion.Normal)
                         {

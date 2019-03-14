@@ -154,6 +154,40 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task ForShouldBeNestable()
+        {
+            var nested = new ForStatement(
+                new List<Statement> {
+                    CreateMemberStatement("forloop.index")
+                },
+                "j",
+                new MemberExpression(
+                    new IdentifierSegment("items")
+                ),
+                null, null, false
+            );
+
+            var outer = new ForStatement(
+                new List<Statement> {
+                    CreateMemberStatement("forloop.index"),
+                    nested
+                },
+                "i",
+                new MemberExpression(
+                    new IdentifierSegment("items")
+                ),
+                null, null, false
+            );
+
+            var sw = new StringWriter();
+            var context = new TemplateContext();
+            context.SetValue("items", new[] { 1, 2, 3 });
+            await outer.WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal("112321233123", sw.ToString());
+        }
+
+        [Fact]
         public async Task ForEvaluatesOptions()
         {
             var e = new ForStatement(
@@ -173,7 +207,6 @@ namespace Fluid.Tests
 
             Assert.Equal("543", sw.ToString());
         }
-
 
         Statement CreateMemberStatement(string p)
         {
