@@ -490,6 +490,16 @@ namespace Fluid.Tests
             return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
         }
 
+        [Theory]
+        [InlineData("{{ products | where: 'name' , 'product 2' }}", "{ name = product 2, price = 2 }")]
+        [InlineData("{{ products | where: 'price' , 1 }}", "{ name = product 1, price = 1 }")]
+        [InlineData(@"{% assign price = 3 %}{{ products | where: 'price' , price }}", "{ name = product 3, price = 3 }")]
+        public Task ShouldProcessWhereFilter(string source, string expected)
+        {
+            return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
+        }
+
+
         [Fact]
         public async Task IncludeParamsShouldNotBeSetInTheParentTemplate()
         {

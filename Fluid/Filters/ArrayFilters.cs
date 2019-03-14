@@ -19,7 +19,7 @@ namespace Fluid.Filters
             filters.AddFilter("sort", Sort);
             filters.AddFilter("sort_natural", SortNatural);
             filters.AddFilter("uniq", Uniq);
-
+            filters.AddFilter("where", Where);
             return filters;
         }
 
