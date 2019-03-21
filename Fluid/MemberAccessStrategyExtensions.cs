@@ -1,6 +1,7 @@
 ﻿using Fluid.Accessors;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -11,13 +12,13 @@ namespace Fluid
     public static class MemberAccessStrategyExtensions
     {
         // A cache of accessors so we don't rebuild them once they are added to global or contextual access strategies
-        internal static ConcurrentDictionary<Type, ConcurrentDictionary<string, IMemberAccessor>> _typeMembers = new ConcurrentDictionary<Type, ConcurrentDictionary<string, IMemberAccessor>>();
+        internal static ConcurrentDictionary<Type, Dictionary<string, IMemberAccessor>> _typeMembers = new ConcurrentDictionary<Type, Dictionary<string, IMemberAccessor>>();
 
-        internal static ConcurrentDictionary<string, IMemberAccessor> GetTypeMembers(Type type)
+        internal static Dictionary<string, IMemberAccessor> GetTypeMembers(Type type)
         {
             return _typeMembers.GetOrAdd(type, t =>
             {
-                var list = new ConcurrentDictionary<string, IMemberAccessor>();
+                var list = new Dictionary<string, IMemberAccessor>();
 
                 foreach (var propertyInfo in t.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {

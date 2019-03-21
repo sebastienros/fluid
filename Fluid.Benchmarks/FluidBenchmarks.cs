@@ -14,7 +14,7 @@ namespace Fluid.Benchmarks
             _context = new TemplateContext().SetValue("products", Products);
         }
 
-        //[Benchmark]
+        [Benchmark]
         public override object Parse()
         {
             FluidTemplate.TryParse(TextTemplate, false, out var template, out var errors);
@@ -27,7 +27,7 @@ namespace Fluid.Benchmarks
             return _fluidTemplate.Render(_context);
         }
 
-        //[Benchmark]
+        [Benchmark]
         public override string ParseAndRender()
         {
             FluidTemplate.TryParse(TextTemplate, false, out var template, out var errors);
