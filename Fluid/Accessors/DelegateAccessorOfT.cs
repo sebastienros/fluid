@@ -11,11 +11,6 @@ namespace Fluid.Accessors
             _getter = getter;
         }
 
-        public TResult Get(T obj, string name, TemplateContext ctx)
-        {
-            return _getter(obj, name, ctx);
-        }
-
         object IMemberAccessor.Get(object obj, string name, TemplateContext ctx)
         {
             return _getter((T)obj, name, ctx);
