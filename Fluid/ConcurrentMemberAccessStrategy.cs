@@ -1,22 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace Fluid
 {
-    public class MemberAccessStrategy : IMemberAccessStrategy
+    public class ConcurrentMemberAccessStrategy : IMemberAccessStrategy
     {
-        private Dictionary<Type, Dictionary<string, IMemberAccessor>> _map;
-        private readonly IMemberAccessStrategy _parent;
+        private ConcurrentDictionary<Type, ConcurrentDictionary<string, IMemberAccessor>> _map;
 
-        public MemberAccessStrategy()
+        public ConcurrentMemberAccessStrategy()
         {
-            _map = new Dictionary<Type, Dictionary<string, IMemberAccessor>>();
-        }
-
-        public MemberAccessStrategy(IMemberAccessStrategy parent) : this()
-        {
-            _parent = parent;
+            _map = new ConcurrentDictionary<Type, ConcurrentDictionary<string, IMemberAccessor>>();
         }
 
         public IMemberAccessor GetAccessor(Type type, string name)
@@ -34,13 +28,6 @@ namespace Fluid
                     }
                 }
 
-                accessor = accessor ?? _parent?.GetAccessor(type, name);
-
-                if (accessor != null)
-                {
-                    return accessor;
-                }
-
                 type = type.GetTypeInfo().BaseType;
             }
 
@@ -49,12 +36,10 @@ namespace Fluid
 
         public void Register(Type type, string name, IMemberAccessor getter)
         {
-            if (!_map.TryGetValue(type, out var typeMap))
+            var typeMap = _map.GetOrAdd(type, _ =>
             {
-                typeMap = new Dictionary<string, IMemberAccessor>();
-
-                _map[type] = typeMap;
-            }
+                return new ConcurrentDictionary<string, IMemberAccessor>();
+            });
 
             typeMap[name] = getter;
         }

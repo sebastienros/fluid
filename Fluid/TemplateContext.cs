@@ -43,7 +43,7 @@ namespace Fluid
         /// <remarks>
         /// This property should only be set by static constructores to prevent concurrency issues.
         /// </remarks>
-        public static IMemberAccessStrategy GlobalMemberAccessStrategy = new MemberAccessStrategy();
+        public static IMemberAccessStrategy GlobalMemberAccessStrategy = new ConcurrentMemberAccessStrategy();
 
         public static IFileProvider GlobalFileProvider { get; set; } = new NullFileProvider();
 
