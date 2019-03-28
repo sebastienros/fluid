@@ -69,7 +69,7 @@ namespace Fluid.Ast
                 {
                     _rangeElements = new List<FluidValue>();
 
-                    for (var i = start; i <= end - start + 1; i++)
+                    for (var i = start; i <= end; i++)
                     {
                         _rangeElements.Add(NumberValue.Create(i));
                     }
