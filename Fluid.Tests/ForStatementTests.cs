@@ -13,6 +13,25 @@ namespace Fluid.Tests
     public class ForStatementTests
     {
         [Fact]
+        public async Task ZeroBasedLoopRangeShouldNotHasExtraStep()
+        {
+            var e = new ForStatement(
+                new List<Statement> { new TextStatement(new StringSegment("x")) },
+                "i",
+                new RangeExpression(
+                    new LiteralExpression(NumberValue.Create(0)),
+                    new LiteralExpression(NumberValue.Create(1))
+                ),
+                null, null, false
+            );
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+
+            Assert.Equal("xx", sw.ToString());
+        }
+
+        [Fact]
         public async Task ShouldLoopRange()
         {
             var e = new ForStatement(
