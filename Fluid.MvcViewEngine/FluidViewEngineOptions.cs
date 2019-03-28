@@ -2,7 +2,7 @@
 using System.Text.Encodings.Web;
 using Microsoft.Extensions.FileProviders;
 
-namespace FluidMvcViewEngine
+namespace Fluid.MvcViewEngine
 {
     public class FluidViewEngineOptions
     {

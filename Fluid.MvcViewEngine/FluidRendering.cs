@@ -1,6 +1,4 @@
-﻿using Fluid;
-using Fluid.Ast;
-using Fluid.MvcViewEngine;
+﻿using Fluid.Ast;
 using Fluid.MvcViewEngine.Internal;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -13,7 +11,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace FluidMvcViewEngine
+namespace Fluid.MvcViewEngine
 {
     /// <summary>
     /// This class is registered as a singleton. As such it can store application wide 
