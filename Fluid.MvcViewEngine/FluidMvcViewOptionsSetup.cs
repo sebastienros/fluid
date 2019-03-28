@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
-namespace FluidMvcViewEngine
+namespace Fluid.MvcViewEngine
 {
     public class FluidMvcViewOptionsSetup : IConfigureOptions<MvcViewOptions>
     {

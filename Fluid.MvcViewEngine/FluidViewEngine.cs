@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewEngines;
 using Microsoft.Extensions.Options;
 
-namespace FluidMvcViewEngine
+namespace Fluid.MvcViewEngine
 {
     public class FluidViewEngine : IFluidViewEngine
     {

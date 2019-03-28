@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 
-namespace FluidMvcViewEngine
+namespace Fluid.MvcViewEngine
 {
     public interface IFluidRendering
     {

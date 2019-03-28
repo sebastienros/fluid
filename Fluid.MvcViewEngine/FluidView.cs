@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewEngines;
 
-namespace FluidMvcViewEngine
+namespace Fluid.MvcViewEngine
 {
     public class FluidView : IView
     {

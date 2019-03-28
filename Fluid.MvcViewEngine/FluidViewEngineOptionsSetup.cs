@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 
-namespace FluidMvcViewEngine
+namespace Fluid.MvcViewEngine
 {
     public class FluidViewEngineOptionsSetup : ConfigureOptions<FluidViewEngineOptions>
     {

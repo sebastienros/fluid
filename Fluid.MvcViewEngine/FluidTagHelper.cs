@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 
-namespace FluidMvcViewEngine
+namespace Fluid.MvcViewEngine
 {
     [HtmlTargetElement("fluid")]
     public class FluidTagHelper : TagHelper
