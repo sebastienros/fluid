@@ -24,23 +24,23 @@ namespace Fluid.Filters
 
         public static FluidValue Abs(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return NumberValue.Create(Math.Abs(input.ToNumberValue()), true);
+            var integral = input is NumberValue numberValue && numberValue.IsIntegral;
+
+            return NumberValue.Create(Math.Abs(input.ToNumberValue()), integral);
         }
 
         public static FluidValue AtLeast(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var first = arguments.At(0);
-            double num = first.ToNumberValue();
 
-            return NumberValue.Create(Math.Max(input.ToNumberValue(), num), true);
+            return input.ToNumberValue() < first.ToNumberValue() ? first : input;
         }
 
         public static FluidValue AtMost(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var first = arguments.At(0);
-            double num = first.ToNumberValue();
 
-            return NumberValue.Create(Math.Min(input.ToNumberValue(), num), true);
+            return input.ToNumberValue() > first.ToNumberValue() ? first : input;
         }
 
         public static FluidValue Ceil(FluidValue input, FilterArguments arguments, TemplateContext context)
