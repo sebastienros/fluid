@@ -8,6 +8,53 @@ namespace Fluid.Tests
 {
     public class NumberFiltersTests
     {
+        [Theory]
+        [InlineData(4, 4)]
+        [InlineData(4.2, 4.2)]
+        [InlineData(-4, 4)]
+        [InlineData(-4.2, 4.2)]
+        public void Abs(double value, double expectedResult)
+        {
+            var input = NumberValue.Create(value);
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = NumberFilters.Abs(input, arguments, context);
+
+            Assert.Equal(expectedResult, result.ToNumberValue());
+        }
+
+        [Theory]
+        [InlineData(4, 5, 5)]
+        [InlineData(4, 3, 4)]
+        public void AtLeast(int value1, object value2, int expectedResult)
+        {
+            var input = NumberValue.Create(value1);
+
+            var arguments = new FilterArguments(NumberValue.Create(Convert.ToDouble(value2), value2 is int));
+            var context = new TemplateContext();
+
+            var result = NumberFilters.AtLeast(input, arguments, context);
+
+            Assert.Equal(expectedResult, result.ToNumberValue());
+        }
+
+        [Theory]
+        [InlineData(4, 5, 4)]
+        [InlineData(4, 3, 3)]
+        public void AtMost(int value1, object value2, int expectedResult)
+        {
+            var input = NumberValue.Create(value1);
+
+            var arguments = new FilterArguments(NumberValue.Create(Convert.ToDouble(value2), value2 is int));
+            var context = new TemplateContext();
+
+            var result = NumberFilters.AtMost(input, arguments, context);
+
+            Assert.Equal(expectedResult, result.ToNumberValue());
+        }
+
         [Fact]
         public void Ceil()
         {

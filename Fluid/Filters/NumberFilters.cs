@@ -7,6 +7,9 @@ namespace Fluid.Filters
     {
         public static FilterCollection WithNumberFilters(this FilterCollection filters)
         {
+            filters.AddFilter("abs", Abs);
+            filters.AddFilter("at_least", AtLeast);
+            filters.AddFilter("at_most", AtMost);
             filters.AddFilter("ceil", Ceil);
             filters.AddFilter("divided_by", DividedBy);
             filters.AddFilter("floor", Floor);
@@ -17,6 +20,27 @@ namespace Fluid.Filters
             filters.AddFilter("times", Times);
 
             return filters;
+        }
+
+        public static FluidValue Abs(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var integral = input is NumberValue numberValue && numberValue.IsIntegral;
+
+            return NumberValue.Create(Math.Abs(input.ToNumberValue()), integral);
+        }
+
+        public static FluidValue AtLeast(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var first = arguments.At(0);
+
+            return input.ToNumberValue() < first.ToNumberValue() ? first : input;
+        }
+
+        public static FluidValue AtMost(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var first = arguments.At(0);
+
+            return input.ToNumberValue() > first.ToNumberValue() ? first : input;
         }
 
         public static FluidValue Ceil(FluidValue input, FilterArguments arguments, TemplateContext context)
