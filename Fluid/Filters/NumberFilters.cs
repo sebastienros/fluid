@@ -32,15 +32,7 @@ namespace Fluid.Filters
             var first = arguments.At(0);
             double num = first.ToNumberValue();
 
-            if (first is NumberValue number)
-            {
-                if (number.IsIntegral)
-                {
-                    return NumberValue.Create(Math.Max(input.ToNumberValue(), num), true);
-                }
-            }
-
-            return NumberValue.Create(input.ToNumberValue());
+            return NumberValue.Create(Math.Max(input.ToNumberValue(), num), true);
         }
 
         public static FluidValue AtMost(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -48,15 +40,7 @@ namespace Fluid.Filters
             var first = arguments.At(0);
             double num = first.ToNumberValue();
 
-            if (first is NumberValue number)
-            {
-                if (number.IsIntegral)
-                {
-                    return NumberValue.Create(Math.Min(input.ToNumberValue(), num), true);
-                }
-            }
-
-            return NumberValue.Create(input.ToNumberValue());
+            return NumberValue.Create(Math.Min(input.ToNumberValue(), num), true);
         }
 
         public static FluidValue Ceil(FluidValue input, FilterArguments arguments, TemplateContext context)

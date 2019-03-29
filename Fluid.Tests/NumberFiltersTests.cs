@@ -10,8 +10,10 @@ namespace Fluid.Tests
     {
         [Theory]
         [InlineData(4, 4)]
+        [InlineData(4.2, 4.2)]
         [InlineData(-4, 4)]
-        public void Abs(int value, int expectedResult)
+        [InlineData(-4.2, 4.2)]
+        public void Abs(double value, double expectedResult)
         {
             var input = NumberValue.Create(value);
 
