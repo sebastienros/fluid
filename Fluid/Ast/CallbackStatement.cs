@@ -19,6 +19,8 @@ namespace Fluid.Ast
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
+            context.IncrementSteps();
+
             return new ValueTask<Completion>(Action?.Invoke(writer, encoder, context));
         }
     }

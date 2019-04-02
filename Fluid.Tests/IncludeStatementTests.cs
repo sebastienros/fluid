@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -112,6 +113,23 @@ shape: ''";
             await new IncludeStatement(pathExpression, with: withExpression).WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal(expectedResult, sw.ToString());
+        }
+
+        [Fact]
+        public async Task IncludeSatement_ShouldLimitRecursion()
+        {
+            var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
+            var sw = new StringWriter();
+
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("_Partial.liquid", @"{{ 'Partial Content' }} {% include '_Partial' %}");
+
+            var context = new TemplateContext
+            {
+                FileProvider = fileProvider
+            };
+
+           await Assert.ThrowsAsync<InvalidOperationException>(() => new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context).AsTask());
         }
     }
 }

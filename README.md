@@ -25,6 +25,7 @@ Fluid is an open-source .NET template engine that is as close as possible to the
 - [Differences with Liquid](#differences-with-liquid)
 - [Using Fluid in your project](#using-fluid-in-your-project)
 - [White-listing object members](#white-listing-object-members)
+- [Execution limits](#execution-limits)
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
 - [Localization](#localization)
@@ -187,6 +188,22 @@ TemplateContext.GlobalMemberAccessStrategy.Register<JObject, object>((obj, name)
 
 All the members of the class hierarchy are registered. Besides, all inherited classes will be correctly evaluated when a base class is registered and
 a member of the base class is accessed.
+
+<br>
+
+## Execution limits
+
+### Limiting templates recursion
+
+When invoking `{% include 'sub-template' %}` statements it is possible that some templates create an infinite recursion that could block the server.
+To prevent this the `TemplateContext` class defines a default `DefaultMaxRecursion = 100` that prevents templates from being have a depth greater than `100`.
+This can be defined globally with this static member, or on an individual `TemplateContext` instance on its `MaxRecursion` property.
+
+### Limiting templates execution
+
+Template can inadvertently create infinite loop that could block the server by running indefinitely. 
+To prevent this the `TemplateContext` class defines a default `DefaultMaxSteps`. By default this value is not set.
+This can be defined globally with this static member, or on an individual `TemplateContext` instance on its `MaxSteps` property.
 
 <br>
 

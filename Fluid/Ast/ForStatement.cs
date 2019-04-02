@@ -125,6 +125,8 @@ namespace Fluid.Ast
 
                 for (var i = 0; i < length; i++)
                 {
+                    context.IncrementSteps();
+
                     var item = list[i];
 
                     context.SetValue(Identifier, item);

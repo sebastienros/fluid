@@ -8,8 +8,6 @@ namespace Fluid.Ast
 {
     public class IfStatement : TagStatement
     {
-        private readonly List<ElseIfStatement> _elseIfs;
-
         public IfStatement(
             Expression condition,
             List<Statement> statements,
@@ -19,16 +17,14 @@ namespace Fluid.Ast
         {
             Condition = condition;
             Else = elseStatement;
-            _elseIfs = elseIfStatements;
+            ElseIfs = elseIfStatements;
         }
 
         public Expression Condition { get; }
         public ElseStatement Else { get; }
 
-        public List<ElseIfStatement> ElseIfs
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _elseIfs;
+        public List<ElseIfStatement> ElseIfs { [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get; private set;
         }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
@@ -54,11 +50,11 @@ namespace Fluid.Ast
             }
             else
             {
-                if (_elseIfs != null)
+                if (ElseIfs != null)
                 {
-                    for (var i = 0; i < _elseIfs.Count; i++)
+                    for (var i = 0; i < ElseIfs.Count; i++)
                     {
-                        var elseIf = _elseIfs[i];
+                        var elseIf = ElseIfs[i];
                         if ((await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue())
                         {
                             return await elseIf.WriteToAsync(writer, encoder, context);

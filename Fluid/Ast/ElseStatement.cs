@@ -15,6 +15,8 @@ namespace Fluid.Ast
         {
             for (var i = 0; i < Statements.Count; i++)
             {
+                context.IncrementSteps();
+
                 var statement = Statements[i];
                 var completion = await statement.WriteToAsync(writer, encoder, context);
 

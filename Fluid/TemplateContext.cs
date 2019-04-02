@@ -9,6 +9,30 @@ namespace Fluid
 {
     public class TemplateContext
     {
+        internal int _recursion = 0;
+        internal int _steps = 0;
+
+        public static int DefaultMaxSteps = 0;
+        public static int DefaultMaxRecursion = 100;
+
+        /// <summary>
+        /// Gets or sets the maximum number of steps a script can execute. Leave to 0 for unlimited.
+        /// </summary>
+        public int MaxSteps { get; set; } = DefaultMaxSteps;
+
+        /// <summary>
+        /// Gets or sets the maximum depth of recursions a script can execute.
+        /// </summary>
+        public int MaxRecursion { get; set; } = DefaultMaxRecursion;
+
+        internal void IncrementSteps()
+        {
+            if (MaxSteps != 0 && _steps++ > MaxSteps)
+            {
+                throw new InvalidOperationException("The maximum number of statements has been reached. Your script took too long to run.");
+            }
+        }
+
         /// <summary>
         /// The <see cref="IFluidParserFactory"/> instance to use with this context
         /// </summary>
@@ -95,6 +119,11 @@ namespace Fluid
         /// </summary>
         public void EnterChildScope()
         {
+            if (MaxRecursion > 0 && _recursion++ > MaxRecursion)
+            {
+                throw new InvalidOperationException("The maximum level of recursion has been reached. Your script must have a cyclic include statement.");
+            }
+
             LocalScope = LocalScope.EnterChildScope();
         }
 
@@ -103,6 +132,11 @@ namespace Fluid
         /// </summary>
         public void ReleaseScope()
         {
+            if (_recursion > 0)
+            {
+                _recursion--;
+            }
+
             LocalScope = LocalScope.ReleaseScope();
 
             if (LocalScope == null)

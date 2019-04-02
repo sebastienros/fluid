@@ -24,6 +24,8 @@ namespace Fluid.Ast
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
+            context.IncrementSteps();
+
             // The Text fragments are not encoded, but kept as-is
             writer.Write(_buffer, _start, _length);
 

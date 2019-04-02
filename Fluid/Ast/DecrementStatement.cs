@@ -17,6 +17,8 @@ namespace Fluid.Ast
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
+            context.IncrementSteps();
+
             // We prefix the identifier to prevent collisions with variables.
             // Variable identifiers don't represent the same slots as inc/dec ones.
             // c.f. https://shopify.github.io/liquid/tags/variable/

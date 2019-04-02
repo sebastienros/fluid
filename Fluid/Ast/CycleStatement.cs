@@ -19,6 +19,8 @@ namespace Fluid.Ast
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
+            context.IncrementSteps();
+
             var groupValue = Group == null ? "$defautGroup" : (await Group.EvaluateAsync(context)).ToStringValue();
 
             var currentValue = context.GetValue(groupValue);

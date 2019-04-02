@@ -19,6 +19,8 @@ namespace Fluid.Ast
             // Process statements until next block or end of statements
             for (var index = 0; index < Statements.Count; index++)
             {
+                context.IncrementSteps();
+
                 var completion = await Statements[index].WriteToAsync(writer, encoder, context);
 
                 if (completion != Completion.Normal)

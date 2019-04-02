@@ -25,6 +25,8 @@ namespace Fluid.Ast
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
+            context.IncrementSteps();
+
             var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
             if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))
             {
@@ -34,7 +36,7 @@ namespace Fluid.Ast
             var fileProvider = context.FileProvider ?? TemplateContext.GlobalFileProvider;
             var fileInfo = fileProvider.GetFileInfo(relativePath);
 
-            if (!fileInfo.Exists)
+            if (fileInfo == null || !fileInfo.Exists)
             {
                 throw new FileNotFoundException(relativePath);
             }

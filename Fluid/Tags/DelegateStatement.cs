@@ -17,6 +17,8 @@ namespace Fluid.Tags
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
+            context.IncrementSteps();
+
             return _writeAsync(writer, encoder, context);
         }
     }

@@ -593,5 +593,16 @@ shape: '{{ shape }}'");
             Assert.Equal("true", result);
             Assert.True(set);
         }
+
+        [Fact]
+        public async Task ShouldLimitSteps()
+        {
+            FluidTemplate.TryParse("{% for w in (1..10000) %} FOO {% endfor %}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.MaxSteps = 100;
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => template.RenderAsync(context).AsTask());
+        }
     }
 }

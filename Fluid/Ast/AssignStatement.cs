@@ -18,6 +18,8 @@ namespace Fluid.Ast
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
+            context.IncrementSteps();
+
             var value = await Value.EvaluateAsync(context);
             context.SetValue(Identifier, value);
 
