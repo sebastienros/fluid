@@ -28,5 +28,39 @@ namespace Fluid.MvcViewEngine
             return builder;
 
         }
+
+        public static IMvcBuilder WithTags(this IMvcBuilder builder, Action<FluidTagOptions> setupAction)
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            if (setupAction == null)
+            {
+                throw new ArgumentNullException(nameof(setupAction));
+            }
+
+            setupAction.Invoke(new FluidTagOptions());
+
+            return builder;
+        }
+
+        public static IMvcBuilder WithBlocks(this IMvcBuilder builder, Action<FluidBlockOptions> setupAction)
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            if (setupAction == null)
+            {
+                throw new ArgumentNullException(nameof(setupAction));
+            }
+
+            setupAction.Invoke(new FluidBlockOptions());
+
+            return builder;
+        }
     }
 }
