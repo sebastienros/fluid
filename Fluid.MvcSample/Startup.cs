@@ -18,8 +18,8 @@ namespace Fluid.MvcSample
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc().AddFluid()
-                .WithTags(t => t.AddTag<MyTag>("mytag"));
+            services.AddMvc()
+                .AddFluid(o => o.Add<MyTag>("mytag"));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
