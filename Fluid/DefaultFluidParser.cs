@@ -21,7 +21,8 @@ namespace Fluid
         private readonly Dictionary<string, ITag> _blocks;
         protected ParserContext _context;
 
-        private static IList<AssignStatement> _assignStatements;
+//        Selz: Our include tag format is <%include filename> we do not need these assignStatement
+//        private static IList<AssignStatement> _assignStatements;
 
         public DefaultFluidParser(LanguageData languageData, Dictionary<string, ITag> tags, Dictionary<string, ITag> blocks)
         {
@@ -530,12 +531,15 @@ namespace Fluid
                     _context.ExitBlock();
                     return unlessStatement;
 
+                // Selz: We support both the syntax of elsif and else if so for else tag we need to pass in the tag
+                // to distinguish whether it is elsif or else if
                 case "else":
-                    EnterElseSection();
+                    EnterElseSection(tag);
                     break;
 
+                // Selz: Unify the the api call so that both elsif and else if can use the same utility function
                 case "elsif":
-                    EnterElsifSection(tag);
+                    EnterElsifSection(tag.ChildNodes[0]);
                     break;
 
                 case "break":
@@ -657,21 +661,8 @@ namespace Fluid
 
         public static IncludeStatement BuildIncludeStatement(ParseTreeNode tag)
         {
-            var pathExpression = BuildTermExpression(tag.ChildNodes[0]);
-            Expression withExpression = null;
-
-            if (tag.ChildNodes.Count == 2)
-            {
-                withExpression = BuildTermExpression(tag.ChildNodes[1]);
-                return new IncludeStatement(pathExpression, with: withExpression);
-            }
-
-            if (tag.ChildNodes.Count >= 3)
-            {
-                _assignStatements = new List<AssignStatement>();
-                Traverse(tag.ChildNodes[2]);
-                return new IncludeStatement(pathExpression, assignStatements: _assignStatements);
-            }
+            //Selz: we need to support the format of <% include filename %>
+            var pathExpression = tag.ChildNodes[0].Token.ValueString;
 
             return new IncludeStatement(pathExpression);
         }
@@ -701,14 +692,33 @@ namespace Fluid
             _context.EnterBlockSection("when", new WhenStatement(options, new List<Statement>()));
         }
 
-        public void EnterElseSection()
+        // Selz: Else tag to handle both the else and else if to handle both
+        public void EnterElseSection(ParseTreeNode tag)
         {
-            _context.EnterBlockSection("else", new ElseStatement(new List<Statement>()));
+            //Selz:else tag
+            if (tag.ChildNodes.Count == 0)
+            {
+               _context.EnterBlockSection("else", new ElseStatement(new List<Statement>()));
+               return;
+            }
+
+            var firstNode = tag.ChildNodes[0];
+            //Selz: else if tag
+            if (firstNode.Term.Name == "identifier" && tag.ChildNodes.Count > 1)
+            {
+               EnterElsifSection(tag.ChildNodes[1]);
+            }
+            else
+            {
+                //Selz: Fallback to else tag
+                _context.EnterBlockSection("else", new ElseStatement(new List<Statement>()));
+            }
         }
 
         public void EnterElsifSection(ParseTreeNode tag)
         {
-            _context.EnterBlockSection("elsif", new ElseIfStatement(BuildExpression(tag.ChildNodes[0]), new List<Statement>()));
+            // Selz: Passing child node so that the internal function can be reused by both the else and else if
+            _context.EnterBlockSection("elsif", new ElseIfStatement(BuildExpression(tag), new List<Statement>()));
         }
 
         public virtual OutputStatement BuildOutputStatement(ParseTreeNode node)
@@ -802,8 +812,9 @@ namespace Fluid
             var identifier = context.Tag.ChildNodes[0].Token.Text;
             var source = context.Tag.ChildNodes[1];
 
-            LiteralExpression limit = null;
-            LiteralExpression offset = null;
+            // Selz: Fo statement support the syntax like limit: limit: tiles_limit instead of just number
+            Expression limit = null;
+            Expression offset = null;
             var reversed = false;
 
             // Options?
@@ -814,10 +825,12 @@ namespace Fluid
                     switch (option.Term.Name)
                     {
                         case "limit":
-                            limit = BuildLiteralExpression(option.ChildNodes[0]);
+                            // Selz: For statement support the syntax like limit: limit: tiles_limit instead of just number
+                            limit = BuildExpression(option.ChildNodes[0]);
                             break;
                         case "offset":
-                            offset = BuildLiteralExpression(option.ChildNodes[0]);
+                            // Selz: For statement support the syntax like limit: limit: tiles_limit instead of just number
+                            offset = BuildExpression(option.ChildNodes[0]);
                             break;
                         case "reversed":
                             reversed = true;
@@ -1065,17 +1078,18 @@ namespace Fluid
 
         #endregion
 
-        private static void Traverse(ParseTreeNode tag)
-        {
-            if (tag.ChildNodes.Count == 1)
-            {
-                _assignStatements.Add(BuildIncludeAssignStatement(tag.ChildNodes[0]));
-            }
-            else
-            {
-                Traverse(tag.ChildNodes[0]);
-                _assignStatements.Add(BuildIncludeAssignStatement(tag.ChildNodes[2]));
-            }
-        }
+// Selz: Do not need that since our include format is <% include filename %>
+//        private static void Traverse(ParseTreeNode tag)
+//        {
+//            if (tag.ChildNodes.Count == 1)
+//            {
+//                _assignStatements.Add(BuildIncludeAssignStatement(tag.ChildNodes[0]));
+//            }
+//            else
+//            {
+//                Traverse(tag.ChildNodes[0]);
+//                _assignStatements.Add(BuildIncludeAssignStatement(tag.ChildNodes[2]));
+//            }
+//        }
     }
 }

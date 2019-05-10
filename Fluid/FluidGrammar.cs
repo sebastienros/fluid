@@ -5,6 +5,10 @@ namespace Fluid
     [Language("Fluid", "0.2", "Liquid based syntax")]
     public class FluidGrammar : Grammar
     {
+        //Selz: Support the filename in <%Include filename.liquid %>
+        public IdentifierTerminal FileIdentifier = new IdentifierTerminal("identifier", "-_.", "-_.");
+
+
         public IdentifierTerminal Identifier = new IdentifierTerminal("identifier", "-_", "-_");
         public NonTerminal MemberAccess = new NonTerminal("memberAccess");
         public NonTerminal MemberAccessSegmentOpt = new NonTerminal("memberAccessSegmentOpt");
@@ -53,6 +57,22 @@ namespace Fluid
         public NonTerminal Include = new NonTerminal("include");
         public NonTerminal IncludeAssignments = new NonTerminal("includeAssignments");
         public NonTerminal IncludeAssignment = new NonTerminal("includeAssignment");
+
+        //Selz: Start Customed terminal name
+        public NonTerminal PaginateArguments = new NonTerminal("paginateArguments");
+        public NonTerminal FormArguments = new NonTerminal("formArguments");
+        public NonTerminal PipeStringLiteral = new NonTerminal("pipeStringLiteral");
+        public NonTerminal StringLiteralAll = new NonTerminal("stringLiteralAll");
+
+        public NonTerminal IdentifierList = new NonTerminal("identifierList");
+
+        public NonTerminal ExpressionList = new NonTerminal("expressionList");
+
+        public NonTerminal EditableRegionArguments = new NonTerminal("editableRegionArguments");
+
+        public NonTerminal Else = new NonTerminal("else");
+        //Selz: End Customed terminal name
+
 
         public FluidGrammar() : base(caseSensitive: true)
         {
@@ -104,6 +124,33 @@ namespace Fluid
             RegisterOperators(5, "and");
             RegisterOperators(4, "or");
 
+            // Selz: Start intialize the rule of Cutom Terminal
+            var By = ToTerm("by");
+
+            // Selz: Support <% include filename %>
+            IdentifierList.Rule = MakeStarRule(IdentifierList, Identifier);
+
+            // Selz: Support <% paginate Colltion by Setting.PageSize query: "queryname"
+            PaginateArguments.Rule = Expression;
+            PaginateArguments.Rule |= Expression + By + Expression;
+            PaginateArguments.Rule |= Expression + FilterArgument;
+            PaginateArguments.Rule |= Expression + By + Expression + FilterArgument;
+
+            // Selz: Support {% shortcut "banner" "btn-settings-shortcut" "above-right" %}
+            ExpressionList.Rule = MakeStarRule(ExpressionList, Expression);
+
+            StringLiteralAll.Rule = StringLiteralSingle | StringLiteralDouble;
+            PipeStringLiteral.Rule = Pipe + StringLiteralAll;
+
+            // Selz: Support  {% form 'search' | 'form-search' %}
+            FormArguments.Rule =  StringLiteralAll;
+            FormArguments.Rule |= StringLiteralAll + Pipe + ExpressionList;
+
+            // Selz: {% editable_region footer true %}
+            EditableRegionArguments.Rule = Identifier;
+            EditableRegionArguments.Rule |= Identifier + Expression;
+            // Selz: End intialize the rule of Cutom Terminal
+
             // Filters
             FilterList.Rule = MakeStarRule(FilterList, Filter);
             Filter.Rule = Pipe + Identifier;
@@ -114,7 +161,8 @@ namespace Fluid
 
             // Known Tags
             var EndIf = ToTerm("endif");
-            var Else = ToTerm("else");
+            // Selz: Else is a terminal now
+            // var Else = ToTerm("else");
             var EndUnless = ToTerm("endunless");
             var EndCase = ToTerm("endcase");
             var EndFor = ToTerm("endfor");
@@ -153,8 +201,20 @@ namespace Fluid
             RangeIndex.Rule = Number | MemberAccess;
             ForOptions.Rule = MakeStarRule(ForOptions, ForOption);
             ForOption.Rule = ForLimit | ForOffset | ToTerm("reversed");
-            ForOffset.Rule = ToTerm("offset") + Colon + Number;
-            ForLimit.Rule = ToTerm("limit") + Colon + Number;
+
+            // Selz: Support syntax of offset: settings.offset, limit: settings.pagesize
+            ForOffset.Rule = ToTerm("offset") + Colon + Expression;
+            ForLimit.Rule = ToTerm("limit") + Colon + Expression;
+
+            // Selz: Support else if expression syntax
+            Else.Rule = ToTerm("else");
+            Else.Rule |= ToTerm("else") + Identifier + Expression;
+
+            // Selz: Support <% assign varible = filename %> syntax
+            Assign.Rule |= ToTerm("assign") + Identifier + ToTerm("=") + Expression + ";";
+
+            // Selz: Support <% include filename syntax %>
+            Include.Rule = ToTerm("include") + FileIdentifier;
 
             Cycle.Rule = ToTerm("cycle") + Term + Colon + CycleArguments;
             Cycle.Rule |= ToTerm("cycle") + CycleArguments;
@@ -170,17 +230,24 @@ namespace Fluid
             IncludeAssignments.Rule = (IncludeAssignments + Comma + IncludeAssignment) | IncludeAssignment;
             IncludeAssignment.Rule = Identifier + Colon + Term;
 
+            //Selz: Make else into keyword list
             MarkPunctuation(
                 "[", "]", ":", "|", "=",
-                "if", "elsif", "unless", "assign", "capture",
+
+                "if", "elsif", "else", "unless", "assign", "capture",
                 "increment", "decrement",
                 "case",
                 "for", "in", "(", ")", "..",
                 "when", "cycle", "limit", "offset",
                 "include", "with"
                 );
-            MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd, Colon);
-            MarkTransient(Statement, KnownTags, ForSource, RangeIndex, BinaryOperator, ForOption, Term);
+
+
+            MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd, Colon, By);
+            //Selz: Make String All and By to the node not show in the result
+            MarkTransient(Statement, KnownTags, ForSource, RangeIndex, BinaryOperator, ForOption, Term,
+                StringLiteralAll);
         }
+
     }
 }
