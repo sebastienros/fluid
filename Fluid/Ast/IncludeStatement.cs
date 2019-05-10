@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
@@ -58,7 +59,6 @@ namespace Fluid.Ast
                 {
                     throw new Exception(String.Join(Environment.NewLine, errors));
                 }
-
                 // Selz: Release scope if it is opened
                 if (OpenScope)
                 {

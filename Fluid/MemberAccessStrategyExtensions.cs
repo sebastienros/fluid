@@ -22,11 +22,12 @@ namespace Fluid
 
                 foreach (var propertyInfo in t.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {
-                    if (propertyInfo.GetIndexParameters().Length > 0)
-                    {
-                        // Indexed property...
-                        continue;
-                    }
+                    //Selz: We want indexed property as dynamic property
+                    //if (propertyInfo.GetIndexParameters().Length > 0)
+                    //{
+                    //    // Indexed property...
+                    //    continue;
+                    //}
 
                     list[propertyInfo.Name] = new PropertyInfoAccessor(propertyInfo);
                     // Selz: Support SnakeCase in property/field name
