@@ -1,3 +1,7 @@
+### Build status
+
+[![selz MyGet Build Status](https://www.myget.org/BuildSource/Badge/selz?identifier=5c47906c-4517-4591-939b-3b9b34e5c837)](https://www.myget.org/)
+
 <p align="center"><img width=25% src="https://github.com/sebastienros/fluid/raw/dev/Assets/logo-vertical.png"></p>
 
 [![Build status](https://ci.appveyor.com/api/projects/status/mhe85ihfdrlrci01/branch/master?svg=true)](https://ci.appveyor.com/project/SebastienRos/fluid/branch/master)
