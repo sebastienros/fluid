@@ -15,12 +15,11 @@ namespace Fluid.Tests
         [Fact]
         public async Task IncludeSatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()
         {
-            var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var sw = new StringWriter();
 
             try
             {
-                await new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+                await new IncludeStatement("_Partial.liquid").WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
                 Assert.True(false);
             }
             catch (FileNotFoundException)
@@ -34,7 +33,6 @@ namespace Fluid.Tests
         [Fact]
         public async Task IncludeSatement_ShouldLoadPartial_IfThePartialsFolderExist()
         {
-            var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var sw = new StringWriter();
 
             var fileProvider = new MockFileProvider();
@@ -52,15 +50,15 @@ Partials: ''
 color: ''
 shape: ''";
 
-            await new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
+            await new IncludeStatement("_Partial.liquid").WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal(expectedResult, sw.ToString());
         }
 
-        [Fact]
+        [Fact(Skip = "Our include statement format do not need assignment statement and input is <% include filename %>")]
         public async Task IncludeSatement_WithInlinevariableAssignment_ShouldBeEvaluated()
         {
-            var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
+            var expression = "_Partial.liquid";
             var assignStatements = new List<AssignStatement>
             {
                 new AssignStatement("color", new LiteralExpression(new StringValue("blue"))),
@@ -83,15 +81,19 @@ Partials: ''
 color: 'blue'
 shape: 'circle'";
 
-            await new IncludeStatement(expression, assignStatements: assignStatements).WriteToAsync(sw, HtmlEncoder.Default, context);
+            await new IncludeStatement(expression
+//                , assignStatements: assignStatements
+                ).WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal(expectedResult, sw.ToString());
         }
 
-        [Fact]
+
+
+        [Fact(Skip = "Selz: Our include statement format do not need with statement and input is <% include filename %>")]
         public async Task IncludeSatement_WithTagParams_ShouldBeEvaluated()
         {
-            var pathExpression = new LiteralExpression(new StringValue("color"));
+            var pathExpression = "color";
             var withExpression = new LiteralExpression(new StringValue("blue"));
             var sw = new StringWriter();
 
@@ -110,7 +112,9 @@ Partials: ''
 color: 'blue'
 shape: ''";
 
-            await new IncludeStatement(pathExpression, with: withExpression).WriteToAsync(sw, HtmlEncoder.Default, context);
+            await new IncludeStatement(pathExpression
+//                , with: withExpression
+                ).WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal(expectedResult, sw.ToString());
         }
@@ -118,18 +122,17 @@ shape: ''";
         [Fact]
         public async Task IncludeSatement_ShouldLimitRecursion()
         {
-            var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var sw = new StringWriter();
 
             var fileProvider = new MockFileProvider();
-            fileProvider.Add("_Partial.liquid", @"{{ 'Partial Content' }} {% include '_Partial' %}");
+            fileProvider.Add("_Partial.liquid", @"{{ 'Partial Content' }} {% include _Partial.liquid %}");
 
             var context = new TemplateContext
             {
                 FileProvider = fileProvider
             };
 
-           await Assert.ThrowsAsync<InvalidOperationException>(() => new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context).AsTask());
+           await Assert.ThrowsAsync<InvalidOperationException>(() => new IncludeStatement("_Partial.liquid").WriteToAsync(sw, HtmlEncoder.Default, context).AsTask());
         }
     }
 }

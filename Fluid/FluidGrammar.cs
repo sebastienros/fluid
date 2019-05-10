@@ -226,7 +226,6 @@ namespace Fluid
 
             Capture.Rule = ToTerm("capture") + Identifier;
 
-            Include.Rule = (ToTerm("include") + Term) | (ToTerm("include") + Term + ToTerm("with") + Term) | (ToTerm("include") + Term + Comma + IncludeAssignments);
             IncludeAssignments.Rule = (IncludeAssignments + Comma + IncludeAssignment) | IncludeAssignment;
             IncludeAssignment.Rule = Identifier + Colon + Term;
 

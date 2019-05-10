@@ -501,7 +501,7 @@ namespace Fluid.Tests
         }
 
 
-        [Fact]
+        [Fact(Skip = "Selz: Our include statement format do not need argument list and have input of <% include filename %>")]
         public async Task IncludeParamsShouldNotBeSetInTheParentTemplate()
         {
             var source = @"{% assign color = 'blue' %}
@@ -535,7 +535,7 @@ shape: '{{ shape }}'");
             Assert.Equal(expected, result);
         }
 
-        [Fact]
+        [Fact(Skip = "Selz: Our include statement format do not need with arguments and need input format like <% include filename %>")]
         public async Task IncludeWithTagParamShouldNotBeSetInTheParentTemplate()
         {
             var source = @"{% assign Partials = 'parent value' %}

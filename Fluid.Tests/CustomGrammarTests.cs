@@ -58,7 +58,8 @@ namespace Fluid.Tests
         [Fact]
         public void IncludeTagsFlowTemplateType()
         {
-            var source = "A {% include 'test.liquid' %} B";
+            // Selz: No single quote for Selz existing input
+            var source = "A {% include test.liquid %} B";
             var include = "{% more '2' | append: 'pack' %}";
             var expected = "A here is some more 2pack B";
 
