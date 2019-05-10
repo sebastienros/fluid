@@ -29,6 +29,8 @@ namespace Fluid
                     }
 
                     list[propertyInfo.Name] = new PropertyInfoAccessor(propertyInfo);
+                    // Selz: Support SnakeCase in property/field name
+                    list[propertyInfo.Name.ToSnakeCase()] = new PropertyInfoAccessor(propertyInfo);
                 }
 
                 foreach (var fieldInfo in t.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))

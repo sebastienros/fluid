@@ -8,63 +8,49 @@ namespace Fluid.Ast
 {
     public class IncludeStatement : Statement
     {
+        //Selz: Support to reuse the parent scope instead of open scope everytime
+        //This is the white list of the template name which should reuse parent scope
+        private static readonly string[] ReuseScopeTemplateName = {"blocks-styles.liquid"};
+
+        public string TemplateName { get; }
+        //Selz: Flag to indicate whether scope need to be opened
+        public bool OpenScope { get; }
+
         public const string ViewExtension = ".liquid";
 
-        public IncludeStatement(Expression path, Expression with = null, IList<AssignStatement> assignStatements = null)
+        public IncludeStatement(string templateName)
         {
-            Path = path;
-            With = with;
-            AssignStatements = assignStatements;
+            TemplateName = templateName;
+            OpenScope = !ReuseScopeTemplateName.Contains(templateName);
         }
 
-        public Expression Path { get; }
-
-        public IList<AssignStatement> AssignStatements { get; }
-
-        public Expression With { get; }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            context.IncrementSteps();
-
-            var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
-            if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))
-            {
-                relativePath += ViewExtension;
-            }
+            string templateName = TemplateName;
 
             var fileProvider = context.FileProvider ?? TemplateContext.GlobalFileProvider;
-            var fileInfo = fileProvider.GetFileInfo(relativePath);
+            var fileInfo = fileProvider.GetFileInfo(templateName);
 
             if (fileInfo == null || !fileInfo.Exists)
             {
-                throw new FileNotFoundException(relativePath);
+                throw new FileNotFoundException(templateName);
             }
 
             using (var stream = fileInfo.CreateReadStream())
             using (var streamReader = new StreamReader(stream))
             {
-                context.EnterChildScope();
+                // Selz: Only open scope when the flag is false
+                if (OpenScope)
+                {
+                    context.EnterChildScope();
+                }
 
                 string partialTemplate = await streamReader.ReadToEndAsync();
                 var parser = CreateParser(context);
                 if (parser.TryParse(partialTemplate, true, out var statements, out var errors))
                 {
                     var template = CreateTemplate(context, statements);
-                    if (With != null)
-                    {
-                        var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
-                        var with = await With.EvaluateAsync(context);
-                        context.SetValue(identifier, with);
-                    }
-
-                    if (AssignStatements != null)
-                    {
-                        foreach (var assignStatement in AssignStatements)
-                        {
-                            await assignStatement.WriteToAsync(writer, encoder, context);
-                        }
-                    }
 
                     await template.RenderAsync(writer, encoder, context);
                 }
@@ -73,7 +59,11 @@ namespace Fluid.Ast
                     throw new Exception(String.Join(Environment.NewLine, errors));
                 }
 
-                context.ReleaseScope();
+                // Selz: Release scope if it is opened
+                if (OpenScope)
+                {
+                    context.ReleaseScope();
+                }
             }
 
             return Completion.Normal;

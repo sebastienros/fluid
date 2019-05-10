@@ -15,6 +15,14 @@ namespace Fluid.Ast
         public override async ValueTask<FluidValue> ResolveAsync(FluidValue value, TemplateContext context)
         {
             var index = await Expression.EvaluateAsync(context);
+
+            //Selz: Support dynamic load properties from Array e.g. categoriesDrop["featured"]
+            if (value is ReplayArrayValue replayArrayValue && index.Type == FluidValues.String)
+            {
+                var originalValue = new ObjectValue(replayArrayValue.OriginalValue);
+                return await originalValue.GetIndexAsync(index, context);
+            }
+
             return await value.GetIndexAsync(index, context);
         }
 
