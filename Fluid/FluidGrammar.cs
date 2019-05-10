@@ -211,7 +211,9 @@ namespace Fluid
             Else.Rule |= ToTerm("else") + Identifier + Expression;
 
             // Selz: Support <% assign varible = filename %> syntax
+            Assign.Rule = ToTerm("assign") + Identifier + ToTerm("=") + Expression;
             Assign.Rule |= ToTerm("assign") + Identifier + ToTerm("=") + Expression + ";";
+
 
             // Selz: Support <% include filename syntax %>
             Include.Rule = ToTerm("include") + FileIdentifier;
@@ -220,7 +222,7 @@ namespace Fluid
             Cycle.Rule |= ToTerm("cycle") + CycleArguments;
             CycleArguments.Rule = MakePlusRule(CycleArguments, Comma, Term);
 
-            Assign.Rule = ToTerm("assign") + Identifier + ToTerm("=") + Expression;
+
             Increment.Rule = ToTerm("increment") + Identifier;
             Decrement.Rule = ToTerm("decrement") + Identifier;
 
