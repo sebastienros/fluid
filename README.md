@@ -222,8 +222,8 @@ The following example shows how to support `JObject` and `JValue` types to map t
 First is solves the issue that a `JObject` implements `IEnumerable` and would be converted to an `ArrayValue` instead of an `ObjectValue`. Then we use `FluidValue.Create` to automatically convert the CLR value of the `JValue` object.
 
 ```csharp
-FluidValue.TypeMappings.Add(typeof(JObject), o => new ObjectValue(o));
-FluidValue.TypeMappings.Add(typeof(JValue), o => FluidValue.Create(((JValue)o).Value));
+FluidValue.SetTypeMapping<JObject>(o => new ObjectValue(o));
+FluidValue.SetTypeMapping<JValue>(o => FluidValue.Create(o.Value));
 ```
 
 > Note: Type mapping are defined globally for the application.

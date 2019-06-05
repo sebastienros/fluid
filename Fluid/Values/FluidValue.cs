@@ -10,7 +10,9 @@ namespace Fluid.Values
 {
     public abstract class FluidValue : IEquatable<FluidValue>
     {
-        public static Dictionary<Type, Func<object, FluidValue>> TypeMappings = new Dictionary<Type, Func<object, FluidValue>>();
+        private static Dictionary<Type, Func<object, FluidValue>> _customTypeMappings;
+        private static readonly object _synLock = new object();
+
         public abstract void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
 
         public abstract bool Equals(FluidValue other);
@@ -64,9 +66,10 @@ namespace Fluid.Values
 
             var typeOfValue = value.GetType();
 
-            // First check for a specific type conversion before falling back 
-            // to an automatic one
-            if (TypeMappings.TryGetValue(typeOfValue, out var mapping))
+            // First check for a specific type conversion before falling back to an automatic one
+            var mapping = GetTypeMapping(typeOfValue);
+
+            if (mapping != null)
             {
                 return mapping(value);
             }
@@ -103,7 +106,7 @@ namespace Fluid.Values
                             return fluid;
 
                         case DateTimeOffset dateTimeOffset:
-                            return new DateTimeValue((DateTimeOffset)value);
+                            return new DateTimeValue(dateTimeOffset);
 
                         case IDictionary<string, object> dictionary:
                             return new DictionaryValue(new ObjectDictionaryFluidIndexable(dictionary));
@@ -160,6 +163,54 @@ namespace Fluid.Values
             }
 
             return this;
+        }
+
+        /// <summary>
+        /// Defines a custom type mapping that is used when converting an <see cref="object"/> to a <see cref="FluidValue"/>.
+        /// </summary>
+        public static void SetTypeMapping(Type type, Func<object, FluidValue> mapping)
+        {
+            // We queue concurrent calls so we don't lose an entry
+            lock (_synLock)
+            {
+                if (_customTypeMappings == null)
+                {
+                    _customTypeMappings = new Dictionary<Type, Func<object, FluidValue>>();
+                }
+
+                // We clone the existing list so we don't change it if it's used by a reader
+                var newMappings = new Dictionary<Type, Func<object, FluidValue>>(_customTypeMappings)
+                {
+                    [type] = mapping
+                };
+
+                // Then we switch the one that is used to read with the new one
+                _customTypeMappings = newMappings;
+            }
+        }
+
+        /// <summary>
+        /// Defines a custom type mapping that is used when converting an instance to a <see cref="FluidValue"/>.
+        /// </summary>
+        public static void SetTypeMapping<T>(Func<T, FluidValue> mapping)
+        {
+            SetTypeMapping(typeof(T), t => mapping((T)t));
+        }
+
+        /// <summary>
+        /// Returns a type mapping, or <code>null</code> if it doesn't exist.
+        /// </summary>
+        private static Func<object, FluidValue> GetTypeMapping(Type type)
+        {
+            // Get a local reference in case it is being altered.
+            var locaTypeMappings = _customTypeMappings;
+
+            if (locaTypeMappings != null && locaTypeMappings.TryGetValue(type, out var mapping))
+            {
+                return mapping;
+            }
+
+            return null;
         }
     }
 }
