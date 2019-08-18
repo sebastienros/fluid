@@ -10,6 +10,8 @@ namespace Fluid.Benchmarks
 
         public FluidBenchmarks()
         {
+            TemplateContext.GlobalMemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
+            TemplateContext.GlobalMemberAccessStrategy.Register<Product>();
             FluidTemplate.TryParse(TextTemplate, out _fluidTemplate, out var errors);
             _context = new TemplateContext().SetValue("products", Products);
         }

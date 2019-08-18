@@ -7,5 +7,7 @@ namespace Fluid
         IMemberAccessor GetAccessor(Type type, string name);
 
         void Register(Type type, string name, IMemberAccessor getter);
+
+        MemberNameStrategy MemberNameStrategy { get; set; }
     }
 }

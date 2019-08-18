@@ -1,5 +1,6 @@
 ﻿using BenchmarkDotNet.Attributes;
 using DotLiquid;
+using System.Linq;
 
 namespace Fluid.Benchmarks
 {
@@ -14,7 +15,20 @@ namespace Fluid.Benchmarks
         {
             _dotLiquidTemplate = Template.Parse(TextTemplate);
             _dotLiquidTemplate.MakeThreadSafe();
-            _products = Hash.FromAnonymousObject(new { products = Products });
+            _products = MakeProducts();
+        }
+
+        private Hash MakeProducts()
+        {
+            return Hash.FromAnonymousObject(new
+            {
+                products = Products.Select(product => new Hash()
+                {
+                    ["name"] = product.Name,
+                    ["price"] = product.Price,
+                    ["description"] = product.Description
+                }).ToList()
+            });
         }
 
         [Benchmark]
@@ -34,7 +48,7 @@ namespace Fluid.Benchmarks
         public override string ParseAndRender()
         {
             var template = Template.Parse(TextTemplate);
-            var products = Hash.FromAnonymousObject(new { products = Products });
+            var products = MakeProducts();
             return template.Render(products);
         }
     }

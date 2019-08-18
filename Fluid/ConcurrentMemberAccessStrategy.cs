@@ -13,6 +13,8 @@ namespace Fluid
             _map = new ConcurrentDictionary<Type, ConcurrentDictionary<string, IMemberAccessor>>();
         }
 
+        public MemberNameStrategy MemberNameStrategy { get; set; } = MemberNameStrategies.Default;
+
         public IMemberAccessor GetAccessor(Type type, string name)
         {
             IMemberAccessor accessor = null;
