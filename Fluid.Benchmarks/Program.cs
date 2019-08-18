@@ -1,5 +1,4 @@
 ﻿using BenchmarkDotNet.Running;
-using System;
 
 namespace Fluid.Benchmarks
 {
@@ -7,9 +6,7 @@ namespace Fluid.Benchmarks
     {
         static void Main(string[] args)
         {
-            //BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
-
-            Console.WriteLine(new DotLiquidBenchmarks().ParseAndRender());
+            BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
         }
     }
 }
