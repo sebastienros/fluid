@@ -196,7 +196,7 @@ a member of the base class is accessed.
 By default, the properties of a registered object are case sensitive and registered as they are in their source code. For instance, 
 the property `FirstName` would be access using the `{{ p.FirstName }}` tag.
 
-However it can be necessary to register these properties with different cases, like __Camel case__ (`firstName`), or ___Snake case__ (`first_name`).
+However it can be necessary to register these properties with different cases, like __Camel case__ (`firstName`), or __Snake case__ (`first_name`).
 
 The following example configures the templates to use Camel casing.
 
