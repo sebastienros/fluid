@@ -64,6 +64,21 @@ namespace Fluid
 
         public async Task RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
+            if (writer == null)
+            {
+                throw new ArgumentNullException(nameof(writer));
+            }
+
+            if (encoder == null)
+            {
+                throw new ArgumentNullException(nameof(encoder));
+            }
+
+            if (context == null)
+            {
+                throw new ArgumentNullException(nameof(context));
+            }
+
             context.ParserFactory = Factory;
             context.TemplateFactory = TemplateFactory;
 
