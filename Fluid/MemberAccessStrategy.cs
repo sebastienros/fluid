@@ -9,6 +9,8 @@ namespace Fluid
         private Dictionary<Type, Dictionary<string, IMemberAccessor>> _map;
         private readonly IMemberAccessStrategy _parent;
 
+        public MemberNameStrategy MemberNameStrategy { get; set; } = MemberNameStrategies.Default;
+
         public MemberAccessStrategy()
         {
             _map = new Dictionary<Type, Dictionary<string, IMemberAccessor>>();
@@ -17,6 +19,7 @@ namespace Fluid
         public MemberAccessStrategy(IMemberAccessStrategy parent) : this()
         {
             _parent = parent;
+            MemberNameStrategy = _parent.MemberNameStrategy;
         }
 
         public IMemberAccessor GetAccessor(Type type, string name)

@@ -14,7 +14,7 @@ namespace Fluid
         // A cache of accessors so we don't rebuild them once they are added to global or contextual access strategies
         internal static ConcurrentDictionary<Type, Dictionary<string, IMemberAccessor>> _typeMembers = new ConcurrentDictionary<Type, Dictionary<string, IMemberAccessor>>();
 
-        internal static Dictionary<string, IMemberAccessor> GetTypeMembers(Type type)
+        internal static Dictionary<string, IMemberAccessor> GetTypeMembers(Type type, MemberNameStrategy memberNameStrategy)
         {
             return _typeMembers.GetOrAdd(type, t =>
             {
@@ -28,21 +28,21 @@ namespace Fluid
                         continue;
                     }
 
-                    list[propertyInfo.Name] = new PropertyInfoAccessor(propertyInfo);
+                    list[memberNameStrategy(propertyInfo)] = new PropertyInfoAccessor(propertyInfo);
                 }
 
                 foreach (var fieldInfo in t.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))
                 {
-                    list[fieldInfo.Name] = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
+                    list[memberNameStrategy(fieldInfo)] = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
                 }
 
                 return list;
             });
         }
 
-        internal static IMemberAccessor GetNamedAccessor(Type type, string name)
+        internal static IMemberAccessor GetNamedAccessor(Type type, string name, MemberNameStrategy strategy)
         {
-            var typeMembers = GetTypeMembers(type);
+            var typeMembers = GetTypeMembers(type, strategy);
 
             if (typeMembers.TryGetValue(name, out var result))
             {
@@ -68,7 +68,7 @@ namespace Fluid
         /// <param name="type">The type to register.</param>
         public static void Register(this IMemberAccessStrategy strategy, Type type)
         {
-            foreach (var entry in GetTypeMembers(type))
+            foreach (var entry in GetTypeMembers(type, strategy.MemberNameStrategy))
             {
                 strategy.Register(type, entry.Key, entry.Value);
             }
@@ -103,7 +103,7 @@ namespace Fluid
         {
             foreach (var name in names)
             {
-                strategy.Register(type, name, GetNamedAccessor(type, name));
+                strategy.Register(type, name, GetNamedAccessor(type, name, strategy.MemberNameStrategy));
             }
         }
 
