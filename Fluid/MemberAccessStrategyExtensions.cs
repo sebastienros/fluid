@@ -59,7 +59,7 @@ namespace Fluid
         /// <typeparam name="T">The type to register.</typeparam>
         public static void Register<T>(this IMemberAccessStrategy strategy)
         {
-            strategy.Register(typeof(T));
+            Register(strategy, typeof(T));
         }
 
         /// <summary>
