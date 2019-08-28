@@ -241,6 +241,10 @@ namespace Fluid.Filters
                     return DateTimeOffset.TryParse(stringValue, context.CultureInfo, DateTimeStyles.AssumeUniversal, out result);
                 }
             }
+            else if (input.Type == FluidValues.Number)
+            {
+                result = DateTimeOffset.FromUnixTimeSeconds((long)input.ToNumberValue());
+            }
             else if (input.Type == FluidValues.DateTime)
             {
                 result = (DateTimeOffset)input.ToObjectValue();

@@ -232,6 +232,18 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void DateNumberIsParsedAsSeconds()
+        {
+            var input = NumberValue.Create(12345);
+            var format = new FilterArguments(new StringValue("%s"));
+            var context = new TemplateContext();
+
+            var result = MiscFilters.Date(input, format, context);
+
+            Assert.Equal("12345", result.ToStringValue());
+        }
+
+        [Fact]
         public void DateIsParsedWithCulture()
         {
             var input = new StringValue("08/01/2017");

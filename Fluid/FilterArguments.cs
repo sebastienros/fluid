@@ -11,6 +11,8 @@ namespace Fluid
     /// </summary>
     public class FilterArguments
     {
+        public static FilterArguments Empty = new FilterArguments();
+
         private List<FluidValue> _positional;
         private Dictionary<string, FluidValue> _named;
 
