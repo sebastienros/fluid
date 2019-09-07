@@ -19,7 +19,7 @@ namespace Fluid.Tests
             var context = new TemplateContext { CultureInfo = culture };
             var input = new StringValue(format);
             var arguments = new FilterArguments(new StringValue(format));
-            var result = MiscFilters.Money(input, arguments, context);
+            var result = MoneyFilters.Money(input, arguments, context);
             result.ToStringValue().ShouldBe(expected);
         }
 
@@ -33,7 +33,7 @@ namespace Fluid.Tests
             var context = new TemplateContext { CultureInfo = culture };
             var input = new StringValue(format);
             var arguments = new FilterArguments(new StringValue(format));
-            var result = MiscFilters.MoneyWithOutCurrency(input, arguments, context);
+            var result = MoneyFilters.MoneyWithOutCurrency(input, arguments, context);
             result.ToStringValue().ShouldBe(expected);
         }
 
@@ -48,7 +48,7 @@ namespace Fluid.Tests
             var context = new TemplateContext { CultureInfo = culture };
             var input = new StringValue(format);
             var arguments = new FilterArguments(new StringValue(format));
-            var result = MiscFilters.MoneyWithCurrency(input, arguments, context);
+            var result = MoneyFilters.MoneyWithCurrency(input, arguments, context);
             result.ToStringValue().ShouldBe(expected);
         }
 
@@ -66,7 +66,7 @@ namespace Fluid.Tests
             var context = new TemplateContext { CultureInfo = culture };
             var input = new StringValue(format);
             var arguments = new FilterArguments(new StringValue(format));
-            var result = MiscFilters.MoneyWithoutTrailingZeros(input, arguments, context);
+            var result = MoneyFilters.MoneyWithoutTrailingZeros(input, arguments, context);
             result.ToStringValue().ShouldBe(expected);
         }
     }

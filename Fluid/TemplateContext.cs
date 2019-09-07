@@ -105,7 +105,8 @@ namespace Fluid
                 .WithArrayFilters()
                 .WithStringFilters()
                 .WithNumberFilters()
-                .WithMiscFilters();
+                .WithMiscFilters()
+                .WithMoneyFilters();
         }
 
         public TemplateContext()
