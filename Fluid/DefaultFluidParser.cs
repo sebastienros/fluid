@@ -237,9 +237,7 @@ namespace Fluid
             }
 
             // We reached the end of the segment without finding the matched tag.
-            // Ideally we could return a parsing error, right now we just return the text.
-            end = segment.Length - 1;
-            return segment.Subsegment(start, index - start);
+            throw new ParseException($"End tag '{endTag}' was not found");
         }
 
         /// <summary>
@@ -794,6 +792,10 @@ namespace Fluid
 
         public static Statement BuildForStatement(BlockContext context)
         {
+            if (context.Tag == null)
+            {
+                throw new ParseException($"No start tag 'for' found for tag 'endfor'");
+            }
             if (context.Tag.Term.Name != "for")
             {
                 throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'for' tag.");

@@ -1,4 +1,5 @@
 ﻿using System;
+using Fluid.Guards;
 using Fluid.Values;
 
 namespace Fluid.Filters
@@ -93,6 +94,7 @@ namespace Fluid.Filters
 
         public static FluidValue Remove(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            Guard.AgainstNullOrEmptyArguments(arguments, $"'remove' requires string argument.  i.e.  'remove \"word_to_remove\"");
             return new StringValue(input.ToStringValue().Replace(arguments.At(0).ToStringValue(), ""));
         }
 

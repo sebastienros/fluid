@@ -1,4 +1,5 @@
 using System;
+using Fluid.Guards;
 using Fluid.Values;
 
 namespace Fluid.Filters
@@ -79,6 +80,7 @@ namespace Fluid.Filters
 
         public static FluidValue Modulo(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            Guard.AgainstNullOrEmptyArguments(arguments, $"'modulo' requires one numeric argument.  i.e.  'modulo: 5'");
             return NumberValue.Create(Convert.ToInt32(input.ToNumberValue()) % Convert.ToInt32(arguments.At(0).ToNumberValue()));
         }
 
