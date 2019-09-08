@@ -92,9 +92,10 @@ namespace Fluid.Filters
             return input;
         }
 
+        [RequiresArgument(ErrorMessage = "'remove' filter requires string argument, E.g. 'remove: \"word_to_remove\"'")]
         public static FluidValue Remove(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            Guard.AgainstNullOrEmptyArguments(arguments, $"'remove' requires string argument.  i.e.  'remove \"word_to_remove\"");
+            Guard.AgainstNullOrEmptyArguments(arguments, $"'remove' requires string argument.  E.g.  'remove: \"word_to_remove\"'");
             return new StringValue(input.ToStringValue().Replace(arguments.At(0).ToStringValue(), ""));
         }
 

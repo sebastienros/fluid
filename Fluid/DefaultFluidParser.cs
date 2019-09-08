@@ -1033,6 +1033,9 @@ namespace Fluid
                     arguments = argumentsList.ToArray();
                 }
 
+                // Validate filter mandatory argument count
+                TemplateContext.GlobalFilters.GuardIfArgumentMandatory(identifier, arguments);
+
                 outer = new FilterExpression(outer, identifier, arguments);
             }
 

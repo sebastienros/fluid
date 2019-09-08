@@ -30,12 +30,11 @@ namespace Fluid.Tests.Issues
             _errors.ShouldContain(expectedErrorString);
         }
 
-        [Theory(Skip =
-            "Fix the exceptions throw at RenderAsync time, need to be caught earlier (BuildFilterExpression?)")]
-        [InlineData("{{0|remove}}", "'remove' requires string argument.  i.e.  'remove \"word_to_remove\"")]
-        [InlineData("{{0|modulo}}", "'modulo' requires one numeric argument.  i.e.  'modulo: 5'")]
+        [Theory]
+        [InlineData("{{0|remove}}", "'remove' filter requires string argument, E.g. 'remove: \"word_to_remove\"'")]
+        [InlineData("{{0|modulo}}", "'modulo' requires one numeric argument.  E.g.  'modulo: 5'")]
         [InlineData("<p>{{false|divided_by|modulo|urlode}}<<",
-            "'modulo' requires one numeric argument.  i.e.  'modulo: 5'")]
+            "'modulo' requires one numeric argument.  E.g.  'modulo: 5'")]
         public void Issue148RuntimeErrors(string template, string expectedErrorString)
         {
             Run(_model, template);
