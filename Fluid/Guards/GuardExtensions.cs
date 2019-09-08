@@ -1,4 +1,6 @@
-﻿namespace Fluid.Guards
+﻿using System;
+
+namespace Fluid.Guards
 {
     public static class Guard
     {
@@ -6,7 +8,7 @@
         {
             if (argument == null || argument.Count == 0)
             {
-                throw new ParseException(customMessage);
+                throw new ArgumentException(customMessage);
             }
         }
     }
