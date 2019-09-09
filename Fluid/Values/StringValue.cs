@@ -40,8 +40,7 @@ namespace Fluid.Values
 
         protected override FluidValue GetIndex(FluidValue index, TemplateContext context)
         {
-            var i = (int) index.ToNumberValue();
-
+            var i = Math.Abs((int) index.ToNumberValue());
             if (i < _value.Length)
             {
                 return Create(_value[i]);

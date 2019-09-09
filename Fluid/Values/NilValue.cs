@@ -58,7 +58,9 @@ namespace Fluid.Values
 
         public override int GetHashCode()
         {
-            return Instance.GetHashCode();
+            int hash = 27;
+            hash = (13 * hash) + ToStringValue().GetHashCode();
+            return hash;
         }
     }
 }
