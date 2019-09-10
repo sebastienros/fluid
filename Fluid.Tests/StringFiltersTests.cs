@@ -84,7 +84,23 @@ namespace Fluid.Tests
 
             Assert.Equal("Hello World", result.ToStringValue());
         }
-                
+
+        [Fact]
+        public void StripNewLines()
+        {
+            var input = new StringValue(@"
+Hello
+world
+");
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = StringFilters.StripNewLines(input, arguments, context);
+
+            Assert.Equal("Helloworld", result.ToStringValue());
+        }
+
         [Fact]
         public void NewLineToBr()
         {
