@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text.RegularExpressions;
 using Fluid.Values;
 
 namespace Fluid.Filters
@@ -151,7 +150,17 @@ namespace Fluid.Filters
 
         public static FluidValue StripNewLines(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(Regex.Replace(input.ToStringValue(),@"\r\n?|\n",""));
+            var result = input.ToStringValue();
+
+            if (result.Contains("\r"))
+            {
+                result = result.Replace("\r", "");
+            }
+            if (result.Contains("\n"))
+            {
+                result = result.Replace("\n", "");
+            }
+            return new StringValue(result);
         }
 
         public static FluidValue Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)

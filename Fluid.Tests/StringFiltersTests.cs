@@ -92,7 +92,6 @@ namespace Fluid.Tests
 Hello
 world
 ");
-
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 

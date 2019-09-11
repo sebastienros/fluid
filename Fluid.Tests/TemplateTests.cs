@@ -288,8 +288,6 @@ namespace Fluid.Tests
             return CheckAsync(source, expected);
         }
 
-
-
         [Theory]
         [InlineData("{% capture x %}Hi there{% endcapture %}{{x}}", "Hi there")]
         [InlineData("{% capture x %}some <b>bold</b> statement{% endcapture %}{{x}}", "some <b>bold</b> statement")]
