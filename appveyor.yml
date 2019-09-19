@@ -18,7 +18,7 @@ build_script:
   - dotnet build -c Release
   - dotnet pack -c Release
 test_script:
-  - dotnet test .\Fluid.Tests\Fluid.Tests.csproj
+  - dotnet test -c Release .\Fluid.Tests\Fluid.Tests.csproj
 artifacts:
   - path: 'Fluid\**\*.nupkg'
   - path: 'Fluid.MvcViewEngine\**\*.nupkg'

@@ -19,33 +19,39 @@ namespace Fluid.Ast
             return value.GetValueAsync(Identifier, context);
         }
 
-        public override async ValueTask<FluidValue> ResolveAsync(Scope value, TemplateContext context)
+        public override ValueTask<FluidValue> ResolveAsync(Scope value, TemplateContext context)
         {
+            static async ValueTask<FluidValue> Awaited(
+                IAsyncMemberAccessor asyncAccessor,
+                TemplateContext ctx,
+                string identifier)
+            {
+                var o = await asyncAccessor.GetAsync(ctx.Model, identifier, ctx);
+                return FluidValue.Create(o);
+            }
+
             var result = value.GetValue(Identifier);
 
             if (result.IsNil() && context.Model != null)
             {
                 // Look into the Model if defined
-                _accessor = _accessor ?? context.MemberAccessStrategy.GetAccessor(context.Model.GetType(), Identifier);
+                _accessor ??= context.MemberAccessStrategy.GetAccessor(context.Model.GetType(), Identifier);
 
                 if (_accessor != null)
                 {
 
                     if (_accessor is IAsyncMemberAccessor asyncAccessor)
                     {
-                        var o = await asyncAccessor.GetAsync(context.Model, Identifier, context);
-                        return FluidValue.Create(o);
+                        return Awaited(asyncAccessor, context, Identifier);
                     }
 
-                    return FluidValue.Create(_accessor.Get(context.Model, Identifier, context));
+                    return new ValueTask<FluidValue>(FluidValue.Create(_accessor.Get(context.Model, Identifier, context)));
                 }
-                else
-                {
-                    return NilValue.Instance;
-                }
+
+                return new ValueTask<FluidValue>(NilValue.Instance);
             }
 
-            return result;
+            return new ValueTask<FluidValue>(result);
         }
     }
 }

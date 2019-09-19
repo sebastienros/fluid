@@ -9,6 +9,6 @@ namespace Fluid
     public interface IFluidTemplate
     {
         List<Statement> Statements { get; set; }
-        Task RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context);
+        ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context);
     }
 }

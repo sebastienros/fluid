@@ -18,10 +18,21 @@ namespace Fluid.Ast
             return await value.GetIndexAsync(index, context);
         }
 
-        public override async ValueTask<FluidValue> ResolveAsync(Scope value, TemplateContext context)
+        public override ValueTask<FluidValue> ResolveAsync(Scope value, TemplateContext context)
         {
-            var index = await Expression.EvaluateAsync(context);
-            return value.GetIndex(index);
+            static async ValueTask<FluidValue> Awaited(ValueTask<FluidValue> valueTask, Scope s)
+            {
+                var index = await valueTask;
+                return s.GetIndex(index);
+            }
+
+            var task = Expression.EvaluateAsync(context);
+            if (task.IsCompletedSuccessfully)
+            {
+                return new ValueTask<FluidValue>(value.GetIndex(task.Result));
+            }
+
+            return Awaited(task, value);
         }
     }
 }

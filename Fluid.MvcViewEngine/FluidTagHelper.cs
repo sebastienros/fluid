@@ -19,12 +19,23 @@ namespace Fluid.MvcViewEngine
         [HtmlAttributeName("view")]
         public string View { get; set; }
 
-        public override async Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
+        public override Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
         {
-            var result = await _fluidRendering.RenderAsync(View, Model, null, null);
-            output.TagName = null;
-            output.Content.AppendHtml(result);
-        }
+            static async Task Awaited(TagHelperOutput o, ValueTask<string> t)
+            {
+                o.TagName = null;
+                o.Content.AppendHtml(await t);
+            }
 
+            var task = _fluidRendering.RenderAsync(View, Model, null, null);
+            if (task.IsCompletedSuccessfully)
+            {
+                output.TagName = null;
+                output.Content.AppendHtml(task.Result);
+                return Task.FromResult(output);
+            }
+
+            return Awaited(output, task);
+        }
     }
 }

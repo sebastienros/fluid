@@ -84,12 +84,12 @@ namespace Fluid.Values
         {
             if (writer == null)
             {
-                throw new ArgumentNullException(nameof(writer));
+                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
             }
 
             if (encoder == null)
             {
-                throw new ArgumentNullException(nameof(encoder));
+                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
             }
 
             if (String.IsNullOrEmpty(_value))

@@ -6,7 +6,18 @@ namespace Fluid
 {
     public class FilterCollection
     {
-        private Dictionary<string, AsyncFilterDelegate> _delegates = new Dictionary<string, AsyncFilterDelegate>();
+        private readonly Dictionary<string, AsyncFilterDelegate> _delegates;
+
+        public FilterCollection(int capacity = 0)
+        {
+            _delegates = new Dictionary<string, AsyncFilterDelegate>(capacity);
+        }
+
+        public int Count => _delegates.Count;
+
+#if NETSTANDARD2_1
+        public void EnsureCapacity(int capacity) => _delegates.EnsureCapacity(capacity);
+#endif
 
         public void AddFilter(string name, FilterDelegate d)
         {

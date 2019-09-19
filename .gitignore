@@ -286,5 +286,7 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
-Fluid.Benchmarks/BenchmarkDotNet.Artifacts
 *.orig
+results
+
+BenchmarkDotNet.Artifacts

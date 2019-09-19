@@ -12,23 +12,46 @@ namespace Fluid.Ast
 
         public MemberSegment[] Segments { get; }
 
-        public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
+        public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
             FluidValue value = null;
 
-            var length = Segments.Length;
-
-            for (var i = 0; i< length; i++)
+            for (var i = 0; i < Segments.Length; i++)
             {
-                if (value == null)
+                var s = Segments[i];
+                var task = value == null
+                    ? s.ResolveAsync(context.LocalScope, context) // root
+                    : s.ResolveAsync(value, context);
+
+                if (!task.IsCompletedSuccessfully)
                 {
-                    // Root property
-                    value = await Segments[i].ResolveAsync(context.LocalScope, context);
+                    return Awaited(task, context, Segments, i + 1);
                 }
-                else
+
+                value = task.Result;
+                // Stop processing as soon as a member returns nothing
+                if (value.IsNil())
                 {
-                    value = await Segments[i].ResolveAsync(value, context);
+                    return new ValueTask<FluidValue>(value);
                 }
+            }
+
+            return new ValueTask<FluidValue>(value);
+        }
+
+        private static async ValueTask<FluidValue> Awaited(
+            ValueTask<FluidValue> task,
+            TemplateContext context,
+            MemberSegment[] segments,
+            int startIndex)
+        {
+            var value = await task;
+            for (var i = startIndex; i < segments.Length; i++)
+            {
+                var s = segments[i];
+                value = await (value == null
+                    ? s.ResolveAsync(context.LocalScope, context) // root
+                    : s.ResolveAsync(value, context));
 
                 // Stop processing as soon as a member returns nothing
                 if (value.IsNil())

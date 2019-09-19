@@ -1,5 +1,5 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
@@ -7,58 +7,89 @@ namespace Fluid
 {
     public static class FluidTemplateExtensions
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ValueTask<string> RenderAsync(this IFluidTemplate template, TemplateContext context)
         {
             return template.RenderAsync(context, NullEncoder.Default);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string Render(this IFluidTemplate template, TemplateContext context, TextEncoder encoder)
         {
-            return template.RenderAsync(context, encoder).GetAwaiter().GetResult();
+            var task = template.RenderAsync(context, encoder);
+            return task.IsCompletedSuccessfully ? task.Result : task.GetAwaiter().GetResult();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Render(this IFluidTemplate template, TemplateContext context, TextEncoder encoder, TextWriter writer)
         {
-            template.RenderAsync(writer, encoder, context).GetAwaiter().GetResult();
+            var task = template.RenderAsync(writer, encoder, context);
+            if (!task.IsCompletedSuccessfully)
+            {
+                task.GetAwaiter().GetResult();
+            }
         }
 
-        public static async ValueTask<string> RenderAsync(this IFluidTemplate template, TemplateContext context, TextEncoder encoder)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ValueTask<string> RenderAsync(this IFluidTemplate template, TemplateContext context, TextEncoder encoder)
         {
             if (context == null)
             {
-                throw new ArgumentNullException(nameof(context));
+                ExceptionHelper.ThrowArgumentNullException(nameof(context));
             }
 
             if (template == null)
             {
-                throw new ArgumentNullException(nameof(template));
+                return ExceptionHelper.ThrowArgumentNullException<ValueTask<string>>(nameof(template));
             }
 
-            using (var sb = StringBuilderPool.GetInstance())
+            static async ValueTask<string> Awaited(
+                ValueTask task,
+                StringWriter writer,
+                StringBuilderPool builder)
             {
-                using (var writer = new StringWriter(sb.Builder))
-                {
-                    await template.RenderAsync(writer, encoder, context);
-                    await writer.FlushAsync();
-                }
-
-                return sb.ToString();
+                await task;
+                await writer.FlushAsync();
+                var s = builder.ToString();
+                builder.Dispose();
+                writer.Dispose();
+                return s;
             }
+
+            var sb = StringBuilderPool.GetInstance();
+            var writer = new StringWriter(sb.Builder);
+            var task = template.RenderAsync(writer, encoder, context);
+            if (!task.IsCompletedSuccessfully)
+            {
+                return Awaited(task, writer, sb);
+            }
+
+            writer.Flush();
+
+            var result = sb.ToString();
+            sb.Dispose();
+            writer.Dispose();
+            return new ValueTask<string>(result);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string Render(this IFluidTemplate template, TemplateContext context)
         {
-            return template.RenderAsync(context).GetAwaiter().GetResult();
+            var task = template.RenderAsync(context);
+            return task.IsCompletedSuccessfully ? task.Result : task.GetAwaiter().GetResult();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ValueTask<string> RenderAsync(this IFluidTemplate template)
         {
             return template.RenderAsync(new TemplateContext());
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string Render(this IFluidTemplate template)
         {
-            return template.RenderAsync().GetAwaiter().GetResult();
+            var task = template.RenderAsync();
+            return task.IsCompletedSuccessfully ? task.Result : task.GetAwaiter().GetResult();
         }
     }
 }
