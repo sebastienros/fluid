@@ -23,6 +23,7 @@ namespace Fluid.Filters
             filters.AddFilter("slice", Slice);
             filters.AddFilter("split", Split);
             filters.AddFilter("strip", Strip);
+            filters.AddFilter("strip_newlines", StripNewLines);
             filters.AddFilter("truncate", Truncate);
             filters.AddFilter("truncatewords", TruncateWords);
             filters.AddFilter("upcase", Upcase);
@@ -145,6 +146,22 @@ namespace Fluid.Filters
         public static FluidValue Strip(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().Trim());
+        }
+
+        public static FluidValue StripNewLines(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var result = input.ToStringValue();
+
+            if (result.Contains("\r"))
+            {
+                result = result.Replace("\r", "");
+            }
+            if (result.Contains("\n"))
+            {
+                result = result.Replace("\n", "");
+            }
+            
+            return new StringValue(result);
         }
 
         public static FluidValue Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)

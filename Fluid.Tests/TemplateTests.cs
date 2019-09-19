@@ -297,6 +297,18 @@ namespace Fluid.Tests
         }
 
         [Theory]
+        [InlineData(@"{% capture string_with_newlines %}
+hello
+there
+turtle
+{% endcapture %}{{string_with_newlines | strip_newlines}}", "hellothereturtle")]
+        public Task CaptureStringNewLines(string source, string expected)
+        {
+            return CheckAsync(source, expected);
+        }
+
+
+        [Theory]
         [InlineData("{{x == empty}} {{y == empty}}", "false true")]
         public Task ArrayCompareEmptyValue(string source, string expected)
         {
