@@ -160,6 +160,7 @@ namespace Fluid.Filters
             {
                 result = result.Replace("\n", "");
             }
+            
             return new StringValue(result);
         }
 
