@@ -55,7 +55,7 @@ namespace Fluid.Values
 
             if (cultureInfo == null)
             {
-                throw new ArgumentNullException(nameof(cultureInfo));
+                ExceptionHelper.ThrowArgumentNullException(nameof(cultureInfo));
             }
 
             writer.Write(_value.ToString("u", cultureInfo));

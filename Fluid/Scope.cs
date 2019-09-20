@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Fluid.Values;
 
 namespace Fluid
 {
     public class Scope
     {
-        private Dictionary<string, FluidValue> _properties = new Dictionary<string, FluidValue>();
+        private readonly Dictionary<string, FluidValue> _properties = new Dictionary<string, FluidValue>();
         private readonly Scope _parent;
 
         public Scope()
@@ -24,41 +24,36 @@ namespace Fluid
         /// if it doesn't exist.
         /// </summary>
         /// <param name="name">The name of the value to return.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public FluidValue GetValue(string name)
         {
             if (name == null)
             {
-                throw new ArgumentNullException(nameof(name));
+                return ExceptionHelper.ThrowArgumentNullException<FluidValue>(nameof(name));
             }
 
             if (_properties.TryGetValue(name, out var result))
             {
                 return result;
             }
-            else
-            {
-                if (_parent != null)
-                {
-                    return _parent.GetValue(name);
-                }
-            }
 
-            return NilValue.Instance;
+            return _parent != null
+                ? _parent.GetValue(name)
+                : NilValue.Instance;
         }
 
         public void Delete(string name)
         {
-            if (_properties.ContainsKey(name))
-            {
-                _properties.Remove(name);
-            }
+            _properties.Remove(name);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetValue(string name, FluidValue value)
         {
             _properties[name] = value;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetValue(string name, object value)
         {
             _properties[name] = FluidValue.Create(value);

@@ -120,12 +120,12 @@ namespace Fluid.MvcViewEngine
         {
             if (context == null)
             {
-                throw new ArgumentNullException(nameof(context));
+                ExceptionHelper.ThrowArgumentNullException(nameof(context));
             }
 
             if (key == null)
             {
-                throw new ArgumentNullException(nameof(key));
+                ExceptionHelper.ThrowArgumentNullException(nameof(key));
             }
 
             if (!context.RouteData.Values.TryGetValue(key, out object routeValue))

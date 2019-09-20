@@ -9,6 +9,8 @@ namespace Fluid.Values
 {
     public sealed class ObjectValue : FluidValue
     {
+        private static readonly char[] MemberSeparators = new [] { '.' };
+
         private readonly object _value;
 
         public ObjectValue(object value)
@@ -37,34 +39,20 @@ namespace Fluid.Values
             return other is ObjectValue && ((ObjectValue)other)._value == _value;
         }
 
-        public override async ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
+            static async ValueTask<FluidValue> Awaited(
+                IAsyncMemberAccessor asyncAccessor,
+                object value,
+                string n,
+                TemplateContext ctx)
+            {
+                return Create(await asyncAccessor.GetAsync(value, n, ctx));
+            }
+
             if (name.Contains("."))
             {
-                var members = name.Split('.');
-
-                IMemberAccessor accessor;
-                object target = _value;
-
-                foreach (var prop in members)
-                {
-                    accessor = context.MemberAccessStrategy.GetAccessor(target.GetType(), prop);
-                    if (accessor == null)
-                    {
-                        return NilValue.Instance;
-                    }
-
-                    if (accessor is IAsyncMemberAccessor asyncAccessor)
-                    {
-                        target = await asyncAccessor.GetAsync(target, prop, context);
-                    }
-                    else
-                    {
-                        target = accessor.Get(target, prop, context);
-                    }
-                }
-
-                return FluidValue.Create(target);
+                return GetNestedValueAsync(name, context);
             }
             else
             {
@@ -74,14 +62,41 @@ namespace Fluid.Values
                 {
                     if (accessor is IAsyncMemberAccessor asyncAccessor)
                     {
-                        return FluidValue.Create(await asyncAccessor.GetAsync(_value, name, context));
+                        return Awaited(asyncAccessor, _value, name, context);
                     }
 
-                    return FluidValue.Create(accessor.Get(_value, name, context));
+                    return new ValueTask<FluidValue>(FluidValue.Create(accessor.Get(_value, name, context)));
                 }
             }
 
-            return NilValue.Instance;
+            return new ValueTask<FluidValue>(NilValue.Instance);
+        }
+
+        private async ValueTask<FluidValue> GetNestedValueAsync(string name, TemplateContext context)
+        {
+            var members = name.Split(MemberSeparators);
+
+            object target = _value;
+
+            foreach (var prop in members)
+            {
+                var accessor = context.MemberAccessStrategy.GetAccessor(target.GetType(), prop);
+                if (accessor == null)
+                {
+                    return NilValue.Instance;
+                }
+
+                if (accessor is IAsyncMemberAccessor asyncAccessor)
+                {
+                    target = await asyncAccessor.GetAsync(target, prop, context);
+                }
+                else
+                {
+                    target = accessor.Get(target, prop, context);
+                }
+            }
+
+            return FluidValue.Create(target);
         }
 
         public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
@@ -103,12 +118,12 @@ namespace Fluid.Values
         {
             if (writer == null)
             {
-                throw new ArgumentNullException(nameof(writer));
+                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
             }
 
             if (encoder == null)
             {
-                throw new ArgumentNullException(nameof(encoder));
+                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
             }
 
             encoder.Encode(writer, _value.ToString());

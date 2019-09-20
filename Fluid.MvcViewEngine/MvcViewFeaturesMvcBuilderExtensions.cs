@@ -11,7 +11,7 @@ namespace Fluid.MvcViewEngine
         {
             if (builder == null)
             {
-                throw new ArgumentNullException(nameof(builder));
+                ExceptionHelper.ThrowArgumentNullException(nameof(builder));
             }
 
             builder.Services.AddOptions();

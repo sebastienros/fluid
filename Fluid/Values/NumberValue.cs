@@ -1,5 +1,4 @@
-﻿using System;
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
 
@@ -59,17 +58,17 @@ namespace Fluid.Values
         {
             if (writer == null)
             {
-                throw new ArgumentNullException(nameof(writer));
+                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
             }
 
             if (encoder == null)
             {
-                throw new ArgumentNullException(nameof(encoder));
+                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
             }
 
             if (cultureInfo == null)
             {
-                throw new ArgumentNullException(nameof(cultureInfo));
+                ExceptionHelper.ThrowArgumentNullException(nameof(cultureInfo));
             }
 
             encoder.Encode(writer, _value.ToString(cultureInfo));

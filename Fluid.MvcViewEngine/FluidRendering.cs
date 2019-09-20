@@ -43,7 +43,7 @@ namespace Fluid.MvcViewEngine
         private readonly IHostingEnvironment _hostingEnvironment;
         private FluidViewEngineOptions _options;
 
-        public async Task<string> RenderAsync(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
+        public async ValueTask<string> RenderAsync(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
         {
             // Check for a custom file provider
             var fileProvider = _options.FileProvider ?? _hostingEnvironment.ContentRootFileProvider;
@@ -78,7 +78,7 @@ namespace Fluid.MvcViewEngine
             return body;
         }
 
-        public IEnumerable<string> FindViewStarts(string viewPath, IFileProvider fileProvider)
+        public List<string> FindViewStarts(string viewPath, IFileProvider fileProvider)
         {
             var viewStarts = new List<string>();
             int index = viewPath.Length - 1;
@@ -127,7 +127,7 @@ namespace Fluid.MvcViewEngine
                         statements.Add(new CallbackStatement((writer, encoder, context) =>
                         {
                             context.AmbientValues[ViewPath] = viewStartPath;
-                            return Task.FromResult(Completion.Normal);
+                            return new ValueTask<Completion>(Completion.Normal);
                         }));
 
                         var viewStartTemplate = ParseLiquidFile(viewStartPath, fileProvider, false);

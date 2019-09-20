@@ -6,6 +6,6 @@ namespace Fluid.MvcViewEngine
 {
     public interface IFluidRendering
     {
-        Task<string> RenderAsync(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState);
+        ValueTask<string> RenderAsync(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState);
     }
 }

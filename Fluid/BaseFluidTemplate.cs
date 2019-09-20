@@ -27,7 +27,7 @@ namespace Fluid
         {
             if (!TryParse(template, out var result, out var errors))
             {
-                throw new ParseException(errors.FirstOrDefault() ?? "");
+                return ExceptionHelper.ThrowParseException<T>(errors.FirstOrDefault() ?? "");
             }
             else
             {
@@ -62,21 +62,21 @@ namespace Fluid
             }
         }
 
-        public async Task RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             if (writer == null)
             {
-                throw new ArgumentNullException(nameof(writer));
+                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
             }
 
             if (encoder == null)
             {
-                throw new ArgumentNullException(nameof(encoder));
+                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
             }
 
             if (context == null)
             {
-                throw new ArgumentNullException(nameof(context));
+                return ExceptionHelper.ThrowArgumentNullException<ValueTask>(nameof(context));
             }
 
             context.ParserFactory = Factory;
@@ -85,7 +85,34 @@ namespace Fluid
             var count = Statements.Count;
             for (var i = 0; i < count; i++)
             {
-                await Statements[i].WriteToAsync(writer, encoder, context);
+                var task = Statements[i].WriteToAsync(writer, encoder, context);
+                if (!task.IsCompletedSuccessfully)
+                {
+                    return Awaited(
+                        task,
+                        writer,
+                        encoder,
+                        context,
+                        Statements,
+                        startIndex: i + 1);
+                }
+            }
+
+            return new ValueTask();
+        }
+
+        private static async ValueTask Awaited(
+            ValueTask<Completion> task,
+            TextWriter writer,
+            TextEncoder encoder,
+            TemplateContext context,
+            List<Statement> statements,
+            int startIndex)
+        {
+            await task;
+            for (var i = startIndex; i < statements.Count; i++)
+            {
+                await statements[i].WriteToAsync(writer, encoder, context);
             }
         }
     }
