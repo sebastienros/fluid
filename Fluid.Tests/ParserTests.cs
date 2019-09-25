@@ -309,5 +309,24 @@ def", "at line:2, col:6")]
         {
             Parse("{{ 'on {0}' }}");
         }
+
+        [Fact]
+        public void ShouldBeAbleToCompareNilValues()
+        {
+            // [1, 2, 3] | map will return [nil, nil, nil] then | uniq will try to call NilValue.GetHashCode()
+
+            var model = new
+            {
+                Doubles = new List<double> { 1.1, 2.2, 3.3 }
+            };
+
+            var template = "{{Doubles |map |uniq}}";
+
+            if (FluidTemplate.TryParse(template, out var result))
+            {
+                TemplateContext.GlobalMemberAccessStrategy.Register(model.GetType());
+                result.Render(new TemplateContext { Model = model });
+            }
+        }
     }
 }
