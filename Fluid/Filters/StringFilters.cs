@@ -94,7 +94,14 @@ namespace Fluid.Filters
 
         public static FluidValue Remove(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().Replace(arguments.At(0).ToStringValue(), ""));
+            var argument = arguments.At(0).ToStringValue();
+
+            if (String.IsNullOrEmpty(argument))
+            {
+                return new StringValue(input.ToStringValue());
+            }
+
+            return new StringValue(input.ToStringValue().Replace(argument, ""));
         }
 
         public static FluidValue ReplaceFirst(FluidValue input, FilterArguments arguments, TemplateContext context)

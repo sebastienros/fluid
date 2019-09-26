@@ -79,6 +79,11 @@ namespace Fluid.Filters
 
         public static FluidValue Modulo(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            if (arguments.Count == 0)
+            {
+                throw new ParseException("The filter 'modulo' requires an argument.");
+            }
+
             return NumberValue.Create(Convert.ToInt32(input.ToNumberValue()) % Convert.ToInt32(arguments.At(0).ToNumberValue()));
         }
 

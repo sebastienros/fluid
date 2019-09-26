@@ -123,6 +123,17 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void ModuloWithNoArgumentThrows()
+        {
+            var input = NumberValue.Create(6);
+
+            var arguments = FilterArguments.Empty;
+            var context = new TemplateContext();
+
+            Assert.Throws<ParseException>(() => NumberFilters.Modulo(input, arguments, context));
+        }
+
+        [Fact]
         public void Plus()
         {
             var input = NumberValue.Create(6);

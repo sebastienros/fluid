@@ -150,8 +150,19 @@ world
             var result = StringFilters.Remove(input, arguments, context);
 
             Assert.Equal("acac", result.ToStringValue());
-        }        
-                
+        }
+
+        [Fact]
+        public void RemovesReturnsInputWhenArgumentIsEmpty()
+        {
+            var input = new StringValue("abcabc");
+
+            var arguments = FilterArguments.Empty;
+            var context = new TemplateContext();
+
+            var result = StringFilters.Remove(input, arguments, context);
+        }
+
         [Fact]
         public void ReplaceFirst()
         {

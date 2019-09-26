@@ -10,7 +10,7 @@ namespace Fluid.Tests
 {
     public class ParserTests
     {
-        private static LanguageData _language = new LanguageData(new FluidGrammar());
+        private static readonly LanguageData _language = new LanguageData(new FluidGrammar());
 
         private List<Statement> Parse(string source)
         {
@@ -327,6 +327,27 @@ def", "at line:2, col:6")]
                 TemplateContext.GlobalMemberAccessStrategy.Register(model.GetType());
                 result.Render(new TemplateContext { Model = model });
             }
+        }
+
+        [Theory]
+        [InlineData("{% for %}")]
+        [InlineData("{% endfor %}")]
+        [InlineData("{% case %}")]
+        [InlineData("{% endcase %}")]
+        [InlineData("{% if %}")]
+        [InlineData("{% endif %}")]
+        [InlineData("{% unless %}")]
+        [InlineData("{% endunless %}")]
+        [InlineData("{% comment %}")]
+        [InlineData("{% endcomment %}")]
+        [InlineData("{% raw %}")]
+        [InlineData("{% endraw %}")]
+        [InlineData("{% capture %}")]
+        [InlineData("{% endcapture %}")]
+
+        public void ShouldThrowParseExceptionMissingTag(string template)
+        {
+            Assert.Throws<ParseException>(() => FluidTemplate.Parse(template));
         }
     }
 }
