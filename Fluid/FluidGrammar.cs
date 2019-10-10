@@ -65,8 +65,8 @@ namespace Fluid
             var Comma = ToTerm(",");
             var Pipe = ToTerm("|");
             var Colon = ToTerm(":");
-            var StringLiteralSingle = new StringLiteral("string1", "'", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes);
-            var StringLiteralDouble = new StringLiteral("string2", "\"", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes);
+            var StringLiteralSingle = new StringLiteral("string1", "'", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes | StringOptions.AllowsLineBreak);
+            var StringLiteralDouble = new StringLiteral("string2", "\"", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes | StringOptions.AllowsLineBreak);
             var Number = new NumberLiteral("number", NumberOptions.AllowSign);
             var True = ToTerm("true");
             var False = ToTerm("false");

@@ -1,5 +1,4 @@
 ﻿using Fluid.Ast;
-using Irony.Parsing;
 using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
@@ -10,8 +9,6 @@ namespace Fluid.Tests
 {
     public class ParserTests
     {
-        private static readonly LanguageData _language = new LanguageData(new FluidGrammar());
-
         private List<Statement> Parse(string source)
         {
             FluidTemplate.TryParse(source, out var template, out var errors);
@@ -349,5 +346,37 @@ def", "at line:2, col:6")]
         {
             Assert.Throws<ParseException>(() => FluidTemplate.Parse(template));
         }
-    }
+
+        [Theory]
+        [InlineData("{{ 'a\\nb' }}", "a\nb")]
+        [InlineData("{{ 'a\\tb' }}", "a\tb")]
+        public void ShouldParseEscapeSequences(string source, string expected)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.True(result, String.Join(", ", errors));
+            Assert.NotNull(template);
+            Assert.Empty(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal(expected, rendered);
+        }
+
+        [Theory]
+        [InlineData("{{ 'a\nb' }}", "a\nb")]
+        [InlineData("{{ 'a\r\nb' }}", "a\r\nb")]
+        public void ShouldParseLineBreaksInStringLiterals(string source, string expected)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.True(result, String.Join(", ", errors));
+            Assert.NotNull(template);
+            Assert.Empty(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal(expected, rendered);
+        }
+    }    
 }
