@@ -182,5 +182,32 @@ namespace Fluid
             MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd, Colon);
             MarkTransient(Statement, KnownTags, ForSource, RangeIndex, BinaryOperator, ForOption, Term);
         }
+
+        public override void SkipWhitespace(ISourceStream source)
+        {
+            // This method is a copy of the base one with the additiong of the non-breaking space
+            // c.f. https://github.com/sebastienros/fluid/issues/138
+
+            const char NonBreakingSpace = (char)160;
+
+            while (!source.EOF())
+            {
+                switch (source.PreviewChar)
+                {
+                    case ' ':
+                    case '\t':
+                    case NonBreakingSpace:
+                        break;
+                    case '\r':
+                    case '\n':
+                    case '\v':
+                        if (UsesNewLine) return; //do not treat as whitespace if language is line-based
+                        break;
+                    default:
+                        return;
+                }
+                source.PreviewPosition++;
+            }
+        }
     }
 }
