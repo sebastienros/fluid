@@ -5,7 +5,7 @@ namespace Fluid
     [Language("Fluid", "0.2", "Liquid based syntax")]
     public class FluidGrammar : Grammar
     {
-        public IdentifierTerminal Identifier = new IdentifierTerminal("identifier", "-_", "-_");
+        public IdentifierTerminal Identifier = new IdentifierTerminal("identifier", "-_", "_");
         public NonTerminal MemberAccess = new NonTerminal("memberAccess");
         public NonTerminal MemberAccessSegmentOpt = new NonTerminal("memberAccessSegmentOpt");
         public NonTerminal MemberAccessSegment = new NonTerminal("memberAccessSegment");

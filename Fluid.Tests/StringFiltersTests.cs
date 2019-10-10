@@ -195,6 +195,8 @@ world
         [InlineData("hello", new object[] { 1 }, "e")]
         [InlineData("hello", new object[] { 1, 3 }, "ell")]
         [InlineData("hello", new object[] { -3, 3 }, "llo")]
+        [InlineData("hello", new object[] { -3 }, "l")]
+        [InlineData("abcdefg", new object[] { -3, 2 }, "ef")]
         public void Slice(object input, object[] arguments, string expected)
         {
             var filterInput = FluidValue.Create(input);

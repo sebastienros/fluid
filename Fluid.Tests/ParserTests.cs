@@ -181,8 +181,6 @@ namespace Fluid.Tests
         [Theory]
         [InlineData("{% assign _foo = 1 %}")]
         [InlineData("{% assign __foo = 1 %}")]
-        [InlineData("{% assign -foo = 1 %}")]
-        [InlineData("{% assign --foo = 1 %}")]
         [InlineData("{% assign fo-o = 1 %}")]
         [InlineData("{% assign fo_o = 1 %}")]
         [InlineData("{% assign fo--o = 1 %}")]
@@ -367,6 +365,21 @@ def", "at line:2, col:6")]
         [InlineData("{{ 'a\nb' }}", "a\nb")]
         [InlineData("{{ 'a\r\nb' }}", "a\r\nb")]
         public void ShouldParseLineBreaksInStringLiterals(string source, string expected)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.True(result, String.Join(", ", errors));
+            Assert.NotNull(template);
+            Assert.Empty(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal(expected, rendered);
+        }
+
+        [Theory]
+        [InlineData("{{ -3 }}", "-3")]
+        public void ShouldParseNegativeNumbers(string source, string expected)
         {
             var result = FluidTemplate.TryParse(source, out var template, out var errors);
 
