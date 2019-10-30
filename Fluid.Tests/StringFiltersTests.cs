@@ -224,6 +224,22 @@ world
             Assert.Equal(new StringValue("c"), result.Enumerate().ElementAt(2));
         }
 
+        [Fact]
+        public void SplitWithEmptyString()
+        {
+            var input = new StringValue("abc");
+
+            var arguments = new FilterArguments().Add(new StringValue(""));
+            var context = new TemplateContext();
+
+            var result = StringFilters.Split(input, arguments, context);
+
+            Assert.Equal(3, result.Enumerate().Count());
+            Assert.Equal(new StringValue("a"), result.Enumerate().ElementAt(0));
+            Assert.Equal(new StringValue("b"), result.Enumerate().ElementAt(1));
+            Assert.Equal(new StringValue("c"), result.Enumerate().ElementAt(2));
+        }
+
         [Theory]
         [InlineData("The cat came back the very next day", 13, "The cat ca...")]
         [InlineData("Hello", 3, "...")]

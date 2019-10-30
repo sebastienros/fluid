@@ -138,8 +138,24 @@ namespace Fluid.Filters
 
         public static FluidValue Split(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var strings = input.ToStringValue()
-                .Split(new [] { arguments.At(0).ToStringValue() }, StringSplitOptions.RemoveEmptyEntries);
+            string[] strings;
+
+            var stringInput = input.ToStringValue();
+            var separator = arguments.At(0).ToStringValue();
+
+            if (separator == "")
+            {
+                strings = new string[stringInput.Length];
+
+                for (var i = 0; i < stringInput.Length; i++)
+                {
+                    strings[i] = stringInput[i].ToString();
+                }
+            }
+            else 
+            {
+                strings = stringInput.Split(new[] { separator }, StringSplitOptions.RemoveEmptyEntries);
+            }
 
             var values = new FluidValue[strings.Length];
             for (var i = 0; i < strings.Length; i++)
