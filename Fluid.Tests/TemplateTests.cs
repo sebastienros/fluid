@@ -616,5 +616,19 @@ shape: '{{ shape }}'");
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => template.RenderAsync(context).AsTask());
         }
+
+        [Fact]
+        public async Task IgonreCasing()
+        {
+            FluidTemplate.TryParse("{{ p.NaMe }}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("p", new Person { Name = "John" });
+            context.MemberAccessStrategy.IgnoreCasing = true;
+            context.MemberAccessStrategy.Register<Person>();
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("John", result);
+        }
     }
 }
