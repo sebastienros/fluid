@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Primitives;
+using System;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -7,16 +8,11 @@ namespace Fluid.Ast
 {
     public class TextStatement : Statement
     {
-        private char[] _buffer;
-        private int _start;
-        private int _length;
+        private string _buffer;
 
         public TextStatement(StringSegment text)
         {
-            _buffer = text.Buffer.ToCharArray();
-            _start = text.Offset;
-            _length = text.Length;
-
+            _buffer = text.ToString();
             Text = text;
         }
 
@@ -27,7 +23,7 @@ namespace Fluid.Ast
             context.IncrementSteps();
 
             // The Text fragments are not encoded, but kept as-is
-            writer.Write(_buffer, _start, _length);
+            writer.Write(_buffer);
 
             return Normal;
         }
