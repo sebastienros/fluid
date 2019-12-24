@@ -8,7 +8,11 @@ namespace Fluid.Ast
 {
     public class TextStatement : Statement
     {
+
+#if !NETSTANDARD2_1
         private string _buffer;
+#endif
+
         public TextStatement(StringSegment text)
         {
             Text = text;
