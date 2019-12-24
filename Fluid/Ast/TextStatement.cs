@@ -9,10 +9,8 @@ namespace Fluid.Ast
     public class TextStatement : Statement
     {
         private string _buffer;
-
         public TextStatement(StringSegment text)
         {
-            _buffer = text.ToString();
             Text = text;
         }
 
@@ -22,8 +20,14 @@ namespace Fluid.Ast
         {
             context.IncrementSteps();
 
+
             // The Text fragments are not encoded, but kept as-is
+#if NETSTANDARD2_1
+            writer.Write(Text.Buffer.AsSpan(Text.Offset, Text.Length));
+#else
+            _buffer ??= Text.ToString();
             writer.Write(_buffer);
+#endif
 
             return Normal;
         }
