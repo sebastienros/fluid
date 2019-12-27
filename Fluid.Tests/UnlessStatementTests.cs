@@ -16,7 +16,7 @@ namespace Fluid.Tests
 
         private Statement[] TEXT(string text)
         {
-            return new Statement[] { new TextStatement(new StringSegment(text)) };
+            return new Statement[] { new TextStatement(text) };
         }
 
         [Fact]
@@ -24,7 +24,7 @@ namespace Fluid.Tests
         {
             var e = new UnlessStatement(
                 TRUE,
-                new List<Statement> { new TextStatement(new StringSegment("x")) }
+                new List<Statement> { new TextStatement("x") }
                 );
 
             var sw = new StringWriter();
@@ -38,7 +38,7 @@ namespace Fluid.Tests
         {
             var e = new UnlessStatement(
                 FALSE,
-                new List<Statement> { new TextStatement(new StringSegment("x")) }
+                new List<Statement> { new TextStatement("x") }
                 );
 
             var sw = new StringWriter();

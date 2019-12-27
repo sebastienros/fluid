@@ -8,30 +8,27 @@ namespace Fluid.Ast
 {
     public class TextStatement : Statement
     {
-
-#if !NETSTANDARD2_1
-        private string _buffer;
-#endif
+        private char[] _buffer;
 
         public TextStatement(StringSegment text)
         {
-            Text = text;
+            _buffer = new char[text.Length];
+            text.Buffer.CopyTo(text.Offset, _buffer, 0, text.Length);
         }
 
-        public StringSegment Text { get; }
+        public TextStatement(string text)
+        {
+            _buffer = text.ToCharArray();
+        }
+
+        public string Text => new String(_buffer);
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
-
             // The Text fragments are not encoded, but kept as-is
-#if NETSTANDARD2_1
-            writer.Write(Text.Buffer.AsSpan(Text.Offset, Text.Length));
-#else
-            _buffer ??= Text.ToString();
-            writer.Write(_buffer);
-#endif
+            writer.Write(Text);
 
             return Normal;
         }

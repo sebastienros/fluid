@@ -16,7 +16,7 @@ namespace Fluid.Tests
         public async Task ZeroBasedLoopRangeShouldNotHasExtraStep()
         {
             var e = new ForStatement(
-                new List<Statement> { new TextStatement(new StringSegment("x")) },
+                new List<Statement> { new TextStatement("x") },
                 "i",
                 new RangeExpression(
                     new LiteralExpression(NumberValue.Create(0)),
@@ -35,7 +35,7 @@ namespace Fluid.Tests
         public async Task ShouldLoopRange()
         {
             var e = new ForStatement(
-                new List<Statement> { new TextStatement(new StringSegment("x")) },
+                new List<Statement> { new TextStatement("x") },
                 "i",
                 new RangeExpression(
                     new LiteralExpression(NumberValue.Create(1)),
@@ -80,7 +80,7 @@ namespace Fluid.Tests
         public async Task ShouldLoopArrays()
         {
             var e = new ForStatement(
-                new List<Statement> { new TextStatement(new StringSegment("x")) },
+                new List<Statement> { new TextStatement("x") },
                 "i",
                 new MemberExpression(
                     new IdentifierSegment("items")
@@ -101,9 +101,9 @@ namespace Fluid.Tests
         {
             var e = new ForStatement(
                 new List<Statement> {
-                    new TextStatement(new StringSegment("x")),
+                    new TextStatement("x"),
                     new BreakStatement(),
-                    new TextStatement(new StringSegment("y"))
+                    new TextStatement("y")
                 },
                 "i",
                 new MemberExpression(
@@ -125,9 +125,9 @@ namespace Fluid.Tests
         {
             var e = new ForStatement(
                 new List<Statement> {
-                    new TextStatement(new StringSegment("x")),
+                    new TextStatement("x"),
                     new ContinueStatement(),
-                    new TextStatement(new StringSegment("y"))
+                    new TextStatement("y")
                 },
                 "i",
                 new MemberExpression(
