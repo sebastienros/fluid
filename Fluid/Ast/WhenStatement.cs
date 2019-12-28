@@ -8,17 +8,15 @@ namespace Fluid.Ast
 {
     public class WhenStatement : TagStatement
     {
-        private readonly List<Expression> _options;
-
         public WhenStatement(List<Expression> options, List<Statement> statements) : base(statements)
         {
-            _options = options;
+            Options = options;
         }
 
-        public List<Expression> Options
-        {
+        public List<Expression> Options 
+        { 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _options;
+            get; 
         }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
