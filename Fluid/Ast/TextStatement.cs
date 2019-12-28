@@ -8,7 +8,7 @@ namespace Fluid.Ast
 {
     public class TextStatement : Statement
     {
-        private char[] _buffer;
+        private readonly char[] _buffer;
 
         public TextStatement(StringSegment text)
         {
