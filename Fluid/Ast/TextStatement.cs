@@ -28,7 +28,7 @@ namespace Fluid.Ast
             context.IncrementSteps();
 
             // The Text fragments are not encoded, but kept as-is
-            writer.Write(Text);
+            writer.Write(_buffer);
 
             return Normal;
         }
