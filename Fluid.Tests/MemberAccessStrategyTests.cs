@@ -1,4 +1,8 @@
-﻿using Xunit;
+﻿using Fluid.Values;
+using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Xunit;
 
 namespace Fluid.Tests
 {
@@ -75,6 +79,27 @@ namespace Fluid.Tests
             Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field2)));
             Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1)));
             Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property2)));
+        }
+
+        [Fact]
+        public async Task ShouldResolvePropertiesWithDots()
+        {
+            var obj = new JObject(
+                new JProperty("a", "1"),
+                new JProperty("a.b", "2")
+            );
+
+            var context = new TemplateContext();
+
+            context.MemberAccessStrategy.Register<JObject, object>((o, name) => o[name]);
+            FluidValue.SetTypeMapping<JObject>(o => new ObjectValue(o));
+            FluidValue.SetTypeMapping<JValue>(o => FluidValue.Create(((JValue)o).Value));
+
+            var objectValue = FluidValue.Create(obj);
+
+            Assert.Equal("1", (await objectValue.GetValueAsync("a", context)).ToObjectValue());
+            Assert.Equal("2", (await objectValue.GetValueAsync("a.b", context)).ToObjectValue());
+            Assert.Null((await objectValue.GetValueAsync("a.c", context)).ToObjectValue());
         }
     }
 
