@@ -323,5 +323,24 @@ namespace Fluid.Tests
 
             Assert.Single(result3.Enumerate());
         }
+
+        [Fact]
+        public void WhereShouldNotThrow()
+        {
+            var input = new ArrayValue(new[] {
+                new ObjectValue(new { Title = "a", Pinned = true }),
+                new ObjectValue(new { Title = "b", Pinned = false }),
+                new ObjectValue(new { Title = "c", Pinned = true })
+                });
+
+            var context = new TemplateContext();
+            context.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
+
+            var arguments1 = new FilterArguments().Add(new StringValue("a.b.c"));
+
+            var result1 = ArrayFilters.Where(input, arguments1, context);
+
+            Assert.Equal(0, result1.Enumerate().Count());
+        }
     }
 }
