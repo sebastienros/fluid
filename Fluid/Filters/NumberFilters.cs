@@ -60,7 +60,7 @@ namespace Fluid.Filters
             {
                 if (number.IsIntegral)
                 {
-                    return NumberValue.Create(Math.Floor(input.ToNumberValue() / divisor), true);
+                    return NumberValue.Create(Convert.ToInt32(Math.Floor(input.ToNumberValue() / divisor)), true);
                 }                
             }
 

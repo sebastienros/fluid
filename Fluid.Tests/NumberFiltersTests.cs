@@ -71,6 +71,8 @@ namespace Fluid.Tests
         [Theory]
         [InlineData(4, 5, 0)]
         [InlineData(4, 5.0, 0.8)]
+        [InlineData(5, 2, 2)]
+        [InlineData(5, 2.0, 2.5)]
         public void DividedByReturnsSameTypeAsDivisor(double value, object divisor, double expected)
         {
             var input = NumberValue.Create(value);
