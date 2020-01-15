@@ -838,8 +838,8 @@ namespace Fluid
             var identifier = context.Tag.ChildNodes[0].Token.Text;
             var source = context.Tag.ChildNodes[1];
 
-            LiteralExpression limit = null;
-            LiteralExpression offset = null;
+            Expression limit = null;
+            Expression offset = null;
             var reversed = false;
 
             // Options?
@@ -850,10 +850,10 @@ namespace Fluid
                     switch (option.Term.Name)
                     {
                         case "limit":
-                            limit = BuildLiteralExpression(option.ChildNodes[0]);
+                            limit = BuildExpression(option.ChildNodes[0]);
                             break;
                         case "offset":
-                            offset = BuildLiteralExpression(option.ChildNodes[0]);
+                            offset = BuildExpression(option.ChildNodes[0]);
                             break;
                         case "reversed":
                             reversed = true;
