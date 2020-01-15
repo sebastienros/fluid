@@ -9,8 +9,6 @@ namespace Fluid
         private Dictionary<Type, Dictionary<string, IMemberAccessor>> _map;
         private readonly IMemberAccessStrategy _parent;
 
-        public MemberNameStrategy MemberNameStrategy { get; set; } = MemberNameStrategies.Default;
-
         public MemberAccessStrategy()
         {
             _map = new Dictionary<Type, Dictionary<string, IMemberAccessor>>();
@@ -21,6 +19,10 @@ namespace Fluid
             _parent = parent;
             MemberNameStrategy = _parent.MemberNameStrategy;
         }
+
+        public MemberNameStrategy MemberNameStrategy { get; set; } = MemberNameStrategies.Default;
+
+        public bool IgnoreCasing { get; set; }
 
         public IMemberAccessor GetAccessor(Type type, string name)
         {
@@ -54,7 +56,9 @@ namespace Fluid
         {
             if (!_map.TryGetValue(type, out var typeMap))
             {
-                typeMap = new Dictionary<string, IMemberAccessor>();
+                typeMap = new Dictionary<string, IMemberAccessor>(IgnoreCasing
+                    ? StringComparer.OrdinalIgnoreCase
+                    : StringComparer.Ordinal);
 
                 _map[type] = typeMap;
             }

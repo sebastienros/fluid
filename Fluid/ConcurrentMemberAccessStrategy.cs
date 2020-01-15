@@ -36,11 +36,15 @@ namespace Fluid
             return null;
         }
 
+        public bool IgnoreCasing { get; set; }
+
         public void Register(Type type, string name, IMemberAccessor getter)
         {
             var typeMap = _map.GetOrAdd(type, _ =>
             {
-                return new ConcurrentDictionary<string, IMemberAccessor>();
+                return new ConcurrentDictionary<string, IMemberAccessor>(IgnoreCasing
+                    ? StringComparer.OrdinalIgnoreCase
+                    : StringComparer.Ordinal);
             });
 
             typeMap[name] = getter;
