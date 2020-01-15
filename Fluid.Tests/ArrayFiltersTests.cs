@@ -340,7 +340,7 @@ namespace Fluid.Tests
 
             var result1 = ArrayFilters.Where(input, arguments1, context);
 
-            Assert.Equal(0, result1.Enumerate().Count());
+            Assert.Empty(result1.Enumerate());
         }
     }
 }
