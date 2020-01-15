@@ -15,8 +15,8 @@ namespace Fluid.Ast
             List<Statement> statements,
             string identifier, 
             MemberExpression member,
-            LiteralExpression limit,
-            LiteralExpression offset,
+            Expression limit,
+            Expression offset,
             bool reversed) : base(statements)
         {
             Identifier = identifier;
@@ -29,8 +29,8 @@ namespace Fluid.Ast
             List<Statement> statements,
             string identifier, 
             RangeExpression range,
-            LiteralExpression limit,
-            LiteralExpression offset,
+            Expression limit,
+            Expression offset,
             bool reversed) : base(statements)
         {
             Identifier = identifier;
@@ -43,8 +43,8 @@ namespace Fluid.Ast
         public string Identifier { get; }
         public RangeExpression Range { get; }
         public MemberExpression Member { get; }
-        public LiteralExpression Limit { get; }
-        public LiteralExpression Offset { get; }
+        public Expression Limit { get; }
+        public Expression Offset { get; }
         public bool Reversed { get; }
 
         private List<FluidValue> _rangeElements;
