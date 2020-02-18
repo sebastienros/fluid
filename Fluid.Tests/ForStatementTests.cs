@@ -253,6 +253,56 @@ namespace Fluid.Tests
             Assert.Equal("543", sw.ToString());
         }
 
+        [Fact]
+        public async Task ForEvaluatesMemberOptionsLimitOnly()
+        {
+            var context = new TemplateContext()
+                .SetValue("limit", 3)
+                ;
+
+            var e = new ForStatement(
+                new List<Statement> { CreateMemberStatement("i") },
+                "i",
+                new RangeExpression(
+                    new LiteralExpression(NumberValue.Create(1)),
+                    new LiteralExpression(NumberValue.Create(5))
+                ),
+                new MemberExpression(new IdentifierSegment("limit")),
+                null,
+                true
+            );
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal("321", sw.ToString());
+        }
+
+        [Fact]
+        public async Task ForEvaluatesMemberOptionsOffsetOnly()
+        {
+            var context = new TemplateContext()
+                .SetValue("offset", 3)
+                ;
+
+            var e = new ForStatement(
+                new List<Statement> { CreateMemberStatement("i") },
+                "i",
+                new RangeExpression(
+                    new LiteralExpression(NumberValue.Create(1)),
+                    new LiteralExpression(NumberValue.Create(5))
+                ),
+                null,
+                new MemberExpression(new IdentifierSegment("offset")),
+                true
+            );
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal("54", sw.ToString());
+        }
+
         Statement CreateMemberStatement(string p)
         {
             return new OutputStatement(new MemberExpression(p.Split('.').Select(x => new IdentifierSegment(x)).ToArray()));
