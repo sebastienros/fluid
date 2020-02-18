@@ -850,10 +850,10 @@ namespace Fluid
                     switch (option.Term.Name)
                     {
                         case "limit":
-                            limit = BuildExpression(option.ChildNodes[0]);
+                            limit = BuildExpression(option);
                             break;
                         case "offset":
-                            offset = BuildExpression(option.ChildNodes[0]);
+                            offset = BuildExpression(option);
                             break;
                         case "reversed":
                             reversed = true;
