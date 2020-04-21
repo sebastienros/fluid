@@ -37,13 +37,10 @@ namespace Fluid.Tests
         [Fact]
         public void RegisterByTypeAddAsyncPublicFields()
         {
-            // GIVEN a template context
             var strategy = new MemberAccessStrategy();
 
-            // WHEN the model is registered using the fluid member access strategy extensions
             strategy.Register<Class1>();
 
-            // THEN async field values on the model exist
             var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Field3));
             Assert.NotNull(accessor);
             Assert.IsAssignableFrom<AsyncDelegateAccessor>(accessor);
@@ -52,13 +49,10 @@ namespace Fluid.Tests
         [Fact]
         public void RegisterByTypeAddAsyncPublicProperties()
         {
-            // GIVEN a template context
             var strategy = new MemberAccessStrategy();
 
-            // WHEN the model is registered using the fluid member access strategy extensions
             strategy.Register<Class1>();
 
-            // THEN async field values on the model exist
             var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property3));
             Assert.NotNull(accessor);
             Assert.IsAssignableFrom<AsyncDelegateAccessor>(accessor);

@@ -29,7 +29,7 @@ namespace Fluid
                     }
 
                     if (propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Task<>))
-                        list[memberNameStrategy(propertyInfo)] = new AsyncDelegateAccessor( async (o, n) =>
+                        list[memberNameStrategy(propertyInfo)] = new AsyncDelegateAccessor(async (o, n) =>
                         {
                             var asyncValue = (Task) propertyInfo.GetValue(o);
                             await asyncValue.ConfigureAwait(false);
@@ -42,7 +42,7 @@ namespace Fluid
                 foreach (var fieldInfo in t.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))
                 {
                     if (fieldInfo.FieldType.IsGenericType && fieldInfo.FieldType.GetGenericTypeDefinition() == typeof(Task<>))
-                        list[memberNameStrategy(fieldInfo)] = new AsyncDelegateAccessor( async (o, n) =>
+                        list[memberNameStrategy(fieldInfo)] = new AsyncDelegateAccessor(async (o, n) =>
                         {
                             var asyncValue = (Task) fieldInfo.GetValue(o);
                             await asyncValue.ConfigureAwait(false);
