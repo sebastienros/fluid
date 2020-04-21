@@ -15,29 +15,37 @@ namespace Fluid.Ast
             List<Statement> statements,
             string identifier, 
             MemberExpression member,
+
             Expression limit,
             Expression offset,
-            bool reversed) : base(statements)
+            bool reversed,
+            ElseStatement elseStatement = null
+            ) : base(statements)
         {
             Identifier = identifier;
             Member = member;
             Limit = limit;
             Offset = offset;
             Reversed = reversed;
+            Else = elseStatement;
         }
         public ForStatement(
             List<Statement> statements,
             string identifier, 
             RangeExpression range,
+
             Expression limit,
             Expression offset,
-            bool reversed) : base(statements)
+            bool reversed,
+            ElseStatement elseStatement = null
+            ) : base(statements)
         {
             Identifier = identifier;
             Range = range;
             Limit = limit;
             Offset = offset;
             Reversed = reversed;
+            Else = elseStatement;
         }
 
         public string Identifier { get; }
@@ -46,6 +54,7 @@ namespace Fluid.Ast
         public Expression Limit { get; }
         public Expression Offset { get; }
         public bool Reversed { get; }
+        public Statement Else { get; }
 
         private List<FluidValue> _rangeElements;
         private int _rangeStart, _rangeEnd;
@@ -86,6 +95,10 @@ namespace Fluid.Ast
 
             if (!elements.Any())
             {
+                if (Else != null)
+                {
+                    await Else.WriteToAsync(writer, encoder, context);
+                }
                 return Completion.Normal;
             }
 
@@ -112,6 +125,10 @@ namespace Fluid.Ast
 
             if (!list.Any())
             {
+                if (Else != null)
+                {
+                    await Else.WriteToAsync(writer, encoder, context);
+                }
                 return Completion.Normal;
             }
 

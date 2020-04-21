@@ -61,6 +61,18 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void ShouldParseForElseTag()
+        {
+            var statements = Parse("{% for a in b %}x{% else %}y{% endfor %}");
+
+            Assert.IsType<ForStatement>(statements.ElementAt(0));
+            var forStatement = statements.ElementAt(0) as ForStatement;
+            Assert.True(forStatement.Statements.Count == 1);
+            Assert.NotNull(forStatement.Else);
+            Assert.True((forStatement.Else is ElseStatement s) && s.Statements.Count == 1);
+        }
+
+        [Fact]
         public void ShouldReadSingleCharInTag()
         {
             var statements = Parse(@"{% for a in b %};{% endfor %}");
