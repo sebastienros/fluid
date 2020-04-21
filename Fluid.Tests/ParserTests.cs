@@ -1,5 +1,4 @@
 ﻿using Fluid.Ast;
-using Irony.Parsing;
 using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
@@ -10,8 +9,6 @@ namespace Fluid.Tests
 {
     public class ParserTests
     {
-        private static LanguageData _language = new LanguageData(new FluidGrammar());
-
         private List<Statement> Parse(string source)
         {
             FluidTemplate.TryParse(source, out var template, out var errors);
@@ -196,8 +193,6 @@ namespace Fluid.Tests
         [Theory]
         [InlineData("{% assign _foo = 1 %}")]
         [InlineData("{% assign __foo = 1 %}")]
-        [InlineData("{% assign -foo = 1 %}")]
-        [InlineData("{% assign --foo = 1 %}")]
         [InlineData("{% assign fo-o = 1 %}")]
         [InlineData("{% assign fo_o = 1 %}")]
         [InlineData("{% assign fo--o = 1 %}")]
@@ -321,5 +316,92 @@ def", "at line:2, col:6")]
         {
             Parse("{{ 'on {0}' }}");
         }
-    }
+
+        [Fact]
+        public void ShouldBeAbleToCompareNilValues()
+        {
+            // [1, 2, 3] | map will return [nil, nil, nil] then | uniq will try to call NilValue.GetHashCode()
+
+            var model = new
+            {
+                Doubles = new List<double> { 1.1, 2.2, 3.3 }
+            };
+
+            var template = "{{Doubles |map |uniq}}";
+
+            if (FluidTemplate.TryParse(template, out var result))
+            {
+                TemplateContext.GlobalMemberAccessStrategy.Register(model.GetType());
+                result.Render(new TemplateContext { Model = model });
+            }
+        }
+
+        [Theory]
+        [InlineData("{% for %}")]
+        [InlineData("{% endfor %}")]
+        [InlineData("{% case %}")]
+        [InlineData("{% endcase %}")]
+        [InlineData("{% if %}")]
+        [InlineData("{% endif %}")]
+        [InlineData("{% unless %}")]
+        [InlineData("{% endunless %}")]
+        [InlineData("{% comment %}")]
+        [InlineData("{% endcomment %}")]
+        [InlineData("{% raw %}")]
+        [InlineData("{% endraw %}")]
+        [InlineData("{% capture %}")]
+        [InlineData("{% endcapture %}")]
+
+        public void ShouldThrowParseExceptionMissingTag(string template)
+        {
+            Assert.Throws<ParseException>(() => FluidTemplate.Parse(template));
+        }
+
+        [Theory]
+        [InlineData("{{ 'a\\nb' }}", "a\nb")]
+        [InlineData("{{ 'a\\tb' }}", "a\tb")]
+        public void ShouldParseEscapeSequences(string source, string expected)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.True(result, String.Join(", ", errors));
+            Assert.NotNull(template);
+            Assert.Empty(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal(expected, rendered);
+        }
+
+        [Theory]
+        [InlineData("{{ 'a\nb' }}", "a\nb")]
+        [InlineData("{{ 'a\r\nb' }}", "a\r\nb")]
+        public void ShouldParseLineBreaksInStringLiterals(string source, string expected)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.True(result, String.Join(", ", errors));
+            Assert.NotNull(template);
+            Assert.Empty(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal(expected, rendered);
+        }
+
+        [Theory]
+        [InlineData("{{ -3 }}", "-3")]
+        public void ShouldParseNegativeNumbers(string source, string expected)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.True(result, String.Join(", ", errors));
+            Assert.NotNull(template);
+            Assert.Empty(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal(expected, rendered);
+        }
+    }    
 }

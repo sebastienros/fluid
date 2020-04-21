@@ -150,8 +150,19 @@ world
             var result = StringFilters.Remove(input, arguments, context);
 
             Assert.Equal("acac", result.ToStringValue());
-        }        
-                
+        }
+
+        [Fact]
+        public void RemovesReturnsInputWhenArgumentIsEmpty()
+        {
+            var input = new StringValue("abcabc");
+
+            var arguments = FilterArguments.Empty;
+            var context = new TemplateContext();
+
+            var result = StringFilters.Remove(input, arguments, context);
+        }
+
         [Fact]
         public void ReplaceFirst()
         {
@@ -184,6 +195,8 @@ world
         [InlineData("hello", new object[] { 1 }, "e")]
         [InlineData("hello", new object[] { 1, 3 }, "ell")]
         [InlineData("hello", new object[] { -3, 3 }, "llo")]
+        [InlineData("hello", new object[] { -3 }, "l")]
+        [InlineData("abcdefg", new object[] { -3, 2 }, "ef")]
         public void Slice(object input, object[] arguments, string expected)
         {
             var filterInput = FluidValue.Create(input);
@@ -201,6 +214,22 @@ world
             var input = new StringValue("a.b.c");
 
             var arguments = new FilterArguments().Add(new StringValue("."));
+            var context = new TemplateContext();
+
+            var result = StringFilters.Split(input, arguments, context);
+
+            Assert.Equal(3, result.Enumerate().Count());
+            Assert.Equal(new StringValue("a"), result.Enumerate().ElementAt(0));
+            Assert.Equal(new StringValue("b"), result.Enumerate().ElementAt(1));
+            Assert.Equal(new StringValue("c"), result.Enumerate().ElementAt(2));
+        }
+
+        [Fact]
+        public void SplitWithEmptyString()
+        {
+            var input = new StringValue("abc");
+
+            var arguments = new FilterArguments().Add(new StringValue(""));
             var context = new TemplateContext();
 
             var result = StringFilters.Split(input, arguments, context);

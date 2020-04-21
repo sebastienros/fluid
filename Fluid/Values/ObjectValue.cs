@@ -52,6 +52,25 @@ namespace Fluid.Values
 
             if (name.Contains("."))
             {
+                var accessor = context.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
+
+                // Try to access the property with dots inside
+                if (accessor != null)
+                {
+                    if (accessor is IAsyncMemberAccessor asyncAccessor)
+                    {
+                        return Awaited(asyncAccessor, _value, name, context);
+                    }
+
+                    var directValue = accessor.Get(_value, name, context);
+
+                    if (directValue != null)
+                    {
+                        return new ValueTask<FluidValue>(FluidValue.Create(directValue));
+                    }
+                }
+
+                // Otherwise split the name in different segments
                 return GetNestedValueAsync(name, context);
             }
             else
@@ -80,7 +99,13 @@ namespace Fluid.Values
 
             foreach (var prop in members)
             {
+                if (target == null)
+                {
+                    return NilValue.Instance;
+                }
+
                 var accessor = context.MemberAccessStrategy.GetAccessor(target.GetType(), prop);
+
                 if (accessor == null)
                 {
                     return NilValue.Instance;

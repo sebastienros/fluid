@@ -58,7 +58,7 @@ namespace Fluid.Values
 
         public override int GetHashCode()
         {
-            return Instance.GetHashCode();
+            return GetType().GetHashCode(); ;
         }
     }
 }

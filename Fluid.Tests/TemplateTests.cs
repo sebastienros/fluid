@@ -616,5 +616,46 @@ shape: '{{ shape }}'");
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => template.RenderAsync(context).AsTask());
         }
+        
+        [Fact]
+        public Task ForLoopLimitAndOffset()
+        {
+            var source = @"{% assign array = '1,2,3,4,5' | split: ',' %}{% for item in array limit:3 offset:2 %}{{ item }}{% endfor %}";
+            var expected = "345";
+
+            return CheckAsync(source, expected);
+        }
+
+        [Fact]
+        public Task ForLoopLimitOnly()
+        {
+            var source = @"{% assign array = '1,2,3,4,5' | split: ',' %}{% for item in array limit:3 %}{{ item }}{% endfor %}";
+            var expected = "123";
+
+            return CheckAsync(source, expected);
+        }
+
+        [Fact]
+        public Task ForLoopOffsetOnly()
+        {
+            var source = @"{% assign array = '1,2,3,4,5' | split: ',' %}{% for item in array offset:3 %}{{ item }}{% endfor %}";
+            var expected = "45";
+
+            return CheckAsync(source, expected);
+        }
+
+        [Fact]
+        public async Task IgonreCasing()
+        {
+            FluidTemplate.TryParse("{{ p.NaMe }}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("p", new Person { Name = "John" });
+            context.MemberAccessStrategy.IgnoreCasing = true;
+            context.MemberAccessStrategy.Register<Person>();
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("John", result);
+        }
     }
 }

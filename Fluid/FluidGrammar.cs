@@ -5,7 +5,7 @@ namespace Fluid
     [Language("Fluid", "0.2", "Liquid based syntax")]
     public class FluidGrammar : Grammar
     {
-        public IdentifierTerminal Identifier = new IdentifierTerminal("identifier", "-_", "-_");
+        public IdentifierTerminal Identifier = new IdentifierTerminal("identifier", "-_", "_");
         public NonTerminal MemberAccess = new NonTerminal("memberAccess");
         public NonTerminal MemberAccessSegmentOpt = new NonTerminal("memberAccessSegmentOpt");
         public NonTerminal MemberAccessSegment = new NonTerminal("memberAccessSegment");
@@ -65,8 +65,8 @@ namespace Fluid
             var Comma = ToTerm(",");
             var Pipe = ToTerm("|");
             var Colon = ToTerm(":");
-            var StringLiteralSingle = new StringLiteral("string1", "'", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes);
-            var StringLiteralDouble = new StringLiteral("string2", "\"", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes);
+            var StringLiteralSingle = new StringLiteral("string1", "'", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes | StringOptions.AllowsLineBreak);
+            var StringLiteralDouble = new StringLiteral("string2", "\"", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes | StringOptions.AllowsLineBreak);
             var Number = new NumberLiteral("number", NumberOptions.AllowSign);
             var True = ToTerm("true");
             var False = ToTerm("false");
@@ -181,6 +181,33 @@ namespace Fluid
                 );
             MarkPunctuation(Dot, TagStart, TagEnd, OutputStart, OutputEnd, Colon);
             MarkTransient(Statement, KnownTags, ForSource, RangeIndex, BinaryOperator, ForOption, Term);
+        }
+
+        public override void SkipWhitespace(ISourceStream source)
+        {
+            // This method is a copy of the base one with the additiong of the non-breaking space
+            // c.f. https://github.com/sebastienros/fluid/issues/138
+
+            const char NonBreakingSpace = (char)160;
+
+            while (!source.EOF())
+            {
+                switch (source.PreviewChar)
+                {
+                    case ' ':
+                    case '\t':
+                    case NonBreakingSpace:
+                        break;
+                    case '\r':
+                    case '\n':
+                    case '\v':
+                        if (UsesNewLine) return; //do not treat as whitespace if language is line-based
+                        break;
+                    default:
+                        return;
+                }
+                source.PreviewPosition++;
+            }
         }
     }
 }

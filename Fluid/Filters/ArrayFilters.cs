@@ -111,15 +111,20 @@ namespace Fluid.Filters
             var member = arguments.At(0).ToStringValue();
 
             // Second argument is the value to match, or 'true' if none is defined
-            var targetValue = arguments.At(1).Or(BooleanValue.True).ToObjectValue();
+            var targetValue = arguments.At(1).Or(BooleanValue.True);
 
             var list = new List<FluidValue>();
 
             foreach (var item in input.Enumerate())
             {
-                var itemValue = item.GetValueAsync(member, context).GetAwaiter().GetResult();
+                var itemValueTask = item.GetValueAsync(member, context);
 
-                if (itemValue.ToObjectValue().Equals(targetValue))
+                var itemValue = itemValueTask.IsCompleted
+                    ? itemValueTask.Result
+                    : itemValueTask.GetAwaiter().GetResult()
+                    ;
+
+                if (itemValue.Equals(targetValue))
                 {
                     list.Add(item);
                 }

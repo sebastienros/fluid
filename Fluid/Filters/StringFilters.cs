@@ -94,7 +94,14 @@ namespace Fluid.Filters
 
         public static FluidValue Remove(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().Replace(arguments.At(0).ToStringValue(), ""));
+            var argument = arguments.At(0).ToStringValue();
+
+            if (String.IsNullOrEmpty(argument))
+            {
+                return new StringValue(input.ToStringValue());
+            }
+
+            return new StringValue(input.ToStringValue().Replace(argument, ""));
         }
 
         public static FluidValue ReplaceFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -131,8 +138,24 @@ namespace Fluid.Filters
 
         public static FluidValue Split(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var strings = input.ToStringValue()
-                .Split(new [] { arguments.At(0).ToStringValue() }, StringSplitOptions.RemoveEmptyEntries);
+            string[] strings;
+
+            var stringInput = input.ToStringValue();
+            var separator = arguments.At(0).ToStringValue();
+
+            if (separator == "")
+            {
+                strings = new string[stringInput.Length];
+
+                for (var i = 0; i < stringInput.Length; i++)
+                {
+                    strings[i] = stringInput[i].ToString();
+                }
+            }
+            else 
+            {
+                strings = stringInput.Split(new[] { separator }, StringSplitOptions.RemoveEmptyEntries);
+            }
 
             var values = new FluidValue[strings.Length];
             for (var i = 0; i < strings.Length; i++)

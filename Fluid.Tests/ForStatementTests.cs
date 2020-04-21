@@ -16,7 +16,7 @@ namespace Fluid.Tests
         public async Task ZeroBasedLoopRangeShouldNotHasExtraStep()
         {
             var e = new ForStatement(
-                new List<Statement> { new TextStatement(new StringSegment("x")) },
+                new List<Statement> { new TextStatement("x") },
                 "i",
                 new RangeExpression(
                     new LiteralExpression(NumberValue.Create(0)),
@@ -35,7 +35,7 @@ namespace Fluid.Tests
         public async Task ShouldLoopRange()
         {
             var e = new ForStatement(
-                new List<Statement> { new TextStatement(new StringSegment("x")) },
+                new List<Statement> { new TextStatement("x") },
                 "i",
                 new RangeExpression(
                     new LiteralExpression(NumberValue.Create(1)),
@@ -80,7 +80,7 @@ namespace Fluid.Tests
         public async Task ShouldLoopArrays()
         {
             var e = new ForStatement(
-                new List<Statement> { new TextStatement(new StringSegment("x")) },
+                new List<Statement> { new TextStatement("x") },
                 "i",
                 new MemberExpression(
                     new IdentifierSegment("items")
@@ -101,9 +101,9 @@ namespace Fluid.Tests
         {
             var e = new ForStatement(
                 new List<Statement> {
-                    new TextStatement(new StringSegment("x")),
+                    new TextStatement("x"),
                     new BreakStatement(),
-                    new TextStatement(new StringSegment("y"))
+                    new TextStatement("y")
                 },
                 "i",
                 new MemberExpression(
@@ -125,9 +125,9 @@ namespace Fluid.Tests
         {
             var e = new ForStatement(
                 new List<Statement> {
-                    new TextStatement(new StringSegment("x")),
+                    new TextStatement("x"),
                     new ContinueStatement(),
-                    new TextStatement(new StringSegment("y"))
+                    new TextStatement("y")
                 },
                 "i",
                 new MemberExpression(
@@ -267,6 +267,80 @@ namespace Fluid.Tests
             await e.WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal("xxx", sw.ToString());
+
+        public async Task ForEvaluatesMemberOptions()
+        {
+            var context = new TemplateContext()
+                .SetValue("limit", 3)
+                .SetValue("offset", 2)
+                ;
+
+            var e = new ForStatement(
+                new List<Statement> { CreateMemberStatement("i") },
+                "i",
+                new RangeExpression(
+                    new LiteralExpression(NumberValue.Create(1)),
+                    new LiteralExpression(NumberValue.Create(5))
+                ),
+                new MemberExpression(new IdentifierSegment("limit")),
+                new MemberExpression(new IdentifierSegment("offset")),
+                true
+            );
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal("543", sw.ToString());
+        }
+
+        [Fact]
+        public async Task ForEvaluatesMemberOptionsLimitOnly()
+        {
+            var context = new TemplateContext()
+                .SetValue("limit", 3)
+                ;
+
+            var e = new ForStatement(
+                new List<Statement> { CreateMemberStatement("i") },
+                "i",
+                new RangeExpression(
+                    new LiteralExpression(NumberValue.Create(1)),
+                    new LiteralExpression(NumberValue.Create(5))
+                ),
+                new MemberExpression(new IdentifierSegment("limit")),
+                null,
+                true
+            );
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal("321", sw.ToString());
+        }
+
+        [Fact]
+        public async Task ForEvaluatesMemberOptionsOffsetOnly()
+        {
+            var context = new TemplateContext()
+                .SetValue("offset", 3)
+                ;
+
+            var e = new ForStatement(
+                new List<Statement> { CreateMemberStatement("i") },
+                "i",
+                new RangeExpression(
+                    new LiteralExpression(NumberValue.Create(1)),
+                    new LiteralExpression(NumberValue.Create(5))
+                ),
+                null,
+                new MemberExpression(new IdentifierSegment("offset")),
+                true
+            );
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal("54", sw.ToString());
         }
 
         Statement CreateMemberStatement(string p)

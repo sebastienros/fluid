@@ -354,5 +354,16 @@ a
 
             Assert.True(result);
         }
+
+        [Fact]
+        public void ShouldParseNonBreakingWhitespace()
+        {
+            var c = (char)160;
+
+            var result = FluidTemplate.TryParse("{{" + c + "'a'" + c + "}}", out var template, out var errors);
+            var rendered = template.Render();
+
+            Assert.Equal("a", rendered);
+        }
     }
 }

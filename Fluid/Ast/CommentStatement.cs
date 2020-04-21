@@ -9,10 +9,15 @@ namespace Fluid.Ast
     {
         public CommentStatement(StringSegment text)
         {
+            Text = text.ToString();
+        }
+
+        public CommentStatement(string text)
+        {
             Text = text;
         }
 
-        public StringSegment Text { get; }
+        public string Text { get; }
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {

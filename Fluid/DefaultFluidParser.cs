@@ -238,8 +238,7 @@ namespace Fluid
 
             // We reached the end of the segment without finding the matched tag.
             // Ideally we could return a parsing error, right now we just return the text.
-            end = segment.Length - 1;
-            return segment.Subsegment(start, index - start);
+            throw new ParseException($"Expected '{endTag}'");
         }
 
         /// <summary>
@@ -549,6 +548,12 @@ namespace Fluid
                     break;
 
                 case "endcomment":
+
+                    if (!_isComment)
+                    {
+                        throw new ParseException($"Expected tag 'comment' before 'endcomment'");
+                    }
+
                     _isComment = false;
                     break;
 
@@ -557,6 +562,12 @@ namespace Fluid
                     break;
 
                 case "endraw":
+
+                    if (!_isRaw)
+                    {
+                        throw new ParseException($"Expected tag 'raw' before 'endraw'");
+                    }
+
                     _isRaw = false;
                     break;
 
@@ -621,6 +632,11 @@ namespace Fluid
 
         public static CaptureStatement BuildCaptureStatement(BlockContext context)
         {
+            if (context.Tag == null)
+            {
+                throw new ParseException($"Expected tag 'capture' before 'endcapture'");
+            }
+
             if (context.Tag.Term.Name != "capture")
             {
                 throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'capture' tag.");
@@ -722,6 +738,11 @@ namespace Fluid
 
         public static IfStatement BuildIfStatement(BlockContext context)
         {
+            if (context.Tag == null)
+            {
+                throw new ParseException($"Expected tag 'if' before 'endif'");
+            }
+
             if (context.Tag.Term.Name != "if")
             {
                 throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'if' tag.");
@@ -742,6 +763,11 @@ namespace Fluid
 
         public static CaseStatement BuildCaseStatement(BlockContext context)
         {
+            if (context.Tag == null)
+            {
+                throw new ParseException($"Expected tag 'case' before 'endcase'");
+            }
+
             if (context.Tag.Term.Name != "case")
             {
                 throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'case' tag.");
@@ -766,6 +792,11 @@ namespace Fluid
 
         public virtual UnlessStatement BuildUnlessStatement(BlockContext context)
         {
+            if (context.Tag == null)
+            {
+                throw new ParseException($"Expected tag 'unless' before 'endunless'");
+            }
+
             if (context.Tag.Term.Name != "unless")
             {
                 throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'unless' tag.");
@@ -794,6 +825,11 @@ namespace Fluid
 
         public static Statement BuildForStatement(BlockContext context)
         {
+            if (context.Tag == null)
+            {
+                throw new ParseException($"Expected tag 'for' before 'endfor'");
+            }
+
             if (context.Tag.Term.Name != "for")
             {
                 throw new ParseException($"Unexpected tag: '{context.Tag.Term.Name}' not matching 'for' tag.");
@@ -802,8 +838,8 @@ namespace Fluid
             var identifier = context.Tag.ChildNodes[0].Token.Text;
             var source = context.Tag.ChildNodes[1];
 
-            LiteralExpression limit = null;
-            LiteralExpression offset = null;
+            Expression limit = null;
+            Expression offset = null;
             var reversed = false;
 
             var elseStatements = context.GetBlockStatements<ElseStatement>("else");
@@ -817,10 +853,10 @@ namespace Fluid
                     switch (option.Term.Name)
                     {
                         case "limit":
-                            limit = BuildLiteralExpression(option.ChildNodes[0]);
+                            limit = BuildExpression(option);
                             break;
                         case "offset":
-                            offset = BuildLiteralExpression(option.ChildNodes[0]);
+                            offset = BuildExpression(option);
                             break;
                         case "reversed":
                             reversed = true;
