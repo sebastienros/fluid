@@ -806,6 +806,9 @@ namespace Fluid
             LiteralExpression offset = null;
             var reversed = false;
 
+            var elseStatements = context.GetBlockStatements<ElseStatement>("else");
+
+
             // Options?
             if (context.Tag.ChildNodes.Count > 2)
             {
@@ -837,7 +840,8 @@ namespace Fluid
                         BuildMemberExpression(source),
                         limit,
                         offset,
-                        reversed);
+                        reversed,
+                        elseStatements.FirstOrDefault());
                     break;
 
                 case "range":
@@ -847,7 +851,8 @@ namespace Fluid
                         BuildRangeExpression(source),
                         limit,
                         offset,
-                        reversed);
+                        reversed,
+                        elseStatements.FirstOrDefault());
                     break;
 
                 default:

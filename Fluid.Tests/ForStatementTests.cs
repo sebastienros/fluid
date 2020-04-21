@@ -227,6 +227,48 @@ namespace Fluid.Tests
             Assert.Equal("543", sw.ToString());
         }
 
+        [Fact]
+        public async Task ShouldExecuteElseOnEmptyArray()
+        {
+            var e = new ForStatement(
+                new List<Statement> { new TextStatement(new StringSegment("x")) },
+                "i",
+                new MemberExpression(
+                    new IdentifierSegment("items")
+                ),
+                null, null, false,
+                new ElseStatement(new List<Statement> { new TextStatement(new StringSegment("y")) })
+            );
+
+            var sw = new StringWriter();
+            var context = new TemplateContext();
+            context.SetValue("items", new int[0]);
+            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal("y", sw.ToString());
+        }
+
+        [Fact]
+        public async Task ShouldNotExecuteElseOnNonEmptyArray()
+        {
+            var e = new ForStatement(
+                new List<Statement> { new TextStatement(new StringSegment("x")) },
+                "i",
+                new MemberExpression(
+                    new IdentifierSegment("items")
+                ),
+                null, null, false,
+                new ElseStatement(new List<Statement> { new TextStatement(new StringSegment("y")) })
+            );
+
+            var sw = new StringWriter();
+            var context = new TemplateContext();
+            context.SetValue("items", new int[] { 1, 2, 3 });
+            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal("xxx", sw.ToString());
+        }
+
         Statement CreateMemberStatement(string p)
         {
             return new OutputStatement(new MemberExpression(p.Split('.').Select(x => new IdentifierSegment(x)).ToArray()));
