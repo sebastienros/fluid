@@ -269,6 +269,7 @@ namespace Fluid.Tests
             Assert.Equal("xxx", sw.ToString());
         }
             
+        [Fact]
         public async Task ForEvaluatesMemberOptions()
         {
             var context = new TemplateContext()
