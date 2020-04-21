@@ -267,7 +267,8 @@ namespace Fluid.Tests
             await e.WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal("xxx", sw.ToString());
-
+        }
+            
         public async Task ForEvaluatesMemberOptions()
         {
             var context = new TemplateContext()
