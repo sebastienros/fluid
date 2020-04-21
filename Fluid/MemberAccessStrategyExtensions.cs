@@ -28,12 +28,28 @@ namespace Fluid
                         continue;
                     }
 
-                    list[memberNameStrategy(propertyInfo)] = new PropertyInfoAccessor(propertyInfo);
+                    if (propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Task<>))
+                        list[memberNameStrategy(propertyInfo)] = new AsyncDelegateAccessor( async (o, n) =>
+                        {
+                            var asyncValue = (Task) propertyInfo.GetValue(o);
+                            await asyncValue.ConfigureAwait(false);
+                            return (object)((dynamic)asyncValue).Result;
+                        });
+                    else
+                        list[memberNameStrategy(propertyInfo)] = new PropertyInfoAccessor(propertyInfo);
                 }
 
                 foreach (var fieldInfo in t.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))
                 {
-                    list[memberNameStrategy(fieldInfo)] = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
+                    if (fieldInfo.FieldType.IsGenericType && fieldInfo.FieldType.GetGenericTypeDefinition() == typeof(Task<>))
+                        list[memberNameStrategy(fieldInfo)] = new AsyncDelegateAccessor( async (o, n) =>
+                        {
+                            var asyncValue = (Task) fieldInfo.GetValue(o);
+                            await asyncValue.ConfigureAwait(false);
+                            return (object)((dynamic)asyncValue).Result;
+                        });
+                    else
+                        list[memberNameStrategy(fieldInfo)] = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
                 }
 
                 return list;
