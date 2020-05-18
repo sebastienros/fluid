@@ -174,7 +174,7 @@ namespace Fluid.Filters
                             case 'I': result.Append((value.Hour % 12).ToString(context.CultureInfo).PadLeft(2, '0')); break;
                             case 'j': result.Append(value.DayOfYear.ToString(context.CultureInfo).PadLeft(3, '0')); break;
                             case 'k': result.Append(value.Hour); break;
-                            case 'l': result.Append((value.Hour % 12).ToString(context.CultureInfo).PadLeft(2, ' ')); break;
+                            case 'l': result.Append(value.ToString("%h", context.CultureInfo).PadLeft(2, ' ')); break;
                             case 'L': result.Append(value.Millisecond.ToString(context.CultureInfo).PadLeft(3, '0')); break;
                             case 'm': result.Append(value.Month.ToString(context.CultureInfo).PadLeft(2, '0')); break;
                             case 'M': result.Append(value.Minute.ToString(context.CultureInfo).PadLeft(2, '0')); break;
