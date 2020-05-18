@@ -134,9 +134,9 @@ namespace Fluid.Values
             return _value != null;
         }
 
-        public override double ToNumberValue()
+        public override decimal ToNumberValue()
         {
-            return Convert.ToDouble(_value);
+            return Convert.ToDecimal(_value);
         }
 
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)

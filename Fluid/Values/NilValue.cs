@@ -26,7 +26,7 @@ namespace Fluid.Values
             return ReferenceEquals(this, Empty);
         }
 
-        public override double ToNumberValue()
+        public override decimal ToNumberValue()
         {
             return 0;
         }

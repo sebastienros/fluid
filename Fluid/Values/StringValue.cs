@@ -65,9 +65,9 @@ namespace Fluid.Values
             return true;
         }
 
-        public override double ToNumberValue()
+        public override decimal ToNumberValue()
         {
-            if (double.TryParse(_value, out var value))
+            if (decimal.TryParse(_value, out var value))
             {
                 return value;
             }

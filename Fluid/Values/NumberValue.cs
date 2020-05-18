@@ -15,7 +15,7 @@ namespace Fluid.Values
         private static readonly NumberValue[] _intToValue = new NumberValue[NumbersMax];
         private static readonly NumberValue NegativeOneIntegral = new NumberValue(-1, true);
         private static readonly NumberValue NegativeOneDouble = new NumberValue(-1, false);
-        private readonly double _value;
+        private readonly decimal _value;
 
         static NumberValue()
         {
@@ -26,7 +26,7 @@ namespace Fluid.Values
             }
         }
 
-        private NumberValue(double value, bool isIntegral = false)
+        private NumberValue(decimal value, bool isIntegral = false)
         {
             _value = value;
             IsIntegral = isIntegral;
@@ -44,7 +44,7 @@ namespace Fluid.Values
             return true;
         }
 
-        public override double ToNumberValue()
+        public override decimal ToNumberValue()
         {
             return _value;
         }
@@ -97,7 +97,7 @@ namespace Fluid.Values
             return _value.GetHashCode();
         }
 
-        public static NumberValue Create(double value, bool integral = false)
+        public static NumberValue Create(decimal value, bool integral = false)
         {
             if (value >= 0 && value < NumbersMax && (int)value == value)
             {

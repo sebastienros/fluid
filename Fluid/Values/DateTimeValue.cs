@@ -36,7 +36,7 @@ namespace Fluid.Values
             return true;
         }
 
-        public override double ToNumberValue()
+        public override decimal ToNumberValue()
         {
             return _value.Ticks;
         }

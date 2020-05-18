@@ -51,7 +51,7 @@ namespace Fluid.Filters
         public static FluidValue DividedBy(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var first = arguments.At(0);
-            double divisor = first.ToNumberValue();
+            decimal divisor = first.ToNumberValue();
 
             // The result is rounded down to the nearest integer(that is, the floor) if the divisor is an integer.
             // https://shopify.github.io/liquid/filters/divided_by/
