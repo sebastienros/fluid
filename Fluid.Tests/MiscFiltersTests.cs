@@ -38,7 +38,7 @@ namespace Fluid.Tests
         [Fact]
         public void CompactRemovesNilValues()
         {
-            var input = new ArrayValue(new FluidValue[] { 
+            var input = new ArrayValue(new FluidValue[] {
                 new StringValue("a"),
                 NumberValue.Zero,
                 NilValue.Instance,
@@ -53,7 +53,7 @@ namespace Fluid.Tests
             Assert.Equal(3, result.Enumerate().Count());
         }
 
-        
+
         [Fact]
         public void EncodeUrl()
         {
@@ -66,7 +66,7 @@ namespace Fluid.Tests
 
             Assert.Equal("john%40liquid.com", result.ToStringValue());
         }
-        
+
         [Fact]
         public void DecodeUrl()
         {
@@ -79,7 +79,7 @@ namespace Fluid.Tests
 
             Assert.Equal("john@liquid.com", result.ToStringValue());
         }
-        
+
         [Fact]
         public void StripHtml()
         {
@@ -166,6 +166,26 @@ namespace Fluid.Tests
             var result = MiscFilters.Date(input, arguments, context);
 
             Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("2020-05-18T12:00:00+01:00", "%l:%M%P", "12:00pm")]
+        [InlineData("2020-05-18T08:00:00+01:00", "%l:%M%P", "8:00am")]
+        [InlineData("2020-05-18T20:00:00+01:00", "%l:%M%P", "8:00pm")]
+        [InlineData("2020-05-18T23:59:00+01:00", "%l:%M%P", "11:59pm")]
+        [InlineData("2020-05-18T00:00:00+01:00", "%l:%M%P", "12:00am")]
+        [InlineData("2020-05-18T11:59:00+01:00", "%l:%M%P", "11:59am")]
+        public void Time12hFormatFormDateTimeOffset(string dateTimeOffset, string format, string expected)
+        {
+            var input = new DateTimeValue(DateTimeOffset.Parse(dateTimeOffset));
+
+            var arguments = new FilterArguments(new StringValue(format));
+            var context = new TemplateContext();
+            context.CultureInfo = CultureInfo.InvariantCulture;
+
+            var result = MiscFilters.Date(input, arguments, context);
+
+            Assert.Equal(expected, result.ToStringValue().Trim());
         }
 
         [Fact]
