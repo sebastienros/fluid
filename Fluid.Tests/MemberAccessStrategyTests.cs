@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Fluid.Accessors;
 using Xunit;
 
 namespace Fluid.Tests
@@ -31,6 +32,30 @@ namespace Fluid.Tests
             Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property2)));
 
             Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateProperty)));
+        }
+
+        [Fact]
+        public void RegisterByTypeAddAsyncPublicFields()
+        {
+            var strategy = new MemberAccessStrategy();
+
+            strategy.Register<Class1>();
+
+            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Field3));
+            Assert.NotNull(accessor);
+            Assert.IsAssignableFrom<AsyncDelegateAccessor>(accessor);
+        }
+
+        [Fact]
+        public void RegisterByTypeAddAsyncPublicProperties()
+        {
+            var strategy = new MemberAccessStrategy();
+
+            strategy.Register<Class1>();
+
+            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property3));
+            Assert.NotNull(accessor);
+            Assert.IsAssignableFrom<AsyncDelegateAccessor>(accessor);
         }
 
         [Fact]
@@ -111,7 +136,9 @@ namespace Fluid.Tests
         internal string PrivateProperty { get; set; }
         public string Field1;
         public int Field2;
+        public Task<string> Field3;
         public string Property1 { get; set; }
         public int Property2 { get; set; }
+        public Task<string> Property3 { get; set; }
     }
 }

@@ -45,7 +45,7 @@ namespace Fluid.Values
         {
             return true;
         }
-        
+
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
         }
@@ -58,7 +58,7 @@ namespace Fluid.Values
 
         public override int GetHashCode()
         {
-            return GetType().GetHashCode(); ;
+            return GetType().GetHashCode();
         }
     }
 }
