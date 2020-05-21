@@ -19,7 +19,7 @@ namespace Fluid.Values
 
         public abstract bool ToBooleanValue();
 
-        public abstract double ToNumberValue();
+        public abstract decimal ToNumberValue();
 
         public abstract string ToStringValue();
 
@@ -81,7 +81,7 @@ namespace Fluid.Values
                 case TypeCode.Decimal:
                 case TypeCode.Double:
                 case TypeCode.Single:
-                    return NumberValue.Create(Convert.ToDouble(value));
+                    return NumberValue.Create(Convert.ToDecimal(value));
                 case TypeCode.SByte:
                 case TypeCode.Byte:
                 case TypeCode.Int16:
@@ -90,7 +90,7 @@ namespace Fluid.Values
                 case TypeCode.UInt16:
                 case TypeCode.UInt32:
                 case TypeCode.UInt64:
-                    return NumberValue.Create(Convert.ToDouble(value), true);
+                    return NumberValue.Create(Convert.ToDecimal(value), true);
                 case TypeCode.Empty:
                     return NilValue.Instance;
                 case TypeCode.Object:

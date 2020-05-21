@@ -13,7 +13,7 @@ namespace Fluid.Tests
         [InlineData(4.2, 4.2)]
         [InlineData(-4, 4)]
         [InlineData(-4.2, 4.2)]
-        public void Abs(double value, double expectedResult)
+        public void Abs(double value, decimal expectedResult)
         {
             var input = NumberValue.Create(value);
 
@@ -32,7 +32,7 @@ namespace Fluid.Tests
         {
             var input = NumberValue.Create(value1);
 
-            var arguments = new FilterArguments(NumberValue.Create(Convert.ToDouble(value2), value2 is int));
+            var arguments = new FilterArguments(NumberValue.Create(Convert.ToDecimal(value2), value2 is int));
             var context = new TemplateContext();
 
             var result = NumberFilters.AtLeast(input, arguments, context);
@@ -47,7 +47,7 @@ namespace Fluid.Tests
         {
             var input = NumberValue.Create(value1);
 
-            var arguments = new FilterArguments(NumberValue.Create(Convert.ToDouble(value2), value2 is int));
+            var arguments = new FilterArguments(NumberValue.Create(Convert.ToDecimal(value2), value2 is int));
             var context = new TemplateContext();
 
             var result = NumberFilters.AtMost(input, arguments, context);
@@ -73,11 +73,11 @@ namespace Fluid.Tests
         [InlineData(4, 5.0, 0.8)]
         [InlineData(5, 2, 2)]
         [InlineData(5, 2.0, 2.5)]
-        public void DividedByReturnsSameTypeAsDivisor(double value, object divisor, double expected)
+        public void DividedByReturnsSameTypeAsDivisor(decimal value, object divisor, decimal expected)
         {
             var input = NumberValue.Create(value);
 
-            var arguments = new FilterArguments(NumberValue.Create(Convert.ToDouble(divisor), divisor is int));
+            var arguments = new FilterArguments(NumberValue.Create(Convert.ToDecimal(divisor), divisor is int));
             var context = new TemplateContext();
 
             var result = NumberFilters.DividedBy(input, arguments, context);
@@ -109,6 +109,21 @@ namespace Fluid.Tests
             var result = NumberFilters.Minus(input, arguments, context);
 
             Assert.Equal(3, result.ToNumberValue());
+        }
+
+        [Theory]
+        [InlineData("23.4", "20", 3.4)]
+        [InlineData("0.8", ".4", 0.4)]
+        [InlineData("0.0003", "0.0001", 0.0002)]
+        public void MinusWithDecimalPointFromObject(string input, string argument, decimal expectedResult)
+        {
+            var inputA = NumberValue.Create(input);
+            var inputB = new FilterArguments(argument);
+            var context = new TemplateContext();
+
+            var result = NumberFilters.Minus(inputA, inputB, context);
+
+            Assert.Equal(expectedResult, result.ToNumberValue());
         }
 
         [Fact]
@@ -148,9 +163,24 @@ namespace Fluid.Tests
             Assert.Equal(9, result.ToNumberValue());
         }
 
+        [Theory]
+        [InlineData("23.4", "20", 43.4)]
+        [InlineData("0.8", ".4", 1.2)]
+        [InlineData("0.0003", "0.0001", 0.0004)]
+        public void PlusWithDecimalPointFromObject(string input, string argument, decimal expectedResult)
+        {
+            var inputA = NumberValue.Create(input);
+            var inputB = new FilterArguments(argument);
+            var context = new TemplateContext();
+
+            var result = NumberFilters.Plus(inputA, inputB, context);
+
+            Assert.Equal(expectedResult, result.ToNumberValue());
+        }
+
         [Fact]
         public void PlusConvertsObjectToNumber()
-        {   
+        {
             var input = new ObjectValue("6");
 
             var arguments = new FilterArguments(3);
@@ -171,7 +201,7 @@ namespace Fluid.Tests
 
             var result = NumberFilters.Round(input, arguments, context);
 
-            Assert.Equal(4.12, result.ToNumberValue());
+            Assert.Equal(4.12M, result.ToNumberValue());
         }
 
         [Fact]
@@ -186,6 +216,21 @@ namespace Fluid.Tests
 
             Assert.Equal(18, result.ToNumberValue());
             Assert.True(((NumberValue)result).IsIntegral);
+        }
+
+        [Theory]
+        [InlineData("23.4", "20", 468)]
+        [InlineData("0.8", ".4", 0.32)]
+        [InlineData("0.0003", "0.0001", 0.00000003)]
+        public void TimesWithDecimalPointFromObject(string input, string argument, decimal expectedResult)
+        {
+            var inputA = NumberValue.Create(input);
+            var inputB = new FilterArguments(argument);
+            var context = new TemplateContext();
+
+            var result = NumberFilters.Times(inputA, inputB, context);
+
+            Assert.Equal(expectedResult, result.ToNumberValue());
         }
 
         [Fact]

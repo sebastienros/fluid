@@ -36,7 +36,7 @@ namespace Fluid.Values
             return _value;
         }
 
-        public override double ToNumberValue()
+        public override decimal ToNumberValue()
         {
             return _value ? 1 : 0;
         }

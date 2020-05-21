@@ -219,7 +219,7 @@ namespace Fluid.Ast
                 return false;
             }
 
-            public override double ToNumberValue()
+            public override decimal ToNumberValue()
             {
                 return Length;
             }

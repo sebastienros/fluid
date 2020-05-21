@@ -67,7 +67,7 @@ namespace Fluid.Values
             return _factory.Value.ToBooleanValue();
         }
 
-        public override double ToNumberValue()
+        public override decimal ToNumberValue()
         {
             return _factory.Value.ToNumberValue();
         }
