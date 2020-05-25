@@ -126,14 +126,27 @@ namespace Fluid.Filters
 
         public static FluidValue Slice(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var source = input.ToStringValue();
-            var start = Convert.ToInt32(arguments.At(0).ToNumberValue());
-            var length = Convert.ToInt32(arguments.At(1).Or(NumberValue.Create(1)).ToNumberValue());
+            var sourceString = input.ToStringValue();
+            var requestedStartIndex = Convert.ToInt32(arguments.At(0).ToNumberValue());
+            var requestedLenght = Convert.ToInt32(arguments.At(1).Or(NumberValue.Create(1)).ToNumberValue());
 
-            var len = source.Length;
-            var from = start < 0 ? Math.Max(len + start, 0) : Math.Min(start, len);
+            var sourceStringLength = sourceString.Length;
 
-            return new StringValue(source.Substring(from, length));
+            if (requestedLenght <= 0)
+            {
+                return new StringValue("");
+            }
+
+            if (requestedStartIndex < 0 && Math.Abs(requestedStartIndex) > sourceStringLength)
+            {
+                return new StringValue("");
+            }
+
+            var startIndex = requestedStartIndex < 0 ? Math.Max(sourceStringLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceStringLength);
+            var length = requestedLenght > sourceStringLength ? sourceStringLength : requestedLenght;
+            length = startIndex > 0 && length + startIndex > sourceStringLength ? length - startIndex : length;
+
+            return new StringValue(sourceString.Substring(startIndex, length));
         }
 
         public static FluidValue Split(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -152,7 +165,7 @@ namespace Fluid.Filters
                     strings[i] = stringInput[i].ToString();
                 }
             }
-            else 
+            else
             {
                 strings = stringInput.Split(new[] { separator }, StringSplitOptions.RemoveEmptyEntries);
             }
@@ -183,14 +196,14 @@ namespace Fluid.Filters
             {
                 result = result.Replace("\n", "");
             }
-            
+
             return new StringValue(result);
         }
 
         public static FluidValue Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var text = input.ToStringValue();
-            var size = Math.Max(0, (int) arguments.At(0).ToNumberValue());
+            var size = Math.Max(0, (int)arguments.At(0).ToNumberValue());
             var ellipsis = arguments.At(1).Or(Ellipsis).ToStringValue();
 
             if (text == null)
@@ -240,7 +253,7 @@ namespace Fluid.Filters
             {
                 source = "";
             }
-            
+
             source += ellipsis;
 
             return new StringValue(source);
