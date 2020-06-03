@@ -19,10 +19,12 @@ namespace Fluid
         {
             IMemberAccessor accessor = null;
 
-            while (type != typeof(object))
+            var currentType = type;
+
+            while (currentType != typeof(object) && currentType != null)
             {
                 // Look for specific property map
-                if (_map.TryGetValue(type, out var typeMap))
+                if (_map.TryGetValue(currentType, out var typeMap))
                 {
                     if (typeMap.TryGetValue(name, out accessor) || typeMap.TryGetValue("*", out accessor))
                     {
@@ -30,7 +32,17 @@ namespace Fluid
                     }
                 }
 
-                type = type.GetTypeInfo().BaseType;
+                currentType = currentType.GetTypeInfo().BaseType;
+            }
+
+            foreach (var interfaceType in type.GetTypeInfo().GetInterfaces())
+            {
+                accessor = GetAccessor(interfaceType, name);
+
+                if (accessor != null)
+                {
+                    return accessor;
+                }
             }
 
             return null;
