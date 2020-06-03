@@ -1030,7 +1030,8 @@ namespace Fluid
                     return new LiteralExpression(new StringValue(node.Token.ValueString));
 
                 case "number":
-                    return new LiteralExpression(NumberValue.Create(node.Token.Value));
+                    // We know it's a decimal as it's configured in the grammar
+                    return new LiteralExpression(NumberValue.Create((decimal)node.Token.Value));
 
                 case "boolean":
                     if (!bool.TryParse(node.ChildNodes[0].Token.Text, out var boolean))
