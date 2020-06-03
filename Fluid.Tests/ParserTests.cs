@@ -403,5 +403,22 @@ def", "at line:2, col:6")]
 
             Assert.Equal(expected, rendered);
         }
+
+        [Theory]
+        [InlineData("{% assign my_integer = 7 %}{{ 20 | divided_by: my_integer }}", "2")]
+        [InlineData("{% assign my_integer = 7 %}{% assign my_float = my_integer | times: 1.0 %}{{ 20 | divided_by: my_float | round: 5 }}", "2.85714")]
+        [InlineData("{{ 183.357 | times: 12 }}", "2200.284")]
+        public void ShouldChangeVariableType(string source, string expected)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.True(result, String.Join(", ", errors));
+            Assert.NotNull(template);
+            Assert.Empty(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal(expected, rendered);
+        }
     }    
 }

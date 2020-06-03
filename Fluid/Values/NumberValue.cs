@@ -4,32 +4,19 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Values
 {
+    /// Numbers are stored as decimal values to handle the best possible precision.
+    /// Decimals also have the capacity of retaining their precision across 
+    /// operations:
+    /// 1 * 2 = 2
+    /// 1.0 * 2.0 = 2.00
     public sealed class NumberValue : FluidValue
     {
-        public static readonly NumberValue Zero = new NumberValue(0);
-
-        // We can cache most common values, doubles are used in indexing too at times so we also cache
-        // integer values converted to doubles
-        private const int NumbersMax = 1024 * 10;
-        private static readonly NumberValue[] _doubleToValue = new NumberValue[NumbersMax];
-        private static readonly NumberValue[] _intToValue = new NumberValue[NumbersMax];
-        private static readonly NumberValue NegativeOneIntegral = new NumberValue(-1, true);
-        private static readonly NumberValue NegativeOneDouble = new NumberValue(-1, false);
+        public static readonly NumberValue Zero = new NumberValue(0M);
         private readonly decimal _value;
 
-        static NumberValue()
-        {
-            for (var i = 0; i < NumbersMax; i++)
-            {
-                _intToValue[i] = new NumberValue(i, true);
-                _doubleToValue[i] = new NumberValue(i, false);
-            }
-        }
-
-        private NumberValue(decimal value, bool isIntegral = false)
+        private NumberValue(decimal value)
         {
             _value = value;
-            IsIntegral = isIntegral;
         }
 
         public override FluidValues Type => FluidValues.Number;
@@ -90,61 +77,36 @@ namespace Fluid.Values
             return false;
         }
 
-        public bool IsIntegral { get; private set; }
-
         public override int GetHashCode()
         {
             return _value.GetHashCode();
         }
 
-        public static NumberValue Create(decimal value, bool integral = false)
+        public static NumberValue Create(string value)
         {
-            if (value >= 0 && value < NumbersMax && (int)value == value)
+            if (decimal.TryParse(value, out var d))
             {
-                if (integral)
-                {
-                    return _intToValue[(int)value];
-                }
-                else
-                {
-                    return _doubleToValue[(int)value];
-                }
-            }
-            else
-            {
-                if (value == -1)
-                {
-                    return integral ? NegativeOneIntegral : NegativeOneIntegral;
-                }
+                return Create(d);
             }
 
+            return Zero;
+        }
+
+        public static NumberValue Create(decimal value)
+        {
             return new NumberValue(value);
         }
 
-        public static NumberValue Create(int value, bool integral = false)
+        public static int GetScale(decimal value)
         {
-            if (value < NumbersMax && value >= 0)
+            if (value == 0)
             {
-                if (integral)
-                {
-                    return _intToValue[value];
-                }
-                else
-                {
-                    return _doubleToValue[value];
-                }
+                return 0;
             }
-            else
-            {
-                if (value == -1)
-                {
-                    return integral ? NegativeOneIntegral : NegativeOneIntegral;
-                }
+        
+            int[] bits = decimal.GetBits(value);
 
-            }
-
-            return new NumberValue(value);
+            return (int) ((bits[3] >> 16) & 0x7F); 
         }
-
     }
 }

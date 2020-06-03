@@ -81,7 +81,6 @@ namespace Fluid.Values
                 case TypeCode.Decimal:
                 case TypeCode.Double:
                 case TypeCode.Single:
-                    return NumberValue.Create(Convert.ToDecimal(value));
                 case TypeCode.SByte:
                 case TypeCode.Byte:
                 case TypeCode.Int16:
@@ -90,7 +89,7 @@ namespace Fluid.Values
                 case TypeCode.UInt16:
                 case TypeCode.UInt32:
                 case TypeCode.UInt64:
-                    return NumberValue.Create(Convert.ToDecimal(value), true);
+                    return NumberValue.Create(Convert.ToDecimal(value));
                 case TypeCode.Empty:
                     return NilValue.Instance;
                 case TypeCode.Object:
@@ -203,9 +202,9 @@ namespace Fluid.Values
         private static Func<object, FluidValue> GetTypeMapping(Type type)
         {
             // Get a local reference in case it is being altered.
-            var locaTypeMappings = _customTypeMappings;
+            var localTypeMappings = _customTypeMappings;
 
-            if (locaTypeMappings != null && locaTypeMappings.TryGetValue(type, out var mapping))
+            if (localTypeMappings != null && localTypeMappings.TryGetValue(type, out var mapping))
             {
                 return mapping;
             }
