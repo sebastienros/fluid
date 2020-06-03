@@ -199,6 +199,20 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task ShouldRegisterValueMappingWithInterface()
+        {
+            FluidValue.SetTypeMapping<IPet>(x => new PetValue(x));
+
+            FluidTemplate.TryParse("{{ p.Name }}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("p", new Dog { Name = "Rex" });
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("Rex", result);
+        }
+
+        [Fact]
         public async Task ShouldNotAllowNotRegisteredInterfaceMembers()
         {
             TemplateContext.GlobalMemberAccessStrategy.Register<IAnimal>();

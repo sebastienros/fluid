@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Fluid.Tests.Domain.WithInterfaces
+﻿namespace Fluid.Tests.Domain.WithInterfaces
 {
-    public class Dog : Animal, IDog
+    public class Dog : Animal, IDog, IPet
     {
         public string Name { get; set; }
     }

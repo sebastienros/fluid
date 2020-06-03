@@ -210,6 +210,16 @@ namespace Fluid.Values
                 return mapping;
             }
 
+            foreach (var @interface in type.GetInterfaces())
+            {
+                if (locaTypeMappings != null && locaTypeMappings.TryGetValue(@interface, out mapping))
+                {
+                    SetTypeMapping(@interface, mapping);
+
+                    return mapping;
+                }
+            }
+
             return null;
         }
     }
