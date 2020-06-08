@@ -1,4 +1,5 @@
-﻿using Irony.Parsing;
+﻿using System;
+using Irony.Parsing;
 
 namespace Fluid
 {
@@ -67,7 +68,12 @@ namespace Fluid
             var Colon = ToTerm(":");
             var StringLiteralSingle = new StringLiteral("string1", "'", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes | StringOptions.AllowsLineBreak);
             var StringLiteralDouble = new StringLiteral("string2", "\"", StringOptions.AllowsDoubledQuote | StringOptions.AllowsAllEscapes | StringOptions.AllowsLineBreak);
-            var Number = new NumberLiteral("number", NumberOptions.AllowSign);
+            var Number = new NumberLiteral("number", NumberOptions.AllowSign)
+            {
+                DefaultIntTypes = new TypeCode[] { TypeCode.Decimal },
+                DefaultFloatType = TypeCode.Decimal
+            };
+
             var True = ToTerm("true");
             var False = ToTerm("false");
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -1029,8 +1030,8 @@ namespace Fluid
                     return new LiteralExpression(new StringValue(node.Token.ValueString));
 
                 case "number":
-                    var decimalSeparator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
-                    return new LiteralExpression(NumberValue.Create(Convert.ToDecimal(node.Token.Value), !node.Token.Text.Contains(decimalSeparator)));
+                    // We know it's a decimal as it's configured in the grammar
+                    return new LiteralExpression(NumberValue.Create((decimal)node.Token.Value));
 
                 case "boolean":
                     if (!bool.TryParse(node.ChildNodes[0].Token.Text, out var boolean))

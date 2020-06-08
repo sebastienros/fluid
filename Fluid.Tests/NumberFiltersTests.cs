@@ -8,12 +8,13 @@ namespace Fluid.Tests
 {
     public class NumberFiltersTests
     {
+
         [Theory]
         [InlineData(4, 4)]
         [InlineData(4.2, 4.2)]
         [InlineData(-4, 4)]
         [InlineData(-4.2, 4.2)]
-        public void Abs(double value, decimal expectedResult)
+        public void Abs(decimal value, decimal expectedResult)
         {
             var input = NumberValue.Create(value);
 
@@ -32,7 +33,7 @@ namespace Fluid.Tests
         {
             var input = NumberValue.Create(value1);
 
-            var arguments = new FilterArguments(NumberValue.Create(Convert.ToDecimal(value2), value2 is int));
+            var arguments = new FilterArguments(NumberValue.Create(value2));
             var context = new TemplateContext();
 
             var result = NumberFilters.AtLeast(input, arguments, context);
@@ -47,7 +48,7 @@ namespace Fluid.Tests
         {
             var input = NumberValue.Create(value1);
 
-            var arguments = new FilterArguments(NumberValue.Create(Convert.ToDecimal(value2), value2 is int));
+            var arguments = new FilterArguments(NumberValue.Create(value2));
             var context = new TemplateContext();
 
             var result = NumberFilters.AtMost(input, arguments, context);
@@ -69,15 +70,17 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData(4, 5, 0)]
-        [InlineData(4, 5.0, 0.8)]
-        [InlineData(5, 2, 2)]
-        [InlineData(5, 2.0, 2.5)]
-        public void DividedByReturnsSameTypeAsDivisor(decimal value, object divisor, decimal expected)
+        [InlineData(4, "5", 0)]
+        [InlineData(4, "5.0", 0.8)]
+        [InlineData(5, "2", 2)]
+        [InlineData(5, "2.0", 2.5)]
+        public void DividedByReturnsSameTypeAsDivisor(decimal value, string divisor, decimal expected)
         {
+            // https://shopify.github.io/liquid/filters/divided_by/
+
             var input = NumberValue.Create(value);
 
-            var arguments = new FilterArguments(NumberValue.Create(Convert.ToDecimal(divisor), divisor is int));
+            var arguments = new FilterArguments(NumberValue.Create(divisor));
             var context = new TemplateContext();
 
             var result = NumberFilters.DividedBy(input, arguments, context);
@@ -205,17 +208,16 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void Times()
+        public void OperationMaintainsScale()
         {
-            var input = NumberValue.Create(6, true);
+            var input = NumberValue.Create(6);
 
             var arguments = new FilterArguments(3);
             var context = new TemplateContext();
 
             var result = NumberFilters.Times(input, arguments, context);
 
-            Assert.Equal(18, result.ToNumberValue());
-            Assert.True(((NumberValue)result).IsIntegral);
+            Assert.Equal("18", result.ToStringValue());
         }
 
         [Theory]
@@ -234,17 +236,17 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void TimesCanChangeToFloat()
+        public void TimesMaintainsScale()
         {
-            var input = NumberValue.Create(6, true);
+            var input = NumberValue.Create(6);
 
-            var arguments = new FilterArguments(1.0);
+            var arguments = new FilterArguments(1.0M);
             var context = new TemplateContext();
 
             var result = NumberFilters.Times(input, arguments, context);
 
             Assert.Equal(6, result.ToNumberValue());
-            Assert.False(((NumberValue)result).IsIntegral);
+            Assert.Equal("6.0", result.ToStringValue());
         }
     }
 }
