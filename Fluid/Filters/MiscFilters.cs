@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using Fluid.Values;
 
 namespace Fluid.Filters
@@ -33,6 +35,7 @@ namespace Fluid.Filters
             filters.AddFilter("escape_once", EscapeOnce);
             filters.AddFilter("handle", Handleize);
             filters.AddFilter("handleize", Handleize);
+            filters.AddFilter("json", Json);
 
             return filters;
         }
@@ -267,6 +270,39 @@ namespace Fluid.Filters
             }
 
             return true;
+        }
+
+        public static FluidValue Json(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = arguments.At(0).ToBooleanValue()
+            };
+
+            switch (input.Type)
+            {
+                case FluidValues.Array:
+                    return new StringValue(JsonSerializer.Serialize(input.Enumerate().Select(o => o.ToObjectValue()), options));
+
+                case FluidValues.Boolean:
+                    return new StringValue(JsonSerializer.Serialize(input.ToBooleanValue(), options));
+
+                case FluidValues.Nil:
+                    return StringValue.Create("null");
+
+                case FluidValues.Number:
+                    return new StringValue(JsonSerializer.Serialize(input.ToNumberValue(), options));
+
+                case FluidValues.DateTime:
+                case FluidValues.Dictionary:
+                case FluidValues.Object:
+                    return new StringValue(JsonSerializer.Serialize(input.ToObjectValue(), options));
+
+                case FluidValues.String:
+                    return new StringValue(JsonSerializer.Serialize(input.ToStringValue(), options));
+            }
+
+            throw new NotSupportedException("Unrecognized FluidValue");
         }
     }
 }

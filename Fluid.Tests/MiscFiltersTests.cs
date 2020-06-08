@@ -320,5 +320,30 @@ namespace Fluid.Tests
 
             Assert.Equal(expected, result.ToStringValue());
         }
+
+        [Theory]
+        [InlineData("Hello World!", "\"Hello World!\"")]
+        [InlineData("\"", "\"\\u0022\"")]
+        [InlineData("'", "\"\\u0027\"")]
+        [InlineData(123, "123")]
+        [InlineData(123.12, "123.12")]
+        [InlineData(-123.12, "-123.12")]
+        [InlineData(null, "null")]
+        [InlineData("", "\"\"")]
+        [InlineData(new int[] { 1, 2, 3}, "[1,2,3]")]
+        [InlineData(new string[] { "a", "b", "c"}, "[\"a\",\"b\",\"c\"]")]
+        [InlineData(new object[0], "[]")]
+        [InlineData(new object[] { 1, "a", true}, "[1,\"a\",true]")]
+        public void Json(object value, string expected)
+        {
+            var input = FluidValue.Create(value);
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = MiscFilters.Json(input, arguments, context);
+
+            Assert.Equal(expected, result.ToStringValue());
+        }
     }
 }
