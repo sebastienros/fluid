@@ -45,7 +45,7 @@ namespace Fluid.Tests
 
             Assert.Equal("hello world", result.ToStringValue());
         }
-        
+
         [Fact]
         public void LStrip()
         {
@@ -58,7 +58,7 @@ namespace Fluid.Tests
 
             Assert.Equal("Hello World   ", result.ToStringValue());
         }
-        
+
         [Fact]
         public void RStrip()
         {
@@ -71,7 +71,7 @@ namespace Fluid.Tests
 
             Assert.Equal("   Hello World", result.ToStringValue());
         }
-        
+
         [Fact]
         public void Strip()
         {
@@ -125,7 +125,7 @@ world
 
             Assert.Equal("Hello World", result.ToStringValue());
         }
-                
+
         [Fact]
         public void RemoveFirst()
         {
@@ -138,7 +138,7 @@ world
 
             Assert.Equal("acabc", result.ToStringValue());
         }
-                
+
         [Fact]
         public void Remove()
         {
@@ -198,6 +198,28 @@ world
         [InlineData("hello", new object[] { -3 }, "l")]
         [InlineData("abcdefg", new object[] { -3, 2 }, "ef")]
         public void Slice(object input, object[] arguments, string expected)
+        {
+            var filterInput = FluidValue.Create(input);
+            var filterArguments = new FilterArguments(arguments);
+            var context = new TemplateContext();
+
+            var result = StringFilters.Slice(filterInput, filterArguments, context);
+
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("hello", new object[] { 0, 100 }, "hello")]
+        [InlineData("hello", new object[] { 2, 100 }, "llo")]
+        [InlineData("hello", new object[] { 100, 100 }, "")]
+        [InlineData("hello", new object[] { -3, 100 }, "llo")]
+        [InlineData("hello", new object[] { -5, 200 }, "hello")]
+        [InlineData("hello", new object[] { -100, 100 }, "")]
+        [InlineData("hello", new object[] { -100, 200 }, "")]
+        [InlineData("hello", new object[] { -5, 100 }, "hello")]
+        [InlineData("hello", new object[] { 0, -100 }, "")]
+        [InlineData("hello", new object[] { -100, -100 }, "")]
+        public void SliceOutsideBounds(object input, object[] arguments, string expected)
         {
             var filterInput = FluidValue.Create(input);
             var filterArguments = new FilterArguments(arguments);
