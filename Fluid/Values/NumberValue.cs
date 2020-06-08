@@ -84,7 +84,7 @@ namespace Fluid.Values
 
         public static NumberValue Create(string value)
         {
-            if (decimal.TryParse(value, out var d))
+            if (decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
             {
                 return Create(d);
             }

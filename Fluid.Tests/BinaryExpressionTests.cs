@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -105,6 +106,20 @@ namespace Fluid.Tests
             {
                 context.SetValue("x", new [] { "a", "b", "c" });
                 context.SetValue("y", new List<string> { "a", "b", "c" });
+            });
+        }
+
+        [Theory]
+        [InlineData("'Strasse' contains 'ß'", "false")]
+        [InlineData("'ss' == 'ß'", "false")]
+        public Task StringComparisonsShouldBeOrdinal(string source, string expected)
+        {
+            return CheckAsync("{{" + source + "}}", expected, context =>
+            {
+                // This is the default, but forcing it for clarity of the test
+                // With invariant culture, Strasse and Straße are equal, and Liquid 
+                // should not assume they are 
+                context.CultureInfo = CultureInfo.InvariantCulture;
             });
         }
 

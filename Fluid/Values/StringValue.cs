@@ -67,9 +67,9 @@ namespace Fluid.Values
 
         public override decimal ToNumberValue()
         {
-            if (decimal.TryParse(_value, out var value))
+            if (decimal.TryParse(_value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
             {
-                return value;
+                return d;
             }
 
             return 0;

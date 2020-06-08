@@ -124,7 +124,8 @@ namespace Fluid.Values
 
                         case IEnumerable enumerable:
                             var fluidValues = new List<FluidValue>();
-                            foreach(var item in enumerable)
+                            
+                            foreach (var item in enumerable)
                             {
                                 fluidValues.Add(Create(item));
                             }

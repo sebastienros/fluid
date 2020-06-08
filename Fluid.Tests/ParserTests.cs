@@ -420,5 +420,21 @@ def", "at line:2, col:6")]
 
             Assert.Equal(expected, rendered);
         }
+
+        [Theory]
+        [InlineData("{% assign my_string = 'abcd' %}{{ my_string.size }}", "4")]
+        public void SizeAppliedToStrings(string source, string expected)
+        {
+            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+
+            Assert.True(result, String.Join(", ", errors));
+            Assert.NotNull(template);
+            Assert.Empty(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal(expected, rendered);
+        }
+
     }    
 }
