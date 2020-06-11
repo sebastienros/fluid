@@ -9,6 +9,8 @@ namespace Fluid.Values
 {
     public sealed class ArrayValue : FluidValue
     {
+        public static ArrayValue Empty = new ArrayValue(new FluidValue[0]);
+
         private readonly FluidValue[] _value;
 
         public override FluidValues Type => FluidValues.Array;
@@ -100,6 +102,7 @@ namespace Fluid.Values
             return 0;
         }
 
+        public FluidValue[] Values => _value;
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             if (writer == null)

@@ -645,7 +645,7 @@ shape: '{{ shape }}'");
         }
 
         [Fact]
-        public async Task IgonreCasing()
+        public async Task IgnoreCasing()
         {
             FluidTemplate.TryParse("{{ p.NaMe }}", out var template, out var messages);
 

@@ -58,6 +58,12 @@ namespace Fluid
 
         public FilterArguments(params object[] values)
         {
+            if (values == null)
+            {
+                _positional = new List<FluidValue>();
+                return;
+            }
+
             _positional = new List<FluidValue>(values.Length);
 
             var length = values.Length;
