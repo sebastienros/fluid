@@ -8,6 +8,8 @@ namespace Fluid.Values
 {
     public sealed class StringValue : FluidValue
     {
+        public static StringValue Empty = new StringValue("");
+
         private readonly string _value;
 
         public StringValue(string value)
@@ -67,6 +69,11 @@ namespace Fluid.Values
 
         public override decimal ToNumberValue()
         {
+            if (_value == "")
+            {
+                return 0;
+            }
+            
             if (decimal.TryParse(_value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
             {
                 return d;

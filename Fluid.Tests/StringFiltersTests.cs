@@ -251,7 +251,7 @@ world
         {
             var input = new StringValue("abc");
 
-            var arguments = new FilterArguments().Add(new StringValue(""));
+            var arguments = new FilterArguments().Add(StringValue.Empty);
             var context = new TemplateContext();
 
             var result = StringFilters.Split(input, arguments, context);

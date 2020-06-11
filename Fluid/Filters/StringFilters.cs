@@ -126,27 +126,70 @@ namespace Fluid.Filters
 
         public static FluidValue Slice(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var sourceString = input.ToStringValue();
-            var requestedStartIndex = Convert.ToInt32(arguments.At(0).ToNumberValue());
-            var requestedLenght = Convert.ToInt32(arguments.At(1).Or(NumberValue.Create(1)).ToNumberValue());
+            var firstArgument = arguments.At(0);
+            var secondArgument = arguments.At(1);
 
-            var sourceStringLength = sourceString.Length;
-
-            if (requestedLenght <= 0)
+            if (!firstArgument.IsInteger())
             {
-                return new StringValue("");
+                throw new ArgumentException("Slice: offset argument is an invalid number");
             }
 
-            if (requestedStartIndex < 0 && Math.Abs(requestedStartIndex) > sourceStringLength)
+            if (arguments.Count > 1 && !secondArgument.IsInteger())
             {
-                return new StringValue("");
+                throw new ArgumentException("Slice: length argument is not a number");
             }
 
-            var startIndex = requestedStartIndex < 0 ? Math.Max(sourceStringLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceStringLength);
-            var length = requestedLenght > sourceStringLength ? sourceStringLength : requestedLenght;
-            length = startIndex > 0 && length + startIndex > sourceStringLength ? length - startIndex : length;
+            var requestedStartIndex = Convert.ToInt32(firstArgument.ToNumberValue());
+            var requestedLength = Convert.ToInt32(secondArgument.Or(NumberValue.Create(1)).ToNumberValue());
 
-            return new StringValue(sourceString.Substring(startIndex, length));
+            if (input.Type == FluidValues.Array)
+            {
+                if (requestedLength <= 0)
+                {
+                    return ArrayValue.Empty;
+                }
+
+                var sourceArray = ((ArrayValue) input).Values;
+
+                var sourceLength = sourceArray.Length;
+
+                if (requestedStartIndex < 0 && Math.Abs(requestedStartIndex) > sourceLength)
+                {
+                    return ArrayValue.Empty;
+                }
+
+                var startIndex = requestedStartIndex < 0 ? Math.Max(sourceLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceLength);
+                var length = requestedLength > sourceLength ? sourceLength : requestedLength;
+                length = startIndex > 0 && length + startIndex > sourceLength ? length - startIndex : length;
+
+                var result = new FluidValue[length];
+
+                Array.Copy(sourceArray, startIndex, result, 0, length);
+
+                return new ArrayValue(result);
+            }
+            else
+            {
+                if (requestedLength <= 0)
+                {
+                    return StringValue.Empty;
+                }
+
+                var sourceString = input.ToStringValue();
+    
+                var sourceStringLength = sourceString.Length;
+    
+                if (requestedStartIndex < 0 && Math.Abs(requestedStartIndex) > sourceStringLength)
+                {
+                    return StringValue.Empty;
+                }
+
+                var startIndex = requestedStartIndex < 0 ? Math.Max(sourceStringLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceStringLength);
+                var length = requestedLength > sourceStringLength ? sourceStringLength : requestedLength;
+                length = startIndex > 0 && length + startIndex > sourceStringLength ? length - startIndex : length;
+
+                return new StringValue(sourceString.Substring(startIndex, length));
+            }
         }
 
         public static FluidValue Split(FluidValue input, FilterArguments arguments, TemplateContext context)

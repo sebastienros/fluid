@@ -98,7 +98,7 @@ namespace Fluid
         {
             // Global properties
             GlobalScope.SetValue("empty", NilValue.Empty);
-            GlobalScope.SetValue("blank", new StringValue(""));
+            GlobalScope.SetValue("blank", StringValue.Empty);
 
             // Initialize Global Filters
             GlobalFilters

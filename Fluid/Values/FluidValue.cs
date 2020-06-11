@@ -52,6 +52,30 @@ namespace Fluid.Values
             return false;
         }
 
+        public bool IsInteger()
+        {
+            // Maps to https://github.com/Shopify/liquid/blob/1feaa6381300d56e2c71b49ad8fee0d4b625147b/lib/liquid/utils.rb#L38
+
+            if (Type == FluidValues.Number)
+            {
+                return NumberValue.GetScale(ToNumberValue()) == 0;
+            }
+
+            if (IsNil())
+            {
+                return false;
+            }
+
+            var s = ToStringValue();
+
+            if (String.IsNullOrWhiteSpace(s))
+            {
+                return false;
+            }
+
+            return int.TryParse(s, out var _);
+        }
+
         public static FluidValue Create(object value)
         {
             if (value == null)
