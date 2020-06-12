@@ -63,9 +63,9 @@ namespace Fluid.Tests.Integration
         }
 
         [Theory]
-        [InlineData("", "foobar", null, null)]
-        [InlineData("", "foobar", 0, "")]
-        public void TestSliceArgument(string expected, object input, params object[] arguments)
+        [InlineData("foobar", null, null)]
+        [InlineData("foobar", 0, "")]
+        public void TestSliceArgument(object input, params object[] arguments)
         {
             Assert.Throws<ArgumentException>(() => StringFilters.Slice(FluidValue.Create(input), new FilterArguments(arguments), new TemplateContext()).ToObjectValue());
         }
@@ -95,6 +95,18 @@ namespace Fluid.Tests.Integration
             }
 
             Assert.Equal(expected, resultString);
+        }
+
+        [Theory]
+        [InlineData("1234...", "1234567890", 7)]
+        [InlineData("1234567890", "1234567890", 20)]
+        [InlineData("...", "1234567890", 0)]
+        [InlineData("1234567890", "1234567890")]
+        [InlineData("测试...", "测试测试测试测试", 5)]
+        [InlineData("12341", "1234567890", 5, 1)]
+        public void TestTruncate(string expected, object input, object length = null, object truncate = null)
+        {
+            Assert.Equal(expected, StringFilters.Truncate(FluidValue.Create(input), new FilterArguments(length, truncate), new TemplateContext()).ToObjectValue());
         }
     }    
 }

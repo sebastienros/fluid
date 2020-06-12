@@ -245,29 +245,28 @@ namespace Fluid.Filters
 
         public static FluidValue Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var text = input.ToStringValue();
-            var size = Math.Max(0, (int)arguments.At(0).ToNumberValue());
-            var ellipsis = arguments.At(1).Or(Ellipsis).ToStringValue();
+            if (input.IsNil())
+            {
+                return StringValue.Empty;
+            }
 
-            if (text == null)
+            var inputStr = input.ToStringValue();
+
+            if (inputStr == null)
             {
-                return NilValue.Empty;
+                return StringValue.Empty;
             }
-            else if (ellipsis.Length >= size)
-            {
-                return new StringValue(ellipsis);
-            }
-            else if (text.Length > size - ellipsis.Length)
-            {
-                // PERF: using StringBuilder/StringBuilderPool is slower
-                var source = text.Substring(0, size - ellipsis.Length) + ellipsis;
-                return new StringValue(source);
-            }
-            else
-            {
-                // PERF: using StringBuilder/StringBuilderPool is slower
-                return new StringValue(text + ellipsis);
-            }
+
+            var ellipsisStr = arguments.At(1).Or(Ellipsis).ToStringValue();
+
+            var length = Convert.ToInt32(arguments.At(0).Or(NumberValue.Create(50)).ToNumberValue());
+
+            var l = Math.Max(0, length - ellipsisStr.Length);
+
+            return inputStr.Length > length 
+                ? new StringValue(inputStr.Substring(0, l) + ellipsisStr)
+                : input
+                ;            
         }
         public static FluidValue TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {

@@ -265,7 +265,7 @@ world
         [Theory]
         [InlineData("The cat came back the very next day", 13, "The cat ca...")]
         [InlineData("Hello", 3, "...")]
-        [InlineData("Hello", 10, "Hello...")]
+        [InlineData("Hello", 10, "Hello")]
         [InlineData("Hello", 0, "...")]
         [InlineData(null, 5, "")]
         public void Truncate(string input, int size, string output)
