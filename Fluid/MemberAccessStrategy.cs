@@ -51,13 +51,18 @@ namespace Fluid
                 currentType = currentType.GetTypeInfo().BaseType;
             }
 
+            // Search for accessors defined on interfaces
             foreach (var interfaceType in type.GetTypeInfo().GetInterfaces())
             {
-                accessor = GetAccessor(interfaceType, name);
-
-                if (accessor != null)
+                if (_map.TryGetValue(interfaceType, out var typeMap))
                 {
-                    return accessor;
+                    if (typeMap.TryGetValue(name, out accessor) || typeMap.TryGetValue("*", out accessor))
+                    {
+                        if (accessor != null)
+                        {
+                            return accessor;
+                        }
+                    }
                 }
             }
 

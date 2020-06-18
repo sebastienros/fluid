@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
@@ -203,18 +204,41 @@ namespace Fluid.Values
         private static Func<object, FluidValue> GetTypeMapping(Type type)
         {
             // Get a local reference in case it is being altered.
-            var locaTypeMappings = _customTypeMappings;
+            var localTypeMappings = _customTypeMappings;
 
-            if (locaTypeMappings != null && locaTypeMappings.TryGetValue(type, out var mapping))
+            if (localTypeMappings == null || localTypeMappings.Count == 0)
+            {
+                return null;
+            }
+
+            if (localTypeMappings.TryGetValue(type, out var mapping))
             {
                 return mapping;
             }
 
-            foreach (var @interface in type.GetInterfaces())
+            var currentType = type;
+
+            while (currentType != typeof(object) && currentType != null)
             {
-                if (locaTypeMappings != null && locaTypeMappings.TryGetValue(@interface, out mapping))
+                if (localTypeMappings.TryGetValue(currentType, out mapping))
                 {
-                    SetTypeMapping(@interface, mapping);
+                    // Cache the newly discovered mapping such that next call 
+                    // doesn't need to do a lookup
+                    SetTypeMapping(type, mapping);
+
+                    return mapping;
+                }
+
+                currentType = currentType.GetTypeInfo().BaseType;
+            }
+
+            foreach (var interfaceType in type.GetInterfaces())
+            {
+                if (localTypeMappings.TryGetValue(interfaceType, out mapping))
+                {
+                    // Cache the newly discovered mapping such that next call 
+                    // doesn't need to do a lookup
+                    SetTypeMapping(type, mapping);
 
                     return mapping;
                 }
