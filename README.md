@@ -168,7 +168,7 @@ TemplateContext.GlobalMemberAccessStrategy.Register<Person>();
 
 ### White-listing specific members
 
-This will only allow the specied fields or properties to be read from a template.
+This will only allow the specific fields or properties to be read from a template.
 
 ```csharp
 TemplateContext.GlobalMemberAccessStrategy.Register<Person>("Firstname", "Lastname");
@@ -224,9 +224,9 @@ This can be defined globally with this static member, or on an individual `Templ
 
 Whenever an object is manipulated in a template it is converted to a specific `FluidValue` instance that provides a dynamic type system somehow similar to the one in JavaScript.
 
-In Liquid they can be Number, String, Boolean, Array, or Dictionary. Fluid will automatically convert the CLR types to the corresponding Liquid ones, and also provides specilized ones.
+In Liquid they can be Number, String, Boolean, Array, or Dictionary. Fluid will automatically convert the CLR types to the corresponding Liquid ones, and also provides specialized ones.
 
-To be able to customize this conversion you can add type mappings
+To be able to customize this conversion you can either add **type mappings** or **value converters**.
 
 ### Adding a type mapping
 
@@ -237,6 +237,25 @@ First is solves the issue that a `JObject` implements `IEnumerable` and would be
 ```csharp
 FluidValue.SetTypeMapping<JObject>(o => new ObjectValue(o));
 FluidValue.SetTypeMapping<JValue>(o => FluidValue.Create(o.Value));
+```
+
+> Note: Type mapping are defined globally for the application.
+
+<br>
+
+### Adding a value converter
+
+When the conversion logic is not directly inferred from the type of an object, a value converter can be used.
+
+Value converters can return:
+- `null` to indicate that the value couldn't be converted
+- a `FluidValue` instance to stop any further conversion and use this value
+- another object instance to continue the conversion using custom and internal **type mappings**
+
+The following example shows how to convert any instance implementing an interface to a custom string value:
+
+```csharp
+FluidValue.ValueConverters.Add((value) => value is IUser user ? user.Name : null);
 ```
 
 > Note: Type mapping are defined globally for the application.
@@ -340,7 +359,7 @@ A closing element will match the name of the opening tag with and `end` suffix, 
 Blocks are useful when manipulating a section of a a template as a set of statements.
 
 To create a custom tag or block it is necessary to create a class implementing the `ITag` interface,
-or for most common cases to just inherit from some of the availabe base classes.
+or for most common cases to just inherit from some of the available base classes.
 
 
 ### Creating a custom tag
@@ -444,7 +463,7 @@ To provide a convenient view engine implementation for ASP.NET Core MVC the gram
 
 #### Registering the view engine
 
-1- Reference the `Fluid.MvcViewEngine` nuget package
+1- Reference the `Fluid.MvcViewEngine` NuGet package
 2- Add a `using` statement on `FluidMvcViewEngine`
 3- Call `AddFluid()` in your `Startup.cs`.
 
@@ -618,9 +637,9 @@ A performance benchmark application is provided in the source code to compare Fl
 - Parse sample: Parses a sample HTML template containing filters and properties
 - Render sample: Renders a parsed HTML template containing filters and properties
 - Parse and render sample: Parses and renders a sample HTML template containing filters and properties
-- Render simple ouput tag: Renders a single tag outputting a string property
+- Render simple output tag: Renders a single tag outputting a string property
 - Parse 8KB Lorem Ipsum: Parses 8KB of Lorem Ipsum text containing no tags to exercise the parser on long and simple texts (Not displayed for Liquid.NET as it takes too long to fit in the chart).
-- Render 1KB Lorem Simple Ouput: Parses and render 1KB of Lorem Ipsum text containing no tags
+- Render 1KB Lorem Simple Output: Parses and render 1KB of Lorem Ipsum text containing no tags
 
 ## Used by
 

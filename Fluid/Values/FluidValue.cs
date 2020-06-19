@@ -14,6 +14,10 @@ namespace Fluid.Values
         private static Dictionary<Type, Func<object, FluidValue>> _customTypeMappings;
         private static readonly object _synLock = new object();
 
+        /// <summary>
+        /// Gets the list of value converters.
+        /// </summary>
+        public static List<Func<object, object>> ValueConverters { get; } = new List<Func<object, object>>();
         public abstract void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
 
         public abstract bool Equals(FluidValue other);
@@ -87,6 +91,27 @@ namespace Fluid.Values
             if (value is FluidValue fluidValue)
             {
                 return fluidValue;
+            }
+
+            if (ValueConverters.Count > 0)
+            {
+                foreach (var valueConverter in ValueConverters)
+                {
+                    var result = valueConverter(value);
+
+                    if (result != null)
+                    {
+                        value = result;
+                        break;
+                    }
+                }
+
+                // If a converter returned a FluidValue instance use it directly
+                if (value is FluidValue convertedFluidValue)
+                {
+                    return convertedFluidValue;
+                }
+
             }
 
             var typeOfValue = value.GetType();
@@ -238,34 +263,6 @@ namespace Fluid.Values
             if (localTypeMappings.TryGetValue(type, out var mapping))
             {
                 return mapping;
-            }
-
-            var currentType = type;
-
-            while (currentType != typeof(object) && currentType != null)
-            {
-                if (localTypeMappings.TryGetValue(currentType, out mapping))
-                {
-                    // Cache the newly discovered mapping such that next call 
-                    // doesn't need to do a lookup
-                    SetTypeMapping(type, mapping);
-
-                    return mapping;
-                }
-
-                currentType = currentType.GetTypeInfo().BaseType;
-            }
-
-            foreach (var interfaceType in type.GetInterfaces())
-            {
-                if (localTypeMappings.TryGetValue(interfaceType, out mapping))
-                {
-                    // Cache the newly discovered mapping such that next call 
-                    // doesn't need to do a lookup
-                    SetTypeMapping(type, mapping);
-
-                    return mapping;
-                }
             }
 
             return null;

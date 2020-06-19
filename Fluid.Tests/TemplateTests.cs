@@ -201,7 +201,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldRegisterValueMappingWithInterface()
         {
-            FluidValue.SetTypeMapping<IPet>(x => new PetValue(x));
+            FluidValue.ValueConverters.Add(x => x is IPet pet ? new PetValue(pet) : null);
 
             FluidTemplate.TryParse("{{ p.Name }}", out var template, out var messages);
 
