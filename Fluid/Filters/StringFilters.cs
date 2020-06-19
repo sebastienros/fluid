@@ -126,14 +126,70 @@ namespace Fluid.Filters
 
         public static FluidValue Slice(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var source = input.ToStringValue();
-            var start = Convert.ToInt32(arguments.At(0).ToNumberValue());
-            var length = Convert.ToInt32(arguments.At(1).Or(NumberValue.Create(1)).ToNumberValue());
+            var firstArgument = arguments.At(0);
+            var secondArgument = arguments.At(1);
 
-            var len = source.Length;
-            var from = start < 0 ? Math.Max(len + start, 0) : Math.Min(start, len);
+            if (!firstArgument.IsInteger())
+            {
+                throw new ArgumentException("Slice: offset argument is an invalid number");
+            }
 
-            return new StringValue(source.Substring(from, length));
+            if (arguments.Count > 1 && !secondArgument.IsInteger())
+            {
+                throw new ArgumentException("Slice: length argument is not a number");
+            }
+
+            var requestedStartIndex = Convert.ToInt32(firstArgument.ToNumberValue());
+            var requestedLength = Convert.ToInt32(secondArgument.Or(NumberValue.Create(1)).ToNumberValue());
+
+            if (input.Type == FluidValues.Array)
+            {
+                if (requestedLength <= 0)
+                {
+                    return ArrayValue.Empty;
+                }
+
+                var sourceArray = ((ArrayValue) input).Values;
+
+                var sourceLength = sourceArray.Length;
+
+                if (requestedStartIndex < 0 && Math.Abs(requestedStartIndex) > sourceLength)
+                {
+                    return ArrayValue.Empty;
+                }
+
+                var startIndex = requestedStartIndex < 0 ? Math.Max(sourceLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceLength);
+                var length = requestedLength > sourceLength ? sourceLength : requestedLength;
+                length = startIndex > 0 && length + startIndex > sourceLength ? length - startIndex : length;
+
+                var result = new FluidValue[length];
+
+                Array.Copy(sourceArray, startIndex, result, 0, length);
+
+                return new ArrayValue(result);
+            }
+            else
+            {
+                if (requestedLength <= 0)
+                {
+                    return StringValue.Empty;
+                }
+
+                var sourceString = input.ToStringValue();
+    
+                var sourceStringLength = sourceString.Length;
+    
+                if (requestedStartIndex < 0 && Math.Abs(requestedStartIndex) > sourceStringLength)
+                {
+                    return StringValue.Empty;
+                }
+
+                var startIndex = requestedStartIndex < 0 ? Math.Max(sourceStringLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceStringLength);
+                var length = requestedLength > sourceStringLength ? sourceStringLength : requestedLength;
+                length = startIndex > 0 && length + startIndex > sourceStringLength ? length - startIndex : length;
+
+                return new StringValue(sourceString.Substring(startIndex, length));
+            }
         }
 
         public static FluidValue Split(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -152,7 +208,7 @@ namespace Fluid.Filters
                     strings[i] = stringInput[i].ToString();
                 }
             }
-            else 
+            else
             {
                 strings = stringInput.Split(new[] { separator }, StringSplitOptions.RemoveEmptyEntries);
             }
@@ -183,35 +239,34 @@ namespace Fluid.Filters
             {
                 result = result.Replace("\n", "");
             }
-            
+
             return new StringValue(result);
         }
 
         public static FluidValue Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var text = input.ToStringValue();
-            var size = Math.Max(0, (int) arguments.At(0).ToNumberValue());
-            var ellipsis = arguments.At(1).Or(Ellipsis).ToStringValue();
+            if (input.IsNil())
+            {
+                return StringValue.Empty;
+            }
 
-            if (text == null)
+            var inputStr = input.ToStringValue();
+
+            if (inputStr == null)
             {
-                return NilValue.Empty;
+                return StringValue.Empty;
             }
-            else if (ellipsis.Length >= size)
-            {
-                return new StringValue(ellipsis);
-            }
-            else if (text.Length > size - ellipsis.Length)
-            {
-                // PERF: using StringBuilder/StringBuilderPool is slower
-                var source = text.Substring(0, size - ellipsis.Length) + ellipsis;
-                return new StringValue(source);
-            }
-            else
-            {
-                // PERF: using StringBuilder/StringBuilderPool is slower
-                return new StringValue(text + ellipsis);
-            }
+
+            var ellipsisStr = arguments.At(1).Or(Ellipsis).ToStringValue();
+
+            var length = Convert.ToInt32(arguments.At(0).Or(NumberValue.Create(50)).ToNumberValue());
+
+            var l = Math.Max(0, length - ellipsisStr.Length);
+
+            return inputStr.Length > length 
+                ? new StringValue(inputStr.Substring(0, l) + ellipsisStr)
+                : input
+                ;            
         }
         public static FluidValue TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
@@ -240,7 +295,7 @@ namespace Fluid.Filters
             {
                 source = "";
             }
-            
+
             source += ellipsis;
 
             return new StringValue(source);

@@ -53,6 +53,30 @@ namespace Fluid.Values
             return false;
         }
 
+        public bool IsInteger()
+        {
+            // Maps to https://github.com/Shopify/liquid/blob/1feaa6381300d56e2c71b49ad8fee0d4b625147b/lib/liquid/utils.rb#L38
+
+            if (Type == FluidValues.Number)
+            {
+                return NumberValue.GetScale(ToNumberValue()) == 0;
+            }
+
+            if (IsNil())
+            {
+                return false;
+            }
+
+            var s = ToStringValue();
+
+            if (String.IsNullOrWhiteSpace(s))
+            {
+                return false;
+            }
+
+            return int.TryParse(s, out var _);
+        }
+
         public static FluidValue Create(object value)
         {
             if (value == null)
@@ -82,7 +106,6 @@ namespace Fluid.Values
                 case TypeCode.Decimal:
                 case TypeCode.Double:
                 case TypeCode.Single:
-                    return NumberValue.Create(Convert.ToDecimal(value));
                 case TypeCode.SByte:
                 case TypeCode.Byte:
                 case TypeCode.Int16:
@@ -91,7 +114,7 @@ namespace Fluid.Values
                 case TypeCode.UInt16:
                 case TypeCode.UInt32:
                 case TypeCode.UInt64:
-                    return NumberValue.Create(Convert.ToDecimal(value), true);
+                    return NumberValue.Create(Convert.ToDecimal(value));
                 case TypeCode.Empty:
                     return NilValue.Instance;
                 case TypeCode.Object:
@@ -126,7 +149,8 @@ namespace Fluid.Values
 
                         case IEnumerable enumerable:
                             var fluidValues = new List<FluidValue>();
-                            foreach(var item in enumerable)
+                            
+                            foreach (var item in enumerable)
                             {
                                 fluidValues.Add(Create(item));
                             }

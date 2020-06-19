@@ -24,9 +24,7 @@ namespace Fluid.Filters
 
         public static FluidValue Abs(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var integral = input is NumberValue numberValue && numberValue.IsIntegral;
-
-            return NumberValue.Create(Math.Abs(input.ToNumberValue()), integral);
+            return NumberValue.Create(Math.Abs(input.ToNumberValue()));
         }
 
         public static FluidValue AtLeast(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -45,7 +43,7 @@ namespace Fluid.Filters
 
         public static FluidValue Ceil(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return NumberValue.Create(Math.Ceiling(input.ToNumberValue()), true);
+            return NumberValue.Create(decimal.Ceiling(input.ToNumberValue()));
         }
 
         public static FluidValue DividedBy(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -56,20 +54,19 @@ namespace Fluid.Filters
             // The result is rounded down to the nearest integer(that is, the floor) if the divisor is an integer.
             // https://shopify.github.io/liquid/filters/divided_by/
 
-            if (first is NumberValue number)
+            var result = input.ToNumberValue() / divisor;
+
+            if (NumberValue.GetScale(divisor) == 0)
             {
-                if (number.IsIntegral)
-                {
-                    return NumberValue.Create(Convert.ToInt32(Math.Floor(input.ToNumberValue() / divisor)), true);
-                }                
+                return NumberValue.Create(decimal.Floor(result));
             }
 
-            return NumberValue.Create(input.ToNumberValue() / divisor);
+            return NumberValue.Create(result);
         }
 
         public static FluidValue Floor(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return NumberValue.Create(Math.Floor(input.ToNumberValue()), true);
+            return NumberValue.Create(decimal.Floor(input.ToNumberValue()));
         }
 
         public static FluidValue Minus(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -101,11 +98,8 @@ namespace Fluid.Filters
         public static FluidValue Times(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var first = arguments.At(0);
-            var resultIsIntegral =
-                input is NumberValue inputNumber && inputNumber.IsIntegral
-                && first is NumberValue firstNumber && firstNumber.IsIntegral;
 
-            return NumberValue.Create(input.ToNumberValue() * first.ToNumberValue(), resultIsIntegral);
+            return NumberValue.Create(input.ToNumberValue() * first.ToNumberValue());
         }
     }
 }

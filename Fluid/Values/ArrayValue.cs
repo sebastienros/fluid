@@ -9,45 +9,37 @@ namespace Fluid.Values
 {
     public sealed class ArrayValue : FluidValue
     {
-        private readonly List<FluidValue> _value;
+        public static ArrayValue Empty = new ArrayValue(new FluidValue[0]);
+
+        private readonly FluidValue[] _value;
 
         public override FluidValues Type => FluidValues.Array;
 
-        public ArrayValue(List<FluidValue> value)
+        public ArrayValue(FluidValue[] value)
         {
             _value = value;
         }
 
-        public ArrayValue(FluidValue[] value)
-        {
-            _value = new List<FluidValue>(value);
-        }
-
         public ArrayValue(IEnumerable<FluidValue> value)
         {
-            _value = new List<FluidValue>();
-
-            foreach (var item in value)
-            {
-                _value.Add(item);
-            }
+            _value = value.ToArray();
         }
 
         public override bool Equals(FluidValue other)
         {
             if (other.IsNil())
             {
-                return _value.Count == 0;
+                return _value.Length == 0;
             }
 
             if (other is ArrayValue arrayValue)
             {
-                if (_value.Count != arrayValue._value.Count)
+                if (_value.Length != arrayValue._value.Length)
                 {
                     return false;
                 }
 
-                for (var i = 0; i < _value.Count; i++)
+                for (var i = 0; i < _value.Length; i++)
                 {
                     var item = _value[i];
                     var otherItem = arrayValue._value[i];
@@ -67,19 +59,19 @@ namespace Fluid.Values
             switch (name)
             {
                 case "size":
-                    return NumberValue.Create(_value.Count);
+                    return NumberValue.Create(_value.Length);
 
                 case "first":
-                    if (_value.Count > 0)
+                    if (_value.Length > 0)
                     {
                         return FluidValue.Create(_value[0]);
                     }
                     break;
 
                 case "last":
-                    if (_value.Count > 0)
+                    if (_value.Length > 0)
                     {
-                        return FluidValue.Create(_value[_value.Count - 1]);
+                        return FluidValue.Create(_value[_value.Length - 1]);
                     }
                     break;
 
@@ -92,7 +84,7 @@ namespace Fluid.Values
         {
             var i = (int)index.ToNumberValue();
 
-            if (i >= 0 && i < _value.Count)
+            if (i >= 0 && i < _value.Length)
             {
                 return FluidValue.Create(_value[i]);
             }
@@ -110,6 +102,7 @@ namespace Fluid.Values
             return 0;
         }
 
+        public FluidValue[] Values => _value;
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             if (writer == null)
