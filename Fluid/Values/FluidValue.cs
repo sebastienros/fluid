@@ -101,22 +101,21 @@ namespace Fluid.Values
 
                     if (result != null)
                     {
-                        value = result;
+                        // If a converter returned a FluidValue instance use it directly
+                        if (result is FluidValue resultFluidValue)
+                        {
+                            return resultFluidValue;
+                        }
+
+                        // Otherwise stop custom conversions
                         break;
                     }
                 }
-
-                // If a converter returned a FluidValue instance use it directly
-                if (value is FluidValue convertedFluidValue)
-                {
-                    return convertedFluidValue;
-                }
-
             }
 
             var typeOfValue = value.GetType();
 
-            // First check for a specific type conversion before falling back to an automatic one
+            // Check for a specific type conversion before falling back to an automatic one
             var mapping = GetTypeMapping(typeOfValue);
 
             if (mapping != null)
