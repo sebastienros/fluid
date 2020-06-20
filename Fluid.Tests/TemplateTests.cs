@@ -5,6 +5,7 @@ using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Tests.Domain;
+using Fluid.Tests.Domain.WithInterfaces;
 using Fluid.Tests.Mocks;
 using Fluid.Values;
 using Xunit;
@@ -178,6 +179,61 @@ namespace Fluid.Tests
             var context = new TemplateContext();
             context.SetValue("p", new Person { Name = "John" });
             context.MemberAccessStrategy.Register<Person>();
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("John", result);
+        }
+
+        [Fact]
+        public async Task ShouldEvaluateObjectPropertyWhenInterfaceRegisteredAsGlobal()
+        {
+            TemplateContext.GlobalMemberAccessStrategy.Register<IAnimal>();
+
+            FluidTemplate.TryParse("{{ p.Age }}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("p", new Dog { Age = 12 });
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("12", result);
+        }
+
+        [Fact]
+        public async Task ShouldRegisterValueMappingWithInterface()
+        {
+            FluidValue.ValueConverters.Add(x => x is IPet pet ? new PetValue(pet) : null);
+
+            FluidTemplate.TryParse("{{ p.Name }}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("p", new Dog { Name = "Rex" });
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("Rex", result);
+        }
+
+        [Fact]
+        public async Task ShouldNotAllowNotRegisteredInterfaceMembers()
+        {
+            TemplateContext.GlobalMemberAccessStrategy.Register<IAnimal>();
+
+            FluidTemplate.TryParse("{{ p.Name }}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("p", new Dog { Name = "Rex" });
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("", result);
+        }
+
+        [Fact]
+        public async Task ShouldEvaluateObjectPropertyWhenInterfaceRegistered()
+        {
+            FluidTemplate.TryParse("{{ p.Name }}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("p", new Dog { Name = "John" });
+            context.MemberAccessStrategy.Register<IDog>();
 
             var result = await template.RenderAsync(context);
             Assert.Equal("John", result);

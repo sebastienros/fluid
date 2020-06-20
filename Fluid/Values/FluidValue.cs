@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
@@ -13,6 +14,10 @@ namespace Fluid.Values
         private static Dictionary<Type, Func<object, FluidValue>> _customTypeMappings;
         private static readonly object _synLock = new object();
 
+        /// <summary>
+        /// Gets the list of value converters.
+        /// </summary>
+        public static List<Func<object, object>> ValueConverters { get; } = new List<Func<object, object>>();
         public abstract void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
 
         public abstract bool Equals(FluidValue other);
@@ -88,9 +93,29 @@ namespace Fluid.Values
                 return fluidValue;
             }
 
+            if (ValueConverters.Count > 0)
+            {
+                foreach (var valueConverter in ValueConverters)
+                {
+                    var result = valueConverter(value);
+
+                    if (result != null)
+                    {
+                        // If a converter returned a FluidValue instance use it directly
+                        if (result is FluidValue resultFluidValue)
+                        {
+                            return resultFluidValue;
+                        }
+
+                        // Otherwise stop custom conversions
+                        break;
+                    }
+                }
+            }
+
             var typeOfValue = value.GetType();
 
-            // First check for a specific type conversion before falling back to an automatic one
+            // Check for a specific type conversion before falling back to an automatic one
             var mapping = GetTypeMapping(typeOfValue);
 
             if (mapping != null)
@@ -229,7 +254,12 @@ namespace Fluid.Values
             // Get a local reference in case it is being altered.
             var localTypeMappings = _customTypeMappings;
 
-            if (localTypeMappings != null && localTypeMappings.TryGetValue(type, out var mapping))
+            if (localTypeMappings == null || localTypeMappings.Count == 0)
+            {
+                return null;
+            }
+
+            if (localTypeMappings.TryGetValue(type, out var mapping))
             {
                 return mapping;
             }
