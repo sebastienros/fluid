@@ -25,8 +25,7 @@ namespace Fluid.Ast
                 {
                     for (var index = 0; index < Statements.Count; index++)
                     {
-                        // Don't encode captured blocks
-                        completion = await Statements[index].WriteToAsync(sw, NullEncoder.Default, context);
+                        completion = await Statements[index].WriteToAsync(sw, encoder, context);
 
                         if (completion != Completion.Normal)
                         {
@@ -36,6 +35,7 @@ namespace Fluid.Ast
                         }
                     }
 
+                    // Don't encode captured blocks
                     context.SetValue(Identifier, new StringValue(sw.ToString(), false));
                 }
             }           

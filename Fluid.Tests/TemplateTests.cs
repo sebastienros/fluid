@@ -95,6 +95,7 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("{% capture foo %}<br />{% endcapture %}{{ foo }}", "<br />")]
+        [InlineData("{% capture foo %}{{ '<br />' }}{% endcapture %}{{ foo }}", "&lt;br /&gt;")]
         public async Task ShouldNotEncodeCaptures(string source, string expected)
         {
             FluidTemplate.TryParse(source, out var template, out var messages);
