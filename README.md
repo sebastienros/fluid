@@ -319,6 +319,23 @@ Not encoded: {{ html | raw }
 <em>This is some html</em>
 ```
 
+### Captured blocks are not double-encoded
+
+When using `capture` blocks, the inner content is flagged as 
+pre-encoded and won't be double-encoded if used in a `{{ }}` tag.
+
+#### Source
+```Liquid
+{% capture breaktag %}<br />{% endcapture %}
+
+{{ breaktag }}
+```
+
+#### Result
+```html
+<br />
+```
+
 <br>
 
 ## Localization

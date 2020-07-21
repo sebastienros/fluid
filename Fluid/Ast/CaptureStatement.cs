@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Fluid.Values;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -24,8 +25,7 @@ namespace Fluid.Ast
                 {
                     for (var index = 0; index < Statements.Count; index++)
                     {
-                        // Don't encode captured blocks
-                        completion = await Statements[index].WriteToAsync(sw, NullEncoder.Default, context);
+                        completion = await Statements[index].WriteToAsync(sw, encoder, context);
 
                         if (completion != Completion.Normal)
                         {
@@ -35,7 +35,8 @@ namespace Fluid.Ast
                         }
                     }
 
-                    context.SetValue(Identifier, sw.ToString());
+                    // Don't encode captured blocks
+                    context.SetValue(Identifier, new StringValue(sw.ToString(), false));
                 }
             }           
 
