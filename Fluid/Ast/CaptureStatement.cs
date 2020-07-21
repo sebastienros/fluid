@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Fluid.Values;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -35,7 +36,7 @@ namespace Fluid.Ast
                         }
                     }
 
-                    context.SetValue(Identifier, sw.ToString());
+                    context.SetValue(Identifier, new StringValue(sw.ToString(), false));
                 }
             }           
 

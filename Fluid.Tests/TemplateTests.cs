@@ -77,9 +77,29 @@ namespace Fluid.Tests
         [InlineData("{{ 'ab''c' | raw}}", "ab'c")]
         [InlineData("{{ \"a\"\"bc\" | raw}}", "a\"bc")]
         [InlineData("{{ '<br />' | raw}}", "<br />")]
-        public Task ShouldNotEncodeRawString(string source, string expected)
+        public async Task ShouldNotEncodeRawString(string source, string expected)
         {
-            return CheckAsync(source, expected);
+            FluidTemplate.TryParse(source, out var template, out var messages);
+            var result = await template.RenderAsync(new TemplateContext(), HtmlEncoder.Default);
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData("{% for i in (1..3) %}<br />{% endfor %}", "<br /><br /><br />")]
+        public async Task ShouldNotEncodeBlocks(string source, string expected)
+        {
+            FluidTemplate.TryParse(source, out var template, out var messages);
+            var result = await template.RenderAsync(new TemplateContext(), HtmlEncoder.Default);
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData("{% capture foo %}<br />{% endcapture %}{{ foo }}", "<br />")]
+        public async Task ShouldNotEncodeCaptures(string source, string expected)
+        {
+            FluidTemplate.TryParse(source, out var template, out var messages);
+            var result = await template.RenderAsync(new TemplateContext(), HtmlEncoder.Default);
+            Assert.Equal(expected, result);
         }
 
         [Theory]
