@@ -191,6 +191,7 @@ namespace Fluid.Tests
         [Theory]
         [InlineData("2020-05-18T02:13:09+00:00", "America/New_York", "2020-05-17T22:13:09-04:00")]
         [InlineData("2020-05-18T02:13:09+00:00", "Europe/London", "2020-05-18T03:13:09+01:00")]
+        [InlineData("2020-05-18T02:13:09+00:00", "Europe/wrongTZ", "2020-05-18T02:13:09+00:00")]
         public void ChangeTimeZone(string initialDateTime, string timeZone, string expected)
         {
             var input = new DateTimeValue(DateTimeOffset.Parse(initialDateTime));
@@ -206,6 +207,8 @@ namespace Fluid.Tests
         [Theory]
         [InlineData("2020-05-18T02:13:09+00:00", "America/New_York", "%l:%M%P", "10:13pm")]
         [InlineData("2020-05-18T02:13:09+00:00", "Europe/London", "%l:%M%P", "3:13am")]
+        [InlineData("2020-05-18T02:13:09+00:00", "Europe/wrongTZ", "%l:%M%P", "2:13am")]
+        [InlineData("2020-05-18T02:13:09+00:00", "Australia/Adelaide", "%l:%M%P", "11:43am")]
         public void ChangeTimeZoneAndApply12hFormat(string initialDateTime,string timeZone, string format, string expected)
         {
             var input = new DateTimeValue(DateTimeOffset.Parse(initialDateTime));

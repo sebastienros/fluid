@@ -140,9 +140,10 @@ namespace Fluid.Filters
             }
             
             var timeZone = arguments.At(0).ToStringValue();
-            var timeZoneInfo = TZConvert.GetTimeZoneInfo(timeZone);
-            var result = TimeZoneInfo.ConvertTime(value, timeZoneInfo);
 
+            if (!TZConvert.TryGetTimeZoneInfo(timeZone, out var timeZoneInfo)) return new DateTimeValue(value);
+            
+            var result = TimeZoneInfo.ConvertTime(value, timeZoneInfo);
             return new DateTimeValue(result);
         }
 
