@@ -6,6 +6,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Text.Json;
 using Fluid.Values;
+using TimeZoneConverter;
 
 namespace Fluid.Filters
 {
@@ -36,6 +37,7 @@ namespace Fluid.Filters
             filters.AddFilter("handle", Handleize);
             filters.AddFilter("handleize", Handleize);
             filters.AddFilter("json", Json);
+            filters.AddFilter("time_zone", ChangeTimeZone);
 
             return filters;
         }
@@ -47,7 +49,7 @@ namespace Fluid.Filters
         {
             return new StringValue(HtmlCaseRegex.Replace(input.ToStringValue(), "-$1$2").ToLowerInvariant());
         }
-
+        
         public static FluidValue Default(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return input.Or(arguments.At(0));
@@ -124,6 +126,26 @@ namespace Fluid.Filters
         {
             return new StringValue(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())));
         }
+        
+        public static FluidValue ChangeTimeZone(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (!TryGetDateTimeInput(input, context, out var value))
+            {
+                return NilValue.Instance;
+            }
+
+            if (arguments.At(0).IsNil())
+            {
+                return NilValue.Instance;
+            }
+            
+            var timeZone = arguments.At(0).ToStringValue();
+            var timeZoneInfo = TZConvert.GetTimeZoneInfo(timeZone);
+            var result = TimeZoneInfo.ConvertTime(value, timeZoneInfo);
+
+            return new DateTimeValue(result);
+        }
+
 
         public static FluidValue Date(FluidValue input, FilterArguments arguments, TemplateContext context)
         {

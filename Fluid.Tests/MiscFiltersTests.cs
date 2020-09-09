@@ -188,6 +188,37 @@ namespace Fluid.Tests
             Assert.Equal(expected, result.ToStringValue().Trim());
         }
 
+        [Theory]
+        [InlineData("2020-05-18T02:13:09+00:00", "America/New_York", "2020-05-17T22:13:09-04:00")]
+        [InlineData("2020-05-18T02:13:09+00:00", "Europe/London", "2020-05-18T03:13:09+01:00")]
+        public void ChangeTimeZone(string initialDateTime, string timeZone, string expected)
+        {
+            var input = new DateTimeValue(DateTimeOffset.Parse(initialDateTime));
+
+            var arguments = new FilterArguments(new StringValue(timeZone));
+            var context = new TemplateContext {CultureInfo = CultureInfo.InvariantCulture};
+
+            var result = MiscFilters.ChangeTimeZone(input, arguments, context);
+
+            Assert.Equal(expected, ((DateTimeOffset) result.ToObjectValue()).ToString("yyyy-MM-ddTHH:mm:ssK"));
+        }
+
+        [Theory]
+        [InlineData("2020-05-18T02:13:09+00:00", "America/New_York", "%l:%M%P", "10:13pm")]
+        [InlineData("2020-05-18T02:13:09+00:00", "Europe/London", "%l:%M%P", "3:13am")]
+        public void ChangeTimeZoneAndApply12hFormat(string initialDateTime,string timeZone, string format, string expected)
+        {
+            var input = new DateTimeValue(DateTimeOffset.Parse(initialDateTime));
+            var timeZoneArgument = new FilterArguments(new StringValue(timeZone));
+            var formatArgument = new FilterArguments(new StringValue(format));
+            var context = new TemplateContext {CultureInfo = CultureInfo.InvariantCulture};
+
+            var result = MiscFilters.ChangeTimeZone(input, timeZoneArgument, context);
+            result = MiscFilters.Date(result, formatArgument, context);
+            
+            Assert.Equal(expected, result.ToStringValue().Trim());
+        }
+
         [Fact]
         public void DateResolvesNow()
         {
