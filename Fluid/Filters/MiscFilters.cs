@@ -49,7 +49,7 @@ namespace Fluid.Filters
         {
             return new StringValue(HtmlCaseRegex.Replace(input.ToStringValue(), "-$1$2").ToLowerInvariant());
         }
-        
+
         public static FluidValue Default(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return input.Or(arguments.At(0));
