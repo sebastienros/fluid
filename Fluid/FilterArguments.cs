@@ -113,5 +113,7 @@ namespace Fluid
         }
 
         public IEnumerable<string> Names => _named?.Keys ?? Enumerable.Empty<string>();
+
+        public IEnumerable<FluidValue> Values => _positional;
     }
 }
