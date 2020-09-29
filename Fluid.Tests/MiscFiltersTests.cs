@@ -330,10 +330,10 @@ namespace Fluid.Tests
         [InlineData(-123.12, "-123.12")]
         [InlineData(null, "null")]
         [InlineData("", "\"\"")]
-        [InlineData(new int[] { 1, 2, 3}, "[1,2,3]")]
-        [InlineData(new string[] { "a", "b", "c"}, "[\"a\",\"b\",\"c\"]")]
+        [InlineData(new int[] { 1, 2, 3 }, "[1,2,3]")]
+        [InlineData(new string[] { "a", "b", "c" }, "[\"a\",\"b\",\"c\"]")]
         [InlineData(new object[0], "[]")]
-        [InlineData(new object[] { 1, "a", true}, "[1,\"a\",true]")]
+        [InlineData(new object[] { 1, "a", true }, "[1,\"a\",true]")]
         public void Json(object value, string expected)
         {
             var input = FluidValue.Create(value);
@@ -344,6 +344,31 @@ namespace Fluid.Tests
             var result = MiscFilters.Json(input, arguments, context);
 
             Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Fact]
+        public void JsonWithMemberNameStrategy()
+        {
+            var input = FluidValue.Create(new { FirstName = "Bill", LastName = "Gates" });
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext
+            {
+                MemberAccessStrategy = { MemberNameStrategy = MemberNameStrategies.Default }
+            };
+
+            var result = MiscFilters.Json(input, arguments, context);
+            Assert.Equal("{\"FirstName\":\"Bill\",\"LastName\":\"Gates\"}", result.ToStringValue());
+
+
+            context.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
+            result = MiscFilters.Json(input, arguments, context);
+            Assert.Equal("{\"firstName\":\"Bill\",\"lastName\":\"Gates\"}", result.ToStringValue());
+
+
+            context.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.SnakeCase;
+            result = MiscFilters.Json(input, arguments, context);
+            Assert.Equal("{\"first_name\":\"Bill\",\"last_name\":\"Gates\"}", result.ToStringValue());
         }
 
         [Theory]
@@ -362,8 +387,8 @@ namespace Fluid.Tests
                 ;
 
             var arguments = new FilterArguments(new StringValue(format));
-            var context = new TemplateContext { CultureInfo = cultureInfo  } ;
-            
+            var context = new TemplateContext { CultureInfo = cultureInfo };
+
             var result = MiscFilters.FormatNumber(FluidValue.Create(input), arguments, context);
 
             Assert.Equal(expected, result.ToStringValue());

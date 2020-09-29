@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Text.Json;
+using Fluid.Json;
 using Fluid.Values;
 
 namespace Fluid.Filters
@@ -66,13 +67,13 @@ namespace Fluid.Filters
         public static FluidValue Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var compacted = new List<FluidValue>();
-            foreach(var value in input.Enumerate()) 
+            foreach (var value in input.Enumerate())
             {
                 if (!value.IsNil())
                 {
                     compacted.Add(value);
                 }
-            } 
+            }
 
             return new ArrayValue(compacted);
         }
@@ -90,7 +91,7 @@ namespace Fluid.Filters
         public static FluidValue StripHtml(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var html = input.ToStringValue();
-            
+
             var result = new char[html.Length];
 
             var cursor = 0;
@@ -147,7 +148,7 @@ namespace Fluid.Filters
                 sb.Builder.EnsureCapacity(format.Length * 2);
                 var result = sb.Builder;
                 var percent = false;
-    
+
                 for (var i = 0; i < format.Length; i++)
                 {
                     var c = format[i];
@@ -218,7 +219,7 @@ namespace Fluid.Filters
             if (!TryGetDateTimeInput(input, context, out var value))
             {
                 return NilValue.Instance;
-            }            
+            }
 
             if (arguments.At(0).IsNil())
             {
@@ -286,7 +287,8 @@ namespace Fluid.Filters
         {
             var options = new JsonSerializerOptions
             {
-                WriteIndented = arguments.At(0).ToBooleanValue()
+                WriteIndented = arguments.At(0).ToBooleanValue(),
+                PropertyNamingPolicy = new FluidJsonNamingPolicy(context)
             };
 
             switch (input.Type)
