@@ -20,8 +20,8 @@ build_script:
 test_script:
   - dotnet test -c Release .\Fluid.Tests\Fluid.Tests.csproj
 artifacts:
-  - path: 'Fluid\**\*.nupkg'
-  - path: 'Fluid.MvcViewEngine\**\*.nupkg'
+  - path: 'Fluid\**\*.*nupkg'
+  - path: 'Fluid.MvcViewEngine\**\*.*nupkg'
 deploy:
   - provider: NuGet
     on:
@@ -37,5 +37,4 @@ deploy:
     server: https://www.nuget.org/api/v2/package
     api_key:
       secure: gU0x+YwQg+wV/Wtmy63243WLYbI8qr/in2b871HtFGRFEHUWUkopBbYA8RK6CK2A
-    skip_symbols: true
-    artifact: /.*\.nupkg/
+    artifact: /.*\.*nupkg/

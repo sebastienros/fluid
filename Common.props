@@ -3,12 +3,19 @@
   <PropertyGroup>
     <Copyright>Sebastien Ros</Copyright>
     <Authors>Sebastien Ros</Authors>
+
     <PackageProjectUrl>https://github.com/sebastienros/fluid</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugSymbols>true</DebugSymbols>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <DebugType>portable</DebugType>
+
     <VersionSuffix Condition="'$(VersionSuffix)'!='' AND '$(BuildNumber)' != ''">$(VersionSuffix)-$(BuildNumber)</VersionSuffix>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <DebugType>portable</DebugType>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
