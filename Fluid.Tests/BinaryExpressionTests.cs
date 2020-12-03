@@ -167,5 +167,33 @@ namespace Fluid.Tests
             return CheckAsync("{% if " + source + " %}true{% else %}false{% endif %}", expected);
         }
 
+        [Theory]
+        [InlineData("true == true", "true", null)]
+        [InlineData("true != true", "false", null)]
+        [InlineData("0 > 0", "false", null)]
+        [InlineData("1 > 0", "true", null)]
+        [InlineData("0 < 1", "true", null)]
+        [InlineData("0 <= 0", "true", null)]
+        [InlineData("null <= 0", "false", null)]
+        [InlineData("0 <= null", "false", null)]
+        [InlineData("0 >= 0", "true", null)]
+        [InlineData("'test' == 'test'", "true", null)]
+        [InlineData("'test' != 'test'", "false", null)]
+        [InlineData("var == 'hello there!'", "true", "hello there!")]
+        [InlineData("'hello there!' == var", "true", "hello there!")]
+        [InlineData("'hello there!' == true", "false", "hello there!")]
+        [InlineData("'hello there!' == false", "false", "hello there!")]
+        [InlineData("null <= null", "true", null)]
+        [InlineData("null >= null", "true", null)]
+        [InlineData("null < null", "false", null)]
+        [InlineData("null > null", "false", null)]
+        [InlineData("null == null", "true", null)]
+        [InlineData("null != null", "false", null)]
+        public Task StringLiteralTrue(string source, string expected, object value)
+        {
+            // https://github.com/Shopify/liquid/blob/master/test/integration/tags/statements_test.rb
+            return CheckAsync("{% if " + source + " %}true{% else %}false{% endif %}", expected, t => t.SetValue("var", value));
+        }
+
     }
 }
