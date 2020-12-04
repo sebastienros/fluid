@@ -28,8 +28,4 @@
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)Fluid.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
-  <ItemGroup>
-    <None Include="./../LICENSE" Pack="true" PackagePath=""/>
-  </ItemGroup>
-
 </Project>
