@@ -105,6 +105,7 @@ namespace Fluid
                 .WithArrayFilters()
                 .WithStringFilters()
                 .WithNumberFilters()
+                .WithColorFilters()
                 .WithMiscFilters();
         }
 
