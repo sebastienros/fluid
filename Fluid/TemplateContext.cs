@@ -133,26 +133,6 @@ namespace Fluid
         /// </summary>
         public object Model { get; set; }
 
-        static TemplateContext()
-        {
-            // Global properties
-            GlobalScope.SetValue("empty", NilValue.Empty);
-            GlobalScope.SetValue("blank", StringValue.Empty);
-
-            // Initialize Global Filters
-            GlobalFilters
-                .WithArrayFilters()
-                .WithStringFilters()
-                .WithNumberFilters()
-                .WithColorFilters()
-                .WithMiscFilters();
-        }
-
-        public TemplateContext()
-        {
-            LocalScope = new Scope(GlobalScope);
-        }
-
         /// <summary>
         /// Creates a new isolated scope. After than any value added to this content object will be released once
         /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
