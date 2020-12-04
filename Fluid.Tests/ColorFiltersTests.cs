@@ -46,5 +46,31 @@ namespace Fluid.Tests
             // Assert
             Assert.Equal(expected, result.ToStringValue());
         }
+
+        [Theory]
+        [InlineData("#fff", "(0, 0%, 100%)")]
+        [InlineData("#000", "(0, 0%, 0%)")]
+        [InlineData("#f00", "(0, 100%, 50%)")]
+        [InlineData("#0f0", "(120, 100%, 50%)")]
+        [InlineData("#00f", "(240, 100%, 50%)")]
+        [InlineData("#800080", "(300, 100%, 25%)")]
+        [InlineData("rgb(255, 255, 255)", "(0, 0%, 100%)")]
+        [InlineData("rgb(0, 0, 0)", "(0, 0%, 0%)")]
+        [InlineData("rgb(255, 0, 0)", "(0, 100%, 50%)")]
+        [InlineData("rgb(0, 255, 0)", "(120, 100%, 50%)")]
+        [InlineData("rgb(0, 0, 255)", "(240, 100%, 50%)")]
+        [InlineData("rgb(128, 0, 128)", "(300, 100%, 25%)")]
+        public void ToHsl(string color, string expected)
+        {
+            // Arrange
+            var input = new StringValue(color);
+            var context = new TemplateContext();
+
+            // Act
+            var result = ColorFilters.ToHsl(input, FilterArguments.Empty, context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
+        }
     }
 }

@@ -10,6 +10,7 @@ namespace Fluid.Filters
         {
             filters.AddFilter("color_to_rgb", ToRgb);
             filters.AddFilter("color_to_hex", ToHex);
+            filters.AddFilter("color_to_hsl", ToHsl);
 
             return filters;
         }
@@ -33,7 +34,7 @@ namespace Fluid.Filters
             {
                 return NilValue.Empty;
             }
-            
+
             var rgbColor = color.Substring(4, color.Length - 5).Split(',');
             if (rgbColor.Length != 3)
             {
@@ -52,6 +53,97 @@ namespace Fluid.Filters
             return new StringValue(htmlColor.ToLower());
         }
 
+        public static FluidValue ToHsl(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var color = input.ToStringValue();
+            if (!(color.StartsWith("#") || color.StartsWith("rgb(")))
+            {
+                return NilValue.Empty;
+            }
+
+            var rgbColor = color.StartsWith("#")
+                ? ColorTranslator.FromHtml(color)
+                : GetRgbColor(color);
+            var hslColor = HslColorTranslator.FromRgb(rgbColor);
+
+            return new StringValue($"({hslColor.H}, {Convert.ToInt32(hslColor.S * 100.0)}%, {Convert.ToInt32(hslColor.L * 100.0)}%)");
+        }
+
+        private static Color GetRgbColor(string rgbColorString)
+        {
+            if (!(rgbColorString.StartsWith("rgb(") && rgbColorString.EndsWith(")") && rgbColorString.Length > 13))
+            {
+                return Color.Empty;
+            }
+
+            var rgbColor = rgbColorString.Substring(4, rgbColorString.Length - 5).Split(',');
+            if (rgbColor.Length != 3)
+            {
+                return Color.Empty;
+            }
+
+            var red = Convert.ToInt32(rgbColor[0]);
+            var green = Convert.ToInt32(rgbColor[1]);
+            var blue = Convert.ToInt32(rgbColor[2]);
+
+            return Color.FromArgb(red, green, blue);
+        }
+
+        private struct HslColor
+        {
+            public HslColor(double hue, double saturation, double luminosity)
+            {
+                H = hue;
+                S = saturation;
+                L = luminosity;
+            }
+
+            public double H { get; }
+
+            public double S { get; }
+
+            public double L { get; }
+        }
+
+        private static class HslColorTranslator
+        {
+            public static HslColor FromRgb(Color color)
+            {
+                var r = ((double)color.R / 255.0);
+                var g = ((double)color.G / 255.0);
+                var b = ((double)color.B / 255.0);
+                var max = Math.Max(r, Math.Max(g, b));
+                var min = Math.Min(r, Math.Min(g, b));
+                var h = 0.0;
+                if (max == r && g >= b)
+                {
+                    h = 60 * (g - b) / (max - min);
+                }
+                else if (max == r && g < b)
+                {
+                    h = 60 * (g - b) / (max - min) + 360;
+                }
+                else if (max == g)
+                {
+                    h = 60 * (b - r) / (max - min) + 120;
+                }
+                else if (max == b)
+                {
+                    h = 60 * (r - g) / (max - min) + 240;
+                }
+
+                if (double.IsNaN(h))
+                {
+                    h = 0;
+                }
+
+                var s = (max == 0) ? 0.0 : (1.0 - (min / max));
+                var l = (max + min) / 2;
+
+                return new HslColor(h, s, l);
+            }
+        }
+
 #if !NET461
         private static class ColorTranslator
         {
@@ -62,7 +154,7 @@ namespace Fluid.Filters
                 {
                     return color;
                 }
-    
+
                 if ((htmlColor[0] == '#') && (htmlColor.Length == 7 || htmlColor.Length == 4))
                 {
                     if (htmlColor.Length == 7)
@@ -81,7 +173,7 @@ namespace Fluid.Filters
                                            Convert.ToInt32(b + b, 16));
                     }
                 }
-    
+
                 return color;
             }
 
