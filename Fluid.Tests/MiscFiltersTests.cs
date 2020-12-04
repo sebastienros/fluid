@@ -420,7 +420,7 @@ namespace Fluid.Tests
         [InlineData("", new object[] { 123 }, "", "")]
         [InlineData("{0}", new object[] { 123 }, "", "123")]
         [InlineData("hello {0}", new object[] { "world", 123 }, "", "hello world")]
-        [InlineData("{0:C} {1:N}", new object[] { 123, 456 }, "fr-FR", "123,00 € 456,00")]
+        [InlineData("{0:C} {1:N2}", new object[] { 123, 456 }, "fr-FR", "123,00 € 456,00")]
         public void FormatString(object input, object[] args, string culture, string expected)
         {
             var cultureInfo = String.IsNullOrEmpty(culture)
