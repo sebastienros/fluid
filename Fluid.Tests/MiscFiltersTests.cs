@@ -121,12 +121,19 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("%a", "Tue")]
+        [InlineData("%^a", "TUE")]
         [InlineData("%A", "Tuesday")]
+        [InlineData("%^A", "TUESDAY")]
         [InlineData("%b", "Aug")]
+        [InlineData("%^b", "AUG")]
         [InlineData("%B", "August")]
+        [InlineData("%^B", "AUGUST")]
         [InlineData("%c", "Tuesday, August 1, 2017 5:04:36 PM")]
+        [InlineData("%^c", "TUESDAY, AUGUST 1, 2017 5:04:36 PM")]
         [InlineData("%C", "20")]
         [InlineData("%d", "01")]
+        [InlineData("%_d", " 1")]
+        [InlineData("%-d", "1")]
         [InlineData("%D", "8/1/2017")]
         [InlineData("%e", " 1")]
         [InlineData("%F", "2017-08-01")]
@@ -137,6 +144,8 @@ namespace Fluid.Tests
         [InlineData("%l", " 5")]
         [InlineData("%L", "123")]
         [InlineData("%m", "08")]
+        [InlineData("%_m", " 8")]
+        [InlineData("%-m", "8")]
         [InlineData("%M", "04")]
         [InlineData("%p", "PM")]
         [InlineData("%P", "pm")]
@@ -148,20 +157,24 @@ namespace Fluid.Tests
         [InlineData("%u", "2")]
         [InlineData("%U", "31")]
         [InlineData("%v", "Tuesday, August 1, 2017")]
+        [InlineData("%^v", "TUESDAY, AUGUST 1, 2017")]
         [InlineData("%V", "31")]
         [InlineData("%W", "32")]
         [InlineData("%y", "17")]
         [InlineData("%Y", "2017")]
-        [InlineData("%z", "+08:00")]
+        [InlineData("%z", "+0800")]
+        [InlineData("%Z", "+08:00")]
+        [InlineData("%:z", "+08:00")]
         [InlineData("%%", "%")]
         [InlineData("It is %r", "It is 5:04:36 PM")]
+        [InlineData("Chained %z%:z%a%a%^a", "Chained +0800+08:00TueTueTUE")]
         public void Date(string format, string expected)
         {
-            var input = new DateTimeValue(new DateTimeOffset(new DateTime(2017, 8, 1, 17, 4, 36, 123), TimeSpan.FromHours(8)));
+            var input = new DateTimeValue(new DateTimeOffset(
+                new DateTime(2017, 8, 1, 17, 4, 36, 123), TimeSpan.FromHours(8)));
 
             var arguments = new FilterArguments(new StringValue(format));
-            var context = new TemplateContext();
-            context.CultureInfo = new CultureInfo("en-US");
+            var context = new TemplateContext {CultureInfo = new CultureInfo("en-US")};
 
             var result = MiscFilters.Date(input, arguments, context);
 
