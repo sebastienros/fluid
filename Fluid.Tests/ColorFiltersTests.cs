@@ -26,5 +26,25 @@ namespace Fluid.Tests
             // Assert
             Assert.Equal(expected, result.ToStringValue());
         }
+
+        [Theory]
+        [InlineData("rgb(255, 255, 255)", "#ffffff")]
+        [InlineData("rgb(0, 0, 0)", "#000000")]
+        [InlineData("rgb(255, 0, 0)", "#ff0000")]
+        [InlineData("rgb(0, 255, 0)", "#00ff00")]
+        [InlineData("rgb(0, 0, 255)", "#0000ff")]
+        [InlineData("rgb(122, 181, 92)", "#7ab55c")]
+        public void ToHex(string rgbColor, string expected)
+        {
+            // Arrange
+            var input = new StringValue(rgbColor);
+            var context = new TemplateContext();
+
+            // Act
+            var result = ColorFilters.ToHex(input, FilterArguments.Empty, context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
+        }
     }
 }
