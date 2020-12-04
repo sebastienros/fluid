@@ -332,7 +332,7 @@ def", "at line:2, col:6")]
             if (FluidTemplate.TryParse(template, out var result))
             {
                 TemplateContext.GlobalMemberAccessStrategy.Register(model.GetType());
-                result.Render(new TemplateContext { Model = model });
+                result.Render(new TemplateContext(model));
             }
         }
 
