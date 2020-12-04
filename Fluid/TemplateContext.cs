@@ -15,6 +15,45 @@ namespace Fluid
         public static int DefaultMaxSteps = 0;
         public static int DefaultMaxRecursion = 100;
 
+        static TemplateContext()
+        {
+            // Global properties
+            GlobalScope.SetValue("empty", NilValue.Empty);
+            GlobalScope.SetValue("blank", StringValue.Empty);
+
+            // Initialize Global Filters
+            GlobalFilters
+                .WithArrayFilters()
+                .WithStringFilters()
+                .WithNumberFilters()
+                .WithMiscFilters();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="TemplateContext"/>.
+        /// </summary>
+        public TemplateContext()
+        {
+            LocalScope = new Scope(GlobalScope);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="TemplateContext"/> wih a model and option regiter its properties.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="registerModelProperties">Whether to register the model properties or not.</param>
+        public TemplateContext(object model, bool registerModelProperties = true)
+        {
+            Model = model ?? throw new ArgumentNullException(nameof(model));
+
+            if (registerModelProperties)
+            {
+                MemberAccessStrategy.Register(model.GetType());
+            }
+
+            LocalScope = new Scope(GlobalScope);
+        }
+
         /// <summary>
         /// Gets or sets the maximum number of steps a script can execute. Leave to 0 for unlimited.
         /// </summary>
@@ -93,25 +132,6 @@ namespace Fluid
         /// global scopes are unsuccessfull.
         /// </summary>
         public object Model { get; set; }
-
-        static TemplateContext()
-        {
-            // Global properties
-            GlobalScope.SetValue("empty", NilValue.Empty);
-            GlobalScope.SetValue("blank", StringValue.Empty);
-
-            // Initialize Global Filters
-            GlobalFilters
-                .WithArrayFilters()
-                .WithStringFilters()
-                .WithNumberFilters()
-                .WithMiscFilters();
-        }
-
-        public TemplateContext()
-        {
-            LocalScope = new Scope(GlobalScope);
-        }
 
         /// <summary>
         /// Creates a new isolated scope. After than any value added to this content object will be released once
