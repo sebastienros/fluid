@@ -9,6 +9,7 @@ namespace Fluid.Tags
         /// Called when the tag name is found in the template.
         /// </summary>
         /// <param name="node">The <see cref="ParseTreeNode"/> instance representing the tag.</param>
+        /// <param name="context">The <see cref="ParserContext"/> instance representing the tag.</param>
         Statement Parse(ParseTreeNode node, ParserContext context);
 
         /// <summary>

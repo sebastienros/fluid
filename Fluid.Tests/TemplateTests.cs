@@ -493,10 +493,8 @@ turtle
             var expected = "hello sebastien ros";
 
             FluidTemplate.TryParse(source, out var template, out var messages);
-            var context = new TemplateContext();
+            var context = new TemplateContext(new { lastname = "ros" });
             context.SetValue("firstname", "sebastien");
-            context.Model = new { lastname = "ros" };
-            context.MemberAccessStrategy.Register(context.Model.GetType());
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
@@ -733,6 +731,18 @@ shape: '{{ shape }}'");
 
             var result = await template.RenderAsync(context);
             Assert.Equal("John", result);
+        }
+
+        [Theory]
+        [InlineData("{{ '5' | plus: 5 }}", "10")]
+        [InlineData("{{ '5' | plus: 5.0 }}", "10.0")]
+        [InlineData("{{ '5' | times: 5 }}", "25")]
+        [InlineData("{{ '5' | minus: 5 }}", "0")]
+        [InlineData("{{ '21' | divided_by: 3 }}", "7")]
+        [InlineData("{{ '8888' | modulo: 10 }}", "8")]
+        public Task ShouldConvertNumber(string source, string expected)
+        {
+            return CheckAsync(source, expected);
         }
     }
 }

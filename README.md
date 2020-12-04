@@ -31,6 +31,7 @@ Fluid is an open-source .NET template engine that is as close as possible to the
 - [Localization](#localization)
 - [Customizing tags and blocks](#customizing-tags-and-blocks)
 - [ASP.NET MVC View Engine](#aspnet-mvc-view-engine)
+- [Custom filters](#custom-filters)
 - [Performance](#performance)
 - [Used by](#used-by)
 
@@ -109,8 +110,8 @@ var source = "Hello {{ p.Firstname }} {{ p.Lastname }}";
 
 if (FluidTemplate.TryParse(source, out var template))
 {   
-    var context = new TemplateContext();
-    context.MemberAccessStrategy.Register(model.GetType()); // Allows any public property of the model to be used
+    var context = new TemplateContext(model);
+
     context.SetValue("p", model);
 
     Console.WriteLine(template.Render(context));
@@ -630,6 +631,67 @@ Where `{0}` is the view name, and `{1}` is the controller name.
 The content of a view is parsed once and kept in memory until the file or one of its dependencies changes. Once parsed, the tag are executed every time the view is called. To compare this with Razor, where views are first compiled then instantiated every time they are rendered. This means that on startup or when the view is changed, views with Fluid will run faster than those in Razor, unless you are using precompiled Razor views. In all cases Razor views will be faster on subsequent calls as they are compiled directly to C#.
 
 This difference makes Fluid very adapted for rapid development cycles where the views can be deployed and updated frequently. And because the Liquid language is secure, developers give access to them with more confidence.  
+
+<br>
+
+## Custom filters
+
+Some non-standard filters are provided by default
+
+### format_date
+
+Formats date and times using standard .NET date and time formats. It uses the current culture 
+of the system.
+
+Input
+
+```
+"now" | format_date: "G"
+```
+
+Output
+
+```
+6/15/2009 1:45:30 PM
+```
+
+Documentation: https://docs.microsoft.com/en-us/dotnet/standard/base-types/standard-date-and-time-format-strings
+
+### format_number
+
+Formats numbers using standard .NET number formats.
+
+Input
+
+```
+123 | format_number: "N"
+```
+
+Output
+
+```
+123.00
+```
+
+Documentation: https://docs.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings
+
+### format_string
+
+Formats custom string using standard .NET format strings.
+
+Input
+
+```
+"hello {0} {1:C}" | format_string: "world" 123
+```
+
+Output
+
+```
+hello world $123.00
+```
+
+Documentation: https://docs.microsoft.com/en-us/dotnet/api/system.string.format
 
 <br>
 

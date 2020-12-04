@@ -17,6 +17,21 @@ namespace Fluid.Ast.BinaryExpressions
             var leftValue = await Left.EvaluateAsync(context);
             var rightValue = await Right.EvaluateAsync(context);
 
+            if (leftValue.IsNil() || rightValue.IsNil())
+            {
+                if (Strict)
+                {
+                    return BooleanValue.False;
+                }
+                else
+                {
+                    return leftValue.IsNil() && rightValue.IsNil()
+                        ? BooleanValue.True
+                        : BooleanValue.False
+                        ;
+                }
+            }
+
             if (leftValue is NumberValue)
             {
                 if (Strict)

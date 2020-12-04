@@ -4,6 +4,9 @@
     <TargetFrameworks>netstandard2.0;netstandard2.1;net461</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>8</LangVersion>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>    
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,7 +15,8 @@
     <PackageReference Include="System.Text.Json" Version="4.7.2" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="1.1.1" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="TimeZoneConverter" Version="3.2.0" />
+    <PackageReference Include="TimeZoneConverter" Version="3.3.0" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="all"/>
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net461'">

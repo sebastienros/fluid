@@ -26,7 +26,6 @@ namespace Fluid.Filters
         {
             filters.AddFilter("default", Default);
             filters.AddFilter("date", Date);
-            filters.AddFilter("format_date", FormatDate);
             filters.AddFilter("raw", Raw);
             filters.AddFilter("compact", Compact);
             filters.AddFilter("url_encode", UrlEncode);
@@ -38,6 +37,10 @@ namespace Fluid.Filters
             filters.AddFilter("handleize", Handleize);
             filters.AddFilter("json", Json);
             filters.AddFilter("time_zone", ChangeTimeZone);
+
+            filters.AddFilter("format_number", FormatNumber);
+            filters.AddFilter("format_string", FormatString);
+            filters.AddFilter("format_date", FormatDate);
 
             return filters;
         }
@@ -247,7 +250,14 @@ namespace Fluid.Filters
 
             var format = arguments.At(0).ToStringValue();
 
-            return new StringValue(value.ToString(format, context.CultureInfo));
+            var culture = context.CultureInfo;
+
+            if (!arguments.At(1).IsNil())
+            {
+                culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue()) ?? context.CultureInfo;
+            }
+
+            return new StringValue(value.ToString(format, culture));
         }
 
         private static bool TryGetDateTimeInput(FluidValue input, TemplateContext context, out DateTimeOffset result)
@@ -326,6 +336,46 @@ namespace Fluid.Filters
             }
 
             throw new NotSupportedException("Unrecognized FluidValue");
+        }
+
+        public static FluidValue FormatNumber(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (arguments.At(0).IsNil())
+            {
+                return NilValue.Instance;
+            }
+
+            var format = arguments.At(0).ToStringValue();
+
+            var culture = context.CultureInfo;
+
+            if (!arguments.At(1).IsNil())
+            {
+                culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue()) ?? context.CultureInfo;
+            }
+
+            return new StringValue(input.ToNumberValue().ToString(format, culture));
+        }
+
+        public static FluidValue FormatString(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (input.IsNil())
+            {
+                return NilValue.Instance;
+            }
+
+            var format = input.ToStringValue();
+
+            var culture = context.CultureInfo;
+
+            if (arguments.HasNamed("culture"))
+            {
+                culture = CultureInfo.CreateSpecificCulture(arguments["culture"].ToStringValue()) ?? context.CultureInfo;
+            }
+
+            var parameters = arguments.Values.Select(x => x.ToObjectValue()).ToArray();
+
+            return new StringValue(String.Format(culture, format, parameters));
         }
     }
 }

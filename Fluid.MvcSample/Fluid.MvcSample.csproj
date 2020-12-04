@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <OutputType>Exe</OutputType>
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,7 +15,7 @@
     <ProjectReference Include="../Fluid/Fluid.csproj" />
     <ProjectReference Include="../Fluid.MvcViewEngine/Fluid.MvcViewEngine.csproj" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
