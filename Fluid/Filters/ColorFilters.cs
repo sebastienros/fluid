@@ -30,21 +30,8 @@ namespace Fluid.Filters
         public static FluidValue ToHex(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var color = input.ToStringValue();
-            if (!color.StartsWith("rgb(") && color.EndsWith(")") && color.Length >= 10)
-            {
-                return NilValue.Empty;
-            }
-
-            var rgbColor = color.Substring(4, color.Length - 5).Split(',');
-            if (rgbColor.Length != 3)
-            {
-                return NilValue.Empty;
-            }
-
-            var red = Convert.ToInt32(rgbColor[0]);
-            var green = Convert.ToInt32(rgbColor[1]);
-            var blue = Convert.ToInt32(rgbColor[2]);
-            var htmlColor = ColorTranslator.ToHtml(Color.FromArgb(red, green, blue));
+            var rgbColor = GetRgbColor(color);
+            var htmlColor = ColorTranslator.ToHtml(rgbColor);
             if (htmlColor == String.Empty)
             {
                 return NilValue.Empty;
@@ -71,7 +58,7 @@ namespace Fluid.Filters
 
         private static Color GetRgbColor(string rgbColorString)
         {
-            if (!(rgbColorString.StartsWith("rgb(") && rgbColorString.EndsWith(")") && rgbColorString.Length > 13))
+            if (!(rgbColorString.StartsWith("rgb(") && rgbColorString.EndsWith(")")))
             {
                 return Color.Empty;
             }
