@@ -331,9 +331,24 @@ def", "at line:2, col:6")]
 
             if (FluidTemplate.TryParse(template, out var result))
             {
-                TemplateContext.GlobalMemberAccessStrategy.Register(model.GetType());
                 result.Render(new TemplateContext(model));
             }
+        }
+
+        [Fact]
+        public void ShouldBeAbleToCompareNilValues()
+        {
+            var model = new
+            {
+                name = "Tobi"
+            };
+
+            var template = "{{name}}";
+
+            FluidTemplate.TryParse(template, out var template);
+            var rendered = template.Render(new TemplateContext(model, false));
+
+            Assert.Equal("Tobi", rendered);
         }
 
         [Theory]
