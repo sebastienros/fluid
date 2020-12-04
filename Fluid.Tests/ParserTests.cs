@@ -343,9 +343,9 @@ def", "at line:2, col:6")]
                 name = "Tobi"
             };
 
-            var template = "{{name}}";
+            var source = "{{name}}";
 
-            FluidTemplate.TryParse(template, out var template);
+            FluidTemplate.TryParse(source, out var template);
             var rendered = template.Render(new TemplateContext(model, false));
 
             Assert.Equal("", rendered);
