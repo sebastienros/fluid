@@ -336,7 +336,7 @@ def", "at line:2, col:6")]
         }
 
         [Fact]
-        public void ShouldBeAbleToCompareNilValues()
+        public void ShouldNotRegisterModelType()
         {
             var model = new
             {
@@ -347,6 +347,10 @@ def", "at line:2, col:6")]
 
             FluidTemplate.TryParse(template, out var template);
             var rendered = template.Render(new TemplateContext(model, false));
+
+            Assert.Equal("", rendered);
+
+            rendered = template.Render(new TemplateContext(model, true));
 
             Assert.Equal("Tobi", rendered);
         }
