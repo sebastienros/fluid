@@ -9,6 +9,7 @@ namespace Fluid.Filters
         public static FilterCollection WithColorFilters(this FilterCollection filters)
         {
             filters.AddFilter("color_to_rgb", ToRgb);
+            filters.AddFilter("color_to_hex", ToHex);
 
             return filters;
         }
@@ -23,6 +24,32 @@ namespace Fluid.Filters
             }
 
             return new StringValue($"rgb({rgbColor.R}, {rgbColor.G}, {rgbColor.B})");
+        }
+
+        public static FluidValue ToHex(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var color = input.ToStringValue();
+            if (!color.StartsWith("rgb(") && color.EndsWith(")") && color.Length >= 10)
+            {
+                return NilValue.Empty;
+            }
+            
+            var rgbColor = color.Substring(4, color.Length - 5).Split(',');
+            if (rgbColor.Length != 3)
+            {
+                return NilValue.Empty;
+            }
+
+            var red = Convert.ToInt32(rgbColor[0]);
+            var green = Convert.ToInt32(rgbColor[1]);
+            var blue = Convert.ToInt32(rgbColor[2]);
+            var htmlColor = ColorTranslator.ToHtml(Color.FromArgb(red, green, blue));
+            if (htmlColor == String.Empty)
+            {
+                return NilValue.Empty;
+            }
+
+            return new StringValue(htmlColor.ToLower());
         }
 
 #if !NET461
@@ -56,6 +83,19 @@ namespace Fluid.Filters
                 }
     
                 return color;
+            }
+
+            public static string ToHtml(Color color)
+            {
+                var colorString = String.Empty;
+                if (color.IsEmpty)
+                {
+                    return colorString;
+                }
+
+                colorString = "#" + color.R.ToString("X2", null) + color.G.ToString("X2", null) + color.B.ToString("X2", null);
+
+                return colorString;
             }
         }
 #endif
