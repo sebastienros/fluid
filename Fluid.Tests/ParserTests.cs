@@ -331,9 +331,28 @@ def", "at line:2, col:6")]
 
             if (FluidTemplate.TryParse(template, out var result))
             {
-                TemplateContext.GlobalMemberAccessStrategy.Register(model.GetType());
-                result.Render(new TemplateContext { Model = model });
+                result.Render(new TemplateContext(model));
             }
+        }
+
+        [Fact]
+        public void ShouldNotRegisterModelType()
+        {
+            var model = new
+            {
+                name = "Tobi"
+            };
+
+            var source = "{{name}}";
+
+            FluidTemplate.TryParse(source, out var template);
+            var rendered = template.Render(new TemplateContext(model, false));
+
+            Assert.Equal("", rendered);
+
+            rendered = template.Render(new TemplateContext(model, true));
+
+            Assert.Equal("Tobi", rendered);
         }
 
         [Theory]

@@ -249,7 +249,10 @@ namespace Fluid
         /// <param name="segment"></param>
         /// <param name="start"></param>
         /// <param name="end"></param>
-        /// <returns></returns>
+        /// <param name="trimStart"></param>
+        /// <param name="trimEnd"></param>
+        /// <param name="stripEmptyLines"></param>
+        /// <returns><see cref="TextStatement"/></returns>
         private TextStatement CreateTextStatement(StringSegment segment, int start, int end, bool trimStart, bool trimEnd, bool stripEmptyLines)
         {
             int index;
