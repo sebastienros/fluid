@@ -171,66 +171,52 @@ namespace Fluid.Filters
                             case ':': useColonsForZeeDirectiveFlag = true; continue;
                             case 'a':
                             {
-                                result.Append(
-                                    upperCaseFlag
-                                        ? context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int) value.DayOfWeek].ToUpper()
-                                        : context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int) value.DayOfWeek]);
-
+                                var abbreviatedDayName = context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int) value.DayOfWeek];
+                                result.Append(upperCaseFlag ? abbreviatedDayName.ToUpper() : abbreviatedDayName);
                                 break;
                             }
                             case 'A':
                             {
-                                if (upperCaseFlag)
-                                {
-                                    result.Append(context.CultureInfo.DateTimeFormat.DayNames[(int) value.DayOfWeek].ToUpper());
-                                }
-                                else
-                                {
-                                    result.Append(context.CultureInfo.DateTimeFormat.DayNames[(int) value.DayOfWeek]);
-                                }
-
+                                var dayName = context.CultureInfo.DateTimeFormat.DayNames[(int) value.DayOfWeek];
+                                result.Append(upperCaseFlag ? dayName.ToUpper() : dayName);
                                 break;
                             }
                             case 'b':
                             {
-                                result.Append(upperCaseFlag
-                                    ? context.CultureInfo.DateTimeFormat.AbbreviatedMonthNames[value.Month - 1]
-                                        .ToUpper()
-                                    : context.CultureInfo.DateTimeFormat.AbbreviatedMonthNames[value.Month - 1]);
+                                var abbreviatedMonthName = context.CultureInfo.DateTimeFormat.AbbreviatedMonthNames[value.Month - 1];
+                                result.Append(upperCaseFlag ? abbreviatedMonthName.ToUpper() : abbreviatedMonthName);
                                 break;
                             }
                             case 'B':
                             {
-                                result.Append(upperCaseFlag
-                                    ? context.CultureInfo.DateTimeFormat.MonthNames[value.Month - 1].ToUpper()
-                                    : context.CultureInfo.DateTimeFormat.MonthNames[value.Month - 1]);
+                                var monthName = context.CultureInfo.DateTimeFormat.MonthNames[value.Month - 1];
+                                result.Append(upperCaseFlag ? monthName.ToUpper() : monthName);
                                 break;
                             }
                             case 'c':
-                            {
-                                result.Append(upperCaseFlag
-                                    ? value.ToString("F", context.CultureInfo).ToUpper()
-                                    : value.ToString("F", context.CultureInfo));
+                            {   
+                                var f = value.ToString("F", context.CultureInfo);
+                                result.Append(upperCaseFlag ? f.ToUpper() : f);
                                 break;
                             }
                             case 'C': result.Append(value.Year / 100); break;
                             case 'd':
                             {
+                                var day = value.Day.ToString(context.CultureInfo);
                                 if (useSpaceForPaddingFlag)
                                 {
-                                    result.Append(value.Day.ToString(context.CultureInfo).PadLeft(2, ' '));
-
+                                    result.Append(day.PadLeft(2, ' '));
                                 }
                                 else if (removeLeadingZerosFlag)
                                 {
-                                    result.Append(value.Day.ToString(context.CultureInfo));
+                                    result.Append(day);
                                 }
                                 else
                                 {
-                                    result.Append(value.Day.ToString(context.CultureInfo).PadLeft(2, '0'));
+                                    result.Append(day.PadLeft(2, '0'));
                                 }
                                 break;
-                                }
+                            }
                             case 'D': result.Append(value.ToString("d", context.CultureInfo)); break;
                             case 'e': result.Append(value.Day.ToString(context.CultureInfo).PadLeft(2, ' ')); break;
                             case 'F': result.Append(value.ToString("yyyy-MM-dd", context.CultureInfo)); break;
@@ -242,20 +228,21 @@ namespace Fluid.Filters
                             case 'L': result.Append(value.Millisecond.ToString(context.CultureInfo).PadLeft(3, '0')); break;
                             case 'm':
                             {
+                                var month = value.Month.ToString(context.CultureInfo);
                                 if (useSpaceForPaddingFlag)
                                 {
-                                    result.Append(value.Month.ToString(context.CultureInfo).PadLeft(2, ' '));
-
-                                } else if (removeLeadingZerosFlag)
+                                    result.Append(month.PadLeft(2, ' '));
+                                } 
+                                else if (removeLeadingZerosFlag)
                                 {
-                                    result.Append(value.Month.ToString(context.CultureInfo));
+                                    result.Append(month);
                                 }
                                 else
                                 {
-                                    result.Append(value.Month.ToString(context.CultureInfo).PadLeft(2, '0'));
+                                    result.Append(month.PadLeft(2, '0'));
                                 }
                                 break;
-                                }
+                            }
                             case 'M': result.Append(value.Minute.ToString(context.CultureInfo).PadLeft(2, '0')); break;
                             case 'p': result.Append(value.ToString("tt", context.CultureInfo).ToUpper()); break;
                             case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLower()); break;
@@ -268,10 +255,8 @@ namespace Fluid.Filters
                             case 'U': result.Append(context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstDay, DayOfWeek.Sunday).ToString().PadLeft(2, '0')); break;
                             case 'v':
                             {
-                                result.Append(upperCaseFlag
-                                    ? value.ToString("D", context.CultureInfo).ToUpper()
-                                    : value.ToString("D", context.CultureInfo));
-
+                                var d = value.ToString("D", context.CultureInfo);
+                                result.Append(upperCaseFlag ? d.ToUpper() : d);
                                 break;
                             }
                             case 'V': result.Append((value.DayOfYear / 7 + 1).ToString(context.CultureInfo).PadLeft(2, '0')); break;
@@ -280,15 +265,13 @@ namespace Fluid.Filters
                             case 'Y': result.Append(value.Year); break;
                             case 'z':
                             {
-                                result.Append(useColonsForZeeDirectiveFlag
-                                    ? value.ToString("zzz", context.CultureInfo)
-                                    : value.ToString("zzz", context.CultureInfo).Replace(":", ""));
+                                var zzz = value.ToString("zzz", context.CultureInfo);
+                                result.Append(useColonsForZeeDirectiveFlag ? zzz : zzz.Replace(":", ""));
                                 break;
                             }
                             case 'Z':
                                 result.Append(value.ToString("zzz", context.CultureInfo));
                                 break;
-
                             case '%': result.Append('%'); break;
                             default: result.Append('%').Append(c); break;
                         }
