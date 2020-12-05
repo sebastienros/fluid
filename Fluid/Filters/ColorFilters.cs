@@ -211,6 +211,7 @@ namespace Fluid.Filters
 
             public double L { get; }
 
+            // https://www.codeproject.com/Articles/19045/Manipulating-colors-in-NET-Part-1
             public static HslColor FromRgb(Color color)
             {
                 var r = color.R / 255.0;
