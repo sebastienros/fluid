@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Drawing;
-using System.Text.RegularExpressions;
+using System.Linq;
 using Fluid.Values;
 
 namespace Fluid.Filters
@@ -68,41 +68,83 @@ namespace Fluid.Filters
 
             public string B { get; }
 
-            public static string FromRgb(Color color) => new HexColor(color).ToString();
-
-            public static Color ToRgb(string color) => RgbColor.FrmHex(color);
-
             public static bool TryParse(string value, out RgbColor color)
             {
-                if (Regex.IsMatch(value, "^#(?:[0-9a-fA-F]{3}){1,2}$"))
+                color = RgbColor.Empty;
+
+                if ((value == null) || (value.Length == 0))
                 {
-                    var rgbColor = RgbColor.FrmHex(value);
-                    color = new RgbColor(rgbColor);
+                    return false;
+                }
+
+                if ((value[0] == '#') && (value.Length == 7 || value.Length == 4))
+                {
+                    if (value.Length == 7)
+                    {
+                        color = new RgbColor(Color.FromArgb(Convert.ToInt32(value.Substring(1, 2), 16),
+                                           Convert.ToInt32(value.Substring(3, 2), 16),
+                                           Convert.ToInt32(value.Substring(5, 2), 16)));
+                    }
+                    else
+                    {
+                        var r = Char.ToString(value[1]);
+                        var g = Char.ToString(value[2]);
+                        var b = Char.ToString(value[3]);
+                        color = new RgbColor(Color.FromArgb(Convert.ToInt32(r + r, 16),
+                                           Convert.ToInt32(g + g, 16),
+                                           Convert.ToInt32(b + b, 16)));
+                    }
 
                     return true;
                 }
-                else
-                {
-                    color = RgbColor.Empty;
 
-                    return false;
-                }
+                return false;
             }
 
             public static bool TryParse(string value, out Color color)
             {
-                if (Regex.IsMatch(value, "^#(?:[0-9a-fA-F]{3}){1,2}$"))
-                {
-                    color = RgbColor.FrmHex(value);
+                color = Color.Empty;
 
-                    return true;
-                }
-                else
+                if (String.IsNullOrEmpty(value))
                 {
-                    color = Color.Empty;
-
                     return false;
                 }
+
+                if (value[0] == '#')
+                {
+                    string red, blue, green;
+                    switch (value.Length)
+                    {
+                        case 4:
+                            red = Char.ToString(value[1]);
+                            green = Char.ToString(value[2]);
+                            blue = Char.ToString(value[3]);
+                            if (IsHexadecimal(red) && IsHexadecimal(green) && IsHexadecimal(blue))
+                            {
+                                color = Color.FromArgb(Convert.ToInt32(red + red, 16), Convert.ToInt32(green + green, 16), Convert.ToInt32(blue + blue, 16));
+
+                                return true;
+                            }
+
+                            break;
+                        case 7:
+                            red = value.Substring(1, 2);
+                            green = value.Substring(3, 2);
+                            blue = value.Substring(5, 2);
+                            if (IsHexadecimal(red) && IsHexadecimal(green) && IsHexadecimal(blue))
+                            {
+                                color = Color.FromArgb(Convert.ToInt32(red, 16), Convert.ToInt32(green, 16), Convert.ToInt32(blue, 16));
+
+                                return true;
+                            }
+                            
+                            break;
+                    }
+                }
+
+                return false;
+
+                static bool IsHexadecimal(string value) => value.All(c => "0123456789abcdefABCDEF".Contains(c));
             }
 
             public override string ToString() => $"#{R}{G}{B}".ToLower();
@@ -132,66 +174,23 @@ namespace Fluid.Filters
 
             public static bool TryParse(string value, out Color color)
             {
-                if (Regex.IsMatch(value, @"^rgb\((\d{1,3}), (\d{1,3}), (\d{1,3})\)$"))
+                if (value.StartsWith("rgb(") && value.EndsWith(")"))
                 {
-                    var rgbColor = value.Substring(4, value.Length - 5).Split(',');
-                    var red = Convert.ToInt32(rgbColor[0]);
-                    var green = Convert.ToInt32(rgbColor[1]);
-                    var blue = Convert.ToInt32(rgbColor[2]);
-
-                    color = Color.FromArgb(red, green, blue);
-
-                    return true;
-                }
-                else
-                {
-                    color = Color.Empty;
-
-                    return false;
-                }
-            }
-
-            public static Color FrmHex(string hexColor)
-            {
-                var color = Color.Empty;
-                if ((hexColor == null) || (hexColor.Length == 0))
-                {
-                    return color;
-                }
-
-                if ((hexColor[0] == '#') && (hexColor.Length == 7 || hexColor.Length == 4))
-                {
-                    if (hexColor.Length == 7)
+                    var rgbColor = value.Substring(4, value.IndexOf(")") - 4).Replace(" ", String.Empty).Split(',');
+                    if (rgbColor.Length == 3 &&
+                        Int32.TryParse(rgbColor[0], out int red) &&
+                        Int32.TryParse(rgbColor[1], out int green) && 
+                        Int32.TryParse(rgbColor[2], out int blue))
                     {
-                        color = Color.FromArgb(Convert.ToInt32(hexColor.Substring(1, 2), 16),
-                                           Convert.ToInt32(hexColor.Substring(3, 2), 16),
-                                           Convert.ToInt32(hexColor.Substring(5, 2), 16));
-                    }
-                    else
-                    {
-                        var r = Char.ToString(hexColor[1]);
-                        var g = Char.ToString(hexColor[2]);
-                        var b = Char.ToString(hexColor[3]);
-                        color = Color.FromArgb(Convert.ToInt32(r + r, 16),
-                                           Convert.ToInt32(g + g, 16),
-                                           Convert.ToInt32(b + b, 16));
+                        color = Color.FromArgb(red, green, blue);
+
+                        return true;
                     }
                 }
 
-                return color;
-            }
+                color = Color.Empty;
 
-            public static string ToHex(Color color)
-            {
-                var colorString = String.Empty;
-                if (color.IsEmpty)
-                {
-                    return colorString;
-                }
-
-                colorString = "#" + color.R.ToString("X2", null) + color.G.ToString("X2", null) + color.B.ToString("X2", null);
-
-                return colorString;
+                return false;
             }
 
             public override string ToString() => $"rgb({R}, {G}, {B})";
