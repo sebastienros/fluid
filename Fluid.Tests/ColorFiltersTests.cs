@@ -48,18 +48,18 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData("#fff", "(0, 0%, 100%)")]
-        [InlineData("#000", "(0, 0%, 0%)")]
-        [InlineData("#f00", "(0, 100%, 50%)")]
-        [InlineData("#0f0", "(120, 100%, 50%)")]
-        [InlineData("#00f", "(240, 100%, 50%)")]
-        [InlineData("#800080", "(300, 100%, 25%)")]
-        [InlineData("rgb(255, 255, 255)", "(0, 0%, 100%)")]
-        [InlineData("rgb(0, 0, 0)", "(0, 0%, 0%)")]
-        [InlineData("rgb(255, 0, 0)", "(0, 100%, 50%)")]
-        [InlineData("rgb(0, 255, 0)", "(120, 100%, 50%)")]
-        [InlineData("rgb(0, 0, 255)", "(240, 100%, 50%)")]
-        [InlineData("rgb(128, 0, 128)", "(300, 100%, 25%)")]
+        [InlineData("#fff", "hsl(0, 0%, 100%)")]
+        [InlineData("#000", "hsl(0, 0%, 0%)")]
+        [InlineData("#f00", "hsl(0, 100%, 50%)")]
+        [InlineData("#0f0", "hsl(120, 100%, 50%)")]
+        [InlineData("#00f", "hsl(240, 100%, 50%)")]
+        [InlineData("#800080", "hsl(300, 100%, 25%)")]
+        [InlineData("rgb(255, 255, 255)", "hsl(0, 0%, 100%)")]
+        [InlineData("rgb(0, 0, 0)", "hsl(0, 0%, 0%)")]
+        [InlineData("rgb(255, 0, 0)", "hsl(0, 100%, 50%)")]
+        [InlineData("rgb(0, 255, 0)", "hsl(120, 100%, 50%)")]
+        [InlineData("rgb(0, 0, 255)", "hsl(240, 100%, 50%)")]
+        [InlineData("rgb(128, 0, 128)", "hsl(300, 100%, 25%)")]
         public void ToHsl(string color, string expected)
         {
             // Arrange

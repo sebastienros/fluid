@@ -249,7 +249,7 @@ namespace Fluid.Filters
             }
 
             public override string ToString()
-                => $"({H}, {Convert.ToInt32(S * 100.0)}%, {Convert.ToInt32(L * 100.0)}%)";
+                => $"hsl({H}, {Convert.ToInt32(S * 100.0)}%, {Convert.ToInt32(L * 100.0)}%)";
         }
     }
 }
