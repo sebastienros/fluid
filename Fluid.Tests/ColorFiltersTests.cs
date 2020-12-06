@@ -41,10 +41,18 @@ namespace Fluid.Tests
         [InlineData("rgb(0, 255, 0)", "#00ff00")]
         [InlineData("rgb(0, 0, 255)", "#0000ff")]
         [InlineData("rgb(122, 181, 92)", "#7ab55c")]
+        [InlineData("rgba(122, 181, 92, 0.5)", "#7ab55c")]
         [InlineData("rgb(0,0,0)", "#000000")]
         [InlineData("rgb( 0,0,0 )", "#000000")]
         [InlineData("rgb( 0, 0    ,0 )", "#000000")]
         [InlineData("rgb(0,0,)", "")]
+        [InlineData("hsl(0, 0%, 100%)", "#ffffff")]
+        [InlineData("hsl(0, 0%, 0%)", "#000000")]
+        [InlineData("hsl(0, 100%, 50%)", "#ff0000")]
+        [InlineData("hsl(120, 100%, 50%)", "#00ff00")]
+        [InlineData("hsl(240, 100%, 50%)", "#0000ff")]
+        [InlineData("hsl(300, 100%, 25%)", "#800080")]
+        [InlineData("hsl(300, 100%, 25%, 0.5)", "#800080")]
         public void ToHex(string rgbColor, string expected)
         {
             // Arrange
