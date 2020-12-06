@@ -14,6 +14,13 @@ namespace Fluid.Tests
         [InlineData("#0f0", "rgb(0, 255, 0)")]
         [InlineData("#00f", "rgb(0, 0, 255)")]
         [InlineData("#7ab55c", "rgb(122, 181, 92)")]
+        [InlineData("hsl(0, 0%, 100%)", "rgb(255, 255, 255)")]
+        [InlineData("hsl(0, 0%, 0%)", "rgb(0, 0, 0)")]
+        [InlineData("hsl(0, 100%, 50%)", "rgb(255, 0, 0)")]
+        [InlineData("hsl(120, 100%, 50%)", "rgb(0, 255, 0)")]
+        [InlineData("hsl(240, 100%, 50%)", "rgb(0, 0, 255)")]
+        [InlineData("hsl(300, 100%, 25%)", "rgb(128, 0, 128)")]
+        [InlineData("hsla(0, 100%, 50%, 0.5)", "rgba(255, 0, 0, 0.5)")]
         public void ToRgb(string hexColor, string expected)
         {
             // Arrange

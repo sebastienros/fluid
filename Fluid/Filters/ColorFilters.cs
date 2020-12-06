@@ -19,18 +19,26 @@ namespace Fluid.Filters
         public static FluidValue ToRgb(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var value = input.ToStringValue();
-            if (!HexColor.TryParse(value, out RgbColor color))
+            if (HexColor.TryParse(value, out RgbColor color))
+            {
+                return new StringValue(color.ToString());
+            }
+            else if (HslColor.TryParse(value, out HslColor hslColor))
+            {
+                var rgbColor = RgbColor.FromHsl(hslColor);
+
+                return new StringValue(rgbColor.ToString());
+            }
+            else
             {
                 return NilValue.Empty;
             }
-
-            return new StringValue(color.ToString());
         }
 
         public static FluidValue ToHex(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var value = input.ToStringValue();
-            if (!RgbColor.TryParse(value, out Color color))
+            if (RgbColor.TryParse(value, out Color color) == false)
             {
                 return NilValue.Empty;
             }
@@ -231,6 +239,70 @@ namespace Fluid.Filters
                 return false;
             }
 
+            // https://www.codeproject.com/Articles/19045/Manipulating-colors-in-NET-Part-1
+            public static RgbColor FromHsl(HslColor color)
+            {
+                var h = Convert.ToDouble(color.H);
+                var s = Convert.ToDouble(color.S) / 100.0;
+                var l = Convert.ToDouble(color.L) / 100.0;
+                if (s == 0)
+                {
+                    return new RgbColor(
+                        Convert.ToInt32(Math.Round(l * 255.0)),
+                        Convert.ToInt32(Math.Round(l * 255.0)),
+                        Convert.ToInt32(Math.Round(l * 255.0)),
+                        color.A
+                        );
+                }
+                else
+                {
+                    var q = (l < 0.5) ? (l * (1.0 + s)) : (l + s - (l * s));
+                    var p = (2.0 * l) - q;
+                    var Hk = h / 360.0;
+                    var T = new double[3];
+                    T[0] = Hk + (1.0 / 3.0);
+                    T[1] = Hk;
+                    T[2] = Hk - (1.0 / 3.0);
+
+                    for (int i = 0; i < 3; i++)
+                    {
+                        if (T[i] < 0)
+                        {
+                            T[i] += 1.0;
+                        }
+
+                        if (T[i] > 1)
+                        {
+                            T[i] -= 1.0;
+                        }
+
+                        if (T[i] * 6 < 1)
+                        {
+                            T[i] = p + ((q - p) * 6.0 * T[i]);
+                        }
+                        else if (T[i] * 2.0 < 1)
+                        {
+                            T[i] = q;
+                        }
+                        else if (T[i] * 3.0 < 2)
+                        {
+                            T[i] = p + (q - p) * ((2.0 / 3.0) - T[i]) * 6.0;
+                        }
+                        else
+                        {
+                            T[i] = p;
+                        }
+                    }
+
+                    return new RgbColor(
+                        Convert.ToInt32(Math.Round(T[0] * 255.0, 2)),
+                        Convert.ToInt32(Math.Round(T[1] * 255.0, 2)),
+                        Convert.ToInt32(Math.Round(T[2] * 255.0, 2)),
+                        color.A
+                        );
+                }
+            }
+
             public override string ToString() => A == DefaultTransperency
                 ? $"rgb({R}, {G}, {B})"
                 : $"rgba({R}, {G}, {B}, {Math.Round(A, 1)})";
@@ -239,6 +311,10 @@ namespace Fluid.Filters
         private struct HslColor
         {
             private const float DefaultTransperency = 1.0f;
+
+            private static readonly char[] _colorSeparators = new[] { '(', ',', ' ', ')' };
+            
+            public static readonly HslColor Empty = default;
 
             public HslColor(int hue, int saturation, int luminosity, float alpha = DefaultTransperency)
             {
@@ -275,6 +351,38 @@ namespace Fluid.Filters
             public int L { get; }
 
             public float A { get; }
+
+            public static bool TryParse(string value, out HslColor color)
+            {
+                if ((value.StartsWith("hsl(") || value.StartsWith("hsla(")) && value.EndsWith(")"))
+                {
+                    var hslColor = value.Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
+                    if (hslColor.Length == 4 && hslColor[2].EndsWith("%") && hslColor[3].EndsWith("%") &&
+                        Int32.TryParse(hslColor[1], out int hue) &&
+                        Int32.TryParse(hslColor[2].TrimEnd('%'), out int saturation) &&
+                        Int32.TryParse(hslColor[3].TrimEnd('%'), out int luminosity))
+                    {
+                        color = new HslColor(hue, saturation, luminosity);
+
+                        return true;
+                    }
+
+                    if (hslColor.Length == 5 && hslColor[2].EndsWith("%") && hslColor[3].EndsWith("%") &&
+                        Int32.TryParse(hslColor[1], out hue) &&
+                        Int32.TryParse(hslColor[2].TrimEnd('%'), out saturation) &&
+                        Int32.TryParse(hslColor[3].TrimEnd('%'), out luminosity) &&
+                        Single.TryParse(hslColor[4], out float alpha))
+                    {
+                        color = new HslColor(hue, saturation, luminosity, alpha);
+
+                        return true;
+                    }
+                }
+
+                color = HslColor.Empty;
+
+                return false;
+            }
 
             // https://www.codeproject.com/Articles/19045/Manipulating-colors-in-NET-Part-1
             public static HslColor FromRgb(Color color)
