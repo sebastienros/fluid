@@ -34,6 +34,9 @@ namespace Fluid.Tests
         [InlineData("rgb(0, 255, 0)", "#00ff00")]
         [InlineData("rgb(0, 0, 255)", "#0000ff")]
         [InlineData("rgb(122, 181, 92)", "#7ab55c")]
+        [InlineData("rgb(0,0,0)", "#000000")]
+        [InlineData("rgb( 0,0,0 )", "#000000")]
+        [InlineData("rgb(0,0,)", "")]
         public void ToHex(string rgbColor, string expected)
         {
             // Arrange
