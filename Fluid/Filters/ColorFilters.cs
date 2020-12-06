@@ -152,6 +152,8 @@ namespace Fluid.Filters
 
         private struct RgbColor
         {
+            private const float DefaultTransperency = 1.0f;
+            
             private static readonly char[] _colorSeparators = new[] { '(', ',', ' ', ')' };
 
             public static readonly RgbColor Empty = default;
@@ -161,22 +163,45 @@ namespace Fluid.Filters
 
             }
 
-            public RgbColor(double red, double green, double blue)
+            public RgbColor(int red, int green, int blue, float alpha = DefaultTransperency)
             {
+                if (red < 0 || red > 255)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(red), "The red value must in rage [0-255]");
+                }
+
+                if (green < 0 || green > 255)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(green), "The green value must in rage [0-255]");
+                }
+
+                if (blue < 0 || blue > 255)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(blue), "The blue value must in rage [0-255]");
+                }
+
+                if (alpha < 0.0f || alpha > 1.0f)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(alpha), "The alpha value must in rage [0-1]");
+                }
+
                 R = red;
                 G = green;
                 B = blue;
+                A = alpha;
             }
 
-            public double R { get; }
+            public float A { get; }
 
-            public double G { get; }
+            public int R { get; }
 
-            public double B { get; }
+            public int G { get; }
+
+            public int B { get; }
 
             public static bool TryParse(string value, out Color color)
             {
-                if (value.StartsWith("rgb(") && value.EndsWith(")"))
+                if ((value.StartsWith("rgb(") || value.StartsWith("rgba(")) && value.EndsWith(")"))
                 {
                     var rgbColor = value.Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
                     if (rgbColor.Length == 4 &&
@@ -188,6 +213,17 @@ namespace Fluid.Filters
 
                         return true;
                     }
+
+                    if (rgbColor.Length == 5 &&
+                        Int32.TryParse(rgbColor[1], out red) &&
+                        Int32.TryParse(rgbColor[2], out green) &&
+                        Int32.TryParse(rgbColor[3], out blue) &&
+                        Single.TryParse(rgbColor[4], out float alpha))
+                    {
+                        color = Color.FromArgb(Convert.ToInt32(alpha * 255), red, green, blue);
+
+                        return true;
+                    }
                 }
 
                 color = Color.Empty;
@@ -195,23 +231,50 @@ namespace Fluid.Filters
                 return false;
             }
 
-            public override string ToString() => $"rgb({R}, {G}, {B})";
+            public override string ToString() => A == DefaultTransperency
+                ? $"rgb({R}, {G}, {B})"
+                : $"rgba({R}, {G}, {B}, {Math.Round(A, 1)})";
         }
 
         private struct HslColor
         {
-            public HslColor(double hue, double saturation, double luminosity)
+            private const float DefaultTransperency = 1.0f;
+
+            public HslColor(int hue, int saturation, int luminosity, float alpha = DefaultTransperency)
             {
+                if (hue < 0 || hue > 360)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(hue), "The hue value must in rage [0-360]");
+                }
+
+                if (saturation < 0 || saturation > 100)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(saturation), "The saturation value must in rage [0-100]");
+                }
+
+                if (luminosity < 0 || luminosity > 100)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(luminosity), "The luminosity value must in rage [0-100]");
+                }
+
+                if (alpha < 0.0f || alpha > 1.0f)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(alpha), "The alpha value must in rage [0-1]");
+                }
+
                 H = hue;
                 S = saturation;
                 L = luminosity;
+                A = alpha;
             }
 
-            public double H { get; }
+            public int H { get; }
 
-            public double S { get; }
+            public int S { get; }
 
-            public double L { get; }
+            public int L { get; }
+
+            public float A { get; }
 
             // https://www.codeproject.com/Articles/19045/Manipulating-colors-in-NET-Part-1
             public static HslColor FromRgb(Color color)
@@ -219,6 +282,7 @@ namespace Fluid.Filters
                 var r = color.R / 255.0;
                 var g = color.G / 255.0;
                 var b = color.B / 255.0;
+                var a = color.A / 255.0f;
                 var max = Math.Max(r, Math.Max(g, b));
                 var min = Math.Min(r, Math.Min(g, b));
                 var h = 0.0;
@@ -247,11 +311,12 @@ namespace Fluid.Filters
                 var s = (max == 0) ? 0.0 : (1.0 - (min / max));
                 var l = (max + min) / 2;
 
-                return new HslColor(h, s, l);
+                return new HslColor(Convert.ToInt32(h), Convert.ToInt32(s * 100.0), Convert.ToInt32(l * 100.0), a);
             }
 
-            public override string ToString()
-                => $"hsl({H}, {Convert.ToInt32(S * 100.0)}%, {Convert.ToInt32(L * 100.0)}%)";
+            public override string ToString() => A == DefaultTransperency
+                ? $"hsl({H}, {S}%, {L}%)"
+                : $"hsla({H}, {S}%, {L}%, {Math.Round(A, 1)})";
         }
     }
 }
