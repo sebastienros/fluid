@@ -152,7 +152,7 @@ namespace Fluid.Filters
 
         private struct RgbColor
         {
-            private static readonly char[] _colorSeparators = new[] { ',', ' ', ')' };
+            private static readonly char[] _colorSeparators = new[] { '(', ',', ' ', ')' };
 
             public static readonly RgbColor Empty = default;
 
@@ -178,11 +178,11 @@ namespace Fluid.Filters
             {
                 if (value.StartsWith("rgb(") && value.EndsWith(")"))
                 {
-                    var rgbColor = value.Substring(4).Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
-                    if (rgbColor.Length == 3 &&
-                        Int32.TryParse(rgbColor[0], out int red) &&
-                        Int32.TryParse(rgbColor[1], out int green) && 
-                        Int32.TryParse(rgbColor[2], out int blue))
+                    var rgbColor = value.Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
+                    if (rgbColor.Length == 4 &&
+                        Int32.TryParse(rgbColor[1], out int red) &&
+                        Int32.TryParse(rgbColor[2], out int green) && 
+                        Int32.TryParse(rgbColor[3], out int blue))
                     {
                         color = Color.FromArgb(red, green, blue);
 
