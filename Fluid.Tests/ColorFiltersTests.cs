@@ -92,5 +92,42 @@ namespace Fluid.Tests
             // Assert
             Assert.Equal(expected, result.ToStringValue());
         }
+
+        [Theory]
+        [InlineData("#7ab55c", new object[] { "red" }, "122")]
+        [InlineData("#7ab55c", new object[] { "green" }, "181")]
+        [InlineData("#7ab55c", new object[] { "blue" }, "92")]
+        [InlineData("#7ab55c", new object[] { "alpha" }, "1")]
+        [InlineData("#7ab55c", new object[] { "hue" }, "100")]
+        [InlineData("#7ab55c", new object[] { "saturation" }, "38")]
+        [InlineData("#7ab55c", new object[] { "lightness" }, "54")]
+        [InlineData("rgb(122, 181, 92)", new object[] { "red" }, "122")]
+        [InlineData("rgb(122, 181, 92)", new object[] { "green" }, "181")]
+        [InlineData("rgb(122, 181, 92)", new object[] { "blue" }, "92")]
+        [InlineData("rgb(122, 181, 92)", new object[] { "alpha" }, "1")]
+        [InlineData("rgba(122, 181, 92, 0.5)", new object[] { "alpha" }, "0.5")]
+        [InlineData("rgb(122, 181, 92)", new object[] { "hue" }, "100")]
+        [InlineData("rgb(122, 181, 92)", new object[] { "saturation" }, "38")]
+        [InlineData("rgb(122, 181, 92)", new object[] { "lightness" }, "54")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "red" }, "122")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "green" }, "181")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "blue" }, "92")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "alpha" }, "1")]
+        [InlineData("hsl(100, 38%, 54%, 0.5)", new object[] { "alpha" }, "0.5")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "hue" }, "100")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "saturation" }, "38")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "lightness" }, "54")]
+        public void ColorExtract(string color, object[] arguments, string expected)
+        {
+            // Arrange
+            var input = new StringValue(color);
+            var context = new TemplateContext();
+
+            // Act
+            var result = ColorFilters.ColorExtract(input, new FilterArguments(arguments), context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
+        }
     }
 }
