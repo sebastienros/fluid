@@ -13,18 +13,19 @@ namespace Fluid.Tests
         [InlineData("#f00", "rgb(255, 0, 0)")]
         [InlineData("#0f0", "rgb(0, 255, 0)")]
         [InlineData("#00f", "rgb(0, 0, 255)")]
-        [InlineData("#7ab55c", "rgb(122, 181, 92)")]
+        [InlineData("#7bb65d", "rgb(123, 182, 93)")]
         [InlineData("hsl(0, 0%, 100%)", "rgb(255, 255, 255)")]
         [InlineData("hsl(0, 0%, 0%)", "rgb(0, 0, 0)")]
         [InlineData("hsl(0, 100%, 50%)", "rgb(255, 0, 0)")]
+        [InlineData("hsl(100, 38%, 54%)", "rgb(123, 182, 93)")]
         [InlineData("hsl(120, 100%, 50%)", "rgb(0, 255, 0)")]
         [InlineData("hsl(240, 100%, 50%)", "rgb(0, 0, 255)")]
         [InlineData("hsl(300, 100%, 25%)", "rgb(128, 0, 128)")]
         [InlineData("hsla(0, 100%, 50%, 0.5)", "rgba(255, 0, 0, 0.5)")]
-        public void ToRgb(string hexColor, string expected)
+        public void ToRgb(string color, string expected)
         {
             // Arrange
-            var input = new StringValue(hexColor);
+            var input = new StringValue(color);
             var context = new TemplateContext();
 
             // Act
@@ -40,8 +41,8 @@ namespace Fluid.Tests
         [InlineData("rgb(255, 0, 0)", "#ff0000")]
         [InlineData("rgb(0, 255, 0)", "#00ff00")]
         [InlineData("rgb(0, 0, 255)", "#0000ff")]
-        [InlineData("rgb(122, 181, 92)", "#7ab55c")]
-        [InlineData("rgba(122, 181, 92, 0.5)", "#7ab55c")]
+        [InlineData("rgb(123, 182, 93)", "#7bb65d")]
+        [InlineData("rgba(123, 182, 93, 0.5)", "#7bb65d")]
         [InlineData("rgb(0,0,0)", "#000000")]
         [InlineData("rgb( 0,0,0 )", "#000000")]
         [InlineData("rgb( 0, 0    ,0 )", "#000000")]
@@ -49,14 +50,15 @@ namespace Fluid.Tests
         [InlineData("hsl(0, 0%, 100%)", "#ffffff")]
         [InlineData("hsl(0, 0%, 0%)", "#000000")]
         [InlineData("hsl(0, 100%, 50%)", "#ff0000")]
+        [InlineData("hsl(100, 38%, 54%)", "#7bb65d")]
         [InlineData("hsl(120, 100%, 50%)", "#00ff00")]
         [InlineData("hsl(240, 100%, 50%)", "#0000ff")]
         [InlineData("hsl(300, 100%, 25%)", "#800080")]
         [InlineData("hsl(300, 100%, 25%, 0.5)", "#800080")]
-        public void ToHex(string rgbColor, string expected)
+        public void ToHex(string color, string expected)
         {
             // Arrange
-            var input = new StringValue(rgbColor);
+            var input = new StringValue(color);
             var context = new TemplateContext();
 
             // Act
@@ -94,24 +96,24 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData("#7ab55c", new object[] { "red" }, "122")]
-        [InlineData("#7ab55c", new object[] { "green" }, "181")]
-        [InlineData("#7ab55c", new object[] { "blue" }, "92")]
-        [InlineData("#7ab55c", new object[] { "alpha" }, "1")]
-        [InlineData("#7ab55c", new object[] { "hue" }, "100")]
-        [InlineData("#7ab55c", new object[] { "saturation" }, "38")]
-        [InlineData("#7ab55c", new object[] { "lightness" }, "54")]
-        [InlineData("rgb(122, 181, 92)", new object[] { "red" }, "122")]
-        [InlineData("rgb(122, 181, 92)", new object[] { "green" }, "181")]
-        [InlineData("rgb(122, 181, 92)", new object[] { "blue" }, "92")]
-        [InlineData("rgb(122, 181, 92)", new object[] { "alpha" }, "1")]
-        [InlineData("rgba(122, 181, 92, 0.5)", new object[] { "alpha" }, "0.5")]
-        [InlineData("rgb(122, 181, 92)", new object[] { "hue" }, "100")]
-        [InlineData("rgb(122, 181, 92)", new object[] { "saturation" }, "38")]
-        [InlineData("rgb(122, 181, 92)", new object[] { "lightness" }, "54")]
-        [InlineData("hsl(100, 38%, 54%)", new object[] { "red" }, "122")]
-        [InlineData("hsl(100, 38%, 54%)", new object[] { "green" }, "181")]
-        [InlineData("hsl(100, 38%, 54%)", new object[] { "blue" }, "92")]
+        [InlineData("#7bb65d", new object[] { "red" }, "123")]
+        [InlineData("#7bb65d", new object[] { "green" }, "182")]
+        [InlineData("#7bb65d", new object[] { "blue" }, "93")]
+        [InlineData("#7bb65d", new object[] { "alpha" }, "1")]
+        [InlineData("#7bb65d", new object[] { "hue" }, "100")]
+        [InlineData("#7bb65d", new object[] { "saturation" }, "38")]
+        [InlineData("#7bb65d", new object[] { "lightness" }, "54")]
+        [InlineData("rgb(123, 182, 93)", new object[] { "red" }, "123")]
+        [InlineData("rgb(123, 182, 93)", new object[] { "green" }, "182")]
+        [InlineData("rgb(123, 182, 93)", new object[] { "blue" }, "93")]
+        [InlineData("rgb(123, 182, 93)", new object[] { "alpha" }, "1")]
+        [InlineData("rgba(123, 182, 93, 0.5)", new object[] { "alpha" }, "0.5")]
+        [InlineData("rgb(123, 182, 93)", new object[] { "hue" }, "100")]
+        [InlineData("rgb(123, 182, 93)", new object[] { "saturation" }, "38")]
+        [InlineData("rgb(123, 182, 93)", new object[] { "lightness" }, "54")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "red" }, "123")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "green" }, "182")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "blue" }, "93")]
         [InlineData("hsl(100, 38%, 54%)", new object[] { "alpha" }, "1")]
         [InlineData("hsl(100, 38%, 54%, 0.5)", new object[] { "alpha" }, "0.5")]
         [InlineData("hsl(100, 38%, 54%)", new object[] { "hue" }, "100")]
