@@ -21,13 +21,13 @@ namespace Fluid.Filters
             var value = input.ToStringValue();
             if (HexColor.TryParse(value, out HexColor hexColor))
             {
-                var rgbColor = RgbColor.FromHex(hexColor);
+                var rgbColor = (RgbColor)hexColor;
 
                 return new StringValue(rgbColor.ToString());
             }
             else if (HslColor.TryParse(value, out HslColor hslColor))
             {
-                var rgbColor = RgbColor.FromHsl(hslColor);
+                var rgbColor = (RgbColor)hslColor;
 
                 return new StringValue(rgbColor.ToString());
             }
@@ -42,13 +42,13 @@ namespace Fluid.Filters
             var value = input.ToStringValue();
             if (RgbColor.TryParse(value, out RgbColor rgbColor))
             {
-                var hexColor = HexColor.FromRgb(rgbColor);
+                var hexColor = (HexColor)rgbColor;
 
                 return new StringValue(hexColor.ToString());
             }
             else if (HslColor.TryParse(value, out HslColor hslColor))
             {
-                var hexColor = HexColor.FromHsl(hslColor);
+                var hexColor = (HexColor)hslColor;
 
                 return new StringValue(hexColor.ToString());
             }
@@ -63,13 +63,13 @@ namespace Fluid.Filters
             var value = input.ToStringValue();
             if (HexColor.TryParse(value, out HexColor hexColor))
             {
-                var hslColor = HslColor.FromHex(hexColor);
+                var hslColor = (HslColor)hexColor;
 
                 return new StringValue(hslColor.ToString());
             }
             else if (RgbColor.TryParse(value, out RgbColor rgbColor))
             {
-                var hslColor = HslColor.FromRgb(rgbColor);
+                var hslColor = (HslColor)rgbColor;
 
                 return new StringValue(hslColor.ToString());
             }
@@ -86,16 +86,16 @@ namespace Fluid.Filters
             HslColor hslColor;
             if (HexColor.TryParse(value, out HexColor hexColor))
             {
-                rgbColor = RgbColor.FromHex(hexColor);
-                hslColor = HslColor.FromHex(hexColor);
+                rgbColor = (RgbColor)hexColor;
+                hslColor = (HslColor)hexColor;
             }
             else if (RgbColor.TryParse(value, out rgbColor))
             {
-                hslColor = HslColor.FromRgb(rgbColor);
+                hslColor = (HslColor)rgbColor;
             }
             else if (HslColor.TryParse(value, out hslColor))
             {
-                rgbColor = RgbColor.FromHsl(hslColor);
+                rgbColor = (RgbColor)hslColor;
             }
             else
             {
@@ -191,19 +191,15 @@ namespace Fluid.Filters
                 return false;
             }
 
-
-            public static HexColor FromRgb(RgbColor color)
-            {
-                var red = color.R.ToString("X2", null);
-                var green = color.G.ToString("X2", null);
-                var blue = color.B.ToString("X2", null);
-
-                return new HexColor(red, green, blue);
-            }
-
-            public static HexColor FromHsl(HslColor color) => FromRgb(RgbColor.FromHsl(color));
-
             public override string ToString() => $"#{R}{G}{B}".ToLower();
+
+            public static explicit operator HexColor(HslColor hslColor) => (HexColor)(RgbColor)hslColor;
+
+            public static explicit operator HexColor(RgbColor rgbColor)
+                => new HexColor(
+                    rgbColor.R.ToString("X2", null),
+                    rgbColor.G.ToString("X2", null),
+                    rgbColor.B.ToString("X2", null));
 
             private static bool IsHexadecimal(string value) => value.All(c => "0123456789abcdefABCDEF".Contains(c));
         }
@@ -289,62 +285,6 @@ namespace Fluid.Filters
                 return false;
             }
 
-            public static RgbColor FromHex(HexColor color)
-            {
-                if (color.R.Length == 1)
-                {
-                    var red = Convert.ToInt32(color.R + color.R, 16);
-                    var green = Convert.ToInt32(color.G + color.G, 16);
-                    var blue = Convert.ToInt32(color.B + color.B, 16);
-
-                    return new RgbColor(red, green, blue);
-                }
-                else
-                {
-                    var red = Convert.ToInt32(color.R, 16);
-                    var green = Convert.ToInt32(color.G, 16);
-                    var blue = Convert.ToInt32(color.B, 16);
-
-                    return new RgbColor(red, green, blue);
-                }
-            }
-
-            // http://csharphelper.com/blog/2016/08/convert-between-rgb-and-hls-color-models-in-c/
-            public static RgbColor FromHsl(HslColor color)
-            {
-                double p2;
-                if (color.L <= 0.5)
-                {
-                    p2 = color.L * (1 + color.S);
-                }
-                else
-                {
-                    p2 = color.L + color.S - color.L * color.S;
-                }
-
-                var p1 = 2.0 * color.L - p2;
-                double r, g, b;
-                if (color.S == 0.0)
-                {
-                    r = color.L;
-                    g = color.L;
-                    b = color.L;
-                }
-                else
-                {
-                    r = QqhToRgb(p1, p2, color.H + 120.0);
-                    g = QqhToRgb(p1, p2, color.H);
-                    b = QqhToRgb(p1, p2, color.H - 120.0);
-                }
-
-                return new RgbColor(
-                    (int)Math.Round(r * 255.0),
-                    (int)Math.Round(g * 255.0),
-                    (int)Math.Round(b * 255.0),
-                    color.A
-                    );
-            }
-
             private static double QqhToRgb(double q1, double q2, double hue)
             {
                 if (hue > 360.0)
@@ -372,6 +312,67 @@ namespace Fluid.Filters
                 }
 
                 return q1;
+            }
+
+            public static implicit operator Color(RgbColor rgbColor)
+                => Color.FromArgb(rgbColor.R, rgbColor.G, rgbColor.B);
+
+            public static explicit operator RgbColor(Color color) => new RgbColor(color);
+
+            public static explicit operator RgbColor(HexColor hexColor)
+            {
+                if (hexColor.R.Length == 1)
+                {
+                    var red = Convert.ToInt32(hexColor.R + hexColor.R, 16);
+                    var green = Convert.ToInt32(hexColor.G + hexColor.G, 16);
+                    var blue = Convert.ToInt32(hexColor.B + hexColor.B, 16);
+
+                    return new RgbColor(red, green, blue);
+                }
+                else
+                {
+                    var red = Convert.ToInt32(hexColor.R, 16);
+                    var green = Convert.ToInt32(hexColor.G, 16);
+                    var blue = Convert.ToInt32(hexColor.B, 16);
+
+                    return new RgbColor(red, green, blue);
+                }
+            }
+
+            public static explicit operator RgbColor(HslColor hslColor)
+            {
+                // http://csharphelper.com/blog/2016/08/convert-between-rgb-and-hls-color-models-in-c/
+                double p2;
+                if (hslColor.L <= 0.5)
+                {
+                    p2 = hslColor.L * (1 + hslColor.S);
+                }
+                else
+                {
+                    p2 = hslColor.L + hslColor.S - hslColor.L * hslColor.S;
+                }
+
+                var p1 = 2.0 * hslColor.L - p2;
+                double r, g, b;
+                if (hslColor.S == 0.0)
+                {
+                    r = hslColor.L;
+                    g = hslColor.L;
+                    b = hslColor.L;
+                }
+                else
+                {
+                    r = QqhToRgb(p1, p2, hslColor.H + 120.0);
+                    g = QqhToRgb(p1, p2, hslColor.H);
+                    b = QqhToRgb(p1, p2, hslColor.H - 120.0);
+                }
+
+                return new RgbColor(
+                    (int)Math.Round(r * 255.0),
+                    (int)Math.Round(g * 255.0),
+                    (int)Math.Round(b * 255.0),
+                    hslColor.A
+                    );
             }
 
             public override string ToString() => A == DefaultTransperency
@@ -455,14 +456,16 @@ namespace Fluid.Filters
                 return false;
             }
 
-            // http://csharphelper.com/blog/2016/08/convert-between-rgb-and-hls-color-models-in-c/
-            public static HslColor FromRgb(RgbColor color)
+            public static explicit operator HslColor(HexColor hexColor) => (HslColor)(RgbColor)hexColor;
+
+            public static explicit operator HslColor(RgbColor rgbColor)
             {
+                // http://csharphelper.com/blog/2016/08/convert-between-rgb-and-hls-color-models-in-c/
                 double h;
                 double s;
-                var r = color.R / 255.0;
-                var g = color.G / 255.0;
-                var b = color.B / 255.0;
+                var r = rgbColor.R / 255.0;
+                var g = rgbColor.G / 255.0;
+                var b = rgbColor.B / 255.0;
                 var max = Math.Max(Math.Max(r, g), b);
                 var min = Math.Min(Math.Min(r, g), b);
                 var diff = max - min;
@@ -509,10 +512,8 @@ namespace Fluid.Filters
                     }
                 }
 
-                return new HslColor(Convert.ToInt32(h), Math.Round(s, 2), Math.Round(l, 2), color.A);
+                return new HslColor(Convert.ToInt32(h), Math.Round(s, 2), Math.Round(l, 2), rgbColor.A);
             }
-
-            public static HslColor FromHex(HexColor color) => FromRgb(RgbColor.FromHex(color));
 
             public override string ToString() => A == DefaultTransperency
                 ? $"hsl({H}, {S * 100.0}%, {L * 100.0}%)"
