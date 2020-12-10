@@ -94,7 +94,7 @@ namespace Fluid.Filters
             var html = input.ToStringValue();
             if (String.IsNullOrEmpty(html))
             {
-                return new StringValue(String.Empty);
+                return StringValue.Empty;
             }
 
             try
