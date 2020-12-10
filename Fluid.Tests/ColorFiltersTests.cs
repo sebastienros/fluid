@@ -131,5 +131,40 @@ namespace Fluid.Tests
             // Assert
             Assert.Equal(expected, result.ToStringValue());
         }
+
+        [Theory]
+        [InlineData("#7bb65d", new object[] { "red", 255 }, "#ffb65d")]
+        [InlineData("#7bb65d", new object[] { "green", 255 }, "#7bff5d")]
+        [InlineData("#7bb65d", new object[] { "blue", 255 }, "#7bb6ff")]
+        [InlineData("#7bb65d", new object[] { "alpha", 0.5 }, "#7bb65d")]
+        [InlineData("#7bb65d", new object[] { "hue", 50 }, "#b6a75d")]
+        [InlineData("#7bb65d", new object[] { "saturation", 50 }, "#76c44f")]
+        [InlineData("#7bb65d", new object[] { "lightness", 50 }, "#6fb04f")]
+        [InlineData("rgb(123, 182, 93)", new object[] { "red", 255 }, "rgb(255, 182, 93)")]
+        [InlineData("rgb(123, 182, 93)", new object[] { "green", 255 }, "rgb(123, 255, 93)")]
+        [InlineData("rgb(123, 182, 93)", new object[] { "blue", 255 }, "rgb(123, 182, 255)")]
+        [InlineData("rgba(123, 182, 93)", new object[] { "alpha", 0.5 }, "rgba(123, 182, 93, 0.5)")]
+        [InlineData("rgb(123, 182, 93)", new object[] { "hue", 50 }, "rgb(182, 167, 93)")]
+        [InlineData("rgb(123, 182, 93)", new object[] { "saturation", 50 }, "rgb(118, 196, 79)")]
+        [InlineData("rgb(123, 182, 93)", new object[] { "lightness", 50 }, "rgb(111, 176, 79)")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "red", 255 }, "hsl(33, 100%, 68%)")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "green", 255 }, "hsl(109, 100%, 68%)")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "blue", 255 }, "hsl(213, 100%, 74%)")]
+        [InlineData("hsl(100, 38%, 54%, 0.5)", new object[] { "alpha", 0.5 }, "hsla(100, 38%, 54%, 0.5)")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "hue", 50 }, "hsl(50, 38%, 54%)")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "saturation", 50 }, "hsl(100, 50%, 54%)")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { "lightness", 50 }, "hsl(100, 38%, 50%)")]
+        public void ColorModify(string color, object[] arguments, string expected)
+        {
+            // Arrange
+            var input = new StringValue(color);
+            var context = new TemplateContext();
+
+            // Act
+            var result = ColorFilters.ColorModify(input, new FilterArguments(arguments), context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
+        }
     }
 }
