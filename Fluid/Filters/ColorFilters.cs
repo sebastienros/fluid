@@ -12,6 +12,7 @@ namespace Fluid.Filters
             filters.AddFilter("color_to_rgb", ToRgb);
             filters.AddFilter("color_to_hex", ToHex);
             filters.AddFilter("color_to_hsl", ToHsl);
+            filters.AddFilter("color_brightness", CalculateBrightness);
 
             return filters;
         }
@@ -113,6 +114,32 @@ namespace Fluid.Filters
                 "lightness" => new StringValue(Convert.ToInt32(hslColor.L * 100.0).ToString()),
                 _ => NilValue.Empty,
             };
+        }
+
+        public static FluidValue CalculateBrightness(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            RgbColor rgbColor;
+            if (HexColor.TryParse(value, out HexColor hexColor))
+            {
+                rgbColor = (RgbColor)hexColor;
+            }
+            else if (HslColor.TryParse(value, out HslColor hslColor))
+            {
+                rgbColor = (RgbColor)hslColor;
+            }
+            else if (RgbColor.TryParse(value, out rgbColor))
+            {
+
+            }
+            else
+            {
+                return NilValue.Empty;
+            }
+
+            var brightness = Convert.ToDouble(rgbColor.R * 299 + rgbColor.G * 587 + rgbColor.B * 114) / 1000.0;
+
+            return NumberValue.Create(Math.Round(brightness, 2));
         }
 
         private struct HexColor
