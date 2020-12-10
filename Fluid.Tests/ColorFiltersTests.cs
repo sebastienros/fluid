@@ -136,7 +136,7 @@ namespace Fluid.Tests
         [InlineData("#7bb65d", new object[] { "red", 255 }, "#ffb65d")]
         [InlineData("#7bb65d", new object[] { "green", 255 }, "#7bff5d")]
         [InlineData("#7bb65d", new object[] { "blue", 255 }, "#7bb6ff")]
-        [InlineData("#7bb65d", new object[] { "alpha", 0.5 }, "#7bb65d")]
+        [InlineData("#7bb65d", new object[] { "alpha", 0.5 }, "rgba(123, 182, 93, 0.5)")]
         [InlineData("#7bb65d", new object[] { "hue", 50 }, "#b6a75d")]
         [InlineData("#7bb65d", new object[] { "saturation", 50 }, "#76c44f")]
         [InlineData("#7bb65d", new object[] { "lightness", 50 }, "#6fb04f")]

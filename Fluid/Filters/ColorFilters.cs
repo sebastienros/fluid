@@ -186,7 +186,7 @@ namespace Fluid.Filters
 
                 return arguments.At(0).ToStringValue() switch
                 {
-                    "alpha" => new StringValue(((HexColor)new RgbColor(rgbColor.R, rgbColor.G, rgbColor.B, (double)modifiedValue)).ToString()),
+                    "alpha" => new StringValue(new RgbColor(rgbColor.R, rgbColor.G, rgbColor.B, (double)modifiedValue).ToString()),
                     "red" => new StringValue(((HexColor)new RgbColor((int)modifiedValue, rgbColor.G, rgbColor.B, rgbColor.A)).ToString()),
                     "green" => new StringValue(((HexColor)new RgbColor(rgbColor.R, (int)modifiedValue, rgbColor.B, rgbColor.A)).ToString()),
                     "blue" => new StringValue(((HexColor)new RgbColor(rgbColor.R, rgbColor.G, (int)modifiedValue, rgbColor.A)).ToString()),
