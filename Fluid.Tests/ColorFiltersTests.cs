@@ -131,5 +131,39 @@ namespace Fluid.Tests
             // Assert
             Assert.Equal(expected, result.ToStringValue());
         }
+
+        [Theory]
+        [InlineData("#7bb65d", new object[] { 30 }, "#d1e6c7")]
+        [InlineData("rgb(123, 182, 93)", new object[] { 30 }, "rgb(209, 230, 199)")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { 30 }, "hsl(100, 38%, 84%)")]
+        public void ColorLighten(string color, object[] arguments, string expected)
+        {
+            // Arrange
+            var input = new StringValue(color);
+            var context = new TemplateContext();
+
+            // Act
+            var result = ColorFilters.ColorLighten(input, new FilterArguments(arguments), context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("#7bb65d", new object[] { 30 }, "#355426")]
+        [InlineData("rgb(123, 182, 93)", new object[] { 30 }, "rgb(53, 84, 38)")]
+        [InlineData("hsl(100, 38%, 54%)", new object[] { 30 }, "hsl(100, 38%, 24%)")]
+        public void ColorDarken(string color, object[] arguments, string expected)
+        {
+            // Arrange
+            var input = new StringValue(color);
+            var context = new TemplateContext();
+
+            // Act
+            var result = ColorFilters.ColorDarken(input, new FilterArguments(arguments), context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
+        }
     }
 }
