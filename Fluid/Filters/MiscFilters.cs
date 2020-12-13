@@ -92,32 +92,42 @@ namespace Fluid.Filters
         public static FluidValue StripHtml(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var html = input.ToStringValue();
-            
-            var result = new char[html.Length];
-
-            var cursor = 0;
-            var inside = false;
-            for (var i = 0; i < html.Length; i++)
+            if (String.IsNullOrEmpty(html))
             {
-                char current = html[i];
-
-                switch (current)
-                {
-                    case '<':
-                        inside = true;
-                        continue;
-                    case '>':
-                        inside = false;
-                        continue;
-                }
-
-                if (!inside)
-                {
-                    result[cursor++] = current;
-                }
+                return StringValue.Empty;
             }
 
-            return new StringValue(new string(result, 0, cursor));
+            try
+            {
+                var result = new char[html.Length];
+                var cursor = 0;
+                var inside = false;
+                for (var i = 0; i < html.Length; i++)
+                {
+                    char current = html[i];
+
+                    switch (current)
+                    {
+                        case '<':
+                            inside = true;
+                            continue;
+                        case '>':
+                            inside = false;
+                            continue;
+                    }
+
+                    if (!inside)
+                    {
+                        result[cursor++] = current;
+                    }
+                }
+
+                return new StringValue(new string(result, 0, cursor));
+            }
+            catch
+            {
+                return new StringValue(String.Empty);
+            }
         }
 
         public static FluidValue Escape(FluidValue input, FilterArguments arguments, TemplateContext context)

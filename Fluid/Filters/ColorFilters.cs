@@ -12,6 +12,7 @@ namespace Fluid.Filters
             filters.AddFilter("color_to_rgb", ToRgb);
             filters.AddFilter("color_to_hex", ToHex);
             filters.AddFilter("color_to_hsl", ToHsl);
+            filters.AddFilter("color_extract", ColorExtract);
             filters.AddFilter("color_brightness", CalculateBrightness);
 
             return filters;
