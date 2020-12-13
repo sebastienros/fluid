@@ -14,12 +14,11 @@ namespace Fluid.Values
 
         public StringValue(string value)
         {
-            _value = value;
+            _value = value ?? NilValue.Instance.ToStringValue();
         }
 
-        public StringValue(string value, bool encode)
+        public StringValue(string value, bool encode) : this(value)
         {
-            _value = value;
             Encode = encode;
         }
 
