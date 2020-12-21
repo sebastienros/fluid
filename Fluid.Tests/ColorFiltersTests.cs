@@ -131,5 +131,22 @@ namespace Fluid.Tests
             // Assert
             Assert.Equal(expected, result.ToStringValue());
         }
+
+        [Theory]
+        [InlineData("#7bb65d", 154.21)]
+        [InlineData("rgb(123, 182, 93)", 154.21)]
+        [InlineData("hsl(100, 38%, 54%)", 154.21)]
+        public void CalculateBrightness(string color, decimal expected)
+        {
+            // Arrange
+            var input = new StringValue(color);
+            var context = new TemplateContext();
+
+            // Act
+            var result = ColorFilters.CalculateBrightness(input, FilterArguments.Empty, context);
+
+            // Assert
+            Assert.Equal(expected, result.ToNumberValue());
+        }
     }
 }
