@@ -17,6 +17,8 @@ namespace Fluid.Filters
             filters.AddFilter("color_brightness", CalculateBrightness);
             filters.AddFilter("color_saturate", ColorSaturate);
             filters.AddFilter("color_desaturate", ColorDesaturate);
+            filters.AddFilter("color_lighten", ColorLighten);
+            filters.AddFilter("color_darken", ColorDarken);
 
             return filters;
         }
@@ -334,6 +336,116 @@ namespace Fluid.Filters
                 var saturation = (hslColor.S * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
 
                 return new StringValue(((RgbColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
+            }
+            else
+            {
+                // The code is unreachable
+                return NilValue.Empty;
+            }
+        }
+        
+        public static FluidValue ColorLighten(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            bool isHex = false;
+            bool isHsl = false;
+            bool isRgb = false;
+            var hslColor = HslColor.Empty;
+            var rgbColor = RgbColor.Empty;
+            var hexColor = HexColor.Empty;
+            if (HexColor.TryParse(value, out hexColor))
+            {
+                isHex = true;
+            }
+            else if (RgbColor.TryParse(value, out rgbColor))
+            {
+                isRgb = true;
+            }
+            else if (HslColor.TryParse(value, out hslColor))
+            {
+                isHsl = true;
+            }
+            else
+            {
+                return NilValue.Empty;
+            }
+
+            if (isHex)
+            {
+                hslColor = (HslColor)hexColor;
+
+                var lightness = (hslColor.L * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+
+                return new StringValue(((HexColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
+            }
+            else if (isHsl)
+            {
+                var lightness = (hslColor.L * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+
+                return new StringValue(new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A).ToString());
+            }
+            else if (isRgb)
+            {
+                hslColor = (HslColor)rgbColor;
+
+                var lightness = (hslColor.L * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+
+                return new StringValue(((RgbColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
+            }
+            else
+            {
+                // The code is unreachable
+                return NilValue.Empty;
+            }
+        }
+
+        public static FluidValue ColorDarken(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            bool isHex = false;
+            bool isHsl = false;
+            bool isRgb = false;
+            var hslColor = HslColor.Empty;
+            var rgbColor = RgbColor.Empty;
+            var hexColor = HexColor.Empty;
+            if (HexColor.TryParse(value, out hexColor))
+            {
+                isHex = true;
+            }
+            else if (RgbColor.TryParse(value, out rgbColor))
+            {
+                isRgb = true;
+            }
+            else if (HslColor.TryParse(value, out hslColor))
+            {
+                isHsl = true;
+            }
+            else
+            {
+                return NilValue.Empty;
+            }
+
+            if (isHex)
+            {
+                hslColor = (HslColor)hexColor;
+
+                var lightness = (hslColor.L * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+
+                return new StringValue(((HexColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
+            }
+            else if (isHsl)
+            {
+                var lightness = (hslColor.L * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+
+                return new StringValue(new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A).ToString());
+            }
+            else if (isRgb)
+            {
+                hslColor = (HslColor)rgbColor;
+
+                var lightness = (hslColor.L * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+
+                return new StringValue(((RgbColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
             }
             else
             {
