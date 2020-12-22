@@ -131,7 +131,7 @@ namespace Fluid.Tests
             // Assert
             Assert.Equal(expected, result.ToStringValue());
         }
-      
+
         [Theory]
         [InlineData("#7bb65d", new object[] { "red", 255 }, "#ffb65d")]
         [InlineData("#7bb65d", new object[] { "green", 255 }, "#7bff5d")]
