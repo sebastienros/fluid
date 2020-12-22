@@ -15,6 +15,8 @@ namespace Fluid.Filters
             filters.AddFilter("color_extract", ColorExtract);
             filters.AddFilter("color_modify", ColorModify);
             filters.AddFilter("color_brightness", CalculateBrightness);
+            filters.AddFilter("color_saturate", ColorSaturate);
+            filters.AddFilter("color_desaturate", ColorDesaturate);
 
             return filters;
         }
@@ -228,6 +230,116 @@ namespace Fluid.Filters
             var brightness = Convert.ToDouble(rgbColor.R * 299 + rgbColor.G * 587 + rgbColor.B * 114) / 1000.0;
 
             return NumberValue.Create(Math.Round(brightness, 2));
+        }
+
+        public static FluidValue ColorSaturate(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            bool isHex = false;
+            bool isHsl = false;
+            bool isRgb = false;
+            var hslColor = HslColor.Empty;
+            var rgbColor = RgbColor.Empty;
+            var hexColor = HexColor.Empty;
+            if (HexColor.TryParse(value, out hexColor))
+            {
+                isHex = true;
+            }
+            else if (RgbColor.TryParse(value, out rgbColor))
+            {
+                isRgb = true;
+            }
+            else if (HslColor.TryParse(value, out hslColor))
+            {
+                isHsl = true;
+            }
+            else
+            {
+                return NilValue.Empty;
+            }
+
+            if (isHex)
+            {
+                hslColor = (HslColor)hexColor;
+                
+                var saturation = (hslColor.S * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+
+                return new StringValue(((HexColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
+            }
+            else if (isHsl)
+            {
+                var saturation = (hslColor.S * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+
+                return new StringValue(new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A).ToString());
+            }
+            else if (isRgb)
+            {
+                hslColor = (HslColor)rgbColor;
+
+                var saturation = (hslColor.S * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+
+                return new StringValue(((RgbColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
+            }
+            else
+            {
+                // The code is unreachable
+                return NilValue.Empty;
+            }
+        }
+
+        public static FluidValue ColorDesaturate(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            bool isHex = false;
+            bool isHsl = false;
+            bool isRgb = false;
+            var hslColor = HslColor.Empty;
+            var rgbColor = RgbColor.Empty;
+            var hexColor = HexColor.Empty;
+            if (HexColor.TryParse(value, out hexColor))
+            {
+                isHex = true;
+            }
+            else if (RgbColor.TryParse(value, out rgbColor))
+            {
+                isRgb = true;
+            }
+            else if (HslColor.TryParse(value, out hslColor))
+            {
+                isHsl = true;
+            }
+            else
+            {
+                return NilValue.Empty;
+            }
+
+            if (isHex)
+            {
+                hslColor = (HslColor)hexColor;
+
+                var saturation = (hslColor.S * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+
+                return new StringValue(((HexColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
+            }
+            else if (isHsl)
+            {
+                var saturation = (hslColor.S * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+
+                return new StringValue(new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A).ToString());
+            }
+            else if (isRgb)
+            {
+                hslColor = (HslColor)rgbColor;
+
+                var saturation = (hslColor.S * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+
+                return new StringValue(((RgbColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
+            }
+            else
+            {
+                // The code is unreachable
+                return NilValue.Empty;
+            }
         }
 
         private struct HexColor
