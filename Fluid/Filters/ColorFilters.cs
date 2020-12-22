@@ -13,6 +13,8 @@ namespace Fluid.Filters
             filters.AddFilter("color_to_hex", ToHex);
             filters.AddFilter("color_to_hsl", ToHsl);
             filters.AddFilter("color_extract", ColorExtract);
+            filters.AddFilter("color_modify", ColorModify);
+            filters.AddFilter("color_brightness", CalculateBrightness);
             filters.AddFilter("color_saturate", ColorSaturate);
             filters.AddFilter("color_desaturate", ColorDesaturate);
 
@@ -116,6 +118,92 @@ namespace Fluid.Filters
                 "lightness" => new StringValue(Convert.ToInt32(hslColor.L * 100.0).ToString()),
                 _ => NilValue.Empty,
             };
+        }
+      
+        public static FluidValue ColorModify(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            bool isRgb = false;
+            bool isHsl = false;
+            bool isHex = false;
+            RgbColor rgbColor;
+            HslColor hslColor;
+            if (HexColor.TryParse(value, out HexColor hexColor))
+            {
+                isHex = true;
+                rgbColor = (RgbColor)hexColor;
+                hslColor = (HslColor)hexColor;
+            }
+            else if (RgbColor.TryParse(value, out rgbColor))
+            {
+                isRgb = true;
+                hslColor = (HslColor)rgbColor;
+            }
+            else if (HslColor.TryParse(value, out hslColor))
+            {
+                isHsl = true;
+                rgbColor = (RgbColor)hslColor;
+            }
+            else
+            {
+                return NilValue.Empty;
+            }
+
+            var modifiedValue = arguments.At(1).ToNumberValue();
+            if (isRgb)
+            {
+                hslColor = (HslColor)rgbColor;
+
+                return arguments.At(0).ToStringValue() switch
+                {
+                    "alpha" => new StringValue(new RgbColor(rgbColor.R, rgbColor.G, rgbColor.B, (double)modifiedValue).ToString()),
+                    "red" => new StringValue(new RgbColor((int)modifiedValue, rgbColor.G, rgbColor.B, rgbColor.A).ToString()),
+                    "green" => new StringValue(new RgbColor(rgbColor.R, (int)modifiedValue, rgbColor.B, rgbColor.A).ToString()),
+                    "blue" => new StringValue(new RgbColor(rgbColor.R, rgbColor.G, (int)modifiedValue, rgbColor.A).ToString()),
+                    "hue" => new StringValue(((RgbColor)new HslColor((int)modifiedValue, hslColor.S, hslColor.L, hslColor.A)).ToString()),
+                    "saturation" => new StringValue(((RgbColor)new HslColor(hslColor.H, (double)modifiedValue / 100.0, hslColor.L, hslColor.A)).ToString()),
+                    "lightness" => new StringValue(((RgbColor)new HslColor(hslColor.H, hslColor.S, (double)modifiedValue / 100.0, hslColor.A)).ToString()),
+                    _ => NilValue.Empty,
+                };
+            }
+            else if(isHsl)
+            {
+                rgbColor = (RgbColor)hslColor;
+
+                return arguments.At(0).ToStringValue() switch
+                {
+                    "alpha" => new StringValue(((HslColor)new RgbColor(rgbColor.R, rgbColor.G, rgbColor.B, (double)modifiedValue)).ToString()),
+                    "red" => new StringValue(((HslColor)new RgbColor((int)modifiedValue, rgbColor.G, rgbColor.B, rgbColor.A)).ToString()),
+                    "green" => new StringValue(((HslColor)new RgbColor(rgbColor.R, (int)modifiedValue, rgbColor.B, rgbColor.A)).ToString()),
+                    "blue" => new StringValue(((HslColor)new RgbColor(rgbColor.R, rgbColor.G, (int)modifiedValue, rgbColor.A)).ToString()),
+                    "hue" => new StringValue(new HslColor((int)modifiedValue, hslColor.S, hslColor.L, hslColor.A).ToString()),
+                    "saturation" => new StringValue(new HslColor(hslColor.H, (double)modifiedValue / 100.0, hslColor.L, hslColor.A).ToString()),
+                    "lightness" => new StringValue(new HslColor(hslColor.H, hslColor.S, (double)modifiedValue / 100.0, hslColor.A).ToString()),
+                    _ => NilValue.Empty,
+                };
+            }
+            else if (isHex)
+            {
+                rgbColor = (RgbColor)hexColor;
+                hslColor = (HslColor)hexColor;
+
+                return arguments.At(0).ToStringValue() switch
+                {
+                    "alpha" => new StringValue(new RgbColor(rgbColor.R, rgbColor.G, rgbColor.B, (double)modifiedValue).ToString()),
+                    "red" => new StringValue(((HexColor)new RgbColor((int)modifiedValue, rgbColor.G, rgbColor.B, rgbColor.A)).ToString()),
+                    "green" => new StringValue(((HexColor)new RgbColor(rgbColor.R, (int)modifiedValue, rgbColor.B, rgbColor.A)).ToString()),
+                    "blue" => new StringValue(((HexColor)new RgbColor(rgbColor.R, rgbColor.G, (int)modifiedValue, rgbColor.A)).ToString()),
+                    "hue" => new StringValue(((HexColor)new HslColor((int)modifiedValue, hslColor.S, hslColor.L, hslColor.A)).ToString()),
+                    "saturation" => new StringValue(((HexColor)new HslColor(hslColor.H, (double)modifiedValue / 100.0, hslColor.L, hslColor.A)).ToString()),
+                    "lightness" => new StringValue(((HexColor)new HslColor(hslColor.H, hslColor.S, (double)modifiedValue / 100.0, hslColor.A)).ToString()),
+                    _ => NilValue.Empty,
+                };
+            }
+            else
+            {
+                // The code is unreachable
+                return NilValue.Empty;
+            }
         }
 
         public static FluidValue ColorSaturate(FluidValue input, FilterArguments arguments, TemplateContext context)
