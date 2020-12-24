@@ -268,5 +268,22 @@ namespace Fluid.Tests
             // Assert
             Assert.Equal(expected, result.ToNumberValue());
         }
+
+        [Theory]
+        [InlineData("#fff00f", new object[] { "#0b72ab" }, 129)]
+        [InlineData("rgb(255, 240, 15)", new object[] { "rgb(171, 205, 239)" }, 129)]
+        [InlineData("hsl(56, 100%, 53%)", new object[] { "hsl(210, 68%, 80%)" }, 129)]
+        public void BrightnessDifference(string color, object[] arguments, decimal expected)
+        {
+            // Arrange
+            var input = new StringValue(color);
+            var context = new TemplateContext();
+
+            // Act
+            var result = ColorFilters.GetColorBrightnessDifference(input, new FilterArguments(arguments), context);
+
+            // Assert
+            Assert.Equal(expected, result.ToNumberValue());
+        }
     }
 }
