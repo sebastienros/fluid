@@ -167,6 +167,7 @@ namespace Fluid.Tests
             Assert.Equal(expected, result.ToStringValue());
         }
 
+        [Theory]
         [InlineData("#7bb65d", 154.21)]
         [InlineData("rgb(123, 182, 93)", 154.21)]
         [InlineData("hsl(100, 38%, 54%)", 154.21)]
@@ -249,6 +250,23 @@ namespace Fluid.Tests
 
             // Assert
             Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("#ff0000", new object[] { "#abcdef" }, 528)]
+        [InlineData("rgb(255, 0, 0)", new object[] { "#abcdef" }, 528)]
+        [InlineData("hsl(0, 100%, 50%)", new object[] { "#abcdef" }, 528)]
+        public void ColorDifference(string color, object[] arguments, decimal expected)
+        {
+            // Arrange
+            var input = new StringValue(color);
+            var context = new TemplateContext();
+
+            // Act
+            var result = ColorFilters.GetColorDifference(input, new FilterArguments(arguments), context);
+
+            // Assert
+            Assert.Equal(expected, result.ToNumberValue());
         }
     }
 }

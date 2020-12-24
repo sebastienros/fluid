@@ -19,6 +19,7 @@ namespace Fluid.Filters
             filters.AddFilter("color_desaturate", ColorDesaturate);
             filters.AddFilter("color_lighten", ColorLighten);
             filters.AddFilter("color_darken", ColorDarken);
+            filters.AddFilter("color_difference", GetColorDifference);
 
             return filters;
         }
@@ -168,7 +169,7 @@ namespace Fluid.Filters
                     _ => NilValue.Empty,
                 };
             }
-            else if(isHsl)
+            else if (isHsl)
             {
                 rgbColor = (RgbColor)hslColor;
 
@@ -263,7 +264,7 @@ namespace Fluid.Filters
             if (isHex)
             {
                 hslColor = (HslColor)hexColor;
-                
+
                 var saturation = (hslColor.S * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
 
                 return new StringValue(((HexColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
@@ -343,7 +344,7 @@ namespace Fluid.Filters
                 return NilValue.Empty;
             }
         }
-        
+
         public static FluidValue ColorLighten(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var value = input.ToStringValue();
@@ -454,6 +455,44 @@ namespace Fluid.Filters
             }
         }
 
+        public static FluidValue GetColorDifference(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            var rgbColor1 = GetRgbColor(value);
+            var rgbColor2 = GetRgbColor(arguments.At(0).ToStringValue());
+            if (rgbColor1.Equals(RgbColor.Empty) || rgbColor2.Equals(RgbColor.Empty))
+            {
+                return NilValue.Empty;
+            }
+            else
+            {
+                var colorDifference = Math.Max(rgbColor1.R, rgbColor2.R) - Math.Min(rgbColor1.R, rgbColor2.R) +
+                    Math.Max(rgbColor1.G, rgbColor2.G) - Math.Min(rgbColor1.G, rgbColor2.G) +
+                    Math.Max(rgbColor1.B, rgbColor2.B) - Math.Min(rgbColor1.B, rgbColor2.B);
+                
+                return NumberValue.Create(colorDifference);
+            }
+
+            RgbColor GetRgbColor(string value)
+            {
+                var rgbColor = RgbColor.Empty;
+                if (HexColor.TryParse(value, out HexColor hexColor))
+                {
+                    rgbColor = (RgbColor)hexColor;
+                }
+                else if (RgbColor.TryParse(value, out rgbColor))
+                {
+
+                }
+                else if (HslColor.TryParse(value, out HslColor hslColor))
+                {
+                    rgbColor = (RgbColor)hslColor;
+                }
+
+                return rgbColor;
+            }
+        }
+
         private struct HexColor
         {
             public static readonly HexColor Empty = default;
@@ -543,7 +582,7 @@ namespace Fluid.Filters
             private static bool IsHexadecimal(string value) => value.All(c => "0123456789abcdefABCDEF".Contains(c));
         }
 
-        private struct RgbColor
+        private struct RgbColor : IEquatable<RgbColor>
         {
             private const double DefaultTransperency = 1.0;
 
@@ -717,6 +756,8 @@ namespace Fluid.Filters
             public override string ToString() => A == DefaultTransperency
                 ? $"rgb({R}, {G}, {B})"
                 : $"rgba({R}, {G}, {B}, {Math.Round(A, 1)})";
+
+            public bool Equals(RgbColor other) => R == other.R && G == other.G && B == other.B;
         }
 
         private struct HslColor
