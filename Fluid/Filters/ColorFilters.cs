@@ -21,6 +21,7 @@ namespace Fluid.Filters
             filters.AddFilter("color_darken", ColorDarken);
             filters.AddFilter("color_difference", GetColorDifference);
             filters.AddFilter("brightness_difference", GetColorBrightnessDifference);
+            filters.AddFilter("color_contrast", GetColorContrast);
 
             return filters;
         }
@@ -490,6 +491,38 @@ namespace Fluid.Filters
 
                 return NumberValue.Create(colorBrightnessDifference);
             }
+        }
+
+        public static FluidValue GetColorContrast(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var rgbColor1 = GetRgbColor(input.ToStringValue());
+            var rgbColor2 = GetRgbColor(arguments.At(0).ToStringValue());
+            if (rgbColor1.Equals(RgbColor.Empty) || rgbColor2.Equals(RgbColor.Empty))
+            {
+                return NilValue.Empty;
+            }
+            else
+            {
+                var luminance1 = GetRelativeLuminance(rgbColor2);
+                var luminance2 = GetRelativeLuminance(rgbColor1);
+                var colorContrast = Math.Round((luminance1 + 0.05) / (luminance2 + 0.05), 1);
+
+                return NumberValue.Create(colorContrast);
+            }
+        }
+
+        // https://www.w3.org/TR/WCAG20/#relativeluminancedef
+        private static double GetRelativeLuminance(RgbColor color)
+        {
+            var RsRGB = color.R / 255.0;
+            var GsRGB = color.G / 255.0;
+            var BsRGB = color.B / 255.0;
+            var R = (RsRGB <= 0.03928) ? RsRGB / 12.92 : Math.Pow((RsRGB + 0.055) / 1.055, 2.4);
+            var G = (GsRGB <= 0.03928) ? GsRGB / 12.92 : Math.Pow((GsRGB + 0.055) / 1.055, 2.4);
+            var B = (BsRGB <= 0.03928) ? BsRGB / 12.92 : Math.Pow((BsRGB + 0.055) / 1.055, 2.4);
+            var L = 0.2126 * R + 0.7152 * G + 0.0722 * B;
+
+            return L;
         }
 
         private static RgbColor GetRgbColor(string value)

@@ -285,5 +285,22 @@ namespace Fluid.Tests
             // Assert
             Assert.Equal(expected, result.ToNumberValue());
         }
+
+        [Theory]
+        [InlineData("#495859", new object[] { "#fffffb" }, 7.4)]
+        [InlineData("rgb(73, 88, 89)", new object[] { "#fffffb" }, 7.4)]
+        [InlineData("hsl(184, 10%, 32%)", new object[] { "#fffffb" }, 7.4)]
+        public void ColorContrast(string color, object[] arguments, decimal expected)
+        {
+            // Arrange
+            var input = new StringValue(color);
+            var context = new TemplateContext();
+
+            // Act
+            var result = ColorFilters.GetColorContrast(input, new FilterArguments(arguments), context);
+
+            // Assert
+            Assert.Equal(expected, result.ToNumberValue());
+        }
     }
 }
