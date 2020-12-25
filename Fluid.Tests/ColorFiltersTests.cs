@@ -289,7 +289,7 @@ namespace Fluid.Tests
         [Theory]
         [InlineData("#495859", new object[] { "#fffffb" }, 7.4)]
         [InlineData("rgb(73, 88, 89)", new object[] { "#fffffb" }, 7.4)]
-        [InlineData("hsl(184, 10%, 32%)", new object[] { "#fffffb" }, 7.4)]
+        [InlineData("hsl(183.8, 9.9%, 31.8%)", new object[] { "#fffffb" }, 7.4)]
         public void ColorContrast(string color, object[] arguments, decimal expected)
         {
             // Arrange

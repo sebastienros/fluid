@@ -819,7 +819,7 @@ namespace Fluid.Filters
 
             public static readonly HslColor Empty = default;
 
-            public HslColor(int hue, double saturation, double lightness, double alpha = DefaultTransperency)
+            public HslColor(double hue, double saturation, double lightness, double alpha = DefaultTransperency)
             {
                 if (hue < 0 || hue > 360)
                 {
@@ -847,7 +847,7 @@ namespace Fluid.Filters
                 A = alpha;
             }
 
-            public int H { get; }
+            public double H { get; }
 
             public double S { get; }
 
@@ -861,9 +861,9 @@ namespace Fluid.Filters
                 {
                     var hslColor = value.Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
                     if (hslColor.Length == 4 && hslColor[2].EndsWith("%") && hslColor[3].EndsWith("%") &&
-                        Int32.TryParse(hslColor[1], out int hue) &&
-                        Int32.TryParse(hslColor[2].TrimEnd('%'), out int saturation) &&
-                        Int32.TryParse(hslColor[3].TrimEnd('%'), out int lightness))
+                        Double.TryParse(hslColor[1], out double hue) &&
+                        Double.TryParse(hslColor[2].TrimEnd('%'), out double saturation) &&
+                        Double.TryParse(hslColor[3].TrimEnd('%'), out double lightness))
                     {
                         color = new HslColor(hue, saturation / 100.0, lightness / 100.0);
 
@@ -871,10 +871,10 @@ namespace Fluid.Filters
                     }
 
                     if (hslColor.Length == 5 && hslColor[2].EndsWith("%") && hslColor[3].EndsWith("%") &&
-                        Int32.TryParse(hslColor[1], out hue) &&
-                        Int32.TryParse(hslColor[2].TrimEnd('%'), out saturation) &&
-                        Int32.TryParse(hslColor[3].TrimEnd('%'), out lightness) &&
-                        Single.TryParse(hslColor[4], out float alpha))
+                        Double.TryParse(hslColor[1], out hue) &&
+                        Double.TryParse(hslColor[2].TrimEnd('%'), out saturation) &&
+                        Double.TryParse(hslColor[3].TrimEnd('%'), out lightness) &&
+                        Double.TryParse(hslColor[4], out double alpha))
                     {
                         color = new HslColor(hue, saturation / 100.0, lightness / 100.0, alpha);
 
