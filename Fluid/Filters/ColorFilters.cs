@@ -20,6 +20,7 @@ namespace Fluid.Filters
             filters.AddFilter("color_lighten", ColorLighten);
             filters.AddFilter("color_darken", ColorDarken);
             filters.AddFilter("color_difference", GetColorDifference);
+            filters.AddFilter("brightness_difference", GetColorBrightnessDifference);
 
             return filters;
         }
@@ -457,8 +458,7 @@ namespace Fluid.Filters
 
         public static FluidValue GetColorDifference(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var value = input.ToStringValue();
-            var rgbColor1 = GetRgbColor(value);
+            var rgbColor1 = GetRgbColor(input.ToStringValue());
             var rgbColor2 = GetRgbColor(arguments.At(0).ToStringValue());
             if (rgbColor1.Equals(RgbColor.Empty) || rgbColor2.Equals(RgbColor.Empty))
             {
@@ -472,25 +472,43 @@ namespace Fluid.Filters
                 
                 return NumberValue.Create(colorDifference);
             }
+        }
 
-            RgbColor GetRgbColor(string value)
+        public static FluidValue GetColorBrightnessDifference(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var rgbColor1 = GetRgbColor(input.ToStringValue());
+            var rgbColor2 = GetRgbColor(arguments.At(0).ToStringValue());
+            if (rgbColor1.Equals(RgbColor.Empty) || rgbColor2.Equals(RgbColor.Empty))
             {
-                var rgbColor = RgbColor.Empty;
-                if (HexColor.TryParse(value, out HexColor hexColor))
-                {
-                    rgbColor = (RgbColor)hexColor;
-                }
-                else if (RgbColor.TryParse(value, out rgbColor))
-                {
-
-                }
-                else if (HslColor.TryParse(value, out HslColor hslColor))
-                {
-                    rgbColor = (RgbColor)hslColor;
-                }
-
-                return rgbColor;
+                return NilValue.Empty;
             }
+            else
+            {
+                var colorBrightness1 = ((rgbColor1.R * 299) + (rgbColor1.G * 587) + (rgbColor1.B * 114)) / 1000;
+                var colorBrightness2 = ((rgbColor2.R * 299) + (rgbColor2.G * 587) + (rgbColor2.B * 114)) / 1000;
+                var colorBrightnessDifference = colorBrightness1 - colorBrightness2;
+
+                return NumberValue.Create(colorBrightnessDifference);
+            }
+        }
+
+        private static RgbColor GetRgbColor(string value)
+        {
+            var rgbColor = RgbColor.Empty;
+            if (HexColor.TryParse(value, out HexColor hexColor))
+            {
+                rgbColor = (RgbColor)hexColor;
+            }
+            else if (RgbColor.TryParse(value, out rgbColor))
+            {
+
+            }
+            else if (HslColor.TryParse(value, out HslColor hslColor))
+            {
+                rgbColor = (RgbColor)hslColor;
+            }
+
+            return rgbColor;
         }
 
         private struct HexColor
