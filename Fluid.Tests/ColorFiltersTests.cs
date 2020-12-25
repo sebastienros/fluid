@@ -254,8 +254,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("#ff0000", new object[] { "#abcdef" }, 528)]
-        [InlineData("rgb(255, 0, 0)", new object[] { "#abcdef" }, 528)]
-        [InlineData("hsl(0, 100%, 50%)", new object[] { "#abcdef" }, 528)]
+        [InlineData("rgb(255, 0, 0)", new object[] { "rgb(171, 205, 239)" }, 528)]
+        [InlineData("hsl(0, 100%, 50%)", new object[] { "hsl(210, 68%, 80.4%)" }, 528)]
         public void ColorDifference(string color, object[] arguments, decimal expected)
         {
             // Arrange
@@ -271,8 +271,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("#fff00f", new object[] { "#0b72ab" }, 129)]
-        [InlineData("rgb(255, 240, 15)", new object[] { "#0b72ab" }, 129)]
-        [InlineData("hsl(56, 100%, 53%)", new object[] { "#0b72ab" }, 129)]
+        [InlineData("rgb(255, 240, 15)", new object[] { "rgb(11, 114, 171)" }, 129)]
+        [InlineData("hsl(56, 100%, 53%)", new object[] { "hsl(201.4, 87.9%, 35.7%)" }, 129)]
         public void BrightnessDifference(string color, object[] arguments, decimal expected)
         {
             // Arrange
