@@ -22,6 +22,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{BE5EF08E
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parlot", "..\parlot\src\Parlot\Parlot.csproj", "{2C161196-1AA0-4889-B438-FBB68DABA452}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parlot.Tests", "..\parlot\test\Parlot.Tests\Parlot.Tests.csproj", "{25450F6D-5C48-4390-A89E-9AFB2E7AA1C8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,6 +52,14 @@ Global
 		{8387DE36-8B53-4437-B16F-40C6FD525A1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8387DE36-8B53-4437-B16F-40C6FD525A1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8387DE36-8B53-4437-B16F-40C6FD525A1D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C161196-1AA0-4889-B438-FBB68DABA452}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C161196-1AA0-4889-B438-FBB68DABA452}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C161196-1AA0-4889-B438-FBB68DABA452}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C161196-1AA0-4889-B438-FBB68DABA452}.Release|Any CPU.Build.0 = Release|Any CPU
+		{25450F6D-5C48-4390-A89E-9AFB2E7AA1C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25450F6D-5C48-4390-A89E-9AFB2E7AA1C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25450F6D-5C48-4390-A89E-9AFB2E7AA1C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25450F6D-5C48-4390-A89E-9AFB2E7AA1C8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

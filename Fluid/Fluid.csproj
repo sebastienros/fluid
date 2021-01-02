@@ -3,18 +3,17 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.1;netcoreapp3.1;net5.0</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>8</LangVersion>
+    <LangVersion>latest</LangVersion>
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>    
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Parlot" Version="0.0.1" />
     <PackageReference Include="Irony.Core" Version="1.0.7" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="1.1.1" />
     <PackageReference Include="TimeZoneConverter" Version="3.3.0" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.1'">
@@ -26,6 +25,10 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net5.0'">
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\parlot\src\Parlot\Parlot.csproj" />
   </ItemGroup>
 
 </Project>
