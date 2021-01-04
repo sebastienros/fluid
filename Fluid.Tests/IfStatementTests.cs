@@ -16,7 +16,7 @@ namespace Fluid.Tests
 
         private List<Statement> TEXT(string text)
         {
-            return new List<Statement> { new TextStatement(text) };
+            return new List<Statement> { new TextSpanStatement(text) };
         }
 
         [Fact]
@@ -24,7 +24,7 @@ namespace Fluid.Tests
         {
             var e = new IfStatement(
                 TRUE,
-                new List<Statement> { new TextStatement("x") }
+                new List<Statement> { new TextSpanStatement("x") }
                 );
 
             var sw = new StringWriter();
@@ -38,7 +38,7 @@ namespace Fluid.Tests
         {
             var e = new IfStatement(
                 FALSE,
-                new List<Statement> { new TextStatement("x") }
+                new List<Statement> { new TextSpanStatement("x") }
                 );
 
             var sw = new StringWriter();
@@ -53,10 +53,10 @@ namespace Fluid.Tests
             var e = new IfStatement(
                 TRUE,
                 new List<Statement> {
-                    new TextStatement("x")
+                    new TextSpanStatement("x")
                 },
                 new ElseStatement(new List<Statement> {
-                        new TextStatement("y")
+                        new TextSpanStatement("y")
                     }));
 
             var sw = new StringWriter();
@@ -71,10 +71,10 @@ namespace Fluid.Tests
             var e = new IfStatement(
                 FALSE,
                 new List<Statement> {
-                    new TextStatement("x")
+                    new TextSpanStatement("x")
                 },
                 new ElseStatement(new List<Statement> {
-                        new TextStatement("y")
+                        new TextSpanStatement("y")
                     })
                 );
 

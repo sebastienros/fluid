@@ -487,9 +487,9 @@ turtle
         }
 
         [Theory]
-        [InlineData("abc {% def", "abc ")]
-        [InlineData("{% def", "")]
-        public void ShouldFailInvalidTemplate(string source, string expected)
+        [InlineData("abc {% def")]
+        [InlineData("{% def")]
+        public void ShouldFailInvalidTemplate(string source)
         {
             _parser.TryParse(source, out var template, out var error);
             Assert.NotEmpty(error);

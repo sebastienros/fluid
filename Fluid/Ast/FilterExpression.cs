@@ -1,11 +1,12 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Fluid.Values;
 
 namespace Fluid.Ast
 {
     public class FilterExpression : Expression
     {
-        public FilterExpression(Expression input, string name, FilterArgument[] parameters)
+        public FilterExpression(Expression input, string name, List<FilterArgument> parameters)
         {
             Input = input;
             Name = name;
@@ -14,7 +15,7 @@ namespace Fluid.Ast
 
         public Expression Input { get; }
         public string Name { get; }
-        public FilterArgument[] Parameters { get; }
+        public List<FilterArgument> Parameters { get; }
 
         private bool _canBeCached = true;
         private FilterArguments _cachedArguments;

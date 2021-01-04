@@ -12,6 +12,11 @@ namespace Fluid.Ast
             Text = text;
         }
 
+        public TextSpanStatement(string text)
+        {
+            Text = new TextSpan(text);
+        }
+
         public TextSpan Text { get; }
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)

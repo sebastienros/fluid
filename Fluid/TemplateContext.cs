@@ -12,8 +12,8 @@ namespace Fluid
         internal int _recursion = 0;
         internal int _steps = 0;
 
-        public static int DefaultMaxSteps = 0;
-        public static int DefaultMaxRecursion = 100;
+        public readonly static int DefaultMaxSteps = 0;
+        public readonly static int DefaultMaxRecursion = 100;
 
         static TemplateContext()
         {

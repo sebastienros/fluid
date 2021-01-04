@@ -12,7 +12,7 @@ namespace Fluid.Tests
     {
         private Statement[] TEXT(string text)
         {
-            return new Statement[] { new TextStatement(new StringSegment(text)) };
+            return new Statement[] { new TextSpanStatement(text) };
         }
 
         private LiteralExpression LIT(string text)

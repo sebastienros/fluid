@@ -18,7 +18,7 @@ namespace Fluid.Tests
 
         private List<Statement> TEXT(string text)
         {
-            return new List<Statement> { new TextStatement(text) };
+            return new List<Statement> { new TextSpanStatement(text) };
         }
 
         [Fact]
@@ -46,7 +46,7 @@ namespace Fluid.Tests
                 null,
                 new[] {
                     new WhenStatement(new List<Expression> { A }, 
-                    new List<Statement> { new TextStatement("x"), new TextStatement("y") })
+                    new List<Statement> { new TextSpanStatement("x"), new TextSpanStatement("y") })
                 }
             );
 
@@ -117,7 +117,7 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 A,
-                new ElseStatement(new List<Statement> { new TextStatement("y") }),
+                new ElseStatement(new List<Statement> { new TextSpanStatement("y") }),
                 new[] {
                     new WhenStatement(new List<Expression> { A }, TEXT("x"))
                 }
@@ -134,7 +134,7 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 A,
-                new ElseStatement(new List<Statement> { new TextStatement("y") }),
+                new ElseStatement(new List<Statement> { new TextSpanStatement("y") }),
                 new[] {
                     new WhenStatement(new List<Expression> { B, C }, TEXT("x"))
                 }
@@ -151,7 +151,7 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 B,
-                new ElseStatement(new List<Statement> { new TextStatement("y") }),
+                new ElseStatement(new List<Statement> { new TextSpanStatement("y") }),
                 new[] {
                     new WhenStatement(new List<Expression> { A, C }, TEXT("1")),
                     new WhenStatement(new List<Expression> { B, C }, TEXT("2")),

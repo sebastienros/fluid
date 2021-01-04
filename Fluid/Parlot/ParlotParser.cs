@@ -51,26 +51,15 @@ namespace Fluid.Parlot
         protected static readonly IDeferredParser<Expression> LogicalExpression = Deferred<Expression>();
         protected static readonly IDeferredParser<Expression> FilterExpression = Deferred<Expression>();
 
-        protected static HashSet<string> ExpectedTags = new()
+        // These tags are not parsed when expecting any tag, but should not be marked as invalid so we can detect {% without correct values
+        protected readonly static HashSet<string> ExpectedTags = new()
         {
-                "endcomment",
-                "endcapture",
-                "endraw",
-                "else",
-                "elsif",
-                "endif",
-                "endunless",
-                "when",
-                "endfor",
-                "endcase",
+            "endcomment", "endcapture", "endraw", "else", "elsif", "endif", "endunless", "when", "endfor", "endcase"
         };
         
         public ParlotParser()
         {
-            // TODO: Refactor such that ToList()/ToArray() are not necessary (use IList)
-            // TODO: Add Else statements in for loops
             // TODO: Remove TextStatement
-            // TODO: In KnownTags, use predefined variables, otherwith each invokation returns a new parser instance
             // TODO: read the next - and assign the skip whitespace property to the adjacent Text statement
 
             var Identifier = Terms.Identifier(extraPart: static c => c == '-');
@@ -84,7 +73,11 @@ namespace Fluid.Parlot
                 ZeroOrMany(
                     Dot.SkipAnd(Identifier.Then<MemberSegment>(x => new IdentifierSegment(x.ToString())))
                     .Or(Indexer)))
-                .Then(x => new MemberExpression((new[] { x.Item1 }).Union(x.Item2).ToArray()));
+                .Then(x =>
+                {
+                    x.Item2.Insert(0, x.Item1);
+                    return new MemberExpression(x.Item2);
+                });
 
             var Range = LParen
                 .And(OneOf(Integer, Member.Then<Expression>(x => x)))
@@ -102,7 +95,7 @@ namespace Fluid.Parlot
                 .Or(Member.Then<Expression>(x => x))
                 ;
 
-            var CaseValueList = Separated(BinaryOr, Primary).Then(x => x.ToList());
+            var CaseValueList = Separated(BinaryOr, Primary);
             
             // TODO: 'and' has a higher priority than 'or', either create a new scope, or implement operators priority
 
@@ -169,7 +162,7 @@ namespace Fluid.Parlot
                             var identifier = pipeResult.Item1.ToString();
                             var arguments = pipeResult.Item2;
 
-                            result = new FilterExpression(result, identifier, arguments == null ? Array.Empty<FilterArgument>() : arguments.ToArray());
+                            result = new FilterExpression(result, identifier, arguments ?? new List<FilterArgument>());
                         }
 
                         return result;
@@ -202,32 +195,22 @@ namespace Fluid.Parlot
                 return null;
             });
 
-            var KnownTags = Identifier.Switch((context, previous) =>
-            {
-                // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed 
-                // as inner tags in blocks like {% if %} TagsList {% endif $}
-
-                switch (previous.ToString())
-                {
-                    case "break": return TagEnd.Then<Statement>(x => new BreakStatement());
-                    case "continue": return TagEnd.Then<Statement>(x => new ContinueStatement());
-                    case "comment": return
-                        TagEnd
+            var BreakTag = TagEnd.Then<Statement>(x => new BreakStatement());
+            var ContinueTag = TagEnd.Then<Statement>(x => new ContinueStatement());
+            var CommentTag = TagEnd
                         .SkipAnd(AnyCharBefore(CreateTag("endcomment")))
                         .And(CreateTag("endcomment"))
                         .Then<Statement>(x => new CommentStatement(x.Item1))
                         .ElseError("Invalid 'comment' tag")
                         ;
-                    case "capture": return
-                        Identifier
+            var CaptureTag = Identifier
                         .And(TagEnd)
                         .And(TagsList)
                         .And(CreateTag("endcapture"))
                         .Then<Statement>(x => new CaptureStatement(x.Item1.ToString(), x.Item3))
                         .ElseError("Invalid 'capture' tag")
                         ;
-                    case "cycle": return
-                        ZeroOrOne(Identifier.And(Colon).Then(x => x.Item1))
+            var CycleTag = ZeroOrOne(Identifier.And(Colon).Then(x => x.Item1))
                         .And(Separated(Comma, String))
                         .And(TagEnd)
                         .Then<Statement>(x =>
@@ -241,50 +224,49 @@ namespace Fluid.Parlot
                             return new CycleStatement(group, values);
                         })
                         .ElseError("Invalid 'cycle' tag")
-                        ; 
-                    case "decrement": return Identifier.And(TagEnd).Then<Statement>(x => new DecrementStatement(x.Item1.ToString()));
-                    case "include": return OneOf(
+                        ;
+            var DecrementTag = Identifier.And(TagEnd).Then<Statement>(x => new DecrementStatement(x.Item1.ToString()));
+            var IncludeTag = OneOf(
                         Primary.And(Comma).And(Separated(Comma, Identifier.And(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1.ToString(), x.Item3)))).Then(x => new IncludeStatement(this, x.Item1, null, x.Item3)),
                         Primary.And(Terms.Text("with")).And(Primary).Then(x => new IncludeStatement(this, x.Item1, with: x.Item3)),
                         Primary.Then(x => new IncludeStatement(this, x))
                         ).And(TagEnd)
                         .Then<Statement>(x => x.Item1)
                         .ElseError("Invalid 'include' tag");
-                    case "increment": return Identifier.And(TagEnd).Then<Statement>(x => new IncrementStatement(x.Item1.ToString()));
-                    case "raw": return TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
-                    case "assign": return Identifier.And(Equal).And(FilterExpression).And(TagEnd).Then<Statement>(x => new AssignStatement(x.Item1.ToString(), x.Item3));
-                    case "if": return LogicalExpression
+            var IncrementTag = Identifier.And(TagEnd).Then<Statement>(x => new IncrementStatement(x.Item1.ToString()));
+            var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
+            var AssignTag = Identifier.And(Equal).And(FilterExpression).And(TagEnd).Then<Statement>(x => new AssignStatement(x.Item1.ToString(), x.Item3));
+            var IfTag = LogicalExpression
                         .AndSkip(TagEnd)
                         .And(TagsList)
                         .And(ZeroOrMany(
                             TagStart.And(Terms.Text("elsif")).And(LogicalExpression).And(TagEnd).And(TagsList))
-                            .Then(x => x.Count > 0 ? x.Select(e => new ElseIfStatement(e.Item3, e.Item5)).ToList() : new List<ElseIfStatement>()))
+                            .Then(x => x.Select(e => new ElseIfStatement(e.Item3, e.Item5)).ToList()))
                         .And(ZeroOrOne(
                             CreateTag("else").SkipAnd(TagsList))
                             .Then(x => x != null ? new ElseStatement(x) : null))
                         .AndSkip(CreateTag("endif"))
                         .Then<Statement>(x => new IfStatement(x.Item1, x.Item2, x.Item4, x.Item3))
                         .ElseError("Invalid 'if' tag");
-                    case "unless": return LogicalExpression
+            var UnlessTag = LogicalExpression
                         .And(TagEnd)
                         .And(TagsList)
                         .And(CreateTag("endunless"))
                         .Then<Statement>(x => new UnlessStatement(x.Item1, x.Item3))
                         .ElseError("Invalid 'unless' tag");
-                    case "case": return Primary
+            var CaseTag = Primary
                        .And(TagEnd)
                        .And(AnyCharBefore(TagStart, canBeEmpty: true))
                        .And(ZeroOrMany(
                            TagStart.Then(x => x).And(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).And(TagEnd).And(TagsList))
-                           .Then(x => x.Count > 0 ? x.Select(e => new WhenStatement(e.Item3, e.Item5)).ToList() : new List<WhenStatement>()))
+                           .Then(x => x.Select(e => new WhenStatement(e.Item3, e.Item5)).ToList()))
                        .And(ZeroOrOne(
                            CreateTag("else").SkipAnd(TagsList))
                            .Then(x => x != null ? new ElseStatement(x) : null))
                        .And(CreateTag("endcase"))
                        .Then<Statement>(x => new CaseStatement(x.Item1, x.Item5, x.Item4))
                        .ElseError("Invalid 'case' tag");
-                    case "for":
-                        return OneOf(
+            var ForTag = OneOf(
                             Identifier
                             .And(Terms.Text("in"))
                             .And(Member)
@@ -342,7 +324,30 @@ namespace Fluid.Parlot
 
                                 return new ForStatement(statements, identifier, range, limit, offset, reversed, null);
                             })
-                        ).ElseError("Invalid 'for' tag"); ;
+                        ).ElseError("Invalid 'for' tag");
+
+            var KnownTags = Identifier.Switch((context, previous) =>
+            {
+                // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed 
+                // as inner tags in blocks like {% if %} TagsList {% endif $}
+
+                switch (previous.ToString())
+                {
+                    case "break": return BreakTag;
+                    case "continue": return ContinueTag;
+                    case "comment": return CommentTag;
+                    case "capture": return CaptureTag;
+                        
+                    case "cycle": return CycleTag;
+                    case "decrement": return DecrementTag;
+                    case "include": return IncludeTag;
+                    case "increment": return IncrementTag;
+                    case "raw": return RawTag;
+                    case "assign": return AssignTag;
+                    case "if": return IfTag;
+                    case "unless": return UnlessTag;
+                    case "case": return CaseTag;
+                    case "for": return ForTag;
 
                     default: return null;
                 };
@@ -353,12 +358,12 @@ namespace Fluid.Parlot
             var text = AnyCharBefore(OutputStart.Or(TagStart))
                 .Then<Statement>(static x => new TextSpanStatement(x));
 
-            TagsList.Parser = Star(Output.Or(tag).Or(text)).Then(x => x.ToList());
+            TagsList.Parser = Star(Output.Or(tag).Or(text));
 
             Grammar = TagsList;
         }
 
-        IParser<ValueTuple<string, string, string>> CreateTag(string tagName) => TagStart.And(Terms.Text(tagName)).And(TagEnd);
+        public static IParser<ValueTuple<string, string, string>> CreateTag(string tagName) => TagStart.And(Terms.Text(tagName)).And(TagEnd);
 
         public IFluidTemplate Parse(string template)
         {
