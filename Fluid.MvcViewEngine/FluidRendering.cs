@@ -1,5 +1,6 @@
 ﻿using Fluid.Ast;
 using Fluid.MvcViewEngine.Internal;
+using Fluid.Parlot;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Fluid.MvcViewEngine
@@ -21,7 +23,7 @@ namespace Fluid.MvcViewEngine
     {
         private const string ViewStartFilename = "_ViewStart.liquid";
         public const string ViewPath = "ViewPath";
-        private static readonly Func<IFluidTemplate> FluidTemplateFactory = () => new FluidViewTemplate();
+        private static IFluidParser _parser = new ParlotParser();
 
         static FluidRendering()
         {
@@ -59,8 +61,6 @@ namespace Fluid.MvcViewEngine
             context.AmbientValues["FileProvider"] = fileProvider;
             context.AmbientValues[ViewPath] = path;
             context.AmbientValues["Sections"] = new Dictionary<string, List<Statement>>();
-            context.ParserFactory = FluidViewTemplate.Factory;
-            context.TemplateFactory = FluidTemplateFactory;
             context.FileProvider = new FileProviderMapper(fileProvider, "Views");
 
             var body = await template.RenderAsync(context, _options.TextEncoder);
@@ -106,7 +106,7 @@ namespace Fluid.MvcViewEngine
             return viewStarts;
         }
 
-        public FluidViewTemplate ParseLiquidFile(string path, IFileProvider fileProvider, bool includeViewStarts)
+        public IFluidTemplate ParseLiquidFile(string path, IFileProvider fileProvider, bool includeViewStarts)
         {
             return _memoryCache.GetOrCreate(path, viewEntry =>
             {
@@ -140,11 +140,9 @@ namespace Fluid.MvcViewEngine
                 {
                     using (var sr = new StreamReader(stream))
                     {
-                        if (FluidViewTemplate.TryParse(sr.ReadToEnd(), out var template, out var errors))
+                        if (_parser.TryParse(sr.ReadToEnd(), out var template, out var errors))
                         {
-                            statements.AddRange(template.Statements);
-                            template.Statements = statements;
-                            return template;
+                            return new ParlotTemplate(statements.Union(template.Statements).ToArray());
                         }
                         else
                         {

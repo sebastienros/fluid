@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using Fluid.Parlot;
 using Fluid.Tests.Domain;
 using Fluid.Tests.Domain.WithInterfaces;
 using Fluid.Tests.Mocks;
@@ -14,6 +15,8 @@ namespace Fluid.Tests
 {
     public class TemplateTests
     {
+        static IFluidParser _parser = new ParlotParser();
+
         private object _products = new []
         {
             new { name = "product 1", price = 1 },
@@ -23,13 +26,21 @@ namespace Fluid.Tests
 
         private async Task CheckAsync(string source, string expected, Action<TemplateContext> init = null)
         {
-            FluidTemplate.TryParse(source, out var template, out var messages);
+            _parser.TryParse(source, out var template, out var error);
 
             var context = new TemplateContext();
             context.MemberAccessStrategy.Register(new { name = "product 1", price = 1 }.GetType());
             init?.Invoke(context);
 
             var result = await template.RenderAsync(context);
+            Assert.Equal(expected, result);
+        }
+
+        private async Task CheckAsync(string source, string expected, TemplateContext context, TextEncoder encoder)
+        {
+            _parser.TryParse(source, out var template, out var error);
+
+            var result = await template.RenderAsync(context, encoder);
             Assert.Equal(expected, result);
         }
 
@@ -49,17 +60,15 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData("{{ 'ab''c' }}", "ab&#x27;c", "html")]
-        [InlineData("{{ \"a\"\"bc\" }}", "a&quot;bc", "html")]
+        [InlineData("{{ 'ab\\'c' }}", "ab&#x27;c", "html")]
+        [InlineData("{{ \"a\\\"bc\" }}", "a&quot;bc", "html")]
         [InlineData("{{ '<br />' }}", "&lt;br /&gt;", "html")]
-        [InlineData("{{ 'ab''c' }}", "ab%27c", "url")]
-        [InlineData("{{ \"a\"\"bc\" }}", "a%22bc", "url")]
+        [InlineData("{{ 'ab\\'c' }}", "ab%27c", "url")]
+        [InlineData("{{ \"a\\\"bc\" }}", "a%22bc", "url")]
         [InlineData("{{ 'a\"\"bc<>&' }}", "a\"\"bc<>&", "null")]
-        public async Task ShouldUseEncoder(string source, string expected, string encoderType)
+        public Task ShouldUseEncoder(string source, string expected, string encoderType)
         {
-            FluidTemplate.TryParse(source, out var template, out var messages);
             var context = new TemplateContext();
-            var sw = new StringWriter();
             TextEncoder encoder = null;
             
             switch (encoderType)
@@ -69,17 +78,16 @@ namespace Fluid.Tests
                 case "null" : encoder = NullEncoder.Default; break;
             }
 
-            await template.RenderAsync(sw, encoder, context);
-            Assert.Equal(expected, sw.ToString());
+            return CheckAsync(source, expected, context, encoder);
         }
 
         [Theory]
-        [InlineData("{{ 'ab''c' | raw}}", "ab'c")]
-        [InlineData("{{ \"a\"\"bc\" | raw}}", "a\"bc")]
+        [InlineData("{{ 'ab\\'c' | raw}}", "ab'c")]
+        [InlineData("{{ \"a\\\"bc\" | raw}}", "a\"bc")]
         [InlineData("{{ '<br />' | raw}}", "<br />")]
         public async Task ShouldNotEncodeRawString(string source, string expected)
         {
-            FluidTemplate.TryParse(source, out var template, out var messages);
+            _parser.TryParse(source, out var template, out var error);
             var result = await template.RenderAsync(new TemplateContext(), HtmlEncoder.Default);
             Assert.Equal(expected, result);
         }
@@ -88,7 +96,7 @@ namespace Fluid.Tests
         [InlineData("{% for i in (1..3) %}<br />{% endfor %}", "<br /><br /><br />")]
         public async Task ShouldNotEncodeBlocks(string source, string expected)
         {
-            FluidTemplate.TryParse(source, out var template, out var messages);
+            _parser.TryParse(source, out var template, out var error);
             var result = await template.RenderAsync(new TemplateContext(), HtmlEncoder.Default);
             Assert.Equal(expected, result);
         }
@@ -98,7 +106,7 @@ namespace Fluid.Tests
         [InlineData("{% capture foo %}{{ '<br />' }}{% endcapture %}{{ foo }}", "&lt;br /&gt;")]
         public async Task ShouldNotEncodeCaptures(string source, string expected)
         {
-            FluidTemplate.TryParse(source, out var template, out var messages);
+            _parser.TryParse(source, out var template, out var error);
             var result = await template.RenderAsync(new TemplateContext(), HtmlEncoder.Default);
             Assert.Equal(expected, result);
         }
@@ -129,7 +137,7 @@ namespace Fluid.Tests
         [InlineData("{{ 'a' | append:'b', 'c' }}", "abc")]
         public async Task ShouldEvaluateFilters(string source, string expected)
         {
-            FluidTemplate.TryParse(source, out var template, out var messages);
+            _parser.TryParse(source, out var template, out var error);
             var context = new TemplateContext();
 
             context.Filters.AddFilter("inc", (i, args, ctx) => 
@@ -162,7 +170,8 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateBooleanValue()
         {
-            FluidTemplate.TryParse("{{ x }}", out var template, out var messages);
+            _parser.TryParse("{{ x }}", out var template, out var error);
+
             var context = new TemplateContext();
             context.SetValue("x", true);
 
@@ -173,7 +182,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateStringValue()
         {
-            FluidTemplate.TryParse("{{ x }}", out var template, out var messages);
+            _parser.TryParse("{{ x }}", out var template, out var error);
             var context = new TemplateContext();
             context.SetValue("x", "abc");
 
@@ -184,7 +193,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateNumberValue()
         {
-            FluidTemplate.TryParse("{{ x }}", out var template, out var messages);
+            _parser.TryParse("{{ x }}", out var template, out var error);
             var context = new TemplateContext();
             context.SetValue("x", 1);
 
@@ -195,7 +204,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateObjectProperty()
         {
-            FluidTemplate.TryParse("{{ p.Name }}", out var template, out var messages);
+            _parser.TryParse("{{ p.Name }}", out var template, out var error);
 
             var context = new TemplateContext();
             context.SetValue("p", new Person { Name = "John" });
@@ -210,7 +219,7 @@ namespace Fluid.Tests
         {
             TemplateContext.GlobalMemberAccessStrategy.Register<IAnimal>();
 
-            FluidTemplate.TryParse("{{ p.Age }}", out var template, out var messages);
+            _parser.TryParse("{{ p.Age }}", out var template, out var error);
 
             var context = new TemplateContext();
             context.SetValue("p", new Dog { Age = 12 });
@@ -224,7 +233,7 @@ namespace Fluid.Tests
         {
             FluidValue.ValueConverters.Add(x => x is IPet pet ? new PetValue(pet) : null);
 
-            FluidTemplate.TryParse("{{ p.Name }}", out var template, out var messages);
+            _parser.TryParse("{{ p.Name }}", out var template, out var messages);
 
             var context = new TemplateContext();
             context.SetValue("p", new Dog { Name = "Rex" });
@@ -238,7 +247,7 @@ namespace Fluid.Tests
         {
             TemplateContext.GlobalMemberAccessStrategy.Register<IAnimal>();
 
-            FluidTemplate.TryParse("{{ p.Name }}", out var template, out var messages);
+            _parser.TryParse("{{ p.Name }}", out var template, out var error);
 
             var context = new TemplateContext();
             context.SetValue("p", new Dog { Name = "Rex" });
@@ -250,7 +259,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateObjectPropertyWhenInterfaceRegistered()
         {
-            FluidTemplate.TryParse("{{ p.Name }}", out var template, out var messages);
+            _parser.TryParse("{{ p.Name }}", out var template, out var error);
 
             var context = new TemplateContext();
             context.SetValue("p", new Dog { Name = "John" });
@@ -263,7 +272,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateInheritedObjectProperty()
         {
-            FluidTemplate.TryParse("{{ e.Name }} {{ e.Salary }}", out var template, out var messages);
+            _parser.TryParse("{{ e.Name }} {{ e.Salary }}", out var template, out var error);
 
             var context = new TemplateContext();
             context.SetValue("e", new Employee { Name = "John", Salary = 550 });
@@ -276,7 +285,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldNotAllowNotRegisteredMember()
         {
-            FluidTemplate.TryParse("{{ c.Director.Name }} {{ c.Director.Salary }}", out var template, out var messages);
+            _parser.TryParse("{{ c.Director.Name }} {{ c.Director.Salary }}", out var template, out var error);
 
             var context = new TemplateContext();
             context.SetValue("c", new Company { Director = new Employee { Name = "John", Salary = 550 } });
@@ -291,7 +300,7 @@ namespace Fluid.Tests
         {
             // The Employee class is not registered, hence any access to its properties should return nothing
             // but the Person class is registered, so Name should be available
-            FluidTemplate.TryParse("{{ c.Director.Name }} {{ c.Director.Salary }}", out var template, out var messages);
+            _parser.TryParse("{{ c.Director.Name }} {{ c.Director.Salary }}", out var template, out var error);
 
             var context = new TemplateContext();
             context.SetValue("c", new Company { Director = new Employee { Name = "John", Salary = 550 } });
@@ -305,7 +314,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateStringIndex()
         {
-            FluidTemplate.TryParse("{{ x[1] }}", out var template, out var messages);
+            _parser.TryParse("{{ x[1] }}", out var template, out var error);
             var context = new TemplateContext();
             context.SetValue("x", "abc");
 
@@ -339,20 +348,14 @@ namespace Fluid.Tests
         [InlineData(3, "other")]
         public Task ShouldEvaluateCaseStatement(int x, string expected)
         {
-            var template = "{% case x %}{%when 1%}x1{%when 2%}x2{%else%}other{% endcase %}";
+            var template = "{% case x %}{% when 1 %}x1{% when 2 %}x2{% else %}other{% endcase %}";
 
             return CheckAsync(template, expected, ctx => { ctx.SetValue("x", x); });
         }
 
         [Theory]
-        [InlineData(@"
-            {%cycle 'a', 'b'%}
-            {%cycle 'a', 'b'%}
-            {%cycle 'a', 'b'%}", "\r\naba")]
-        [InlineData(@"
-            {%cycle x:'a', 'b'%}
-            {%cycle 'a', 'b'%}
-            {%cycle x:'a', 'b'%}", "\r\naab")]
+        [InlineData(@"{%cycle 'a', 'b'%}{%cycle 'a', 'b'%}{%cycle 'a', 'b'%}", "aba")]
+        [InlineData(@"{%cycle x:'a', 'b'%}{%cycle 'a', 'b'%}{%cycle x:'a', 'b'%}", "aab")]
         public Task ShouldEvaluateCycleStatement(string source, string expected)
         {
             return CheckAsync(source, expected, ctx => { ctx.SetValue("x", 3); });
@@ -386,7 +389,7 @@ turtle
 
 
         [Theory]
-        [InlineData("{{x == empty}} {{y == empty}}", "false true")]
+        [InlineData("{%if x == empty%}true{%else%}false{%endif%} {%if y == empty%}true{%else%}false{%endif%}", "false true")]
         public Task ArrayCompareEmptyValue(string source, string expected)
         {
             return CheckAsync(source, expected, ctx =>
@@ -397,7 +400,7 @@ turtle
         }
 
         [Theory]
-        [InlineData("{{x == empty}} {{y == empty}}", "false true")]
+        [InlineData("{%if x == empty%}true{%else%}false{%endif%} {%if y == empty%}true{%else%}false{%endif%}", "false true")]
         public Task DictionaryCompareEmptyValue(string source, string expected)
         {
             return CheckAsync(source, expected, ctx =>
@@ -444,7 +447,7 @@ turtle
         {
             var source = "{% assign result = 'abcd' | query: 'efg' %}{%for x in result %}{{ x }}{%endfor%}";
 
-            FluidTemplate.TryParse(source, out var template, out var messages);
+            _parser.TryParse(source, out var template, out var error);
 
             var context = new TemplateContext();
 
@@ -461,21 +464,42 @@ turtle
         [Theory]
         [InlineData("abc { def", "abc { def")]
         [InlineData("abc } def", "abc } def")]
-        [InlineData("abc {{ def", "abc {{ def")]
         [InlineData("abc }} def", "abc }} def")]
-        [InlineData("abc {{ def }", "abc {{ def }")]
         [InlineData("abc { def }}", "abc { def }}")]
-        [InlineData("abc {% def", "abc {% def")]
         [InlineData("abc %} def", "abc %} def")]
-        [InlineData("{% def", "{% def")]
         [InlineData("abc %}", "abc %}")]
         [InlineData("%} def", "%} def")]
-        [InlineData("abc {%", "abc {%")]
-        [InlineData("abc {{% def", "abc {{% def")]
         [InlineData("abc }%} def", "abc }%} def")]
         public Task ShouldSucceedParseValidTemplate(string source, string expected)
         {
             return CheckAsync(source, expected);
+        }
+
+        [Theory]
+        [InlineData("abc {{ def", "Invalid tag")]
+        [InlineData("abc {{ def }", "Invalid tag")]
+        [InlineData("abc {%", "Invalid tag")]
+        [InlineData("abc {{", "Invalid tag")]
+        public void ShouldDetectInvalidTemplate(string source, string expected)
+        {
+            _parser.TryParse(source, out var template, out var error);
+            Assert.Contains(expected, error);
+        }
+
+        [Theory]
+        [InlineData("abc {% def", "abc ")]
+        [InlineData("{% def", "")]
+        public void ShouldFailInvalidTemplate(string source, string expected)
+        {
+            _parser.TryParse(source, out var template, out var error);
+            Assert.NotEmpty(error);
+        }
+        [Theory]
+        [InlineData("abc {{% def")]
+        public void ShouldNotParseInvalidTemplate(string source)
+        {
+            _parser.TryParse(source, out var template, out var error);
+            Assert.Null(template);
         }
 
         [Theory]
@@ -492,7 +516,7 @@ turtle
             var source = "hello {{ firstname }} {{ lastname }}";
             var expected = "hello sebastien ros";
 
-            FluidTemplate.TryParse(source, out var template, out var messages);
+            _parser.TryParse(source, out var template, out var error);
             var context = new TemplateContext(new { lastname = "ros" });
             context.SetValue("firstname", "sebastien");
 
@@ -507,7 +531,7 @@ turtle
             var expectedFR = "1234,567";
             var expectedUS = "1234.567";
 
-            FluidTemplate.TryParse(source, out var template, out var messages);
+            _parser.TryParse(source, out var template, out var error);
             var context = new TemplateContext
             {
                 CultureInfo = new CultureInfo("en-US")
@@ -528,10 +552,10 @@ turtle
 
             var expected = "1234.567";
             CultureInfo.CurrentCulture = new CultureInfo("fr-FR");
-            FluidTemplate.TryParse(source, out var templateFR, out var messages);
+            _parser.TryParse(source, out var templateFR, out var error);
 
             CultureInfo.CurrentCulture = new CultureInfo("en-US");
-            FluidTemplate.TryParse(source, out var templateUS, out messages);
+            _parser.TryParse(source, out var templateUS, out error);
 
             var context = new TemplateContext();
 
@@ -554,7 +578,7 @@ turtle
         [Fact]
         public Task IndexersCanUseVariables()
         {
-            var source = "{% assign x = 'price' %} {% for p in products %}{{p[x]}}{% endfor %}";
+            var source = "{% assign x = 'price' %}{% for p in products %}{{p[x]}}{% endfor %}";
             var expected = "123";
 
             return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
@@ -596,14 +620,16 @@ turtle
 Parent Content
 color: '{{ color }}'
 shape: '{{ shape }}'";
-            var expected = @"Partial Content
+            var expected = @"
+Partial Content
 Partials: ''
 color: 'red'
 shape: 'circle'
+
 Parent Content
 color: 'blue'
 shape: ''";
-            FluidTemplate.TryParse(source, out var template, out var messages);
+            _parser.TryParse(source, out var template, out var error);
 
             var fileProvider = new MockFileProvider();
             fileProvider.Add("Partials.liquid", @"{{ 'Partial Content' }}
@@ -629,10 +655,12 @@ shape: '{{ shape }}'");
 
 Parent Content
 {{ Partials }}";
-            var expected = @"Partial Content
+            var expected = @"
+Partial Content
 Partials: 'included value'
 color: ''
 shape: ''
+
 Parent Content
 parent value";
 
@@ -642,7 +670,7 @@ Partials: '{{ Partials }}'
 color: '{{ color }}'
 shape: '{{ shape }}'");
 
-            FluidTemplate.TryParse(source, out var template, out var messages);
+            _parser.TryParse(source, out var template, out var error);
             var context = new TemplateContext
             {
                 FileProvider = fileProvider
@@ -656,7 +684,7 @@ shape: '{{ shape }}'");
         [Fact]
         public async Task ShouldEvaluateAsyncMember()
         {
-            FluidTemplate.TryParse("{{ Content.Foo }}{{ Content.Baz }}", out var template, out var messages);
+            _parser.TryParse("{{ Content.Foo }}{{ Content.Baz }}", out var template, out var error);
 
             var context = new TemplateContext();
             context.SetValue("Content", new Content());
@@ -670,7 +698,7 @@ shape: '{{ shape }}'");
         [Fact]
         public async Task ShouldSetFactoryValue()
         {
-            FluidTemplate.TryParse("{{ Test }}", out var template, out var messages);
+            _parser.TryParse("{{ Test }}", out var template, out var error);
             bool set = false;
             var context = new TemplateContext();
             context.SetValue("Test", () => { set = true; return set; });
@@ -684,7 +712,7 @@ shape: '{{ shape }}'");
         [Fact]
         public async Task ShouldLimitSteps()
         {
-            FluidTemplate.TryParse("{% for w in (1..10000) %} FOO {% endfor %}", out var template, out var messages);
+            _parser.TryParse("{% for w in (1..10000) %} FOO {% endfor %}", out var template, out var error);
 
             var context = new TemplateContext();
             context.MaxSteps = 100;
@@ -722,7 +750,7 @@ shape: '{{ shape }}'");
         [Fact]
         public async Task IgnoreCasing()
         {
-            FluidTemplate.TryParse("{{ p.NaMe }}", out var template, out var messages);
+            _parser.TryParse("{{ p.NaMe }}", out var template, out var error);
 
             var context = new TemplateContext();
             context.SetValue("p", new Person { Name = "John" });

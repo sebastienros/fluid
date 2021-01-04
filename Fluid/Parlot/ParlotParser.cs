@@ -11,84 +11,102 @@ namespace Fluid.Parlot
 {
     public class ParlotParser : IFluidParser
     {
-        protected static IParser<List<Statement>> Grammar;
-        protected static Dictionary<string, IParser<Statement>> CustomTags { get; } = new();
+        public IParser<List<Statement>> Grammar;
+        public Dictionary<string, IParser<Statement>> CustomTags { get; } = new();
 
-        public bool TryParse(string template, bool stripEmptyLines, out List<Statement> result, out IEnumerable<string> errors)
+        protected static readonly IParser<char> LBrace = Terms.Char('{');
+        protected static readonly IParser<char> RBrace = Terms.Char('}');
+        protected static readonly IParser<char> LParen = Terms.Char('(');
+        protected static readonly IParser<char> RParen = Terms.Char(')');
+        protected static readonly IParser<char> LBracket = Literals.Char('[');
+        protected static readonly IParser<char> RBracket = Terms.Char(']');
+        protected static readonly IParser<char> Equal = Terms.Char('=');
+        protected static readonly IParser<char> Colon = Terms.Char(':');
+        protected static readonly IParser<char> Comma = Terms.Char(',');
+        protected static readonly IParser<string> OutputStart = Literals.Text("{{");
+        protected static readonly IParser<string> OutputEnd = Terms.Text("}}");
+        protected static readonly IParser<string> TagStart = Literals.Text("{%");
+        protected static readonly IParser<string> TagStartSpaced = Terms.Text("{%");
+        protected static readonly IParser<string> TagEnd = Terms.Text("%}");
+        protected static readonly IParser<char> Dot = Literals.Char('.');
+        protected static readonly IParser<char> Pipe = Terms.Char('|');
+
+        protected static readonly IParser<TextSpan> String = Terms.String(StringLiteralQuotes.SingleOrDouble);
+        protected static readonly IParser<decimal> Number = Terms.Decimal(NumberOptions.AllowSign);
+        protected static readonly IParser<string> True = Terms.Text("true");
+        protected static readonly IParser<string> False = Terms.Text("false");
+
+        protected static readonly IParser<string> DoubleEquals = Terms.Text("==");
+        protected static readonly IParser<string> NotEquals = Terms.Text("!=");
+        protected static readonly IParser<string> Different = Terms.Text("<>");
+        protected static readonly IParser<string> Greater = Terms.Text(">");
+        protected static readonly IParser<string> Lower = Terms.Text("<");
+        protected static readonly IParser<string> GreaterOr = Terms.Text(">=");
+        protected static readonly IParser<string> LowerOr = Terms.Text("<=");
+        protected static readonly IParser<string> Contains = Terms.Text("contains");
+        protected static readonly IParser<string> BinaryOr = Terms.Text("or");
+        protected static readonly IParser<string> BinaryAnd = Terms.Text("and");
+
+        protected static readonly IDeferredParser<Expression> Primary = Deferred<Expression>();
+        protected static readonly IDeferredParser<Expression> LogicalExpression = Deferred<Expression>();
+        protected static readonly IDeferredParser<Expression> FilterExpression = Deferred<Expression>();
+
+        protected static HashSet<string> ExpectedTags = new()
         {
-            var success = Grammar.TryParse(template, out result, out var parlotError);
-
-            if (parlotError != null)
-            {
-                errors = new[] { $"{parlotError.Message} at {parlotError.Position}" };
-            }
-            else
-            {
-                errors = null;
-            }
-
-            return success;
-        }
-
-        static ParlotParser()
+                "endcomment",
+                "endcapture",
+                "endraw",
+                "else",
+                "elsif",
+                "endif",
+                "endunless",
+                "when",
+                "endfor",
+                "endcase",
+        };
+        
+        public ParlotParser()
         {
-            // TODO: Refactor such that ToList() is not necessary
-            // TODO: Remove CommentStatement which is replaced by RawStatement
-
-            var LBrace = Terms.Char('{');
-            var RBrace = Terms.Char('}');
-            var LBracket = Terms.Char('[');
-            var RBracket = Terms.Char(']');
-            var Equal = Terms.Char('=');
-            var Colon = Terms.Char(':');
-            var Comma = Terms.Char(',');
-            var OutputStart = Literals.Text("{{");
-            var OutputEnd = Terms.Text("}}");
-            var TagStart = Literals.Text("{%");
-            var TagEnd = Terms.Text("%}");
-            var Dot = Literals.Char('.'); // No whitespace
-            var Pipe = Terms.Char('|');
-
-            var String = Terms.String(StringLiteralQuotes.SingleOrDouble);
-            var Number = Terms.Decimal(NumberOptions.AllowSign);
-            var True = Terms.Text("true");
-            var False = Terms.Text("false");
-
-            var divided = Terms.Char('/');
-            var times = Terms.Char('*');
-            var minus = Terms.Char('-');
-            var plus = Terms.Char('+');
-            var modulo = Terms.Char('%');
-            var equals = Terms.Text("==");
-            var notequals = Terms.Text("!=");
-            var different = Terms.Text("<>");
-            var greater = Terms.Text(">");
-            var lower = Terms.Text("<");
-            var greateror = Terms.Text(">=");
-            var loweror = Terms.Text("<=");
-            var contains = Terms.Text("contains");
-            var or = Terms.Text("or");
-            var and = Terms.Text("and");
-            var openParen = Terms.Char('(');
-            var closeParen = Terms.Char(')');
-
+            // TODO: Refactor such that ToList()/ToArray() are not necessary (use IList)
+            // TODO: Add Else statements in for loops
+            // TODO: Remove TextStatement
+            // TODO: In KnownTags, use predefined variables, otherwith each invokation returns a new parser instance
+            // TODO: read the next - and assign the skip whitespace property to the adjacent Text statement
 
             var Identifier = Terms.Identifier(extraPart: static c => c == '-');
 
+            var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(FluidValue.Create((decimal)x)));
+
+            // Member expressions
+            var Indexer = LBracket.And(Primary).And(RBracket).Then<MemberSegment>(x => new IndexerSegment(x.Item2));
+
+            var Member = Identifier.Then<MemberSegment>(x => new IdentifierSegment(x.ToString())).And(
+                ZeroOrMany(
+                    Dot.SkipAnd(Identifier.Then<MemberSegment>(x => new IdentifierSegment(x.ToString())))
+                    .Or(Indexer)))
+                .Then(x => new MemberExpression((new[] { x.Item1 }).Union(x.Item2).ToArray()));
+
+            var Range = LParen
+                .And(OneOf(Integer, Member.Then<Expression>(x => x)))
+                .And(Terms.Text(".."))
+                .And(OneOf(Integer, Member.Then<Expression>(x => x)))
+                .And(RParen)
+                .Then(x => new RangeExpression(x.Item2, x.Item4));
+
             // primary => NUMBER | STRING | BOOLEAN property
-            var Primary =
+            Primary.Parser =
                 Number.Then<Expression>(x => new LiteralExpression(FluidValue.Create(x)))
-                .Or(String.Then<Expression>(x => new LiteralExpression(FluidValue.Create(x.Text))))
+                .Or(String.Then<Expression>(x => new LiteralExpression(FluidValue.Create(x.ToString()))))
                 .Or(True.Then<Expression>(x => new LiteralExpression(BooleanValue.True)))
                 .Or(False.Then<Expression>(x => new LiteralExpression(BooleanValue.False)))
-                .Or(Identifier.Then<Expression>(x => new MemberExpression(new IdentifierSegment(x.Text))))
+                .Or(Member.Then<Expression>(x => x))
                 ;
 
-            var CaseValueList = Separated(or, Primary).Then(x => x.ToList());
+            var CaseValueList = Separated(BinaryOr, Primary).Then(x => x.ToList());
             
             // TODO: 'and' has a higher priority than 'or', either create a new scope, or implement operators priority
 
-            var Logical = Primary.And(Star(OneOf(or, and, contains).And(Primary)))
+            var Logical = Primary.And(Star(OneOf(BinaryOr, BinaryAnd, Contains).And(Primary)))
                 .Then(static x =>
                 {
                     var result = x.Item1;
@@ -107,7 +125,7 @@ namespace Fluid.Parlot
                     return result;
                 });
 
-            var Comparison = Logical.And(Star(OneOf(equals, notequals, different, greateror, loweror, greater, lower).And(Logical)))
+            var Comparison = Logical.And(Star(OneOf(DoubleEquals, NotEquals, Different, GreaterOr, LowerOr, Greater, Lower).And(Logical)))
                 .Then(static x =>
                 {
                     var result = x.Item1;
@@ -130,131 +148,233 @@ namespace Fluid.Parlot
                     return result;
                 });
 
-            // factor => primary ( ( "/" | "*" ) primary )* ;
-            var Factor = Comparison.And(Star(divided.Or(times).And(Comparison)))
-                .Then(static x =>
-                {
-                    var result = x.Item1;
-
-                    // (("/" | "*") unary ) *
-                    foreach (var op in x.Item2)
+            // Primary ( | identifer ( ':' (name : value)+ )! ] )*
+            FilterExpression.Parser = Primary
+                .And(ZeroOrMany(Pipe.SkipAnd(Identifier)
+                    .And(ZeroOrOne(Colon.SkipAnd(
+                        Separated(Comma,
+                            OneOf(Primary.Then(static x => new FilterArgument(null, x)),
+                            Identifier.And(Colon).And(Primary).Then(static x => new FilterArgument(x.Item1.ToString(), x.Item3))
+                            ))
+                        )))
+                    ))
+                .Then(x =>
                     {
-                        result = op.Item1 switch
+                        // Primary
+                        var result = x.Item1;
+
+                        // Filters
+                        foreach(var pipeResult in x.Item2)
                         {
-                            '/' => new DivideBinaryExpression(result, op.Item2),
-                            '%' => new ModuloBinaryExpression(result, op.Item2),
-                            '*' => new MultiplyBinaryExpression(result, op.Item2),
-                            _ => null
-                        };
-                    }
+                            var identifier = pipeResult.Item1.ToString();
+                            var arguments = pipeResult.Item2;
 
-                    return result;
-                });
+                            result = new FilterExpression(result, identifier, arguments == null ? Array.Empty<FilterArgument>() : arguments.ToArray());
+                        }
 
-            // expression => factor ( ( "-" | "+" ) factor )* ;
-            var Expression = Factor.And(Star(plus.Or(minus).And(Factor)))
-                .Then(static x =>
-                {
-                    var result = x.Item1;
+                        return result;
+                    });
 
-                    // (("-" | "+") factor ) *
-                    foreach (var op in x.Item2)
-                    {
-                        result = op.Item1 switch
-                        {
-                            '+' => new AddBinaryExpression(result, op.Item2),
-                            '-' => new SubstractBinaryExpression(result, op.Item2),
-                            _ => null
-                        };
-                    }
-
-                    return result;
-                });
-
-            // | identifer [ ':' (name : value)+ ]
-            var Filter = Pipe.And(Identifier
-                .And(ZeroOrOne(Colon.And(
-                    OneOrMany(
-                        Identifier.And(Colon).And(Number).Then(static x => new FilterArgument(x.Item1.Text, new LiteralExpression(FluidValue.Create(x.Item3))))
-                    )).Then(static x => x.Item2))));
+            LogicalExpression.Parser = Comparison;
 
             var TagsList = Deferred<List<Statement>>();
 
-            var output = OutputStart.And(Expression).And(OutputEnd)
-                .Then<Statement>(static x => new OutputStatement(x.Item2));
+            var Output = OutputStart.SkipAnd(FilterExpression.And(OutputEnd)
+                .Then<Statement>(static x => new OutputStatement(x.Item1))
+                .ElseError("Invalid tag, expected an expression")
+                );
 
-            var otherTags= Identifier.Switch((context, previous) =>
+            var OtherTags = Identifier.ElseError($"Invalid tag").Switch((context, previous) =>
             {
-                if (CustomTags.TryGetValue(previous.Text, out var parser))
+                var tagName = previous.ToString();
+
+                if (CustomTags.TryGetValue(tagName, out var parser))
                 {
                     return parser;
+                }
+
+                if (!ExpectedTags.Contains(tagName))
+                {
+                    // A {% TAGNAME was found without possible handler, the template is invalid
+                    throw new ParseException($"Invalid tag '{tagName}'");
                 }
 
                 return null;
             });
 
-            IParser<ValueTuple<string, string, string>> CreateTag(string tagName) => TagStart.And(Terms.Text(tagName)).And(TagEnd);
-
-            var knownTags = Identifier.Switch((context, previous) =>
+            var KnownTags = Identifier.Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed 
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
 
-                switch (previous.Text)
+                switch (previous.ToString())
                 {
                     case "break": return TagEnd.Then<Statement>(x => new BreakStatement());
                     case "continue": return TagEnd.Then<Statement>(x => new ContinueStatement());
-                    case "capture": return 
+                    case "comment": return
+                        TagEnd
+                        .SkipAnd(AnyCharBefore(CreateTag("endcomment")))
+                        .And(CreateTag("endcomment"))
+                        .Then<Statement>(x => new CommentStatement(x.Item1))
+                        .ElseError("Invalid 'comment' tag")
+                        ;
+                    case "capture": return
                         Identifier
                         .And(TagEnd)
                         .And(TagsList)
                         .And(CreateTag("endcapture"))
-                        .Then<Statement>(x => new CaptureStatement(x.Item1.Text, x.Item3));
+                        .Then<Statement>(x => new CaptureStatement(x.Item1.ToString(), x.Item3))
+                        .ElseError("Invalid 'capture' tag")
+                        ;
                     case "cycle": return
-                        ZeroOrOne(Colon.SkipAnd(String)).And(Separated(Comma, String))
+                        ZeroOrOne(Identifier.And(Colon).Then(x => x.Item1))
+                        .And(Separated(Comma, String))
                         .And(TagEnd)
-                        .Then<Statement>(x => new CycleStatement(x.Item1.Length == 0 ? null : new LiteralExpression(FluidValue.Create(x.Item1.Text)), x.Item2.Select(e => new LiteralExpression(FluidValue.Create(e.Text))).ToList<Expression>()));
+                        .Then<Statement>(x =>
+                        {
+                            var group = x.Item1.Length == 1
+                                ? new LiteralExpression(FluidValue.Create(x.Item1))
+                                : null;
+
+                            var values = x.Item2.Select(e => new LiteralExpression(FluidValue.Create(e.ToString()))).ToList<Expression>();
+
+                            return new CycleStatement(group, values);
+                        })
+                        .ElseError("Invalid 'cycle' tag")
+                        ; 
+                    case "decrement": return Identifier.And(TagEnd).Then<Statement>(x => new DecrementStatement(x.Item1.ToString()));
+                    case "include": return OneOf(
+                        Primary.And(Comma).And(Separated(Comma, Identifier.And(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1.ToString(), x.Item3)))).Then(x => new IncludeStatement(this, x.Item1, null, x.Item3)),
+                        Primary.And(Terms.Text("with")).And(Primary).Then(x => new IncludeStatement(this, x.Item1, with: x.Item3)),
+                        Primary.Then(x => new IncludeStatement(this, x))
+                        ).And(TagEnd)
+                        .Then<Statement>(x => x.Item1)
+                        .ElseError("Invalid 'include' tag");
+                    case "increment": return Identifier.And(TagEnd).Then<Statement>(x => new IncrementStatement(x.Item1.ToString()));
                     case "raw": return TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
-                    case "assign": return Identifier.And(Equal).And(Expression).And(TagEnd).Then<Statement>(x => new AssignStatement(x.Item1.Text, x.Item3));
-                    case "if": return Expression
-                        .And(TagEnd)
+                    case "assign": return Identifier.And(Equal).And(FilterExpression).And(TagEnd).Then<Statement>(x => new AssignStatement(x.Item1.ToString(), x.Item3));
+                    case "if": return LogicalExpression
+                        .AndSkip(TagEnd)
                         .And(TagsList)
                         .And(ZeroOrMany(
-                            TagStart.And(Terms.Text("elsif")).And(Expression).And(TagEnd).And(TagsList))
-                            .Then(x => x.Count > 0 ? x.Select(e => new ElseIfStatement(e.Item3, e.Item5)).ToList() : null))
+                            TagStart.And(Terms.Text("elsif")).And(LogicalExpression).And(TagEnd).And(TagsList))
+                            .Then(x => x.Count > 0 ? x.Select(e => new ElseIfStatement(e.Item3, e.Item5)).ToList() : new List<ElseIfStatement>()))
                         .And(ZeroOrOne(
                             CreateTag("else").SkipAnd(TagsList))
                             .Then(x => x != null ? new ElseStatement(x) : null))
-                        .And(CreateTag("endif"))
-                        .Then<Statement>(x => new IfStatement(x.Item1, x.Item3, x.Item5, x.Item4));
-                    case "unless": return Expression
+                        .AndSkip(CreateTag("endif"))
+                        .Then<Statement>(x => new IfStatement(x.Item1, x.Item2, x.Item4, x.Item3))
+                        .ElseError("Invalid 'if' tag");
+                    case "unless": return LogicalExpression
                         .And(TagEnd)
                         .And(TagsList)
                         .And(CreateTag("endunless"))
-                        .Then<Statement>(x => new UnlessStatement(x.Item1, x.Item3));
-                    case "case": return Expression
-                        .And(TagEnd)
-                        .And(ZeroOrMany(
-                            TagStart.And(Terms.Text("when")).And(CaseValueList).And(TagEnd).And(TagsList))
-                            .Then(x => x.Count > 0 ? x.Select(e => new WhenStatement(e.Item3, e.Item5)).ToList() : null))
-                        .And(ZeroOrOne(
-                            CreateTag("else").SkipAnd(TagsList))
-                            .Then(x => x != null ? new ElseStatement(x) : null))
-                        .And(CreateTag("endcase"))
-                        .Then<Statement>(x => new CaseStatement(x.Item1, x.Item4, x.Item3));
+                        .Then<Statement>(x => new UnlessStatement(x.Item1, x.Item3))
+                        .ElseError("Invalid 'unless' tag");
+                    case "case": return Primary
+                       .And(TagEnd)
+                       .And(AnyCharBefore(TagStart, canBeEmpty: true))
+                       .And(ZeroOrMany(
+                           TagStart.Then(x => x).And(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).And(TagEnd).And(TagsList))
+                           .Then(x => x.Count > 0 ? x.Select(e => new WhenStatement(e.Item3, e.Item5)).ToList() : new List<WhenStatement>()))
+                       .And(ZeroOrOne(
+                           CreateTag("else").SkipAnd(TagsList))
+                           .Then(x => x != null ? new ElseStatement(x) : null))
+                       .And(CreateTag("endcase"))
+                       .Then<Statement>(x => new CaseStatement(x.Item1, x.Item5, x.Item4))
+                       .ElseError("Invalid 'case' tag");
+                    case "for":
+                        return OneOf(
+                            Identifier
+                            .And(Terms.Text("in"))
+                            .And(Member)
+                            .And(ZeroOrMany(OneOf( // Use * since each can appear in any order. Validation is done once it's parsed
+                                Terms.Text("reversed").Named("reversed"),
+                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Integer).Named("limit"),
+                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Integer).Named("offset")
+                                )))
+                            .AndSkip(TagEnd)
+                            .And(TagsList)
+                            .And(ZeroOrOne(
+                                CreateTag("else").SkipAnd(TagsList))
+                                .Then(x => x != null ? new ElseStatement(x) : null))
+                            .AndSkip(CreateTag("endfor"))
+                            .Then<Statement>(x =>
+                            {
+                                var identifier = x.Item1.ToString();
+                                var member = x.Item3;
+                                var statements = x.Item5;
+                                var elseStatement = x.Item6;
+
+                                var limitResult = x.Item4.LastOrDefault(l => l.ParserName == "limit");
+                                var offsetResult = x.Item4.LastOrDefault(l => l.ParserName == "offset");
+
+                                var limit = limitResult.Value as Expression ?? null;
+                                var offset = offsetResult.Value as Expression ?? null;
+                                var reversed = x.Item4.Any(l => l.ParserName == "reversed");
+
+                                return new ForStatement(statements, identifier, member, limit, offset, reversed, elseStatement);
+                            }),
+
+                            Identifier
+                            .And(Terms.Text("in"))
+                            .And(Range)
+                            .And(ZeroOrMany(OneOf( // Use * since each can appear in any order. Validation is done once it's parsed
+                                Terms.Text("reversed").Named("reversed"),
+                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Integer).Named("limit"),
+                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Integer).Named("offset")
+                                )))
+                            .And(TagEnd)
+                            .And(TagsList)
+                            .And(CreateTag("endfor"))
+                            .Then<Statement>(x =>
+                            {
+                                var identifier = x.Item1.ToString();
+                                var range = x.Item3;
+                                var statements = x.Item6;
+
+                                var limitResult = x.Item4.LastOrDefault(l => l.ParserName == "limit");
+                                var offsetResult = x.Item4.LastOrDefault(l => l.ParserName == "offset");
+
+                                var limit = limitResult.Value as Expression ?? null;
+                                var offset = offsetResult.Value as Expression ?? null;
+                                var reversed = x.Item4.Any(l => l.ParserName == "reversed");
+
+                                return new ForStatement(statements, identifier, range, limit, offset, reversed, null);
+                            })
+                        ).ElseError("Invalid 'for' tag"); ;
+
                     default: return null;
                 };
             });
 
-            var tag = TagStart.And(knownTags).Then(x => x.Item2);
+            var tag = TagStart.SkipAnd(KnownTags.Or(OtherTags));
 
-            // todo: read the next - and assign the skip whitespace property to the adjacent Text statement
             var text = AnyCharBefore(OutputStart.Or(TagStart))
                 .Then<Statement>(static x => new TextSpanStatement(x));
 
-            TagsList.Parser = Star(output.Or(tag).Or(text)).Then(x => x.ToList());
+            TagsList.Parser = Star(Output.Or(tag).Or(text)).Then(x => x.ToList());
 
             Grammar = TagsList;
+        }
+
+        IParser<ValueTuple<string, string, string>> CreateTag(string tagName) => TagStart.And(Terms.Text(tagName)).And(TagEnd);
+
+        public IFluidTemplate Parse(string template)
+        {
+            var success = Grammar.TryParse(template, out var statements, out var parlotError);
+
+            if (parlotError != null)
+            {
+                throw new ParseException($"{parlotError.Message} at {parlotError.Position}");
+            }
+
+            if (!success)
+            {
+                return null;
+            }
+
+            return new ParlotTemplate(statements);
         }
     }
 }

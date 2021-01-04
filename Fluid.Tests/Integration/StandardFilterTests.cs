@@ -1,5 +1,6 @@
 ﻿using Fluid.Ast;
 using Fluid.Filters;
+using Fluid.Parlot;
 using Fluid.Values;
 using Microsoft.Extensions.Primitives;
 using System;
@@ -14,9 +15,11 @@ namespace Fluid.Tests.Integration
 
     public class StandardFilterTests
     {
-        private List<Statement> Parse(string source)
+        private static IFluidParser _parser = new ParlotParser();
+
+        private IList<Statement> Parse(string source)
         {
-            FluidTemplate.TryParse(source, out var template, out var errors);
+            _parser.TryParse(source, out var template, out var errors);
             return template.Statements;
         }
 

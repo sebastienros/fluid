@@ -72,16 +72,6 @@ namespace Fluid
             }
         }
 
-        /// <summary>
-        /// The <see cref="IFluidParserFactory"/> instance to use with this context
-        /// </summary>
-        public IFluidParserFactory ParserFactory { get; set; }
-
-        /// <summary>
-        /// The <see cref="IFluidTemplate"/> instance to use with this context
-        /// </summary>
-        public Func<IFluidTemplate> TemplateFactory { get; set; }
-
         // Scopes
         public static Scope GlobalScope = new Scope();
 

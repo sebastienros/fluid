@@ -1,4 +1,5 @@
 ﻿using Fluid.Ast;
+using Fluid.Parlot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,9 +10,11 @@ namespace Fluid.Tests
 {
     public class WhiteSpaceTests
     {
-        private List<Statement> Parse(string source)
+        private static IFluidParser _parser = new ParlotParser();
+
+        private IList<Statement> Parse(string source)
         {
-            FluidTemplate.TryParse(source, out var template, out var errors);
+            _parser.TryParse(source, out var template, out var errors);
             return template.Statements;
         }
 
@@ -61,7 +64,7 @@ namespace Fluid.Tests
                 new { name = "product 3", price = 3 },
             };
 
-            FluidTemplate.TryParse(sample, out var template, out var messages);
+            _parser.TryParse(sample, out var template, out var messages);
 
             var context = new TemplateContext();
             context.SetValue("products", _products);
@@ -120,7 +123,7 @@ namespace Fluid.Tests
                 new { name = "product 3", price = 3 },
             };
 
-            FluidTemplate.TryParse(sample, false, out var template, out var messages);
+            _parser.TryParse(sample, out var template, out var messages);
 
             var context = new TemplateContext();
             context.SetValue("products", _products);
@@ -179,7 +182,7 @@ namespace Fluid.Tests
                 new { name = "product 3", price = 3 },
             };
 
-            FluidTemplate.TryParse(sample, out var template, out var messages);
+            _parser.TryParse(sample, out var template, out var messages);
 
             var context = new TemplateContext();
             context.SetValue("products", _products);
@@ -238,7 +241,7 @@ namespace Fluid.Tests
                 new { name = "product 3", price = 3 },
             };
 
-            FluidTemplate.TryParse(sample, out var template, out var messages);
+            _parser.TryParse(sample, out var template, out var messages);
 
             var context = new TemplateContext();
             context.SetValue("products", _products);
@@ -260,7 +263,7 @@ namespace Fluid.Tests
         public async Task BlockShouldMaintainWhiteSpaceWhenNotEmpty(string source, string expected)
         {
 
-            FluidTemplate.TryParse(source, out var template, out var messages);
+            _parser.TryParse(source, out var template, out var messages);
             var result = await template.RenderAsync();
 
             Assert.Equal(expected, result);
@@ -272,7 +275,7 @@ namespace Fluid.Tests
         [InlineData(" {{ 1 }} \n ", " 1 \n ")]
         public async Task ShouldNotTrimOutputTag(string source, string expected)
         {
-            var success = FluidTemplate.TryParse(source, out var template, out var messages);
+            var success = _parser.TryParse(source, out var template, out var messages);
             Assert.True(success, String.Join(", ", messages));
             var result = await template.RenderAsync();
 
@@ -294,7 +297,7 @@ namespace Fluid.Tests
         [InlineData("6<div class=\"a{% if true %} b{% endif %}\" />", "6<div class=\"a b\" />")]
         public async Task DashShouldTrimOutputTag(string source, string expected)
         {
-            var success = FluidTemplate.TryParse(source, out var template, out var messages);
+            var success = _parser.TryParse(source, out var template, out var messages);
             Assert.True(success, String.Join(", ", messages));
             var result = await template.RenderAsync();
 
@@ -343,14 +346,14 @@ namespace Fluid.Tests
 a
 {% endfor %}");
             Assert.Single(statements);
-            var text = ((ForStatement)statements[0]).Statements[0] as TextStatement;
+            var text = ((ForStatement)statements[0]).Statements[0] as TextSpanStatement;
             Assert.Equal("a\r\n", text.Text.ToString());
         }
 
         [Fact]
         public void ShouldTrimMultipleUnixLineBreaks()
         {
-            var result = FluidTemplate.TryParse("{% assign foo = 1 %}\n\n{% assign foo = 1 %}", out var template, out var errors);
+            var result = _parser.TryParse("{% assign foo = 1 %}\n\n{% assign foo = 1 %}", out var template, out var errors);
 
             Assert.True(result);
         }
@@ -360,7 +363,7 @@ a
         {
             var c = (char)160;
 
-            var result = FluidTemplate.TryParse("{{" + c + "'a'" + c + "}}", out var template, out var errors);
+            var result = _parser.TryParse("{{" + c + "'a'" + c + "}}", out var template, out var errors);
             var rendered = template.Render();
 
             Assert.Equal("a", rendered);

@@ -1,6 +1,6 @@
-﻿namespace Fluid
-{
-    public class FluidTemplate : BaseFluidTemplate<FluidTemplate>
-    {
-    }
-}
+﻿//namespace Fluid
+//{
+//    public class FluidTemplate : BaseFluidTemplate<FluidTemplate>
+//    {
+//    }
+//}

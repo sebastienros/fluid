@@ -1,6 +1,9 @@
-﻿namespace Fluid.Ast
+﻿using Fluid.Values;
+using System.Threading.Tasks;
+
+namespace Fluid.Ast
 {
-    public class RangeExpression
+    public class RangeExpression : Expression
     {
         public RangeExpression(Expression from, Expression to)
         {
@@ -11,5 +14,10 @@
         public Expression From { get; }
 
         public Expression To { get; }
+
+        public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

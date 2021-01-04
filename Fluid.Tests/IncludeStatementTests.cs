@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
+using Fluid.Parlot;
 using Fluid.Tests.Mocks;
 using Fluid.Values;
 using Xunit;
@@ -12,6 +13,8 @@ namespace Fluid.Tests
 {
     public class IncludeStatementTests
     {
+        private static IFluidParser _parser = new ParlotParser();
+
         [Fact]
         public async Task IncludeSatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()
         {
@@ -20,7 +23,7 @@ namespace Fluid.Tests
 
             try
             {
-                await new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+                await new IncludeStatement(_parser, expression).WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
                 Assert.True(false);
             }
             catch (FileNotFoundException)
@@ -52,7 +55,7 @@ Partials: ''
 color: ''
 shape: ''";
 
-            await new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context);
+            await new IncludeStatement(_parser, expression).WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal(expectedResult, sw.ToString());
         }
@@ -83,7 +86,7 @@ Partials: ''
 color: 'blue'
 shape: 'circle'";
 
-            await new IncludeStatement(expression, assignStatements: assignStatements).WriteToAsync(sw, HtmlEncoder.Default, context);
+            await new IncludeStatement(_parser, expression, assignStatements: assignStatements).WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal(expectedResult, sw.ToString());
         }
@@ -110,7 +113,7 @@ Partials: ''
 color: 'blue'
 shape: ''";
 
-            await new IncludeStatement(pathExpression, with: withExpression).WriteToAsync(sw, HtmlEncoder.Default, context);
+            await new IncludeStatement(_parser, pathExpression, with: withExpression).WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal(expectedResult, sw.ToString());
         }
@@ -129,7 +132,7 @@ shape: ''";
                 FileProvider = fileProvider
             };
 
-           await Assert.ThrowsAsync<InvalidOperationException>(() => new IncludeStatement(expression).WriteToAsync(sw, HtmlEncoder.Default, context).AsTask());
+           await Assert.ThrowsAsync<InvalidOperationException>(() => new IncludeStatement(_parser, expression).WriteToAsync(sw, HtmlEncoder.Default, context).AsTask());
         }
     }
 }

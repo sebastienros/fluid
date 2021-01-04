@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Primitives;
+﻿using Parlot.Fluent;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -7,17 +7,12 @@ namespace Fluid.Ast
 {
     public class CommentStatement : Statement
     {
-        public CommentStatement(StringSegment text)
-        {
-            Text = text.ToString();
-        }
-
-        public CommentStatement(string text)
+        public CommentStatement(TextSpan text)
         {
             Text = text;
         }
 
-        public string Text { get; }
+        public TextSpan Text { get; }
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {

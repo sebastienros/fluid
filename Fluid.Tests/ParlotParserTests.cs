@@ -8,32 +8,31 @@ namespace Fluid.Tests
 {
     public class ParlotParserTests
     {
+        private static IFluidParser _parser = new ParlotParser();
+
         [Theory]
+        [InlineData("{% for i in (1..5) offset:1 limit:3 reversed%}{{ i }}{% endfor %}", "432")]
         [InlineData("{% if true %}a{% endif %}", "a")]
         [InlineData("a{% if false %}b{% endif %}c", "ac")]
         [InlineData("{% if true %}a{% if false %}b{% endif %}{% if true %}c{% endif %}{% endif %}", "ac")]
-        [InlineData("{% if true %}a{% if false %}b{% else %}d{% endif %}{% if true %}c{% endif %}{% endif %}", "adc")]
+        [InlineData("{% if true or false %}a{% if false %}b{% else %}d{% endif %}{% if true %}c{% endif %}{% endif %}", "adc")]
         [InlineData("{% if false %}a{% elsif false %}b{% elsif true %}d{% endif %}", "d")]
-        [InlineData("{{ true or false }}", "true")]
-        [InlineData("{% assign a = 3 + 1 %}{{ a }}", "4")]
-        [InlineData("{{ 1 + 2 * 5}}", "11")]
+        [InlineData("{{ true }}", "true")]
+        [InlineData("{% assign a = 3 %}{{ a }}", "3")]
         [InlineData("foo", "foo")]
         [InlineData("foo {{ 1 }}", "foo 1")]
         [InlineData("foo {{ 1 }} a{% raw %}abc{% endraw %}b", "foo 1 ab")]
         public async Task ShouldEvaluateTags(string input, string expected)
         {
-            new ParlotParser().TryParse(input, false, out var results, out var errors);
+            _parser.TryParse(input, out var template, out var errors);
 
             using (var sw = new StringWriter())
             {
                 var context = new TemplateContext();
 
-                foreach (var s in results)
-                {
-                    await s.WriteToAsync(sw, NullEncoder.Default, context);
-                }
+                var result = await template.RenderAsync();
 
-                Assert.Equal(expected, sw.ToString());
+                Assert.Equal(expected, result);
             }
         }
 
@@ -41,8 +40,8 @@ namespace Fluid.Tests
         [InlineData("foo {{ 1 }} a{% raw %}abc{% endraw2 %}b", "Not end tag found for {% raw %} at (1:21)")]
         public void ShouldFail(string input, string expected)
         {
-            new ParlotParser().TryParse(input, false, out var results, out var errors);
-            Assert.Contains(expected, errors.FirstOrDefault());
+            _parser.TryParse(input, out var results, out var errors);
+            Assert.Equal(expected, errors);
         }
     }
 }
