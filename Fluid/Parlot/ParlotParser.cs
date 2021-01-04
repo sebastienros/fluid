@@ -23,11 +23,6 @@ namespace Fluid.Parlot
         protected static readonly IParser<char> Equal = Terms.Char('=');
         protected static readonly IParser<char> Colon = Terms.Char(':');
         protected static readonly IParser<char> Comma = Terms.Char(',');
-        protected static readonly IParser<string> OutputStart = Literals.Text("{{");
-        protected static readonly IParser<string> OutputEnd = Terms.Text("}}");
-        protected static readonly IParser<string> TagStart = Literals.Text("{%");
-        protected static readonly IParser<string> TagStartSpaced = Terms.Text("{%");
-        protected static readonly IParser<string> TagEnd = Terms.Text("%}");
         protected static readonly IParser<char> Dot = Literals.Char('.');
         protected static readonly IParser<char> Pipe = Terms.Char('|');
 
@@ -47,22 +42,31 @@ namespace Fluid.Parlot
         protected static readonly IParser<string> BinaryOr = Terms.Text("or");
         protected static readonly IParser<string> BinaryAnd = Terms.Text("and");
 
+        protected static readonly IParser<TextSpan> Identifier = Terms.Identifier(extraPart: static c => c == '-');
+
         protected static readonly IDeferredParser<Expression> Primary = Deferred<Expression>();
         protected static readonly IDeferredParser<Expression> LogicalExpression = Deferred<Expression>();
         protected static readonly IDeferredParser<Expression> FilterExpression = Deferred<Expression>();
 
+        protected readonly IParser<TagResult> OutputStart;
+        protected readonly IParser<TagResult> OutputEnd;
+        protected readonly IParser<TagResult> TagStart;
+        protected readonly IParser<TagResult> TagStartSpaced;
+        protected readonly IParser<TagResult> TagEnd;
+
         // These tags are not parsed when expecting any tag, but should not be marked as invalid so we can detect {% without correct values
-        protected readonly static HashSet<string> ExpectedTags = new()
+        protected readonly HashSet<string> ExpectedTags = new()
         {
             "endcomment", "endcapture", "endraw", "else", "elsif", "endif", "endunless", "when", "endfor", "endcase"
         };
         
         public ParlotParser()
         {
-            // TODO: Remove TextStatement
-            // TODO: read the next - and assign the skip whitespace property to the adjacent Text statement
-
-            var Identifier = Terms.Identifier(extraPart: static c => c == '-');
+            OutputStart = TagParsers.OutputTagStart(this);
+            OutputEnd = TagParsers.OutputTagEnd(this, true);
+            TagStart = TagParsers.TagStart(this);
+            TagStartSpaced = TagParsers.TagStart(this, true);
+            TagEnd = TagParsers.TagEnd(this, true);
 
             var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(FluidValue.Create((decimal)x)));
 
@@ -328,6 +332,8 @@ namespace Fluid.Parlot
 
             var KnownTags = Identifier.Switch((context, previous) =>
             {
+                // perf: this lambda is allocated only once since the KnownTags parser is reused
+
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed 
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
 
@@ -337,7 +343,6 @@ namespace Fluid.Parlot
                     case "continue": return ContinueTag;
                     case "comment": return CommentTag;
                     case "capture": return CaptureTag;
-                        
                     case "cycle": return CycleTag;
                     case "decrement": return DecrementTag;
                     case "include": return IncludeTag;
@@ -353,21 +358,26 @@ namespace Fluid.Parlot
                 };
             });
 
-            var tag = TagStart.SkipAnd(KnownTags.Or(OtherTags));
+            var Tag = TagStart.SkipAnd(KnownTags.Or(OtherTags));
 
-            var text = AnyCharBefore(OutputStart.Or(TagStart))
-                .Then<Statement>(static x => new TextSpanStatement(x));
+            var Text = AnyCharBefore(OutputStart.Or(TagStart))
+                .Then(static x => new TextSpanStatement(x));
 
-            TagsList.Parser = Star(Output.Or(tag).Or(text));
+            TagsList.Parser = Star(
+                Output
+                .Or(Tag)
+                .Or(Text.Then<Statement>((ctx, x) => { var p = (ParlotContext)ctx; p.PreviousTextSpanStatement = x; if (p.StripNextTextSpanStatement) { x.StrippedLeft = true; p.StripNextTextSpanStatement = false;  } return x; })));
 
             Grammar = TagsList;
         }
 
-        public static IParser<ValueTuple<string, string, string>> CreateTag(string tagName) => TagStart.And(Terms.Text(tagName)).And(TagEnd);
+        public IParser<ValueTuple<TagResult, string, TagResult>> CreateTag(string tagName) => TagStart.And(Terms.Text(tagName)).And(TagEnd);
 
         public IFluidTemplate Parse(string template)
         {
-            var success = Grammar.TryParse(template, out var statements, out var parlotError);
+            var context = new ParlotContext(template);
+
+            var success = Grammar.TryParse(context, out var statements, out var parlotError);
 
             if (parlotError != null)
             {
