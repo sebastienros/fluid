@@ -33,9 +33,6 @@ namespace Fluid.Parlot
                 return ExceptionHelper.ThrowArgumentNullException<ValueTask>(nameof(context));
             }
 
-            //context.ParserFactory = Factory;
-            //context.TemplateFactory = TemplateFactory;
-
             var count = Statements.Count;
             for (var i = 0; i < count; i++)
             {

@@ -37,7 +37,7 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData("foo {{ 1 }} a{% raw %}abc{% endraw2 %}b", "Not end tag found for {% raw %} at (1:21)")]
+        [InlineData("foo {{ 1 }} a{% raw %}abc{% endraw2 %}b", "Not end tag found for {% raw %} at (1:20)")]
         public void ShouldFail(string input, string expected)
         {
             _parser.TryParse(input, out var results, out var errors);

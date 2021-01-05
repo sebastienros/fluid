@@ -23,7 +23,7 @@ namespace Fluid.MvcViewEngine
     {
         private const string ViewStartFilename = "_ViewStart.liquid";
         public const string ViewPath = "ViewPath";
-        private static IFluidParser _parser = new ParlotParser();
+        private static FluidViewParser _parser = new FluidViewParser();
 
         static FluidRendering()
         {
@@ -39,6 +39,8 @@ namespace Fluid.MvcViewEngine
             _memoryCache = memoryCache;
             _hostingEnvironment = hostingEnvironment;
             _options = optionsAccessor.Value;
+
+            _options.Parser?.Invoke(_parser);
         }
 
         private readonly IMemoryCache _memoryCache;
@@ -140,13 +142,16 @@ namespace Fluid.MvcViewEngine
                 {
                     using (var sr = new StreamReader(stream))
                     {
-                        if (_parser.TryParse(sr.ReadToEnd(), out var template, out var errors))
+                        var fileContent = sr.ReadToEnd();
+                        if (_parser.TryParse(fileContent, out var template, out var errors))
                         {
-                            return new ParlotTemplate(statements.Union(template.Statements).ToArray());
+                            statements.AddRange(template.Statements);
+
+                            return new ParlotTemplate(statements);
                         }
                         else
                         {
-                            throw new Exception(String.Join(Environment.NewLine, errors));
+                            throw new ParseException(errors);
                         }
                     }
                 }

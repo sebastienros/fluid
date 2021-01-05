@@ -128,7 +128,6 @@ namespace Fluid.Ast
 
             // The Text fragments are not encoded, but kept as-is
             writer.Write(Text.Span);
-            writer.Flush();
 
             return Normal;
         }
