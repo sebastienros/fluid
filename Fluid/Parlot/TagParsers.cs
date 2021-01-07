@@ -62,7 +62,7 @@ namespace Fluid.Parlot
 
                     p.PreviousTextSpanStatement = null;
 
-                    result.Set(context.Scanner.Buffer, start, context.Scanner.Cursor.Offset, Name, new TagResult(true, trim));
+                    result.Set(start, context.Scanner.Cursor.Offset, new TagResult(true, trim));
                     return true;
                 }
                 else
@@ -99,7 +99,7 @@ namespace Fluid.Parlot
                     p.StripNextTextSpanStatement = trim;
                     p.PreviousTextSpanStatement = null;
 
-                    result.Set(context.Scanner.Buffer, start, context.Scanner.Cursor.Offset, Name, new TagResult(false, trim));
+                    result.Set(start, context.Scanner.Cursor.Offset, new TagResult(false, trim));
                     return true;
                 }
                 else
@@ -141,7 +141,7 @@ namespace Fluid.Parlot
                     p.PreviousTextSpanStatement = null;
 
 
-                    result.Set(context.Scanner.Buffer, start, context.Scanner.Cursor.Offset, Name, new TagResult(true, trim));
+                    result.Set(start, context.Scanner.Cursor.Offset, new TagResult(true, trim));
                     return true;
                 }
                 else
@@ -178,7 +178,7 @@ namespace Fluid.Parlot
                     p.StripNextTextSpanStatement = trim;
                     p.PreviousTextSpanStatement = null;
 
-                    result.Set(context.Scanner.Buffer, start, context.Scanner.Cursor.Offset, Name, new TagResult(false, trim));
+                    result.Set(start, context.Scanner.Cursor.Offset, new TagResult(false, trim));
                     return true;
                 }
                 else
