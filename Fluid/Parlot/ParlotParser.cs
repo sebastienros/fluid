@@ -1,9 +1,11 @@
 ﻿using Fluid.Ast;
 using Fluid.Ast.BinaryExpressions;
 using Fluid.Values;
+using Parlot;
 using Parlot.Fluent;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
@@ -52,12 +54,11 @@ namespace Fluid.Parlot
         protected static readonly IDeferredParser<Expression> FilterExpression = Deferred<Expression>();
         protected readonly IDeferredParser<List<Statement>> TagsList = Deferred<List<Statement>>();
 
-        protected readonly IParser<TagResult> OutputStart;
-        protected readonly IParser<TagResult> OutputEnd;
-        protected readonly IParser<TagResult> TagStart;
-        protected readonly IParser<TagResult> TagStartSpaced;
-        protected readonly IParser<TagResult> TagEnd;
-
+        protected static readonly IParser<TagResult> OutputStart = TagParsers.OutputTagStart();
+        protected static readonly IParser<TagResult> OutputEnd = TagParsers.OutputTagEnd(true);
+        protected static readonly IParser<TagResult> TagStart = TagParsers.TagStart();
+        protected static readonly IParser<TagResult> TagStartSpaced = TagParsers.TagStart(true);
+        protected static readonly IParser<TagResult> TagEnd = TagParsers.TagEnd(true);
 
 
         // These tags are not parsed when expecting any tag, but should not be marked as invalid so we can detect {% without correct values
@@ -65,15 +66,150 @@ namespace Fluid.Parlot
         {
             "endcomment", "endcapture", "endraw", "else", "elsif", "endif", "endunless", "when", "endfor", "endcase"
         };
-        
+
+        // The return type of the generated method is the generic type of the parser
+
+        Expression ParseInteger(NumberOptions numberOptions)
+        {
+            _context.Scanner.SkipWhiteSpace();
+
+            var start = _context.Scanner.Cursor.Offset;
+
+            if ((numberOptions & NumberOptions.AllowSign) == NumberOptions.AllowSign)
+            {
+                if (!_context.Scanner.ReadChar('-'))
+                {
+                    // If there is no '-' try to read a '+' but don't read both.
+                    _context.Scanner.ReadChar('+');
+                }
+            }
+
+            if (_context.Scanner.ReadInteger())
+            {
+                var end = _context.Scanner.Cursor.Offset;
+
+                if (long.TryParse(_context.Scanner.Buffer.AsSpan(start, end - start), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
+                {
+                    return new LiteralExpression(FluidValue.Create(value));
+                }
+            }
+
+            return null;
+        }
+
+        public Expression ParseIndexer()
+        {
+            if (!_context.Scanner.ReadChar('['))
+            {
+                return null;
+            }
+
+            var primary = ParsePrimary();
+
+            if (primary == null)
+            {
+                return null;
+            }
+
+            if (!_context.Scanner.ReadChar(']'))
+            {
+                return null;
+            }
+
+            return primary;
+        }
+
+        public Expression ParseString(StringLiteralQuotes quotes)
+        {
+            var start = _context.Scanner.Cursor.Offset;
+
+            var success = quotes switch
+            {
+                StringLiteralQuotes.Single => _context.Scanner.ReadSingleQuotedString(),
+                StringLiteralQuotes.Double => _context.Scanner.ReadDoubleQuotedString(),
+                StringLiteralQuotes.SingleOrDouble => _context.Scanner.ReadQuotedString(),
+                _ => false
+            };
+
+            var end = _context.Scanner.Cursor.Offset;
+
+            if (success)
+            {
+                // Remove quotes
+                var encoded = _context.Scanner.Buffer.AsSpan(start + 1, end - start - 2);
+                var decoded = Character.DecodeString(encoded);
+
+                // Don't create a new string if the decoded string is the same, meaning is 
+                // has no escape sequences.
+                var span = decoded == encoded || decoded.SequenceEqual(encoded)
+                    ? new TextSpan(_context.Scanner.Buffer, start + 1, encoded.Length)
+                    : new TextSpan(decoded.ToString());
+
+                return new LiteralExpression(FluidValue.Create(span.ToString()));
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public Expression ParsePrimary()
+        {
+            var number = ParseNumber(NumberOptions.AllowSign);
+
+            if (number != null)
+            {
+                return number;
+            }
+
+            var stringValue = ParseString(StringLiteralQuotes.SingleOrDouble);
+
+            if (stringValue != null)
+            {
+                return stringValue;
+            }    
+
+            return null;
+        }
+
+        public Expression ParseNumber(NumberOptions numberOptions)
+        {
+            var start = _context.Scanner.Cursor.Offset;
+
+            if ((numberOptions & NumberOptions.AllowSign) == NumberOptions.AllowSign)
+            {
+                if (!_context.Scanner.ReadChar('-'))
+                {
+                    // If there is no '-' try to read a '+' but don't read both.
+                    _context.Scanner.ReadChar('+');
+                }
+            }
+
+            if (_context.Scanner.ReadDecimal())
+            {
+                var end = _context.Scanner.Cursor.Offset;
+
+                if (decimal.TryParse(_context.Scanner.Buffer.AsSpan(start, end - start), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
+                {
+                    return new LiteralExpression(FluidValue.Create(value));
+                }
+            }
+
+            if (_context.Scanner.ReadText("true"))
+            {
+                return new LiteralExpression(BooleanValue.True);
+            }
+
+            if (_context.Scanner.ReadText("false"))
+            {
+                return new LiteralExpression(BooleanValue.False);
+            }
+
+            return null;
+        }
+
         public ParlotParser()
         {
-            OutputStart = TagParsers.OutputTagStart(this);
-            OutputEnd = TagParsers.OutputTagEnd(this, true);
-            TagStart = TagParsers.TagStart(this);
-            TagStartSpaced = TagParsers.TagStart(this, true);
-            TagEnd = TagParsers.TagEnd(this, true);
-
             var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(FluidValue.Create((decimal)x)));
 
             // Member expressions
@@ -279,9 +415,9 @@ namespace Fluid.Parlot
                             .AndSkip(Terms.Text("in"))
                             .And(Member)
                             .And(ZeroOrMany(OneOf( // Use * since each can appear in any order. Validation is done once it's parsed
-                                Terms.Text("reversed").Named("reversed"),
-                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Integer).Named("limit"),
-                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Integer).Named("offset")
+                                Terms.Text("reversed").Named("reversed").Then(x => new ForModifier { IsReversed = true }),
+                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Integer).Then(x => new ForModifier { IsLimit = true, Value = x }),
+                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Integer).Then(x => new ForModifier { IsOffset = true, Value = x })
                                 )))
                             .AndSkip(TagEnd)
                             .And(TagsList)
@@ -296,23 +432,20 @@ namespace Fluid.Parlot
                                 var statements = x.Item4;
                                 var elseStatement = x.Item5;
 
-                                var limitResult = x.Item3.LastOrDefault(l => l.ParserName == "limit");
-                                var offsetResult = x.Item3.LastOrDefault(l => l.ParserName == "offset");
+                                var limitResult = x.Item3.Where(l => l.IsLimit).LastOrDefault().Value;
+                                var offsetResult = x.Item3.Where(l => l.IsOffset).LastOrDefault().Value;
+                                var reversed = x.Item3.Any(l => l.IsReversed);
 
-                                var limit = limitResult.Value as Expression ?? null;
-                                var offset = offsetResult.Value as Expression ?? null;
-                                var reversed = x.Item3.Any(l => l.ParserName == "reversed");
-
-                                return new ForStatement(statements, identifier, member, limit, offset, reversed, elseStatement);
+                                return new ForStatement(statements, identifier, member, limitResult, offsetResult, reversed, elseStatement);
                             }),
 
                             Identifier
                             .AndSkip(Terms.Text("in"))
                             .And(Range)
                             .And(ZeroOrMany(OneOf( // Use * since each can appear in any order. Validation is done once it's parsed
-                                Terms.Text("reversed").Named("reversed"),
-                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Integer).Named("limit"),
-                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Integer).Named("offset")
+                                Terms.Text("reversed").Named("reversed").Then(x => new ForModifier { IsReversed = true }),
+                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Integer).Then(x => new ForModifier { IsLimit = true, Value = x }),
+                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Integer).Then(x => new ForModifier { IsOffset = true, Value = x })
                                 )))
                             .AndSkip(TagEnd)
                             .And(TagsList)
@@ -323,14 +456,12 @@ namespace Fluid.Parlot
                                 var range = x.Item2;
                                 var statements = x.Item4;
 
-                                var limitResult = x.Item3.LastOrDefault(l => l.ParserName == "limit");
-                                var offsetResult = x.Item3.LastOrDefault(l => l.ParserName == "offset");
+                                var limitResult = x.Item3.Where(l => l.IsLimit).LastOrDefault().Value;
+                                var offsetResult = x.Item3.Where(l => l.IsOffset).LastOrDefault().Value;
+                                var reversed = x.Item3.Any(l => l.IsReversed);
 
-                                var limit = limitResult.Value as Expression ?? null;
-                                var offset = offsetResult.Value as Expression ?? null;
-                                var reversed = x.Item3.Any(l => l.ParserName == "reversed");
+                                return new ForStatement(statements, identifier, range, limitResult, offsetResult, reversed, null);
 
-                                return new ForStatement(statements, identifier, range, limit, offset, reversed, null);
                             })
                         ).ElseError("Invalid 'for' tag");
 
@@ -409,6 +540,8 @@ namespace Fluid.Parlot
             CustomTags[tagName] = parser.AndSkip(TagEnd).And(TagsList).AndSkip(CreateTag("end" + tagName)).Then<Statement>(x => new ParserBlockStatement<T>(x.Item1, x.Item2, render));
         }
 
+        private ParlotContext _context;
+
         public IFluidTemplate Parse(string template)
         {
             var context = new ParlotContext(template);
@@ -426,6 +559,25 @@ namespace Fluid.Parlot
             }
 
             return new ParlotTemplate(statements);
+        }
+
+        public IFluidTemplate Parse2(string template)
+        {
+            _context = new ParlotContext(template);
+
+            //var success = Grammar.TryParse(context, out var statements, out var parlotError);
+
+            //if (parlotError != null)
+            //{
+            //    throw new ParseException($"{parlotError.Message} at {parlotError.Position}");
+            //}
+
+            //if (!success)
+            //{
+            //    return null;
+            //}
+
+            return new ParlotTemplate(null);
         }
     }
 }

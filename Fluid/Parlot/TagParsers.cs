@@ -1,8 +1,17 @@
-﻿using Parlot;
+﻿using Fluid.Ast;
+using Parlot;
 using Parlot.Fluent;
 
 namespace Fluid.Parlot
 {
+    public struct ForModifier
+    {
+        public bool IsReversed;
+        public bool IsLimit;
+        public bool IsOffset;
+        public Expression Value;
+    }
+
     public struct TagResult
     {
         public TagResult(bool open, bool trim)
@@ -17,19 +26,17 @@ namespace Fluid.Parlot
 
     public static class TagParsers
     {
-        public static IParser<TagResult> TagStart(ParlotParser parser, bool skipWhiteSpace = false) => new TagStartParser(parser, skipWhiteSpace);
-        public static IParser<TagResult> TagEnd(ParlotParser parser, bool skipWhiteSpace = false) => new TagEndParser(parser, skipWhiteSpace);
-        public static IParser<TagResult> OutputTagStart(ParlotParser parser, bool skipWhiteSpace = false) => new OutputTagStartParser(parser, skipWhiteSpace);
-        public static IParser<TagResult> OutputTagEnd(ParlotParser parser, bool skipWhiteSpace = false) => new OutputTagEndParser(parser, skipWhiteSpace);
+        public static IParser<TagResult> TagStart(bool skipWhiteSpace = false) => new TagStartParser(skipWhiteSpace);
+        public static IParser<TagResult> TagEnd(bool skipWhiteSpace = false) => new TagEndParser(skipWhiteSpace);
+        public static IParser<TagResult> OutputTagStart(bool skipWhiteSpace = false) => new OutputTagStartParser(skipWhiteSpace);
+        public static IParser<TagResult> OutputTagEnd(bool skipWhiteSpace = false) => new OutputTagEndParser(skipWhiteSpace);
 
         private class TagStartParser : global::Parlot.Fluent.Parser<TagResult>
         {
-            private readonly ParlotParser _parser;
             private readonly bool _skipWhiteSpace;
 
-            public TagStartParser(ParlotParser parser, bool skipWhiteSpace = false)
+            public TagStartParser(bool skipWhiteSpace = false)
             {
-                _parser = parser;
                 _skipWhiteSpace = skipWhiteSpace;
             }
 
@@ -40,7 +47,7 @@ namespace Fluid.Parlot
                     context.Scanner.SkipWhiteSpace();
                 }
 
-                var start = context.Scanner.Cursor.Position;
+                var start = context.Scanner.Cursor.Offset;
 
                 if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('%'))
                 {
@@ -55,7 +62,7 @@ namespace Fluid.Parlot
 
                     p.PreviousTextSpanStatement = null;
 
-                    result.Set(context.Scanner.Buffer, start, context.Scanner.Cursor.Position, Name, new TagResult(true, trim));
+                    result.Set(context.Scanner.Buffer, start, context.Scanner.Cursor.Offset, Name, new TagResult(true, trim));
                     return true;
                 }
                 else
@@ -67,12 +74,10 @@ namespace Fluid.Parlot
 
         private class TagEndParser : global::Parlot.Fluent.Parser<TagResult>
         {
-            private readonly ParlotParser _parser;
             private readonly bool _skipWhiteSpace;
 
-            public TagEndParser(ParlotParser parser, bool skipWhiteSpace = false)
+            public TagEndParser(bool skipWhiteSpace = false)
             {
-                _parser = parser;
                 _skipWhiteSpace = skipWhiteSpace;
             }
 
@@ -83,7 +88,7 @@ namespace Fluid.Parlot
                     context.Scanner.SkipWhiteSpace();
                 }
 
-                var start = context.Scanner.Cursor.Position;
+                var start = context.Scanner.Cursor.Offset;
 
                 bool trim = context.Scanner.ReadChar('-');
 
@@ -94,7 +99,7 @@ namespace Fluid.Parlot
                     p.StripNextTextSpanStatement = trim;
                     p.PreviousTextSpanStatement = null;
 
-                    result.Set(context.Scanner.Buffer, start, context.Scanner.Cursor.Position, Name, new TagResult(false, trim));
+                    result.Set(context.Scanner.Buffer, start, context.Scanner.Cursor.Offset, Name, new TagResult(false, trim));
                     return true;
                 }
                 else
@@ -106,12 +111,10 @@ namespace Fluid.Parlot
 
         private class OutputTagStartParser : global::Parlot.Fluent.Parser<TagResult>
         {
-            private readonly ParlotParser _parser;
             private readonly bool _skipWhiteSpace;
 
-            public OutputTagStartParser(ParlotParser parser, bool skipWhiteSpace = false)
+            public OutputTagStartParser(bool skipWhiteSpace = false)
             {
-                _parser = parser;
                 _skipWhiteSpace = skipWhiteSpace;
             }
 
@@ -122,7 +125,7 @@ namespace Fluid.Parlot
                     context.Scanner.SkipWhiteSpace();
                 }
 
-                var start = context.Scanner.Cursor.Position;
+                var start = context.Scanner.Cursor.Offset;
 
                 if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('{'))
                 {
@@ -138,7 +141,7 @@ namespace Fluid.Parlot
                     p.PreviousTextSpanStatement = null;
 
 
-                    result.Set(context.Scanner.Buffer, start, context.Scanner.Cursor.Position, Name, new TagResult(true, trim));
+                    result.Set(context.Scanner.Buffer, start, context.Scanner.Cursor.Offset, Name, new TagResult(true, trim));
                     return true;
                 }
                 else
@@ -150,12 +153,10 @@ namespace Fluid.Parlot
 
         private class OutputTagEndParser : global::Parlot.Fluent.Parser<TagResult>
         {
-            private readonly ParlotParser _parser;
             private readonly bool _skipWhiteSpace;
 
-            public OutputTagEndParser(ParlotParser parser, bool skipWhiteSpace = false)
+            public OutputTagEndParser(bool skipWhiteSpace = false)
             {
-                _parser = parser;
                 _skipWhiteSpace = skipWhiteSpace;
             }
 
@@ -166,7 +167,7 @@ namespace Fluid.Parlot
                     context.Scanner.SkipWhiteSpace();
                 }
 
-                var start = context.Scanner.Cursor.Position;
+                var start = context.Scanner.Cursor.Offset;
 
                 bool trim = context.Scanner.ReadChar('-');
 
@@ -177,7 +178,7 @@ namespace Fluid.Parlot
                     p.StripNextTextSpanStatement = trim;
                     p.PreviousTextSpanStatement = null;
 
-                    result.Set(context.Scanner.Buffer, start, context.Scanner.Cursor.Position, Name, new TagResult(false, trim));
+                    result.Set(context.Scanner.Buffer, start, context.Scanner.Cursor.Offset, Name, new TagResult(false, trim));
                     return true;
                 }
                 else
