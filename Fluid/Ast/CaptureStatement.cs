@@ -8,7 +8,7 @@ namespace Fluid.Ast
 {
     public class CaptureStatement : TagStatement
     {
-        public CaptureStatement(string identifier, List<Statement> statements): base(statements)
+        public CaptureStatement(string identifier, IReadOnlyList<Statement> statements): base(statements)
         {
             Identifier = identifier;
         }

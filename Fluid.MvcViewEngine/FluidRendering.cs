@@ -23,7 +23,7 @@ namespace Fluid.MvcViewEngine
     {
         private const string ViewStartFilename = "_ViewStart.liquid";
         public const string ViewPath = "ViewPath";
-        private static FluidViewParser _parser = new FluidViewParser();
+        private static readonly FluidViewParser _parser = new FluidViewParser();
 
         static FluidRendering()
         {
@@ -45,7 +45,7 @@ namespace Fluid.MvcViewEngine
 
         private readonly IMemoryCache _memoryCache;
         private readonly IHostingEnvironment _hostingEnvironment;
-        private FluidViewEngineOptions _options;
+        private readonly FluidViewEngineOptions _options;
 
         public async ValueTask<string> RenderAsync(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
         {

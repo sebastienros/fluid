@@ -1,11 +1,6 @@
-﻿using Fluid.Ast;
-using Fluid.Filters;
-using Fluid.Parlot;
+﻿using Fluid.Filters;
 using Fluid.Values;
-using Microsoft.Extensions.Primitives;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -15,14 +10,6 @@ namespace Fluid.Tests.Integration
 
     public class StandardFilterTests
     {
-        private static IFluidParser _parser = new ParlotParser();
-
-        private IList<Statement> Parse(string source)
-        {
-            _parser.TryParse(source, out var template, out var errors);
-            return template.Statements;
-        }
-
         [Fact]
         public async Task TestSize()
         {

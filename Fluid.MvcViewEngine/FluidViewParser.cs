@@ -46,7 +46,7 @@ namespace Fluid.MvcViewEngine
             {
                 if (context.AmbientValues.TryGetValue("Sections", out var sections))
                 {
-                    var dictionary = sections as Dictionary<string, List<Statement>>;
+                    var dictionary = sections as Dictionary<string, IReadOnlyList<Statement>>;
                     dictionary[tag.Value.ToString()] = tag.Statements;
                 }
 

@@ -9,12 +9,14 @@ namespace Fluid.Parlot
 {
     public class ParlotTemplate : IFluidTemplate
     {
-        public ParlotTemplate(IList<Statement> statements)
+        private readonly IReadOnlyList<Statement> _statements;
+
+        public ParlotTemplate(IReadOnlyList<Statement> statements)
         {
-            Statements = statements ?? throw new ArgumentNullException(nameof(statements));
+            _statements = statements ?? throw new ArgumentNullException(nameof(statements));
         }
 
-        public IList<Statement> Statements { get; }
+        public IReadOnlyList<Statement> Statements => _statements;
 
         public ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -57,7 +59,7 @@ namespace Fluid.Parlot
             TextWriter writer,
             TextEncoder encoder,
             TemplateContext context,
-            IList<Statement> statements,
+            IReadOnlyList<Statement> statements,
             int startIndex)
         {
             await task;

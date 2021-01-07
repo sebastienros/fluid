@@ -11,15 +11,16 @@ namespace Fluid.Ast
         private bool _isStripped = false;
         private bool _isEmpty = false;
         private readonly object _synLock = new object();
+        private TextSpan _text;
 
         public TextSpanStatement(TextSpan text)
         {
-            Text = text;
+            _text = text;
         }
 
         public TextSpanStatement(string text)
         {
-            Text = new TextSpan(text);
+            _text = new TextSpan(text);
         }
 
         public bool StrippedLeft { get; set; }
@@ -35,7 +36,7 @@ namespace Fluid.Ast
             StrippedLeft = true;
         }
 
-        public TextSpan Text { get; private set; }
+        public TextSpan Text => _text;
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -47,15 +48,15 @@ namespace Fluid.Ast
                 {
                     if (!_isStripped)
                     {
-                        var span = Text.Buffer;
+                        var span = _text.Buffer;
                         var start = 0;
-                        var end = Text.Length - 1;
+                        var end = _text.Length - 1;
 
                         if (StrippedLeft)
                         {
                             for (var i = start; i <= end; i++)
                             {
-                                var c = span[Text.Offset + i];
+                                var c = span[_text.Offset + i];
 
                                 if (Character.IsWhiteSpaceOrNewLine(c))
                                 {
@@ -64,7 +65,7 @@ namespace Fluid.Ast
                                     // Read the first CR/LF or LF and stop skipping
                                     if (c == '\r')
                                     {
-                                        if (i + 1 <= end && span[Text.Offset + i + 1] == '\n')
+                                        if (i + 1 <= end && span[_text.Offset + i + 1] == '\n')
                                         {
                                             start++;
                                             break;
@@ -89,7 +90,7 @@ namespace Fluid.Ast
                         {
                             for (var i = end; i >= start; i--)
                             {
-                                var c = span[Text.Offset + i];
+                                var c = span[_text.Offset + i];
 
                                 if (Character.IsWhiteSpace(c))
                                 {
@@ -106,12 +107,12 @@ namespace Fluid.Ast
                         {
                             _isEmpty = true;
                         }
-                        else if (start != 0 || end != Text.Length - 1)
+                        else if (start != 0 || end != _text.Length - 1)
                         {
-                            var offset = Text.Offset;
-                            var buffer = Text.Buffer;
+                            var offset = _text.Offset;
+                            var buffer = _text.Buffer;
 
-                            Text = new TextSpan(buffer, offset + start, end - start + 1);
+                            _text = new TextSpan(buffer, offset + start, end - start + 1);
                         }
                     }
                 }
@@ -127,7 +128,7 @@ namespace Fluid.Ast
             context.IncrementSteps();
 
             // The Text fragments are not encoded, but kept as-is
-            writer.Write(Text.Span);
+            writer.Write(_text.Span);
 
             return Normal;
         }

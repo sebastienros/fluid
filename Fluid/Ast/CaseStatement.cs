@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -7,22 +8,24 @@ namespace Fluid.Ast
 {
     public class CaseStatement : TagStatement
     {
+        private readonly IReadOnlyList<WhenStatement> _whenStatements;
+
         public CaseStatement(
             Expression expression,
             ElseStatement elseStatement = null,
-            IList<WhenStatement> whenStatements = null
+            IReadOnlyList<WhenStatement> whenStatements = null
             ) :base (new List<Statement>())
         {
             Expression = expression;
             Else = elseStatement;
-            Whens = whenStatements;
+            _whenStatements = whenStatements ?? Array.Empty<WhenStatement>();
         }
 
         public Expression Expression { get; }
 
         public ElseStatement Else { get; }
 
-        public IList<WhenStatement> Whens { get; } = new List<WhenStatement>();
+        public IReadOnlyList<WhenStatement> Whens => _whenStatements;
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -30,16 +33,13 @@ namespace Fluid.Ast
 
             var value = await Expression.EvaluateAsync(context);
 
-            if (Whens != null)
+            foreach (var when in _whenStatements)
             {
-                foreach (var when in Whens)
+                foreach(var option in when.Options)
                 {
-                    foreach(var option in when.Options)
+                    if (value.Equals(await option.EvaluateAsync(context)))
                     {
-                        if (value.Equals(await option.EvaluateAsync(context)))
-                        {
-                            return await when.WriteToAsync(writer, encoder, context);
-                        }
+                        return await when.WriteToAsync(writer, encoder, context);
                     }
                 }
             }

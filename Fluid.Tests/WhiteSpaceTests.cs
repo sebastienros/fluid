@@ -2,7 +2,6 @@
 using Fluid.Parlot;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -12,7 +11,7 @@ namespace Fluid.Tests
     {
         private static IFluidParser _parser = new ParlotParser();
 
-        private IList<Statement> Parse(string source)
+        private IReadOnlyList<Statement> Parse(string source)
         {
             _parser.TryParse(source, out var template, out var errors);
             return template.Statements;

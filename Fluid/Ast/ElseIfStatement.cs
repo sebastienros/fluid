@@ -7,7 +7,7 @@ namespace Fluid.Ast
 {
     public class ElseIfStatement : TagStatement
     {
-        public ElseIfStatement(Expression condition, List<Statement> statements) : base(statements)
+        public ElseIfStatement(Expression condition, IReadOnlyList<Statement> statements) : base(statements)
         {
             Condition = condition;
         }
@@ -17,11 +17,11 @@ namespace Fluid.Ast
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             // Process statements until next block or end of statements
-            for (var index = 0; index < Statements.Count; index++)
+            for (var index = 0; index < _statements.Count; index++)
             {
                 context.IncrementSteps();
 
-                var completion = await Statements[index].WriteToAsync(writer, encoder, context);
+                var completion = await _statements[index].WriteToAsync(writer, encoder, context);
 
                 if (completion != Completion.Normal)
                 {

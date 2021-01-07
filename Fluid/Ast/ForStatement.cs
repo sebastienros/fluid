@@ -12,7 +12,7 @@ namespace Fluid.Ast
     public class ForStatement : TagStatement
     {
         public ForStatement(
-            List<Statement> statements,
+            IReadOnlyList<Statement> statements,
             string identifier, 
             MemberExpression member,
 
@@ -30,7 +30,7 @@ namespace Fluid.Ast
             Else = elseStatement;
         }
         public ForStatement(
-            List<Statement> statements,
+            IReadOnlyList<Statement> statements,
             string identifier, 
             RangeExpression range,
 

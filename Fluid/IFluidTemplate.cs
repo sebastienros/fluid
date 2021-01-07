@@ -8,7 +8,7 @@ namespace Fluid
 {
     public interface IFluidTemplate
     {
-        IList<Statement> Statements { get; }
+        IReadOnlyList<Statement> Statements { get; }
         ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context);
 
     }
