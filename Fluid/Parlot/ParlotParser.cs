@@ -552,24 +552,5 @@ namespace Fluid.Parlot
 
             return new ParlotTemplate(statements);
         }
-
-        public IFluidTemplate Parse2(string template)
-        {
-            _context = new ParlotContext(template);
-
-            //var success = Grammar.TryParse(context, out var statements, out var parlotError);
-
-            //if (parlotError != null)
-            //{
-            //    throw new ParseException($"{parlotError.Message} at {parlotError.Position}");
-            //}
-
-            //if (!success)
-            //{
-            //    return null;
-            //}
-
-            return new ParlotTemplate(null);
-        }
     }
 }
