@@ -369,7 +369,7 @@ def", "at (")]
         {
             var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.True(result);
+            Assert.True(result, errors);
             Assert.NotNull(template);
             Assert.Null(errors);
 
@@ -385,7 +385,7 @@ def", "at (")]
         {
             var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.True(result);
+            Assert.True(result, errors);
             Assert.NotNull(template);
             Assert.Null(errors);
 

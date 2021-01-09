@@ -16,50 +16,49 @@ namespace Fluid.Parlot
 {
     public class ParlotParser : IFluidParser
     {
-        public IParser<List<Statement>> Grammar;
-        public Dictionary<string, IParser<Statement>> CustomTags { get; } = new();
+        public Parser<List<Statement>> Grammar;
+        public Dictionary<string, Parser<Statement>> CustomTags { get; } = new();
 
-        protected static readonly IParser<char> LBrace = Terms.Char('{');
-        protected static readonly IParser<char> RBrace = Terms.Char('}');
-        protected static readonly IParser<char> LParen = Terms.Char('(');
-        protected static readonly IParser<char> RParen = Terms.Char(')');
-        protected static readonly IParser<char> LBracket = Literals.Char('[');
-        protected static readonly IParser<char> RBracket = Terms.Char(']');
-        protected static readonly IParser<char> Equal = Terms.Char('=');
-        protected static readonly IParser<char> Colon = Terms.Char(':');
-        protected static readonly IParser<char> Comma = Terms.Char(',');
-        protected static readonly IParser<char> Dot = Literals.Char('.');
-        protected static readonly IParser<char> Pipe = Terms.Char('|');
+        protected static readonly Parser<char> LBrace = Terms.Char('{');
+        protected static readonly Parser<char> RBrace = Terms.Char('}');
+        protected static readonly Parser<char> LParen = Terms.Char('(');
+        protected static readonly Parser<char> RParen = Terms.Char(')');
+        protected static readonly Parser<char> LBracket = Literals.Char('[');
+        protected static readonly Parser<char> RBracket = Terms.Char(']');
+        protected static readonly Parser<char> Equal = Terms.Char('=');
+        protected static readonly Parser<char> Colon = Terms.Char(':');
+        protected static readonly Parser<char> Comma = Terms.Char(',');
+        protected static readonly Parser<char> Dot = Literals.Char('.');
+        protected static readonly Parser<char> Pipe = Terms.Char('|');
 
-        protected static readonly IParser<TextSpan> String = Terms.String(StringLiteralQuotes.SingleOrDouble);
-        protected static readonly IParser<decimal> Number = Terms.Decimal(NumberOptions.AllowSign);
-        protected static readonly IParser<string> True = Terms.Text("true");
-        protected static readonly IParser<string> False = Terms.Text("false");
+        protected static readonly Parser<TextSpan> String = Terms.String(StringLiteralQuotes.SingleOrDouble);
+        protected static readonly Parser<decimal> Number = Terms.Decimal(NumberOptions.AllowSign);
+        protected static readonly Parser<string> True = Terms.Text("true");
+        protected static readonly Parser<string> False = Terms.Text("false");
 
-        protected static readonly IParser<string> DoubleEquals = Terms.Text("==");
-        protected static readonly IParser<string> NotEquals = Terms.Text("!=");
-        protected static readonly IParser<string> Different = Terms.Text("<>");
-        protected static readonly IParser<string> Greater = Terms.Text(">");
-        protected static readonly IParser<string> Lower = Terms.Text("<");
-        protected static readonly IParser<string> GreaterOr = Terms.Text(">=");
-        protected static readonly IParser<string> LowerOr = Terms.Text("<=");
-        protected static readonly IParser<string> Contains = Terms.Text("contains");
-        protected static readonly IParser<string> BinaryOr = Terms.Text("or");
-        protected static readonly IParser<string> BinaryAnd = Terms.Text("and");
+        protected static readonly Parser<string> DoubleEquals = Terms.Text("==");
+        protected static readonly Parser<string> NotEquals = Terms.Text("!=");
+        protected static readonly Parser<string> Different = Terms.Text("<>");
+        protected static readonly Parser<string> Greater = Terms.Text(">");
+        protected static readonly Parser<string> Lower = Terms.Text("<");
+        protected static readonly Parser<string> GreaterOr = Terms.Text(">=");
+        protected static readonly Parser<string> LowerOr = Terms.Text("<=");
+        protected static readonly Parser<string> Contains = Terms.Text("contains");
+        protected static readonly Parser<string> BinaryOr = Terms.Text("or");
+        protected static readonly Parser<string> BinaryAnd = Terms.Text("and");
 
-        protected static readonly IParser<TextSpan> Identifier = Terms.Identifier(extraPart: static c => c == '-');
+        protected static readonly Parser<TextSpan> Identifier = Terms.Identifier(extraPart: static c => c == '-');
 
-        protected static readonly IDeferredParser<Expression> Primary = Deferred<Expression>();
-        protected static readonly IDeferredParser<Expression> LogicalExpression = Deferred<Expression>();
-        protected static readonly IDeferredParser<Expression> FilterExpression = Deferred<Expression>();
-        protected readonly IDeferredParser<List<Statement>> TagsList = Deferred<List<Statement>>();
+        protected static readonly Deferred<Expression> Primary = Deferred<Expression>();
+        protected static readonly Deferred<Expression> LogicalExpression = Deferred<Expression>();
+        protected static readonly Deferred<Expression> FilterExpression = Deferred<Expression>();
+        protected readonly Deferred<List<Statement>> TagsList = Deferred<List<Statement>>();
 
-        protected static readonly IParser<TagResult> OutputStart = TagParsers.OutputTagStart();
-        protected static readonly IParser<TagResult> OutputEnd = TagParsers.OutputTagEnd(true);
-        protected static readonly IParser<TagResult> TagStart = TagParsers.TagStart();
-        protected static readonly IParser<TagResult> TagStartSpaced = TagParsers.TagStart(true);
-        protected static readonly IParser<TagResult> TagEnd = TagParsers.TagEnd(true);
-
+        protected static readonly Parser<TagResult> OutputStart = TagParsers.OutputTagStart();
+        protected static readonly Parser<TagResult> OutputEnd = TagParsers.OutputTagEnd(true);
+        protected static readonly Parser<TagResult> TagStart = TagParsers.TagStart();
+        protected static readonly Parser<TagResult> TagStartSpaced = TagParsers.TagStart(true);
+        protected static readonly Parser<TagResult> TagEnd = TagParsers.TagEnd(true);
 
         // These tags are not parsed when expecting any tag, but should not be marked as invalid so we can detect {% without correct values
         protected readonly HashSet<string> ExpectedTags = new()
@@ -499,7 +498,7 @@ namespace Fluid.Parlot
             Grammar = TagsList;
         }
 
-        public IParser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
+        public Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
 
         public void RegisterEmptyTag(string tagName, Func<EmptyTagStatement, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
@@ -527,7 +526,7 @@ namespace Fluid.Parlot
             RegisterParserBlock(tagName, Primary, render);
         }
 
-        public void RegisterParserBlock<T>(string tagName, IParser<T> parser, Func<ParserBlockStatement<T>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
+        public void RegisterParserBlock<T>(string tagName, Parser<T> parser, Func<ParserBlockStatement<T>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             ExpectedTags.Add("end" + tagName);
             CustomTags[tagName] = parser.AndSkip(TagEnd).And(TagsList).AndSkip(CreateTag("end" + tagName)).Then<Statement>(x => new ParserBlockStatement<T>(x.Item1, x.Item2, render));
