@@ -90,7 +90,7 @@ namespace Fluid.Parlot
 
                 if (long.TryParse(_context.Scanner.Buffer.AsSpan(start, end - start), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
                 {
-                    return new LiteralExpression(FluidValue.Create(value));
+                    return new LiteralExpression(NumberValue.Create(value));
                 }
             }
 
@@ -136,16 +136,9 @@ namespace Fluid.Parlot
             if (success)
             {
                 // Remove quotes
-                var encoded = _context.Scanner.Buffer.AsSpan(start + 1, end - start - 2);
-                var decoded = Character.DecodeString(encoded);
+                var decoded = Character.DecodeString(new TextSpan(_context.Scanner.Buffer, start + 1, end - start - 2));
 
-                // Don't create a new string if the decoded string is the same, meaning is 
-                // has no escape sequences.
-                var span = decoded == encoded || decoded.SequenceEqual(encoded)
-                    ? new TextSpan(_context.Scanner.Buffer, start + 1, encoded.Length)
-                    : new TextSpan(decoded.ToString());
-
-                return new LiteralExpression(FluidValue.Create(span.ToString()));
+                return new LiteralExpression(FluidValue.Create(decoded.ToString()));
             }
             else
             {
@@ -191,7 +184,7 @@ namespace Fluid.Parlot
 
                 if (decimal.TryParse(_context.Scanner.Buffer.AsSpan(start, end - start), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
                 {
-                    return new LiteralExpression(FluidValue.Create(value));
+                    return new LiteralExpression(NumberValue.Create(value));
                 }
             }
 
@@ -210,7 +203,7 @@ namespace Fluid.Parlot
 
         public ParlotParser()
         {
-            var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(FluidValue.Create((decimal)x)));
+            var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)));
 
             // Member expressions
             var Indexer = Between(LBracket, Primary, RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
@@ -234,8 +227,8 @@ namespace Fluid.Parlot
 
             // primary => NUMBER | STRING | BOOLEAN | property
             Primary.Parser =
-                Number.Then<Expression>(x => new LiteralExpression(FluidValue.Create(x)))
-                .Or(String.Then<Expression>(x => new LiteralExpression(FluidValue.Create(x.ToString()))))
+                Number.Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)))
+                .Or(String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x.ToString()))))
                 .Or(True.Then<Expression>(x => new LiteralExpression(BooleanValue.True)))
                 .Or(False.Then<Expression>(x => new LiteralExpression(BooleanValue.False)))
                 .Or(Member.Then<Expression>(x => x))
@@ -360,10 +353,10 @@ namespace Fluid.Parlot
                         .Then<Statement>(x =>
                         {
                             var group = x.Item1.Length == 1
-                                ? new LiteralExpression(FluidValue.Create(x.Item1))
+                                ? new LiteralExpression(StringValue.Create(x.Item1))
                                 : null;
 
-                            var values = x.Item2.Select(e => new LiteralExpression(FluidValue.Create(e.ToString()))).ToList<Expression>();
+                            var values = x.Item2.Select(e => new LiteralExpression(StringValue.Create(e.ToString()))).ToList<Expression>();
 
                             return new CycleStatement(group, values);
                         })
