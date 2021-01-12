@@ -7,7 +7,7 @@ namespace Fluid.Ast
 {
     public class ElseStatement : TagStatement
     {
-        public ElseStatement(IReadOnlyList<Statement> statements) : base(statements)
+        public ElseStatement(List<Statement> statements) : base(statements)
         {
         }
 

@@ -10,6 +10,5 @@ namespace Fluid
     {
         IReadOnlyList<Statement> Statements { get; }
         ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context);
-
     }
 }

@@ -5,13 +5,13 @@ using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
-namespace Fluid.Parlot
+namespace Fluid.Parser
 {
-    public class ParlotTemplate : IFluidTemplate
+    public class FluidTemplate : IFluidTemplate
     {
-        private readonly IReadOnlyList<Statement> _statements;
+        private readonly List<Statement> _statements;
 
-        public ParlotTemplate(IReadOnlyList<Statement> statements)
+        public FluidTemplate(List<Statement> statements)
         {
             _statements = statements ?? throw new ArgumentNullException(nameof(statements));
         }

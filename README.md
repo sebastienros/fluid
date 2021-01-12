@@ -14,9 +14,9 @@ Fluid is an open-source .NET template engine that is as close as possible to the
 
 - Parses and renders Liquid templates.
 - Supports **async** filters, templates can execute database queries more efficiently under load.
-- Parses templates in an intermediate **AST** that lets you analyze and alter the templates before they are rendered. You can also cache them to get even better performance.
+- Parses templates in a concrete syntax tree that lets you cache, analyze and alter the templates before they are rendered.
 - Register any .NET types and properties, or define **custom handlers** to intercept when a named variable is accessed.
-- Secure by white-listing all the available properties in the template.
+- Secure templates by white-listing all the available properties in the template.
 
 <br>
 
@@ -36,19 +36,6 @@ Fluid is an open-source .NET template engine that is as close as possible to the
 - [Used by](#used-by)
 
 <br>
-
-## Differences with Liquid
-
-### Optional default parameters for custom filters
-In Fluid a **Filter** doesn't need to have a default parameter, you can name all of them.
-
-```Liquid
-{% assign customers = 'allcustomers' | query: limit:10 %}
-```
-
-### Whitespace
-
-Fluid will automatically maintain the whitespaces from the original template and won't inject extra lines where tags are used. This means that templates don't need to add extra `-%}` to the end of their tags to maintain consistent whitespaces. However it's supported and will be applied on output tags when used.
 
 #### Source
 
@@ -105,10 +92,12 @@ You can directly reference the [Nuget package](https://www.nuget.org/packages/Fl
 #### Source
 
 ```csharp
+var parser = new FluidParser();
+
 var model = new { Firstname = "Bill", Lastname = "Gates" };
 var source = "Hello {{ p.Firstname }} {{ p.Lastname }}";
 
-if (FluidTemplate.TryParse(source, out var template))
+if (parser.TryParse(source, out var template))
 {   
     var context = new TemplateContext(model);
 
@@ -120,6 +109,18 @@ if (FluidTemplate.TryParse(source, out var template))
 
 #### Result
 `Hello Bill Gates`
+
+### Thread-safety
+
+A `FluidParser` instance is thread-safe, and should be shared by the whole application. A common pattern is declare the parser in a local static variable:
+
+```c#
+    private static readonly FluidParser _parser = new FluidParser();
+```
+
+A `IFluidTemplate` instance is thread-safe and can be cached and reused by multiple threads concurrently.
+
+A `TemplateContext` instance is __not__ thread-safe and an instance should be created every time an `IFluidTemplate` instance is used.
 
 <br>
 
@@ -705,11 +706,30 @@ These object are thread-safe as long as each call to `Render()` uses a dedicated
 
 ### Benchmarks
 
-A performance benchmark application is provided in the source code to compare Fluid, DotLiquid and Liquid .NET. Run it locally to analyze the time it takes to execute specific templates.
+Fluid is faster and allocates less memory than all other known .NET Liquid parsers.
 
-#### Sample results
+The performance benchmark application is provided in the source code to compare Fluid, [Scriban](https://github.com/scriban/scriban), [DotLiquid](https://github.com/dotliquid/dotliquid) and [Liquid.NET](https://github.com/mikebridge/Liquid.NET). Run it locally to analyze the time it takes to execute specific templates.
 
-<p align="center"><img src="https://github.com/sebastienros/fluid/raw/dev/Assets/benchmarks.jpg"></p>
+#### Results
+
+```
+|           Method |         Mean |      StdDev | Ratio |    Gen 0 |    Gen 1 |   Gen 2 |  Allocated |
+|----------------- |-------------:|------------:|------:|---------:|---------:|--------:|-----------:|
+|      Fluid_Parse |     8.514 us |   0.2136 us |  1.00 |   0.6866 |        - |       - |    2.81 KB |
+|    Scriban_Parse |    12.561 us |   0.0212 us |  1.48 |   1.8005 |        - |       - |    7.41 KB |
+|  DotLiquid_Parse |    79.105 us |   0.4495 us |  9.29 |   3.1738 |        - |       - |   13.00 KB |
+|  LiquidNet_Parse |    84.890 us |   0.3220 us |  9.97 |  15.2588 |        - |       - |   62.45 KB |
+|                  |              |             |       |          |          |         |            |
+|     Fluid_Render |   733.077 us |   8.5158 us |  1.00 |  90.8203 |  58.5938 | 30.2734 |   390.8 KB |
+|   Scriban_Render | 1,636.210 us |   9.1829 us |  2.23 |  89.8438 |  66.4063 | 66.4063 |   487.4 KB |
+| DotLiquid_Render | 7,250.548 us | 142.5953 us |  9.89 | 875.0000 | 203.1250 | 23.4375 |  3886.3 KB |
+| LiquidNet_Render | 4,508.587 us |  50.5701 us |  6.15 | 992.1875 | 398.4375 |       - |  5308.6 KB |
+```
+
+Tested with 
+- Scriban 3.3.2
+- DotLiquid 2.0.366
+- Liquid.NET 0.10.0
 
 ##### Legend
 

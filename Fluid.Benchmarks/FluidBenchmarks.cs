@@ -1,21 +1,19 @@
 ﻿using BenchmarkDotNet.Attributes;
-using Fluid.Parlot;
+using Fluid.Parser;
 
 namespace Fluid.Benchmarks
 {
     [MemoryDiagnoser]
     public class FluidBenchmarks : BaseBenchmarks
     {
-        private IFluidParser _parser  = new ParlotParser();
+        private IFluidParser _parser  = new FluidParser();
         private IFluidTemplate _fluidTemplate;
-        private TemplateContext _context;
 
         public FluidBenchmarks()
         {
             TemplateContext.GlobalMemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
             TemplateContext.GlobalMemberAccessStrategy.Register<Product>();
             _parser.TryParse(TextTemplate, out _fluidTemplate, out var errors);
-            _context = new TemplateContext().SetValue("products", Products);
         }
 
         [Benchmark]
@@ -28,16 +26,15 @@ namespace Fluid.Benchmarks
         [Benchmark]
         public override string Render()
         {
-            return _fluidTemplate.Render(_context);
+            var context = new TemplateContext().SetValue("products", Products);
+            return _fluidTemplate.Render(context);
         }
 
         [Benchmark]
         public override string ParseAndRender()
         {
-            _parser.TryParse(TextTemplate, out var template, out var errors);
-            var context = new TemplateContext()
-                .SetValue("products", Products);
-
+            _parser.TryParse(TextTemplate, out var template);
+            var context = new TemplateContext().SetValue("products", Products);
             return template.Render(context);
         }
     }

@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
-namespace Fluid.Parlot
+namespace Fluid.Parser
 {
     public class IdentifierTagStatement : Statement
     {

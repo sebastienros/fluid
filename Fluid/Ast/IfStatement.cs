@@ -8,18 +8,18 @@ namespace Fluid.Ast
 {
     public class IfStatement : TagStatement
     {
-        private readonly IReadOnlyList<ElseIfStatement> _elseIfStatements;
+        private readonly List<ElseIfStatement> _elseIfStatements;
 
         public IfStatement(
             Expression condition,
-            IReadOnlyList<Statement> statements,
+            List<Statement> statements,
             ElseStatement elseStatement = null,
-            IReadOnlyList<ElseIfStatement> elseIfStatements = null
+            List<ElseIfStatement> elseIfStatements = null
             ) :base (statements)
         {
             Condition = condition;
             Else = elseStatement;
-            _elseIfStatements = elseIfStatements ?? Array.Empty<ElseIfStatement>();
+            _elseIfStatements = elseIfStatements ?? new List<ElseIfStatement>();
         }
 
         public Expression Condition { get; }

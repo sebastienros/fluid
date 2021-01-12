@@ -4,7 +4,6 @@ using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
-using Fluid.Parlot;
 using Fluid.Tests.Mocks;
 using Fluid.Values;
 using Xunit;
@@ -13,7 +12,7 @@ namespace Fluid.Tests
 {
     public class IncludeStatementTests
     {
-        private static IFluidParser _parser = new ParlotParser();
+        private static IFluidParser _parser = new FluidParser();
 
         [Fact]
         public async Task IncludeSatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()

@@ -1,5 +1,5 @@
 ﻿using Fluid.Ast;
-using Fluid.Parlot;
+using Fluid.Parser;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.MvcViewEngine
 {
-    public class FluidViewParser : ParlotParser
+    public class FluidViewParser : FluidParser
     {
         public FluidViewParser()
         {

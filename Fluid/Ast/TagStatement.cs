@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 namespace Fluid.Ast
 {
     public abstract class TagStatement : Statement
     {
-        protected readonly IReadOnlyList<Statement> _statements;
+        protected readonly List<Statement> _statements;
 
-        protected TagStatement(IReadOnlyList<Statement> statements)
+        protected TagStatement(List<Statement> statements)
         {
-            _statements = statements ?? Array.Empty<Statement>();
+            _statements = statements ?? new List<Statement>();
         }
 
         public IReadOnlyList<Statement> Statements => _statements;

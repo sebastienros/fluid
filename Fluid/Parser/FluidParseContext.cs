@@ -2,11 +2,11 @@
 using Parlot;
 using Parlot.Fluent;
 
-namespace Fluid.Parlot
+namespace Fluid.Parser
 {
-    public class ParlotContext : ParseContext
+    public class FluidParseContext : ParseContext
     {
-        public ParlotContext(string text) : base(new Scanner(text))
+        public FluidParseContext(string text) : base(new Scanner(text))
         {
         }
 

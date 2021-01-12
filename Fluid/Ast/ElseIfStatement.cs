@@ -7,7 +7,7 @@ namespace Fluid.Ast
 {
     public class ElseIfStatement : TagStatement
     {
-        public ElseIfStatement(Expression condition, IReadOnlyList<Statement> statements) : base(statements)
+        public ElseIfStatement(Expression condition, List<Statement> statements) : base(statements)
         {
             Condition = condition;
         }

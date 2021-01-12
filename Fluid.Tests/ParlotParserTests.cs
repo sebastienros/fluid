@@ -1,6 +1,4 @@
-﻿using Fluid.Parlot;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -8,7 +6,7 @@ namespace Fluid.Tests
 {
     public class ParlotParserTests
     {
-        private static IFluidParser _parser = new ParlotParser();
+        private static IFluidParser _parser = new FluidParser();
 
         [Theory]
         [InlineData("{% for i in (1..5) offset:1 limit:3 reversed%}{{ i }}{% endfor %}", "432")]

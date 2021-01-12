@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-using Fluid.Parlot;
 using Fluid.Tests.Domain;
 using Fluid.Tests.Domain.WithInterfaces;
 using Fluid.Tests.Mocks;
@@ -15,7 +13,7 @@ namespace Fluid.Tests
 {
     public class TemplateTests
     {
-        static IFluidParser _parser = new ParlotParser();
+        static IFluidParser _parser = new FluidParser();
 
         private object _products = new []
         {

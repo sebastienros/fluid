@@ -1,9 +1,6 @@
-﻿using Fluid.Ast;
-using Fluid.Parlot;
-
-namespace Fluid.Tests.Extensibility
+﻿namespace Fluid.Tests.Extensibility
 {
-    public class CustomParser : ParlotParser
+    public class CustomParser : FluidParser
     {
         public CustomParser()
         {

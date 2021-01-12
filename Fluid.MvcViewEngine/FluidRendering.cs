@@ -1,6 +1,6 @@
 ﻿using Fluid.Ast;
 using Fluid.MvcViewEngine.Internal;
-using Fluid.Parlot;
+using Fluid.Parser;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -10,7 +10,6 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Fluid.MvcViewEngine
@@ -147,7 +146,7 @@ namespace Fluid.MvcViewEngine
                         {
                             statements.AddRange(template.Statements);
 
-                            return new ParlotTemplate(statements);
+                            return new FluidTemplate(statements);
                         }
                         else
                         {

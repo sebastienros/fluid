@@ -5,25 +5,25 @@ using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
-namespace Fluid.Parlot
+namespace Fluid.Parser
 {
-    public class EmptyBlockStatement : Statement
+    public class ParserBlockStatement<T> : TagStatement
     {
-        private readonly Func<EmptyBlockStatement, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> _render;
+        private readonly Func<ParserBlockStatement<T>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> _render;
 
-        public EmptyBlockStatement(List<Statement> statements, Func<EmptyBlockStatement, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
+        public ParserBlockStatement(T value, List<Statement> statements, Func<ParserBlockStatement<T>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render) : base(statements)
         {
+            Value = value;
             _render = render ?? throw new ArgumentNullException(nameof(render));
-            Statements = statements ?? throw new ArgumentNullException(nameof(statements));
         }
 
-        public List<Statement> Statements { get; }
+        public T Value { get; }
 
         public async ValueTask<Completion> RenderBlockAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            for (var i = 0; i < Statements.Count; i++)
+            for (var i = 0; i < _statements.Count; i++)
             {
-                var statement = Statements[i];
+                var statement = _statements[i];
                 var completion = await statement.WriteToAsync(writer, encoder, context);
 
                 if (completion != Completion.Normal)

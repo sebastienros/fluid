@@ -9,7 +9,7 @@ namespace Fluid.Ast
     {
         public UnlessStatement(
             Expression condition,
-            IReadOnlyList<Statement> statements) : base(statements)
+            List<Statement> statements) : base(statements)
         {
             Condition = condition;
         }

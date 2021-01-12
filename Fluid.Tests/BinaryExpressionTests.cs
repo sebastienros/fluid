@@ -1,5 +1,4 @@
-﻿using Fluid.Parlot;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading.Tasks;
@@ -9,7 +8,7 @@ namespace Fluid.Tests
 {
     public class BinaryExpressionTests
     {
-        private static IFluidParser _parser = new ParlotParser();
+        private static IFluidParser _parser = new FluidParser();
 
         private async Task CheckAsync(string source, string expected, Action<TemplateContext> init = null)
         {

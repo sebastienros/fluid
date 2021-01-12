@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Parlot" Version="0.0.5" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="1.1.1" />
     <PackageReference Include="TimeZoneConverter" Version="3.3.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="all" />
@@ -24,10 +25,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net5.0'">
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\parlot\src\Parlot\Parlot.csproj" />
   </ItemGroup>
 
 </Project>

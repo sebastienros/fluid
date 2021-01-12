@@ -12,7 +12,7 @@ namespace Fluid.Ast
     public class ForStatement : TagStatement
     {
         public ForStatement(
-            IReadOnlyList<Statement> statements,
+            List<Statement> statements,
             string identifier, 
             MemberExpression member,
 
@@ -30,7 +30,7 @@ namespace Fluid.Ast
             Else = elseStatement;
         }
         public ForStatement(
-            IReadOnlyList<Statement> statements,
+            List<Statement> statements,
             string identifier, 
             RangeExpression range,
 
@@ -236,18 +236,17 @@ namespace Fluid.Ast
 
             public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
             {
-                switch (name)
+                return name switch
                 {
-                    case "length": return new ValueTask<FluidValue>(NumberValue.Create(Length));
-                    case "index": return new ValueTask<FluidValue>(NumberValue.Create(Index));
-                    case "index0": return new ValueTask<FluidValue>(NumberValue.Create(Index0));
-                    case "rindex": return new ValueTask<FluidValue>(NumberValue.Create(RIndex));
-                    case "rindex0": return new ValueTask<FluidValue>(NumberValue.Create(RIndex0));
-                    case "first": return new ValueTask<FluidValue>(BooleanValue.Create(First));
-                    case "last": return new ValueTask<FluidValue>(BooleanValue.Create(Last));
-                    default:
-                        return new ValueTask<FluidValue>(NilValue.Instance);
-                }
+                    "length" => new ValueTask<FluidValue>(NumberValue.Create(Length)),
+                    "index" => new ValueTask<FluidValue>(NumberValue.Create(Index)),
+                    "index0" => new ValueTask<FluidValue>(NumberValue.Create(Index0)),
+                    "rindex" => new ValueTask<FluidValue>(NumberValue.Create(RIndex)),
+                    "rindex0" => new ValueTask<FluidValue>(NumberValue.Create(RIndex0)),
+                    "first" => new ValueTask<FluidValue>(BooleanValue.Create(First)),
+                    "last" => new ValueTask<FluidValue>(BooleanValue.Create(Last)),
+                    _ => new ValueTask<FluidValue>(NilValue.Instance),
+                };
             }
 
             public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)

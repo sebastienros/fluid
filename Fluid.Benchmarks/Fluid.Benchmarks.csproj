@@ -14,10 +14,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.12.0" />
-    <PackageReference Include="DotLiquid" Version="2.0.298" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.12.1" />
+    <PackageReference Include="DotLiquid" Version="2.0.366" />
     <PackageReference Include="Liquid.NET" Version="0.10.0" />
-    <PackageReference Include="Scriban" Version="2.0.0" />
+    <PackageReference Include="Scriban" Version="3.3.2" />
   </ItemGroup>
 
   <ItemGroup>

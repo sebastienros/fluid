@@ -1,4 +1,5 @@
-﻿using Fluid.Values;
+﻿using Fluid.Utils;
+using Fluid.Values;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
@@ -8,7 +9,7 @@ namespace Fluid.Ast
 {
     public class CaptureStatement : TagStatement
     {
-        public CaptureStatement(string identifier, IReadOnlyList<Statement> statements): base(statements)
+        public CaptureStatement(string identifier, List<Statement> statements): base(statements)
         {
             Identifier = identifier;
         }

@@ -1,7 +1,5 @@
 ﻿using Fluid.Ast;
-using Fluid.Parlot;
 using Microsoft.Extensions.Primitives;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -10,7 +8,7 @@ namespace Fluid.Tests
 {
     public class ParserTests
     {
-        static IFluidParser _parser = new ParlotParser();
+        static IFluidParser _parser = new FluidParser();
 
         private IReadOnlyList<Statement> Parse(string source)
         {

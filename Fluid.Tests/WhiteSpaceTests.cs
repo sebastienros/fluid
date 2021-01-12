@@ -1,5 +1,4 @@
 ﻿using Fluid.Ast;
-using Fluid.Parlot;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -9,7 +8,7 @@ namespace Fluid.Tests
 {
     public class WhiteSpaceTests
     {
-        private static IFluidParser _parser = new ParlotParser();
+        private static IFluidParser _parser = new FluidParser();
 
         private IReadOnlyList<Statement> Parse(string source)
         {

@@ -10,7 +10,7 @@ namespace Fluid.Ast
     {
         private readonly IReadOnlyList<Expression> _options;
 
-        public WhenStatement(IReadOnlyList<Expression> options, IReadOnlyList<Statement> statements) : base(statements)
+        public WhenStatement(IReadOnlyList<Expression> options, List<Statement> statements) : base(statements)
         {
             _options = options ?? Array.Empty<Expression>();
         }

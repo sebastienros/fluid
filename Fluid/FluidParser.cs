@@ -1,20 +1,20 @@
 ﻿using Fluid.Ast;
 using Fluid.Ast.BinaryExpressions;
+using Fluid.Parser;
 using Fluid.Values;
 using Parlot;
 using Parlot.Fluent;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using static Parlot.Fluent.Parsers;
 
-namespace Fluid.Parlot
+namespace Fluid
 {
-    public class ParlotParser : IFluidParser
+    public class FluidParser : IFluidParser
     {
         public Parser<List<Statement>> Grammar;
         public Dictionary<string, Parser<Statement>> CustomTags { get; } = new();
@@ -47,7 +47,7 @@ namespace Fluid.Parlot
         protected static readonly Parser<string> BinaryOr = Terms.Text("or");
         protected static readonly Parser<string> BinaryAnd = Terms.Text("and");
 
-        protected static readonly Parser<TextSpan> Identifier = Terms.Identifier(extraPart: static c => c == '-');
+        protected static readonly Parser<string> Identifier = Terms.Identifier(extraPart: static c => c == '-').Then(x => x.ToString());
 
         protected static readonly Deferred<Expression> Primary = Deferred<Expression>();
         protected static readonly Deferred<Expression> LogicalExpression = Deferred<Expression>();
@@ -66,141 +66,7 @@ namespace Fluid.Parlot
             "endcomment", "endcapture", "endraw", "else", "elsif", "endif", "endunless", "when", "endfor", "endcase"
         };
 
-        // The return type of the generated method is the generic type of the parser
-
-        Expression ParseInteger(NumberOptions numberOptions)
-        {
-            _context.Scanner.SkipWhiteSpace();
-
-            var start = _context.Scanner.Cursor.Offset;
-
-            if ((numberOptions & NumberOptions.AllowSign) == NumberOptions.AllowSign)
-            {
-                if (!_context.Scanner.ReadChar('-'))
-                {
-                    // If there is no '-' try to read a '+' but don't read both.
-                    _context.Scanner.ReadChar('+');
-                }
-            }
-
-            if (_context.Scanner.ReadInteger())
-            {
-                var end = _context.Scanner.Cursor.Offset;
-
-                if (long.TryParse(_context.Scanner.Buffer.AsSpan(start, end - start), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
-                {
-                    return new LiteralExpression(NumberValue.Create(value));
-                }
-            }
-
-            return null;
-        }
-
-        public Expression ParseIndexer()
-        {
-            if (!_context.Scanner.ReadChar('['))
-            {
-                return null;
-            }
-
-            var primary = ParsePrimary();
-
-            if (primary == null)
-            {
-                return null;
-            }
-
-            if (!_context.Scanner.ReadChar(']'))
-            {
-                return null;
-            }
-
-            return primary;
-        }
-
-        public Expression ParseString(StringLiteralQuotes quotes)
-        {
-            var start = _context.Scanner.Cursor.Offset;
-
-            var success = quotes switch
-            {
-                StringLiteralQuotes.Single => _context.Scanner.ReadSingleQuotedString(),
-                StringLiteralQuotes.Double => _context.Scanner.ReadDoubleQuotedString(),
-                StringLiteralQuotes.SingleOrDouble => _context.Scanner.ReadQuotedString(),
-                _ => false
-            };
-
-            var end = _context.Scanner.Cursor.Offset;
-
-            if (success)
-            {
-                // Remove quotes
-                var decoded = Character.DecodeString(new TextSpan(_context.Scanner.Buffer, start + 1, end - start - 2));
-
-                return new LiteralExpression(FluidValue.Create(decoded.ToString()));
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public Expression ParsePrimary()
-        {
-            var number = ParseNumber(NumberOptions.AllowSign);
-
-            if (number != null)
-            {
-                return number;
-            }
-
-            var stringValue = ParseString(StringLiteralQuotes.SingleOrDouble);
-
-            if (stringValue != null)
-            {
-                return stringValue;
-            }    
-
-            return null;
-        }
-
-        public Expression ParseNumber(NumberOptions numberOptions)
-        {
-            var start = _context.Scanner.Cursor.Offset;
-
-            if ((numberOptions & NumberOptions.AllowSign) == NumberOptions.AllowSign)
-            {
-                if (!_context.Scanner.ReadChar('-'))
-                {
-                    // If there is no '-' try to read a '+' but don't read both.
-                    _context.Scanner.ReadChar('+');
-                }
-            }
-
-            if (_context.Scanner.ReadDecimal())
-            {
-                var end = _context.Scanner.Cursor.Offset;
-
-                if (decimal.TryParse(_context.Scanner.Buffer.AsSpan(start, end - start), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
-                {
-                    return new LiteralExpression(NumberValue.Create(value));
-                }
-            }
-
-            if (_context.Scanner.ReadText("true"))
-            {
-                return new LiteralExpression(BooleanValue.True);
-            }
-
-            if (_context.Scanner.ReadText("false"))
-            {
-                return new LiteralExpression(BooleanValue.False);
-            }
-
-            return null;
-        }
-
-        public ParlotParser()
+        public FluidParser()
         {
             var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)));
 
@@ -237,7 +103,7 @@ namespace Fluid.Parlot
             
             // TODO: 'and' has a higher priority than 'or', either create a new scope, or implement operators priority
 
-            var Logical = Primary.And(Star(OneOf(BinaryOr, BinaryAnd, Contains).And(Primary)))
+            var Logical = Primary.And(ZeroOrMany(OneOf(BinaryOr, BinaryAnd, Contains).And(Primary)))
                 .Then(static x =>
                 {
                     var result = x.Item1;
@@ -256,7 +122,7 @@ namespace Fluid.Parlot
                     return result;
                 });
 
-            var Comparison = Logical.And(Star(OneOf(DoubleEquals, NotEquals, Different, GreaterOr, LowerOr, Greater, Lower).And(Logical)))
+            var Comparison = Logical.And(ZeroOrMany(OneOf(DoubleEquals, NotEquals, Different, GreaterOr, LowerOr, Greater, Lower).And(Logical)))
                 .Then(static x =>
                 {
                     var result = x.Item1;
@@ -346,14 +212,14 @@ namespace Fluid.Parlot
                         .Then<Statement>(x => new CaptureStatement(x.Item1.ToString(), x.Item2))
                         .ElseError("Invalid 'capture' tag")
                         ;
-            var CycleTag = ZeroOrOne(Identifier.AndSkip(Colon).Then(x => x))
+            var CycleTag = ZeroOrOne(Identifier.AndSkip(Colon))
                         .And(Separated(Comma, String))
                         .AndSkip(TagEnd)
                         .Then<Statement>(x =>
                         {
-                            var group = x.Item1.Length == 1
-                                ? new LiteralExpression(StringValue.Create(x.Item1))
-                                : null;
+                            var group = string.IsNullOrEmpty(x.Item1)
+                                ? null
+                                : new LiteralExpression(StringValue.Create(x.Item1));
 
                             var values = x.Item2.Select(e => new LiteralExpression(StringValue.Create(e.ToString()))).ToList<Expression>();
 
@@ -464,25 +330,25 @@ namespace Fluid.Parlot
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed 
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
 
-                switch (previous.ToString())
+                return (previous.ToString()) switch
                 {
-                    case "break": return BreakTag;
-                    case "continue": return ContinueTag;
-                    case "comment": return CommentTag;
-                    case "capture": return CaptureTag;
-                    case "cycle": return CycleTag;
-                    case "decrement": return DecrementTag;
-                    case "include": return IncludeTag;
-                    case "increment": return IncrementTag;
-                    case "raw": return RawTag;
-                    case "assign": return AssignTag;
-                    case "if": return IfTag;
-                    case "unless": return UnlessTag;
-                    case "case": return CaseTag;
-                    case "for": return ForTag;
-
-                    default: return null;
+                    "break" => BreakTag,
+                    "continue" => ContinueTag,
+                    "comment" => CommentTag,
+                    "capture" => CaptureTag,
+                    "cycle" => CycleTag,
+                    "decrement" => DecrementTag,
+                    "include" => IncludeTag,
+                    "increment" => IncrementTag,
+                    "raw" => RawTag,
+                    "assign" => AssignTag,
+                    "if" => IfTag,
+                    "unless" => UnlessTag,
+                    "case" => CaseTag,
+                    "for" => ForTag,
+                    _ => null,
                 };
+                ;
             });
 
             var Tag = TagStart.SkipAnd(KnownTags.Or(OtherTags));
@@ -490,15 +356,15 @@ namespace Fluid.Parlot
             var Text = AnyCharBefore(OutputStart.Or(TagStart))
                 .Then(static x => new TextSpanStatement(x));
 
-            TagsList.Parser = Star(
+            TagsList.Parser = ZeroOrMany(
                 Output
                 .Or(Tag)
-                .Or(Text.Then<Statement>((ctx, x) => { var p = (ParlotContext)ctx; p.PreviousTextSpanStatement = x; if (p.StripNextTextSpanStatement) { x.StrippedLeft = true; p.StripNextTextSpanStatement = false;  } return x; })));
+                .Or(Text.Then<Statement>((ctx, x) => { var p = (FluidParseContext)ctx; p.PreviousTextSpanStatement = x; if (p.StripNextTextSpanStatement) { x.StrippedLeft = true; p.StripNextTextSpanStatement = false;  } return x; })));
 
             Grammar = TagsList;
         }
 
-        public Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
+        public static Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
 
         public void RegisterEmptyTag(string tagName, Func<EmptyTagStatement, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
@@ -516,7 +382,7 @@ namespace Fluid.Parlot
             CustomTags[tagName] = TagEnd.SkipAnd(TagsList).AndSkip(CreateTag("end" + tagName)).Then<Statement>(x => new EmptyBlockStatement(x, render));
         }
 
-        public void RegisterIdentifierBlock(string tagName, Func<ParserBlockStatement<TextSpan>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
+        public void RegisterIdentifierBlock(string tagName, Func<ParserBlockStatement<string>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             RegisterParserBlock(tagName, Identifier, render);
         }
@@ -532,11 +398,9 @@ namespace Fluid.Parlot
             CustomTags[tagName] = parser.AndSkip(TagEnd).And(TagsList).AndSkip(CreateTag("end" + tagName)).Then<Statement>(x => new ParserBlockStatement<T>(x.Item1, x.Item2, render));
         }
 
-        private ParlotContext _context;
-
         public IFluidTemplate Parse(string template)
         {
-            var context = new ParlotContext(template);
+            var context = new FluidParseContext(template);
 
             var success = Grammar.TryParse(context, out var statements, out var parlotError);
 
@@ -550,7 +414,7 @@ namespace Fluid.Parlot
                 return null;
             }
 
-            return new ParlotTemplate(statements);
+            return new FluidTemplate(statements);
         }
     }
 }

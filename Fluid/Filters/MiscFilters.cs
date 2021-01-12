@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Text.Json;
 using Fluid.Values;
 using TimeZoneConverter;
+using Fluid.Utils;
 
 namespace Fluid.Filters
 {
@@ -404,30 +405,16 @@ namespace Fluid.Filters
                 WriteIndented = arguments.At(0).ToBooleanValue()
             };
 
-            switch (input.Type)
+            return input.Type switch
             {
-                case FluidValues.Array:
-                    return new StringValue(JsonSerializer.Serialize(input.Enumerate().Select(o => o.ToObjectValue()), options));
-
-                case FluidValues.Boolean:
-                    return new StringValue(JsonSerializer.Serialize(input.ToBooleanValue(), options));
-
-                case FluidValues.Nil:
-                    return StringValue.Create("null");
-
-                case FluidValues.Number:
-                    return new StringValue(JsonSerializer.Serialize(input.ToNumberValue(), options));
-
-                case FluidValues.DateTime:
-                case FluidValues.Dictionary:
-                case FluidValues.Object:
-                    return new StringValue(JsonSerializer.Serialize(input.ToObjectValue(), options));
-
-                case FluidValues.String:
-                    return new StringValue(JsonSerializer.Serialize(input.ToStringValue(), options));
-            }
-
-            throw new NotSupportedException("Unrecognized FluidValue");
+                FluidValues.Array => new StringValue(JsonSerializer.Serialize(input.Enumerate().Select(o => o.ToObjectValue()), options)),
+                FluidValues.Boolean => new StringValue(JsonSerializer.Serialize(input.ToBooleanValue(), options)),
+                FluidValues.Nil => StringValue.Create("null"),
+                FluidValues.Number => new StringValue(JsonSerializer.Serialize(input.ToNumberValue(), options)),
+                FluidValues.DateTime or FluidValues.Dictionary or FluidValues.Object => new StringValue(JsonSerializer.Serialize(input.ToObjectValue(), options)),
+                FluidValues.String => new StringValue(JsonSerializer.Serialize(input.ToStringValue(), options)),
+                _ => throw new NotSupportedException("Unrecognized FluidValue"),
+            };
         }
 
         public static FluidValue FormatNumber(FluidValue input, FilterArguments arguments, TemplateContext context)

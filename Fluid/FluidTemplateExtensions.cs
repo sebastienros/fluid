@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using Fluid.Utils;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -17,7 +18,7 @@ namespace Fluid
         public static string Render(this IFluidTemplate template, TemplateContext context, TextEncoder encoder)
         {
             var task = template.RenderAsync(context, encoder);
-            return task.IsCompletedSuccessfully ? task.Result : task.GetAwaiter().GetResult();
+            return task.IsCompletedSuccessfully ? task.Result : task.AsTask().GetAwaiter().GetResult();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -26,7 +27,7 @@ namespace Fluid
             var task = template.RenderAsync(writer, encoder, context);
             if (!task.IsCompletedSuccessfully)
             {
-                task.GetAwaiter().GetResult();
+                task.AsTask().GetAwaiter().GetResult();
             }
         }
 
@@ -76,7 +77,7 @@ namespace Fluid
         public static string Render(this IFluidTemplate template, TemplateContext context)
         {
             var task = template.RenderAsync(context);
-            return task.IsCompletedSuccessfully ? task.Result : task.GetAwaiter().GetResult();
+            return task.IsCompletedSuccessfully ? task.Result : task.AsTask().GetAwaiter().GetResult();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -89,7 +90,7 @@ namespace Fluid
         public static string Render(this IFluidTemplate template)
         {
             var task = template.RenderAsync();
-            return task.IsCompletedSuccessfully ? task.Result : task.GetAwaiter().GetResult();
+            return task.IsCompletedSuccessfully ? task.Result : task.AsTask().GetAwaiter().GetResult();
         }
     }
 }
