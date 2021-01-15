@@ -17,7 +17,7 @@ namespace Fluid
     public class FluidParser : IFluidParser
     {
         public Parser<List<Statement>> Grammar;
-        public Dictionary<string, Parser<Statement>> CustomTags { get; } = new();
+        public Dictionary<string, Parser<Statement>> RegisteredTags { get; } = new();
 
         protected static readonly Parser<char> LBrace = Terms.Char('{');
         protected static readonly Parser<char> RBrace = Terms.Char('}');
@@ -52,19 +52,14 @@ namespace Fluid
         protected static readonly Deferred<Expression> Primary = Deferred<Expression>();
         protected static readonly Deferred<Expression> LogicalExpression = Deferred<Expression>();
         protected static readonly Deferred<Expression> FilterExpression = Deferred<Expression>();
-        protected readonly Deferred<List<Statement>> TagsList = Deferred<List<Statement>>();
+        protected readonly Deferred<List<Statement>> KnownTagsList = Deferred<List<Statement>>();
+        protected readonly Deferred<List<Statement>> AnyTagsList = Deferred<List<Statement>>();
 
         protected static readonly Parser<TagResult> OutputStart = TagParsers.OutputTagStart();
         protected static readonly Parser<TagResult> OutputEnd = TagParsers.OutputTagEnd(true);
         protected static readonly Parser<TagResult> TagStart = TagParsers.TagStart();
         protected static readonly Parser<TagResult> TagStartSpaced = TagParsers.TagStart(true);
         protected static readonly Parser<TagResult> TagEnd = TagParsers.TagEnd(true);
-
-        // These tags are not parsed when expecting any tag, but should not be marked as invalid so we can detect {% without correct values
-        protected readonly HashSet<string> ExpectedTags = new()
-        {
-            "endcomment", "endcapture", "endraw", "else", "elsif", "endif", "endunless", "when", "endfor", "endcase"
-        };
 
         public FluidParser()
         {
@@ -82,7 +77,7 @@ namespace Fluid
                     x.Item2.Insert(0, x.Item1);
                     return new MemberExpression(x.Item2);
                 });
-                
+
             var Range = LParen
                 .SkipAnd(OneOf(Integer, Member.Then<Expression>(x => x)))
                 .AndSkip(Terms.Text(".."))
@@ -100,7 +95,7 @@ namespace Fluid
                 ;
 
             var CaseValueList = Separated(BinaryOr, Primary);
-            
+
             // TODO: 'and' has a higher priority than 'or', either create a new scope, or implement operators priority
 
             var Logical = Primary.And(ZeroOrMany(OneOf(BinaryOr, BinaryAnd, Contains).And(Primary)))
@@ -161,7 +156,7 @@ namespace Fluid
                         var result = x.Item1;
 
                         // Filters
-                        foreach(var pipeResult in x.Item2)
+                        foreach (var pipeResult in x.Item2)
                         {
                             var identifier = pipeResult.Item1.ToString();
                             var arguments = pipeResult.Item2;
@@ -179,23 +174,26 @@ namespace Fluid
                 .ElseError("Invalid tag, expected an expression")
                 );
 
-            var OtherTags = Identifier.ElseError($"Invalid tag").Switch((context, previous) =>
-            {
-                var tagName = previous.ToString();
 
-                if (CustomTags.TryGetValue(tagName, out var parser))
+            var Text = AnyCharBefore(OutputStart.Or(TagStart))
+                .Then<Statement>(static (ctx, x) =>
                 {
-                    return parser;
-                }
+                    // Keep track of each text span such that whitespace trimming can be applied
 
-                if (!ExpectedTags.Contains(tagName))
-                {
-                    // A {% TAGNAME was found without possible handler, the template is invalid
-                    throw new ParseException($"Invalid tag '{tagName}'");
-                }
+                    var p = (FluidParseContext)ctx;
 
-                return null;
-            });
+                    var result = new TextSpanStatement(x);
+
+                    p.PreviousTextSpanStatement = result;
+
+                    if (p.StripNextTextSpanStatement)
+                    {
+                        result.StrippedLeft = true;
+                        p.StripNextTextSpanStatement = false;
+                    }
+                    return result;
+                });
+
 
             var BreakTag = TagEnd.Then<Statement>(x => new BreakStatement());
             var ContinueTag = TagEnd.Then<Statement>(x => new ContinueStatement());
@@ -207,7 +205,7 @@ namespace Fluid
                         ;
             var CaptureTag = Identifier
                         .AndSkip(TagEnd)
-                        .And(TagsList)
+                        .And(AnyTagsList)
                         .AndSkip(CreateTag("endcapture"))
                         .Then<Statement>(x => new CaptureStatement(x.Item1.ToString(), x.Item2))
                         .ElseError("Invalid 'capture' tag")
@@ -240,19 +238,19 @@ namespace Fluid
             var AssignTag = Identifier.AndSkip(Equal).And(FilterExpression).AndSkip(TagEnd).Then<Statement>(x => new AssignStatement(x.Item1.ToString(), x.Item2));
             var IfTag = LogicalExpression
                         .AndSkip(TagEnd)
-                        .And(TagsList)
+                        .And(AnyTagsList)
                         .And(ZeroOrMany(
-                            TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(TagsList))
+                            TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(AnyTagsList))
                             .Then(x => x.Select(e => new ElseIfStatement(e.Item1, e.Item2)).ToList()))
                         .And(ZeroOrOne(
-                            CreateTag("else").SkipAnd(TagsList))
+                            CreateTag("else").SkipAnd(AnyTagsList))
                             .Then(x => x != null ? new ElseStatement(x) : null))
                         .AndSkip(CreateTag("endif"))
                         .Then<Statement>(x => new IfStatement(x.Item1, x.Item2, x.Item4, x.Item3))
                         .ElseError("Invalid 'if' tag");
             var UnlessTag = LogicalExpression
                         .AndSkip(TagEnd)
-                        .And(TagsList)
+                        .And(AnyTagsList)
                         .AndSkip(CreateTag("endunless"))
                         .Then<Statement>(x => new UnlessStatement(x.Item1, x.Item2))
                         .ElseError("Invalid 'unless' tag");
@@ -260,10 +258,10 @@ namespace Fluid
                        .AndSkip(TagEnd)
                        .AndSkip(AnyCharBefore(TagStart, canBeEmpty: true))
                        .And(ZeroOrMany(
-                           TagStart.Then(x => x).AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(TagsList))
+                           TagStart.Then(x => x).AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList))
                            .Then(x => x.Select(e => new WhenStatement(e.Item2, e.Item3)).ToList()))
                        .And(ZeroOrOne(
-                           CreateTag("else").SkipAnd(TagsList))
+                           CreateTag("else").SkipAnd(AnyTagsList))
                            .Then(x => x != null ? new ElseStatement(x) : null))
                        .AndSkip(CreateTag("endcase"))
                        .Then<Statement>(x => new CaseStatement(x.Item1, x.Item3, x.Item2))
@@ -278,9 +276,9 @@ namespace Fluid
                                 Terms.Text("offset").SkipAnd(Colon).SkipAnd(Integer).Then(x => new ForModifier { IsOffset = true, Value = x })
                                 )))
                             .AndSkip(TagEnd)
-                            .And(TagsList)
+                            .And(AnyTagsList)
                             .And(ZeroOrOne(
-                                CreateTag("else").SkipAnd(TagsList))
+                                CreateTag("else").SkipAnd(AnyTagsList))
                                 .Then(x => x != null ? new ElseStatement(x) : null))
                             .AndSkip(CreateTag("endfor"))
                             .Then<Statement>(x =>
@@ -306,7 +304,7 @@ namespace Fluid
                                 Terms.Text("offset").SkipAnd(Colon).SkipAnd(Integer).Then(x => new ForModifier { IsOffset = true, Value = x })
                                 )))
                             .AndSkip(TagEnd)
-                            .And(TagsList)
+                            .And(AnyTagsList)
                             .AndSkip(CreateTag("endfor"))
                             .Then<Statement>(x =>
                             {
@@ -323,63 +321,76 @@ namespace Fluid
                             })
                         ).ElseError("Invalid 'for' tag");
 
-            var KnownTags = Identifier.Switch((context, previous) =>
-            {
-                // perf: this lambda is allocated only once since the KnownTags parser is reused
+            RegisteredTags["break"] = BreakTag;
+            RegisteredTags["continue"] = ContinueTag;
+            RegisteredTags["comment"] = CommentTag;
+            RegisteredTags["capture"] = CaptureTag;
+            RegisteredTags["cycle"] = CycleTag;
+            RegisteredTags["decrement"] = DecrementTag;
+            RegisteredTags["include"] = IncludeTag;
+            RegisteredTags["increment"] = IncrementTag;
+            RegisteredTags["raw"] = RawTag;
+            RegisteredTags["assign"] = AssignTag;
+            RegisteredTags["if"] = IfTag;
+            RegisteredTags["unless"] = UnlessTag;
+            RegisteredTags["case"] = CaseTag;
+            RegisteredTags["for"] = ForTag;
 
+            var AnyTags = TagStart.SkipAnd(Identifier.ElseError("Expected tag name").Switch((context, previous) =>
+            {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed 
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
 
-                return (previous.ToString()) switch
+                var tagName = previous.ToString();
+
+                if (RegisteredTags.TryGetValue(tagName, out var tag))
                 {
-                    "break" => BreakTag,
-                    "continue" => ContinueTag,
-                    "comment" => CommentTag,
-                    "capture" => CaptureTag,
-                    "cycle" => CycleTag,
-                    "decrement" => DecrementTag,
-                    "include" => IncludeTag,
-                    "increment" => IncrementTag,
-                    "raw" => RawTag,
-                    "assign" => AssignTag,
-                    "if" => IfTag,
-                    "unless" => UnlessTag,
-                    "case" => CaseTag,
-                    "for" => ForTag,
-                    _ => null,
-                };
-                ;
-            });
+                    return tag;
+                }
+                else
+                {
+                    return null;
+                }
+            }));
 
-            var Tag = TagStart.SkipAnd(KnownTags.Or(OtherTags));
+            var KnownTags = TagStart.SkipAnd(Identifier.ElseError("Expected tag name").Switch((context, previous) =>
+            {
+                // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed 
+                // as inner tags in blocks like {% if %} TagsList {% endif $}
 
-            var Text = AnyCharBefore(OutputStart.Or(TagStart))
-                .Then(static x => new TextSpanStatement(x));
+                var tagName = previous.ToString();
 
-            TagsList.Parser = ZeroOrMany(
-                Output
-                .Or(Tag)
-                .Or(Text.Then<Statement>((ctx, x) => { var p = (FluidParseContext)ctx; p.PreviousTextSpanStatement = x; if (p.StripNextTextSpanStatement) { x.StrippedLeft = true; p.StripNextTextSpanStatement = false;  } return x; })));
+                if (RegisteredTags.TryGetValue(tagName, out var tag))
+                {
+                    return tag;
+                }
+                else
+                {
+                    throw new ParseException($"Unexpected tag '{tagName}'");
+                }
+            }));
 
-            Grammar = TagsList;
+            AnyTagsList.Parser = ZeroOrMany(Output.Or(AnyTags).Or(Text)); // Used in block and stop when an unknown tag is found
+            KnownTagsList.Parser = ZeroOrMany(Output.Or(KnownTags).Or(Text)); // User in main list and raises an issue when an unknown tag is found
+
+            Grammar = KnownTagsList;
         }
 
         public static Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
 
         public void RegisterEmptyTag(string tagName, Func<EmptyTagStatement, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
-            CustomTags[tagName] = TagEnd.Then<Statement>(x => new EmptyTagStatement(render));
+            RegisteredTags[tagName] = TagEnd.Then<Statement>(x => new EmptyTagStatement(render));
         }
 
         public void RegisterIdentifierTag(string tagName, Func<IdentifierTagStatement, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
-            CustomTags[tagName] = Identifier.AndSkip(TagEnd).Then<Statement>(x => new IdentifierTagStatement(x.ToString(), render));
+            RegisteredTags[tagName] = Identifier.AndSkip(TagEnd).Then<Statement>(x => new IdentifierTagStatement(x.ToString(), render));
         }
 
         public void RegisterEmptyBlock(string tagName, Func<EmptyBlockStatement, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
-            ExpectedTags.Add("end" + tagName);
-            CustomTags[tagName] = TagEnd.SkipAnd(TagsList).AndSkip(CreateTag("end" + tagName)).Then<Statement>(x => new EmptyBlockStatement(x, render));
+            RegisteredTags[tagName] = TagEnd.SkipAnd(AnyTagsList).AndSkip(CreateTag("end" + tagName)).Then<Statement>(x => new EmptyBlockStatement(x, render));
         }
 
         public void RegisterIdentifierBlock(string tagName, Func<ParserBlockStatement<string>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
@@ -394,8 +405,7 @@ namespace Fluid
 
         public void RegisterParserBlock<T>(string tagName, Parser<T> parser, Func<ParserBlockStatement<T>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
-            ExpectedTags.Add("end" + tagName);
-            CustomTags[tagName] = parser.AndSkip(TagEnd).And(TagsList).AndSkip(CreateTag("end" + tagName)).Then<Statement>(x => new ParserBlockStatement<T>(x.Item1, x.Item2, render));
+            RegisteredTags[tagName] = parser.AndSkip(TagEnd).And(AnyTagsList).AndSkip(CreateTag("end" + tagName)).Then<Statement>(x => new ParserBlockStatement<T>(x.Item1, x.Item2, render));
         }
 
         public IFluidTemplate Parse(string template)

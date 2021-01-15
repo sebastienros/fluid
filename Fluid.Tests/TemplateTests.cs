@@ -476,7 +476,7 @@ turtle
         [Theory]
         [InlineData("abc {{ def", "Invalid tag")]
         [InlineData("abc {{ def }", "Invalid tag")]
-        [InlineData("abc {%", "Invalid tag")]
+        [InlineData("abc {%", "Expected tag name")]
         [InlineData("abc {{", "Invalid tag")]
         public void ShouldDetectInvalidTemplate(string source, string expected)
         {

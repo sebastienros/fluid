@@ -77,5 +77,22 @@ namespace Fluid.Tests.Extensibility
 
             Assert.Equal("Hello test hi", result);
         }
+
+        [Fact]
+        public void CustomBlockShouldReturnErrorMessage()
+        {
+            var parser = new CustomParser();
+
+            parser.RegisterEmptyBlock("hello", (s, w, e, c) =>
+            {
+                w.Write("Hello World");
+                return s.RenderBlockAsync(w, e, c);
+            });
+
+            parser.TryParse("{% hello %} hi {%- endhello %} {% endhello %}", out var template, out var error);
+
+            Assert.Null(template);
+            Assert.Contains("Unexpected tag 'endhello'", error);
+        }
     }
 }
