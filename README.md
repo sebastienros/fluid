@@ -370,107 +370,76 @@ Tuesday, August 1, 2017
 ## Customizing tags and blocks
 
 Fluid's grammar can be modified to accept any new tags and blocks with 
-any custom parameters. It is even possible to use different grammars in 
-the same application.
+any custom parameters. The parser is based on [Parlot](https://github.com/sebastienros/parlot) 
+which makes it completely extensible.
 
 Unlike blocks, tags don't have a closing element (e.g., `cycle`, `increment`).
 A closing element will match the name of the opening tag with and `end` suffix, like `endfor`.
 Blocks are useful when manipulating a section of a a template as a set of statements.
 
-To create a custom tag or block it is necessary to create a class implementing the `ITag` interface,
-or for most common cases to just inherit from some of the available base classes.
+Fluid provides helper method to register common tags and blocks. All tags and block always start with an __identifier__ that is
+the tag name.
 
+Each custom tag needs to provide a delegate that is evaluated when the tag is matched. Each degate will be able to use these properties:
 
-### Creating a custom tag
+- `writer`, a `TextWriter` instance that is used to render some text.
+- `encode`, a `TextEncoder` instance, like `HtmlEncoder`, or `NullEncoder`. It's defined by the caller of the template.
+- `context`, a `TemplateContext` instance.
 
-Custom tags can use these base types:
-- `SimpleTag`: Tag with no parameter, like `{% renderbody %}`
-- `IdentifierTag`: Tag taking an identifier as parameter, like `{% increment my_variable %}`
-- `ExpressionTag`: Tag taking an expression as parameter, like `{% layout template | default: 'layout' %}`
-- `ArgumentsTag`: Tag taking a list of arguments as parameter, like `{% display 'default', arg1: 1 + 1 %}`
-- `ITag`: Tag that can define any custom grammar.
+### Registering a custom tag
+
+- __Empty__: Tag with no parameter, like `{% renderbody %}`
+- __Identifier__: Tag taking an identifier as parameter, like `{% increment my_variable %}`
 
 Here are some examples:
+
 #### Source
 
 ```csharp
-public class QuoteTag : ExpressionTag
+parser.RegisterIdentifierTag("hello", (identifier, writer, encoder, context) =>
 {
-  public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression)
-  {
-    var value = (await expression.EvaluateAsync(context)).ToStringValue();
-    await writer.WriteAsync("'" + value + "'");
-    
-    return Completion.Normal;
-  }
-}
+    writer.Write("Hello ");
+    writer.Write(identifier);
+});
 ```
+
 ```Liquid
-{% quote 5 + 11 %}
+{% hello you %}
 ```
 
 #### Result
 ```html
-'16'
+Hello you
 ```
 
 ### Creating a custom block
 
-Blocks are created the same way as tags, with these classes: `SimpleBlock`, `IdentifierBlock`, `ExpressionBlock`, `ArgumentsBlock` or `ITag`.
+Blocks are created the same way as tags, and the lambda expression can then access the list of statements inside the block.
 
 #### Source
 
+
 ```csharp
-public class RepeatBlock : ExpressionBlock
+
+parser.RegisterExpressionBlock("repeat", (value, statements, writer, encoder, context) =>
 {
-  public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression, IList<Statements> statements)
-  {
-    var value = (await expression.EvaluateAsync(context)).ToNumberValue();
-    for (var i=0; i < value; i++)
+    for (var i = 0; i < value.ToNumber(); i++)
     {
-      await RenderStatementsAsync(writer, encoder, context, statements);
+      await return statements.RenderStatementsAsync(writer, encoder, context);
     }
 
     return Completion.Normal;
-  }
-}
+});
 ```
 
 ```Liquid
-{% repeat 1 + 2 %}Hi! {% endrepeat %}
+{% repeat 1 | plus: 2 %}Hi! {% endrepeat %}
 ```
 
 #### Result
 ```html
 Hi! Hi! Hi!
 ```
-
-### Defining a new template type
-
-To prevent your customization from altering the default Liquid syntax, it is recommended to 
-create a custom template type. 
-
-#### Source
-```csharp
-using Fluid;
-
-public class MyFluidTemplate : BaseFluidTemplate<MyFluidTemplate>
-{
-  static MyFluidTemplate()
-  {
-      Factory.RegisterTag<QuoteTag>("quote");
-      Factory.RegisterBlock<RepeatBlock>("repeat");
-  }
-}
-```
-
-```csharp
-MyFluidTemplate.TryParse(source, out var template);
-```
-
-### Examples
-
-To see a complete example of a customized Fluid grammar, look at this class: [CustomGrammarTests](https://github.com/sebastienros/fluid/blob/dev/Fluid.Tests/CustomGrammarTests.cs)
 
 <br>
 

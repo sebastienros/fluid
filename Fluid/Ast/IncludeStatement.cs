@@ -9,9 +9,9 @@ namespace Fluid.Ast
     public class IncludeStatement : Statement
     {
         public const string ViewExtension = ".liquid";
-        private readonly IFluidParser _parser;
+        private readonly FluidParser _parser;
 
-        public IncludeStatement(IFluidParser parser, Expression path, Expression with = null, IList<AssignStatement> assignStatements = null)
+        public IncludeStatement(FluidParser parser, Expression path, Expression with = null, IList<AssignStatement> assignStatements = null)
         {
             _parser = parser;
             Path = path;

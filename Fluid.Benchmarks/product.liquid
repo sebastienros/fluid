@@ -1,0 +1,9 @@
+﻿<ul id='products'>
+  {% for product in products %}
+    <li>
+      <h2>{{ product.name }}</h2>
+           Only {{ product.price }}
+           {{ product.description | truncate: 15 }}
+    </li>
+  {% endfor %}
+</ul>

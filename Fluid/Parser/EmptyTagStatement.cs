@@ -6,18 +6,18 @@ using System.Threading.Tasks;
 
 namespace Fluid.Parser
 {
-    public class EmptyTagStatement : Statement
+    internal sealed class EmptyTagStatement : Statement
     {
-        private readonly Func<EmptyTagStatement, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> _render;
+        private readonly Func<TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> _render;
 
-        public EmptyTagStatement(Func<EmptyTagStatement, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
+        public EmptyTagStatement(Func<TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             _render = render ?? throw new ArgumentNullException(nameof(render));
         }
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            return _render(this, writer, encoder, context);
+            return _render(writer, encoder, context);
         }
     }
 }

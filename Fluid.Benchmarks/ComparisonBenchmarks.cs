@@ -17,6 +17,12 @@ namespace Fluid.Benchmarks
             return _fluidBenchmarks.Parse();
         }
 
+        [Benchmark(Baseline = true), BenchmarkCategory("ParseBig")]
+        public object Fluid_ParseBig()
+        {
+            return _fluidBenchmarks.ParseBig();
+        }
+
         [Benchmark(Baseline = true), BenchmarkCategory("Render")]
         public string Fluid_Render()
         {
@@ -27,6 +33,12 @@ namespace Fluid.Benchmarks
         public object Scriban_Parse()
         {
             return _scribanBenchmarks.Parse();
+        }
+
+        [Benchmark, BenchmarkCategory("ParseBig")]
+        public object Scriban_ParseBig()
+        {
+            return _scribanBenchmarks.ParseBig();
         }
 
         [Benchmark, BenchmarkCategory("Render")]
@@ -41,6 +53,12 @@ namespace Fluid.Benchmarks
             return _dotLiquidBenchmarks.Parse();
         }
 
+        [Benchmark, BenchmarkCategory("ParseBig")]
+        public object DotLiquid_ParseBig()
+        {
+            return _dotLiquidBenchmarks.ParseBig();
+        }
+
         [Benchmark, BenchmarkCategory("Render")]
         public string DotLiquid_Render()
         {
@@ -51,6 +69,12 @@ namespace Fluid.Benchmarks
         public object LiquidNet_Parse()
         {
             return _liquidNetBenchmarks.Parse();
+        }
+
+        [Benchmark, BenchmarkCategory("ParseBig")]
+        public object LiquidNet_ParseBig()
+        {
+            return _liquidNetBenchmarks.ParseBig();
         }
 
         [Benchmark, BenchmarkCategory("Render")]

@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace Fluid.Parser
 {
-    public class IdentifierTagStatement : Statement
+    internal sealed class IdentifierTagStatement : Statement
     {
-        private readonly Func<IdentifierTagStatement, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> _render;
+        private readonly Func<string, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> _render;
 
-        public IdentifierTagStatement(string identifier, Func<IdentifierTagStatement, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
+        public IdentifierTagStatement(string identifier, Func<string, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             Identifier = identifier ?? throw new ArgumentNullException(nameof(identifier));
             _render = render ?? throw new ArgumentNullException(nameof(render));
@@ -20,7 +20,7 @@ namespace Fluid.Parser
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            return _render(this, writer, encoder, context);
+            return _render(Identifier, writer, encoder, context);
         }
     }
 }

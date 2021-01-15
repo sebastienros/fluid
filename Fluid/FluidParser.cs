@@ -14,7 +14,7 @@ using static Parlot.Fluent.Parsers;
 
 namespace Fluid
 {
-    public class FluidParser : IFluidParser
+    public class FluidParser
     {
         public Parser<List<Statement>> Grammar;
         public Dictionary<string, Parser<Statement>> RegisteredTags { get; } = new();
@@ -140,13 +140,16 @@ namespace Fluid
                     return result;
                 });
 
-            // Primary ( | identifer ( ':' (name : value)+ )! ] )*
+            // Primary ( | identifer [ ':' ([name :] value ,)+ )! ] )*
             FilterExpression.Parser = Primary
-                .And(ZeroOrMany(Pipe.SkipAnd(Identifier)
+                .And(ZeroOrMany(
+                    Pipe
+                    .SkipAnd(Identifier)
                     .And(ZeroOrOne(Colon.SkipAnd(
                         Separated(Comma,
-                            OneOf(Primary.Then(static x => new FilterArgument(null, x)),
-                            Identifier.AndSkip(Colon).And(Primary).Then(static x => new FilterArgument(x.Item1.ToString(), x.Item2))
+                            OneOf(
+                                Identifier.AndSkip(Colon).And(Primary).Then(static x => new FilterArgument(x.Item1.ToString(), x.Item2)),
+                                Primary.Then(static x => new FilterArgument(null, x))
                             ))
                         )))
                     ))
@@ -259,7 +262,7 @@ namespace Fluid
                        .AndSkip(AnyCharBefore(TagStart, canBeEmpty: true))
                        .And(ZeroOrMany(
                            TagStart.Then(x => x).AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList))
-                           .Then(x => x.Select(e => new WhenStatement(e.Item2, e.Item3)).ToList()))
+                           .Then(x => x.Select(e => new WhenStatement(e.Item2, e.Item3)).ToArray()))
                        .And(ZeroOrOne(
                            CreateTag("else").SkipAnd(AnyTagsList))
                            .Then(x => x != null ? new ElseStatement(x) : null))
@@ -378,53 +381,34 @@ namespace Fluid
 
         public static Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
 
-        public void RegisterEmptyTag(string tagName, Func<EmptyTagStatement, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
+        public void RegisterEmptyTag(string tagName, Func<TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             RegisteredTags[tagName] = TagEnd.Then<Statement>(x => new EmptyTagStatement(render));
         }
 
-        public void RegisterIdentifierTag(string tagName, Func<IdentifierTagStatement, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
+        public void RegisterIdentifierTag(string tagName, Func<string, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             RegisteredTags[tagName] = Identifier.AndSkip(TagEnd).Then<Statement>(x => new IdentifierTagStatement(x.ToString(), render));
         }
 
-        public void RegisterEmptyBlock(string tagName, Func<EmptyBlockStatement, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
+        public void RegisterEmptyBlock(string tagName, Func<IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             RegisteredTags[tagName] = TagEnd.SkipAnd(AnyTagsList).AndSkip(CreateTag("end" + tagName)).Then<Statement>(x => new EmptyBlockStatement(x, render));
         }
 
-        public void RegisterIdentifierBlock(string tagName, Func<ParserBlockStatement<string>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
+        public void RegisterIdentifierBlock(string tagName, Func<string, IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             RegisterParserBlock(tagName, Identifier, render);
         }
 
-        public void RegisterPrimaryExpressionBlock(string tagName, Func<ParserBlockStatement<Expression>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
+        public void RegisterExpressionBlock(string tagName, Func<Expression, IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             RegisterParserBlock(tagName, Primary, render);
         }
 
-        public void RegisterParserBlock<T>(string tagName, Parser<T> parser, Func<ParserBlockStatement<T>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
+        public void RegisterParserBlock<T>(string tagName, Parser<T> parser, Func<T, IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             RegisteredTags[tagName] = parser.AndSkip(TagEnd).And(AnyTagsList).AndSkip(CreateTag("end" + tagName)).Then<Statement>(x => new ParserBlockStatement<T>(x.Item1, x.Item2, render));
-        }
-
-        public IFluidTemplate Parse(string template)
-        {
-            var context = new FluidParseContext(template);
-
-            var success = Grammar.TryParse(context, out var statements, out var parlotError);
-
-            if (parlotError != null)
-            {
-                throw new ParseException($"{parlotError.Message} at {parlotError.Position}");
-            }
-
-            if (!success)
-            {
-                return null;
-            }
-
-            return new FluidTemplate(statements);
         }
     }
 }

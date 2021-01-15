@@ -8,12 +8,12 @@ namespace Fluid.Ast
 {
     public class CaseStatement : TagStatement
     {
-        private readonly IReadOnlyList<WhenStatement> _whenStatements;
+        private readonly WhenStatement[] _whenStatements;
 
         public CaseStatement(
             Expression expression,
             ElseStatement elseStatement = null,
-            IReadOnlyList<WhenStatement> whenStatements = null
+            WhenStatement[] whenStatements = null
             ) :base (new List<Statement>())
         {
             Expression = expression;

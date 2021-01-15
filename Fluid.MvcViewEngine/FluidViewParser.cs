@@ -11,12 +11,12 @@ namespace Fluid.MvcViewEngine
     {
         public FluidViewParser()
         {
-            RegisterIdentifierTag("rendersection", async (tag, writer, encoder, context) =>
+            RegisterIdentifierTag("rendersection", async (identifier, writer, encoder, context) =>
             {
                 if (context.AmbientValues.TryGetValue("Sections", out var sections))
                 {
                     var dictionary = sections as Dictionary<string, List<Statement>>;
-                    if (dictionary.TryGetValue(tag.Identifier, out var section))
+                    if (dictionary.TryGetValue(identifier, out var section))
                     {
                         foreach (var statement in section)
                         {
@@ -42,21 +42,21 @@ namespace Fluid.MvcViewEngine
                 return Completion.Normal;
             });
 
-            RegisterIdentifierBlock("section", (tag, writer, encoder, context) =>
+            RegisterIdentifierBlock("section", (identifier, statements, writer, encoder, context) =>
             {
                 if (context.AmbientValues.TryGetValue("Sections", out var sections))
                 {
                     var dictionary = sections as Dictionary<string, IReadOnlyList<Statement>>;
-                    dictionary[tag.Value.ToString()] = tag.Statements;
+                    dictionary[identifier] = statements;
                 }
 
                 return new ValueTask<Completion>(Completion.Normal);
             });
 
 
-            RegisterPrimaryExpressionBlock("layout", async (tag, writer, encoder, context) =>
+            RegisterExpressionBlock("layout", async (pathExpression, statements, writer, encoder, context) =>
             {
-                var relativeLayoutPath = (await tag.Value.EvaluateAsync(context)).ToStringValue();
+                var relativeLayoutPath = (await pathExpression.EvaluateAsync(context)).ToStringValue();
                 if (!relativeLayoutPath.EndsWith(FluidViewEngine.ViewExtension, StringComparison.OrdinalIgnoreCase))
                 {
                     relativeLayoutPath += FluidViewEngine.ViewExtension;

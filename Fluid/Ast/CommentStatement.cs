@@ -7,12 +7,14 @@ namespace Fluid.Ast
 {
     public class CommentStatement : Statement
     {
-        public CommentStatement(TextSpan text)
+        private readonly TextSpan _text;
+
+        public CommentStatement(in TextSpan text)
         {
-            Text = text;
+            _text = text;
         }
 
-        public TextSpan Text { get; }
+        public ref readonly TextSpan Text => ref _text;
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {

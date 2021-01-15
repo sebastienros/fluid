@@ -8,7 +8,7 @@ namespace Fluid.Tests
 {
     public class WhiteSpaceTests
     {
-        private static IFluidParser _parser = new FluidParser();
+        private static FluidParser _parser = new FluidParser();
 
         private IReadOnlyList<Statement> Parse(string source)
         {

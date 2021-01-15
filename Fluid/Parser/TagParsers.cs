@@ -36,7 +36,7 @@ namespace Fluid.Parser
         public static Parser<TagResult> OutputTagStart(bool skipWhiteSpace = false) => new OutputTagStartParser(skipWhiteSpace);
         public static Parser<TagResult> OutputTagEnd(bool skipWhiteSpace = false) => new OutputTagEndParser(skipWhiteSpace);
 
-        private class TagStartParser : Parser<TagResult>
+        private sealed class TagStartParser : Parser<TagResult>
         {
             private readonly bool _skipWhiteSpace;
 
@@ -77,7 +77,7 @@ namespace Fluid.Parser
             }
         }
 
-        private class TagEndParser : Parser<TagResult>
+        private sealed class TagEndParser : Parser<TagResult>
         {
             private readonly bool _skipWhiteSpace;
 
@@ -114,7 +114,7 @@ namespace Fluid.Parser
             }
         }
 
-        private class OutputTagStartParser : Parser<TagResult>
+        private sealed class OutputTagStartParser : Parser<TagResult>
         {
             private readonly bool _skipWhiteSpace;
 
@@ -156,7 +156,7 @@ namespace Fluid.Parser
             }
         }
 
-        private class OutputTagEndParser : Parser<TagResult>
+        private sealed class OutputTagEndParser : Parser<TagResult>
         {
             private readonly bool _skipWhiteSpace;
 

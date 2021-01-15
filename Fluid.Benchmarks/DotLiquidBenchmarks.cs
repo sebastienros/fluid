@@ -5,11 +5,11 @@ namespace Fluid.Benchmarks
 {
     public class DotLiquidBenchmarks : BaseBenchmarks
     {
-        private Template _dotLiquidTemplate;
+        private readonly Template _dotLiquidTemplate;
 
         public DotLiquidBenchmarks()
         {
-            _dotLiquidTemplate = Template.Parse(TextTemplate);
+            _dotLiquidTemplate = Template.Parse(ProductTemplate);
             _dotLiquidTemplate.MakeThreadSafe();
         }
 
@@ -28,7 +28,13 @@ namespace Fluid.Benchmarks
 
         public override object Parse()
         {
-            var template = Template.Parse(TextTemplate);
+            var template = Template.Parse(ProductTemplate);
+            return template;
+        }
+
+        public override object ParseBig()
+        {
+            var template = Template.Parse(BlogPostTemplate);
             return template;
         }
 
@@ -40,7 +46,7 @@ namespace Fluid.Benchmarks
 
         public override string ParseAndRender()
         {
-            var template = Template.Parse(TextTemplate);
+            var template = Template.Parse(ProductTemplate);
             var products = MakeProducts();
             return template.Render(products);
         }

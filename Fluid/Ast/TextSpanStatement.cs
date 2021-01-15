@@ -12,7 +12,7 @@ namespace Fluid.Ast
         private readonly object _synLock = new object();
         private TextSpan _text;
 
-        public TextSpanStatement(TextSpan text)
+        public TextSpanStatement(in TextSpan text)
         {
             _text = text;
         }
@@ -35,73 +35,74 @@ namespace Fluid.Ast
             StrippedLeft = true;
         }
 
-        public TextSpan Text => _text;
+        public ref readonly TextSpan Text => ref _text;
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            // Prevent this instance from mutating concurrently
-
             if (!_isStripped)
             {
-                lock (_synLock)
+                var span = _text.Buffer;
+                var start = 0;
+                var end = _text.Length - 1;
+
+                if (StrippedLeft)
                 {
-                    if (!_isStripped)
+                    for (var i = start; i <= end; i++)
                     {
-                        var span = _text.Buffer;
-                        var start = 0;
-                        var end = _text.Length - 1;
+                        var c = span[_text.Offset + i];
 
-                        if (StrippedLeft)
+                        if (Character.IsWhiteSpaceOrNewLine(c))
                         {
-                            for (var i = start; i <= end; i++)
-                            {
-                                var c = span[_text.Offset + i];
+                            start++;
 
-                                if (Character.IsWhiteSpaceOrNewLine(c))
+                            // Read the first CR/LF or LF and stop skipping
+                            if (c == '\r')
+                            {
+                                if (i + 1 <= end && span[_text.Offset + i + 1] == '\n')
                                 {
                                     start++;
-
-                                    // Read the first CR/LF or LF and stop skipping
-                                    if (c == '\r')
-                                    {
-                                        if (i + 1 <= end && span[_text.Offset + i + 1] == '\n')
-                                        {
-                                            start++;
-                                            break;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (c == '\n')
-                                        {
-                                            break;
-                                        }
-                                    }
-                                }
-                                else
-                                {
                                     break;
                                 }
                             }
-                        }
-
-                        if (StrippedRight)
-                        {
-                            for (var i = end; i >= start; i--)
+                            else
                             {
-                                var c = span[_text.Offset + i];
-
-                                if (Character.IsWhiteSpace(c))
-                                {
-                                    end--;
-                                }
-                                else
+                                if (c == '\n')
                                 {
                                     break;
                                 }
                             }
                         }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
 
+                if (StrippedRight)
+                {
+                    for (var i = end; i >= start; i--)
+                    {
+                        var c = span[_text.Offset + i];
+
+                        if (Character.IsWhiteSpace(c))
+                        {
+                            end--;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                // update the current statement with tread-safely since this statements
+                // is shared
+                lock (_synLock)
+                {
+                    // it might have been stripped by another thread while locked
+                    if (!_isStripped)
+                    {
                         if (end - start + 1 == 0)
                         {
                             _isEmpty = true;
@@ -114,9 +115,9 @@ namespace Fluid.Ast
                             _text = new TextSpan(buffer, offset + start, end - start + 1);
                         }
                     }
-                }
 
-                _isStripped = true;
+                    _isStripped = true;
+                }                
             }
 
             if (_isEmpty)

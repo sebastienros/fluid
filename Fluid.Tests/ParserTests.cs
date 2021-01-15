@@ -8,13 +8,36 @@ namespace Fluid.Tests
 {
     public class ParserTests
     {
-        static IFluidParser _parser = new FluidParser();
+        static FluidParser _parser = new FluidParser();
 
         private IReadOnlyList<Statement> Parse(string source)
         {
             _parser.TryParse(source, out var template, out var errors);
             return template.Statements;
         }
+
+        [Fact]
+        public void ShouldFiltersWithNamedArguments()
+        {
+
+            var statements = Parse("{{ a | b: c:1, 'value', d: 3 }}");
+            Assert.Single(statements);
+
+            var outputStatement = statements.First() as OutputStatement;
+            Assert.NotNull(outputStatement);
+
+            var filterExpression = outputStatement.Expression as FilterExpression;
+            Assert.NotNull(filterExpression);
+            Assert.Equal("b", filterExpression.Name);
+
+            var input = filterExpression.Input as MemberExpression;
+            Assert.NotNull(input);
+
+            Assert.Equal("c", filterExpression.Parameters[0].Name);
+            Assert.Null(filterExpression.Parameters[1].Name);
+            Assert.Equal("d", filterExpression.Parameters[2].Name);
+        }
+
 
         [Fact]
         public void ShouldParseText()

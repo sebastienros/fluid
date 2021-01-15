@@ -11,7 +11,7 @@ namespace Fluid.Tests.Extensibility
         {
             var parser = new CustomParser();
 
-            parser.RegisterEmptyTag("hello", (s, w, e, c) =>
+            parser.RegisterEmptyTag("hello", (w, e, c) =>
             {
                 w.Write("Hello World");
 
@@ -32,7 +32,7 @@ namespace Fluid.Tests.Extensibility
             parser.RegisterIdentifierTag("hello", (s, w, e, c) =>
             {
                 w.Write("Hello ");
-                w.Write(s.Identifier);
+                w.Write(s);
 
                 return Statement.Normal;
             });
@@ -51,7 +51,7 @@ namespace Fluid.Tests.Extensibility
             parser.RegisterEmptyBlock("hello", (s, w, e, c) =>
             {
                 w.Write("Hello World");
-                return s.RenderBlockAsync(w, e, c);
+                return s.RenderStatementsAsync(w, e, c);
             });
 
             var template = parser.Parse("{% hello %} hi {%- endhello %}");
@@ -65,11 +65,11 @@ namespace Fluid.Tests.Extensibility
         {
             var parser = new CustomParser();
 
-            parser.RegisterIdentifierBlock("hello", (s, w, e, c) =>
+            parser.RegisterIdentifierBlock("hello", (i, s, w, e, c) =>
             {
                 w.Write("Hello ");
-                w.Write(s.Value.ToString());
-                return s.RenderBlockAsync(w, e, c);
+                w.Write(i);
+                return s.RenderStatementsAsync(w, e, c);
             });
 
             var template = parser.Parse("{% hello test %} hi {%- endhello %}");
@@ -86,7 +86,7 @@ namespace Fluid.Tests.Extensibility
             parser.RegisterEmptyBlock("hello", (s, w, e, c) =>
             {
                 w.Write("Hello World");
-                return s.RenderBlockAsync(w, e, c);
+                return s.RenderStatementsAsync(w, e, c);
             });
 
             parser.TryParse("{% hello %} hi {%- endhello %} {% endhello %}", out var template, out var error);

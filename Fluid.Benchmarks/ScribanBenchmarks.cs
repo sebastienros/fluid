@@ -9,12 +9,17 @@ namespace Fluid.Benchmarks
 
         public ScribanBenchmarks()
         {
-            _scribanTemplate = Template.ParseLiquid(TextTemplate);
+            _scribanTemplate = Template.ParseLiquid(ProductTemplate);
         }
 
         public override object Parse()
         {
-            return _scribanTemplate = Template.ParseLiquid(TextTemplate);
+            return _scribanTemplate = Template.ParseLiquid(ProductTemplate);
+        }
+
+        public override object ParseBig()
+        {
+            return _scribanTemplate = Template.ParseLiquid(BlogPostTemplate);
         }
 
         public override string Render()
@@ -25,7 +30,7 @@ namespace Fluid.Benchmarks
 
         public override string ParseAndRender()
         {
-            var template = Template.ParseLiquid(TextTemplate);
+            var template = Template.ParseLiquid(ProductTemplate);
             var scriptObject = new ScriptObject { { "products", Products } };
             return template.Render(scriptObject);
         }
