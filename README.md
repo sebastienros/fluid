@@ -12,19 +12,19 @@ Fluid is an open-source .NET template engine that is as close as possible to the
 
 ## Features
 
-- Parses and renders Liquid templates.
-- Supports **async** filters, templates can execute database queries more efficiently under load.
+- Very fast Liquid parser and renderer (no-regexp), with few allocations. See [benchmarks](#performance).
+- Secure templates by allow-listing all the available properties in the template. User templates can't break your application.
+- Supports **async** filters. Templates can execute database queries more efficiently under load.
+- Customize filters and tag with your own. Even with complex grammar constructs. See [Customizing tags and blocks](#customizing-tags-and-blocks)
 - Parses templates in a concrete syntax tree that lets you cache, analyze and alter the templates before they are rendered.
 - Register any .NET types and properties, or define **custom handlers** to intercept when a named variable is accessed.
-- Secure templates by white-listing all the available properties in the template.
 
 <br>
 
 ## Contents
 - [Features](#features)
-- [Differences with Liquid](#differences-with-liquid)
 - [Using Fluid in your project](#using-fluid-in-your-project)
-- [White-listing object members](#white-listing-object-members)
+- [Allow-listing object members](#allow-listing-object-members)
 - [Execution limits](#execution-limits)
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
@@ -95,15 +95,17 @@ You can directly reference the [Nuget package](https://www.nuget.org/packages/Fl
 var parser = new FluidParser();
 
 var model = new { Firstname = "Bill", Lastname = "Gates" };
-var source = "Hello {{ p.Firstname }} {{ p.Lastname }}";
+var source = "Hello {{ Firstname }} {{ Lastname }}";
 
-if (parser.TryParse(source, out var template))
+if (parser.TryParse(source, out var template, out var error))
 {   
     var context = new TemplateContext(model);
 
-    context.SetValue("p", model);
-
     Console.WriteLine(template.Render(context));
+}
+else
+{
+    Console.WriteLine($"Error: {error}");
 }
 ```
 
@@ -154,13 +156,13 @@ To create an **async** filter use the `AddAsyncFilter` method instead.
 
 <br>
 
-## White-listing object members
+## Allow-listing object members
 
-Liquid is a secure template language which will only allow a predefined set of members to be accessed. Like filters, this can be done globally to the application  with `GlobalMemberAccessStrategy`, or for each context with `MemberAccessStrategy`. Even if a member is white-listed its value won't be able to be changed.
+Liquid is a secure template language which will only allow a predefined set of members to be accessed. Like filters, this can be done globally to the application with `GlobalMemberAccessStrategy`, or for each context with `MemberAccessStrategy`. Even if a member is allowed its value won't be able to be changed.
 
 > Warning: To prevent concurrency issues you should always register global filters and members in a static constructor. Local ones can be defined at the time of usage.
 
-### White-listing a specific type
+### Allow-listing a specific type
 
 This will allow any public field or property to be read from a template.
 
@@ -168,7 +170,9 @@ This will allow any public field or property to be read from a template.
 TemplateContext.GlobalMemberAccessStrategy.Register<Person>();
 ``` 
 
-### White-listing specific members
+> Note: When passing a model with `new TemplateContext(model)` the type of the `model` object doesnis automatically registered, unless the `registerModelProperties` argument is set to false.
+
+### Allow-listing specific members
 
 This will only allow the specific fields or properties to be read from a template.
 
@@ -483,7 +487,7 @@ public class Startup
 }
 ```
 
-More way to register types and members can be found in the [White-listing object members](#white-listing-object-members) section.
+More way to register types and members can be found in the [Allow-listing object members](#allow-listing-object-members) section.
 
 #### Registering custom tags
 
