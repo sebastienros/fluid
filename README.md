@@ -675,24 +675,42 @@ These object are thread-safe as long as each call to `Render()` uses a dedicated
 
 ### Benchmarks
 
-Fluid is faster and allocates less memory than all other known .NET Liquid parsers.
-
-The performance benchmark application is provided in the source code to compare Fluid, [Scriban](https://github.com/scriban/scriban), [DotLiquid](https://github.com/dotliquid/dotliquid) and [Liquid.NET](https://github.com/mikebridge/Liquid.NET). Run it locally to analyze the time it takes to execute specific templates.
+A benchmark application is provided in the source code to compare Fluid, [Scriban](https://github.com/scriban/scriban), [DotLiquid](https://github.com/dotliquid/dotliquid) and [Liquid.NET](https://github.com/mikebridge/Liquid.NET).
+Run it locally to analyze the time it takes to execute specific templates.
 
 #### Results
 
+Fluid is faster and allocates less memory than all other well-known .NET Liquid parsers.
+For parsing, Fluid is at least 25% faster than Scriban, allocating at least 50% less memory.
+For rendering, Fluid is at least twice as fast as Scriban, allocating 25% less memory.
+Compared to DotLiquid, Fluid is 6 times faster, and allocates 5 times less memory.
+
 ```
-|           Method |         Mean |      StdDev | Ratio |    Gen 0 |    Gen 1 |   Gen 2 |  Allocated |
-|----------------- |-------------:|------------:|------:|---------:|---------:|--------:|-----------:|
-|      Fluid_Parse |     8.514 us |   0.2136 us |  1.00 |   0.6866 |        - |       - |    2.81 KB |
-|    Scriban_Parse |    12.561 us |   0.0212 us |  1.48 |   1.8005 |        - |       - |    7.41 KB |
-|  DotLiquid_Parse |    79.105 us |   0.4495 us |  9.29 |   3.1738 |        - |       - |   13.00 KB |
-|  LiquidNet_Parse |    84.890 us |   0.3220 us |  9.97 |  15.2588 |        - |       - |   62.45 KB |
-|                  |              |             |       |          |          |         |            |
-|     Fluid_Render |   733.077 us |   8.5158 us |  1.00 |  90.8203 |  58.5938 | 30.2734 |   390.8 KB |
-|   Scriban_Render | 1,636.210 us |   9.1829 us |  2.23 |  89.8438 |  66.4063 | 66.4063 |   487.4 KB |
-| DotLiquid_Render | 7,250.548 us | 142.5953 us |  9.89 | 875.0000 | 203.1250 | 23.4375 |  3886.3 KB |
-| LiquidNet_Render | 4,508.587 us |  50.5701 us |  6.15 | 992.1875 | 398.4375 |       - |  5308.6 KB |
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+Intel Core i7-1065G7 CPU 1.30GHz, 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=5.0.200-preview.20601.7
+  [Host]   : .NET Core 5.0.2 (CoreCLR 5.0.220.61120, CoreFX 5.0.220.61120), X64 RyuJIT
+  ShortRun : .NET Core 5.0.2 (CoreCLR 5.0.220.61120, CoreFX 5.0.220.61120), X64 RyuJIT
+
+Job=ShortRun  IterationCount=3  LaunchCount=1
+WarmupCount=3
+
+|             Method |          Mean |      StdDev |  Ratio |     Gen 0 |    Gen 1 |   Gen 2 |   Allocated |
+|------------------- |--------------:|------------:|-------:|----------:|---------:|--------:|------------:|
+|        Fluid_Parse |      6.679 us |   0.0308 us |   1.00 |    0.6790 |        - |       - |     2.77 KB |
+|      Scriban_Parse |      9.616 us |   0.0604 us |   1.44 |    1.8005 |        - |       - |     7.41 KB |
+|    DotLiquid_Parse |     40.317 us |   2.5158 us |   6.04 |    2.6855 |        - |       - |    11.17 KB |
+|    LiquidNet_Parse |     73.474 us |   0.2151 us |  11.00 |   15.1367 |   0.1221 |       - |    62.08 KB |
+|                    |               |             |        |           |          |         |             |
+|     Fluid_ParseBig |     38.491 us |   1.6535 us |   1.00 |    2.8076 |   0.0610 |       - |    11.69 KB |
+|   Scriban_ParseBig |     49.321 us |   0.2074 us |   1.28 |    7.8125 |   1.0986 |       - |    32.05 KB |
+| DotLiquid_ParseBig |    200.725 us |   2.8106 us |   5.22 |   13.1836 |   0.2441 |       - |    54.39 KB |
+| LiquidNet_ParseBig | 24,370.888 us | 813.3676 us | 633.35 | 6812.5000 | 437.5000 |       - | 28557.53 KB |
+|                    |               |             |        |           |          |         |             |
+|       Fluid_Render |    626.010 us |  14.1571 us |   1.00 |   90.8203 |  58.5938 | 30.2734 |   390.80 KB |
+|     Scriban_Render |  1,228.026 us |  15.3122 us |   1.96 |   99.6094 |  66.4063 | 66.4063 |   487.43 KB |
+|   DotLiquid_Render |  5,403.001 us |  20.3199 us |   8.63 |  859.3750 | 171.8750 | 23.4375 |  3879.14 KB |
+|   LiquidNet_Render |  3,339.111 us |  21.0156 us |   5.34 | 1000.0000 | 390.6250 |       - |  5324.50 KB |
 ```
 
 Tested with 
@@ -702,12 +720,9 @@ Tested with
 
 ##### Legend
 
-- Parse sample: Parses a sample HTML template containing filters and properties
-- Render sample: Renders a parsed HTML template containing filters and properties
-- Parse and render sample: Parses and renders a sample HTML template containing filters and properties
-- Render simple output tag: Renders a single tag outputting a string property
-- Parse 8KB Lorem Ipsum: Parses 8KB of Lorem Ipsum text containing no tags to exercise the parser on long and simple texts (Not displayed for Liquid.NET as it takes too long to fit in the chart).
-- Render 1KB Lorem Simple Output: Parses and render 1KB of Lorem Ipsum text containing no tags
+- Parse: Parses a simple HTML template containing filters and properties
+- ParseBig: Parses a Blog Post template.
+- Render: Renders a simple HTML template containing filters and properties, with 500 products.
 
 ## Used by
 
