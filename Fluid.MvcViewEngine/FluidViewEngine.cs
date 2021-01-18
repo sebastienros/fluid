@@ -12,7 +12,7 @@ namespace Fluid.MvcViewEngine
     public class FluidViewEngine : IFluidViewEngine
     {
         private IFluidRendering _fluidRendering;
-        private readonly IHostingEnvironment _hostingEnvironment;
+        private readonly IWebHostEnvironment _hostingEnvironment;
         public static readonly string ViewExtension = ".liquid";
         private const string ControllerKey = "controller";
         private const string AreaKey = "area";
@@ -20,7 +20,7 @@ namespace Fluid.MvcViewEngine
 
         public FluidViewEngine(IFluidRendering fluidRendering,
             IOptions<FluidViewEngineOptions> optionsAccessor,
-            IHostingEnvironment hostingEnvironment)
+            IWebHostEnvironment hostingEnvironment)
         {
             _options = optionsAccessor.Value;
             _fluidRendering = fluidRendering;

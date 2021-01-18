@@ -33,7 +33,7 @@ namespace Fluid.MvcViewEngine
         public FluidRendering(
             IMemoryCache memoryCache,
             IOptions<FluidViewEngineOptions> optionsAccessor,
-            IHostingEnvironment hostingEnvironment)
+            IWebHostEnvironment hostingEnvironment)
         {
             _memoryCache = memoryCache;
             _hostingEnvironment = hostingEnvironment;
@@ -43,7 +43,7 @@ namespace Fluid.MvcViewEngine
         }
 
         private readonly IMemoryCache _memoryCache;
-        private readonly IHostingEnvironment _hostingEnvironment;
+        private readonly IWebHostEnvironment _hostingEnvironment;
         private readonly FluidViewEngineOptions _options;
 
         public async ValueTask<string> RenderAsync(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
@@ -61,7 +61,7 @@ namespace Fluid.MvcViewEngine
             // Provide some services to all statements
             context.AmbientValues["FileProvider"] = fileProvider;
             context.AmbientValues[ViewPath] = path;
-            context.AmbientValues["Sections"] = new Dictionary<string, List<Statement>>();
+            context.AmbientValues["Sections"] = new Dictionary<string, IReadOnlyList<Statement>>();
             context.FileProvider = new FileProviderMapper(fileProvider, "Views");
 
             var body = await template.RenderAsync(context, _options.TextEncoder);

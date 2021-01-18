@@ -1,8 +1,6 @@
-﻿using Fluid.Ast;
+﻿#if !NETCOREAPP2_1
+using Fluid.Ast;
 using Fluid.MvcViewEngine;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Xunit;
 
 namespace Fluid.Tests.MvcViewEngine
@@ -45,3 +43,4 @@ This is the footer
         }
     }
 }
+#endif
