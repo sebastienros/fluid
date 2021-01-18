@@ -2,13 +2,13 @@ name: Build
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
     paths-ignore:
     - 'doc/**'
     - 'readme.md'
 
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
     paths-ignore:
     - 'doc/**'
     - 'readme.md'
