@@ -401,10 +401,10 @@ namespace Fluid.Tests
         [InlineData("", "", "", "0")]
         [InlineData(123456, "", "", "123456")]
         [InlineData(123456.00, "", "en-US", "123456")]
-        [InlineData(123456.00, "N", "en-US", "123,456.00")]
-        [InlineData(123456.00, "C", "en-US", "$123,456.00")]
-        [InlineData(123456.00, "C", "fr-FR", "123 456,00 €")]
-        [InlineData("123456.00", "C", "fr-FR", "123 456,00 €")]
+        [InlineData(123456.00, "N2", "en-US", "123,456.00")]
+        [InlineData(123456.00, "C2", "en-US", "$123,456.00")]
+        [InlineData(123456.00, "C2", "fr-FR", "123 456,00 €")]
+        [InlineData("123456.00", "C2", "fr-FR", "123 456,00 €")]
         public void FormatNumber(object input, string format, string culture, string expected)
         {
             var cultureInfo = String.IsNullOrEmpty(culture)
@@ -424,7 +424,7 @@ namespace Fluid.Tests
         [InlineData("", new object[] { 123 }, "", "")]
         [InlineData("{0}", new object[] { 123 }, "", "123")]
         [InlineData("hello {0}", new object[] { "world", 123 }, "", "hello world")]
-        [InlineData("{0:C} {1:N2}", new object[] { 123, 456 }, "fr-FR", "123,00 € 456,00")]
+        [InlineData("{0:C2} {1:N2}", new object[] { 123, 456 }, "fr-FR", "123,00 € 456,00")]
         public void FormatString(object input, object[] args, string culture, string expected)
         {
             var cultureInfo = String.IsNullOrEmpty(culture)
