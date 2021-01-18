@@ -11,7 +11,7 @@ namespace Fluid.MvcViewEngine
     {
         public FluidViewParser()
         {
-            RegisterIdentifierTag("rendersection", async (identifier, writer, encoder, context) =>
+            RegisterIdentifierTag("rendersection", static async (identifier, writer, encoder, context) =>
             {
                 if (context.AmbientValues.TryGetValue("Sections", out var sections))
                 {
@@ -28,7 +28,7 @@ namespace Fluid.MvcViewEngine
                 return Completion.Normal;
             });
 
-            RegisterIdentifierTag("renderbody", async (tag, writer, encoder, context) =>
+            RegisterIdentifierTag("renderbody", static async (tag, writer, encoder, context) =>
             {
                 if (context.AmbientValues.TryGetValue("Body", out var body))
                 {
@@ -42,7 +42,7 @@ namespace Fluid.MvcViewEngine
                 return Completion.Normal;
             });
 
-            RegisterIdentifierBlock("section", (identifier, statements, writer, encoder, context) =>
+            RegisterIdentifierBlock("section", static (identifier, statements, writer, encoder, context) =>
             {
                 if (context.AmbientValues.TryGetValue("Sections", out var sections))
                 {
@@ -54,7 +54,7 @@ namespace Fluid.MvcViewEngine
             });
 
 
-            RegisterExpressionBlock("layout", async (pathExpression, statements, writer, encoder, context) =>
+            RegisterExpressionBlock("layout", static async (pathExpression, statements, writer, encoder, context) =>
             {
                 var relativeLayoutPath = (await pathExpression.EvaluateAsync(context)).ToStringValue();
                 if (!relativeLayoutPath.EndsWith(FluidViewEngine.ViewExtension, StringComparison.OrdinalIgnoreCase))

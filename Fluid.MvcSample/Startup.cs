@@ -20,7 +20,7 @@ namespace Fluid.MvcSample
         public void ConfigureServices(IServiceCollection services)
         {
             services.Configure<FluidViewEngineOptions>(x => x.Parser = p => 
-                p.RegisterEmptyBlock("mytag", async (s, w, e, c) =>
+                p.RegisterEmptyBlock("mytag", static async (s, w, e, c) =>
                 {
                     await w.WriteAsync("Hello from MyTag");
 

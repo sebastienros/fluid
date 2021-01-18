@@ -48,7 +48,7 @@ namespace Fluid.Tests.Extensibility
         {
             var parser = new CustomParser();
 
-            parser.RegisterEmptyBlock("hello", (s, w, e, c) =>
+            parser.RegisterEmptyBlock("hello", static (s, w, e, c) =>
             {
                 w.Write("Hello World");
                 return s.RenderStatementsAsync(w, e, c);
@@ -83,7 +83,7 @@ namespace Fluid.Tests.Extensibility
         {
             var parser = new CustomParser();
 
-            parser.RegisterEmptyBlock("hello", (s, w, e, c) =>
+            parser.RegisterEmptyBlock("hello", static (s, w, e, c) =>
             {
                 w.Write("Hello World");
                 return s.RenderStatementsAsync(w, e, c);

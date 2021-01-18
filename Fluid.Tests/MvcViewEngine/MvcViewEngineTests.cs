@@ -30,7 +30,7 @@ This is the footer
 ";
             var parser = new FluidViewParser();
 
-            parser.RegisterEmptyBlock("mytag", async (s, w, e, c) =>
+            parser.RegisterEmptyBlock("mytag", static async (s, w, e, c) =>
             {
                 await w.WriteAsync("Hello from MyTag");
 
