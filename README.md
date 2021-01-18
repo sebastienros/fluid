@@ -169,7 +169,7 @@ This will allow any public field or property to be read from a template.
 TemplateContext.GlobalMemberAccessStrategy.Register<Person>();
 ``` 
 
-> Note: When passing a model with `new TemplateContext(model)` the type of the `model` object doesnis automatically registered, unless the `registerModelProperties` argument is set to false.
+> Note: When passing a model with `new TemplateContext(model)` the type of the `model` object is automatically registered unless the `registerModelProperties` argument is set to `false`.
 
 ### Allow-listing specific members
 
