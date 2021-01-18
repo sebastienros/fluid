@@ -344,7 +344,7 @@ a
 {% endfor %}");
             Assert.Single(statements);
             var text = ((ForStatement)statements[0]).Statements[0] as TextStatement;
-            Assert.Equal("a\r\n", text.Text.ToString());
+            Assert.Equal($"a{Environment.NewLine}", text.Text.ToString());
         }
 
         [Fact]

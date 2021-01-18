@@ -345,14 +345,8 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData(@"
-            {%cycle 'a', 'b'%}
-            {%cycle 'a', 'b'%}
-            {%cycle 'a', 'b'%}", "\r\naba")]
-        [InlineData(@"
-            {%cycle x:'a', 'b'%}
-            {%cycle 'a', 'b'%}
-            {%cycle x:'a', 'b'%}", "\r\naab")]
+        [InlineData(@"{%cycle 'a', 'b'%}{%cycle 'a', 'b'%}{%cycle 'a', 'b'%}", "aba")]
+        [InlineData(@"{%cycle x:'a', 'b'%}{%cycle 'a', 'b'%}{%cycle x:'a', 'b'%}", "aab")]
         public Task ShouldEvaluateCycleStatement(string source, string expected)
         {
             return CheckAsync(source, expected, ctx => { ctx.SetValue("x", 3); });
