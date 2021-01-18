@@ -9,7 +9,7 @@ namespace Fluid.Ast
     {
         private bool _isStripped = false;
         private bool _isEmpty = false;
-        private readonly object _synLock = new object();
+        private readonly object _synLock = new ();
         private TextSpan _text;
 
         public TextSpanStatement(in TextSpan text)
@@ -128,8 +128,11 @@ namespace Fluid.Ast
             context.IncrementSteps();
 
             // The Text fragments are not encoded, but kept as-is
+#if NETSTANDARD2_0
+            writer.Write(_text.ToString());
+#else
             writer.Write(_text.Span);
-
+#endif
             return Normal;
         }
     }
