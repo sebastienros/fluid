@@ -5,8 +5,6 @@
     <Title>Fluid Template Engine</Title>
     <Description>Fluid is a template engine based on the Liquid markup, with focus on performance and .NET programming patterns.</Description>
     <PackageTags>fluid;liquid;template;view engine</PackageTags>
-    <VersionPrefix>1.0.0</VersionPrefix>
-    <VersionSuffix>beta</VersionSuffix>
     <PackageIcon>logo_64x64.png</PackageIcon>
   </PropertyGroup>
 
@@ -14,7 +12,6 @@
     <None Include="../Assets/logo_64x64.png" Pack="true" Visible="false" PackagePath=""/>
   </ItemGroup>
 
-  <!-- Called after so that the <VersionSuffix> is built after the local ones -->
   <Import Project="../Common.props"/>
 
 </Project>

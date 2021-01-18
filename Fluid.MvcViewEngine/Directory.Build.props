@@ -3,11 +3,8 @@
   <PropertyGroup>
     <PackageId>Fluid.MvcViewEngine</PackageId>
     <Description>Fluid.MvcViewEngine is a view engine for ASP.NET Core MVC based on the Liquid markup.</Description>
-    <VersionPrefix>1.0.0</VersionPrefix>
-    <VersionSuffix>alpha</VersionSuffix>
   </PropertyGroup>
 
-  <!-- Called after so that the <VersionSuffix> is built after the local ones -->
   <Import Project="../Common.props"/>
 
 </Project>

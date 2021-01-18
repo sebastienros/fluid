@@ -15,7 +15,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.MvcViewEngine", "Flui
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{BE5EF08E-5F79-4BBA-BA72-F4E26E281125}"
 	ProjectSection(SolutionItems) = preProject
-		appveyor.yml = appveyor.yml
 		.github\workflows\build.yml = .github\workflows\build.yml
 		Common.props = Common.props
 		CREDITS.md = CREDITS.md
