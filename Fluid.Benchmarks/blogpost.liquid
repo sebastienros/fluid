@@ -1,0 +1,34 @@
+﻿<!-- Page Header -->
+<!-- Set your background image for this header on the line below. -->
+{% assign imagePath = Model.ContentItem.Content.BlogPost.Image.Paths.first %}
+{% if imagePath == nil %}
+    <header class="masthead" style="background-image: url('{{ "~/TheBlogTheme/img/post-bg.jpg" | href }}')">
+{% else %}
+    {% assign anchor = Model.ContentItem.Content.BlogPost.Image.Anchors.first %}
+    <header class="masthead" style="background-image: url('{{ imagePath | asset_url | resize_url: profile:"banner", anchor: anchor }}')">
+{% endif %}
+    <div class="overlay"></div>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-md-10 mx-auto">
+                <div class="post-heading">
+                    <h1>{{ Model.ContentItem.DisplayText }}</h1>
+                    <h2 class="subheading">{{ Model.ContentItem.Content.BlogPost.Subtitle.Text }}</h2>
+                    <span class="meta">
+                        {% assign format = "MMMM dd, yyyy" | t %}
+                        {% assign dateTime = "DateTime" | shape_new: utc: Model.ContentItem.CreatedUtc, format: format | shape_stringify %}
+                        {{ "Posted by" | t }} <a href="#">{{ Model.ContentItem.Author }}</a> {{ "on [0]" | t: dateTime | raw }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="collapse navbar-collapse" id="navbarResponsive">
+    <ul class="navbar-nav ml-auto">
+        {% for item in Model.Items %}
+        {{ item | shape_render }}
+        {% endfor %}
+    </ul>
+</div>

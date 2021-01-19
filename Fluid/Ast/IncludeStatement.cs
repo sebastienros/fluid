@@ -9,9 +9,11 @@ namespace Fluid.Ast
     public class IncludeStatement : Statement
     {
         public const string ViewExtension = ".liquid";
+        private readonly FluidParser _parser;
 
-        public IncludeStatement(Expression path, Expression with = null, IList<AssignStatement> assignStatements = null)
+        public IncludeStatement(FluidParser parser, Expression path, Expression with = null, IList<AssignStatement> assignStatements = null)
         {
+            _parser = parser;
             Path = path;
             With = with;
             AssignStatements = assignStatements;
@@ -47,10 +49,9 @@ namespace Fluid.Ast
                 context.EnterChildScope();
 
                 string partialTemplate = await streamReader.ReadToEndAsync();
-                var parser = CreateParser(context);
-                if (parser.TryParse(partialTemplate, true, out var statements, out var errors))
+
+                if (_parser.TryParse(partialTemplate, out var result, out var errors))
                 {
-                    var template = CreateTemplate(context, statements);
                     if (With != null)
                     {
                         var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
@@ -66,36 +67,17 @@ namespace Fluid.Ast
                         }
                     }
 
-                    await template.RenderAsync(writer, encoder, context);
+                    await result.RenderAsync(writer, encoder, context);
                 }
                 else
                 {
-                    throw new Exception(String.Join(Environment.NewLine, errors));
+                    throw new ParseException(errors);
                 }
 
                 context.ReleaseScope();
             }
 
             return Completion.Normal;
-        }
-
-        private static IFluidParser CreateParser(TemplateContext context)
-        {
-            return context.ParserFactory != null
-                ? context.ParserFactory.CreateParser()
-                : FluidTemplate.Factory.CreateParser()
-                ;
-        }
-
-        private static IFluidTemplate CreateTemplate(TemplateContext context, List<Statement> statements)
-        {
-            IFluidTemplate template = context.TemplateFactory != null 
-                ? context.TemplateFactory()
-                : new FluidTemplate()
-                ;
-
-            template.Statements = statements;
-            return template;
         }
     }
 }

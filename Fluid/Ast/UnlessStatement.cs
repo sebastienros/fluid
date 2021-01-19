@@ -22,9 +22,9 @@ namespace Fluid.Ast
 
             if (!result)
             {
-                for (var i = 0; i < Statements.Count; i++)
+                for (var i = 0; i < _statements.Count; i++)
                 {
-                    var statement = Statements[i];
+                    var statement = _statements[i];
                     var completion = await statement.WriteToAsync(writer, encoder, context);
 
                     if (completion != Completion.Normal)

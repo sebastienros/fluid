@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -7,16 +9,21 @@ namespace Fluid.Ast
     {
         public MemberExpression(params MemberSegment[] segments)
         {
+            Segments = segments.ToList();
+        }
+
+        public MemberExpression(List<MemberSegment> segments)
+        {
             Segments = segments;
         }
 
-        public MemberSegment[] Segments { get; }
+        public List<MemberSegment> Segments { get; }
 
         public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
             FluidValue value = null;
 
-            for (var i = 0; i < Segments.Length; i++)
+            for (var i = 0; i < Segments.Count; i++)
             {
                 var s = Segments[i];
                 var task = value == null
@@ -42,11 +49,11 @@ namespace Fluid.Ast
         private static async ValueTask<FluidValue> Awaited(
             ValueTask<FluidValue> task,
             TemplateContext context,
-            MemberSegment[] segments,
+            List<MemberSegment> segments,
             int startIndex)
         {
             var value = await task;
-            for (var i = startIndex; i < segments.Length; i++)
+            for (var i = startIndex; i < segments.Count; i++)
             {
                 var s = segments[i];
                 value = await (value == null

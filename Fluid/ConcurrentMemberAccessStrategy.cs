@@ -6,7 +6,7 @@ namespace Fluid
 {
     public class ConcurrentMemberAccessStrategy : IMemberAccessStrategy
     {
-        private ConcurrentDictionary<Type, ConcurrentDictionary<string, IMemberAccessor>> _map;
+        private readonly ConcurrentDictionary<Type, ConcurrentDictionary<string, IMemberAccessor>> _map;
 
         public ConcurrentMemberAccessStrategy()
         {

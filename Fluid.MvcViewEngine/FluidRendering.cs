@@ -1,5 +1,6 @@
 ﻿using Fluid.Ast;
 using Fluid.MvcViewEngine.Internal;
+using Fluid.Parser;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -21,7 +22,7 @@ namespace Fluid.MvcViewEngine
     {
         private const string ViewStartFilename = "_ViewStart.liquid";
         public const string ViewPath = "ViewPath";
-        private static readonly Func<IFluidTemplate> FluidTemplateFactory = () => new FluidViewTemplate();
+        private static readonly FluidViewParser _parser = new FluidViewParser();
 
         static FluidRendering()
         {
@@ -32,16 +33,18 @@ namespace Fluid.MvcViewEngine
         public FluidRendering(
             IMemoryCache memoryCache,
             IOptions<FluidViewEngineOptions> optionsAccessor,
-            IHostingEnvironment hostingEnvironment)
+            IWebHostEnvironment hostingEnvironment)
         {
             _memoryCache = memoryCache;
             _hostingEnvironment = hostingEnvironment;
             _options = optionsAccessor.Value;
+
+            _options.Parser?.Invoke(_parser);
         }
 
         private readonly IMemoryCache _memoryCache;
-        private readonly IHostingEnvironment _hostingEnvironment;
-        private FluidViewEngineOptions _options;
+        private readonly IWebHostEnvironment _hostingEnvironment;
+        private readonly FluidViewEngineOptions _options;
 
         public async ValueTask<string> RenderAsync(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
         {
@@ -58,9 +61,7 @@ namespace Fluid.MvcViewEngine
             // Provide some services to all statements
             context.AmbientValues["FileProvider"] = fileProvider;
             context.AmbientValues[ViewPath] = path;
-            context.AmbientValues["Sections"] = new Dictionary<string, List<Statement>>();
-            context.ParserFactory = FluidViewTemplate.Factory;
-            context.TemplateFactory = FluidTemplateFactory;
+            context.AmbientValues["Sections"] = new Dictionary<string, IReadOnlyList<Statement>>();
             context.FileProvider = new FileProviderMapper(fileProvider, "Views");
 
             var body = await template.RenderAsync(context, _options.TextEncoder);
@@ -106,7 +107,7 @@ namespace Fluid.MvcViewEngine
             return viewStarts;
         }
 
-        public FluidViewTemplate ParseLiquidFile(string path, IFileProvider fileProvider, bool includeViewStarts)
+        public IFluidTemplate ParseLiquidFile(string path, IFileProvider fileProvider, bool includeViewStarts)
         {
             return _memoryCache.GetOrCreate(path, viewEntry =>
             {
@@ -140,15 +141,16 @@ namespace Fluid.MvcViewEngine
                 {
                     using (var sr = new StreamReader(stream))
                     {
-                        if (FluidViewTemplate.TryParse(sr.ReadToEnd(), out var template, out var errors))
+                        var fileContent = sr.ReadToEnd();
+                        if (_parser.TryParse(fileContent, out var template, out var errors))
                         {
                             statements.AddRange(template.Statements);
-                            template.Statements = statements;
-                            return template;
+
+                            return new FluidTemplate(statements);
                         }
                         else
                         {
-                            throw new Exception(String.Join(Environment.NewLine, errors));
+                            throw new ParseException(errors);
                         }
                     }
                 }

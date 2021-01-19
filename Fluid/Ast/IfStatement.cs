@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
@@ -8,6 +8,8 @@ namespace Fluid.Ast
 {
     public class IfStatement : TagStatement
     {
+        private readonly List<ElseIfStatement> _elseIfStatements;
+
         public IfStatement(
             Expression condition,
             List<Statement> statements,
@@ -17,15 +19,13 @@ namespace Fluid.Ast
         {
             Condition = condition;
             Else = elseStatement;
-            ElseIfs = elseIfStatements;
+            _elseIfStatements = elseIfStatements ?? new List<ElseIfStatement>();
         }
 
         public Expression Condition { get; }
         public ElseStatement Else { get; }
 
-        public List<ElseIfStatement> ElseIfs { [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get; private set;
-        }
+        public IReadOnlyList<ElseIfStatement> ElseIfs => _elseIfStatements;
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -33,9 +33,9 @@ namespace Fluid.Ast
 
             if (result)
             {
-                for (var i = 0; i < Statements.Count; i++)
+                for (var i = 0; i < _statements.Count; i++)
                 {
-                    var statement = Statements[i];
+                    var statement = _statements[i];
                     var completion = await statement.WriteToAsync(writer, encoder, context);
 
                     if (completion != Completion.Normal)
@@ -50,15 +50,12 @@ namespace Fluid.Ast
             }
             else
             {
-                if (ElseIfs != null)
+                for (var i = 0; i < _elseIfStatements.Count; i++)
                 {
-                    for (var i = 0; i < ElseIfs.Count; i++)
+                    var elseIf = _elseIfStatements[i];
+                    if ((await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue())
                     {
-                        var elseIf = ElseIfs[i];
-                        if ((await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue())
-                        {
-                            return await elseIf.WriteToAsync(writer, encoder, context);
-                        }
+                        return await elseIf.WriteToAsync(writer, encoder, context);
                     }
                 }
 

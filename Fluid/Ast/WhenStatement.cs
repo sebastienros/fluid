@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
@@ -8,23 +8,21 @@ namespace Fluid.Ast
 {
     public class WhenStatement : TagStatement
     {
-        public WhenStatement(List<Expression> options, List<Statement> statements) : base(statements)
+        private readonly IReadOnlyList<Expression> _options;
+
+        public WhenStatement(IReadOnlyList<Expression> options, List<Statement> statements) : base(statements)
         {
-            Options = options;
+            _options = options ?? Array.Empty<Expression>();
         }
 
-        public List<Expression> Options 
-        { 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get; 
-        }
+        public IReadOnlyList<Expression> Options => _options;
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             // Process statements until next block or end of statements
-            for (var index = 0; index < Statements.Count; index++)
+            for (var index = 0; index < _statements.Count; index++)
             {
-                var completion = await Statements[index].WriteToAsync(writer, encoder, context);
+                var completion = await _statements[index].WriteToAsync(writer, encoder, context);
 
                 if (completion != Completion.Normal)
                 {

@@ -11,19 +11,19 @@ Fluid is an open-source .NET template engine that is as close as possible to the
 
 ## Features
 
-- Parses and renders Liquid templates.
-- Supports **async** filters, templates can execute database queries more efficiently under load.
-- Parses templates in an intermediate **AST** that lets you analyze and alter the templates before they are rendered. You can also cache them to get even better performance.
+- Very fast Liquid parser and renderer (no-regexp), with few allocations. See [benchmarks](#performance).
+- Secure templates by allow-listing all the available properties in the template. User templates can't break your application.
+- Supports **async** filters. Templates can execute database queries more efficiently under load.
+- Customize filters and tag with your own. Even with complex grammar constructs. See [Customizing tags and blocks](#customizing-tags-and-blocks)
+- Parses templates in a concrete syntax tree that lets you cache, analyze and alter the templates before they are rendered.
 - Register any .NET types and properties, or define **custom handlers** to intercept when a named variable is accessed.
-- Secure by white-listing all the available properties in the template.
 
 <br>
 
 ## Contents
 - [Features](#features)
-- [Differences with Liquid](#differences-with-liquid)
 - [Using Fluid in your project](#using-fluid-in-your-project)
-- [White-listing object members](#white-listing-object-members)
+- [Allow-listing object members](#allow-listing-object-members)
 - [Execution limits](#execution-limits)
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
@@ -35,19 +35,6 @@ Fluid is an open-source .NET template engine that is as close as possible to the
 - [Used by](#used-by)
 
 <br>
-
-## Differences with Liquid
-
-### Optional default parameters for custom filters
-In Fluid a **Filter** doesn't need to have a default parameter, you can name all of them.
-
-```Liquid
-{% assign customers = 'allcustomers' | query: limit:10 %}
-```
-
-### Whitespace
-
-Fluid will automatically maintain the whitespaces from the original template and won't inject extra lines where tags are used. This means that templates don't need to add extra `-%}` to the end of their tags to maintain consistent whitespaces. However it's supported and will be applied on output tags when used.
 
 #### Source
 
@@ -104,21 +91,37 @@ You can directly reference the [Nuget package](https://www.nuget.org/packages/Fl
 #### Source
 
 ```csharp
-var model = new { Firstname = "Bill", Lastname = "Gates" };
-var source = "Hello {{ p.Firstname }} {{ p.Lastname }}";
+var parser = new FluidParser();
 
-if (FluidTemplate.TryParse(source, out var template))
+var model = new { Firstname = "Bill", Lastname = "Gates" };
+var source = "Hello {{ Firstname }} {{ Lastname }}";
+
+if (parser.TryParse(source, out var template, out var error))
 {   
     var context = new TemplateContext(model);
 
-    context.SetValue("p", model);
-
     Console.WriteLine(template.Render(context));
+}
+else
+{
+    Console.WriteLine($"Error: {error}");
 }
 ```
 
 #### Result
 `Hello Bill Gates`
+
+### Thread-safety
+
+A `FluidParser` instance is thread-safe, and should be shared by the whole application. A common pattern is declare the parser in a local static variable:
+
+```c#
+    private static readonly FluidParser _parser = new FluidParser();
+```
+
+A `IFluidTemplate` instance is thread-safe and can be cached and reused by multiple threads concurrently.
+
+A `TemplateContext` instance is __not__ thread-safe and an instance should be created every time an `IFluidTemplate` instance is used.
 
 <br>
 
@@ -152,13 +155,13 @@ To create an **async** filter use the `AddAsyncFilter` method instead.
 
 <br>
 
-## White-listing object members
+## Allow-listing object members
 
-Liquid is a secure template language which will only allow a predefined set of members to be accessed. Like filters, this can be done globally to the application  with `GlobalMemberAccessStrategy`, or for each context with `MemberAccessStrategy`. Even if a member is white-listed its value won't be able to be changed.
+Liquid is a secure template language which will only allow a predefined set of members to be accessed. Like filters, this can be done globally to the application with `GlobalMemberAccessStrategy`, or for each context with `MemberAccessStrategy`. Even if a member is allowed its value won't be able to be changed.
 
 > Warning: To prevent concurrency issues you should always register global filters and members in a static constructor. Local ones can be defined at the time of usage.
 
-### White-listing a specific type
+### Allow-listing a specific type
 
 This will allow any public field or property to be read from a template.
 
@@ -166,7 +169,9 @@ This will allow any public field or property to be read from a template.
 TemplateContext.GlobalMemberAccessStrategy.Register<Person>();
 ``` 
 
-### White-listing specific members
+> Note: When passing a model with `new TemplateContext(model)` the type of the `model` object is automatically registered unless the `registerModelProperties` argument is set to `false`.
+
+### Allow-listing specific members
 
 This will only allow the specific fields or properties to be read from a template.
 
@@ -368,107 +373,76 @@ Tuesday, August 1, 2017
 ## Customizing tags and blocks
 
 Fluid's grammar can be modified to accept any new tags and blocks with 
-any custom parameters. It is even possible to use different grammars in 
-the same application.
+any custom parameters. The parser is based on [Parlot](https://github.com/sebastienros/parlot) 
+which makes it completely extensible.
 
 Unlike blocks, tags don't have a closing element (e.g., `cycle`, `increment`).
 A closing element will match the name of the opening tag with and `end` suffix, like `endfor`.
 Blocks are useful when manipulating a section of a a template as a set of statements.
 
-To create a custom tag or block it is necessary to create a class implementing the `ITag` interface,
-or for most common cases to just inherit from some of the available base classes.
+Fluid provides helper method to register common tags and blocks. All tags and block always start with an __identifier__ that is
+the tag name.
 
+Each custom tag needs to provide a delegate that is evaluated when the tag is matched. Each degate will be able to use these properties:
 
-### Creating a custom tag
+- `writer`, a `TextWriter` instance that is used to render some text.
+- `encode`, a `TextEncoder` instance, like `HtmlEncoder`, or `NullEncoder`. It's defined by the caller of the template.
+- `context`, a `TemplateContext` instance.
 
-Custom tags can use these base types:
-- `SimpleTag`: Tag with no parameter, like `{% renderbody %}`
-- `IdentifierTag`: Tag taking an identifier as parameter, like `{% increment my_variable %}`
-- `ExpressionTag`: Tag taking an expression as parameter, like `{% layout template | default: 'layout' %}`
-- `ArgumentsTag`: Tag taking a list of arguments as parameter, like `{% display 'default', arg1: 1 + 1 %}`
-- `ITag`: Tag that can define any custom grammar.
+### Registering a custom tag
+
+- __Empty__: Tag with no parameter, like `{% renderbody %}`
+- __Identifier__: Tag taking an identifier as parameter, like `{% increment my_variable %}`
 
 Here are some examples:
+
 #### Source
 
 ```csharp
-public class QuoteTag : ExpressionTag
+parser.RegisterIdentifierTag("hello", (identifier, writer, encoder, context) =>
 {
-  public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression)
-  {
-    var value = (await expression.EvaluateAsync(context)).ToStringValue();
-    await writer.WriteAsync("'" + value + "'");
-    
-    return Completion.Normal;
-  }
-}
+    writer.Write("Hello ");
+    writer.Write(identifier);
+});
 ```
+
 ```Liquid
-{% quote 5 + 11 %}
+{% hello you %}
 ```
 
 #### Result
 ```html
-'16'
+Hello you
 ```
 
 ### Creating a custom block
 
-Blocks are created the same way as tags, with these classes: `SimpleBlock`, `IdentifierBlock`, `ExpressionBlock`, `ArgumentsBlock` or `ITag`.
+Blocks are created the same way as tags, and the lambda expression can then access the list of statements inside the block.
 
 #### Source
 
+
 ```csharp
-public class RepeatBlock : ExpressionBlock
+
+parser.RegisterExpressionBlock("repeat", (value, statements, writer, encoder, context) =>
 {
-  public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context, Expression expression, IList<Statements> statements)
-  {
-    var value = (await expression.EvaluateAsync(context)).ToNumberValue();
-    for (var i=0; i < value; i++)
+    for (var i = 0; i < value.ToNumber(); i++)
     {
-      await RenderStatementsAsync(writer, encoder, context, statements);
+      await return statements.RenderStatementsAsync(writer, encoder, context);
     }
 
     return Completion.Normal;
-  }
-}
+});
 ```
 
 ```Liquid
-{% repeat 1 + 2 %}Hi! {% endrepeat %}
+{% repeat 1 | plus: 2 %}Hi! {% endrepeat %}
 ```
 
 #### Result
 ```html
 Hi! Hi! Hi!
 ```
-
-### Defining a new template type
-
-To prevent your customization from altering the default Liquid syntax, it is recommended to 
-create a custom template type. 
-
-#### Source
-```csharp
-using Fluid;
-
-public class MyFluidTemplate : BaseFluidTemplate<MyFluidTemplate>
-{
-  static MyFluidTemplate()
-  {
-      Factory.RegisterTag<QuoteTag>("quote");
-      Factory.RegisterBlock<RepeatBlock>("repeat");
-  }
-}
-```
-
-```csharp
-MyFluidTemplate.TryParse(source, out var template);
-```
-
-### Examples
-
-To see a complete example of a customized Fluid grammar, look at this class: [CustomGrammarTests](https://github.com/sebastienros/fluid/blob/dev/Fluid.Tests/CustomGrammarTests.cs)
 
 <br>
 
@@ -512,7 +486,7 @@ public class Startup
 }
 ```
 
-More way to register types and members can be found in the [White-listing object members](#white-listing-object-members) section.
+More way to register types and members can be found in the [Allow-listing object members](#allow-listing-object-members) section.
 
 #### Registering custom tags
 
@@ -704,20 +678,54 @@ These object are thread-safe as long as each call to `Render()` uses a dedicated
 
 ### Benchmarks
 
-A performance benchmark application is provided in the source code to compare Fluid, DotLiquid and Liquid .NET. Run it locally to analyze the time it takes to execute specific templates.
+A benchmark application is provided in the source code to compare Fluid, [Scriban](https://github.com/scriban/scriban), [DotLiquid](https://github.com/dotliquid/dotliquid) and [Liquid.NET](https://github.com/mikebridge/Liquid.NET).
+Run it locally to analyze the time it takes to execute specific templates.
 
-#### Sample results
+#### Results
 
-<p align="center"><img src="https://github.com/sebastienros/fluid/raw/dev/Assets/benchmarks.jpg"></p>
+Fluid is faster and allocates less memory than all other well-known .NET Liquid parsers.
+For parsing, Fluid is at least 25% faster than Scriban, allocating at least 50% less memory.
+For rendering, Fluid is at least twice as fast as Scriban, allocating 25% less memory.
+Compared to DotLiquid, Fluid is 6 times faster, and allocates 5 times less memory.
+
+```
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+Intel Core i7-1065G7 CPU 1.30GHz, 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=5.0.200-preview.20601.7
+  [Host]   : .NET Core 5.0.2 (CoreCLR 5.0.220.61120, CoreFX 5.0.220.61120), X64 RyuJIT
+  ShortRun : .NET Core 5.0.2 (CoreCLR 5.0.220.61120, CoreFX 5.0.220.61120), X64 RyuJIT
+
+Job=ShortRun  IterationCount=3  LaunchCount=1
+WarmupCount=3
+
+|             Method |          Mean |      StdDev |  Ratio |     Gen 0 |    Gen 1 |   Gen 2 |   Allocated |
+|------------------- |--------------:|------------:|-------:|----------:|---------:|--------:|------------:|
+|        Fluid_Parse |      6.679 us |   0.0308 us |   1.00 |    0.6790 |        - |       - |     2.77 KB |
+|      Scriban_Parse |      9.616 us |   0.0604 us |   1.44 |    1.8005 |        - |       - |     7.41 KB |
+|    DotLiquid_Parse |     40.317 us |   2.5158 us |   6.04 |    2.6855 |        - |       - |    11.17 KB |
+|    LiquidNet_Parse |     73.474 us |   0.2151 us |  11.00 |   15.1367 |   0.1221 |       - |    62.08 KB |
+|                    |               |             |        |           |          |         |             |
+|     Fluid_ParseBig |     38.491 us |   1.6535 us |   1.00 |    2.8076 |   0.0610 |       - |    11.69 KB |
+|   Scriban_ParseBig |     49.321 us |   0.2074 us |   1.28 |    7.8125 |   1.0986 |       - |    32.05 KB |
+| DotLiquid_ParseBig |    200.725 us |   2.8106 us |   5.22 |   13.1836 |   0.2441 |       - |    54.39 KB |
+| LiquidNet_ParseBig | 24,370.888 us | 813.3676 us | 633.35 | 6812.5000 | 437.5000 |       - | 28557.53 KB |
+|                    |               |             |        |           |          |         |             |
+|       Fluid_Render |    626.010 us |  14.1571 us |   1.00 |   90.8203 |  58.5938 | 30.2734 |   390.80 KB |
+|     Scriban_Render |  1,228.026 us |  15.3122 us |   1.96 |   99.6094 |  66.4063 | 66.4063 |   487.43 KB |
+|   DotLiquid_Render |  5,403.001 us |  20.3199 us |   8.63 |  859.3750 | 171.8750 | 23.4375 |  3879.14 KB |
+|   LiquidNet_Render |  3,339.111 us |  21.0156 us |   5.34 | 1000.0000 | 390.6250 |       - |  5324.50 KB |
+```
+
+Tested with 
+- Scriban 3.3.2
+- DotLiquid 2.0.366
+- Liquid.NET 0.10.0
 
 ##### Legend
 
-- Parse sample: Parses a sample HTML template containing filters and properties
-- Render sample: Renders a parsed HTML template containing filters and properties
-- Parse and render sample: Parses and renders a sample HTML template containing filters and properties
-- Render simple output tag: Renders a single tag outputting a string property
-- Parse 8KB Lorem Ipsum: Parses 8KB of Lorem Ipsum text containing no tags to exercise the parser on long and simple texts (Not displayed for Liquid.NET as it takes too long to fit in the chart).
-- Render 1KB Lorem Simple Output: Parses and render 1KB of Lorem Ipsum text containing no tags
+- Parse: Parses a simple HTML template containing filters and properties
+- ParseBig: Parses a Blog Post template.
+- Render: Renders a simple HTML template containing filters and properties, with 500 products.
 
 ## Used by
 

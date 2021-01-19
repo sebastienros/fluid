@@ -1,7 +1,6 @@
 ﻿using Fluid.Ast;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -9,9 +8,11 @@ namespace Fluid.Tests
 {
     public class WhiteSpaceTests
     {
-        private List<Statement> Parse(string source)
+        private static FluidParser _parser = new FluidParser();
+
+        private IReadOnlyList<Statement> Parse(string source)
         {
-            FluidTemplate.TryParse(source, out var template, out var errors);
+            _parser.TryParse(source, out var template, out var errors);
             return template.Statements;
         }
 
@@ -61,7 +62,7 @@ namespace Fluid.Tests
                 new { name = "product 3", price = 3 },
             };
 
-            FluidTemplate.TryParse(sample, out var template, out var messages);
+            _parser.TryParse(sample, out var template, out var messages);
 
             var context = new TemplateContext();
             context.SetValue("products", _products);
@@ -120,66 +121,7 @@ namespace Fluid.Tests
                 new { name = "product 3", price = 3 },
             };
 
-            FluidTemplate.TryParse(sample, false, out var template, out var messages);
-
-            var context = new TemplateContext();
-            context.SetValue("products", _products);
-            context.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
-            context.Filters.AddFilter("paragraph", (input, args, ctx) => input);
-            context.Filters.AddFilter("price", (input, args, ctx) => input);
-            context.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
-
-            var result = await template.RenderAsync(context);
-            Assert.Equal(expected, result);
-        }
-
-        [Fact]
-        public async Task ShouldRenderSampleWithStripEmptyLinesOption()
-        {
-            var sample = @"
-<ul id=""products"">
-  {% for product in products %}
-    <li>
-      <h2>{{ product.name }}</h2>
-      Only {{ product.price | price }}
-
-      {{ product.name | prettyprint | paragraph }}
-    </li>
-  {% endfor %}
-</ul>
-";
-
-            var expected = @"
-<ul id=""products"">
-    <li>
-      <h2>product 1</h2>
-      Only 1
-
-      product 1
-    </li>
-    <li>
-      <h2>product 2</h2>
-      Only 2
-
-      product 2
-    </li>
-    <li>
-      <h2>product 3</h2>
-      Only 3
-
-      product 3
-    </li>
-</ul>
-";
-
-            var _products = new[]
-            {
-                new { name = "product 1", price = 1 },
-                new { name = "product 2", price = 2 },
-                new { name = "product 3", price = 3 },
-            };
-
-            FluidTemplate.TryParse(sample, out var template, out var messages);
+            _parser.TryParse(sample, out var template, out var messages);
 
             var context = new TemplateContext();
             context.SetValue("products", _products);
@@ -238,7 +180,7 @@ namespace Fluid.Tests
                 new { name = "product 3", price = 3 },
             };
 
-            FluidTemplate.TryParse(sample, out var template, out var messages);
+            _parser.TryParse(sample, out var template, out var messages);
 
             var context = new TemplateContext();
             context.SetValue("products", _products);
@@ -260,7 +202,7 @@ namespace Fluid.Tests
         public async Task BlockShouldMaintainWhiteSpaceWhenNotEmpty(string source, string expected)
         {
 
-            FluidTemplate.TryParse(source, out var template, out var messages);
+            _parser.TryParse(source, out var template, out var messages);
             var result = await template.RenderAsync();
 
             Assert.Equal(expected, result);
@@ -272,7 +214,7 @@ namespace Fluid.Tests
         [InlineData(" {{ 1 }} \n ", " 1 \n ")]
         public async Task ShouldNotTrimOutputTag(string source, string expected)
         {
-            var success = FluidTemplate.TryParse(source, out var template, out var messages);
+            var success = _parser.TryParse(source, out var template, out var messages);
             Assert.True(success, String.Join(", ", messages));
             var result = await template.RenderAsync();
 
@@ -284,6 +226,9 @@ namespace Fluid.Tests
         [InlineData(" {{ 1 -}} ", " 1")]
         [InlineData(" {{ 1 -}} \n", " 1")]
         [InlineData(" {{ 1 -}} \n ", " 1 ")]
+        [InlineData(" {{ 1 -}} \n\n ", " 1\n ")]
+        [InlineData(" {{ 1 -}} \r\n ", " 1 ")]
+        [InlineData(" {{ 1 -}} \r\n\r\n ", " 1\r\n ")]
         [InlineData("a {{ 1 }}", "a 1")]
         [InlineData("a {% assign a = '' %}", "a ")]
         [InlineData("1<div class=\"a{% if true %}b{% endif %}\" />", "1<div class=\"ab\" />")]
@@ -294,7 +239,7 @@ namespace Fluid.Tests
         [InlineData("6<div class=\"a{% if true %} b{% endif %}\" />", "6<div class=\"a b\" />")]
         public async Task DashShouldTrimOutputTag(string source, string expected)
         {
-            var success = FluidTemplate.TryParse(source, out var template, out var messages);
+            var success = _parser.TryParse(source, out var template, out var messages);
             Assert.True(success, String.Join(", ", messages));
             var result = await template.RenderAsync();
 
@@ -302,65 +247,11 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void ShouldTrimTextOnStart()
-        {
-            var statements = Parse("  {% for a in b %}{% endfor %}");
-            Assert.IsType<ForStatement>(statements.ElementAt(0));
-        }
-
-        [Fact]
-        public void ShouldTrimTextOnEnd()
-        {
-            var statements = Parse("{% for a in b %}{% endfor %}   ");
-            Assert.Single(statements);
-            Assert.IsType<ForStatement>(statements.ElementAt(0));
-        }
-
-        [Fact]
-        public void ShouldTrimTextOnLineBreak()
-        {
-            var statements = Parse(@"{% for a in b %}  
-{% endfor %}");
-
-            Assert.Single(statements);
-            Assert.Empty(((ForStatement)statements[0]).Statements);
-        }
-
-        [Fact]
-        public void ShouldTrimTextOnNewLineBreak()
-        {
-            var statements = Parse(@"{% for a in b %}   
-
-{% endfor %}");
-            Assert.Single(statements);
-            Assert.Empty(((ForStatement)statements[0]).Statements);
-        }
-
-        [Fact]
-        public void ShouldOnlyTrimLineBreaks()
-        {
-            var statements = Parse(@"{% for a in b %}   
-a
-{% endfor %}");
-            Assert.Single(statements);
-            var text = ((ForStatement)statements[0]).Statements[0] as TextStatement;
-            Assert.Equal($"a{Environment.NewLine}", text.Text.ToString());
-        }
-
-        [Fact]
-        public void ShouldTrimMultipleUnixLineBreaks()
-        {
-            var result = FluidTemplate.TryParse("{% assign foo = 1 %}\n\n{% assign foo = 1 %}", out var template, out var errors);
-
-            Assert.True(result);
-        }
-
-        [Fact]
         public void ShouldParseNonBreakingWhitespace()
         {
             var c = (char)160;
 
-            var result = FluidTemplate.TryParse("{{" + c + "'a'" + c + "}}", out var template, out var errors);
+            var result = _parser.TryParse("{{" + c + "'a'" + c + "}}", out var template, out var errors);
             var rendered = template.Render();
 
             Assert.Equal("a", rendered);

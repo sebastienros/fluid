@@ -1,37 +1,36 @@
-﻿using BenchmarkDotNet.Attributes;
-using Scriban;
+﻿using Scriban;
 using Scriban.Runtime;
 
 namespace Fluid.Benchmarks
 {
-    [MemoryDiagnoser]
     public class ScribanBenchmarks : BaseBenchmarks
     {
         private Template _scribanTemplate;
-        private ScriptObject _scriptObject;
 
         public ScribanBenchmarks()
         {
-            _scribanTemplate = Template.ParseLiquid(TextTemplate);
-            _scriptObject = new ScriptObject { { "products", Products } };
+            _scribanTemplate = Template.ParseLiquid(ProductTemplate);
         }
 
-        [Benchmark]
         public override object Parse()
         {
-            return _scribanTemplate = Template.ParseLiquid(TextTemplate);
+            return _scribanTemplate = Template.ParseLiquid(ProductTemplate);
         }
 
-        [Benchmark]
+        public override object ParseBig()
+        {
+            return _scribanTemplate = Template.ParseLiquid(BlogPostTemplate);
+        }
+
         public override string Render()
         {
-            return _scribanTemplate.Render(_scriptObject);
+            var scriptObject = new ScriptObject { { "products", Products } };
+            return _scribanTemplate.Render(scriptObject);
         }
 
-        [Benchmark]
         public override string ParseAndRender()
         {
-            var template = Template.ParseLiquid(TextTemplate);
+            var template = Template.ParseLiquid(ProductTemplate);
             var scriptObject = new ScriptObject { { "products", Products } };
             return template.Render(scriptObject);
         }

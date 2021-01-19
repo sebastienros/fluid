@@ -12,8 +12,8 @@ namespace Fluid
         internal int _recursion = 0;
         internal int _steps = 0;
 
-        public static int DefaultMaxSteps = 0;
-        public static int DefaultMaxRecursion = 100;
+        public readonly static int DefaultMaxSteps = 0;
+        public readonly static int DefaultMaxRecursion = 100;
 
         static TemplateContext()
         {
@@ -71,16 +71,6 @@ namespace Fluid
                 throw new InvalidOperationException("The maximum number of statements has been reached. Your script took too long to run.");
             }
         }
-
-        /// <summary>
-        /// The <see cref="IFluidParserFactory"/> instance to use with this context
-        /// </summary>
-        public IFluidParserFactory ParserFactory { get; set; }
-
-        /// <summary>
-        /// The <see cref="IFluidTemplate"/> instance to use with this context
-        /// </summary>
-        public Func<IFluidTemplate> TemplateFactory { get; set; }
 
         // Scopes
         public static Scope GlobalScope = new Scope();

@@ -1,6 +1,5 @@
 ﻿using Fluid.Ast;
 using Microsoft.Extensions.Primitives;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -9,18 +8,43 @@ namespace Fluid.Tests
 {
     public class ParserTests
     {
-        private List<Statement> Parse(string source)
+        static FluidParser _parser = new FluidParser();
+
+        private IReadOnlyList<Statement> Parse(string source)
         {
-            FluidTemplate.TryParse(source, out var template, out var errors);
+            _parser.TryParse(source, out var template, out var errors);
             return template.Statements;
         }
+
+        [Fact]
+        public void ShouldFiltersWithNamedArguments()
+        {
+
+            var statements = Parse("{{ a | b: c:1, 'value', d: 3 }}");
+            Assert.Single(statements);
+
+            var outputStatement = statements.First() as OutputStatement;
+            Assert.NotNull(outputStatement);
+
+            var filterExpression = outputStatement.Expression as FilterExpression;
+            Assert.NotNull(filterExpression);
+            Assert.Equal("b", filterExpression.Name);
+
+            var input = filterExpression.Input as MemberExpression;
+            Assert.NotNull(input);
+
+            Assert.Equal("c", filterExpression.Parameters[0].Name);
+            Assert.Null(filterExpression.Parameters[1].Name);
+            Assert.Equal("d", filterExpression.Parameters[2].Name);
+        }
+
 
         [Fact]
         public void ShouldParseText()
         {
             var statements = Parse("Hello World");
 
-            var textStatement = statements.First() as TextStatement;
+            var textStatement = statements.First() as TextSpanStatement;
 
             Assert.Single(statements);
             Assert.NotNull(textStatement);
@@ -77,7 +101,7 @@ namespace Fluid.Tests
         {
             var statements = Parse(@"{% for a in b %};{% endfor %}");
             Assert.Single(statements);
-            var text = ((ForStatement)statements[0]).Statements[0] as TextStatement;
+            var text = ((ForStatement)statements[0]).Statements[0] as TextSpanStatement;
             Assert.Equal(";", text.Text.ToString());
         }
 
@@ -87,8 +111,8 @@ namespace Fluid.Tests
             var statements = Parse(@"{% raw %} on {{ this }} and {{{ that }}} {% endraw %}");
 
             Assert.Single(statements);
-            Assert.IsType<TextStatement>(statements.ElementAt(0));
-            Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as TextStatement).Text.ToString());
+            Assert.IsType<RawStatement>(statements.ElementAt(0));
+            Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as RawStatement).Text.ToString());
         }
 
         [Fact]
@@ -97,8 +121,8 @@ namespace Fluid.Tests
             var statements = Parse(@"{% raw %} {%if true%} {%endif%} {% endraw %}");
 
             Assert.Single(statements);
-            Assert.IsType<TextStatement>(statements.ElementAt(0));
-            Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as TextStatement).Text.ToString());
+            Assert.IsType<RawStatement>(statements.ElementAt(0));
+            Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as RawStatement).Text.ToString());
         }
 
         [Fact]
@@ -157,25 +181,18 @@ namespace Fluid.Tests
         [Theory]
         [InlineData("abc { def")]
         [InlineData("abc } def")]
-        [InlineData("abc {{ def")]
         [InlineData("abc }} def")]
-        [InlineData("abc {{ def }")]
         [InlineData("abc { def }}")]
-        [InlineData("abc {% def")]
         [InlineData("abc %} def")]
-        [InlineData("{% def")]
         [InlineData("abc %}")]
         [InlineData("%} def")]
-        [InlineData("abc {%")]
-        [InlineData("abc {{% def")]
         [InlineData("abc }%} def")]
         public void ShouldSucceedParseValidTemplate(string source)
         {
-            var result = FluidTemplate.TryParse(source, out var template, out var errors);
-
+            var result = _parser.TryParse(source, out var template, out var errors);
             Assert.True(result);
             Assert.NotNull(template);
-            Assert.Empty(errors);
+            Assert.Null(errors);
         }
 
         [Theory]
@@ -183,11 +200,8 @@ namespace Fluid.Tests
         [InlineData("abc {% { %} def")]
         public void ShouldFailParseInvalidTemplate(string source)
         {
-            var result = FluidTemplate.TryParse(source, out var template, out var errors);
-
+            var result = _parser.TryParse(source, out var template, out var errors);
             Assert.False(result);
-            Assert.Null(template);
-            Assert.NotEmpty(errors);
         }
 
         [Theory]
@@ -199,7 +213,7 @@ namespace Fluid.Tests
         [InlineData("{% assign fo__o = 1 %}")]
         public void ShouldAcceptDashesInIdentifiers(string source)
         {
-            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+            var result = _parser.TryParse(source, out var template, out var error);
 
             Assert.True(result);
         }
@@ -207,13 +221,13 @@ namespace Fluid.Tests
         [Theory]
         [InlineData(@"abc 
   {% {{ %}
-def", "at line:2, col:6")]
+def", "at (")]
         [InlineData(@"{% assign username = ""John G. Chalmers-Smith"" %}
 {% if username and username.size > 10 %}
   Wow, {{ username }}, you have a long name!
 {% else %}
   Hello there {{ { }}!
-{% endif %}", "at line:5, col:18")]
+{% endif %}", "at (")]
         [InlineData(@"{% assign username = ""John G. Chalmers-Smith"" %}
 {% if username and 
       username.size > 5 &&
@@ -221,12 +235,12 @@ def", "at line:2, col:6")]
   Wow, {{ username }}, you have a longish name!
 {% else %}
   Hello there!
-{% endif %}", "at line:3, col:25")]
+{% endif %}", "at (")]
         public void ShouldFailParseInvalidTemplateWithCorrectLineNumber(string source, string expectedErrorEndString)
         {
-            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+            var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.EndsWith(expectedErrorEndString, errors.FirstOrDefault());
+            Assert.Contains(expectedErrorEndString, errors);
         }
 
         [Theory]
@@ -237,10 +251,10 @@ def", "at line:2, col:6")]
         [InlineData("{% capture myVar %}")]
         public void ShouldFailNotClosedBlock(string source)
         {
-            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+            var result = _parser.TryParse(source, out var template, out var errors);
 
             Assert.False(result);
-            Assert.NotEmpty(errors);
+            Assert.NotNull(errors);
         }
 
         [Theory]
@@ -251,17 +265,17 @@ def", "at line:2, col:6")]
         [InlineData("{% capture myVar %} capture me! {% endcapture %}")]
         public void ShouldSucceedClosedBlock(string source)
         {
-            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+            var result = _parser.TryParse(source, out var template, out var error);
 
             Assert.True(result);
             Assert.NotNull(template);
-            Assert.Empty(errors);
+            Assert.Null(error);
         }
 
         [Fact]
         public void ShouldAllowNewLinesInCase()
         {
-            var result = FluidTemplate.TryParse(@"
+            var result = _parser.TryParse(@"
                 {% case food %}
                     
 
@@ -278,7 +292,7 @@ def", "at line:2, col:6")]
 
             Assert.True(result);
             Assert.NotNull(template);
-            Assert.Empty(errors);
+            Assert.Null(errors);
         }
 
         [Theory]
@@ -286,11 +300,11 @@ def", "at line:2, col:6")]
         [InlineData("{{ 20 | divided_by: 7 | round: 2 }}", "2")]
         public void ShouldParseIntegralNumbers(string source, string expected)
         {
-            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+            var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.True(result, String.Join(", ", errors));
+            Assert.True(result);
             Assert.NotNull(template);
-            Assert.Empty(errors);
+            Assert.Null(errors);
 
             var rendered = template.Render();
 
@@ -329,7 +343,7 @@ def", "at line:2, col:6")]
 
             var template = "{{Doubles |map |uniq}}";
 
-            if (FluidTemplate.TryParse(template, out var result))
+            if (_parser.TryParse(template, out var result))
             {
                 result.Render(new TemplateContext(model));
             }
@@ -345,7 +359,7 @@ def", "at line:2, col:6")]
 
             var source = "{{name}}";
 
-            FluidTemplate.TryParse(source, out var template);
+            _parser.TryParse(source, out var template);
             var rendered = template.Render(new TemplateContext(model, false));
 
             Assert.Equal("", rendered);
@@ -357,23 +371,16 @@ def", "at line:2, col:6")]
 
         [Theory]
         [InlineData("{% for %}")]
-        [InlineData("{% endfor %}")]
         [InlineData("{% case %}")]
-        [InlineData("{% endcase %}")]
         [InlineData("{% if %}")]
-        [InlineData("{% endif %}")]
         [InlineData("{% unless %}")]
-        [InlineData("{% endunless %}")]
         [InlineData("{% comment %}")]
-        [InlineData("{% endcomment %}")]
         [InlineData("{% raw %}")]
-        [InlineData("{% endraw %}")]
         [InlineData("{% capture %}")]
-        [InlineData("{% endcapture %}")]
 
         public void ShouldThrowParseExceptionMissingTag(string template)
         {
-            Assert.Throws<ParseException>(() => FluidTemplate.Parse(template));
+            Assert.Throws<ParseException>(() => _parser.Parse(template));
         }
 
         [Theory]
@@ -381,11 +388,11 @@ def", "at line:2, col:6")]
         [InlineData("{{ 'a\\tb' }}", "a\tb")]
         public void ShouldParseEscapeSequences(string source, string expected)
         {
-            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+            var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.True(result, String.Join(", ", errors));
+            Assert.True(result, errors);
             Assert.NotNull(template);
-            Assert.Empty(errors);
+            Assert.Null(errors);
 
             var rendered = template.Render();
 
@@ -397,11 +404,11 @@ def", "at line:2, col:6")]
         [InlineData("{{ 'a\r\nb' }}", "a\r\nb")]
         public void ShouldParseLineBreaksInStringLiterals(string source, string expected)
         {
-            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+            var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.True(result, String.Join(", ", errors));
+            Assert.True(result, errors);
             Assert.NotNull(template);
-            Assert.Empty(errors);
+            Assert.Null(errors);
 
             var rendered = template.Render();
 
@@ -412,11 +419,10 @@ def", "at line:2, col:6")]
         [InlineData("{{ -3 }}", "-3")]
         public void ShouldParseNegativeNumbers(string source, string expected)
         {
-            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+            var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.True(result, String.Join(", ", errors));
             Assert.NotNull(template);
-            Assert.Empty(errors);
+            Assert.Null(errors);
 
             var rendered = template.Render();
 
@@ -429,11 +435,11 @@ def", "at line:2, col:6")]
         [InlineData("{{ 183.357 | times: 12 }}", "2200.284")]
         public void ShouldChangeVariableType(string source, string expected)
         {
-            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+            var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.True(result, String.Join(", ", errors));
+            Assert.True(result);
             Assert.NotNull(template);
-            Assert.Empty(errors);
+            Assert.Null(errors);
 
             var rendered = template.Render();
 
@@ -444,11 +450,11 @@ def", "at line:2, col:6")]
         [InlineData("{% assign my_string = 'abcd' %}{{ my_string.size }}", "4")]
         public void SizeAppliedToStrings(string source, string expected)
         {
-            var result = FluidTemplate.TryParse(source, out var template, out var errors);
+            var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.True(result, String.Join(", ", errors));
+            Assert.True(result);
             Assert.NotNull(template);
-            Assert.Empty(errors);
+            Assert.Null(errors);
 
             var rendered = template.Render();
 

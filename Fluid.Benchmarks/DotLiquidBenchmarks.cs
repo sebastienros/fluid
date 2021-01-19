@@ -1,21 +1,16 @@
-﻿using BenchmarkDotNet.Attributes;
-using DotLiquid;
+﻿using DotLiquid;
 using System.Linq;
 
 namespace Fluid.Benchmarks
 {
-    [MemoryDiagnoser]
     public class DotLiquidBenchmarks : BaseBenchmarks
     {
-        
-        private Template _dotLiquidTemplate;
-        private Hash _products;
+        private readonly Template _dotLiquidTemplate;
 
         public DotLiquidBenchmarks()
         {
-            _dotLiquidTemplate = Template.Parse(TextTemplate);
+            _dotLiquidTemplate = Template.Parse(ProductTemplate);
             _dotLiquidTemplate.MakeThreadSafe();
-            _products = MakeProducts();
         }
 
         private Hash MakeProducts()
@@ -31,23 +26,27 @@ namespace Fluid.Benchmarks
             });
         }
 
-        [Benchmark]
         public override object Parse()
         {
-            var template = Template.Parse(TextTemplate);
+            var template = Template.Parse(ProductTemplate);
             return template;
         }
 
-        [Benchmark]
-        public override string Render()
+        public override object ParseBig()
         {
-            return _dotLiquidTemplate.Render(_products);
+            var template = Template.Parse(BlogPostTemplate);
+            return template;
         }
 
-        [Benchmark]
+        public override string Render()
+        {
+            var products = MakeProducts();
+            return _dotLiquidTemplate.Render(products);
+        }
+
         public override string ParseAndRender()
         {
-            var template = Template.Parse(TextTemplate);
+            var template = Template.Parse(ProductTemplate);
             var products = MakeProducts();
             return template.Render(products);
         }

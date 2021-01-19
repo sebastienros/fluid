@@ -68,11 +68,11 @@ namespace Fluid.Values
             //{
             //    if (accessor is IAsyncMemberAccessor asyncAccessor)
             //    {
-            //        value = await asyncAccessor.GetAsync(_value, name, context);
+            //        value = await asyncAccessor.GetAsync(_value,  context);
             //    }
             //    else
             //    {
-            //        value = accessor.Get(_value, name, context);
+            //        value = accessor.Get(_value,  context);
             //    }
             //}
 
