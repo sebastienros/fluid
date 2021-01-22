@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Parlot" Version="0.0.7" />
+    <PackageReference Include="Parlot" Version="0.0.8" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="1.1.1" />
     <PackageReference Include="TimeZoneConverter" Version="3.3.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="all" />
