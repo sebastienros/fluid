@@ -54,23 +54,6 @@ namespace Fluid.Ast
                         if (Character.IsWhiteSpaceOrNewLine(c))
                         {
                             start++;
-
-                            // Read the first CR/LF or LF and stop skipping
-                            if (c == '\r')
-                            {
-                                if (i + 1 <= end && span[_text.Offset + i + 1] == '\n')
-                                {
-                                    start++;
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                if (c == '\n')
-                                {
-                                    break;
-                                }
-                            }
                         }
                         else
                         {
@@ -85,7 +68,7 @@ namespace Fluid.Ast
                     {
                         var c = span[_text.Offset + i];
 
-                        if (Character.IsWhiteSpace(c))
+                        if (Character.IsWhiteSpaceOrNewLine(c))
                         {
                             end--;
                         }

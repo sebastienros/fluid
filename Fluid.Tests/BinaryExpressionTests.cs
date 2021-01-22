@@ -159,5 +159,14 @@ namespace Fluid.Tests
             return CheckAsync(source, expected, t => t.SetValue("var", value));
         }
 
+        [Theory]
+        [InlineData("true or false and false", "true")]
+        [InlineData("true and false and false or true", "false")]
+        public Task OperatorsShouldBeEvaluatedFromRightToLeft(string source, string expected)
+        {
+            // https://shopify.github.io/liquid/basics/operators/
+            return CheckAsync(source, expected);
+        }
+
     }
 }

@@ -15,122 +15,46 @@ namespace Fluid.Tests
             _parser.TryParse(source, out var template, out var errors);
             return template.Statements;
         }
-
         [Fact]
-        public async Task ShouldRenderSampleWithStandardLiquid()
+        public async Task ShouldPreserveSpace()
         {
-            var sample = @"
-<ul id=""products"">
-  {%- for product in products -%}
-    <li>
-      <h2>{{ product.name }}</h2>
-      Only {{ product.price | price }}
+            var source = @"# With whitespace control
+{% assign name = 'John G. Chalmers-Smith' %}
+{% if name and name.size > 10 %}
+    Wow, {{ name }}, you have a long name!
+{% else %}
+    Hello there!
+{% endif %}";
 
-      {{ product.name | prettyprint | paragraph }}
-    </li>
-  {%- endfor -%}
-</ul>
+            var expected = @"# With whitespace control
+
+
+    Wow, John G. Chalmers-Smith, you have a long name!
 ";
 
-            var expected = @"
-<ul id=""products"">
-    <li>
-      <h2>product 1</h2>
-      Only 1
+            _parser.TryParse(source, out var template);
+            var result = await template.RenderAsync();
 
-      product 1
-    </li>
-    <li>
-      <h2>product 2</h2>
-      Only 2
-
-      product 2
-    </li>
-    <li>
-      <h2>product 3</h2>
-      Only 3
-
-      product 3
-    </li>
-</ul>
-";
-
-            var _products = new[]
-            {
-                new { name = "product 1", price = 1 },
-                new { name = "product 2", price = 2 },
-                new { name = "product 3", price = 3 },
-            };
-
-            _parser.TryParse(sample, out var template, out var messages);
-
-            var context = new TemplateContext();
-            context.SetValue("products", _products);
-            context.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
-            context.Filters.AddFilter("paragraph", (input, args, ctx) => input);
-            context.Filters.AddFilter("price", (input, args, ctx) => input);
-            context.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
-
-            var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
         }
 
         [Fact]
-        public async Task ShouldRenderSampleWithStandardLiquidAndNoStripEmptyLines()
+        public async Task ShouldStripSpace()
         {
-            var sample = @"
-<ul id=""products"">
-  {%- for product in products -%}
-    <li>
-      <h2>{{ product.name }}</h2>
-      Only {{ product.price | price }}
+            var source = @"# With whitespace control
+{% assign name = 'John G. Chalmers-Smith' -%}
+{%- if name and name.size > 10 -%}
+    Wow, {{ name }}, you have a long name!
+{%- else -%}
+    Hello there!
+{%- endif -%}";
 
-      {{ product.name | prettyprint | paragraph }}
-    </li>
-  {%- endfor -%}
-</ul>
-";
+            var expected = @"# With whitespace control
+Wow, John G. Chalmers-Smith, you have a long name!";
 
-            var expected = @"
-<ul id=""products"">
-    <li>
-      <h2>product 1</h2>
-      Only 1
+            _parser.TryParse(source, out var template);
+            var result = await template.RenderAsync();
 
-      product 1
-    </li>
-    <li>
-      <h2>product 2</h2>
-      Only 2
-
-      product 2
-    </li>
-    <li>
-      <h2>product 3</h2>
-      Only 3
-
-      product 3
-    </li>
-</ul>
-";
-
-            var _products = new[]
-            {
-                new { name = "product 1", price = 1 },
-                new { name = "product 2", price = 2 },
-                new { name = "product 3", price = 3 },
-            };
-
-            _parser.TryParse(sample, out var template, out var messages);
-
-            var context = new TemplateContext();
-            context.SetValue("products", _products);
-            context.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
-            context.Filters.AddFilter("paragraph", (input, args, ctx) => input);
-            context.Filters.AddFilter("price", (input, args, ctx) => input);
-            context.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
-
-            var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
         }
 
@@ -139,38 +63,97 @@ namespace Fluid.Tests
         {
             var sample = @"
 <ul id=""products"">
-  {%- for product in products -%}
-    <li>
-      <h2>{{ product.name }}</h2>
-      Only {{ product.price | price }}
+  {%- for product in products %}
+  <li>
+    <h2>{{ product.name }}</h2>
+    Only {{ product.price | price }}
 
-      {{ product.name | prettyprint | paragraph }}
-    </li>
-  {%- endfor -%}
+    {{ product.name | prettyprint | paragraph }}
+  </li>
+  {%- endfor %}
 </ul>
 ";
 
             var expected = @"
 <ul id=""products"">
-    <li>
-      <h2>product 1</h2>
-      Only 1
+  <li>
+    <h2>product 1</h2>
+    Only 1
 
-      product 1
-    </li>
-    <li>
-      <h2>product 2</h2>
-      Only 2
+    product 1
+  </li>
+  <li>
+    <h2>product 2</h2>
+    Only 2
 
-      product 2
-    </li>
-    <li>
-      <h2>product 3</h2>
-      Only 3
+    product 2
+  </li>
+  <li>
+    <h2>product 3</h2>
+    Only 3
 
-      product 3
-    </li>
+    product 3
+  </li>
 </ul>
+";
+
+            var _products = new[]
+            {
+                new { name = "product 1", price = 1 },
+                new { name = "product 2", price = 2 },
+                new { name = "product 3", price = 3 },
+            };
+
+            _parser.TryParse(sample, out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("products", _products);
+            context.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
+            context.Filters.AddFilter("paragraph", (input, args, ctx) => input);
+            context.Filters.AddFilter("price", (input, args, ctx) => input);
+            context.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public async Task ShouldRenderSampleWithDashesRight()
+        {
+            var sample = @"
+<ul id=""products"">
+  {% for product in products -%}
+  <li>
+    <h2>{{ product.name }}</h2>
+    Only {{ product.price | price }}
+
+    {{ product.name | prettyprint | paragraph }}
+  </li>
+  {% endfor -%}
+</ul>
+";
+
+            var expected = @"
+<ul id=""products"">
+  <li>
+    <h2>product 1</h2>
+    Only 1
+
+    product 1
+  </li>
+  <li>
+    <h2>product 2</h2>
+    Only 2
+
+    product 2
+  </li>
+  <li>
+    <h2>product 3</h2>
+    Only 3
+
+    product 3
+  </li>
+  </ul>
 ";
 
             var _products = new[]
@@ -225,10 +208,10 @@ namespace Fluid.Tests
         [InlineData(" {{- 1 }} ", "1 ")]
         [InlineData(" {{ 1 -}} ", " 1")]
         [InlineData(" {{ 1 -}} \n", " 1")]
-        [InlineData(" {{ 1 -}} \n ", " 1 ")]
-        [InlineData(" {{ 1 -}} \n\n ", " 1\n ")]
-        [InlineData(" {{ 1 -}} \r\n ", " 1 ")]
-        [InlineData(" {{ 1 -}} \r\n\r\n ", " 1\r\n ")]
+        [InlineData(" {{ 1 -}} \n ", " 1")]
+        [InlineData(" {{ 1 -}} \n\n ", " 1")]
+        [InlineData(" {{ 1 -}} \r\n ", " 1")]
+        [InlineData(" {{ 1 -}} \r\n\r\n ", " 1")]
         [InlineData("a {{ 1 }}", "a 1")]
         [InlineData("a {% assign a = '' %}", "a ")]
         [InlineData("1<div class=\"a{% if true %}b{% endif %}\" />", "1<div class=\"ab\" />")]

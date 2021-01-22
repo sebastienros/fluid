@@ -50,7 +50,7 @@ namespace Fluid
         protected static readonly Parser<string> Identifier = Terms.Identifier(extraPart: static c => c == '-').Then(x => x.ToString());
 
         protected static readonly Deferred<Expression> Primary = Deferred<Expression>();
-        protected static readonly Deferred<Expression> LogicalExpression = Deferred<Expression>();
+        protected static readonly Parser<Expression> LogicalExpression;
         protected static readonly Deferred<Expression> FilterExpression = Deferred<Expression>();
         protected readonly Deferred<List<Statement>> KnownTagsList = Deferred<List<Statement>>();
         protected readonly Deferred<List<Statement>> AnyTagsList = Deferred<List<Statement>>();
@@ -98,41 +98,33 @@ namespace Fluid
 
             // TODO: 'and' has a higher priority than 'or', either create a new scope, or implement operators priority
 
-            var Logical = Primary.And(ZeroOrMany(OneOf(BinaryOr, BinaryAnd, Contains).And(Primary)))
+            var LogicalExpression = Primary.And(ZeroOrMany(OneOf(BinaryOr, BinaryAnd, Contains, DoubleEquals, NotEquals, Different, GreaterOr, LowerOr, Greater, Lower).And(Primary)))
                 .Then(static x =>
                 {
-                    var result = x.Item1;
-
-                    foreach (var op in x.Item2)
+                    if (!x.Item2.Any())
                     {
-                        result = op.Item1 switch
-                        {
-                            "or" => new OrBinaryExpression(result, op.Item2),
-                            "and" => new AndBinaryExpression(result, op.Item2),
-                            "contains" => new ContainsBinaryExpression(result, op.Item2),
-                            _ => null
-                        };
+                        return x.Item1;
                     }
 
-                    return result;
-                });
+                    var result = x.Item2.Last().Item2;
 
-            var Comparison = Logical.And(ZeroOrMany(OneOf(DoubleEquals, NotEquals, Different, GreaterOr, LowerOr, Greater, Lower).And(Logical)))
-                .Then(static x =>
-                {
-                    var result = x.Item1;
-
-                    foreach (var op in x.Item2)
+                    for (var i = x.Item2.Count - 1; i >= 0; i--)
                     {
-                        result = op.Item1 switch
+                        var current = x.Item2[i];
+                        var previous = i == 0 ? x.Item1 : x.Item2[i - 1].Item2;
+
+                        result = current.Item1 switch
                         {
-                            "==" => new EqualBinaryExpression(result, op.Item2),
-                            "!=" => new NotEqualBinaryExpression(result, op.Item2),
-                            "<>" => new NotEqualBinaryExpression(result, op.Item2),
-                            ">" => new GreaterThanBinaryExpression(result, op.Item2, true),
-                            "<" => new LowerThanExpression(result, op.Item2, true),
-                            ">=" => new GreaterThanBinaryExpression(result, op.Item2, false),
-                            "<=" => new LowerThanExpression(result, op.Item2, false),
+                            "or" => new OrBinaryExpression(previous, current.Item2),
+                            "and" => new AndBinaryExpression(previous, current.Item2),
+                            "contains" => new ContainsBinaryExpression(previous, current.Item2),
+                            "==" => new EqualBinaryExpression(previous, current.Item2),
+                            "!=" => new NotEqualBinaryExpression(previous, current.Item2),
+                            "<>" => new NotEqualBinaryExpression(previous, current.Item2),
+                            ">" => new GreaterThanBinaryExpression(previous, current.Item2, true),
+                            "<" => new LowerThanExpression(previous, current.Item2, true),
+                            ">=" => new GreaterThanBinaryExpression(previous, current.Item2, false),
+                            "<=" => new LowerThanExpression(previous, current.Item2, false),
                             _ => null
                         };
                     }
@@ -170,7 +162,7 @@ namespace Fluid
                         return result;
                     });
 
-            LogicalExpression.Parser = Comparison;
+            //LogicalExpression.Parser = LogicalOperator;
 
             var Output = OutputStart.SkipAnd(FilterExpression.And(OutputEnd)
                 .Then<Statement>(static x => new OutputStatement(x.Item1))
