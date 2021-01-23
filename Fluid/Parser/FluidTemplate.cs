@@ -32,7 +32,7 @@ namespace Fluid.Parser
 
             if (context == null)
             {
-                return ExceptionHelper.ThrowArgumentNullException<ValueTask>(nameof(context));
+                ExceptionHelper.ThrowArgumentNullException(nameof(context));
             }
 
             var count = Statements.Count;

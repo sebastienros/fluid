@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
@@ -17,7 +19,27 @@ namespace Fluid.Values
         /// Gets the list of value converters.
         /// </summary>
         public static List<Func<object, object>> ValueConverters { get; } = new List<Func<object, object>>();
+
         public abstract void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
+
+        [Conditional("DEBUG")]
+        protected static void AssertWriteToParameters(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            if (writer == null)
+            {
+                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
+            }
+
+            if (encoder == null)
+            {
+                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
+            }
+
+            if (cultureInfo == null)
+            {
+                ExceptionHelper.ThrowArgumentNullException(nameof(cultureInfo));
+            }
+        }
 
         public abstract bool Equals(FluidValue other);
 
@@ -126,32 +148,26 @@ namespace Fluid.Values
             {
                 case TypeCode.Boolean:
                     return BooleanValue.Create(Convert.ToBoolean(value));
+                case TypeCode.Byte:
+                case TypeCode.UInt16:
+                case TypeCode.UInt32:
+                    return NumberValue.Create(Convert.ToUInt32(value));
+                case TypeCode.SByte:
+                case TypeCode.Int16:
+                case TypeCode.Int32:
+                    return NumberValue.Create(Convert.ToInt32(value));
+                case TypeCode.UInt64:
+                case TypeCode.Int64:
                 case TypeCode.Decimal:
                 case TypeCode.Double:
                 case TypeCode.Single:
-                case TypeCode.SByte:
-                case TypeCode.Byte:
-                case TypeCode.Int16:
-                case TypeCode.Int32:
-                case TypeCode.Int64:
-                case TypeCode.UInt16:
-                case TypeCode.UInt32:
-                case TypeCode.UInt64:
                     return NumberValue.Create(Convert.ToDecimal(value));
                 case TypeCode.Empty:
                     return NilValue.Instance;
                 case TypeCode.Object:
 
-                    if (value == null)
-                    {
-                        return NilValue.Instance;
-                    }
-
                     switch (value)
                     {
-                        case FluidValue fluid:
-                            return fluid;
-
                         case DateTimeOffset dateTimeOffset:
                             return new DateTimeValue(dateTimeOffset);
 
@@ -164,20 +180,29 @@ namespace Fluid.Values
                         case IDictionary otherDictionary:
                             return new DictionaryValue(new DictionaryDictionaryFluidIndexable(otherDictionary));
 
+                        case FluidValue[] array:
+                            return new ArrayValue(array);
+
                         case IList<FluidValue> list:
                             return new ArrayValue(list);
 
                         case IEnumerable<FluidValue> enumerable:
                             return new ArrayValue(enumerable);
 
+                        case IList list:
+                            var values = new List<FluidValue>(list.Count);
+                            foreach (var item in list)
+                            {
+                                values.Add(Create(item));
+                            }
+                            return new ArrayValue(values);
+
                         case IEnumerable enumerable:
                             var fluidValues = new List<FluidValue>();
-                            
                             foreach (var item in enumerable)
                             {
                                 fluidValues.Add(Create(item));
                             }
-
                             return new ArrayValue(fluidValues);
                     }
 
@@ -201,6 +226,26 @@ namespace Fluid.Values
         public virtual IEnumerable<FluidValue> Enumerate()
         {
             return Array.Empty<FluidValue>();
+        }
+
+        internal virtual string[] ToStringArray()
+        {
+            return Array.Empty<string>();
+        }
+
+        internal virtual List<FluidValue> ToList()
+        {
+            return Enumerate().ToList();
+        }
+
+        internal virtual FluidValue FirstOrDefault()
+        {
+            return Enumerate().FirstOrDefault();
+        }
+
+        internal virtual FluidValue LastOrDefault()
+        {
+            return Enumerate().LastOrDefault();
         }
 
         public FluidValue Or(FluidValue other)

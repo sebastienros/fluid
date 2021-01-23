@@ -1,21 +1,30 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class CycleStatement : Statement
+    public sealed class CycleStatement : Statement
     {
+        private readonly Expression[] _values;
+
+        public CycleStatement(Expression group, Expression[] values)
+        {
+            Group = group;
+            _values = values;
+        }
+
         public CycleStatement(Expression group, IList<Expression> values)
         {
             Group = group;
-            Values = values;
+            _values = values.ToArray();
         }
 
         public Expression Group { get; }
-        public IList<Expression> Values { get; }
+        public IList<Expression> Values2 { get; }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -30,8 +39,8 @@ namespace Fluid.Ast
                 currentValue = NumberValue.Zero;
             }
 
-            var index = (int)currentValue.ToNumberValue() % Values.Count;
-            var value = await Values[index].EvaluateAsync(context);
+            var index = (uint) currentValue.ToNumberValue() % _values.Length;
+            var value = await _values[index].EvaluateAsync(context);
             context.SetValue(groupValue, NumberValue.Create(index + 1));
 
             value.WriteTo(writer, encoder, context.CultureInfo);

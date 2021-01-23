@@ -470,7 +470,7 @@ namespace Fluid.Filters
                 var colorDifference = Math.Max(rgbColor1.R, rgbColor2.R) - Math.Min(rgbColor1.R, rgbColor2.R) +
                     Math.Max(rgbColor1.G, rgbColor2.G) - Math.Min(rgbColor1.G, rgbColor2.G) +
                     Math.Max(rgbColor1.B, rgbColor2.B) - Math.Min(rgbColor1.B, rgbColor2.B);
-                
+
                 return NumberValue.Create(colorDifference);
             }
         }
@@ -544,7 +544,7 @@ namespace Fluid.Filters
             return rgbColor;
         }
 
-        private struct HexColor
+        private readonly struct HexColor
         {
             public static readonly HexColor Empty = default;
 
@@ -552,17 +552,17 @@ namespace Fluid.Filters
             {
                 if (!IsHexadecimal(red))
                 {
-                    throw new ArgumentNullException(nameof(red), "The red value is not hexadecimal");
+                    ExceptionHelper.ThrowArgumentNullException(nameof(red), "The red value is not hexadecimal");
                 }
 
                 if (!IsHexadecimal(green))
                 {
-                    throw new ArgumentNullException(nameof(green), "The green value is not hexadecimal");
+                    ExceptionHelper.ThrowArgumentNullException(nameof(green), "The green value is not hexadecimal");
                 }
 
                 if (!IsHexadecimal(blue))
                 {
-                    throw new ArgumentNullException(nameof(blue), "The blue value is not hexadecimal");
+                    ExceptionHelper.ThrowArgumentNullException(nameof(blue), "The blue value is not hexadecimal");
                 }
 
                 R = red;
@@ -633,7 +633,7 @@ namespace Fluid.Filters
             private static bool IsHexadecimal(string value) => value.All(c => "0123456789abcdefABCDEF".Contains(c));
         }
 
-        private struct RgbColor : IEquatable<RgbColor>
+        private readonly struct RgbColor : IEquatable<RgbColor>
         {
             private const double DefaultTransperency = 1.0;
 
@@ -648,24 +648,24 @@ namespace Fluid.Filters
 
             public RgbColor(int red, int green, int blue, double alpha = DefaultTransperency)
             {
-                if (red < 0 || red > 255)
+                if ((uint) red > 255)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(red), "The red value must in rage [0-255]");
+                    ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(red), "The red value must in rage [0-255]");
                 }
 
-                if (green < 0 || green > 255)
+                if ((uint) green > 255)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(green), "The green value must in rage [0-255]");
+                    ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(green), "The green value must in rage [0-255]");
                 }
 
-                if (blue < 0 || blue > 255)
+                if ((uint) blue > 255)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(blue), "The blue value must in rage [0-255]");
+                    ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(blue), "The blue value must in rage [0-255]");
                 }
 
                 if (alpha < 0.0 || alpha > 1.0)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(alpha), "The alpha value must in rage [0-1]");
+                    ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(alpha), "The alpha value must in rage [0-1]");
                 }
 
                 R = red;
@@ -811,34 +811,34 @@ namespace Fluid.Filters
             public bool Equals(RgbColor other) => R == other.R && G == other.G && B == other.B;
         }
 
-        private struct HslColor
+        private readonly struct HslColor
         {
-            private const double DefaultTransperency = 1.0;
+            private const double DefaultTransparency = 1.0;
 
             private static readonly char[] _colorSeparators = new[] { '(', ',', ' ', ')' };
 
             public static readonly HslColor Empty = default;
 
-            public HslColor(double hue, double saturation, double lightness, double alpha = DefaultTransperency)
+            public HslColor(double hue, double saturation, double lightness, double alpha = DefaultTransparency)
             {
                 if (hue < 0 || hue > 360)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(hue), "The hue value must in rage [0-360]");
+                    ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(hue), "The hue value must in rage [0-360]");
                 }
 
                 if (saturation < 0.0 || saturation > 1.0)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(saturation), "The saturation value must in rage [0-1]");
+                    ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(saturation), "The saturation value must in rage [0-1]");
                 }
 
                 if (lightness < 0.0 || lightness > 1.0)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(lightness), "The lightness value must in rage [0-1]");
+                    ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(lightness), "The lightness value must in rage [0-1]");
                 }
 
                 if (alpha < 0.0 || alpha > 1.0)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(alpha), "The alpha value must in rage [0-1]");
+                    ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(alpha), "The alpha value must in rage [0-1]");
                 }
 
                 H = hue;
@@ -946,7 +946,7 @@ namespace Fluid.Filters
                 return new HslColor(Convert.ToInt32(h), Math.Round(s, 2), Math.Round(l, 2), rgbColor.A);
             }
 
-            public override string ToString() => A == DefaultTransperency
+            public override string ToString() => A == DefaultTransparency
                 ? $"hsl({H}, {S * 100.0}%, {L * 100.0}%)"
                 : $"hsla({H}, {S * 100.0}%, {L * 100.0}%, {Math.Round(A, 1)})";
         }

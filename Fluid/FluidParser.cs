@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using static Parlot.Fluent.Parsers;
@@ -68,9 +69,9 @@ namespace Fluid
             // Member expressions
             var Indexer = Between(LBracket, Primary, RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
 
-            var Member = Identifier.Then<MemberSegment>(x => new IdentifierSegment(x.ToString())).And(
+            var Member = Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)).And(
                 ZeroOrMany(
-                    Dot.SkipAnd(Identifier.Then<MemberSegment>(x => new IdentifierSegment(x.ToString())))
+                    Dot.SkipAnd(Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)))
                     .Or(Indexer)))
                 .Then(x =>
                 {
@@ -88,7 +89,7 @@ namespace Fluid
             // primary => NUMBER | STRING | BOOLEAN | property
             Primary.Parser =
                 Number.Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)))
-                .Or(String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x.ToString()))))
+                .Or(String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x))))
                 .Or(True.Then<Expression>(x => new LiteralExpression(BooleanValue.True)))
                 .Or(False.Then<Expression>(x => new LiteralExpression(BooleanValue.False)))
                 .Or(Member.Then<Expression>(x => x))
@@ -101,12 +102,12 @@ namespace Fluid
             var LogicalExpression = Primary.And(ZeroOrMany(OneOf(BinaryOr, BinaryAnd, Contains, DoubleEquals, NotEquals, Different, GreaterOr, LowerOr, Greater, Lower).And(Primary)))
                 .Then(static x =>
                 {
-                    if (!x.Item2.Any())
+                    if (x.Item2.Count == 0)
                     {
                         return x.Item1;
                     }
 
-                    var result = x.Item2.Last().Item2;
+                    var result = x.Item2[x.Item2.Count - 1].Item2;
 
                     for (var i = x.Item2.Count - 1; i >= 0; i--)
                     {
@@ -140,7 +141,7 @@ namespace Fluid
                     .And(ZeroOrOne(Colon.SkipAnd(
                         Separated(Comma,
                             OneOf(
-                                Identifier.AndSkip(Colon).And(Primary).Then(static x => new FilterArgument(x.Item1.ToString(), x.Item2)),
+                                Identifier.AndSkip(Colon).And(Primary).Then(static x => new FilterArgument(x.Item1, x.Item2)),
                                 Primary.Then(static x => new FilterArgument(null, x))
                             ))
                         )))
@@ -153,7 +154,7 @@ namespace Fluid
                         // Filters
                         foreach (var pipeResult in x.Item2)
                         {
-                            var identifier = pipeResult.Item1.ToString();
+                            var identifier = pipeResult.Item1;
                             var arguments = pipeResult.Item2;
 
                             result = new FilterExpression(result, identifier, arguments ?? new List<FilterArgument>());
@@ -202,7 +203,7 @@ namespace Fluid
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
                         .AndSkip(CreateTag("endcapture"))
-                        .Then<Statement>(x => new CaptureStatement(x.Item1.ToString(), x.Item2))
+                        .Then<Statement>(x => new CaptureStatement(x.Item1, x.Item2))
                         .ElseError("Invalid 'capture' tag")
                         ;
             var CycleTag = ZeroOrOne(Identifier.AndSkip(Colon))
@@ -214,23 +215,25 @@ namespace Fluid
                                 ? null
                                 : new LiteralExpression(StringValue.Create(x.Item1));
 
-                            var values = x.Item2.Select(e => new LiteralExpression(StringValue.Create(e.ToString()))).ToList<Expression>();
+                            var values = x.Item2
+                                .Select(e => new LiteralExpression(StringValue.Create(e)))
+                                .ToArray<Expression>();
 
                             return new CycleStatement(group, values);
                         })
                         .ElseError("Invalid 'cycle' tag")
                         ;
-            var DecrementTag = Identifier.AndSkip(TagEnd).Then<Statement>(x => new DecrementStatement(x.ToString()));
+            var DecrementTag = Identifier.AndSkip(TagEnd).Then<Statement>(x => new DecrementStatement(x));
             var IncludeTag = OneOf(
-                        Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1.ToString(), x.Item2)))).Then(x => new IncludeStatement(this, x.Item1, null, x.Item2)),
+                        Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new IncludeStatement(this, x.Item1, null, x.Item2)),
                         Primary.AndSkip(Terms.Text("with")).And(Primary).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2)),
                         Primary.Then(x => new IncludeStatement(this, x))
                         ).AndSkip(TagEnd)
                         .Then<Statement>(x => x)
                         .ElseError("Invalid 'include' tag");
-            var IncrementTag = Identifier.AndSkip(TagEnd).Then<Statement>(x => new IncrementStatement(x.ToString()));
+            var IncrementTag = Identifier.AndSkip(TagEnd).Then<Statement>(x => new IncrementStatement(x));
             var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
-            var AssignTag = Identifier.AndSkip(Equal).And(FilterExpression).AndSkip(TagEnd).Then<Statement>(x => new AssignStatement(x.Item1.ToString(), x.Item2));
+            var AssignTag = Identifier.AndSkip(Equal).And(FilterExpression).AndSkip(TagEnd).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
             var IfTag = LogicalExpression
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
@@ -278,15 +281,11 @@ namespace Fluid
                             .AndSkip(CreateTag("endfor"))
                             .Then<Statement>(x =>
                             {
-                                var identifier = x.Item1.ToString();
+                                var identifier = x.Item1;
                                 var member = x.Item2;
                                 var statements = x.Item4;
                                 var elseStatement = x.Item5;
-
-                                var limitResult = x.Item3.Where(l => l.IsLimit).LastOrDefault().Value;
-                                var offsetResult = x.Item3.Where(l => l.IsOffset).LastOrDefault().Value;
-                                var reversed = x.Item3.Any(l => l.IsReversed);
-
+                                var (limitResult, offsetResult, reversed) = ReadForStatementConfiguration(x.Item3);
                                 return new ForStatement(statements, identifier, member, limitResult, offsetResult, reversed, elseStatement);
                             }),
 
@@ -303,14 +302,10 @@ namespace Fluid
                             .AndSkip(CreateTag("endfor"))
                             .Then<Statement>(x =>
                             {
-                                var identifier = x.Item1.ToString();
+                                var identifier = x.Item1;
                                 var range = x.Item2;
                                 var statements = x.Item4;
-
-                                var limitResult = x.Item3.Where(l => l.IsLimit).LastOrDefault().Value;
-                                var offsetResult = x.Item3.Where(l => l.IsOffset).LastOrDefault().Value;
-                                var reversed = x.Item3.Any(l => l.IsReversed);
-
+                                var (limitResult, offsetResult, reversed) = ReadForStatementConfiguration(x.Item3);
                                 return new ForStatement(statements, identifier, range, limitResult, offsetResult, reversed, null);
 
                             })
@@ -331,12 +326,49 @@ namespace Fluid
             RegisteredTags["case"] = CaseTag;
             RegisteredTags["for"] = ForTag;
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static (Expression limitResult, Expression offsetResult, bool reversed) ReadForStatementConfiguration(List<ForModifier> modifiers)
+            {
+                if (modifiers.Count == 0)
+                {
+                    return (null, null, false);
+                }
+
+                // take slower route when needed
+                static (Expression limitResult, Expression offsetResult, bool reversed) ReadFromList(List<ForModifier> modifiers)
+                {
+                    Expression limitResult = null;
+                    Expression offsetResult = null;
+                    var reversed = false;
+                    for (var i = modifiers.Count - 1; i > -1; --i)
+                    {
+                        var l = modifiers[i];
+                        if (l.IsLimit && limitResult is null)
+                        {
+                            limitResult = l.Value;
+                        }
+
+                        if (l.IsOffset && offsetResult is null)
+                        {
+                            offsetResult = l.Value;
+                        }
+
+                        reversed |= l.IsReversed;
+                    }
+
+                    return (limitResult, offsetResult, reversed);
+                }
+
+
+                return ReadFromList(modifiers);
+            }
+
             var AnyTags = TagStart.SkipAnd(Identifier.ElseError("Expected tag name").Switch((context, previous) =>
             {
-                // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed 
+                // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
 
-                var tagName = previous.ToString();
+                var tagName = previous;
 
                 if (RegisteredTags.TryGetValue(tagName, out var tag))
                 {
@@ -350,10 +382,10 @@ namespace Fluid
 
             var KnownTags = TagStart.SkipAnd(Identifier.ElseError("Expected tag name").Switch((context, previous) =>
             {
-                // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed 
+                // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
 
-                var tagName = previous.ToString();
+                var tagName = previous;
 
                 if (RegisteredTags.TryGetValue(tagName, out var tag))
                 {
@@ -380,7 +412,7 @@ namespace Fluid
 
         public void RegisterIdentifierTag(string tagName, Func<string, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
-            RegisteredTags[tagName] = Identifier.AndSkip(TagEnd).Then<Statement>(x => new IdentifierTagStatement(x.ToString(), render));
+            RegisteredTags[tagName] = Identifier.AndSkip(TagEnd).Then<Statement>(x => new IdentifierTagStatement(x, render));
         }
 
         public void RegisterEmptyBlock(string tagName, Func<IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)

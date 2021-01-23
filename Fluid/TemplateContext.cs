@@ -76,7 +76,7 @@ namespace Fluid
         public static Scope GlobalScope = new Scope();
 
         public Scope LocalScope { get; private set; }
-        
+
         // Filters
         public FilterCollection Filters { get; } = new FilterCollection();
 
@@ -96,14 +96,14 @@ namespace Fluid
         /// <remarks>
         /// This property should only be set by static constructores to prevent concurrency issues.
         /// </remarks>
-        public static IMemberAccessStrategy GlobalMemberAccessStrategy = new ConcurrentMemberAccessStrategy();
+        public static MemberAccessStrategy GlobalMemberAccessStrategy = new ConcurrentMemberAccessStrategy();
 
         public static IFileProvider GlobalFileProvider { get; set; } = new NullFileProvider();
 
         /// <summary>
         /// Represent a local list of object members than can be accessed with this context.
         /// </summary>
-        public IMemberAccessStrategy MemberAccessStrategy = new MemberAccessStrategy(GlobalMemberAccessStrategy);
+        public MemberAccessStrategy MemberAccessStrategy = new DefaultMemberAccessStrategy(GlobalMemberAccessStrategy);
 
         public IFileProvider FileProvider { get; set; }
 
@@ -118,7 +118,7 @@ namespace Fluid
         public Func<DateTimeOffset> Now { get; set; } = () => DateTimeOffset.Now;
 
         /// <summary>
-        /// Gets or sets a model object that is used to resolve properties in a template. This object is used if local and 
+        /// Gets or sets a model object that is used to resolve properties in a template. This object is used if local and
         /// global scopes are unsuccessfull.
         /// </summary>
         public object Model { get; set; }
@@ -174,6 +174,11 @@ namespace Fluid
         public TemplateContext SetValue(string name, string value)
         {
             return SetValue(name, new StringValue(value));
+        }
+
+        public TemplateContext SetValue(string name, char value)
+        {
+            return SetValue(name, StringValue.Create(value));
         }
 
         public TemplateContext SetValue(string name, bool value)

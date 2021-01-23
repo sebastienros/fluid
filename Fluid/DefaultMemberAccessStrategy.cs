@@ -1,23 +1,42 @@
 ﻿using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace Fluid
 {
-    public class ConcurrentMemberAccessStrategy : MemberAccessStrategy
+    public class DefaultMemberAccessStrategy : MemberAccessStrategy
     {
-        private readonly ConcurrentDictionary<Type, ConcurrentDictionary<string, IMemberAccessor>> _map;
+        private Dictionary<Type, Dictionary<string, IMemberAccessor>> _map;
+        private readonly MemberAccessStrategy _parent;
 
-        public ConcurrentMemberAccessStrategy()
+        public DefaultMemberAccessStrategy()
         {
-            _map = new ConcurrentDictionary<Type, ConcurrentDictionary<string, IMemberAccessor>>();
+            _map = new Dictionary<Type, Dictionary<string, IMemberAccessor>>();
+        }
+
+        public DefaultMemberAccessStrategy(MemberAccessStrategy parent) : this()
+        {
+            _parent = parent;
+            MemberNameStrategy = _parent.MemberNameStrategy;
         }
 
         public override IMemberAccessor GetAccessor(Type type, string name)
         {
+            if (_map is null)
+            {
+                return _parent?.GetAccessor(type, name);
+            }
+
             // Look for specific property map
             if (TryGetAccessor(type, name, out var accessor))
+            {
+                return accessor;
+            }
+
+            accessor ??= _parent?.GetAccessor(type, name);
+
+            if (accessor != null)
             {
                 return accessor;
             }
@@ -32,6 +51,13 @@ namespace Fluid
             {
                 // Look for specific property map
                 if (TryGetAccessor(currentType, name, out var accessor))
+                {
+                    return accessor;
+                }
+
+                accessor ??= _parent?.GetAccessor(currentType, name);
+
+                if (accessor != null)
                 {
                     return accessor;
                 }
@@ -70,19 +96,16 @@ namespace Fluid
 
         public override void Register(Type type, string name, IMemberAccessor getter)
         {
-#if NETSTANDARD2_0
-            var typeMap = _map.GetOrAdd(
-                type,
-                _
-                    => new ConcurrentDictionary<string, IMemberAccessor>(IgnoreCasing ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal));
-#else
-            // we can give state and remove closure allocation
-            var typeMap = _map.GetOrAdd(
-                type,
-                (_, ignoreCasing)
-                    => new ConcurrentDictionary<string, IMemberAccessor>(ignoreCasing ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal),
-                IgnoreCasing);
-#endif
+            _map ??= new Dictionary<Type, Dictionary<string, IMemberAccessor>>();
+
+            if (!_map.TryGetValue(type, out var typeMap))
+            {
+                typeMap = new Dictionary<string, IMemberAccessor>(IgnoreCasing
+                    ? StringComparer.OrdinalIgnoreCase
+                    : StringComparer.Ordinal);
+
+                _map[type] = typeMap;
+            }
 
             typeMap[name] = getter;
         }

@@ -41,7 +41,7 @@ namespace Fluid
 
             if (template == null)
             {
-                return ExceptionHelper.ThrowArgumentNullException<ValueTask<string>>(nameof(template));
+                ExceptionHelper.ThrowArgumentNullException(nameof(template));
             }
 
             static async ValueTask<string> Awaited(

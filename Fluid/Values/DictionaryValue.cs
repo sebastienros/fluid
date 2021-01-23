@@ -59,7 +59,7 @@ namespace Fluid.Values
 
             object value = null;
 
-            // NOTE: This code block doesn't seem to make any sense for a dictionary, just keeping it 
+            // NOTE: This code block doesn't seem to make any sense for a dictionary, just keeping it
             // as a comment in case it breaks something at some point.
 
             //var accessor = context.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
@@ -143,11 +143,34 @@ namespace Fluid.Values
             foreach (var key in _value.Keys)
             {
                 _value.TryGetValue(key, out var value);
-                yield return new ArrayValue(new FluidValue[] {
-                    new StringValue(key),
-                    value
-                });
+                yield return new ArrayValue(new[] { new StringValue(key),  value });
             }
+        }
+
+        internal override string[] ToStringArray()
+        {
+            var array = new string[_value.Count];
+            var i = 0;
+            foreach (var key in _value.Keys)
+            {
+                _value.TryGetValue(key, out var value);
+                array[i] = string.Join("", key, value.ToStringValue());
+                i++;
+            }
+
+            return array;
+        }
+
+        internal override List<FluidValue> ToList()
+        {
+            var list = new List<FluidValue>(_value.Count);
+            foreach (var key in _value.Keys)
+            {
+                _value.TryGetValue(key, out var value);
+                list.Add(new ArrayValue(new[] { new StringValue(key), value }));
+            }
+
+            return list;
         }
 
         public override bool Equals(object other)

@@ -69,13 +69,13 @@ namespace Fluid.Filters
         public static FluidValue Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var compacted = new List<FluidValue>();
-            foreach(var value in input.Enumerate()) 
+            foreach(var value in input.Enumerate())
             {
                 if (!value.IsNil())
                 {
                     compacted.Add(value);
                 }
-            } 
+            }
 
             return new ArrayValue(compacted);
         }
@@ -140,7 +140,7 @@ namespace Fluid.Filters
         {
             return new StringValue(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())));
         }
-        
+
         public static FluidValue ChangeTimeZone(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (!TryGetDateTimeInput(input, context, out var value))
@@ -152,11 +152,11 @@ namespace Fluid.Filters
             {
                 return NilValue.Instance;
             }
-            
+
             var timeZone = arguments.At(0).ToStringValue();
 
             if (!TZConvert.TryGetTimeZoneInfo(timeZone, out var timeZoneInfo)) return new DateTimeValue(value);
-            
+
             var result = TimeZoneInfo.ConvertTime(value, timeZoneInfo);
             return new DateTimeValue(result);
         }
@@ -234,7 +234,7 @@ namespace Fluid.Filters
                                 break;
                             }
                             case 'c':
-                            {   
+                            {
                                 var f = value.ToString("F", context.CultureInfo);
                                 result.Append(upperCaseFlag ? f.ToUpper() : f);
                                 break;
@@ -272,7 +272,7 @@ namespace Fluid.Filters
                                 if (useSpaceForPaddingFlag)
                                 {
                                     result.Append(month.PadLeft(2, ' '));
-                                } 
+                                }
                                 else if (removeLeadingZerosFlag)
                                 {
                                     result.Append(month);
@@ -334,7 +334,7 @@ namespace Fluid.Filters
             if (!TryGetDateTimeInput(input, context, out var value))
             {
                 return NilValue.Instance;
-            }            
+            }
 
             if (arguments.At(0).IsNil())
             {
@@ -452,9 +452,9 @@ namespace Fluid.Filters
                 culture = CultureInfo.CreateSpecificCulture(arguments["culture"].ToStringValue()) ?? context.CultureInfo;
             }
 
-            var parameters = arguments.Values.Select(x => x.ToObjectValue()).ToArray();
+            var parameters = arguments.ValuesToObjectArray();
 
-            return new StringValue(String.Format(culture, format, parameters));
+            return new StringValue(string.Format(culture, format, parameters));
         }
     }
 }

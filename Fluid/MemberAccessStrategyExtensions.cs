@@ -73,8 +73,8 @@ namespace Fluid
         /// Registers a type and all its public properties.
         /// </summary>
         /// <typeparam name="T">The type to register.</typeparam>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
-        public static void Register<T>(this IMemberAccessStrategy strategy)
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
+        public static void Register<T>(this MemberAccessStrategy strategy)
         {
             Register(strategy, typeof(T));
         }
@@ -82,9 +82,9 @@ namespace Fluid
         /// <summary>
         /// Registers a type and all its public properties.
         /// </summary>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="type">The type to register.</param>
-        public static void Register(this IMemberAccessStrategy strategy, Type type)
+        public static void Register(this MemberAccessStrategy strategy, Type type)
         {
             foreach (var entry in GetTypeMembers(type, strategy.MemberNameStrategy))
             {
@@ -96,9 +96,9 @@ namespace Fluid
         /// Registers a limited set of properties in a type.
         /// </summary>
         /// <typeparam name="T">The type to register.</typeparam>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="names">The names of the properties in the type to register.</param>
-        public static void Register<T>(this IMemberAccessStrategy strategy, params string[] names)
+        public static void Register<T>(this MemberAccessStrategy strategy, params string[] names)
         {
             strategy.Register(typeof(T), names);
         }
@@ -107,9 +107,9 @@ namespace Fluid
         /// Registers a limited set of properties in a type.
         /// </summary>
         /// <typeparam name="T">The type to register.</typeparam>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="names">The property's expressions in the type to register.</param>
-        public static void Register<T>(this IMemberAccessStrategy strategy, params Expression<Func<T, object>>[] names)
+        public static void Register<T>(this MemberAccessStrategy strategy, params Expression<Func<T, object>>[] names)
         {
             strategy.Register<T>(names.Select(ExpressionHelper.GetPropertyName).ToArray());
         }
@@ -117,10 +117,10 @@ namespace Fluid
         /// <summary>
         /// Registers a limited set of properties in a type.
         /// </summary>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="type">The type to register.</param>
         /// <param name="names">The names of the properties in the type to register.</param>
-        public static void Register(this IMemberAccessStrategy strategy, Type type, params string[] names)
+        public static void Register(this MemberAccessStrategy strategy, Type type, params string[] names)
         {
             foreach (var name in names)
             {
@@ -133,10 +133,10 @@ namespace Fluid
         /// to retrieve the value. The name of the property doesn't have to exist on the object.
         /// </summary>
         /// <typeparam name="T">The type to register.</typeparam>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="name">The name of the property to intercept.</param>
         /// <param name="getter">The <see cref="IMemberAccessor"/> instance used to retrieve the value.</param>
-        public static void Register<T>(this IMemberAccessStrategy strategy, string name, IMemberAccessor getter)
+        public static void Register<T>(this MemberAccessStrategy strategy, string name, IMemberAccessor getter)
         {
             strategy.Register(typeof(T), name, getter);
         }
@@ -146,9 +146,9 @@ namespace Fluid
         /// its property values.
         /// </summary>
         /// <typeparam name="T">The type to register.</typeparam>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="getter">The <see cref="IMemberAccessor"/> instance used to retrieve the value.</param>
-        public static void Register<T>(this IMemberAccessStrategy strategy, IMemberAccessor getter)
+        public static void Register<T>(this MemberAccessStrategy strategy, IMemberAccessor getter)
         {
             strategy.Register(typeof(T), "*", getter);
         }
@@ -157,10 +157,10 @@ namespace Fluid
         /// Registers a type using a <see cref="IMemberAccessor"/> to retrieve any of
         /// its property values.
         /// </summary>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="type">The type to register.</param>
         /// <param name="getter">The <see cref="IMemberAccessor"/> instance used to retrieve the value.</param>
-        public static void Register(this IMemberAccessStrategy strategy, Type type, IMemberAccessor getter)
+        public static void Register(this MemberAccessStrategy strategy, Type type, IMemberAccessor getter)
         {
             strategy.Register(type, "*", getter);
         }
@@ -171,9 +171,9 @@ namespace Fluid
         /// </summary>
         /// <typeparam name="T">The type to register.</typeparam>
         /// <typeparam name="TResult">The type to return.</typeparam>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/> to register.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/> to register.</param>
         /// <param name="accessor">The <see cref="T:Func{T, string, TResult}"/> instance used to retrieve the value.</param>
-        public static void Register<T, TResult>(this IMemberAccessStrategy strategy, Func<T, string, TResult> accessor)
+        public static void Register<T, TResult>(this MemberAccessStrategy strategy, Func<T, string, TResult> accessor)
         {
             Register<T, TResult>(strategy, (obj, name, ctx) => accessor(obj, name));
         }
@@ -184,9 +184,9 @@ namespace Fluid
         /// </summary>
         /// <typeparam name="T">The type to register.</typeparam>
         /// <typeparam name="TResult">The type to return.</typeparam>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="accessor">The <see cref="T:Func{T, string, TemplateContext, TResult}"/> instance used to retrieve the value.</param>
-        public static void Register<T, TResult>(this IMemberAccessStrategy strategy, Func<T, string, TemplateContext, TResult> accessor)
+        public static void Register<T, TResult>(this MemberAccessStrategy strategy, Func<T, string, TemplateContext, TResult> accessor)
         {
             strategy.Register(typeof(T), "*", new DelegateAccessor<T, TResult>(accessor));
         }
@@ -195,9 +195,9 @@ namespace Fluid
         /// Registers a type with a <see cref="T:Func{T, string, Task{TResult}}"/> to retrieve any of
         /// its property values.
         /// </summary>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="accessor">The <see cref="T:Func{T, string, Task{Object}}"/> instance used to retrieve the value.</param>
-        public static void Register<T, TResult>(this IMemberAccessStrategy strategy, Func<T, string, Task<TResult>> accessor)
+        public static void Register<T, TResult>(this MemberAccessStrategy strategy, Func<T, string, Task<TResult>> accessor)
         {
             Register<T, TResult>(strategy, (obj, name, ctx) => accessor(obj, name));
         }
@@ -206,9 +206,9 @@ namespace Fluid
         /// Registers a type with a <see cref="T:Func{T, string, TemplateContext, Task{TResult}}"/> to retrieve any of
         /// its property values.
         /// </summary>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="accessor">The <see cref="T:Func{T, string, TemplateContext, Task{TResult}}"/> instance used to retrieve the value.</param>
-        public static void Register<T, TResult>(this IMemberAccessStrategy strategy, Func<T, string, TemplateContext, Task<TResult>> accessor)
+        public static void Register<T, TResult>(this MemberAccessStrategy strategy, Func<T, string, TemplateContext, Task<TResult>> accessor)
         {
             strategy.Register(typeof(T), "*", new AsyncDelegateAccessor<T, TResult>(accessor));
         }
@@ -216,10 +216,10 @@ namespace Fluid
         /// <summary>
         /// Registers a type with a <see cref="T:Func{T, Task{TResult}}"/> to retrieve the given property's value.
         /// </summary>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="name">The name of the property.</param>
         /// <param name="accessor">The <see cref="T:Func{T, Task{TResult}}"/> instance used to retrieve the value.</param>
-        public static void Register<T, TResult>(this IMemberAccessStrategy strategy, string name, Func<T, Task<TResult>> accessor)
+        public static void Register<T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, Task<TResult>> accessor)
         {
             Register<T, TResult>(strategy, name, (obj, ctx) => accessor(obj));
         }
@@ -227,10 +227,10 @@ namespace Fluid
         /// <summary>
         /// Registers a type with a <see cref="T:Func{T, TemplateContext, Task{Object}}"/> to retrieve the given property's value.
         /// </summary>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="name">The name of the property.</param>
         /// <param name="accessor">The <see cref="T:Func{T, TemplateContext, Task{Object}}"/> instance used to retrieve the value.</param>
-        public static void Register<T, TResult>(this IMemberAccessStrategy strategy, string name, Func<T, TemplateContext, Task<TResult>> accessor)
+        public static void Register<T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, TemplateContext, Task<TResult>> accessor)
         {
             strategy.Register(typeof(T), name, new AsyncDelegateAccessor<T, TResult>((obj, propertyName, ctx) => accessor(obj, ctx)));
         }
@@ -238,10 +238,10 @@ namespace Fluid
         /// <summary>
         /// Registers a type with a <see cref="Func{T, TResult}"/> to retrieve the property specified.
         /// </summary>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="name">The name of the property.</param>
         /// <param name="accessor">The <see cref="Func{T, TResult}"/> instance used to retrieve the value.</param>
-        public static void Register<T, TResult>(this IMemberAccessStrategy strategy, string name, Func<T, TResult> accessor)
+        public static void Register<T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, TResult> accessor)
         {
             Register<T, TResult>(strategy, name, (obj, ctx) => accessor(obj));
         }
@@ -249,10 +249,10 @@ namespace Fluid
         /// <summary>
         /// Registers a type with a <see cref="Func{T, TemplateContext, TResult}"/> to retrieve the property specified.
         /// </summary>
-        /// <param name="strategy">The <see cref="IMemberAccessStrategy"/>.</param>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="name">The name of the property.</param>
         /// <param name="accessor">The <see cref="Func{T, TemplateContext, TResult}"/> instance used to retrieve the value.</param>
-        public static void Register<T, TResult>(this IMemberAccessStrategy strategy, string name, Func<T, TemplateContext, TResult> accessor)
+        public static void Register<T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, TemplateContext, TResult> accessor)
         {
             strategy.Register(typeof(T), name, new DelegateAccessor<T, TResult>((obj, propertyName, ctx) => accessor(obj, ctx)));
         }

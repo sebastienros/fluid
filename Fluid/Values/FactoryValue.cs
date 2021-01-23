@@ -13,7 +13,7 @@ namespace Fluid.Values
 
         public FactoryValue(Func<T> factory)
         {
-            _factory = new Lazy<FluidValue>(() => 
+            _factory = new Lazy<FluidValue>(() =>
             {
                 var result = factory();
                 return FluidValue.Create(result);
@@ -46,12 +46,12 @@ namespace Fluid.Values
         {
             return _factory.Value.GetHashCode();
         }
-        
+
         public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
             return _factory.Value.GetIndexAsync(index, context);
         }
-        
+
         public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             return _factory.Value.GetValueAsync(name, context);
@@ -89,21 +89,7 @@ namespace Fluid.Values
 
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            if (writer == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
-            }
-
-            if (encoder == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
-            }
-
-            if (cultureInfo == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(cultureInfo));
-            }
-
+            AssertWriteToParameters(writer, encoder, cultureInfo);
             _factory.Value.WriteTo(writer, encoder, cultureInfo);
         }
     }

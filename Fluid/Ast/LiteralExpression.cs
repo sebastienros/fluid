@@ -5,16 +5,16 @@ namespace Fluid.Ast
 {
     public sealed class LiteralExpression : Expression
     {
-        private readonly FluidValue _value;
-        
+        private readonly ValueTask<FluidValue> _value;
+
         public LiteralExpression(FluidValue value)
         {
-            _value = value;
+            _value = new ValueTask<FluidValue>(value);
         }
 
         public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
-            return new ValueTask<FluidValue>(_value);    
+            return _value;
         }
     }
 }
