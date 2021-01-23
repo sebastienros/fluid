@@ -14,7 +14,7 @@ namespace Fluid.Ast
             Expression expression,
             ElseStatement elseStatement = null,
             WhenStatement[] whenStatements = null
-            ) :base (new List<Statement>())
+        ) : base(new List<Statement>())
         {
             Expression = expression;
             Else = elseStatement;
@@ -35,7 +35,7 @@ namespace Fluid.Ast
 
             foreach (var when in _whenStatements)
             {
-                foreach(var option in when.Options)
+                foreach (var option in when.Options)
                 {
                     if (value.Equals(await option.EvaluateAsync(context)))
                     {
@@ -46,7 +46,7 @@ namespace Fluid.Ast
 
             if (Else != null)
             {
-              await Else.WriteToAsync(writer, encoder, context);
+                await Else.WriteToAsync(writer, encoder, context);
             }
 
             return Completion.Normal;

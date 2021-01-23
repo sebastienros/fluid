@@ -31,7 +31,10 @@ namespace Fluid.Filters
                 return input;
             }
 
-            return new StringValue(String.Join(arguments.At(0).ToStringValue(), input.Enumerate().Select(x => x.ToStringValue()).ToArray()));
+            var separator = arguments.At(0).ToStringValue();
+            var values = input.ToStringArray();
+            var joined = string.Join(separator, values);
+            return new StringValue(joined);
         }
 
         public static FluidValue First(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -41,7 +44,7 @@ namespace Fluid.Filters
                 return input;
             }
 
-            return input.Enumerate().FirstOrDefault() ?? NilValue.Instance;
+            return input.FirstOrDefault() ?? NilValue.Instance;
         }
 
         public static FluidValue Last(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -51,7 +54,7 @@ namespace Fluid.Filters
                 return input;
             }
 
-            return input.Enumerate().LastOrDefault() ?? NilValue.Instance;
+            return input.LastOrDefault() ?? NilValue.Instance;
         }
 
         public static FluidValue Concat(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -161,22 +164,22 @@ namespace Fluid.Filters
                 var member = arguments.At(0).ToStringValue();
 
                 var values = new List<KeyValuePair<FluidValue, object>>();
-                
+
                 foreach (var item in input.Enumerate())
                 {
                     values.Add(new KeyValuePair<FluidValue, object>(item, (await item.GetValueAsync(member, context)).ToObjectValue()));
                 }
 
-                var orderedValues = values.OrderBy(x => x.Value).Select(x => x.Key).ToList();
-                
+                var orderedValues = values
+                    .OrderBy(x => x.Value)
+                    .Select(x => x.Key)
+                    .ToArray();
+
                 return new ArrayValue(orderedValues);
             }
             else
             {
-                return new ArrayValue(input.Enumerate().OrderBy(x =>
-                {
-                    return x.ToStringValue();
-                }, StringComparer.Ordinal).ToArray());
+                return new ArrayValue(input.Enumerate().OrderBy(x => x.ToStringValue(), StringComparer.Ordinal).ToArray());
             }
         }
 
@@ -187,22 +190,22 @@ namespace Fluid.Filters
                 var member = arguments.At(0).ToStringValue();
 
                 var values = new List<KeyValuePair<FluidValue, object>>();
-                
+
                 foreach (var item in input.Enumerate())
                 {
                     values.Add(new KeyValuePair<FluidValue, object>(item, (await item.GetValueAsync(member, context)).ToObjectValue()));
                 }
 
-                var orderedValues = values.OrderBy(x => x.Value).Select(x => x.Key).ToList();
-                
+                var orderedValues = values
+                    .OrderBy(x => x.Value)
+                    .Select(x => x.Key)
+                    .ToArray();
+
                 return new ArrayValue(orderedValues);
             }
             else
             {
-                return new ArrayValue(input.Enumerate().OrderBy(x =>
-                {
-                    return x.ToStringValue();
-                }, StringComparer.OrdinalIgnoreCase));
+                return new ArrayValue(input.Enumerate().OrderBy(x => x.ToStringValue(), StringComparer.OrdinalIgnoreCase));
             }
         }
 

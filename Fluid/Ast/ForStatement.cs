@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Values;
@@ -13,14 +12,13 @@ namespace Fluid.Ast
     {
         public ForStatement(
             List<Statement> statements,
-            string identifier, 
+            string identifier,
             MemberExpression member,
-
             Expression limit,
             Expression offset,
             bool reversed,
             ElseStatement elseStatement = null
-            ) : base(statements)
+        ) : base(statements)
         {
             Identifier = identifier;
             Member = member;
@@ -29,16 +27,16 @@ namespace Fluid.Ast
             Reversed = reversed;
             Else = elseStatement;
         }
+
         public ForStatement(
             List<Statement> statements,
-            string identifier, 
+            string identifier,
             RangeExpression range,
-
             Expression limit,
             Expression offset,
             bool reversed,
             ElseStatement elseStatement = null
-            ) : base(statements)
+        ) : base(statements)
         {
             Identifier = identifier;
             Range = range;
@@ -61,12 +59,12 @@ namespace Fluid.Ast
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            IEnumerable<FluidValue> elements = Array.Empty<FluidValue>();
+            List<FluidValue> list = null;
 
             if (Member != null)
             {
                 var member = await Member.EvaluateAsync(context);
-                elements = member.Enumerate();
+                list = member.ToList();
             }
             else if (Range != null)
             {
@@ -76,71 +74,72 @@ namespace Fluid.Ast
                 // Cache range
                 if (_rangeElements == null || _rangeStart != start || _rangeEnd != end)
                 {
-                    _rangeElements = new List<FluidValue>();
+                    _rangeElements = new List<FluidValue>(end - start);
 
                     for (var i = start; i <= end; i++)
                     {
                         _rangeElements.Add(NumberValue.Create(i));
                     }
-                    
-                    elements = _rangeElements;
+
+                    list = _rangeElements;
                     _rangeStart = start;
                     _rangeEnd = end;
                 }
                 else
                 {
-                    elements = _rangeElements;
+                    list = _rangeElements;
                 }
             }
 
-            if (!elements.Any())
+            if (list is null || list.Count == 0)
             {
                 if (Else != null)
                 {
                     await Else.WriteToAsync(writer, encoder, context);
                 }
+
                 return Completion.Normal;
             }
 
             // Apply options
-
-            if (Offset != null)
+            var startIndex = 0;
+            if (Offset is not null)
             {
-                var offset = (int)(await Offset.EvaluateAsync(context)).ToNumberValue();
-                elements = elements.Skip(offset);
+                var offset = (int) (await Offset.EvaluateAsync(context)).ToNumberValue();
+                startIndex = offset;
             }
 
-            if (Limit != null)
+            var count = Math.Max(0, list.Count - startIndex);
+            if (Limit is not null)
             {
-                var limit = (int)(await Limit.EvaluateAsync(context)).ToNumberValue();
-                elements = elements.Take(limit);
+                var limit = (int) (await Limit.EvaluateAsync(context)).ToNumberValue();
+                count = Math.Min(count, limit);
             }
 
-            if (Reversed)
-            {
-                elements = elements.Reverse();
-            }
-
-            var list = elements.ToList();
-
-            if (!list.Any())
+            if (count == 0)
             {
                 if (Else != null)
                 {
                     await Else.WriteToAsync(writer, encoder, context);
                 }
+
                 return Completion.Normal;
+            }
+
+            if (Reversed)
+            {
+                list.Reverse(startIndex, count);
             }
 
             try
             {
                 var forloop = new ForLoopValue();
 
-                var length = forloop.Length = list.Count;
+                var length = forloop.Length = startIndex + count;
 
                 context.SetValue("forloop", forloop);
 
-                for (var i = 0; i < length; i++)
+                for (var i = startIndex; i < length; i++)
                 {
                     context.IncrementSteps();
 
@@ -158,9 +157,9 @@ namespace Fluid.Ast
 
                     Completion completion = Completion.Normal;
 
-                    for (var index = 0; index < Statements.Count; index++)
+                    for (var index = 0; index < _statements.Count; index++)
                     {
-                        var statement = Statements[index];
+                        var statement = _statements[index];
                         completion = await statement.WriteToAsync(writer, encoder, context);
 
                         // Restore the forloop property after every statement in case it replaced it,
@@ -195,7 +194,7 @@ namespace Fluid.Ast
             return Completion.Normal;
         }
 
-        private class ForLoopValue : FluidValue
+        private sealed class ForLoopValue : FluidValue
         {
             public int Length { get; set; }
             public int Index { get; set; }

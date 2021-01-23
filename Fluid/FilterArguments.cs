@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using Fluid.Values;
 
@@ -11,12 +10,12 @@ namespace Fluid
     /// </summary>
     public class FilterArguments
     {
-        public readonly static FilterArguments Empty = new FilterArguments();
+        public static readonly FilterArguments Empty = new FilterArguments();
 
         private List<FluidValue> _positional;
         private Dictionary<string, FluidValue> _named;
 
-        public int Count => _positional != null ? _positional.Count : 0;
+        public int Count => _positional?.Count ?? 0;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public FluidValue At(int index)
@@ -53,7 +52,7 @@ namespace Fluid
 
         public FilterArguments(params FluidValue[] values)
         {
-            _positional = new List<FluidValue>(values);  
+            _positional = new List<FluidValue>(values);
         }
 
         public FilterArguments(params object[] values)
@@ -66,10 +65,9 @@ namespace Fluid
 
             _positional = new List<FluidValue>(values.Length);
 
-            var length = values.Length;
-            for (var i = 0; i < length; i++)
+            foreach (var value in values)
             {
-                _positional.Add(FluidValue.Create(values[i]));
+                _positional.Add(FluidValue.Create(value));
             }
         }
 
@@ -112,8 +110,19 @@ namespace Fluid
             return this;
         }
 
-        public IEnumerable<string> Names => _named?.Keys ?? Enumerable.Empty<string>();
+        public IEnumerable<string> Names => _named?.Keys ?? System.Linq.Enumerable.Empty<string>();
 
         public IEnumerable<FluidValue> Values => _positional;
+
+        internal object[] ValuesToObjectArray()
+        {
+            var array = new object[_positional.Count];
+            for (var i = 0; i < array.Length; ++i)
+            {
+                array[i] = _positional[i].ToObjectValue();
+            }
+
+            return array;
+        }
     }
 }

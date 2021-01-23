@@ -101,12 +101,12 @@ namespace Fluid
             var LogicalExpression = Primary.And(ZeroOrMany(OneOf(BinaryOr, BinaryAnd, Contains, DoubleEquals, NotEquals, Different, GreaterOr, LowerOr, Greater, Lower).And(Primary)))
                 .Then(static x =>
                 {
-                    if (!x.Item2.Any())
+                    if (x.Item2.Count == 0)
                     {
                         return x.Item1;
                     }
 
-                    var result = x.Item2.Last().Item2;
+                    var result = x.Item2[x.Item2.Count - 1].Item2;
 
                     for (var i = x.Item2.Count - 1; i >= 0; i--)
                     {
@@ -214,7 +214,7 @@ namespace Fluid
                                 ? null
                                 : new LiteralExpression(StringValue.Create(x.Item1));
 
-                            var values = x.Item2.Select(e => new LiteralExpression(StringValue.Create(e.ToString()))).ToList<Expression>();
+                            var values = x.Item2.Select(e => new LiteralExpression(StringValue.Create(e))).ToArray<Expression>();
 
                             return new CycleStatement(group, values);
                         })
@@ -282,11 +282,7 @@ namespace Fluid
                                 var member = x.Item2;
                                 var statements = x.Item4;
                                 var elseStatement = x.Item5;
-
-                                var limitResult = x.Item3.Where(l => l.IsLimit).LastOrDefault().Value;
-                                var offsetResult = x.Item3.Where(l => l.IsOffset).LastOrDefault().Value;
-                                var reversed = x.Item3.Any(l => l.IsReversed);
-
+                                var (limitResult, offsetResult, reversed) = ReadForStatementConfiguration(x.Item3);
                                 return new ForStatement(statements, identifier, member, limitResult, offsetResult, reversed, elseStatement);
                             }),
 
@@ -306,11 +302,7 @@ namespace Fluid
                                 var identifier = x.Item1.ToString();
                                 var range = x.Item2;
                                 var statements = x.Item4;
-
-                                var limitResult = x.Item3.Where(l => l.IsLimit).LastOrDefault().Value;
-                                var offsetResult = x.Item3.Where(l => l.IsOffset).LastOrDefault().Value;
-                                var reversed = x.Item3.Any(l => l.IsReversed);
-
+                                var (limitResult, offsetResult, reversed) = ReadForStatementConfiguration(x.Item3);
                                 return new ForStatement(statements, identifier, range, limitResult, offsetResult, reversed, null);
 
                             })
@@ -331,9 +323,30 @@ namespace Fluid
             RegisteredTags["case"] = CaseTag;
             RegisteredTags["for"] = ForTag;
 
+            static (Expression limitResult, Expression offsetResult, bool reversed) ReadForStatementConfiguration(List<ForModifier> forModifiers)
+            {
+                Expression limitResult = null;
+                Expression offsetResult = null;
+                var reversed = false;
+                for (var i = forModifiers.Count - 1; i > -1; --i)
+                {
+                    var l = forModifiers[i];
+                    if (l.IsLimit && limitResult is null)
+                    {
+                        limitResult = l.Value;
+                    }
+                    if (l.IsOffset && offsetResult is null)
+                    {
+                        offsetResult = l.Value;
+                    }
+                    reversed |= l.IsReversed;
+                }
+                return (limitResult, offsetResult, reversed);
+            }
+
             var AnyTags = TagStart.SkipAnd(Identifier.ElseError("Expected tag name").Switch((context, previous) =>
             {
-                // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed 
+                // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
 
                 var tagName = previous.ToString();
@@ -350,7 +363,7 @@ namespace Fluid
 
             var KnownTags = TagStart.SkipAnd(Identifier.ElseError("Expected tag name").Switch((context, previous) =>
             {
-                // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed 
+                // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
 
                 var tagName = previous.ToString();

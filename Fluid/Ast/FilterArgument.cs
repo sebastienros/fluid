@@ -1,6 +1,6 @@
 ﻿namespace Fluid.Ast
 {
-    public struct FilterArgument
+    public readonly struct FilterArgument
     {
         public FilterArgument(string name, Expression expression)
         {

@@ -176,9 +176,9 @@ namespace Fluid.Filters
                 }
 
                 var sourceString = input.ToStringValue();
-    
+
                 var sourceStringLength = sourceString.Length;
-    
+
                 if (requestedStartIndex < 0 && Math.Abs(requestedStartIndex) > sourceStringLength)
                 {
                     return StringValue.Empty;
@@ -210,7 +210,7 @@ namespace Fluid.Filters
             }
             else
             {
-                strings = stringInput.Split(new[] { separator }, StringSplitOptions.RemoveEmptyEntries);
+                strings = stringInput.Split(separator, StringSplitOptions.RemoveEmptyEntries);
             }
 
             var values = new FluidValue[strings.Length];
@@ -263,10 +263,9 @@ namespace Fluid.Filters
 
             var l = Math.Max(0, length - ellipsisStr.Length);
 
-            return inputStr.Length > length 
+            return inputStr.Length > length
                 ? new StringValue(inputStr.Substring(0, l) + ellipsisStr)
-                : input
-                ;            
+                : input;
         }
         public static FluidValue TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {

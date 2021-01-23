@@ -20,7 +20,7 @@ namespace Fluid
         }
 
         /// <summary>
-        /// Returns the value with the specified name in the chain of scopes, or undefined 
+        /// Returns the value with the specified name in the chain of scopes, or undefined
         /// if it doesn't exist.
         /// </summary>
         /// <param name="name">The name of the value to return.</param>
@@ -29,7 +29,7 @@ namespace Fluid
         {
             if (name == null)
             {
-                return ExceptionHelper.ThrowArgumentNullException<FluidValue>(nameof(name));
+                ExceptionHelper.ThrowArgumentNullException(nameof(name));
             }
 
             if (_properties.TryGetValue(name, out var result))

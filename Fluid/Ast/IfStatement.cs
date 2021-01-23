@@ -15,7 +15,7 @@ namespace Fluid.Ast
             List<Statement> statements,
             ElseStatement elseStatement = null,
             List<ElseIfStatement> elseIfStatements = null
-            ) :base (statements)
+        ) : base(statements)
         {
             Condition = condition;
             Else = elseStatement;

@@ -20,26 +20,22 @@ namespace Fluid.Ast
         {
             var completion = Completion.Normal;
 
-            using (var sb = StringBuilderPool.GetInstance())
+            using var sb = StringBuilderPool.GetInstance();
+            using var sw = new StringWriter(sb.Builder);
+            for (var i = 0; i < _statements.Count; i++)
             {
-                using (var sw = new StringWriter(sb.Builder))
+                completion = await _statements[i].WriteToAsync(sw, encoder, context);
+
+                if (completion != Completion.Normal)
                 {
-                    for (var index = 0; index < Statements.Count; index++)
-                    {
-                        completion = await Statements[index].WriteToAsync(sw, encoder, context);
-
-                        if (completion != Completion.Normal)
-                        {
-                            // Stop processing the block statements
-                            // We return the completion to flow it to the outer loop
-                            break;
-                        }
-                    }
-
-                    // Don't encode captured blocks
-                    context.SetValue(Identifier, new StringValue(sw.ToString(), false));
+                    // Stop processing the block statements
+                    // We return the completion to flow it to the outer loop
+                    break;
                 }
-            }           
+            }
+
+            // Don't encode captured blocks
+            context.SetValue(Identifier, new StringValue(sw.ToString(), false));
 
             return completion;
         }

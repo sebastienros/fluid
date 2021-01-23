@@ -76,7 +76,7 @@ namespace Fluid
         public static Scope GlobalScope = new Scope();
 
         public Scope LocalScope { get; private set; }
-        
+
         // Filters
         public FilterCollection Filters { get; } = new FilterCollection();
 
@@ -118,7 +118,7 @@ namespace Fluid
         public Func<DateTimeOffset> Now { get; set; } = () => DateTimeOffset.Now;
 
         /// <summary>
-        /// Gets or sets a model object that is used to resolve properties in a template. This object is used if local and 
+        /// Gets or sets a model object that is used to resolve properties in a template. This object is used if local and
         /// global scopes are unsuccessfull.
         /// </summary>
         public object Model { get; set; }
@@ -174,6 +174,11 @@ namespace Fluid
         public TemplateContext SetValue(string name, string value)
         {
             return SetValue(name, new StringValue(value));
+        }
+
+        public TemplateContext SetValue(string name, char value)
+        {
+            return SetValue(name, StringValue.Create(value));
         }
 
         public TemplateContext SetValue(string name, bool value)

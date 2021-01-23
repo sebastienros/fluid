@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
@@ -172,7 +173,7 @@ namespace Fluid.Values
 
                         case IEnumerable enumerable:
                             var fluidValues = new List<FluidValue>();
-                            
+
                             foreach (var item in enumerable)
                             {
                                 fluidValues.Add(Create(item));
@@ -201,6 +202,26 @@ namespace Fluid.Values
         public virtual IEnumerable<FluidValue> Enumerate()
         {
             return Array.Empty<FluidValue>();
+        }
+
+        internal virtual string[] ToStringArray()
+        {
+            return Array.Empty<string>();
+        }
+
+        internal virtual List<FluidValue> ToList()
+        {
+            return Enumerate().ToList();
+        }
+
+        internal virtual FluidValue FirstOrDefault()
+        {
+            return Enumerate().FirstOrDefault();
+        }
+
+        internal virtual FluidValue LastOrDefault()
+        {
+            return Enumerate().LastOrDefault();
         }
 
         public FluidValue Or(FluidValue other)

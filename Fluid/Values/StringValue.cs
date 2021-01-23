@@ -2,15 +2,28 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
+using Parlot;
 
 namespace Fluid.Values
 {
     public sealed class StringValue : FluidValue
     {
-        public static StringValue Empty = new StringValue("");
+        public static readonly StringValue Empty = new StringValue("");
+
+        private static readonly StringValue[] CharToString = new StringValue[256];
 
         private readonly string _value;
+
+        static StringValue()
+        {
+            for (var i = 0; i < CharToString.Length; ++i)
+            {
+                var c = (char) i;
+                CharToString[i] = new StringValue(c.ToString());
+            }
+        }
 
         public StringValue(string value)
         {
@@ -29,6 +42,33 @@ namespace Fluid.Values
         public bool Encode { get; set; } = true;
 
         public override FluidValues Type => FluidValues.String;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static StringValue Create(char c)
+        {
+            var temp = CharToString;
+            if ((uint) c < (uint) temp.Length)
+            {
+                return temp[c];
+            }
+            return new StringValue(c.ToString());
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static StringValue Create(string s)
+        {
+            return s.Length == 1
+                ? Create(s[0])
+                : new StringValue(s);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static StringValue Create(in TextSpan span)
+        {
+            return span.Length == 1
+                ? Create(span.Buffer[span.Offset])
+                : new StringValue(span.ToString());
+        }
 
         public override bool Equals(FluidValue other)
         {
@@ -55,7 +95,7 @@ namespace Fluid.Values
         protected override FluidValue GetValue(string name, TemplateContext context)
         {
             if (name == "size")
-            { 
+            {
                 return NumberValue.Create(_value.Length);
             }
 
@@ -73,7 +113,7 @@ namespace Fluid.Values
             {
                 return 0;
             }
-            
+
             if (decimal.TryParse(_value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
             {
                 return d;
@@ -128,8 +168,40 @@ namespace Fluid.Values
         {
             foreach (var c in _value)
             {
-                yield return new StringValue(c.ToString());
+                yield return StringValue.Create(c);
             }
+        }
+
+        internal override string[] ToStringArray()
+        {
+            var array = new string[_value.Length];
+            for (var i = 0; i < _value.Length; i++)
+            {
+                array[i] = _value[i].ToString();
+            }
+
+            return array;
+        }
+
+        internal override List<FluidValue> ToList()
+        {
+            var list = new List<FluidValue>(_value.Length);
+            foreach (var c in _value)
+            {
+                list.Add(Create(c));
+            }
+
+            return list;
+        }
+
+        internal override FluidValue FirstOrDefault()
+        {
+            return _value.Length > 0 ? Create(_value[0]) : null;
+        }
+
+        internal override FluidValue LastOrDefault()
+        {
+            return _value.Length > 0 ? Create(_value[_value.Length - 1]) : null;
         }
 
         public override bool Equals(object other)
