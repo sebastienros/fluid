@@ -96,14 +96,14 @@ namespace Fluid
         /// <remarks>
         /// This property should only be set by static constructores to prevent concurrency issues.
         /// </remarks>
-        public static IMemberAccessStrategy GlobalMemberAccessStrategy = new ConcurrentMemberAccessStrategy();
+        public static MemberAccessStrategy GlobalMemberAccessStrategy = new ConcurrentMemberAccessStrategy();
 
         public static IFileProvider GlobalFileProvider { get; set; } = new NullFileProvider();
 
         /// <summary>
         /// Represent a local list of object members than can be accessed with this context.
         /// </summary>
-        public IMemberAccessStrategy MemberAccessStrategy = new MemberAccessStrategy(GlobalMemberAccessStrategy);
+        public MemberAccessStrategy MemberAccessStrategy = new DefaultMemberAccessStrategy(GlobalMemberAccessStrategy);
 
         public IFileProvider FileProvider { get; set; }
 

@@ -12,7 +12,7 @@ namespace Fluid.Tests
         [Fact]
         public void RegisterByTypeAddPublicFields()
         {
-            var strategy = new MemberAccessStrategy();
+            var strategy = new DefaultMemberAccessStrategy();
 
             strategy.Register<Class1>();
 
@@ -24,7 +24,7 @@ namespace Fluid.Tests
         [Fact]
         public void RegisterByTypeAddPublicProperties()
         {
-            var strategy = new MemberAccessStrategy();
+            var strategy = new DefaultMemberAccessStrategy();
 
             strategy.Register<Class1>();
 
@@ -37,7 +37,7 @@ namespace Fluid.Tests
         [Fact]
         public void RegisterByTypeAddAsyncPublicFields()
         {
-            var strategy = new MemberAccessStrategy();
+            var strategy = new DefaultMemberAccessStrategy();
 
             strategy.Register<Class1>();
 
@@ -49,7 +49,7 @@ namespace Fluid.Tests
         [Fact]
         public void RegisterByTypeAddAsyncPublicProperties()
         {
-            var strategy = new MemberAccessStrategy();
+            var strategy = new DefaultMemberAccessStrategy();
 
             strategy.Register<Class1>();
 
@@ -61,7 +61,7 @@ namespace Fluid.Tests
         [Fact]
         public void RegisterByTypeIgnoresStaticMembers()
         {
-            var strategy = new MemberAccessStrategy();
+            var strategy = new DefaultMemberAccessStrategy();
 
             strategy.Register<Class1>();
 
@@ -72,7 +72,7 @@ namespace Fluid.Tests
         [Fact]
         public void RegisterByTypeIgnoresPrivateMembers()
         {
-            var strategy = new MemberAccessStrategy();
+            var strategy = new DefaultMemberAccessStrategy();
 
             strategy.Register<Class1>();
 
@@ -83,7 +83,7 @@ namespace Fluid.Tests
         [Fact]
         public void RegisterByTypeAndName()
         {
-            var strategy = new MemberAccessStrategy();
+            var strategy = new DefaultMemberAccessStrategy();
 
             strategy.Register<Class1>(nameof(Class1.Field1), nameof(Class1.Property1));
 
@@ -96,7 +96,7 @@ namespace Fluid.Tests
         [Fact]
         public void RegisterByTypeAndExpression()
         {
-            var strategy = new MemberAccessStrategy();
+            var strategy = new DefaultMemberAccessStrategy();
 
             strategy.Register<Class1>(x => x.Field1, x => x.Property1);
 
