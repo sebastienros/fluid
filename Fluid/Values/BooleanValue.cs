@@ -48,17 +48,7 @@ namespace Fluid.Values
 
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            if (writer == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
-            }
-
-            if (encoder == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
-                return;
-            }
-
+            AssertWriteToParameters(writer, encoder, cultureInfo);
             encoder.Encode(writer, ToStringValue());
         }
 

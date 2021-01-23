@@ -5,7 +5,9 @@ namespace Fluid.Filters
 {
     public static class StringFilters
     {
-        private static readonly StringValue Ellipsis = new StringValue("...");
+        private const string EllipsisString = "...";
+        private static readonly StringValue Ellipsis = new StringValue(EllipsisString);
+        private static readonly NumberValue DefaultTruncateLength = NumberValue.Create(50);
 
         public static FilterCollection WithStringFilters(this FilterCollection filters)
         {
@@ -259,7 +261,7 @@ namespace Fluid.Filters
 
             var ellipsisStr = arguments.At(1).Or(Ellipsis).ToStringValue();
 
-            var length = Convert.ToInt32(arguments.At(0).Or(NumberValue.Create(50)).ToNumberValue());
+            var length = Convert.ToInt32(arguments.At(0).Or(DefaultTruncateLength).ToNumberValue());
 
             var l = Math.Max(0, length - ellipsisStr.Length);
 
@@ -267,6 +269,7 @@ namespace Fluid.Filters
                 ? new StringValue(inputStr.Substring(0, l) + ellipsisStr)
                 : input;
         }
+
         public static FluidValue TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var source = input.ToStringValue();

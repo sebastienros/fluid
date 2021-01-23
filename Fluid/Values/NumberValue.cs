@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
 
@@ -9,7 +10,7 @@ namespace Fluid.Values
     /// operations:
     /// 1 * 2 = 2
     /// 1.0 * 2.0 = 2.00
-    public sealed class NumberValue : FluidValue
+    public sealed class NumberValue : FluidValue, IEquatable<NumberValue>
     {
         public static readonly NumberValue Zero = new NumberValue(0M);
 
@@ -54,21 +55,7 @@ namespace Fluid.Values
 
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            if (writer == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
-            }
-
-            if (encoder == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
-            }
-
-            if (cultureInfo == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(cultureInfo));
-            }
-
+            AssertWriteToParameters(writer, encoder, cultureInfo);
             encoder.Encode(writer, _value.ToString(cultureInfo));
         }
 
@@ -79,13 +66,22 @@ namespace Fluid.Values
 
         public override bool Equals(object other)
         {
-            // The is operator will return false if null
-            if (other is NumberValue otherValue)
+            return other is NumberValue n && Equals(n);
+        }
+
+        public bool Equals(NumberValue other)
+        {
+            if (other is null)
             {
-                return _value.Equals(otherValue._value);
+                return false;
             }
 
-            return false;
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return _value == other._value;
         }
 
         public override int GetHashCode()
@@ -108,7 +104,17 @@ namespace Fluid.Values
             return new NumberValue(value);
         }
 
-        public static NumberValue Create(int value)
+        internal static NumberValue Create(uint value)
+        {
+            var temp = IntToString;
+            if (value < (uint) temp.Length)
+            {
+                return temp[value];
+            }
+            return new NumberValue(value);
+        }
+
+        internal static NumberValue Create(int value)
         {
             var temp = IntToString;
             if ((uint) value < (uint) temp.Length)

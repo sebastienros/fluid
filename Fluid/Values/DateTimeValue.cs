@@ -13,7 +13,7 @@ namespace Fluid.Values
         {
             _value = value;
         }
-        
+
         public override FluidValues Type => FluidValues.DateTime;
 
         public override bool Equals(FluidValue other)
@@ -30,7 +30,7 @@ namespace Fluid.Values
 
             return _value.Equals(((DateTimeValue)other)._value);
         }
-        
+
         public override bool ToBooleanValue()
         {
             return true;
@@ -48,16 +48,7 @@ namespace Fluid.Values
 
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            if (writer == null)
-            {
-                throw new ArgumentNullException(nameof(writer));
-            }
-
-            if (cultureInfo == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(cultureInfo));
-            }
-
+            AssertWriteToParameters(writer, encoder, cultureInfo);
             writer.Write(_value.ToString("u", cultureInfo));
         }
 

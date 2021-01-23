@@ -250,7 +250,6 @@ namespace Fluid.Ast
 
             public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
             {
-                return;
             }
         }
     }
