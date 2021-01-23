@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using static Parlot.Fluent.Parsers;
@@ -325,25 +326,41 @@ namespace Fluid
             RegisteredTags["case"] = CaseTag;
             RegisteredTags["for"] = ForTag;
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             static (Expression limitResult, Expression offsetResult, bool reversed) ReadForStatementConfiguration(List<ForModifier> modifiers)
             {
-                Expression limitResult = null;
-                Expression offsetResult = null;
-                var reversed = false;
-                for (var i = modifiers.Count - 1; i > -1; --i)
+                if (modifiers.Count == 0)
                 {
-                    var l = modifiers[i];
-                    if (l.IsLimit && limitResult is null)
-                    {
-                        limitResult = l.Value;
-                    }
-                    if (l.IsOffset && offsetResult is null)
-                    {
-                        offsetResult = l.Value;
-                    }
-                    reversed |= l.IsReversed;
+                    return (null, null, false);
                 }
-                return (limitResult, offsetResult, reversed);
+
+                // take slower route when needed
+                static (Expression limitResult, Expression offsetResult, bool reversed) ReadFromList(List<ForModifier> modifiers)
+                {
+                    Expression limitResult = null;
+                    Expression offsetResult = null;
+                    var reversed = false;
+                    for (var i = modifiers.Count - 1; i > -1; --i)
+                    {
+                        var l = modifiers[i];
+                        if (l.IsLimit && limitResult is null)
+                        {
+                            limitResult = l.Value;
+                        }
+
+                        if (l.IsOffset && offsetResult is null)
+                        {
+                            offsetResult = l.Value;
+                        }
+
+                        reversed |= l.IsReversed;
+                    }
+
+                    return (limitResult, offsetResult, reversed);
+                }
+
+
+                return ReadFromList(modifiers);
             }
 
             var AnyTags = TagStart.SkipAnd(Identifier.ElseError("Expected tag name").Switch((context, previous) =>
