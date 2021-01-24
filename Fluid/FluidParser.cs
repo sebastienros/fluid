@@ -50,8 +50,9 @@ namespace Fluid
 
         protected static readonly Parser<string> Identifier = Terms.Identifier(extraPart: static c => c == '-').Then(x => x.ToString());
 
+        protected readonly Parser<List<FilterArgument>> ArgumentsList;
+        protected readonly Parser<Expression> LogicalExpression;
         protected static readonly Deferred<Expression> Primary = Deferred<Expression>();
-        protected static readonly Parser<Expression> LogicalExpression;
         protected static readonly Deferred<Expression> FilterExpression = Deferred<Expression>();
         protected readonly Deferred<List<Statement>> KnownTagsList = Deferred<List<Statement>>();
         protected readonly Deferred<List<Statement>> AnyTagsList = Deferred<List<Statement>>();
@@ -99,7 +100,7 @@ namespace Fluid
 
             // TODO: 'and' has a higher priority than 'or', either create a new scope, or implement operators priority
 
-            var LogicalExpression = Primary.And(ZeroOrMany(OneOf(BinaryOr, BinaryAnd, Contains, DoubleEquals, NotEquals, Different, GreaterOr, LowerOr, Greater, Lower).And(Primary)))
+            LogicalExpression = Primary.And(ZeroOrMany(OneOf(BinaryOr, BinaryAnd, Contains, DoubleEquals, NotEquals, Different, GreaterOr, LowerOr, Greater, Lower).And(Primary)))
                 .Then(static x =>
                 {
                     if (x.Item2.Count == 0)
@@ -133,19 +134,19 @@ namespace Fluid
                     return result;
                 });
 
-            // Primary ( | identifer [ ':' ([name :] value ,)+ )! ] )*
+            // ([name :] value ,)+
+            ArgumentsList = Separated(Comma,
+                            OneOf(
+                                Identifier.AndSkip(Colon).And(Primary).Then(static x => new FilterArgument(x.Item1, x.Item2)),
+                                Primary.Then(static x => new FilterArgument(null, x))
+                            ));
+
+            // Primary ( | identifer ( ':' ArgumentsList )! ] )*
             FilterExpression.Parser = Primary
                 .And(ZeroOrMany(
                     Pipe
                     .SkipAnd(Identifier)
-                    .And(ZeroOrOne(Colon.SkipAnd(
-                        Separated(Comma,
-                            OneOf(
-                                Identifier.AndSkip(Colon).And(Primary).Then(static x => new FilterArgument(x.Item1, x.Item2)),
-                                Primary.Then(static x => new FilterArgument(null, x))
-                            ))
-                        )))
-                    ))
+                    .And(ZeroOrOne(Colon.SkipAnd(ArgumentsList)))))
                 .Then(x =>
                     {
                         // Primary
@@ -157,13 +158,11 @@ namespace Fluid
                             var identifier = pipeResult.Item1;
                             var arguments = pipeResult.Item2;
 
-                            result = new FilterExpression(result, identifier, arguments ?? new List<FilterArgument>());
+                            result = new FilterExpression(result, identifier, arguments);
                         }
 
                         return result;
                     });
-
-            //LogicalExpression.Parser = LogicalOperator;
 
             var Output = OutputStart.SkipAnd(FilterExpression.And(OutputEnd)
                 .Then<Statement>(static x => new OutputStatement(x.Item1))

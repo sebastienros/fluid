@@ -10,7 +10,7 @@ namespace Fluid.Ast
         {
             Input = input;
             Name = name;
-            Parameters = parameters;
+            Parameters = parameters ?? new List<FilterArgument>();
         }
 
         public Expression Input { get; }
