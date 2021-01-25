@@ -137,7 +137,14 @@ namespace Fluid.Values
 
             if (Encode)
             {
-                encoder.Encode(writer, _value);
+                // perf: Don't use this overload
+                // encoder.Encode(writer, _value);
+
+                // Use a transient string instead of calling
+                // encoder.Encode(TextWriter) since it would
+                // call writer.Write on each char if the string
+                // has even a single char to encode
+                writer.Write(encoder.Encode(_value));
             }
             else
             {

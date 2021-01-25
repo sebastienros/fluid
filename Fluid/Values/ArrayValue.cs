@@ -111,7 +111,11 @@ namespace Fluid.Values
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
-            encoder.Encode(writer, ToStringValue());
+            
+            foreach (var v in _value)
+            {
+                writer.Write(v.ToStringValue());
+            }
         }
 
         public override string ToStringValue()

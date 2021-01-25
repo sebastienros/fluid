@@ -49,7 +49,7 @@ namespace Fluid.Values
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
-            encoder.Encode(writer, ToStringValue());
+            writer.Write(encoder.Encode(ToStringValue()));
         }
 
         public override object ToObjectValue()
