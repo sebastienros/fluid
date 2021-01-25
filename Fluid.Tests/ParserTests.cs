@@ -461,5 +461,20 @@ def", "at (")]
             Assert.Equal(expected, rendered);
         }
 
-    }    
+
+        [Theory]
+        [InlineData("{{ '{{ {% %} }}' }}{% assign x = '{{ {% %} }}' %}{{ x }}", "{{ {% %} }}{{ {% %} }}")]
+        public void StringsCanContainCurlies(string source, string expected)
+        {
+            var result = _parser.TryParse(source, out var template, out var errors);
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Null(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal(expected, rendered);
+        }
+    }
 }

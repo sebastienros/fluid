@@ -393,6 +393,7 @@ Each custom tag needs to provide a delegate that is evaluated when the tag is ma
 
 - __Empty__: Tag with no parameter, like `{% renderbody %}`
 - __Identifier__: Tag taking an identifier as parameter, like `{% increment my_variable %}`
+- __Expression__: Tag taking an expression as parameter, like `{% layout 'home' | append: '.liquid' %}`
 
 Here are some examples:
 
@@ -445,6 +446,14 @@ Hi! Hi! Hi!
 ```
 
 <br>
+
+### Custom parsers
+
+If __identifier__, __empty__ and __expression__ parsers are not sufficient, the methods `RegisterParserBlock` and `RegisterParserTag` accept
+any custom parser construct. These can be the standard ones defined in the `FluidParser` class, like `Primary`, or any other composition of them.
+
+For instance, `RegisterParseTag(Primary.AndSkip(Comma).And(Primary), ...)` will expect two `Primary` elements separated by a comma. The delegate will then 
+be invoked with a `ValueTuple<Expression, Expression>` representing the two `Primary` expressions.
 
 ## ASP.NET MVC View Engine
 
