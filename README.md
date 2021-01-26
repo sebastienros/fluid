@@ -5,7 +5,9 @@
 
 ## Basic Overview
 
-Fluid is an open-source .NET template engine that is as close as possible to the [Liquid template language](https://shopify.github.io/liquid/). It's a **secure** template language that is also **very accessible** for non-programmer audiences. It also contains an ASP.NET Core MVC View Engine.
+Fluid is an open-source .NET template engine based on the [Liquid template language](https://shopify.github.io/liquid/). It's a **secure** template language that is also **very accessible** for non-programmer audiences.
+
+> The following content is based on the 2.0.0-beta version, which is the recommended version, even though some of its API might vary significantly.
 
 <br>
 
