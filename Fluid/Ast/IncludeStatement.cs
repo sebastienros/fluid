@@ -35,7 +35,7 @@ namespace Fluid.Ast
                 relativePath += ViewExtension;
             }
 
-            var fileProvider = context.FileProvider ?? TemplateContext.GlobalFileProvider;
+            var fileProvider = context.Options.FileProvider;
             var fileInfo = fileProvider.GetFileInfo(relativePath);
 
             if (fileInfo == null || !fileInfo.Exists)

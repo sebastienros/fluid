@@ -26,7 +26,7 @@ namespace Fluid.Tests
         {
             await Task.Delay(10);
             var templateContext = new TemplateContext();
-            templateContext.MemberAccessStrategy.Register(typeof(TestClass));
+            templateContext.Options.MemberAccessStrategy.Register(typeof(TestClass));
         }
     }
 }

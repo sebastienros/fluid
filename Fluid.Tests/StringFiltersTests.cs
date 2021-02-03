@@ -17,7 +17,7 @@ namespace Fluid.Tests
 
             var result = StringFilters.Append(input, arguments, context);
 
-            Assert.Equal("Hello World", result.ToStringValue());
+            Assert.Equal("Hello World", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -30,7 +30,7 @@ namespace Fluid.Tests
 
             var result = StringFilters.Capitalize(input, arguments, context);
 
-            Assert.Equal("Hello World", result.ToStringValue());
+            Assert.Equal("Hello World", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -43,7 +43,7 @@ namespace Fluid.Tests
 
             var result = StringFilters.Downcase(input, arguments, context);
 
-            Assert.Equal("hello world", result.ToStringValue());
+            Assert.Equal("hello world", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -56,7 +56,7 @@ namespace Fluid.Tests
 
             var result = StringFilters.LStrip(input, arguments, context);
 
-            Assert.Equal("Hello World   ", result.ToStringValue());
+            Assert.Equal("Hello World   ", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -69,7 +69,7 @@ namespace Fluid.Tests
 
             var result = StringFilters.RStrip(input, arguments, context);
 
-            Assert.Equal("   Hello World", result.ToStringValue());
+            Assert.Equal("   Hello World", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -82,7 +82,7 @@ namespace Fluid.Tests
 
             var result = StringFilters.Strip(input, arguments, context);
 
-            Assert.Equal("Hello World", result.ToStringValue());
+            Assert.Equal("Hello World", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -97,7 +97,7 @@ world
 
             var result = StringFilters.StripNewLines(input, arguments, context);
 
-            Assert.Equal("Helloworld", result.ToStringValue());
+            Assert.Equal("Helloworld", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -110,7 +110,7 @@ world
 
             var result = StringFilters.NewLineToBr(input, arguments, context);
 
-            Assert.Equal("Hello<br />World", result.ToStringValue());
+            Assert.Equal("Hello<br />World", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -123,7 +123,7 @@ world
 
             var result = StringFilters.Prepend(input, arguments, context);
 
-            Assert.Equal("Hello World", result.ToStringValue());
+            Assert.Equal("Hello World", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -136,7 +136,7 @@ world
 
             var result = StringFilters.RemoveFirst(input, arguments, context);
 
-            Assert.Equal("acabc", result.ToStringValue());
+            Assert.Equal("acabc", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -149,7 +149,7 @@ world
 
             var result = StringFilters.Remove(input, arguments, context);
 
-            Assert.Equal("acac", result.ToStringValue());
+            Assert.Equal("acac", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -173,7 +173,7 @@ world
 
             var result = StringFilters.ReplaceFirst(input, arguments, context);
 
-            Assert.Equal("aBcabc", result.ToStringValue());
+            Assert.Equal("aBcabc", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -186,7 +186,7 @@ world
 
             var result = StringFilters.Replace(input, arguments, context);
 
-            Assert.Equal("aBcaBc", result.ToStringValue());
+            Assert.Equal("aBcaBc", result.Result.ToStringValue());
         }
 
         [Theory]
@@ -205,7 +205,7 @@ world
 
             var result = StringFilters.Slice(filterInput, filterArguments, context);
 
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -227,7 +227,7 @@ world
 
             var result = StringFilters.Slice(filterInput, filterArguments, context);
 
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Fact]
@@ -240,10 +240,10 @@ world
 
             var result = StringFilters.Split(input, arguments, context);
 
-            Assert.Equal(3, result.Enumerate().Count());
-            Assert.Equal(new StringValue("a"), result.Enumerate().ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Enumerate().ElementAt(1));
-            Assert.Equal(new StringValue("c"), result.Enumerate().ElementAt(2));
+            Assert.Equal(3, result.Result.Enumerate().Count());
+            Assert.Equal(new StringValue("a"), result.Result.Enumerate().ElementAt(0));
+            Assert.Equal(new StringValue("b"), result.Result.Enumerate().ElementAt(1));
+            Assert.Equal(new StringValue("c"), result.Result.Enumerate().ElementAt(2));
         }
 
         [Fact]
@@ -256,10 +256,10 @@ world
 
             var result = StringFilters.Split(input, arguments, context);
 
-            Assert.Equal(3, result.Enumerate().Count());
-            Assert.Equal(new StringValue("a"), result.Enumerate().ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Enumerate().ElementAt(1));
-            Assert.Equal(new StringValue("c"), result.Enumerate().ElementAt(2));
+            Assert.Equal(3, result.Result.Enumerate().Count());
+            Assert.Equal(new StringValue("a"), result.Result.Enumerate().ElementAt(0));
+            Assert.Equal(new StringValue("b"), result.Result.Enumerate().ElementAt(1));
+            Assert.Equal(new StringValue("c"), result.Result.Enumerate().ElementAt(2));
         }
 
         [Theory]
@@ -275,7 +275,7 @@ world
             var context = new TemplateContext();
             var result = StringFilters.Truncate(source, arguments, context);
 
-            Assert.Equal(output, result.ToStringValue());
+            Assert.Equal(output, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -293,7 +293,7 @@ world
             var context = new TemplateContext();
             var result = StringFilters.Truncate(source, arguments, context);
 
-            Assert.Equal(output, result.ToStringValue());
+            Assert.Equal(output, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -310,7 +310,7 @@ world
 
             var result = StringFilters.TruncateWords(source, arguments, context);
 
-            Assert.Equal(output, result.ToStringValue());
+            Assert.Equal(output, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -328,7 +328,7 @@ world
 
             var result = StringFilters.TruncateWords(source, arguments, context);
 
-            Assert.Equal(output, result.ToStringValue());
+            Assert.Equal(output, result.Result.ToStringValue());
         }
 
         [Fact]
@@ -341,7 +341,7 @@ world
 
             var result = StringFilters.Upcase(input, arguments, context);
 
-            Assert.Equal("HELLO WORLD", result.ToStringValue());
+            Assert.Equal("HELLO WORLD", result.Result.ToStringValue());
         }
     }
 }

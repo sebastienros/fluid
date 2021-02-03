@@ -7,36 +7,24 @@ namespace Fluid
 {
     public class DefaultMemberAccessStrategy : MemberAccessStrategy
     {
+        private readonly object _synLock = new();
+
         private Dictionary<Type, Dictionary<string, IMemberAccessor>> _map;
-        private readonly MemberAccessStrategy _parent;
 
         public DefaultMemberAccessStrategy()
         {
             _map = new Dictionary<Type, Dictionary<string, IMemberAccessor>>();
         }
 
-        public DefaultMemberAccessStrategy(MemberAccessStrategy parent) : this()
-        {
-            _parent = parent;
-            MemberNameStrategy = _parent.MemberNameStrategy;
-        }
-
         public override IMemberAccessor GetAccessor(Type type, string name)
         {
             if (_map is null)
             {
-                return _parent?.GetAccessor(type, name);
+                return null;
             }
 
             // Look for specific property map
             if (TryGetAccessor(type, name, out var accessor))
-            {
-                return accessor;
-            }
-
-            accessor ??= _parent?.GetAccessor(type, name);
-
-            if (accessor != null)
             {
                 return accessor;
             }
@@ -51,13 +39,6 @@ namespace Fluid
             {
                 // Look for specific property map
                 if (TryGetAccessor(currentType, name, out var accessor))
-                {
-                    return accessor;
-                }
-
-                accessor ??= _parent?.GetAccessor(currentType, name);
-
-                if (accessor != null)
                 {
                     return accessor;
                 }
@@ -96,18 +77,32 @@ namespace Fluid
 
         public override void Register(Type type, string name, IMemberAccessor getter)
         {
-            _map ??= new Dictionary<Type, Dictionary<string, IMemberAccessor>>();
+            // Create a copy of the current dictionary since types are added during the initialization of the app.
 
-            if (!_map.TryGetValue(type, out var typeMap))
+            lock (_synLock)
             {
-                typeMap = new Dictionary<string, IMemberAccessor>(IgnoreCasing
-                    ? StringComparer.OrdinalIgnoreCase
-                    : StringComparer.Ordinal);
+                // Clone current dictionary
+                var temp = _map != null ? new Dictionary<Type, Dictionary<string, IMemberAccessor>>(_map) : new Dictionary<Type, Dictionary<string, IMemberAccessor>>();
 
-                _map[type] = typeMap;
+                // Clone inner dictionaries
+                foreach (var typeEntry in temp)
+                {
+                    var entry = new Dictionary<string, IMemberAccessor>(typeEntry.Value);
+                }
+
+                if (!temp.TryGetValue(type, out var typeMap))
+                {
+                    typeMap = new Dictionary<string, IMemberAccessor>(IgnoreCasing
+                        ? StringComparer.OrdinalIgnoreCase
+                        : StringComparer.Ordinal);
+
+                    temp[type] = typeMap;
+                }
+
+                typeMap[name] = getter;
+
+                _map = temp;
             }
-
-            typeMap[name] = getter;
         }
     }
 }

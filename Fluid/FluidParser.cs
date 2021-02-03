@@ -98,8 +98,6 @@ namespace Fluid
 
             var CaseValueList = Separated(BinaryOr, Primary);
 
-            // TODO: 'and' has a higher priority than 'or', either create a new scope, or implement operators priority
-
             LogicalExpression = Primary.And(ZeroOrMany(OneOf(BinaryOr, BinaryAnd, Contains, DoubleEquals, NotEquals, Different, GreaterOr, LowerOr, Greater, Lower).And(Primary)))
                 .Then(static x =>
                 {

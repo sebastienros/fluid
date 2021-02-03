@@ -26,8 +26,6 @@ namespace Fluid.MvcViewEngine
 
         static FluidRendering()
         {
-            // TemplateContext.GlobalMemberAccessStrategy.Register<ViewDataDictionary>();
-            TemplateContext.GlobalMemberAccessStrategy.Register<ModelStateDictionary>();
         }
 
         public FluidRendering(
@@ -39,7 +37,9 @@ namespace Fluid.MvcViewEngine
             _hostingEnvironment = hostingEnvironment;
             _options = optionsAccessor.Value;
 
-            _options.Parser?.Invoke(_parser);
+            _options.TemplateOptions.MemberAccessStrategy.Register<ViewDataDictionary>();
+            _options.TemplateOptions.MemberAccessStrategy.Register<ModelStateDictionary>();
+            _options.TemplateOptions.FileProvider ??= _hostingEnvironment.ContentRootFileProvider;
         }
 
         private readonly IMemoryCache _memoryCache;
@@ -48,35 +48,34 @@ namespace Fluid.MvcViewEngine
 
         public async ValueTask<string> RenderAsync(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
         {
-            // Check for a custom file provider
-            var fileProvider = _options.FileProvider ?? _hostingEnvironment.ContentRootFileProvider;
+            await Task.Delay(0);
 
-            var template = ParseLiquidFile(path, fileProvider, true);
-
-            var context = new TemplateContext();
+            var context = new TemplateContext(_options.TemplateOptions);
             context.LocalScope.SetValue("Model", model);
             context.LocalScope.SetValue("ViewData", viewData);
             context.LocalScope.SetValue("ModelState", modelState);
 
             // Provide some services to all statements
-            context.AmbientValues["FileProvider"] = fileProvider;
+            //context.AmbientValues["FileProvider"] = fileProvider;
             context.AmbientValues[ViewPath] = path;
             context.AmbientValues["Sections"] = new Dictionary<string, IReadOnlyList<Statement>>();
-            context.FileProvider = new FileProviderMapper(fileProvider, "Views");
+            //context.Options.TemplateOptions.FileProvider = new FileProviderMapper(fileProvider, "Views");
 
-            var body = await template.RenderAsync(context, _options.TextEncoder);
+            //var body = await _options.Parser.RenderAsync(context, _options.TextEncoder);
 
-            // If a layout is specified while rendering a view, execute it
-            if (context.AmbientValues.TryGetValue("Layout", out var layoutPath))
-            {
-                context.AmbientValues[ViewPath] = layoutPath;
-                context.AmbientValues["Body"] = body;
-                var layoutTemplate = ParseLiquidFile((string)layoutPath, fileProvider, false);
+            //// If a layout is specified while rendering a view, execute it
+            //if (context.AmbientValues.TryGetValue("Layout", out var layoutPath))
+            //{
+            //    context.AmbientValues[ViewPath] = layoutPath;
+            //    context.AmbientValues["Body"] = body;
+            //    var layoutTemplate = ParseLiquidFile((string)layoutPath, fileProvider, false);
 
-                return await layoutTemplate.RenderAsync(context, _options.TextEncoder);
-            }
+            //    return await layoutTemplate.RenderAsync(context, _options.TextEncoder);
+            //}
 
-            return body;
+            //return body;
+
+            return "";
         }
 
         public List<string> FindViewStarts(string viewPath, IFileProvider fileProvider)

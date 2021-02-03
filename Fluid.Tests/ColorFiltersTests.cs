@@ -32,7 +32,7 @@ namespace Fluid.Tests
             var result = ColorFilters.ToRgb(input, FilterArguments.Empty, context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -65,7 +65,7 @@ namespace Fluid.Tests
             var result = ColorFilters.ToHex(input, FilterArguments.Empty, context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -92,7 +92,7 @@ namespace Fluid.Tests
             var result = ColorFilters.ToHsl(input, FilterArguments.Empty, context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -129,7 +129,7 @@ namespace Fluid.Tests
             var result = ColorFilters.ColorExtract(input, new FilterArguments(arguments), context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -164,7 +164,7 @@ namespace Fluid.Tests
               var result = ColorFilters.ColorModify(input, new FilterArguments(arguments), context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -181,7 +181,7 @@ namespace Fluid.Tests
             var result = ColorFilters.CalculateBrightness(input, FilterArguments.Empty, context);
 
             // Assert
-            Assert.Equal(expected, result.ToNumberValue());
+            Assert.Equal(expected, result.Result.ToNumberValue());
         }
 
         [Theory]
@@ -198,7 +198,7 @@ namespace Fluid.Tests
             var result = ColorFilters.ColorSaturate(input, new FilterArguments(arguments), context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -215,7 +215,7 @@ namespace Fluid.Tests
             var result = ColorFilters.ColorDesaturate(input, new FilterArguments(arguments), context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
         
         [Theory]
@@ -232,7 +232,7 @@ namespace Fluid.Tests
             var result = ColorFilters.ColorLighten(input, new FilterArguments(arguments), context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -249,7 +249,7 @@ namespace Fluid.Tests
             var result = ColorFilters.ColorDarken(input, new FilterArguments(arguments), context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -266,7 +266,7 @@ namespace Fluid.Tests
             var result = ColorFilters.GetColorDifference(input, new FilterArguments(arguments), context);
 
             // Assert
-            Assert.Equal(expected, result.ToNumberValue());
+            Assert.Equal(expected, result.Result.ToNumberValue());
         }
 
         [Theory]
@@ -283,7 +283,7 @@ namespace Fluid.Tests
             var result = ColorFilters.GetColorBrightnessDifference(input, new FilterArguments(arguments), context);
 
             // Assert
-            Assert.Equal(expected, result.ToNumberValue());
+            Assert.Equal(expected, result.Result.ToNumberValue());
         }
 
         [Theory]
@@ -300,7 +300,7 @@ namespace Fluid.Tests
             var result = ColorFilters.GetColorContrast(input, new FilterArguments(arguments), context);
 
             // Assert
-            Assert.Equal(expected, result.ToNumberValue());
+            Assert.Equal(expected, result.Result.ToNumberValue());
         }
     }
 }

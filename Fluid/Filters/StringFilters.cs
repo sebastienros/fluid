@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Fluid.Values;
 
 namespace Fluid.Filters
@@ -11,34 +12,34 @@ namespace Fluid.Filters
 
         public static FilterCollection WithStringFilters(this FilterCollection filters)
         {
-            filters.AddFilter("append", Append);
-            filters.AddFilter("capitalize", Capitalize);
-            filters.AddFilter("downcase", Downcase);
-            filters.AddFilter("lstrip", LStrip);
-            filters.AddFilter("rstrip", RStrip);
-            filters.AddFilter("newline_to_br", NewLineToBr);
-            filters.AddFilter("prepend", Prepend);
-            filters.AddFilter("removefirst", RemoveFirst);
-            filters.AddFilter("remove", Remove);
-            filters.AddFilter("replacefirst", ReplaceFirst);
-            filters.AddFilter("replace", Replace);
-            filters.AddFilter("slice", Slice);
-            filters.AddFilter("split", Split);
-            filters.AddFilter("strip", Strip);
-            filters.AddFilter("strip_newlines", StripNewLines);
-            filters.AddFilter("truncate", Truncate);
-            filters.AddFilter("truncatewords", TruncateWords);
-            filters.AddFilter("upcase", Upcase);
+            filters.AddAsyncFilter("append", Append);
+            filters.AddAsyncFilter("capitalize", Capitalize);
+            filters.AddAsyncFilter("downcase", Downcase);
+            filters.AddAsyncFilter("lstrip", LStrip);
+            filters.AddAsyncFilter("rstrip", RStrip);
+            filters.AddAsyncFilter("newline_to_br", NewLineToBr);
+            filters.AddAsyncFilter("prepend", Prepend);
+            filters.AddAsyncFilter("removefirst", RemoveFirst);
+            filters.AddAsyncFilter("remove", Remove);
+            filters.AddAsyncFilter("replacefirst", ReplaceFirst);
+            filters.AddAsyncFilter("replace", Replace);
+            filters.AddAsyncFilter("slice", Slice);
+            filters.AddAsyncFilter("split", Split);
+            filters.AddAsyncFilter("strip", Strip);
+            filters.AddAsyncFilter("strip_newlines", StripNewLines);
+            filters.AddAsyncFilter("truncate", Truncate);
+            filters.AddAsyncFilter("truncatewords", TruncateWords);
+            filters.AddAsyncFilter("upcase", Upcase);
 
             return filters;
         }
 
-        public static FluidValue Append(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Append(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue() + arguments.At(0).ToStringValue());
         }
 
-        public static FluidValue Capitalize(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Capitalize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var source = input.ToStringValue().ToCharArray();
 
@@ -54,32 +55,32 @@ namespace Fluid.Filters
             return new StringValue(new string(source));
         }
 
-        public static FluidValue Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().ToLower());
         }
 
-        public static FluidValue LStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> LStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().TrimStart());
         }
 
-        public static FluidValue RStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> RStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().TrimEnd());
         }
 
-        public static FluidValue NewLineToBr(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> NewLineToBr(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().Replace("\r\n", "<br />").Replace("\n", "<br />"));
         }
 
-        public static FluidValue Prepend(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Prepend(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(arguments.At(0).ToStringValue() + input.ToStringValue());
         }
 
-        public static FluidValue RemoveFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> RemoveFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             string remove = arguments.At(0).ToStringValue();
             var value = input.ToStringValue();
@@ -94,7 +95,7 @@ namespace Fluid.Filters
             return input;
         }
 
-        public static FluidValue Remove(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Remove(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var argument = arguments.At(0).ToStringValue();
 
@@ -106,7 +107,7 @@ namespace Fluid.Filters
             return new StringValue(input.ToStringValue().Replace(argument, ""));
         }
 
-        public static FluidValue ReplaceFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> ReplaceFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             string remove = arguments.At(0).ToStringValue();
             var value = input.ToStringValue();
@@ -121,12 +122,12 @@ namespace Fluid.Filters
             return input;
         }
 
-        public static FluidValue Replace(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Replace(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().Replace(arguments.At(0).ToStringValue(), arguments.At(1).ToStringValue()));
         }
 
-        public static FluidValue Slice(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Slice(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var firstArgument = arguments.At(0);
             var secondArgument = arguments.At(1);
@@ -194,7 +195,7 @@ namespace Fluid.Filters
             }
         }
 
-        public static FluidValue Split(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Split(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             string[] strings;
 
@@ -224,12 +225,12 @@ namespace Fluid.Filters
             return new ArrayValue(values);
         }
 
-        public static FluidValue Strip(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Strip(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().Trim());
         }
 
-        public static FluidValue StripNewLines(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> StripNewLines(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var result = input.ToStringValue();
 
@@ -245,7 +246,7 @@ namespace Fluid.Filters
             return new StringValue(result);
         }
 
-        public static FluidValue Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.IsNil())
             {
@@ -270,7 +271,7 @@ namespace Fluid.Filters
                 : input;
         }
 
-        public static FluidValue TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var source = input.ToStringValue();
             var size = Math.Max(0, Convert.ToInt32(arguments.At(0).ToNumberValue()));
@@ -303,7 +304,7 @@ namespace Fluid.Filters
             return new StringValue(source);
         }
 
-        public static FluidValue Upcase(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Upcase(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().ToUpper());
         }

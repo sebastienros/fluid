@@ -310,5 +310,7 @@ namespace Fluid.Values
 
             return null;
         }
+
+        public static implicit operator ValueTask<FluidValue>(FluidValue value) => new(value);
     }
 }

@@ -5,7 +5,7 @@ using Fluid.Values;
 namespace Fluid
 {
     /// <summary>
-    /// Represents the list of arguments that are passed to a <see cref="FilterDelegate"/>
+    /// Represents the list of arguments that are passed to a <see cref="AsyncFilterDelegate"/>
     /// when invoked.
     /// </summary>
     public class FilterArguments

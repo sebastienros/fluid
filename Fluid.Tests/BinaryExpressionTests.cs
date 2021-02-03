@@ -83,7 +83,7 @@ namespace Fluid.Tests
                 // This is the default, but forcing it for clarity of the test
                 // With invariant culture, Strasse and Straße are equal, and Liquid 
                 // should not assume they are 
-                context.CultureInfo = CultureInfo.InvariantCulture;
+                context.Options.CultureInfo = CultureInfo.InvariantCulture;
             });
         }
 

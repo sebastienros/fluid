@@ -8,6 +8,7 @@ using System.Text.Json;
 using Fluid.Values;
 using TimeZoneConverter;
 using Fluid.Utils;
+using System.Threading.Tasks;
 
 namespace Fluid.Filters
 {
@@ -25,23 +26,23 @@ namespace Fluid.Filters
 
         public static FilterCollection WithMiscFilters(this FilterCollection filters)
         {
-            filters.AddFilter("default", Default);
-            filters.AddFilter("date", Date);
-            filters.AddFilter("raw", Raw);
-            filters.AddFilter("compact", Compact);
-            filters.AddFilter("url_encode", UrlEncode);
-            filters.AddFilter("url_decode", UrlDecode);
-            filters.AddFilter("strip_html", StripHtml);
-            filters.AddFilter("escape", Escape);
-            filters.AddFilter("escape_once", EscapeOnce);
-            filters.AddFilter("handle", Handleize);
-            filters.AddFilter("handleize", Handleize);
-            filters.AddFilter("json", Json);
-            filters.AddFilter("time_zone", ChangeTimeZone);
+            filters.AddAsyncFilter("default", Default);
+            filters.AddAsyncFilter("date", Date);
+            filters.AddAsyncFilter("raw", Raw);
+            filters.AddAsyncFilter("compact", Compact);
+            filters.AddAsyncFilter("url_encode", UrlEncode);
+            filters.AddAsyncFilter("url_decode", UrlDecode);
+            filters.AddAsyncFilter("strip_html", StripHtml);
+            filters.AddAsyncFilter("escape", Escape);
+            filters.AddAsyncFilter("escape_once", EscapeOnce);
+            filters.AddAsyncFilter("handle", Handleize);
+            filters.AddAsyncFilter("handleize", Handleize);
+            filters.AddAsyncFilter("json", Json);
+            filters.AddAsyncFilter("time_zone", ChangeTimeZone);
 
-            filters.AddFilter("format_number", FormatNumber);
-            filters.AddFilter("format_string", FormatString);
-            filters.AddFilter("format_date", FormatDate);
+            filters.AddAsyncFilter("format_number", FormatNumber);
+            filters.AddAsyncFilter("format_string", FormatString);
+            filters.AddAsyncFilter("format_date", FormatDate);
 
             return filters;
         }
@@ -49,24 +50,24 @@ namespace Fluid.Filters
         /// <summary>
         /// Converts from pascal/camel case to lower kebab-case.
         /// </summary>
-        public static FluidValue Handleize(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Handleize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(HtmlCaseRegex.Replace(input.ToStringValue(), "-$1$2").ToLowerInvariant());
         }
 
-        public static FluidValue Default(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return input.Or(arguments.At(0));
         }
 
-        public static FluidValue Raw(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Raw(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var stringValue = new StringValue(input.ToStringValue(), false);
 
             return stringValue;
         }
 
-        public static FluidValue Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var compacted = new List<FluidValue>();
             foreach(var value in input.Enumerate())
@@ -80,17 +81,17 @@ namespace Fluid.Filters
             return new ArrayValue(compacted);
         }
 
-        public static FluidValue UrlEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> UrlEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(WebUtility.UrlEncode(input.ToStringValue()));
         }
 
-        public static FluidValue UrlDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> UrlDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(WebUtility.UrlDecode(input.ToStringValue()));
         }
 
-        public static FluidValue StripHtml(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> StripHtml(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var html = input.ToStringValue();
             if (String.IsNullOrEmpty(html))
@@ -131,17 +132,17 @@ namespace Fluid.Filters
             }
         }
 
-        public static FluidValue Escape(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Escape(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(WebUtility.HtmlEncode(input.ToStringValue()));
         }
 
-        public static FluidValue EscapeOnce(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> EscapeOnce(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())));
         }
 
-        public static FluidValue ChangeTimeZone(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> ChangeTimeZone(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (!TryGetDateTimeInput(input, context, out var value))
             {
@@ -162,7 +163,7 @@ namespace Fluid.Filters
         }
 
 
-        public static FluidValue Date(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Date(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (!TryGetDateTimeInput(input, context, out var value))
             {
@@ -211,38 +212,38 @@ namespace Fluid.Filters
                             case ':': useColonsForZeeDirectiveFlag = true; continue;
                             case 'a':
                             {
-                                var abbreviatedDayName = context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int) value.DayOfWeek];
+                                var abbreviatedDayName = context.Options.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int) value.DayOfWeek];
                                 result.Append(upperCaseFlag ? abbreviatedDayName.ToUpper() : abbreviatedDayName);
                                 break;
                             }
                             case 'A':
                             {
-                                var dayName = context.CultureInfo.DateTimeFormat.DayNames[(int) value.DayOfWeek];
+                                var dayName = context.Options.CultureInfo.DateTimeFormat.DayNames[(int) value.DayOfWeek];
                                 result.Append(upperCaseFlag ? dayName.ToUpper() : dayName);
                                 break;
                             }
                             case 'b':
                             {
-                                var abbreviatedMonthName = context.CultureInfo.DateTimeFormat.AbbreviatedMonthNames[value.Month - 1];
+                                var abbreviatedMonthName = context.Options.CultureInfo.DateTimeFormat.AbbreviatedMonthNames[value.Month - 1];
                                 result.Append(upperCaseFlag ? abbreviatedMonthName.ToUpper() : abbreviatedMonthName);
                                 break;
                             }
                             case 'B':
                             {
-                                var monthName = context.CultureInfo.DateTimeFormat.MonthNames[value.Month - 1];
+                                var monthName = context.Options.CultureInfo.DateTimeFormat.MonthNames[value.Month - 1];
                                 result.Append(upperCaseFlag ? monthName.ToUpper() : monthName);
                                 break;
                             }
                             case 'c':
                             {
-                                var f = value.ToString("F", context.CultureInfo);
+                                var f = value.ToString("F", context.Options.CultureInfo);
                                 result.Append(upperCaseFlag ? f.ToUpper() : f);
                                 break;
                             }
                             case 'C': result.Append(value.Year / 100); break;
                             case 'd':
                             {
-                                var day = value.Day.ToString(context.CultureInfo);
+                                var day = value.Day.ToString(context.Options.CultureInfo);
                                 if (useSpaceForPaddingFlag)
                                 {
                                     result.Append(day.PadLeft(2, ' '));
@@ -257,18 +258,18 @@ namespace Fluid.Filters
                                 }
                                 break;
                             }
-                            case 'D': result.Append(value.ToString("d", context.CultureInfo)); break;
-                            case 'e': result.Append(value.Day.ToString(context.CultureInfo).PadLeft(2, ' ')); break;
-                            case 'F': result.Append(value.ToString("yyyy-MM-dd", context.CultureInfo)); break;
-                            case 'H': result.Append(value.Hour.ToString(context.CultureInfo).PadLeft(2, '0')); break;
-                            case 'I': result.Append((value.Hour % 12).ToString(context.CultureInfo).PadLeft(2, '0')); break;
-                            case 'j': result.Append(value.DayOfYear.ToString(context.CultureInfo).PadLeft(3, '0')); break;
+                            case 'D': result.Append(value.ToString("d", context.Options.CultureInfo)); break;
+                            case 'e': result.Append(value.Day.ToString(context.Options.CultureInfo).PadLeft(2, ' ')); break;
+                            case 'F': result.Append(value.ToString("yyyy-MM-dd", context.Options.CultureInfo)); break;
+                            case 'H': result.Append(value.Hour.ToString(context.Options.CultureInfo).PadLeft(2, '0')); break;
+                            case 'I': result.Append((value.Hour % 12).ToString(context.Options.CultureInfo).PadLeft(2, '0')); break;
+                            case 'j': result.Append(value.DayOfYear.ToString(context.Options.CultureInfo).PadLeft(3, '0')); break;
                             case 'k': result.Append(value.Hour); break;
-                            case 'l': result.Append(value.ToString("%h", context.CultureInfo).PadLeft(2, ' ')); break;
-                            case 'L': result.Append(value.Millisecond.ToString(context.CultureInfo).PadLeft(3, '0')); break;
+                            case 'l': result.Append(value.ToString("%h", context.Options.CultureInfo).PadLeft(2, ' ')); break;
+                            case 'L': result.Append(value.Millisecond.ToString(context.Options.CultureInfo).PadLeft(3, '0')); break;
                             case 'm':
                             {
-                                var month = value.Month.ToString(context.CultureInfo);
+                                var month = value.Month.ToString(context.Options.CultureInfo);
                                 if (useSpaceForPaddingFlag)
                                 {
                                     result.Append(month.PadLeft(2, ' '));
@@ -283,34 +284,34 @@ namespace Fluid.Filters
                                 }
                                 break;
                             }
-                            case 'M': result.Append(value.Minute.ToString(context.CultureInfo).PadLeft(2, '0')); break;
-                            case 'p': result.Append(value.ToString("tt", context.CultureInfo).ToUpper()); break;
-                            case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLower()); break;
+                            case 'M': result.Append(value.Minute.ToString(context.Options.CultureInfo).PadLeft(2, '0')); break;
+                            case 'p': result.Append(value.ToString("tt", context.Options.CultureInfo).ToUpper()); break;
+                            case 'P': result.Append(value.ToString("tt", context.Options.CultureInfo).ToLower()); break;
                             case 'T':
-                            case 'r': result.Append(value.ToString("T", context.CultureInfo).ToUpper()); break;
-                            case 'R': result.Append(value.ToString("t", context.CultureInfo).ToUpper()); break;
+                            case 'r': result.Append(value.ToString("T", context.Options.CultureInfo).ToUpper()); break;
+                            case 'R': result.Append(value.ToString("t", context.Options.CultureInfo).ToUpper()); break;
                             case 's': result.Append(value.ToUnixTimeSeconds()); break;
-                            case 'S': result.Append(value.Second.ToString(context.CultureInfo).PadLeft(2, '0')); break;
+                            case 'S': result.Append(value.Second.ToString(context.Options.CultureInfo).PadLeft(2, '0')); break;
                             case 'u': result.Append((int)value.DayOfWeek); break;
-                            case 'U': result.Append(context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstDay, DayOfWeek.Sunday).ToString().PadLeft(2, '0')); break;
+                            case 'U': result.Append(context.Options.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstDay, DayOfWeek.Sunday).ToString().PadLeft(2, '0')); break;
                             case 'v':
                             {
-                                var d = value.ToString("D", context.CultureInfo);
+                                var d = value.ToString("D", context.Options.CultureInfo);
                                 result.Append(upperCaseFlag ? d.ToUpper() : d);
                                 break;
                             }
-                            case 'V': result.Append((value.DayOfYear / 7 + 1).ToString(context.CultureInfo).PadLeft(2, '0')); break;
-                            case 'W': result.Append(context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstDay, DayOfWeek.Monday).ToString().PadLeft(2, '0')); break;
-                            case 'y': result.Append(value.ToString("yy", context.CultureInfo)); break;
+                            case 'V': result.Append((value.DayOfYear / 7 + 1).ToString(context.Options.CultureInfo).PadLeft(2, '0')); break;
+                            case 'W': result.Append(context.Options.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstDay, DayOfWeek.Monday).ToString().PadLeft(2, '0')); break;
+                            case 'y': result.Append(value.ToString("yy", context.Options.CultureInfo)); break;
                             case 'Y': result.Append(value.Year); break;
                             case 'z':
                             {
-                                var zzz = value.ToString("zzz", context.CultureInfo);
+                                var zzz = value.ToString("zzz", context.Options.CultureInfo);
                                 result.Append(useColonsForZeeDirectiveFlag ? zzz : zzz.Replace(":", ""));
                                 break;
                             }
                             case 'Z':
-                                result.Append(value.ToString("zzz", context.CultureInfo));
+                                result.Append(value.ToString("zzz", context.Options.CultureInfo));
                                 break;
                             case '%': result.Append('%'); break;
                             default: result.Append('%').Append(c); break;
@@ -329,7 +330,7 @@ namespace Fluid.Filters
 
         }
 
-        public static FluidValue FormatDate(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> FormatDate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (!TryGetDateTimeInput(input, context, out var value))
             {
@@ -343,11 +344,11 @@ namespace Fluid.Filters
 
             var format = arguments.At(0).ToStringValue();
 
-            var culture = context.CultureInfo;
+            var culture = context.Options.CultureInfo;
 
             if (!arguments.At(1).IsNil())
             {
-                culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue()) ?? context.CultureInfo;
+                culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue()) ?? context.Options.CultureInfo;
             }
 
             return new StringValue(value.ToString(format, culture));
@@ -355,7 +356,7 @@ namespace Fluid.Filters
 
         private static bool TryGetDateTimeInput(FluidValue input, TemplateContext context, out DateTimeOffset result)
         {
-            result = context.Now();
+            result = context.Options.Now();
 
             if (input.Type == FluidValues.String)
             {
@@ -367,7 +368,7 @@ namespace Fluid.Filters
                 }
                 else
                 {
-                    return DateTimeOffset.TryParse(stringValue, context.CultureInfo, DateTimeStyles.AssumeUniversal, out result);
+                    return DateTimeOffset.TryParse(stringValue, context.Options.CultureInfo, DateTimeStyles.AssumeUniversal, out result);
                 }
             }
             else if (input.Type == FluidValues.Number)
@@ -398,7 +399,7 @@ namespace Fluid.Filters
             return true;
         }
 
-        public static FluidValue Json(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var options = new JsonSerializerOptions
             {
@@ -417,7 +418,7 @@ namespace Fluid.Filters
             };
         }
 
-        public static FluidValue FormatNumber(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> FormatNumber(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (arguments.At(0).IsNil())
             {
@@ -426,17 +427,17 @@ namespace Fluid.Filters
 
             var format = arguments.At(0).ToStringValue();
 
-            var culture = context.CultureInfo;
+            var culture = context.Options.CultureInfo;
 
             if (!arguments.At(1).IsNil())
             {
-                culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue()) ?? context.CultureInfo;
+                culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue()) ?? context.Options.CultureInfo;
             }
 
             return new StringValue(input.ToNumberValue().ToString(format, culture));
         }
 
-        public static FluidValue FormatString(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> FormatString(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.IsNil())
             {
@@ -445,11 +446,11 @@ namespace Fluid.Filters
 
             var format = input.ToStringValue();
 
-            var culture = context.CultureInfo;
+            var culture = context.Options.CultureInfo;
 
             if (arguments.HasNamed("culture"))
             {
-                culture = CultureInfo.CreateSpecificCulture(arguments["culture"].ToStringValue()) ?? context.CultureInfo;
+                culture = CultureInfo.CreateSpecificCulture(arguments["culture"].ToStringValue()) ?? context.Options.CultureInfo;
             }
 
             var parameters = arguments.ValuesToObjectArray();

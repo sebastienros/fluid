@@ -52,7 +52,7 @@ namespace Fluid.Values
 
             if (name.Contains("."))
             {
-                var accessor = context.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
+                var accessor = context.Options.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
 
                 // Try to access the property with dots inside
                 if (accessor != null)
@@ -75,7 +75,7 @@ namespace Fluid.Values
             }
             else
             {
-                var accessor = context.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
+                var accessor = context.Options.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
 
                 if (accessor != null)
                 {
@@ -104,7 +104,7 @@ namespace Fluid.Values
                     return NilValue.Instance;
                 }
 
-                var accessor = context.MemberAccessStrategy.GetAccessor(target.GetType(), prop);
+                var accessor = context.Options.MemberAccessStrategy.GetAccessor(target.GetType(), prop);
 
                 if (accessor == null)
                 {
