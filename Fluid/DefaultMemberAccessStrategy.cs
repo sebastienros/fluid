@@ -75,8 +75,13 @@ namespace Fluid
             return false;
         }
 
-        public override void Register(Type type, string name, IMemberAccessor getter)
+        public override void Register(Type type, IEnumerable<KeyValuePair<string, IMemberAccessor>> accessors)
         {
+            if (accessors is null)
+            {
+                throw new ArgumentNullException(nameof(accessors));
+            }
+
             // Create a copy of the current dictionary since types are added during the initialization of the app.
 
             lock (_synLock)
@@ -99,7 +104,10 @@ namespace Fluid
                     temp[type] = typeMap;
                 }
 
-                typeMap[name] = getter;
+                foreach (var accessor in accessors)
+                {
+                    typeMap[accessor.Key] = accessor.Value;
+                }
 
                 _map = temp;
             }

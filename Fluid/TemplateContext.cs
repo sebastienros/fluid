@@ -1,59 +1,9 @@
-﻿using System;
+﻿using Fluid.Values;
+using System;
 using System.Collections.Generic;
-using System.Globalization;
-using Microsoft.Extensions.FileProviders;
-using Fluid.Filters;
-using Fluid.Values;
 
 namespace Fluid
 {
-    public class TemplateOptions
-    {
-        public static readonly TemplateOptions Default = new TemplateOptions();
-
-        /// <summary>
-        /// Gets ot sets the members than can be accessed in a template.
-        /// </summary>
-        public MemberAccessStrategy MemberAccessStrategy { get; set; } = new DefaultMemberAccessStrategy();
-
-        /// <summary>
-        /// Gets or sets the <see cref="IFileProvider"/> used to access files.
-        /// </summary>
-        public IFileProvider FileProvider { get; set; }
-
-        /// <summary>
-        /// Gets or sets the maximum number of steps a script can execute. Leave to 0 for unlimited.
-        /// </summary>
-        public int MaxSteps { get; set; } = 0;
-
-        /// <summary>
-        /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
-        /// </summary>
-        public CultureInfo CultureInfo { get; set; } = CultureInfo.InvariantCulture;
-
-        /// <summary>
-        /// Gets or sets the way to return the current date and time for the template.
-        /// </summary>
-        public Func<DateTimeOffset> Now { get; set; } = static () => DateTimeOffset.Now;
-
-        /// <summary>
-        /// Gets or sets the maximum depth of recursions a script can execute. 100 by default.
-        /// </summary>
-        public int MaxRecursion { get; set; } = 100;
-
-        /// <summary>
-        /// Gets the collection of filters available in the templates.
-        /// </summary>
-        public FilterCollection Filters { get; } = new FilterCollection();
-
-        public TemplateOptions()
-        {
-            Filters.WithArrayFilters()
-                .WithStringFilters()
-                .WithNumberFilters()
-                .WithMiscFilters();
-        }
-    }
 
     public class TemplateContext
     {
@@ -85,8 +35,7 @@ namespace Fluid
         /// Initializes a new instance of <see cref="TemplateContext"/> wih a model and option regiter its properties.
         /// </summary>
         /// <param name="model">The model.</param>
-        /// <param name="registerModelProperties">Whether to register the model properties or not.</param>
-        public TemplateContext(object model, bool registerModelProperties = true) : this()
+        public TemplateContext(object model) : this()
         {
             Model = model ?? throw new ArgumentNullException(nameof(model));
         }

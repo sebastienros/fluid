@@ -648,7 +648,7 @@ shape: '{{ shape }}'");
 
             var options = new TemplateOptions();
             options.FileProvider = fileProvider;
-            var context = new TemplateContext();
+            var context = new TemplateContext(options);
 
             var result = await template.RenderAsync(context);
 
@@ -681,7 +681,7 @@ shape: '{{ shape }}'");
             _parser.TryParse(source, out var template, out var error);
             var options = new TemplateOptions();
             options.FileProvider = fileProvider;
-            var context = new TemplateContext();
+            var context = new TemplateContext(options);
 
             var result = await template.RenderAsync(context);
 

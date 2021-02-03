@@ -48,34 +48,32 @@ namespace Fluid.MvcViewEngine
 
         public async ValueTask<string> RenderAsync(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
         {
-            await Task.Delay(0);
-
             var context = new TemplateContext(_options.TemplateOptions);
             context.LocalScope.SetValue("Model", model);
             context.LocalScope.SetValue("ViewData", viewData);
             context.LocalScope.SetValue("ModelState", modelState);
 
             // Provide some services to all statements
-            //context.AmbientValues["FileProvider"] = fileProvider;
+            context.AmbientValues["FileProvider"] = _options.TemplateOptions.FileProvider;
             context.AmbientValues[ViewPath] = path;
             context.AmbientValues["Sections"] = new Dictionary<string, IReadOnlyList<Statement>>();
-            //context.Options.TemplateOptions.FileProvider = new FileProviderMapper(fileProvider, "Views");
+            context.Options.FileProvider = new FileProviderMapper(_options.TemplateOptions.FileProvider, "Views");
 
-            //var body = await _options.Parser.RenderAsync(context, _options.TextEncoder);
+            var template = ParseLiquidFile(path, context.Options.FileProvider, true);
 
-            //// If a layout is specified while rendering a view, execute it
-            //if (context.AmbientValues.TryGetValue("Layout", out var layoutPath))
-            //{
-            //    context.AmbientValues[ViewPath] = layoutPath;
-            //    context.AmbientValues["Body"] = body;
-            //    var layoutTemplate = ParseLiquidFile((string)layoutPath, fileProvider, false);
+            var body = await template.RenderAsync(context, _options.TextEncoder);
 
-            //    return await layoutTemplate.RenderAsync(context, _options.TextEncoder);
-            //}
+            // If a layout is specified while rendering a view, execute it
+            if (context.AmbientValues.TryGetValue("Layout", out var layoutPath))
+            {
+                context.AmbientValues[ViewPath] = layoutPath;
+                context.AmbientValues["Body"] = body;
+                var layoutTemplate = ParseLiquidFile((string)layoutPath, _options.TemplateOptions.FileProvider, false);
 
-            //return body;
+                return await layoutTemplate.RenderAsync(context, _options.TextEncoder);
+            }
 
-            return "";
+            return body;
         }
 
         public List<string> FindViewStarts(string viewPath, IFileProvider fileProvider)

@@ -43,14 +43,14 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void First_EmptyArray()
+        public async Task First_EmptyArray()
         {
             var input = new ArrayValue(new StringValue[0]);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
-            var result = ArrayFilters.First(input, arguments, context);
+            var result = await ArrayFilters.First(input, arguments, context);
 
             Assert.IsType<NilValue>(result);
         }
@@ -73,14 +73,14 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void Last_EmptyArray()
+        public async Task Last_EmptyArray()
         {
             var input = new ArrayValue(new StringValue[0]);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
-            var result = ArrayFilters.Last(input, arguments, context);
+            var result = await ArrayFilters.Last(input, arguments, context);
 
             Assert.IsType<NilValue>(result);
         }

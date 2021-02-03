@@ -32,14 +32,15 @@ namespace Fluid.Ast
 
             var result = value.GetValue(Identifier);
 
+            // If there are no named property for this identifier, check in the Model
             if (result.IsNil() && context.Model != null)
             {
-                // Look into the Model if defined
+                // Check for a custom registration
                 _accessor ??= context.Options.MemberAccessStrategy.GetAccessor(context.Model.GetType(), Identifier);
+                _accessor ??= MemberAccessStrategyExtensions.GetNamedAccessor(context.Model.GetType(), Identifier, MemberNameStrategies.Default);
 
                 if (_accessor != null)
                 {
-
                     if (_accessor is IAsyncMemberAccessor asyncAccessor)
                     {
                         return Awaited(asyncAccessor, context, Identifier);
