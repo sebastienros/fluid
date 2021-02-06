@@ -140,7 +140,7 @@ namespace Fluid.Tests
 
             var context = new TemplateContext(options);
 
-            options.Filters.AddAsyncFilter("inc", (i, args, ctx) => 
+            options.Filters.AddFilter("inc", (i, args, ctx) => 
             {
                 var increment = 1;
                 if (args.Count > 0)
@@ -151,7 +151,7 @@ namespace Fluid.Tests
                 return NumberValue.Create(i.ToNumberValue() + increment);
             });
 
-            options.Filters.AddAsyncFilter("append", (i, args, ctx) =>
+            options.Filters.AddFilter("append", (i, args, ctx) =>
             {
                 var s = i.ToStringValue();
 
@@ -461,7 +461,7 @@ turtle
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
 
-            options.Filters.AddAsyncFilter("query", async (input, arguments, ctx) =>
+            options.Filters.AddFilter("query", async (input, arguments, ctx) =>
             {
                 await Task.Delay(10);
                 return FluidValue.Create(input.ToStringValue() + arguments.At(0).ToStringValue());

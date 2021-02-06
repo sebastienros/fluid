@@ -10,17 +10,17 @@ namespace Fluid.Filters
     {
         public static FilterCollection WithArrayFilters(this FilterCollection filters)
         {
-            filters.AddAsyncFilter("join", Join);
-            filters.AddAsyncFilter("first", First);
-            filters.AddAsyncFilter("last", Last);
-            filters.AddAsyncFilter("concat", Concat);
-            filters.AddAsyncFilter("map", Map);
-            filters.AddAsyncFilter("reverse", Reverse);
-            filters.AddAsyncFilter("size", Size);
-            filters.AddAsyncFilter("sort", Sort);
-            filters.AddAsyncFilter("sort_natural", SortNatural);
-            filters.AddAsyncFilter("uniq", Uniq);
-            filters.AddAsyncFilter("where", Where);
+            filters.AddFilter("join", Join);
+            filters.AddFilter("first", First);
+            filters.AddFilter("last", Last);
+            filters.AddFilter("concat", Concat);
+            filters.AddFilter("map", Map);
+            filters.AddFilter("reverse", Reverse);
+            filters.AddFilter("size", Size);
+            filters.AddFilter("sort", Sort);
+            filters.AddFilter("sort_natural", SortNatural);
+            filters.AddFilter("uniq", Uniq);
+            filters.AddFilter("where", Where);
             return filters;
         }
 

@@ -10,19 +10,19 @@ namespace Fluid.Filters
     {
         public static FilterCollection WithColorFilters(this FilterCollection filters)
         {
-            filters.AddAsyncFilter("color_to_rgb", ToRgb);
-            filters.AddAsyncFilter("color_to_hex", ToHex);
-            filters.AddAsyncFilter("color_to_hsl", ToHsl);
-            filters.AddAsyncFilter("color_extract", ColorExtract);
-            filters.AddAsyncFilter("color_modify", ColorModify);
-            filters.AddAsyncFilter("color_brightness", CalculateBrightness);
-            filters.AddAsyncFilter("color_saturate", ColorSaturate);
-            filters.AddAsyncFilter("color_desaturate", ColorDesaturate);
-            filters.AddAsyncFilter("color_lighten", ColorLighten);
-            filters.AddAsyncFilter("color_darken", ColorDarken);
-            filters.AddAsyncFilter("color_difference", GetColorDifference);
-            filters.AddAsyncFilter("brightness_difference", GetColorBrightnessDifference);
-            filters.AddAsyncFilter("color_contrast", GetColorContrast);
+            filters.AddFilter("color_to_rgb", ToRgb);
+            filters.AddFilter("color_to_hex", ToHex);
+            filters.AddFilter("color_to_hsl", ToHsl);
+            filters.AddFilter("color_extract", ColorExtract);
+            filters.AddFilter("color_modify", ColorModify);
+            filters.AddFilter("color_brightness", CalculateBrightness);
+            filters.AddFilter("color_saturate", ColorSaturate);
+            filters.AddFilter("color_desaturate", ColorDesaturate);
+            filters.AddFilter("color_lighten", ColorLighten);
+            filters.AddFilter("color_darken", ColorDarken);
+            filters.AddFilter("color_difference", GetColorDifference);
+            filters.AddFilter("brightness_difference", GetColorBrightnessDifference);
+            filters.AddFilter("color_contrast", GetColorContrast);
 
             return filters;
         }

@@ -142,18 +142,16 @@ public static FluidValue Downcase(FluidValue input, FilterArguments arguments, T
 ```
 
 #### Registration
-Filters can be registered globally for the lifetime of the application, or for each usage of a template.
+Filters are registered in an instance of `TemplateOptions`. This options object can be reused every time a template is rendered.
 
 ```csharp
-TemplateContext.GlobalFilters.AddFilter('downcase', Downcase);
 
-// Or for a specific context
+var options = new TemplateOptions();
+options.Filters.AddFilter('downcase', Downcase);
 
-var context = new TemplateContext();
+var context = new TemplateContext(options);
 context.Filters.AddFilter('downcase', Downcase);
 ```
-
-To create an **async** filter use the `AddAsyncFilter` method instead.
 
 <br>
 
@@ -168,17 +166,19 @@ Liquid is a secure template language which will only allow a predefined set of m
 This will allow any public field or property to be read from a template.
 
 ```csharp
-TemplateContext.GlobalMemberAccessStrategy.Register<Person>();
+var options = new TemplateOptions();
+options.MemberAccessStrategy.Register<Person>();
 ``` 
 
-> Note: When passing a model with `new TemplateContext(model)` the type of the `model` object is automatically registered unless the `registerModelProperties` argument is set to `false`.
+> Note: When passing a model with `new TemplateContext(model)` the type of the `model` object is automatically registered.
 
 ### Allow-listing specific members
 
 This will only allow the specific fields or properties to be read from a template.
 
 ```csharp
-TemplateContext.GlobalMemberAccessStrategy.Register<Person>("Firstname", "Lastname");
+var options = new TemplateOptions();
+options.MemberAccessStrategy.Register<Person>("Firstname", "Lastname");
 ``` 
 
 ### Intercepting a type access
@@ -188,7 +188,8 @@ This will provide a method to intercept when a member is accessed and either ret
 This example demonstrates how to intercept calls to a `JObject` and return the corresponding property.
 
 ```csharp
-TemplateContext.GlobalMemberAccessStrategy.Register<JObject, object>((obj, name) => obj[name]);
+var options = new TemplateOptions();
+options.MemberAccessStrategy.Register<JObject, object>((obj, name) => obj[name]);
 ``` 
 
 ### Inheritance
@@ -208,7 +209,8 @@ However it can be necessary to register these properties with different cases, l
 The following example configures the templates to use Camel casing.
 
 ```csharp
-TemplateContext.GlobalMemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
+var options = new TemplateOptions();
+options.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
 ```
 
 ## Execution limits
@@ -216,14 +218,12 @@ TemplateContext.GlobalMemberAccessStrategy.MemberNameStrategy = MemberNameStrate
 ### Limiting templates recursion
 
 When invoking `{% include 'sub-template' %}` statements it is possible that some templates create an infinite recursion that could block the server.
-To prevent this the `TemplateContext` class defines a default `DefaultMaxRecursion = 100` that prevents templates from being have a depth greater than `100`.
-This can be defined globally with this static member, or on an individual `TemplateContext` instance on its `MaxRecursion` property.
+To prevent this the `TemplateOptions` class defines a default `MaxRecursion = 100` that prevents templates from being have a depth greater than `100`.
 
 ### Limiting templates execution
 
 Template can inadvertently create infinite loop that could block the server by running indefinitely. 
-To prevent this the `TemplateContext` class defines a default `DefaultMaxSteps`. By default this value is not set.
-This can be defined globally with this static member, or on an individual `TemplateContext` instance on its `MaxSteps` property.
+To prevent this the `TemplateOptions` class defines a default `MaxSteps`. By default this value is not set.
 
 <br>
 
@@ -354,8 +354,9 @@ However it is possible to define a specific culture to use when rendering a temp
 #### Source
 
 ```csharp
-var context = new TemplateContext();
-context.CultureInfo = new CultureInfo("en-US");
+var options = new TemplateOptions();
+options.CultureInfo = new CultureInfo("en-US");
+var context = new TemplateContext(options);
 var result = template.Render(context);
 ```
 
@@ -418,7 +419,7 @@ parser.RegisterIdentifierTag("hello", (identifier, writer, encoder, context) =>
 Hello you
 ```
 
-### Creating a custom block
+### Registering a custom block
 
 Blocks are created the same way as tags, and the lambda expression can then access the list of statements inside the block.
 
@@ -475,7 +476,7 @@ using FluidMvcViewEngine;
 
 public class Startup
 {
-  public void ConfigureServices(IServiceCollection services)
+    public void ConfigureServices(IServiceCollection services)
     {
         services.AddMvc().AddFluid();
     }
@@ -487,12 +488,15 @@ Because the Liquid language only accepts known members to be accessed, the View 
 
 #### View Model registration
 
+View models are automatically registered and available as the root object in liquid templates.
+Custom model regsitrations can be added when calling `AddFluid()`.
+
 ```csharp
 public class Startup
 {
-    static Startup()
+    public void ConfigureServices(IServiceCollection services)
     {
-        TemplateContext.GlobalMemberAccessStrategy.Register<Person>();
+        services.AddMvc().AddFluid(o => o.TemplateOptions.Register<Person>());
     }
 }
 ```
@@ -501,14 +505,14 @@ More way to register types and members can be found in the [Allow-listing object
 
 #### Registering custom tags
 
-When using the MVC View engine, custom tags can be added to the `FluidViewTemplate` class. Refer to [this section](https://github.com/sebastienros/fluid#creating-a-custom-tag) on how to create custom tags.
+When using the MVC View engine, custom tags can be added to the parser. Refer to [this section](https://github.com/sebastienros/fluid#registering-a-custom-tag) on how to create custom tags.
 
 ```csharp
 public class Startup
 {
-    static Startup()
+    public void ConfigureServices(IServiceCollection services)
     {
-        FluidViewTemplate.Factory.RegisterTag<MyTag>("mytag");
+        services.AddMvc().AddFluid(o => o.Parser.RegisterIdentifierTag("hello", HelloTag);
     }
 }
 ```

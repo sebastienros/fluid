@@ -8,17 +8,17 @@ namespace Fluid.Filters
     {
         public static FilterCollection WithNumberFilters(this FilterCollection filters)
         {
-            filters.AddAsyncFilter("abs", Abs);
-            filters.AddAsyncFilter("at_least", AtLeast);
-            filters.AddAsyncFilter("at_most", AtMost);
-            filters.AddAsyncFilter("ceil", Ceil);
-            filters.AddAsyncFilter("divided_by", DividedBy);
-            filters.AddAsyncFilter("floor", Floor);
-            filters.AddAsyncFilter("minus", Minus);
-            filters.AddAsyncFilter("modulo", Modulo);
-            filters.AddAsyncFilter("plus", Plus);
-            filters.AddAsyncFilter("round", Round);
-            filters.AddAsyncFilter("times", Times);
+            filters.AddFilter("abs", Abs);
+            filters.AddFilter("at_least", AtLeast);
+            filters.AddFilter("at_most", AtMost);
+            filters.AddFilter("ceil", Ceil);
+            filters.AddFilter("divided_by", DividedBy);
+            filters.AddFilter("floor", Floor);
+            filters.AddFilter("minus", Minus);
+            filters.AddFilter("modulo", Modulo);
+            filters.AddFilter("plus", Plus);
+            filters.AddFilter("round", Round);
+            filters.AddFilter("times", Times);
 
             return filters;
         }

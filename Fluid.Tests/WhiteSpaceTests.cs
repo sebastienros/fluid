@@ -109,9 +109,9 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
             context.SetValue("products", _products);
-            options.Filters.AddAsyncFilter("prettyprint", (input, args, ctx) => input);
-            options.Filters.AddAsyncFilter("paragraph", (input, args, ctx) => input);
-            options.Filters.AddAsyncFilter("price", (input, args, ctx) => input);
+            options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
+            options.Filters.AddFilter("paragraph", (input, args, ctx) => input);
+            options.Filters.AddFilter("price", (input, args, ctx) => input);
             options.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
 
             var result = await template.RenderAsync(context);
@@ -169,9 +169,9 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
             context.SetValue("products", _products);
-            options.Filters.AddAsyncFilter("prettyprint", (input, args, ctx) => input);
-            options.Filters.AddAsyncFilter("paragraph", (input, args, ctx) => input);
-            options.Filters.AddAsyncFilter("price", (input, args, ctx) => input);
+            options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
+            options.Filters.AddFilter("paragraph", (input, args, ctx) => input);
+            options.Filters.AddFilter("price", (input, args, ctx) => input);
             options.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
 
             var result = await template.RenderAsync(context);

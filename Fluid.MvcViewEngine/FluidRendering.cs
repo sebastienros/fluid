@@ -48,8 +48,7 @@ namespace Fluid.MvcViewEngine
 
         public async ValueTask<string> RenderAsync(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
         {
-            var context = new TemplateContext(_options.TemplateOptions);
-            context.LocalScope.SetValue("Model", model);
+            var context = new TemplateContext(model, _options.TemplateOptions);
             context.LocalScope.SetValue("ViewData", viewData);
             context.LocalScope.SetValue("ModelState", modelState);
 

@@ -12,24 +12,24 @@ namespace Fluid.Filters
 
         public static FilterCollection WithStringFilters(this FilterCollection filters)
         {
-            filters.AddAsyncFilter("append", Append);
-            filters.AddAsyncFilter("capitalize", Capitalize);
-            filters.AddAsyncFilter("downcase", Downcase);
-            filters.AddAsyncFilter("lstrip", LStrip);
-            filters.AddAsyncFilter("rstrip", RStrip);
-            filters.AddAsyncFilter("newline_to_br", NewLineToBr);
-            filters.AddAsyncFilter("prepend", Prepend);
-            filters.AddAsyncFilter("removefirst", RemoveFirst);
-            filters.AddAsyncFilter("remove", Remove);
-            filters.AddAsyncFilter("replacefirst", ReplaceFirst);
-            filters.AddAsyncFilter("replace", Replace);
-            filters.AddAsyncFilter("slice", Slice);
-            filters.AddAsyncFilter("split", Split);
-            filters.AddAsyncFilter("strip", Strip);
-            filters.AddAsyncFilter("strip_newlines", StripNewLines);
-            filters.AddAsyncFilter("truncate", Truncate);
-            filters.AddAsyncFilter("truncatewords", TruncateWords);
-            filters.AddAsyncFilter("upcase", Upcase);
+            filters.AddFilter("append", Append);
+            filters.AddFilter("capitalize", Capitalize);
+            filters.AddFilter("downcase", Downcase);
+            filters.AddFilter("lstrip", LStrip);
+            filters.AddFilter("rstrip", RStrip);
+            filters.AddFilter("newline_to_br", NewLineToBr);
+            filters.AddFilter("prepend", Prepend);
+            filters.AddFilter("removefirst", RemoveFirst);
+            filters.AddFilter("remove", Remove);
+            filters.AddFilter("replacefirst", ReplaceFirst);
+            filters.AddFilter("replace", Replace);
+            filters.AddFilter("slice", Slice);
+            filters.AddFilter("split", Split);
+            filters.AddFilter("strip", Strip);
+            filters.AddFilter("strip_newlines", StripNewLines);
+            filters.AddFilter("truncate", Truncate);
+            filters.AddFilter("truncatewords", TruncateWords);
+            filters.AddFilter("upcase", Upcase);
 
             return filters;
         }

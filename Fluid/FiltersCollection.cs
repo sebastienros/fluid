@@ -1,23 +1,18 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 
 namespace Fluid
 {
-    public class FilterCollection
+    public class FilterCollection : IEnumerable<KeyValuePair<string, FilterDelegate>>
     {
-        private Dictionary<string, AsyncFilterDelegate> _filters;
-        private readonly FilterCollection _parent;
+        private Dictionary<string, FilterDelegate> _filters;
 
         public FilterCollection(int capacity = 0)
         {
             if (capacity != 0)
             {
-                _filters = new Dictionary<string, AsyncFilterDelegate>(capacity);
+                _filters = new Dictionary<string, FilterDelegate>(capacity);
             }
-        }
-
-        public FilterCollection(FilterCollection parent, int capacity = 0) : this(capacity)
-        {
-            _parent = parent;
         }
 
         public int Count => _filters == null ? 0 : _filters.Count;
@@ -26,18 +21,18 @@ namespace Fluid
         public void EnsureCapacity(int capacity) => _filters.EnsureCapacity(capacity);
 #endif
 
-        public void AddAsyncFilter(string name, AsyncFilterDelegate d)
+        public void AddFilter(string name, FilterDelegate d)
         {
-            _filters ??= new Dictionary<string, AsyncFilterDelegate>();
+            _filters ??= new Dictionary<string, FilterDelegate>();
 
             _filters[name] = d;
         }
 
-        public bool TryGetValue(string name, out AsyncFilterDelegate filter)
+        public bool TryGetValue(string name, out FilterDelegate filter)
         {
             filter = null;
 
-            return (_filters != null && _filters.TryGetValue(name, out filter)) || (_parent != null && _parent.TryGetValue(name, out filter));
+            return _filters != null && _filters.TryGetValue(name, out filter);
         }
 
         public void Remove(string name)
@@ -54,6 +49,16 @@ namespace Fluid
             {
                 _filters.Clear();
             }
+        }
+
+        public IEnumerator<KeyValuePair<string, FilterDelegate>> GetEnumerator()
+        {
+            return _filters.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return _filters.GetEnumerator();
         }
     }
 }

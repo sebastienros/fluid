@@ -18,6 +18,14 @@ namespace Fluid
         }
 
         /// <summary>
+        /// Initializes a new instance of <see cref="TemplateContext"/>.
+        /// </summary>
+        public TemplateContext(object model, TemplateOptions options) : this(options)
+        {
+            Model = model ?? throw new ArgumentNullException(nameof(model));
+        }
+
+        /// <summary>
         /// Initializes a new instance of <see cref="TemplateContext"/> with the specified <see cref="TemplateOptions"/>.
         /// </summary>
         /// <param name="options"></param>

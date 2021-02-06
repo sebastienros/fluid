@@ -48,7 +48,7 @@ namespace Fluid.Ast
 
             var input = await Input.EvaluateAsync(context);
 
-            if (!context.Options.Filters.TryGetValue(Name, out AsyncFilterDelegate filter))
+            if (!context.Options.Filters.TryGetValue(Name, out FilterDelegate filter))
             {
                 // When a filter is not defined, return the input
                 return input;

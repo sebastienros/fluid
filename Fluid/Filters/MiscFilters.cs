@@ -26,23 +26,23 @@ namespace Fluid.Filters
 
         public static FilterCollection WithMiscFilters(this FilterCollection filters)
         {
-            filters.AddAsyncFilter("default", Default);
-            filters.AddAsyncFilter("date", Date);
-            filters.AddAsyncFilter("raw", Raw);
-            filters.AddAsyncFilter("compact", Compact);
-            filters.AddAsyncFilter("url_encode", UrlEncode);
-            filters.AddAsyncFilter("url_decode", UrlDecode);
-            filters.AddAsyncFilter("strip_html", StripHtml);
-            filters.AddAsyncFilter("escape", Escape);
-            filters.AddAsyncFilter("escape_once", EscapeOnce);
-            filters.AddAsyncFilter("handle", Handleize);
-            filters.AddAsyncFilter("handleize", Handleize);
-            filters.AddAsyncFilter("json", Json);
-            filters.AddAsyncFilter("time_zone", ChangeTimeZone);
+            filters.AddFilter("default", Default);
+            filters.AddFilter("date", Date);
+            filters.AddFilter("raw", Raw);
+            filters.AddFilter("compact", Compact);
+            filters.AddFilter("url_encode", UrlEncode);
+            filters.AddFilter("url_decode", UrlDecode);
+            filters.AddFilter("strip_html", StripHtml);
+            filters.AddFilter("escape", Escape);
+            filters.AddFilter("escape_once", EscapeOnce);
+            filters.AddFilter("handle", Handleize);
+            filters.AddFilter("handleize", Handleize);
+            filters.AddFilter("json", Json);
+            filters.AddFilter("time_zone", ChangeTimeZone);
 
-            filters.AddAsyncFilter("format_number", FormatNumber);
-            filters.AddAsyncFilter("format_string", FormatString);
-            filters.AddAsyncFilter("format_date", FormatDate);
+            filters.AddFilter("format_number", FormatNumber);
+            filters.AddFilter("format_string", FormatString);
+            filters.AddFilter("format_date", FormatDate);
 
             return filters;
         }
