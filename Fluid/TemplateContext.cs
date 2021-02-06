@@ -61,7 +61,7 @@ namespace Fluid
             }
         }
 
-        public Scope LocalScope { get; protected set; }
+        internal Scope LocalScope { get; private set; }
 
         /// <summary>
         /// Used to define custom object on this instance to be used in filters and statements
@@ -143,12 +143,12 @@ namespace Fluid
 
         public static TemplateContext SetValue(this TemplateContext context, string name, object value)
         {
-            return context.SetValue(name, FluidValue.Create(value));
+            return context.SetValue(name, FluidValue.Create(value, context.Options));
         }
 
-        public static TemplateContext SetValue<T>(this TemplateContext context, string name, Func<T> factory)
+        public static TemplateContext SetValue(this TemplateContext context, string name, Func<FluidValue> factory)
         {
-            return context.SetValue(name, new FactoryValue<T>(factory));
+            return context.SetValue(name, new FactoryValue(factory));
         }
     }
 }

@@ -117,10 +117,10 @@ namespace Fluid.Tests
             var context = new TemplateContext(options);
 
             options.MemberAccessStrategy.Register<JObject, object>((o, name) => o[name]);
-            FluidValue.SetTypeMapping<JObject>(o => new ObjectValue(o));
-            FluidValue.SetTypeMapping<JValue>(o => FluidValue.Create(((JValue)o).Value));
+            options.ValueConverters.Add(x => x is JObject o ? new ObjectValue(o) : null);
+            options.ValueConverters.Add(x => x is JValue o ? o.Value : null);
 
-            var objectValue = FluidValue.Create(obj);
+            var objectValue = FluidValue.Create(obj, options);
 
             Assert.Equal("1", (await objectValue.GetValueAsync("a", context)).ToObjectValue());
             Assert.Equal("2", (await objectValue.GetValueAsync("a.b", context)).ToObjectValue());

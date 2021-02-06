@@ -1,6 +1,7 @@
 ﻿using Fluid.Ast;
 using Fluid.MvcViewEngine.Internal;
 using Fluid.Parser;
+using Fluid.Values;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -49,8 +50,8 @@ namespace Fluid.MvcViewEngine
         public async ValueTask<string> RenderAsync(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
         {
             var context = new TemplateContext(model, _options.TemplateOptions);
-            context.LocalScope.SetValue("ViewData", viewData);
-            context.LocalScope.SetValue("ModelState", modelState);
+            context.SetValue("ViewData", viewData);
+            context.SetValue("ModelState", modelState);
 
             // Provide some services to all statements
             context.AmbientValues["FileProvider"] = _options.TemplateOptions.FileProvider;

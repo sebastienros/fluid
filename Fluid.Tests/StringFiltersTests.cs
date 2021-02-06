@@ -199,8 +199,8 @@ world
         [InlineData("abcdefg", new object[] { -3, 2 }, "ef")]
         public void Slice(object input, object[] arguments, string expected)
         {
-            var filterInput = FluidValue.Create(input);
-            var filterArguments = new FilterArguments(arguments);
+            var filterInput = FluidValue.Create(input, TemplateOptions.Default);
+            var filterArguments = new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray());
             var context = new TemplateContext();
 
             var result = StringFilters.Slice(filterInput, filterArguments, context);
@@ -221,8 +221,8 @@ world
         [InlineData("hello", new object[] { -100, -100 }, "")]
         public void SliceOutsideBounds(object input, object[] arguments, string expected)
         {
-            var filterInput = FluidValue.Create(input);
-            var filterArguments = new FilterArguments(arguments);
+            var filterInput = FluidValue.Create(input, TemplateOptions.Default);
+            var filterArguments = new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray());
             var context = new TemplateContext();
 
             var result = StringFilters.Slice(filterInput, filterArguments, context);

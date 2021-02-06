@@ -219,7 +219,7 @@ namespace Fluid.Filters
             var values = new FluidValue[strings.Length];
             for (var i = 0; i < strings.Length; i++)
             {
-                values[i] = FluidValue.Create(strings[i]);
+                values[i] = StringValue.Create(strings[i]);
             }
 
             return new ArrayValue(values);

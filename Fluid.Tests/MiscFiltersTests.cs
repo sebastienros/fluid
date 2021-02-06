@@ -396,7 +396,7 @@ namespace Fluid.Tests
         [InlineData(new object[] { 1, "a", true}, "[1,\"a\",true]")]
         public void Json(object value, string expected)
         {
-            var input = FluidValue.Create(value);
+            var input = FluidValue.Create(value, TemplateOptions.Default);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -426,7 +426,7 @@ namespace Fluid.Tests
             var arguments = new FilterArguments(new StringValue(format));
             var context = new TemplateContext( new TemplateOptions { CultureInfo = cultureInfo  }) ;
             
-            var result = MiscFilters.FormatNumber(FluidValue.Create(input), arguments, context);
+            var result = MiscFilters.FormatNumber(FluidValue.Create(input, context.Options), arguments, context);
 
             Assert.Equal(expected, result.Result.ToStringValue());
         }
@@ -443,10 +443,10 @@ namespace Fluid.Tests
                 : CultureInfo.CreateSpecificCulture(culture)
                 ;
 
-            var arguments = new FilterArguments(args.Select(FluidValue.Create).ToArray());
             var context = new TemplateContext(new TemplateOptions { CultureInfo = cultureInfo });
+            var arguments = new FilterArguments(args.Select(x => FluidValue.Create(x, context.Options)).ToArray());
 
-            var result = MiscFilters.FormatString(FluidValue.Create(input), arguments, context);
+            var result = MiscFilters.FormatString(FluidValue.Create(input, context.Options), arguments, context);
 
             Assert.Equal(expected, result.Result.ToStringValue());
         }

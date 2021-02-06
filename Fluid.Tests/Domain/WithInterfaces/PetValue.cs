@@ -51,10 +51,10 @@ namespace Fluid.Tests.Domain.WithInterfaces
         {
             if (name == "Name")
             {
-                return Create(pet.Name);
+                return Create(pet.Name, context.Options);
             }
 
-            return Create(null);
+            return NilValue.Instance;
         }
     }
 }

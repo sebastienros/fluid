@@ -1,6 +1,7 @@
 ﻿using Fluid.Filters;
 using Microsoft.Extensions.FileProviders;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace Fluid
@@ -43,6 +44,11 @@ namespace Fluid
         /// Gets the collection of filters available in the templates.
         /// </summary>
         public FilterCollection Filters { get; } = new FilterCollection();
+
+        /// <summary>
+        /// Gets the list of value converters.
+        /// </summary>
+        public List<Func<object, object>> ValueConverters { get; } = new List<Func<object, object>>();
 
         public TemplateOptions()
         {

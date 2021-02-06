@@ -41,16 +41,16 @@ namespace Fluid.Values
 
         public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
-            static async ValueTask<FluidValue> Awaited(
+            async ValueTask<FluidValue> Awaited(
                 IAsyncMemberAccessor asyncAccessor,
                 object value,
                 string n,
                 TemplateContext ctx)
             {
-                return Create(await asyncAccessor.GetAsync(value, n, ctx));
+                return Create(await asyncAccessor.GetAsync(value, n, ctx), context.Options);
             }
 
-            if (name.Contains("."))
+            if (name.IndexOf(".", StringComparison.OrdinalIgnoreCase) != -1)
             {
                 var accessor = context.Options.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
 
@@ -66,7 +66,7 @@ namespace Fluid.Values
 
                     if (directValue != null)
                     {
-                        return new ValueTask<FluidValue>(FluidValue.Create(directValue));
+                        return new ValueTask<FluidValue>(FluidValue.Create(directValue, context.Options));
                     }
                 }
 
@@ -84,7 +84,7 @@ namespace Fluid.Values
                         return Awaited(asyncAccessor, _value, name, context);
                     }
 
-                    return new ValueTask<FluidValue>(FluidValue.Create(accessor.Get(_value, name, context)));
+                    return FluidValue.Create(accessor.Get(_value, name, context), context.Options);
                 }
             }
 
@@ -121,7 +121,7 @@ namespace Fluid.Values
                 }
             }
 
-            return FluidValue.Create(target);
+            return FluidValue.Create(target, context.Options);
         }
 
         public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)

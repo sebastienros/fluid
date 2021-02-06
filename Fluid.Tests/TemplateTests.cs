@@ -235,11 +235,12 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldRegisterValueMappingWithInterface()
         {
-            FluidValue.ValueConverters.Add(x => x is IPet pet ? new PetValue(pet) : null);
 
             _parser.TryParse("{{ p.Name }}", out var template, out var messages);
 
-            var context = new TemplateContext();
+            var options = new TemplateOptions();
+            options.ValueConverters.Add(x => x is IPet pet ? new PetValue(pet) : null);
+            var context = new TemplateContext(options);
             context.SetValue("p", new Dog { Name = "Rex" });
 
             var result = await template.RenderAsync(context);
@@ -464,7 +465,7 @@ turtle
             options.Filters.AddFilter("query", async (input, arguments, ctx) =>
             {
                 await Task.Delay(10);
-                return FluidValue.Create(input.ToStringValue() + arguments.At(0).ToStringValue());
+                return FluidValue.Create(input.ToStringValue() + arguments.At(0).ToStringValue(), options);
             });
 
             var result = await template.RenderAsync(context);
@@ -709,7 +710,7 @@ shape: '{{ shape }}'");
             _parser.TryParse("{{ Test }}", out var template, out var error);
             bool set = false;
             var context = new TemplateContext();
-            context.SetValue("Test", () => { set = true; return set; });
+            context.SetValue("Test", () => { set = true; return BooleanValue.True; });
 
             Assert.False(set);
             var result = await template.RenderAsync(context);

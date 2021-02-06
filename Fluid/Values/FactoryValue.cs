@@ -7,17 +7,13 @@ using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
-    public sealed class FactoryValue<T> : FluidValue
+    public sealed class FactoryValue : FluidValue
     {
         private readonly Lazy<FluidValue> _factory;
 
-        public FactoryValue(Func<T> factory)
+        public FactoryValue(Func<FluidValue> factory)
         {
-            _factory = new Lazy<FluidValue>(() =>
-            {
-                var result = factory();
-                return FluidValue.Create(result);
-            });
+            _factory = new Lazy<FluidValue>(() => factory());
         }
 
         public override FluidValues Type => _factory.Value.Type;

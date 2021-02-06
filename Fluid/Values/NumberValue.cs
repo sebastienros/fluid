@@ -117,7 +117,7 @@ namespace Fluid.Values
         internal static NumberValue Create(int value)
         {
             var temp = IntToString;
-            if ((uint) value < (uint) temp.Length)
+            if (value >= 0 && value < temp.Length)
             {
                 return temp[value];
             }

@@ -233,22 +233,7 @@ Whenever an object is manipulated in a template it is converted to a specific `F
 
 In Liquid they can be Number, String, Boolean, Array, or Dictionary. Fluid will automatically convert the CLR types to the corresponding Liquid ones, and also provides specialized ones.
 
-To be able to customize this conversion you can either add **type mappings** or **value converters**.
-
-### Adding a type mapping
-
-The following example shows how to support `JObject` and `JValue` types to map their values to `FluidValue` instances.
-
-First is solves the issue that a `JObject` implements `IEnumerable` and would be converted to an `ArrayValue` instead of an `ObjectValue`. Then we use `FluidValue.Create` to automatically convert the CLR value of the `JValue` object.
-
-```csharp
-FluidValue.SetTypeMapping<JObject>(o => new ObjectValue(o));
-FluidValue.SetTypeMapping<JValue>(o => FluidValue.Create(o.Value));
-```
-
-> Note: Type mapping are defined globally for the application.
-
-<br>
+To be able to customize this conversion you can either add **value converters**.
 
 ### Adding a value converter
 
@@ -262,7 +247,9 @@ Value converters can return:
 The following example shows how to convert any instance implementing an interface to a custom string value:
 
 ```csharp
-FluidValue.ValueConverters.Add((value) => value is IUser user ? user.Name : null);
+var options = new TemplateOptions();
+
+options.ValueConverters.Add((value) => value is IUser user ? user.Name : null);
 ```
 
 > Note: Type mapping are defined globally for the application.
@@ -277,19 +264,22 @@ in a Liquid template.
 To remedy that we can configure Fluid to map names to `JObject` properties, and convert `JValue` objects to the ones used by Fluid.
 
 ```csharp
+
+var options = new TemplateOptions();
+
 // When a property of a JObject value is accessed, try to look into its properties
-TemplateContext.GlobalMemberAccessStrategy.Register<JObject, object>((source, name) => source[name]);
+options.MemberAccessStrategy.Register<JObject>((source, name) => source[name]);
 
 // Convert JToken to FluidValue
-FluidValue.TypeMappings.Add(typeof(JObject), o => new ObjectValue(o));
-FluidValue.TypeMappings.Add(typeof(JValue), o => FluidValue.Create(((JValue)o).Value));
+options.ValueConverters.Add(x => x is JObject o ? new ObjectValue(o) : null);
+options.ValueConverters.Add(x => x is JValue v ? v.Value : null));
 
 var expression = "{{ Model.Name }}";
 var model = JObject.Parse("{\"Name\": \"Bill\"}");
 
 if (FluidTemplate.TryParse(expression, out var template))
 {
-    var context = new TemplateContext();
+    var context = new TemplateContext(options);
     context.SetValue("Model", model);
 
     Console.WriteLine(template.Render(context));

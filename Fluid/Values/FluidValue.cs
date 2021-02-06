@@ -12,14 +12,6 @@ namespace Fluid.Values
 {
     public abstract class FluidValue : IEquatable<FluidValue>
     {
-        private static Dictionary<Type, Func<object, FluidValue>> _customTypeMappings;
-        private static readonly object _synLock = new object();
-
-        /// <summary>
-        /// Gets the list of value converters.
-        /// </summary>
-        public static List<Func<object, object>> ValueConverters { get; } = new List<Func<object, object>>();
-
         public abstract void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
 
         [Conditional("DEBUG")]
@@ -102,7 +94,7 @@ namespace Fluid.Values
             return int.TryParse(s, out var _);
         }
 
-        public static FluidValue Create(object value)
+        public static FluidValue Create(object value, TemplateOptions options)
         {
             if (value == null)
             {
@@ -114,9 +106,9 @@ namespace Fluid.Values
                 return fluidValue;
             }
 
-            if (ValueConverters.Count > 0)
+            if (options.ValueConverters.Count > 0)
             {
-                foreach (var valueConverter in ValueConverters)
+                foreach (var valueConverter in options.ValueConverters)
                 {
                     var result = valueConverter(value);
 
@@ -129,20 +121,14 @@ namespace Fluid.Values
                         }
 
                         // Otherwise stop custom conversions
+
+                        value = result;
                         break;
                     }
                 }
             }
 
             var typeOfValue = value.GetType();
-
-            // Check for a specific type conversion before falling back to an automatic one
-            var mapping = GetTypeMapping(typeOfValue);
-
-            if (mapping != null)
-            {
-                return mapping(value);
-            }
 
             switch (System.Type.GetTypeCode(typeOfValue))
             {
@@ -172,13 +158,13 @@ namespace Fluid.Values
                             return new DateTimeValue(dateTimeOffset);
 
                         case IDictionary<string, object> dictionary:
-                            return new DictionaryValue(new ObjectDictionaryFluidIndexable(dictionary));
+                            return new DictionaryValue(new ObjectDictionaryFluidIndexable(dictionary, options));
 
                         case IDictionary<string, FluidValue> fluidDictionary:
                             return new DictionaryValue(new FluidValueDictionaryFluidIndexable(fluidDictionary));
 
                         case IDictionary otherDictionary:
-                            return new DictionaryValue(new DictionaryDictionaryFluidIndexable(otherDictionary));
+                            return new DictionaryValue(new DictionaryDictionaryFluidIndexable(otherDictionary, options));
 
                         case FluidValue[] array:
                             return new ArrayValue(array);
@@ -193,7 +179,7 @@ namespace Fluid.Values
                             var values = new List<FluidValue>(list.Count);
                             foreach (var item in list)
                             {
-                                values.Add(Create(item));
+                                values.Add(Create(item, options));
                             }
                             return new ArrayValue(values);
 
@@ -201,7 +187,7 @@ namespace Fluid.Values
                             var fluidValues = new List<FluidValue>();
                             foreach (var item in enumerable)
                             {
-                                fluidValues.Add(Create(item));
+                                fluidValues.Add(Create(item, options));
                             }
                             return new ArrayValue(fluidValues);
                     }
@@ -256,59 +242,6 @@ namespace Fluid.Values
             }
 
             return this;
-        }
-
-        /// <summary>
-        /// Defines a custom type mapping that is used when converting an <see cref="object"/> to a <see cref="FluidValue"/>.
-        /// </summary>
-        public static void SetTypeMapping(Type type, Func<object, FluidValue> mapping)
-        {
-            // We queue concurrent calls so we don't lose an entry
-            lock (_synLock)
-            {
-                if (_customTypeMappings == null)
-                {
-                    _customTypeMappings = new Dictionary<Type, Func<object, FluidValue>>();
-                }
-
-                // We clone the existing list so we don't change it if it's used by a reader
-                var newMappings = new Dictionary<Type, Func<object, FluidValue>>(_customTypeMappings)
-                {
-                    [type] = mapping
-                };
-
-                // Then we switch the one that is used to read with the new one
-                _customTypeMappings = newMappings;
-            }
-        }
-
-        /// <summary>
-        /// Defines a custom type mapping that is used when converting an instance to a <see cref="FluidValue"/>.
-        /// </summary>
-        public static void SetTypeMapping<T>(Func<T, FluidValue> mapping)
-        {
-            SetTypeMapping(typeof(T), t => mapping((T)t));
-        }
-
-        /// <summary>
-        /// Returns a type mapping, or <code>null</code> if it doesn't exist.
-        /// </summary>
-        private static Func<object, FluidValue> GetTypeMapping(Type type)
-        {
-            // Get a local reference in case it is being altered.
-            var localTypeMappings = _customTypeMappings;
-
-            if (localTypeMappings == null || localTypeMappings.Count == 0)
-            {
-                return null;
-            }
-
-            if (localTypeMappings.TryGetValue(type, out var mapping))
-            {
-                return mapping;
-            }
-
-            return null;
         }
 
         public static implicit operator ValueTask<FluidValue>(FluidValue value) => new(value);
