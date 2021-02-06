@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text.Encodings.Web;
-using Microsoft.Extensions.FileProviders;
 
 namespace Fluid.MvcViewEngine
 {
@@ -9,13 +7,13 @@ namespace Fluid.MvcViewEngine
     {
         public IList<string> ViewLocationFormats { get; } = new List<string>();
 
-        public IFileProvider FileProvider { get; set; }
-
-        public Action<FluidViewParser> Parser { get; set; }
+        public FluidViewParser Parser { get; } = new FluidViewParser();
 
         /// <summary>
         /// Gets or sets the text encoder to use during rendering.
         /// </summary>
         public TextEncoder TextEncoder = HtmlEncoder.Default;
+
+        public TemplateOptions TemplateOptions { get; } = new TemplateOptions();
     }
 }

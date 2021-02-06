@@ -106,12 +106,13 @@ Wow, John G. Chalmers-Smith, you have a long name!";
 
             _parser.TryParse(sample, out var template, out var messages);
 
-            var context = new TemplateContext();
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
             context.SetValue("products", _products);
-            context.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
-            context.Filters.AddFilter("paragraph", (input, args, ctx) => input);
-            context.Filters.AddFilter("price", (input, args, ctx) => input);
-            context.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
+            options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
+            options.Filters.AddFilter("paragraph", (input, args, ctx) => input);
+            options.Filters.AddFilter("price", (input, args, ctx) => input);
+            options.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
@@ -165,12 +166,13 @@ Wow, John G. Chalmers-Smith, you have a long name!";
 
             _parser.TryParse(sample, out var template, out var messages);
 
-            var context = new TemplateContext();
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
             context.SetValue("products", _products);
-            context.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
-            context.Filters.AddFilter("paragraph", (input, args, ctx) => input);
-            context.Filters.AddFilter("price", (input, args, ctx) => input);
-            context.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
+            options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
+            options.Filters.AddFilter("paragraph", (input, args, ctx) => input);
+            options.Filters.AddFilter("price", (input, args, ctx) => input);
+            options.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);

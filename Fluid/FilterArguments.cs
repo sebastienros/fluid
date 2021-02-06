@@ -55,34 +55,6 @@ namespace Fluid
             _positional = new List<FluidValue>(values);
         }
 
-        public FilterArguments(params object[] values)
-        {
-            if (values == null)
-            {
-                _positional = new List<FluidValue>();
-                return;
-            }
-
-            _positional = new List<FluidValue>(values.Length);
-
-            foreach (var value in values)
-            {
-                _positional.Add(FluidValue.Create(value));
-            }
-        }
-
-        public FilterArguments Add(object value)
-        {
-            _positional.Add(FluidValue.Create(value));
-
-            return this;
-        }
-
-        public FilterArguments Add(string name, object value)
-        {
-            return Add(name, FluidValue.Create(value));
-        }
-
         public FilterArguments Add(FluidValue value)
         {
             return Add(null, value);

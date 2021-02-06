@@ -26,7 +26,7 @@ namespace Fluid.Ast
                 TemplateContext ctx)
             {
                 var value = await t;
-                value.WriteTo(w, enc, ctx.CultureInfo);
+                value.WriteTo(w, enc, ctx.Options.CultureInfo);
                 return Completion.Normal;
             }
 
@@ -35,7 +35,7 @@ namespace Fluid.Ast
             var task = Expression.EvaluateAsync(context);
             if (task.IsCompletedSuccessfully)
             {
-                task.Result.WriteTo(writer, encoder, context.CultureInfo);
+                task.Result.WriteTo(writer, encoder, context.Options.CultureInfo);
                 return new ValueTask<Completion>(Completion.Normal);
             }
 

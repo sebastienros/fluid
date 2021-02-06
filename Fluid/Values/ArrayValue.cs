@@ -69,14 +69,14 @@ namespace Fluid.Values
                 case "first":
                     if (_value.Length > 0)
                     {
-                        return FluidValue.Create(_value[0]);
+                        return _value[0];
                     }
                     break;
 
                 case "last":
                     if (_value.Length > 0)
                     {
-                        return FluidValue.Create(_value[_value.Length - 1]);
+                        return _value[_value.Length - 1];
                     }
                     break;
 
@@ -91,7 +91,7 @@ namespace Fluid.Values
 
             if (i >= 0 && i < _value.Length)
             {
-                return FluidValue.Create(_value[i]);
+                return FluidValue.Create(_value[i], context.Options);
             }
 
             return NilValue.Instance;

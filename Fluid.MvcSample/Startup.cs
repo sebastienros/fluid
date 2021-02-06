@@ -10,23 +10,21 @@ namespace Fluid.MvcSample
 {
     public class Startup
     {
-        static Startup()
-        {
-            TemplateContext.GlobalMemberAccessStrategy.Register<Person>();
-        }
-
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.Configure<FluidViewEngineOptions>(x => x.Parser = p => 
-                p.RegisterEmptyBlock("mytag", static async (s, w, e, c) =>
+            services.Configure<FluidViewEngineOptions>(x =>
+            {
+                x.Parser.RegisterEmptyBlock("mytag", static async (s, w, e, c) =>
                 {
                     await w.WriteAsync("Hello from MyTag");
 
                     return Completion.Normal;
-                }
-            ));
+                });
+
+                x.TemplateOptions.MemberAccessStrategy.Register<Person>();
+            });
 
             services.AddMvc().AddFluid();
         }

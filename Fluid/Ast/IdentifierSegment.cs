@@ -21,31 +21,32 @@ namespace Fluid.Ast
 
         public override ValueTask<FluidValue> ResolveAsync(Scope value, TemplateContext context)
         {
-            static async ValueTask<FluidValue> Awaited(
+            async ValueTask<FluidValue> Awaited(
                 IAsyncMemberAccessor asyncAccessor,
                 TemplateContext ctx,
                 string identifier)
             {
                 var o = await asyncAccessor.GetAsync(ctx.Model, identifier, ctx);
-                return FluidValue.Create(o);
+                return FluidValue.Create(o, context.Options);
             }
 
             var result = value.GetValue(Identifier);
 
+            // If there are no named property for this identifier, check in the Model
             if (result.IsNil() && context.Model != null)
             {
-                // Look into the Model if defined
-                _accessor ??= context.MemberAccessStrategy.GetAccessor(context.Model.GetType(), Identifier);
+                // Check for a custom registration
+                _accessor ??= context.Options.MemberAccessStrategy.GetAccessor(context.Model.GetType(), Identifier);
+                _accessor ??= MemberAccessStrategyExtensions.GetNamedAccessor(context.Model.GetType(), Identifier, MemberNameStrategies.Default);
 
                 if (_accessor != null)
                 {
-
                     if (_accessor is IAsyncMemberAccessor asyncAccessor)
                     {
                         return Awaited(asyncAccessor, context, Identifier);
                     }
 
-                    return new ValueTask<FluidValue>(FluidValue.Create(_accessor.Get(context.Model, Identifier, context)));
+                    return new ValueTask<FluidValue>(FluidValue.Create(_accessor.Get(context.Model, Identifier, context), context.Options));
                 }
 
                 return new ValueTask<FluidValue>(NilValue.Instance);

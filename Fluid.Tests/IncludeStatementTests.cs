@@ -36,6 +36,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task IncludeSatement_ShouldLoadPartial_IfThePartialsFolderExist()
         {
+
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var sw = new StringWriter();
 
@@ -45,10 +46,8 @@ Partials: '{{ Partials }}'
 color: '{{ color }}'
 shape: '{{ shape }}'");
 
-            var context = new TemplateContext
-            {
-                FileProvider = fileProvider
-            };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
             var expectedResult = @"Partial Content
 Partials: ''
 color: ''
@@ -76,10 +75,8 @@ Partials: '{{ Partials }}'
 color: '{{ color }}'
 shape: '{{ shape }}'");
 
-            var context = new TemplateContext
-            {
-                FileProvider = fileProvider
-            };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
             var expectedResult = @"Partial Content
 Partials: ''
 color: 'blue'
@@ -103,10 +100,8 @@ Partials: '{{ Partials }}'
 color: '{{ color }}'
 shape: '{{ shape }}'");
 
-            var context = new TemplateContext
-            {
-                FileProvider = fileProvider
-            };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
             var expectedResult = @"Partial Content
 Partials: ''
 color: 'blue'
@@ -126,12 +121,10 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("_Partial.liquid", @"{{ 'Partial Content' }} {% include '_Partial' %}");
 
-            var context = new TemplateContext
-            {
-                FileProvider = fileProvider
-            };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
 
-           await Assert.ThrowsAsync<InvalidOperationException>(() => new IncludeStatement(_parser, expression).WriteToAsync(sw, HtmlEncoder.Default, context).AsTask());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => new IncludeStatement(_parser, expression).WriteToAsync(sw, HtmlEncoder.Default, context).AsTask());
         }
     }
 }

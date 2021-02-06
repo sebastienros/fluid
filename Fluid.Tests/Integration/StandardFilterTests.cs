@@ -1,6 +1,7 @@
 ﻿using Fluid.Filters;
 using Fluid.Values;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -13,8 +14,8 @@ namespace Fluid.Tests.Integration
         [Fact]
         public async Task TestSize()
         {
-            Assert.Equal(3, (await ArrayFilters.Size(FluidValue.Create(new [] {1, 2, 3}), FilterArguments.Empty, new TemplateContext())).ToNumberValue());
-            Assert.Equal(0, (await ArrayFilters.Size(FluidValue.Create(new int[0]), FilterArguments.Empty, new TemplateContext())).ToNumberValue());
+            Assert.Equal(3, (await ArrayFilters.Size(FluidValue.Create(new [] {1, 2, 3}, TemplateOptions.Default), FilterArguments.Empty, new TemplateContext())).ToNumberValue());
+            Assert.Equal(0, (await ArrayFilters.Size(FluidValue.Create(new int[0], TemplateOptions.Default), FilterArguments.Empty, new TemplateContext())).ToNumberValue());
             Assert.Equal(0, (await ArrayFilters.Size(NilValue.Instance, FilterArguments.Empty, new TemplateContext())).ToNumberValue());
         }
 
@@ -23,7 +24,7 @@ namespace Fluid.Tests.Integration
         [InlineData("", null)]
         public void TestDowncase(string expected, object input)
         {
-            Assert.Equal(expected, StringFilters.Downcase(FluidValue.Create(input), FilterArguments.Empty, new TemplateContext()).ToObjectValue());
+            Assert.Equal(expected, StringFilters.Downcase(FluidValue.Create(input, TemplateOptions.Default), FilterArguments.Empty, new TemplateContext()).Result.ToObjectValue());
         }
 
         [Theory]
@@ -31,7 +32,7 @@ namespace Fluid.Tests.Integration
         [InlineData("", null)]
         public void TestUpcase(string expected, object input)
         {
-            Assert.Equal(expected, StringFilters.Upcase(FluidValue.Create(input), FilterArguments.Empty, new TemplateContext()).ToObjectValue());
+            Assert.Equal(expected, StringFilters.Upcase(FluidValue.Create(input, TemplateOptions.Default), FilterArguments.Empty, new TemplateContext()).Result.ToObjectValue());
         }
 
         [Theory]
@@ -49,7 +50,7 @@ namespace Fluid.Tests.Integration
         [InlineData("oob", "foobar", "1", "3")]
         public void TestSlice(string expected, object input, params object[] arguments)
         {
-            Assert.Equal(expected, StringFilters.Slice(FluidValue.Create(input), new FilterArguments(arguments), new TemplateContext()).ToObjectValue());
+            Assert.Equal(expected, StringFilters.Slice(FluidValue.Create(input, TemplateOptions.Default), new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), new TemplateContext()).Result.ToObjectValue());
         }
 
         [Theory]
@@ -57,7 +58,7 @@ namespace Fluid.Tests.Integration
         [InlineData("foobar", 0, "")]
         public void TestSliceArgument(object input, params object[] arguments)
         {
-            Assert.Throws<ArgumentException>(() => StringFilters.Slice(FluidValue.Create(input), new FilterArguments(arguments), new TemplateContext()).ToObjectValue());
+            Assert.Throws<ArgumentException>(() => StringFilters.Slice(FluidValue.Create(input, TemplateOptions.Default), new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), new TemplateContext()).Result.ToObjectValue());
         }
         
         [Theory]
@@ -75,11 +76,11 @@ namespace Fluid.Tests.Integration
         {
             var foobar = new object [] { 'f', 'o', 'o', 'b', 'a', 'r' };
             
-            var result = StringFilters.Slice(FluidValue.Create(foobar), new FilterArguments(arguments), new TemplateContext());
-            Assert.IsType<ArrayValue>(result);
+            var result = StringFilters.Slice(FluidValue.Create(foobar, TemplateOptions.Default), new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), new TemplateContext());
+            Assert.IsType<ArrayValue>(result.Result);
 
             string resultString = "";
-            foreach (var c in result.ToObjectValue() as object[])
+            foreach (var c in result.Result.ToObjectValue() as object[])
             {
                 resultString += c.ToString();
             }
@@ -96,7 +97,7 @@ namespace Fluid.Tests.Integration
         [InlineData("12341", "1234567890", 5, 1)]
         public void TestTruncate(string expected, object input, object length = null, object truncate = null)
         {
-            Assert.Equal(expected, StringFilters.Truncate(FluidValue.Create(input), new FilterArguments(length, truncate), new TemplateContext()).ToObjectValue());
+            Assert.Equal(expected, StringFilters.Truncate(FluidValue.Create(input, TemplateOptions.Default), new FilterArguments(FluidValue.Create(length, TemplateOptions.Default), FluidValue.Create(truncate, TemplateOptions.Default)), new TemplateContext()).Result.ToObjectValue());
         }
     }    
 }

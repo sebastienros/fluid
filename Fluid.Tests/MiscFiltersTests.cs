@@ -19,7 +19,7 @@ namespace Fluid.Tests
 
             var result = MiscFilters.Default(input, arguments, context);
 
-            Assert.Equal("foo", result.ToStringValue());
+            Assert.Equal("foo", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -32,7 +32,7 @@ namespace Fluid.Tests
 
             var result = MiscFilters.Default(input, arguments, context);
 
-            Assert.Equal("bar", result.ToStringValue());
+            Assert.Equal("bar", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -50,7 +50,7 @@ namespace Fluid.Tests
 
             var result = MiscFilters.Compact(input, arguments, context);
 
-            Assert.Equal(3, result.Enumerate().Count());
+            Assert.Equal(3, result.Result.Enumerate().Count());
         }
 
 
@@ -64,7 +64,7 @@ namespace Fluid.Tests
 
             var result = MiscFilters.UrlEncode(input, arguments, context);
 
-            Assert.Equal("john%40liquid.com", result.ToStringValue());
+            Assert.Equal("john%40liquid.com", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -77,7 +77,7 @@ namespace Fluid.Tests
 
             var result = MiscFilters.UrlDecode(input, arguments, context);
 
-            Assert.Equal("john@liquid.com", result.ToStringValue());
+            Assert.Equal("john@liquid.com", result.Result.ToStringValue());
         }
 
         [Theory]
@@ -94,7 +94,7 @@ namespace Fluid.Tests
 
             var result = MiscFilters.StripHtml(input, arguments, context);
 
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Fact]
@@ -107,7 +107,7 @@ namespace Fluid.Tests
 
             var result = MiscFilters.Escape(input, arguments, context);
 
-            Assert.Equal("Have you read &#39;James &amp; the Giant Peach&#39;?", result.ToStringValue());
+            Assert.Equal("Have you read &#39;James &amp; the Giant Peach&#39;?", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -120,7 +120,7 @@ namespace Fluid.Tests
 
             var result = MiscFilters.EscapeOnce(input, arguments, context);
 
-            Assert.Equal("1 &lt; 2 &amp; 3", result.ToStringValue());
+            Assert.Equal("1 &lt; 2 &amp; 3", result.Result.ToStringValue());
         }
 
         [Theory]
@@ -178,11 +178,12 @@ namespace Fluid.Tests
                 new DateTime(2017, 8, 1, 17, 4, 36, 123), TimeSpan.FromHours(8)));
 
             var arguments = new FilterArguments(new StringValue(format));
-            var context = new TemplateContext {CultureInfo = new CultureInfo("en-US")};
+            var options = new TemplateOptions() { CultureInfo = new CultureInfo("en-US") };
+            var context = new TemplateContext(options);
 
             var result = MiscFilters.Date(input, arguments, context);
 
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -197,12 +198,12 @@ namespace Fluid.Tests
             var input = new DateTimeValue(DateTimeOffset.Parse(dateTimeOffset));
 
             var arguments = new FilterArguments(new StringValue(format));
-            var context = new TemplateContext();
-            context.CultureInfo = CultureInfo.InvariantCulture;
+            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture };
+            var context = new TemplateContext(options);
 
             var result = MiscFilters.Date(input, arguments, context);
 
-            Assert.Equal(expected, result.ToStringValue().Trim());
+            Assert.Equal(expected, result.Result.ToStringValue().Trim());
         }
 
         [Theory]
@@ -214,11 +215,12 @@ namespace Fluid.Tests
             var input = new DateTimeValue(DateTimeOffset.Parse(initialDateTime));
 
             var arguments = new FilterArguments(new StringValue(timeZone));
-            var context = new TemplateContext {CultureInfo = CultureInfo.InvariantCulture};
+            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture };
+            var context = new TemplateContext(options);
 
             var result = MiscFilters.ChangeTimeZone(input, arguments, context);
 
-            Assert.Equal(expected, ((DateTimeOffset) result.ToObjectValue()).ToString("yyyy-MM-ddTHH:mm:ssK"));
+            Assert.Equal(expected, ((DateTimeOffset) result.Result.ToObjectValue()).ToString("yyyy-MM-ddTHH:mm:ssK"));
         }
 
         [Theory]
@@ -231,12 +233,13 @@ namespace Fluid.Tests
             var input = new DateTimeValue(DateTimeOffset.Parse(initialDateTime));
             var timeZoneArgument = new FilterArguments(new StringValue(timeZone));
             var formatArgument = new FilterArguments(new StringValue(format));
-            var context = new TemplateContext {CultureInfo = CultureInfo.InvariantCulture};
+            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture };
+            var context = new TemplateContext(options);
 
             var result = MiscFilters.ChangeTimeZone(input, timeZoneArgument, context);
-            result = MiscFilters.Date(result, formatArgument, context);
+            result = MiscFilters.Date(result.Result, formatArgument, context);
             
-            Assert.Equal(expected, result.ToStringValue().Trim());
+            Assert.Equal(expected, result.Result.ToStringValue().Trim());
         }
 
         [Fact]
@@ -246,13 +249,15 @@ namespace Fluid.Tests
             var format = "%D";
 
             var arguments = new FilterArguments(new StringValue(format));
-            var context = new TemplateContext();
-            context.Now = () => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0));
-            context.CultureInfo = CultureInfo.InvariantCulture;
+            var options = new TemplateOptions() { 
+                CultureInfo = CultureInfo.InvariantCulture,
+                Now = () => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0))
+            };
+            var context = new TemplateContext(options);
 
             var result = MiscFilters.Date(input, arguments, context);
 
-            Assert.Equal("08/01/2017", result.ToStringValue());
+            Assert.Equal("08/01/2017", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -262,13 +267,16 @@ namespace Fluid.Tests
             var format = "%D";
 
             var arguments = new FilterArguments(new StringValue(format));
-            var context = new TemplateContext();
-            context.Now = () => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0));
-            context.CultureInfo = CultureInfo.InvariantCulture;
+            var options = new TemplateOptions()
+            {
+                CultureInfo = CultureInfo.InvariantCulture,
+                Now = () => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0))
+            };
+            var context = new TemplateContext(options);
 
             var result = MiscFilters.Date(input, arguments, context);
 
-            Assert.Equal("08/01/2017", result.ToStringValue());
+            Assert.Equal("08/01/2017", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -278,13 +286,16 @@ namespace Fluid.Tests
             var format = "d";
 
             var arguments = new FilterArguments(new StringValue(format));
-            var context = new TemplateContext();
-            context.Now = () => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0));
-            context.CultureInfo = CultureInfo.InvariantCulture;
+            var options = new TemplateOptions()
+            {
+                CultureInfo = CultureInfo.InvariantCulture,
+                Now = () => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0))
+            };
+            var context = new TemplateContext(options);
 
             var result = MiscFilters.FormatDate(input, arguments, context);
 
-            Assert.Equal("08/01/2017", result.ToStringValue());
+            Assert.Equal("08/01/2017", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -294,12 +305,12 @@ namespace Fluid.Tests
             var format = "%D";
 
             var arguments = new FilterArguments(new StringValue(format));
-            var context = new TemplateContext();
-            context.CultureInfo = CultureInfo.InvariantCulture;
+            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture };
+            var context = new TemplateContext(options);
 
             var result = MiscFilters.Date(input, arguments, context);
 
-            Assert.Equal("08/01/2017", result.ToStringValue());
+            Assert.Equal("08/01/2017", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -311,7 +322,7 @@ namespace Fluid.Tests
 
             var result = MiscFilters.Date(input, format, context);
 
-            Assert.Equal("12345", result.ToStringValue());
+            Assert.Equal("12345", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -321,16 +332,15 @@ namespace Fluid.Tests
             var format = "%d/%m/%Y";
 
             var arguments = new FilterArguments(new StringValue(format));
-            var context = new TemplateContext();
 
-            context.CultureInfo = new CultureInfo("fr-FR");
+            var context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("fr-FR") });
             var resultFR = MiscFilters.Date(input, arguments, context);
 
-            context.CultureInfo = new CultureInfo("en-US");
+            context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("en-US") });
             var resultUS = MiscFilters.Date(input, arguments, context);
 
-            Assert.Equal("08/01/2017", resultFR.ToStringValue());
-            Assert.Equal("01/08/2017", resultUS.ToStringValue());
+            Assert.Equal("08/01/2017", resultFR.Result.ToStringValue());
+            Assert.Equal("01/08/2017", resultUS.Result.ToStringValue());
         }
 
         [Fact]
@@ -340,16 +350,15 @@ namespace Fluid.Tests
             var format = "%c";
 
             var arguments = new FilterArguments(new StringValue(format));
-            var context = new TemplateContext();
 
-            context.CultureInfo = new CultureInfo("fr-FR");
+            var context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("fr-FR") });
             var resultFR = MiscFilters.Date(input, arguments, context);
 
-            context.CultureInfo = new CultureInfo("en-US");
+            context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("en-US") });
             var resultUS = MiscFilters.Date(input, arguments, context);
 
-            Assert.Equal("dimanche 8 janvier 2017 00:00:00", resultFR.ToStringValue());
-            Assert.Equal("Tuesday, August 1, 2017 12:00:00 AM", resultUS.ToStringValue());
+            Assert.Equal("dimanche 8 janvier 2017 00:00:00", resultFR.Result.ToStringValue());
+            Assert.Equal("Tuesday, August 1, 2017 12:00:00 AM", resultUS.Result.ToStringValue());
         }
 
         [Theory]
@@ -369,7 +378,7 @@ namespace Fluid.Tests
 
             var result = MiscFilters.Handleize(input, arguments, context);
 
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -387,14 +396,14 @@ namespace Fluid.Tests
         [InlineData(new object[] { 1, "a", true}, "[1,\"a\",true]")]
         public void Json(object value, string expected)
         {
-            var input = FluidValue.Create(value);
+            var input = FluidValue.Create(value, TemplateOptions.Default);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
             var result = MiscFilters.Json(input, arguments, context);
 
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -415,11 +424,11 @@ namespace Fluid.Tests
                 ;
 
             var arguments = new FilterArguments(new StringValue(format));
-            var context = new TemplateContext { CultureInfo = cultureInfo  } ;
+            var context = new TemplateContext( new TemplateOptions { CultureInfo = cultureInfo  }) ;
             
-            var result = MiscFilters.FormatNumber(FluidValue.Create(input), arguments, context);
+            var result = MiscFilters.FormatNumber(FluidValue.Create(input, context.Options), arguments, context);
 
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -434,12 +443,12 @@ namespace Fluid.Tests
                 : CultureInfo.CreateSpecificCulture(culture)
                 ;
 
-            var arguments = new FilterArguments(args.Select(FluidValue.Create).ToArray());
-            var context = new TemplateContext { CultureInfo = cultureInfo };
+            var context = new TemplateContext(new TemplateOptions { CultureInfo = cultureInfo });
+            var arguments = new FilterArguments(args.Select(x => FluidValue.Create(x, context.Options)).ToArray());
 
-            var result = MiscFilters.FormatString(FluidValue.Create(input), arguments, context);
+            var result = MiscFilters.FormatString(FluidValue.Create(input, context.Options), arguments, context);
 
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
     }
 }

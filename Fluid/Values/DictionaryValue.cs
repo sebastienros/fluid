@@ -86,7 +86,7 @@ namespace Fluid.Values
                 return new ValueTask<FluidValue>(fluidValue);
             }
 
-            return new ValueTask<FluidValue>(FluidValue.Create(value));
+            return new ValueTask<FluidValue>(FluidValue.Create(value, context.Options));
         }
 
         protected override FluidValue GetIndex(FluidValue index, TemplateContext context)

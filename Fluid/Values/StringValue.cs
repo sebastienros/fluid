@@ -55,7 +55,7 @@ namespace Fluid.Values
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static StringValue Create(string s)
+        public static StringValue Create(string s)
         {
             return s.Length == 1
                 ? Create(s[0])

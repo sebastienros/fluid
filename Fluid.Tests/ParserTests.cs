@@ -350,7 +350,7 @@ def", "at (")]
         }
 
         [Fact]
-        public void ShouldNotRegisterModelType()
+        public void ShouldRegisterModelType()
         {
             var model = new
             {
@@ -360,11 +360,8 @@ def", "at (")]
             var source = "{{name}}";
 
             _parser.TryParse(source, out var template);
-            var rendered = template.Render(new TemplateContext(model, false));
 
-            Assert.Equal("", rendered);
-
-            rendered = template.Render(new TemplateContext(model, true));
+            var rendered = template.Render(new TemplateContext(model));
 
             Assert.Equal("Tobi", rendered);
         }

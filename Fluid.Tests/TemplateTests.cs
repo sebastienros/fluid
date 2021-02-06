@@ -27,7 +27,7 @@ namespace Fluid.Tests
             _parser.TryParse(source, out var template, out var error);
 
             var context = new TemplateContext();
-            context.MemberAccessStrategy.Register(new { name = "product 1", price = 1 }.GetType());
+            context.Options.MemberAccessStrategy.Register(new { name = "product 1", price = 1 }.GetType());
             init?.Invoke(context);
 
             var result = await template.RenderAsync(context);
@@ -136,9 +136,11 @@ namespace Fluid.Tests
         public async Task ShouldEvaluateFilters(string source, string expected)
         {
             _parser.TryParse(source, out var template, out var error);
-            var context = new TemplateContext();
+            var options = new TemplateOptions();
 
-            context.Filters.AddFilter("inc", (i, args, ctx) => 
+            var context = new TemplateContext(options);
+
+            options.Filters.AddFilter("inc", (i, args, ctx) => 
             {
                 var increment = 1;
                 if (args.Count > 0)
@@ -149,7 +151,7 @@ namespace Fluid.Tests
                 return NumberValue.Create(i.ToNumberValue() + increment);
             });
 
-            context.Filters.AddFilter("append", (i, args, ctx) =>
+            options.Filters.AddFilter("append", (i, args, ctx) =>
             {
                 var s = i.ToStringValue();
 
@@ -204,9 +206,12 @@ namespace Fluid.Tests
         {
             _parser.TryParse("{{ p.Name }}", out var template, out var error);
 
-            var context = new TemplateContext();
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<Person>();
+
+            var context = new TemplateContext(options);
             context.SetValue("p", new Person { Name = "John" });
-            context.MemberAccessStrategy.Register<Person>();
+            
 
             var result = await template.RenderAsync(context);
             Assert.Equal("John", result);
@@ -215,11 +220,12 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateObjectPropertyWhenInterfaceRegisteredAsGlobal()
         {
-            TemplateContext.GlobalMemberAccessStrategy.Register<IAnimal>();
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<IAnimal>();
 
             _parser.TryParse("{{ p.Age }}", out var template, out var error);
 
-            var context = new TemplateContext();
+            var context = new TemplateContext(options);
             context.SetValue("p", new Dog { Age = 12 });
 
             var result = await template.RenderAsync(context);
@@ -229,11 +235,12 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldRegisterValueMappingWithInterface()
         {
-            FluidValue.ValueConverters.Add(x => x is IPet pet ? new PetValue(pet) : null);
 
             _parser.TryParse("{{ p.Name }}", out var template, out var messages);
 
-            var context = new TemplateContext();
+            var options = new TemplateOptions();
+            options.ValueConverters.Add(x => x is IPet pet ? new PetValue(pet) : null);
+            var context = new TemplateContext(options);
             context.SetValue("p", new Dog { Name = "Rex" });
 
             var result = await template.RenderAsync(context);
@@ -243,11 +250,12 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldNotAllowNotRegisteredInterfaceMembers()
         {
-            TemplateContext.GlobalMemberAccessStrategy.Register<IAnimal>();
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<IAnimal>();
 
             _parser.TryParse("{{ p.Name }}", out var template, out var error);
 
-            var context = new TemplateContext();
+            var context = new TemplateContext(options);
             context.SetValue("p", new Dog { Name = "Rex" });
 
             var result = await template.RenderAsync(context);
@@ -259,9 +267,10 @@ namespace Fluid.Tests
         {
             _parser.TryParse("{{ p.Name }}", out var template, out var error);
 
-            var context = new TemplateContext();
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
             context.SetValue("p", new Dog { Name = "John" });
-            context.MemberAccessStrategy.Register<IDog>();
+            options.MemberAccessStrategy.Register<IDog>();
 
             var result = await template.RenderAsync(context);
             Assert.Equal("John", result);
@@ -272,9 +281,10 @@ namespace Fluid.Tests
         {
             _parser.TryParse("{{ e.Name }} {{ e.Salary }}", out var template, out var error);
 
-            var context = new TemplateContext();
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
             context.SetValue("e", new Employee { Name = "John", Salary = 550 });
-            context.MemberAccessStrategy.Register<Employee>();
+            options.MemberAccessStrategy.Register<Employee>();
 
             var result = await template.RenderAsync(context);
             Assert.Equal("John 550", result);
@@ -285,9 +295,10 @@ namespace Fluid.Tests
         {
             _parser.TryParse("{{ c.Director.Name }} {{ c.Director.Salary }}", out var template, out var error);
 
-            var context = new TemplateContext();
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
             context.SetValue("c", new Company { Director = new Employee { Name = "John", Salary = 550 } });
-            context.MemberAccessStrategy.Register<Company>();
+            options.MemberAccessStrategy.Register<Company>();
 
             var result = await template.RenderAsync(context);
             Assert.Equal(" ", result);
@@ -300,10 +311,11 @@ namespace Fluid.Tests
             // but the Person class is registered, so Name should be available
             _parser.TryParse("{{ c.Director.Name }} {{ c.Director.Salary }}", out var template, out var error);
 
-            var context = new TemplateContext();
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
             context.SetValue("c", new Company { Director = new Employee { Name = "John", Salary = 550 } });
-            context.MemberAccessStrategy.Register<Company>();
-            context.MemberAccessStrategy.Register<Person>();
+            options.MemberAccessStrategy.Register<Company>();
+            options.MemberAccessStrategy.Register<Person>();
 
             var result = await template.RenderAsync(context);
             Assert.Equal("John ", result);
@@ -447,12 +459,13 @@ turtle
 
             _parser.TryParse(source, out var template, out var error);
 
-            var context = new TemplateContext();
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
 
-            context.Filters.AddAsyncFilter("query", async (input, arguments, ctx) =>
+            options.Filters.AddFilter("query", async (input, arguments, ctx) =>
             {
                 await Task.Delay(10);
-                return FluidValue.Create(input.ToStringValue() + arguments.At(0).ToStringValue());
+                return FluidValue.Create(input.ToStringValue() + arguments.At(0).ToStringValue(), options);
             });
 
             var result = await template.RenderAsync(context);
@@ -530,13 +543,12 @@ turtle
             var expectedUS = "1234.567";
 
             _parser.TryParse(source, out var template, out var error);
-            var context = new TemplateContext
-            {
-                CultureInfo = new CultureInfo("en-US")
-            };
+            var options = new TemplateOptions();
+            options.CultureInfo = new CultureInfo("en-US");
+            var context = new TemplateContext(options);
             var resultUS = await template.RenderAsync(context);
 
-            context.CultureInfo = new CultureInfo("fr-FR");
+            options.CultureInfo = new CultureInfo("fr-FR");
             var resultFR = await template.RenderAsync(context);
 
             Assert.Equal(expectedFR, resultFR);
@@ -635,10 +647,9 @@ Partials: '{{ Partials }}'
 color: '{{ color }}'
 shape: '{{ shape }}'");
 
-            var context = new TemplateContext
-            {
-                FileProvider = fileProvider
-            };
+            var options = new TemplateOptions();
+            options.FileProvider = fileProvider;
+            var context = new TemplateContext(options);
 
             var result = await template.RenderAsync(context);
 
@@ -669,10 +680,9 @@ color: '{{ color }}'
 shape: '{{ shape }}'");
 
             _parser.TryParse(source, out var template, out var error);
-            var context = new TemplateContext
-            {
-                FileProvider = fileProvider
-            };           
+            var options = new TemplateOptions();
+            options.FileProvider = fileProvider;
+            var context = new TemplateContext(options);
 
             var result = await template.RenderAsync(context);
 
@@ -684,10 +694,11 @@ shape: '{{ shape }}'");
         {
             _parser.TryParse("{{ Content.Foo }}{{ Content.Baz }}", out var template, out var error);
 
-            var context = new TemplateContext();
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
             context.SetValue("Content", new Content());
-            context.MemberAccessStrategy.Register<Content, string>("Foo", async (obj, name) => { await Task.Delay(100); return "Bar"; });
-            context.MemberAccessStrategy.Register<Content, string>(async (obj, name) => { await Task.Delay(100); return name; });
+            options.MemberAccessStrategy.Register<Content, string>("Foo", async (obj, name) => { await Task.Delay(100); return "Bar"; });
+            options.MemberAccessStrategy.Register<Content, string>(async (obj, name) => { await Task.Delay(100); return name; });
 
             var result = await template.RenderAsync(context);
             Assert.Equal("BarBaz", result);
@@ -699,7 +710,7 @@ shape: '{{ shape }}'");
             _parser.TryParse("{{ Test }}", out var template, out var error);
             bool set = false;
             var context = new TemplateContext();
-            context.SetValue("Test", () => { set = true; return set; });
+            context.SetValue("Test", () => { set = true; return BooleanValue.True; });
 
             Assert.False(set);
             var result = await template.RenderAsync(context);
@@ -712,8 +723,9 @@ shape: '{{ shape }}'");
         {
             _parser.TryParse("{% for w in (1..10000) %} FOO {% endfor %}", out var template, out var error);
 
-            var context = new TemplateContext();
-            context.MaxSteps = 100;
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            options.MaxSteps = 100;
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => template.RenderAsync(context).AsTask());
         }
@@ -750,10 +762,12 @@ shape: '{{ shape }}'");
         {
             _parser.TryParse("{{ p.NaMe }}", out var template, out var error);
 
-            var context = new TemplateContext();
+
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
             context.SetValue("p", new Person { Name = "John" });
-            context.MemberAccessStrategy.IgnoreCasing = true;
-            context.MemberAccessStrategy.Register<Person>();
+            options.MemberAccessStrategy.IgnoreCasing = true;
+            options.MemberAccessStrategy.Register<Person>();
 
             var result = await template.RenderAsync(context);
             Assert.Equal("John", result);

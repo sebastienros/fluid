@@ -5,10 +5,12 @@ namespace Fluid.Values
     public sealed class ObjectDictionaryFluidIndexable : IFluidIndexable
     {
         private readonly IDictionary<string, object> _dictionary;
+        private readonly TemplateOptions _options;
 
-        public ObjectDictionaryFluidIndexable(IDictionary<string, object> dictionary)
+        public ObjectDictionaryFluidIndexable(IDictionary<string, object> dictionary, TemplateOptions options)
         {
             _dictionary = dictionary;
+            _options = options;
         }
 
         public int Count => _dictionary.Count;
@@ -19,7 +21,7 @@ namespace Fluid.Values
         {
             if(_dictionary.TryGetValue(name, out var obj))
             {
-                value = FluidValue.Create(obj);
+                value = FluidValue.Create(obj, _options);
                 return true;
             }
 

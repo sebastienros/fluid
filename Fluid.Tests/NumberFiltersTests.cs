@@ -23,7 +23,7 @@ namespace Fluid.Tests
 
             var result = NumberFilters.Abs(input, arguments, context);
 
-            Assert.Equal(expectedResult, result.ToNumberValue());
+            Assert.Equal(expectedResult, result.Result.ToNumberValue());
         }
 
         [Theory]
@@ -33,12 +33,12 @@ namespace Fluid.Tests
         {
             var input = NumberValue.Create(value1);
 
-            var arguments = new FilterArguments(NumberValue.Create(value2));
+            var arguments = new FilterArguments(NumberValue.Create(value2, TemplateOptions.Default));
             var context = new TemplateContext();
 
             var result = NumberFilters.AtLeast(input, arguments, context);
 
-            Assert.Equal(expectedResult, result.ToNumberValue());
+            Assert.Equal(expectedResult, result.Result.ToNumberValue());
         }
 
         [Theory]
@@ -48,25 +48,25 @@ namespace Fluid.Tests
         {
             var input = NumberValue.Create(value1);
 
-            var arguments = new FilterArguments(NumberValue.Create(value2));
+            var arguments = new FilterArguments(NumberValue.Create(value2, TemplateOptions.Default));
             var context = new TemplateContext();
 
             var result = NumberFilters.AtMost(input, arguments, context);
 
-            Assert.Equal(expectedResult, result.ToNumberValue());
+            Assert.Equal(expectedResult, result.Result.ToNumberValue());
         }
 
         [Fact]
         public void Ceil()
         {
-            var input = NumberValue.Create(4.6);
+            var input = NumberValue.Create(4.6, TemplateOptions.Default);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
             var result = NumberFilters.Ceil(input, arguments, context);
 
-            Assert.Equal(5, result.ToNumberValue());
+            Assert.Equal(5, result.Result.ToNumberValue());
         }
 
         [Theory]
@@ -85,20 +85,20 @@ namespace Fluid.Tests
 
             var result = NumberFilters.DividedBy(input, arguments, context);
 
-            Assert.Equal(expected, result.ToNumberValue());
+            Assert.Equal(expected, result.Result.ToNumberValue());
         }
 
         [Fact]
         public void Floor()
         {
-            var input = NumberValue.Create(4.6);
+            var input = NumberValue.Create(4.6, TemplateOptions.Default);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
             var result = NumberFilters.Floor(input, arguments, context);
 
-            Assert.Equal(4, result.ToNumberValue());
+            Assert.Equal(4, result.Result.ToNumberValue());
         }
 
         [Fact]
@@ -106,12 +106,12 @@ namespace Fluid.Tests
         {
             var input = NumberValue.Create(6);
 
-            var arguments = new FilterArguments(3);
+            var arguments = new FilterArguments(NumberValue.Create(3));
             var context = new TemplateContext();
 
             var result = NumberFilters.Minus(input, arguments, context);
 
-            Assert.Equal(3, result.ToNumberValue());
+            Assert.Equal(3, result.Result.ToNumberValue());
         }
 
         [Theory]
@@ -121,12 +121,12 @@ namespace Fluid.Tests
         public void MinusWithDecimalPointFromObject(string input, string argument, decimal expectedResult)
         {
             var inputA = NumberValue.Create(input);
-            var inputB = new FilterArguments(argument);
+            var inputB = new FilterArguments(StringValue.Create(argument));
             var context = new TemplateContext();
 
             var result = NumberFilters.Minus(inputA, inputB, context);
 
-            Assert.Equal(expectedResult, result.ToNumberValue());
+            Assert.Equal(expectedResult, result.Result.ToNumberValue());
         }
 
         [Fact]
@@ -134,12 +134,12 @@ namespace Fluid.Tests
         {
             var input = NumberValue.Create(6);
 
-            var arguments = new FilterArguments(4);
+            var arguments = new FilterArguments(NumberValue.Create(4));
             var context = new TemplateContext();
 
             var result = NumberFilters.Modulo(input, arguments, context);
 
-            Assert.Equal(2, result.ToNumberValue());
+            Assert.Equal(2, result.Result.ToNumberValue());
         }
 
         [Fact]
@@ -158,12 +158,12 @@ namespace Fluid.Tests
         {
             var input = NumberValue.Create(6);
 
-            var arguments = new FilterArguments('3');
+            var arguments = new FilterArguments(StringValue.Create("3"));
             var context = new TemplateContext();
 
             var result = NumberFilters.Plus(input, arguments, context);
 
-            Assert.Equal(9, result.ToNumberValue());
+            Assert.Equal(9, result.Result.ToNumberValue());
         }
 
         [Theory]
@@ -173,12 +173,12 @@ namespace Fluid.Tests
         public void PlusWithDecimalPointFromObject(string input, string argument, decimal expectedResult)
         {
             var inputA = NumberValue.Create(input);
-            var inputB = new FilterArguments(argument);
+            var inputB = new FilterArguments(NumberValue.Create(argument));
             var context = new TemplateContext();
 
             var result = NumberFilters.Plus(inputA, inputB, context);
 
-            Assert.Equal(expectedResult, result.ToNumberValue());
+            Assert.Equal(expectedResult, result.Result.ToNumberValue());
         }
 
         [Fact]
@@ -186,25 +186,25 @@ namespace Fluid.Tests
         {
             var input = new ObjectValue("6");
 
-            var arguments = new FilterArguments(3);
+            var arguments = new FilterArguments(NumberValue.Create(3));
             var context = new TemplateContext();
 
             var result = NumberFilters.Plus(input, arguments, context);
 
-            Assert.Equal(9, result.ToNumberValue());
+            Assert.Equal(9, result.Result.ToNumberValue());
         }
 
         [Fact]
         public void Round()
         {
-            var input = NumberValue.Create(4.1234);
+            var input = NumberValue.Create((decimal) 4.1234);
 
-            var arguments = new FilterArguments(2);
+            var arguments = new FilterArguments(NumberValue.Create(2));
             var context = new TemplateContext();
 
             var result = NumberFilters.Round(input, arguments, context);
 
-            Assert.Equal(4.12M, result.ToNumberValue());
+            Assert.Equal(4.12M, result.Result.ToNumberValue());
         }
 
         [Fact]
@@ -212,12 +212,12 @@ namespace Fluid.Tests
         {
             var input = NumberValue.Create(6);
 
-            var arguments = new FilterArguments(3);
+            var arguments = new FilterArguments(NumberValue.Create(3));
             var context = new TemplateContext();
 
             var result = NumberFilters.Times(input, arguments, context);
 
-            Assert.Equal("18", result.ToStringValue());
+            Assert.Equal("18", result.Result.ToStringValue());
         }
 
         [Theory]
@@ -227,12 +227,12 @@ namespace Fluid.Tests
         public void TimesWithDecimalPointFromObject(string input, string argument, decimal expectedResult)
         {
             var inputA = NumberValue.Create(input);
-            var inputB = new FilterArguments(argument);
+            var inputB = new FilterArguments(NumberValue.Create(argument));
             var context = new TemplateContext();
 
             var result = NumberFilters.Times(inputA, inputB, context);
 
-            Assert.Equal(expectedResult, result.ToNumberValue());
+            Assert.Equal(expectedResult, result.Result.ToNumberValue());
         }
 
         [Fact]
@@ -240,13 +240,13 @@ namespace Fluid.Tests
         {
             var input = NumberValue.Create(6);
 
-            var arguments = new FilterArguments(1.0M);
+            var arguments = new FilterArguments(NumberValue.Create(1.0M));
             var context = new TemplateContext();
 
             var result = NumberFilters.Times(input, arguments, context);
 
-            Assert.Equal(6, result.ToNumberValue());
-            Assert.Equal("6.0", result.ToStringValue());
+            Assert.Equal(6, result.Result.ToNumberValue());
+            Assert.Equal("6.0", result.Result.ToStringValue());
         }
     }
 }

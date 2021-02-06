@@ -14,17 +14,17 @@ namespace Fluid.Filters
             filters.AddFilter("first", First);
             filters.AddFilter("last", Last);
             filters.AddFilter("concat", Concat);
-            filters.AddAsyncFilter("map", Map);
+            filters.AddFilter("map", Map);
             filters.AddFilter("reverse", Reverse);
-            filters.AddAsyncFilter("size", Size);
-            filters.AddAsyncFilter("sort", Sort);
-            filters.AddAsyncFilter("sort_natural", SortNatural);
+            filters.AddFilter("size", Size);
+            filters.AddFilter("sort", Sort);
+            filters.AddFilter("sort_natural", SortNatural);
             filters.AddFilter("uniq", Uniq);
-            filters.AddAsyncFilter("where", Where);
+            filters.AddFilter("where", Where);
             return filters;
         }
 
-        public static FluidValue Join(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Join(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.Type != FluidValues.Array)
             {
@@ -37,7 +37,7 @@ namespace Fluid.Filters
             return new StringValue(joined);
         }
 
-        public static FluidValue First(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> First(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.Type != FluidValues.Array)
             {
@@ -47,7 +47,7 @@ namespace Fluid.Filters
             return input.FirstOrDefault() ?? NilValue.Instance;
         }
 
-        public static FluidValue Last(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Last(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.Type != FluidValues.Array)
             {
@@ -57,7 +57,7 @@ namespace Fluid.Filters
             return input.LastOrDefault() ?? NilValue.Instance;
         }
 
-        public static FluidValue Concat(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Concat(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.Type != FluidValues.Array)
             {
@@ -132,7 +132,7 @@ namespace Fluid.Filters
             return new ArrayValue(list);
         }
 
-        public static FluidValue Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (input.Type != FluidValues.Array)
             {
@@ -209,7 +209,7 @@ namespace Fluid.Filters
             }
         }
 
-        public static FluidValue Uniq(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Uniq(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new ArrayValue(input.Enumerate().Distinct().ToArray());
         }

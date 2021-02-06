@@ -22,7 +22,7 @@ namespace Fluid.Tests
 
             var result = ArrayFilters.Join(input, arguments, context);
 
-            Assert.Equal("a, b, c", result.ToStringValue());
+            Assert.Equal("a, b, c", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -43,14 +43,14 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void First_EmptyArray()
+        public async Task First_EmptyArray()
         {
             var input = new ArrayValue(new StringValue[0]);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
-            var result = ArrayFilters.First(input, arguments, context);
+            var result = await ArrayFilters.First(input, arguments, context);
 
             Assert.IsType<NilValue>(result);
         }
@@ -73,14 +73,14 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void Last_EmptyArray()
+        public async Task Last_EmptyArray()
         {
             var input = new ArrayValue(new StringValue[0]);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
-            var result = ArrayFilters.Last(input, arguments, context);
+            var result = await ArrayFilters.Last(input, arguments, context);
 
             Assert.IsType<NilValue>(result);
         }
@@ -106,7 +106,7 @@ namespace Fluid.Tests
 
             var result = ArrayFilters.Concat(input, arguments, context);
 
-            Assert.Equal(6, result.Enumerate().Count());
+            Assert.Equal(6, result.Result.Enumerate().Count());
         }
 
         [Fact]
@@ -120,8 +120,9 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments().Add(new StringValue("Title"));
 
-            var context = new TemplateContext();
-            context.MemberAccessStrategy.Register(new { Title = "a" }.GetType());
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            options.MemberAccessStrategy.Register(new { Title = "a" }.GetType());
 
             var result = await ArrayFilters.Map(input, arguments, context);
 
@@ -143,9 +144,10 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments().Add(new StringValue("Title.Text"));
 
-            var context = new TemplateContext();
-            context.MemberAccessStrategy.Register(sample.GetType());
-            context.MemberAccessStrategy.Register(sample.Title.GetType());
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            options.MemberAccessStrategy.Register(sample.GetType());
+            options.MemberAccessStrategy.Register(sample.Title.GetType());
 
             var result = await ArrayFilters.Map(input, arguments, context);
 
@@ -169,10 +171,10 @@ namespace Fluid.Tests
 
             var result = ArrayFilters.Reverse(input, arguments, context);
 
-            Assert.Equal(3, result.Enumerate().Count());
-            Assert.Equal(new StringValue("c"), result.Enumerate().ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Enumerate().ElementAt(1));
-            Assert.Equal(new StringValue("a"), result.Enumerate().ElementAt(2));
+            Assert.Equal(3, result.Result.Enumerate().Count());
+            Assert.Equal(new StringValue("c"), result.Result.Enumerate().ElementAt(0));
+            Assert.Equal(new StringValue("b"), result.Result.Enumerate().ElementAt(1));
+            Assert.Equal(new StringValue("a"), result.Result.Enumerate().ElementAt(2));
         }
 
         [Fact]
@@ -205,8 +207,9 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments().Add(new StringValue("Title"));
 
-            var context = new TemplateContext();
-            context.MemberAccessStrategy.Register(sample.GetType(), "Title");
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            options.MemberAccessStrategy.Register(sample.GetType(), "Title");
 
             var result = await ArrayFilters.Sort(input, arguments, context);
 
@@ -217,10 +220,10 @@ namespace Fluid.Tests
 
             arguments = new FilterArguments().Add(new StringValue("Address.Zip"));
 
-            context = new TemplateContext();
-            context.MemberAccessStrategy.Register(sample.GetType(), "Title");
-            context.MemberAccessStrategy.Register(sample.GetType(), "Address");
-            context.MemberAccessStrategy.Register(sample.Address.GetType(), "Zip");
+            options = new TemplateOptions();
+            context = new TemplateContext(options); 
+            options.MemberAccessStrategy.Register(sample.GetType(), "Address");
+            options.MemberAccessStrategy.Register(sample.Address.GetType(), "Zip");
 
             result = await ArrayFilters.Sort(input, arguments, context);
 
@@ -286,7 +289,7 @@ namespace Fluid.Tests
 
             var result = ArrayFilters.Uniq(input, arguments, context);
 
-            Assert.Equal(2, result.Enumerate().Count());
+            Assert.Equal(2, result.Result.Enumerate().Count());
         }
 
         [Fact]
@@ -298,8 +301,9 @@ namespace Fluid.Tests
                 new ObjectValue(new { Title = "c", Pinned = true })
                 });
 
-            var context = new TemplateContext();
-            context.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned"));
 
@@ -334,8 +338,9 @@ namespace Fluid.Tests
                 new ObjectValue(new { Title = "c", Pinned = true })
                 });
 
-            var context = new TemplateContext();
-            context.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
 
             var arguments1 = new FilterArguments().Add(new StringValue("a.b.c"));
 

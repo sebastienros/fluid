@@ -142,18 +142,16 @@ public static FluidValue Downcase(FluidValue input, FilterArguments arguments, T
 ```
 
 #### Registration
-Filters can be registered globally for the lifetime of the application, or for each usage of a template.
+Filters are registered in an instance of `TemplateOptions`. This options object can be reused every time a template is rendered.
 
 ```csharp
-TemplateContext.GlobalFilters.AddFilter('downcase', Downcase);
 
-// Or for a specific context
+var options = new TemplateOptions();
+options.Filters.AddFilter('downcase', Downcase);
 
-var context = new TemplateContext();
+var context = new TemplateContext(options);
 context.Filters.AddFilter('downcase', Downcase);
 ```
-
-To create an **async** filter use the `AddAsyncFilter` method instead.
 
 <br>
 
@@ -168,17 +166,19 @@ Liquid is a secure template language which will only allow a predefined set of m
 This will allow any public field or property to be read from a template.
 
 ```csharp
-TemplateContext.GlobalMemberAccessStrategy.Register<Person>();
+var options = new TemplateOptions();
+options.MemberAccessStrategy.Register<Person>();
 ``` 
 
-> Note: When passing a model with `new TemplateContext(model)` the type of the `model` object is automatically registered unless the `registerModelProperties` argument is set to `false`.
+> Note: When passing a model with `new TemplateContext(model)` the type of the `model` object is automatically registered.
 
 ### Allow-listing specific members
 
 This will only allow the specific fields or properties to be read from a template.
 
 ```csharp
-TemplateContext.GlobalMemberAccessStrategy.Register<Person>("Firstname", "Lastname");
+var options = new TemplateOptions();
+options.MemberAccessStrategy.Register<Person>("Firstname", "Lastname");
 ``` 
 
 ### Intercepting a type access
@@ -188,7 +188,8 @@ This will provide a method to intercept when a member is accessed and either ret
 This example demonstrates how to intercept calls to a `JObject` and return the corresponding property.
 
 ```csharp
-TemplateContext.GlobalMemberAccessStrategy.Register<JObject, object>((obj, name) => obj[name]);
+var options = new TemplateOptions();
+options.MemberAccessStrategy.Register<JObject, object>((obj, name) => obj[name]);
 ``` 
 
 ### Inheritance
@@ -208,7 +209,8 @@ However it can be necessary to register these properties with different cases, l
 The following example configures the templates to use Camel casing.
 
 ```csharp
-TemplateContext.GlobalMemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
+var options = new TemplateOptions();
+options.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
 ```
 
 ## Execution limits
@@ -216,14 +218,12 @@ TemplateContext.GlobalMemberAccessStrategy.MemberNameStrategy = MemberNameStrate
 ### Limiting templates recursion
 
 When invoking `{% include 'sub-template' %}` statements it is possible that some templates create an infinite recursion that could block the server.
-To prevent this the `TemplateContext` class defines a default `DefaultMaxRecursion = 100` that prevents templates from being have a depth greater than `100`.
-This can be defined globally with this static member, or on an individual `TemplateContext` instance on its `MaxRecursion` property.
+To prevent this the `TemplateOptions` class defines a default `MaxRecursion = 100` that prevents templates from being have a depth greater than `100`.
 
 ### Limiting templates execution
 
 Template can inadvertently create infinite loop that could block the server by running indefinitely. 
-To prevent this the `TemplateContext` class defines a default `DefaultMaxSteps`. By default this value is not set.
-This can be defined globally with this static member, or on an individual `TemplateContext` instance on its `MaxSteps` property.
+To prevent this the `TemplateOptions` class defines a default `MaxSteps`. By default this value is not set.
 
 <br>
 
@@ -233,22 +233,7 @@ Whenever an object is manipulated in a template it is converted to a specific `F
 
 In Liquid they can be Number, String, Boolean, Array, or Dictionary. Fluid will automatically convert the CLR types to the corresponding Liquid ones, and also provides specialized ones.
 
-To be able to customize this conversion you can either add **type mappings** or **value converters**.
-
-### Adding a type mapping
-
-The following example shows how to support `JObject` and `JValue` types to map their values to `FluidValue` instances.
-
-First is solves the issue that a `JObject` implements `IEnumerable` and would be converted to an `ArrayValue` instead of an `ObjectValue`. Then we use `FluidValue.Create` to automatically convert the CLR value of the `JValue` object.
-
-```csharp
-FluidValue.SetTypeMapping<JObject>(o => new ObjectValue(o));
-FluidValue.SetTypeMapping<JValue>(o => FluidValue.Create(o.Value));
-```
-
-> Note: Type mapping are defined globally for the application.
-
-<br>
+To be able to customize this conversion you can either add **value converters**.
 
 ### Adding a value converter
 
@@ -262,7 +247,9 @@ Value converters can return:
 The following example shows how to convert any instance implementing an interface to a custom string value:
 
 ```csharp
-FluidValue.ValueConverters.Add((value) => value is IUser user ? user.Name : null);
+var options = new TemplateOptions();
+
+options.ValueConverters.Add((value) => value is IUser user ? user.Name : null);
 ```
 
 > Note: Type mapping are defined globally for the application.
@@ -277,19 +264,22 @@ in a Liquid template.
 To remedy that we can configure Fluid to map names to `JObject` properties, and convert `JValue` objects to the ones used by Fluid.
 
 ```csharp
+
+var options = new TemplateOptions();
+
 // When a property of a JObject value is accessed, try to look into its properties
-TemplateContext.GlobalMemberAccessStrategy.Register<JObject, object>((source, name) => source[name]);
+options.MemberAccessStrategy.Register<JObject>((source, name) => source[name]);
 
 // Convert JToken to FluidValue
-FluidValue.TypeMappings.Add(typeof(JObject), o => new ObjectValue(o));
-FluidValue.TypeMappings.Add(typeof(JValue), o => FluidValue.Create(((JValue)o).Value));
+options.ValueConverters.Add(x => x is JObject o ? new ObjectValue(o) : null);
+options.ValueConverters.Add(x => x is JValue v ? v.Value : null));
 
 var expression = "{{ Model.Name }}";
 var model = JObject.Parse("{\"Name\": \"Bill\"}");
 
 if (FluidTemplate.TryParse(expression, out var template))
 {
-    var context = new TemplateContext();
+    var context = new TemplateContext(options);
     context.SetValue("Model", model);
 
     Console.WriteLine(template.Render(context));
@@ -354,8 +344,9 @@ However it is possible to define a specific culture to use when rendering a temp
 #### Source
 
 ```csharp
-var context = new TemplateContext();
-context.CultureInfo = new CultureInfo("en-US");
+var options = new TemplateOptions();
+options.CultureInfo = new CultureInfo("en-US");
+var context = new TemplateContext(options);
 var result = template.Render(context);
 ```
 
@@ -418,7 +409,7 @@ parser.RegisterIdentifierTag("hello", (identifier, writer, encoder, context) =>
 Hello you
 ```
 
-### Creating a custom block
+### Registering a custom block
 
 Blocks are created the same way as tags, and the lambda expression can then access the list of statements inside the block.
 
@@ -475,7 +466,7 @@ using FluidMvcViewEngine;
 
 public class Startup
 {
-  public void ConfigureServices(IServiceCollection services)
+    public void ConfigureServices(IServiceCollection services)
     {
         services.AddMvc().AddFluid();
     }
@@ -487,12 +478,15 @@ Because the Liquid language only accepts known members to be accessed, the View 
 
 #### View Model registration
 
+View models are automatically registered and available as the root object in liquid templates.
+Custom model regsitrations can be added when calling `AddFluid()`.
+
 ```csharp
 public class Startup
 {
-    static Startup()
+    public void ConfigureServices(IServiceCollection services)
     {
-        TemplateContext.GlobalMemberAccessStrategy.Register<Person>();
+        services.AddMvc().AddFluid(o => o.TemplateOptions.Register<Person>());
     }
 }
 ```
@@ -501,14 +495,14 @@ More way to register types and members can be found in the [Allow-listing object
 
 #### Registering custom tags
 
-When using the MVC View engine, custom tags can be added to the `FluidViewTemplate` class. Refer to [this section](https://github.com/sebastienros/fluid#creating-a-custom-tag) on how to create custom tags.
+When using the MVC View engine, custom tags can be added to the parser. Refer to [this section](https://github.com/sebastienros/fluid#registering-a-custom-tag) on how to create custom tags.
 
 ```csharp
 public class Startup
 {
-    static Startup()
+    public void ConfigureServices(IServiceCollection services)
     {
-        FluidViewTemplate.Factory.RegisterTag<MyTag>("mytag");
+        services.AddMvc().AddFluid(o => o.Parser.RegisterIdentifierTag("hello", HelloTag);
     }
 }
 ```
@@ -695,9 +689,9 @@ Run it locally to analyze the time it takes to execute specific templates.
 #### Results
 
 Fluid is faster and allocates less memory than all other well-known .NET Liquid parsers.
-For parsing, Fluid is at least 25% faster than Scriban, allocating at least 50% less memory.
-For rendering, Fluid is at least twice as fast as Scriban, allocating 25% less memory.
-Compared to DotLiquid, Fluid is 6 times faster, and allocates 5 times less memory.
+For parsing, Fluid is at least 33% faster than Scriban, allocating 3 times less memory.
+For rendering, Fluid is 3 times faster than Scriban, allocating 2 times less memory.
+Compared to DotLiquid, Fluid renders 5 times faster, and allocates 10 times less memory.
 
 ```
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
@@ -709,22 +703,22 @@ Intel Core i7-1065G7 CPU 1.30GHz, 1 CPU, 8 logical and 4 physical cores
 Job=ShortRun  IterationCount=3  LaunchCount=1
 WarmupCount=3
 
-|             Method |          Mean |      StdDev |  Ratio |     Gen 0 |    Gen 1 |   Gen 2 |   Allocated |
-|------------------- |--------------:|------------:|-------:|----------:|---------:|--------:|------------:|
-|        Fluid_Parse |      6.679 us |   0.0308 us |   1.00 |    0.6790 |        - |       - |     2.77 KB |
-|      Scriban_Parse |      9.616 us |   0.0604 us |   1.44 |    1.8005 |        - |       - |     7.41 KB |
-|    DotLiquid_Parse |     40.317 us |   2.5158 us |   6.04 |    2.6855 |        - |       - |    11.17 KB |
-|    LiquidNet_Parse |     73.474 us |   0.2151 us |  11.00 |   15.1367 |   0.1221 |       - |    62.08 KB |
-|                    |               |             |        |           |          |         |             |
-|     Fluid_ParseBig |     38.491 us |   1.6535 us |   1.00 |    2.8076 |   0.0610 |       - |    11.69 KB |
-|   Scriban_ParseBig |     49.321 us |   0.2074 us |   1.28 |    7.8125 |   1.0986 |       - |    32.05 KB |
-| DotLiquid_ParseBig |    200.725 us |   2.8106 us |   5.22 |   13.1836 |   0.2441 |       - |    54.39 KB |
-| LiquidNet_ParseBig | 24,370.888 us | 813.3676 us | 633.35 | 6812.5000 | 437.5000 |       - | 28557.53 KB |
-|                    |               |             |        |           |          |         |             |
-|       Fluid_Render |    626.010 us |  14.1571 us |   1.00 |   90.8203 |  58.5938 | 30.2734 |   390.80 KB |
-|     Scriban_Render |  1,228.026 us |  15.3122 us |   1.96 |   99.6094 |  66.4063 | 66.4063 |   487.43 KB |
-|   DotLiquid_Render |  5,403.001 us |  20.3199 us |   8.63 |  859.3750 | 171.8750 | 23.4375 |  3879.14 KB |
-|   LiquidNet_Render |  3,339.111 us |  21.0156 us |   5.34 | 1000.0000 | 390.6250 |       - |  5324.50 KB |
+|             Method |          Mean |        Error |      StdDev |  Ratio | RatioSD |     Gen 0 |    Gen 1 |   Gen 2 |   Allocated |
+|------------------- |--------------:|-------------:|------------:|-------:|--------:|----------:|---------:|--------:|------------:|
+|        Fluid_Parse |      7.222 us |     8.374 us |   0.4590 us |   1.00 |    0.00 |    0.6256 |        - |       - |     2.57 KB |
+|      Scriban_Parse |      9.684 us |     1.664 us |   0.0912 us |   1.34 |    0.07 |    1.8005 |        - |       - |     7.41 KB |
+|    DotLiquid_Parse |     40.474 us |    34.656 us |   1.8996 us |   5.61 |    0.30 |    2.6855 |        - |       - |    11.17 KB |
+|    LiquidNet_Parse |     80.655 us |    62.901 us |   3.4478 us |  11.18 |    0.35 |   15.1367 |   0.1221 |       - |    62.08 KB |
+|                    |               |              |             |        |         |           |          |         |             |
+|     Fluid_ParseBig |     41.249 us |   129.980 us |   7.1246 us |   1.00 |    0.00 |    2.8076 |        - |       - |     11.5 KB |
+|   Scriban_ParseBig |     54.622 us |    10.882 us |   0.5965 us |   1.35 |    0.21 |    7.8125 |   1.0986 |       - |    32.05 KB |
+| DotLiquid_ParseBig |    214.958 us |   162.641 us |   8.9149 us |   5.29 |    0.75 |   13.1836 |   0.2441 |       - |    54.39 KB |
+| LiquidNet_ParseBig | 25,541.177 us | 6,499.383 us | 356.2531 us | 631.16 |  104.10 | 6781.2500 | 531.2500 |       - | 28557.49 KB |
+|                    |               |              |             |        |         |           |          |         |             |
+|       Fluid_Render |    465.008 us |   498.010 us |  27.2976 us |   1.00 |    0.00 |   59.5703 |  15.1367 |       - |   245.27 KB |
+|     Scriban_Render |  1,271.095 us |   723.937 us |  39.6815 us |   2.74 |    0.22 |   99.6094 |  66.4063 | 66.4063 |   487.43 KB |
+|   DotLiquid_Render |  5,410.159 us | 2,215.045 us | 121.4141 us |  11.66 |    0.61 |  859.3750 | 117.1875 | 23.4375 |  3879.21 KB |
+|   LiquidNet_Render |  3,372.127 us |   453.767 us |  24.8725 us |   7.27 |    0.36 |  992.1875 | 390.6250 |       - |  5324.52 KB |
 ```
 
 Tested with 

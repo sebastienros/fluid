@@ -1,6 +1,7 @@
 ﻿using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
+using System.Linq;
 
 namespace Fluid.Tests
 {
@@ -32,7 +33,7 @@ namespace Fluid.Tests
             var result = ColorFilters.ToRgb(input, FilterArguments.Empty, context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -65,7 +66,7 @@ namespace Fluid.Tests
             var result = ColorFilters.ToHex(input, FilterArguments.Empty, context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -92,7 +93,7 @@ namespace Fluid.Tests
             var result = ColorFilters.ToHsl(input, FilterArguments.Empty, context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -126,10 +127,10 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.ColorExtract(input, new FilterArguments(arguments), context);
+            var result = ColorFilters.ColorExtract(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -161,10 +162,10 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-              var result = ColorFilters.ColorModify(input, new FilterArguments(arguments), context);
+              var result = ColorFilters.ColorModify(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -181,7 +182,7 @@ namespace Fluid.Tests
             var result = ColorFilters.CalculateBrightness(input, FilterArguments.Empty, context);
 
             // Assert
-            Assert.Equal(expected, result.ToNumberValue());
+            Assert.Equal(expected, result.Result.ToNumberValue());
         }
 
         [Theory]
@@ -195,10 +196,10 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.ColorSaturate(input, new FilterArguments(arguments), context);
+            var result = ColorFilters.ColorSaturate(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -212,10 +213,10 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.ColorDesaturate(input, new FilterArguments(arguments), context);
+            var result = ColorFilters.ColorDesaturate(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
         
         [Theory]
@@ -229,10 +230,10 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.ColorLighten(input, new FilterArguments(arguments), context);
+            var result = ColorFilters.ColorLighten(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -246,10 +247,10 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.ColorDarken(input, new FilterArguments(arguments), context);
+            var result = ColorFilters.ColorDarken(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
 
             // Assert
-            Assert.Equal(expected, result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -263,10 +264,10 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.GetColorDifference(input, new FilterArguments(arguments), context);
+            var result = ColorFilters.GetColorDifference(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
 
             // Assert
-            Assert.Equal(expected, result.ToNumberValue());
+            Assert.Equal(expected, result.Result.ToNumberValue());
         }
 
         [Theory]
@@ -280,10 +281,10 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.GetColorBrightnessDifference(input, new FilterArguments(arguments), context);
+            var result = ColorFilters.GetColorBrightnessDifference(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
 
             // Assert
-            Assert.Equal(expected, result.ToNumberValue());
+            Assert.Equal(expected, result.Result.ToNumberValue());
         }
 
         [Theory]
@@ -297,10 +298,10 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.GetColorContrast(input, new FilterArguments(arguments), context);
+            var result = ColorFilters.GetColorContrast(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
 
             // Assert
-            Assert.Equal(expected, result.ToNumberValue());
+            Assert.Equal(expected, result.Result.ToNumberValue());
         }
     }
 }

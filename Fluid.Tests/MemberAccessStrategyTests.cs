@@ -1,8 +1,7 @@
-﻿using Fluid.Values;
+﻿using Fluid.Accessors;
+using Fluid.Values;
 using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using Fluid.Accessors;
 using Xunit;
 
 namespace Fluid.Tests
@@ -114,13 +113,14 @@ namespace Fluid.Tests
                 new JProperty("a.b", "2")
             );
 
-            var context = new TemplateContext();
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
 
-            context.MemberAccessStrategy.Register<JObject, object>((o, name) => o[name]);
-            FluidValue.SetTypeMapping<JObject>(o => new ObjectValue(o));
-            FluidValue.SetTypeMapping<JValue>(o => FluidValue.Create(((JValue)o).Value));
+            options.MemberAccessStrategy.Register<JObject, object>((o, name) => o[name]);
+            options.ValueConverters.Add(x => x is JObject o ? new ObjectValue(o) : null);
+            options.ValueConverters.Add(x => x is JValue o ? o.Value : null);
 
-            var objectValue = FluidValue.Create(obj);
+            var objectValue = FluidValue.Create(obj, options);
 
             Assert.Equal("1", (await objectValue.GetValueAsync("a", context)).ToObjectValue());
             Assert.Equal("2", (await objectValue.GetValueAsync("a.b", context)).ToObjectValue());
