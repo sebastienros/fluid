@@ -473,5 +473,23 @@ def", "at (")]
 
             Assert.Equal(expected, rendered);
         }
+
+        [Fact]
+        public void ShouldSkipNewLines()
+        {
+            var source = @"{%if true
+                                    and 
+                                        true%}true{%endif%}";
+
+            var result = _parser.TryParse(source, out var template, out var errors);
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Null(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal("true", rendered);
+        }
     }
 }

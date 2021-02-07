@@ -438,8 +438,6 @@ parser.RegisterExpressionBlock("repeat", (value, statements, writer, encoder, co
 Hi! Hi! Hi!
 ```
 
-<br>
-
 ### Custom parsers
 
 If __identifier__, __empty__ and __expression__ parsers are not sufficient, the methods `RegisterParserBlock` and `RegisterParserTag` accept
@@ -447,6 +445,61 @@ any custom parser construct. These can be the standard ones defined in the `Flui
 
 For instance, `RegisterParseTag(Primary.AndSkip(Comma).And(Primary), ...)` will expect two `Primary` elements separated by a comma. The delegate will then 
 be invoked with a `ValueTuple<Expression, Expression>` representing the two `Primary` expressions.
+
+### Registering a custom operator
+
+Operator are used to compare values, like `>` or `contains`. Custom operators can be defined if special comparisons need to be provided.
+
+#### Source
+
+The following example creates a custom `startsWith` operator that will evaluate to `true` if the left expression starts with the right expression when converted to strings.
+
+__StartsWithExpression.cs__
+
+```csharp
+using Fluid.Ast;
+using Fluid.Values;
+using System.Threading.Tasks;
+
+namespace Fluid.Tests.Extensibility
+{
+    public class StartsWithBinaryExpression : BinaryExpression
+    {
+        public StartsWithBinaryExpression(Expression left, Expression right) : base(left, right)
+        {
+        }
+
+        public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
+        {
+            var leftValue = await Left.EvaluateAsync(context);
+            var rightValue = await Right.EvaluateAsync(context);
+
+            return leftValue.ToStringValue().StartsWith(rightValue.ToStringValue())
+                    ? BooleanValue.True
+                    : BooleanValue.False;
+        }
+    }
+}
+```
+
+__Parser configuration__
+
+```csharp
+parser.RegisteredOperators["startsWith"] = (a, b) => new StartsWithBinaryExpression(a, b);
+```
+
+__Usage__
+
+```Liquid
+{% if 'abc' startsWith 'ab' %}Hello{% endif %}
+```
+
+#### Result
+```html
+Hello
+```
+
+<br>
 
 ## ASP.NET MVC View Engine
 

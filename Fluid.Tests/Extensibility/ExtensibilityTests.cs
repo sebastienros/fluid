@@ -94,5 +94,17 @@ namespace Fluid.Tests.Extensibility
             Assert.Null(template);
             Assert.Contains("Unexpected tag 'endhello'", error);
         }
+
+        [Fact]
+        public void ShouldAddOperator()
+        {
+            var parser = new CustomParser();
+
+            parser.RegisteredOperators["startsWith"] = (a, b) => new StartsWithBinaryExpression(a, b);
+
+            parser.TryParse("{% if 'abc' startsWith 'ab' %}true{% endif %}", out var template, out var error);
+
+            Assert.Equal("true", template.Render());
+        }
     }
 }

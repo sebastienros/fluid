@@ -19,6 +19,7 @@ namespace Fluid
     {
         public Parser<List<Statement>> Grammar;
         public Dictionary<string, Parser<Statement>> RegisteredTags { get; } = new();
+        public Dictionary<string, Func<Expression, Expression, Expression>> RegisteredOperators { get; } = new();
 
         protected static readonly Parser<char> LBrace = Terms.Char('{');
         protected static readonly Parser<char> RBrace = Terms.Char('}');
@@ -96,10 +97,21 @@ namespace Fluid
                 .Or(Member.Then<Expression>(x => x))
                 ;
 
+            RegisteredOperators["or"] = (a, b) => new OrBinaryExpression(a, b);
+            RegisteredOperators["and"] = (a, b) => new AndBinaryExpression(a, b);
+            RegisteredOperators["contains"] = (a, b) => new ContainsBinaryExpression(a, b);
+            RegisteredOperators["=="] = (a, b) => new EqualBinaryExpression(a, b);
+            RegisteredOperators["!="] = (a, b) => new NotEqualBinaryExpression(a, b);
+            RegisteredOperators["<>"] = (a, b) => new NotEqualBinaryExpression(a, b);
+            RegisteredOperators[">"] = (a, b) => new GreaterThanBinaryExpression(a, b, true);
+            RegisteredOperators["<"] = (a, b) => new LowerThanExpression(a, b, true);
+            RegisteredOperators[">="] = (a, b) => new GreaterThanBinaryExpression(a, b, false);
+            RegisteredOperators["<="] = (a, b) => new LowerThanExpression(a, b, false);
+
             var CaseValueList = Separated(BinaryOr, Primary);
 
-            LogicalExpression = Primary.And(ZeroOrMany(OneOf(BinaryOr, BinaryAnd, Contains, DoubleEquals, NotEquals, Different, GreaterOr, LowerOr, Greater, Lower).And(Primary)))
-                .Then(static x =>
+            LogicalExpression = Primary.And(ZeroOrMany(Terms.NonWhiteSpace().Then<string>(x => x.ToString()).When(x => RegisteredOperators.ContainsKey(x)).And(Primary)))
+                .Then(x =>
                 {
                     if (x.Item2.Count == 0)
                     {
@@ -113,20 +125,7 @@ namespace Fluid
                         var current = x.Item2[i];
                         var previous = i == 0 ? x.Item1 : x.Item2[i - 1].Item2;
 
-                        result = current.Item1 switch
-                        {
-                            "or" => new OrBinaryExpression(previous, current.Item2),
-                            "and" => new AndBinaryExpression(previous, current.Item2),
-                            "contains" => new ContainsBinaryExpression(previous, current.Item2),
-                            "==" => new EqualBinaryExpression(previous, current.Item2),
-                            "!=" => new NotEqualBinaryExpression(previous, current.Item2),
-                            "<>" => new NotEqualBinaryExpression(previous, current.Item2),
-                            ">" => new GreaterThanBinaryExpression(previous, current.Item2, true),
-                            "<" => new LowerThanExpression(previous, current.Item2, true),
-                            ">=" => new GreaterThanBinaryExpression(previous, current.Item2, false),
-                            "<=" => new LowerThanExpression(previous, current.Item2, false),
-                            _ => null
-                        };
+                        result = RegisteredOperators[current.Item1](previous, current.Item2);
                     }
 
                     return result;
