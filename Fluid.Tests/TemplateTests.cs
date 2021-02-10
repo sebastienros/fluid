@@ -548,7 +548,7 @@ turtle
             var context = new TemplateContext(options);
             var resultUS = await template.RenderAsync(context);
 
-            options.CultureInfo = new CultureInfo("fr-FR");
+            context.CultureInfo = new CultureInfo("fr-FR");
             var resultFR = await template.RenderAsync(context);
 
             Assert.Equal(expectedFR, resultFR);

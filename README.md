@@ -268,11 +268,11 @@ To remedy that we can configure Fluid to map names to `JObject` properties, and 
 var options = new TemplateOptions();
 
 // When a property of a JObject value is accessed, try to look into its properties
-options.MemberAccessStrategy.Register<JObject>((source, name) => source[name]);
+options.MemberAccessStrategy.Register<JObject, object>((source, name) => source[name]);
 
 // Convert JToken to FluidValue
 options.ValueConverters.Add(x => x is JObject o ? new ObjectValue(o) : null);
-options.ValueConverters.Add(x => x is JValue v ? v.Value : null));
+options.ValueConverters.Add(x => x is JValue v ? v.Value : null);
 
 var expression = "{{ Model.Name }}";
 var model = JObject.Parse("{\"Name\": \"Bill\"}");
