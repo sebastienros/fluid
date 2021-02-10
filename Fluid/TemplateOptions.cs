@@ -46,6 +46,11 @@ namespace Fluid
         public FilterCollection Filters { get; } = new FilterCollection();
 
         /// <summary>
+        /// Gets a scope that is available in all the templates.
+        /// </summary>
+        public Scope Scope { get; } = new Scope();
+
+        /// <summary>
         /// Gets the list of value converters.
         /// </summary>
         public List<Func<object, object>> ValueConverters { get; } = new List<Func<object, object>>();
