@@ -1,10 +1,10 @@
 ﻿using Fluid.Values;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace Fluid
 {
-
     public class TemplateContext
     {
         protected int _recursion = 0;
@@ -58,6 +58,7 @@ namespace Fluid
         /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
         /// </summary>
         public CultureInfo CultureInfo { get; set; }
+
         internal void IncrementSteps()
         {
             if (Options.MaxSteps != 0 && _steps++ > Options.MaxSteps)
