@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading.Tasks;
 
 namespace Fluid
 {
@@ -33,7 +34,7 @@ namespace Fluid
         {
             Options = options;
 
-            LocalScope = new Scope();
+            LocalScope = new Scope(options.Scope);
 
             LocalScope.SetValue("empty", NilValue.Empty);
             LocalScope.SetValue("blank", StringValue.Empty);
