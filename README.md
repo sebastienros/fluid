@@ -550,12 +550,41 @@ More way to register types and members can be found in the [Allow-listing object
 
 When using the MVC View engine, custom tags can be added to the parser. Refer to [this section](https://github.com/sebastienros/fluid#registering-a-custom-tag) on how to create custom tags.
 
+It is recommended to create a custom class inheriting from `FluidViewParser`, and to customize the tags in the constructor of this new class.
+This class can then be registered as the default parser for the MVC view engine.
+
+```csharp
+using Fluid.Ast;
+using Fluid.MvcViewEngine;
+
+namespace Fluid.MvcSample
+{
+    public class CustomFluidViewParser : FluidViewParser
+    {
+        public CustomFluidViewParser()
+        {
+            RegisterEmptyBlock("mytag", static async (s, w, e, c) =>
+            {
+                await w.WriteAsync("Hello from MyTag");
+
+                return Completion.Normal;
+            });
+        }
+    }
+}
+```
+
 ```csharp
 public class Startup
 {
     public void ConfigureServices(IServiceCollection services)
     {
-        services.AddMvc().AddFluid(o => o.Parser.RegisterIdentifierTag("hello", HelloTag);
+        services.Configure<FluidViewEngineOptions>(options =>
+        {
+            options.Parser = new CustomFluidViewParser();
+        });
+
+        services.AddMvc().AddFluid();
     }
 }
 ```

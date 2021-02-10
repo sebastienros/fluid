@@ -1,7 +1,6 @@
 ﻿using Fluid.Ast;
 using Fluid.MvcViewEngine.Internal;
 using Fluid.Parser;
-using Fluid.Values;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -23,7 +22,6 @@ namespace Fluid.MvcViewEngine
     {
         private const string ViewStartFilename = "_ViewStart.liquid";
         public const string ViewPath = "ViewPath";
-        private static readonly FluidViewParser _parser = new FluidViewParser();
 
         static FluidRendering()
         {
@@ -40,7 +38,7 @@ namespace Fluid.MvcViewEngine
 
             _options.TemplateOptions.MemberAccessStrategy.Register<ViewDataDictionary>();
             _options.TemplateOptions.MemberAccessStrategy.Register<ModelStateDictionary>();
-            _options.TemplateOptions.FileProvider ??= _hostingEnvironment.ContentRootFileProvider;
+            _options.TemplateOptions.FileProvider = new FileProviderMapper(_options.IncludesFileProvider ?? _hostingEnvironment.ContentRootFileProvider, "Views");
         }
 
         private readonly IMemoryCache _memoryCache;
@@ -54,12 +52,10 @@ namespace Fluid.MvcViewEngine
             context.SetValue("ModelState", modelState);
 
             // Provide some services to all statements
-            context.AmbientValues["FileProvider"] = _options.TemplateOptions.FileProvider;
             context.AmbientValues[ViewPath] = path;
             context.AmbientValues["Sections"] = new Dictionary<string, IReadOnlyList<Statement>>();
-            context.Options.FileProvider = new FileProviderMapper(_options.TemplateOptions.FileProvider, "Views");
 
-            var template = ParseLiquidFile(path, context.Options.FileProvider, true);
+            var template = ParseLiquidFile(path, _options.ViewsFileProvider ?? _hostingEnvironment.ContentRootFileProvider, true);
 
             var body = await template.RenderAsync(context, _options.TextEncoder);
 
@@ -68,7 +64,7 @@ namespace Fluid.MvcViewEngine
             {
                 context.AmbientValues[ViewPath] = layoutPath;
                 context.AmbientValues["Body"] = body;
-                var layoutTemplate = ParseLiquidFile((string)layoutPath, _options.TemplateOptions.FileProvider, false);
+                var layoutTemplate = ParseLiquidFile((string)layoutPath, _options.ViewsFileProvider ?? _hostingEnvironment.ContentRootFileProvider, false);
 
                 return await layoutTemplate.RenderAsync(context, _options.TextEncoder);
             }
@@ -139,7 +135,7 @@ namespace Fluid.MvcViewEngine
                     using (var sr = new StreamReader(stream))
                     {
                         var fileContent = sr.ReadToEnd();
-                        if (_parser.TryParse(fileContent, out var template, out var errors))
+                        if (_options.Parser.TryParse(fileContent, out var template, out var errors))
                         {
                             statements.AddRange(template.Statements);
 
