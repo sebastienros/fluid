@@ -37,7 +37,7 @@ namespace Fluid.Ast
 
             context.SetValue(prefixedIdentifier, value);
 
-            value.WriteTo(writer, encoder, context.Options.CultureInfo);
+            value.WriteTo(writer, encoder, context.CultureInfo);
 
             return Normal;
         }

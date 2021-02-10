@@ -43,7 +43,7 @@ namespace Fluid.Ast
             var value = await _values[index].EvaluateAsync(context);
             context.SetValue(groupValue, NumberValue.Create(index + 1));
 
-            value.WriteTo(writer, encoder, context.Options.CultureInfo);
+            value.WriteTo(writer, encoder, context.CultureInfo);
 
             return Completion.Normal;
         }
