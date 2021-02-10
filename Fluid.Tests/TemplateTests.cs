@@ -784,5 +784,25 @@ shape: '{{ shape }}'");
         {
             return CheckAsync(source, expected);
         }
+
+
+
+        [Fact]
+        public void ScopeShouldFallbackToTemplateOptions()
+        {
+            _parser.TryParse("{{ p.NaMe }}", out var template, out var error);
+
+            var options = new TemplateOptions();
+            options.Scope.SetValue("o1", new StringValue("o1"));
+            options.Scope.SetValue("o2", new StringValue("o2"));
+
+            var context = new TemplateContext(options);
+            context.SetValue("o2", "new o2");
+            context.SetValue("o3", "o3");
+
+            Assert.Same("o1", context.GetValue("o1"));
+            Assert.Same("new o2", context.GetValue("o2"));
+            Assert.Same("o3", context.GetValue("o3"));
+        }
     }
 }
