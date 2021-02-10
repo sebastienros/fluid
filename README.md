@@ -1,13 +1,15 @@
 <p align="center"><img width=25% src="https://github.com/sebastienros/fluid/raw/main/Assets/logo-vertical.png"></p>
 
 [![NuGet](https://img.shields.io/nuget/v/Fluid.Core.svg)](https://nuget.org/packages/Fluid.Core)
+[![NuGet](https://img.shields.io/nuget/vpre/Fluid.Core.svg)](https://nuget.org/packages/Fluid.Core)
 [![MIT](https://img.shields.io/github/license/sebastienros/fluid)](https://github.com/sebastienros/fluid/blob/main/LICENSE)
 
 ## Basic Overview
 
 Fluid is an open-source .NET template engine based on the [Liquid template language](https://shopify.github.io/liquid/). It's a **secure** template language that is also **very accessible** for non-programmer audiences.
 
-> The following content is based on the 2.0.0-beta version, which is the recommended version, even though some of its API might vary significantly.
+> The following content is based on the 2.0.0-beta version, which is the recommended version even though some of its API might vary significantly.
+To see the corresponding content for v1.0 use [this version](https://github.com/sebastienros/fluid/blob/release/1.x/README.md)
 
 <br>
 
