@@ -9,12 +9,15 @@ namespace Fluid.Ast
     {
         public UnlessStatement(
             Expression condition,
-            List<Statement> statements) : base(statements)
+            List<Statement> statements,
+            ElseStatement elseStatement = null) : base(statements)
         {
             Condition = condition;
+            Else = elseStatement;
         }
 
         public Expression Condition { get; }
+        public ElseStatement Else { get; }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -36,6 +39,13 @@ namespace Fluid.Ast
                 }
 
                 return Completion.Normal;
+            }
+            else
+            {
+                if (Else != null)
+                {
+                    await Else.WriteToAsync(writer, encoder, context);
+                }
             }
 
             return Completion.Normal;

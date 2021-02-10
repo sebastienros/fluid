@@ -34,7 +34,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task IfCanProcessWhenFalse()
+        public async Task UnlessCanProcessWhenFalse()
         {
             var e = new UnlessStatement(
                 FALSE,
@@ -45,6 +45,43 @@ namespace Fluid.Tests
             await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("x", sw.ToString());
+        }
+
+        [Fact]
+        public async Task UnlessShouldProcessElseWhenFalse()
+        {
+            var e = new UnlessStatement(
+                FALSE,
+                new List<Statement> {
+                    new TextSpanStatement("x")
+                },
+                new ElseStatement(new List<Statement> {
+                        new TextSpanStatement("y")
+                    }));
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+
+            Assert.Equal("x", sw.ToString());
+        }
+
+        [Fact]
+        public async Task UnlessShouldProcessElseWhenTrue()
+        {
+            var e = new UnlessStatement(
+                TRUE,
+                new List<Statement> {
+                    new TextSpanStatement("x")
+                },
+                new ElseStatement(new List<Statement> {
+                        new TextSpanStatement("y")
+                    })
+                );
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+
+            Assert.Equal("y", sw.ToString());
         }
     }
 }

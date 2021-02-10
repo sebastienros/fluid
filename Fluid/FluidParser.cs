@@ -245,8 +245,11 @@ namespace Fluid
             var UnlessTag = LogicalExpression
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
+                        .And(ZeroOrOne(
+                            CreateTag("else").SkipAnd(AnyTagsList))
+                            .Then(x => x != null ? new ElseStatement(x) : null))
                         .AndSkip(CreateTag("endunless"))
-                        .Then<Statement>(x => new UnlessStatement(x.Item1, x.Item2))
+                        .Then<Statement>(x => new UnlessStatement(x.Item1, x.Item2, x.Item3))
                         .ElseError("Invalid 'unless' tag");
             var CaseTag = Primary
                        .AndSkip(TagEnd)
