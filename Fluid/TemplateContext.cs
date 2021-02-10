@@ -38,6 +38,7 @@ namespace Fluid
 
             LocalScope.SetValue("empty", NilValue.Empty);
             LocalScope.SetValue("blank", StringValue.Empty);
+            CultureInfo = options.CultureInfo;
         }
 
         /// <summary>
@@ -53,6 +54,11 @@ namespace Fluid
         /// Gets the <see cref="TemplateOptions"/>.
         /// </summary>
         public TemplateOptions Options { get; protected set; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
+        /// </summary>
+        public CultureInfo CultureInfo { get; set; }
 
         internal void IncrementSteps()
         {
