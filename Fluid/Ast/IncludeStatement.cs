@@ -36,6 +36,7 @@ namespace Fluid.Ast
             }
 
             var fileProvider = context.Options.FileProvider;
+            
             var fileInfo = fileProvider.GetFileInfo(relativePath);
 
             if (fileInfo == null || !fileInfo.Exists)

@@ -1,5 +1,4 @@
-﻿using Fluid.Ast;
-using Fluid.MvcSample.Models;
+﻿using Fluid.MvcSample.Models;
 using Fluid.MvcViewEngine;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -14,16 +13,10 @@ namespace Fluid.MvcSample
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.Configure<FluidViewEngineOptions>(x =>
+            services.Configure<FluidViewEngineOptions>(options =>
             {
-                x.Parser.RegisterEmptyBlock("mytag", static async (s, w, e, c) =>
-                {
-                    await w.WriteAsync("Hello from MyTag");
-
-                    return Completion.Normal;
-                });
-
-                x.TemplateOptions.MemberAccessStrategy.Register<Person>();
+                options.Parser = new CustomFluidViewParser();
+                options.TemplateOptions.MemberAccessStrategy.Register<Person>();
             });
 
             services.AddMvc().AddFluid();

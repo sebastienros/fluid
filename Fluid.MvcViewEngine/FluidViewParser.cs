@@ -15,7 +15,7 @@ namespace Fluid.MvcViewEngine
             {
                 if (context.AmbientValues.TryGetValue("Sections", out var sections))
                 {
-                    var dictionary = sections as Dictionary<string, List<Statement>>;
+                    var dictionary = sections as Dictionary<string, IReadOnlyList<Statement>>;
                     if (dictionary.TryGetValue(identifier, out var section))
                     {
                         foreach (var statement in section)
@@ -28,7 +28,7 @@ namespace Fluid.MvcViewEngine
                 return Completion.Normal;
             });
 
-            RegisterIdentifierTag("renderbody", static async (tag, writer, encoder, context) =>
+            RegisterEmptyTag("renderbody", static async (writer, encoder, context) =>
             {
                 if (context.AmbientValues.TryGetValue("Body", out var body))
                 {
@@ -54,7 +54,7 @@ namespace Fluid.MvcViewEngine
             });
 
 
-            RegisterExpressionBlock("layout", static async (pathExpression, statements, writer, encoder, context) =>
+            RegisterExpressionTag("layout", static async (pathExpression, writer, encoder, context) =>
             {
                 var relativeLayoutPath = (await pathExpression.EvaluateAsync(context)).ToStringValue();
                 if (!relativeLayoutPath.EndsWith(FluidViewEngine.ViewExtension, StringComparison.OrdinalIgnoreCase))

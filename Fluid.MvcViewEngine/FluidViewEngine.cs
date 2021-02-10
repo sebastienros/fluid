@@ -40,7 +40,7 @@ namespace Fluid.MvcViewEngine
             var controllerName = GetNormalizedRouteValue(actionContext, ControllerKey);
             var areaName = GetNormalizedRouteValue(actionContext, AreaKey);
 
-            var fileProvider = _options.TemplateOptions.FileProvider ?? _hostingEnvironment.ContentRootFileProvider;
+            var fileProvider = _options.ViewsFileProvider ?? _hostingEnvironment.ContentRootFileProvider;
 
             var checkedLocations = new List<string>();
             foreach (var location in _options.ViewLocationFormats)
