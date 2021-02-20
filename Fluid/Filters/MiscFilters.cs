@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
+using System.IO;
 using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Text.Json;
 using Fluid.Values;
@@ -70,7 +71,7 @@ namespace Fluid.Filters
         public static ValueTask<FluidValue> Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var compacted = new List<FluidValue>();
-            foreach(var value in input.Enumerate())
+            foreach (var value in input.Enumerate())
             {
                 if (!value.IsNil())
                 {
@@ -211,53 +212,53 @@ namespace Fluid.Filters
                             case '_': useSpaceForPaddingFlag = true; continue;
                             case ':': useColonsForZeeDirectiveFlag = true; continue;
                             case 'a':
-                            {
-                                var abbreviatedDayName = context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int) value.DayOfWeek];
-                                result.Append(upperCaseFlag ? abbreviatedDayName.ToUpper() : abbreviatedDayName);
-                                break;
-                            }
+                                {
+                                    var abbreviatedDayName = context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int)value.DayOfWeek];
+                                    result.Append(upperCaseFlag ? abbreviatedDayName.ToUpper() : abbreviatedDayName);
+                                    break;
+                                }
                             case 'A':
-                            {
-                                var dayName = context.CultureInfo.DateTimeFormat.DayNames[(int) value.DayOfWeek];
-                                result.Append(upperCaseFlag ? dayName.ToUpper() : dayName);
-                                break;
-                            }
+                                {
+                                    var dayName = context.CultureInfo.DateTimeFormat.DayNames[(int)value.DayOfWeek];
+                                    result.Append(upperCaseFlag ? dayName.ToUpper() : dayName);
+                                    break;
+                                }
                             case 'b':
-                            {
-                                var abbreviatedMonthName = context.CultureInfo.DateTimeFormat.AbbreviatedMonthNames[value.Month - 1];
-                                result.Append(upperCaseFlag ? abbreviatedMonthName.ToUpper() : abbreviatedMonthName);
-                                break;
-                            }
+                                {
+                                    var abbreviatedMonthName = context.CultureInfo.DateTimeFormat.AbbreviatedMonthNames[value.Month - 1];
+                                    result.Append(upperCaseFlag ? abbreviatedMonthName.ToUpper() : abbreviatedMonthName);
+                                    break;
+                                }
                             case 'B':
-                            {
-                                var monthName = context.CultureInfo.DateTimeFormat.MonthNames[value.Month - 1];
-                                result.Append(upperCaseFlag ? monthName.ToUpper() : monthName);
-                                break;
-                            }
+                                {
+                                    var monthName = context.CultureInfo.DateTimeFormat.MonthNames[value.Month - 1];
+                                    result.Append(upperCaseFlag ? monthName.ToUpper() : monthName);
+                                    break;
+                                }
                             case 'c':
-                            {
-                                var f = value.ToString("F", context.CultureInfo);
-                                result.Append(upperCaseFlag ? f.ToUpper() : f);
-                                break;
-                            }
+                                {
+                                    var f = value.ToString("F", context.CultureInfo);
+                                    result.Append(upperCaseFlag ? f.ToUpper() : f);
+                                    break;
+                                }
                             case 'C': result.Append(value.Year / 100); break;
                             case 'd':
-                            {
-                                var day = value.Day.ToString(context.CultureInfo);
-                                if (useSpaceForPaddingFlag)
                                 {
-                                    result.Append(day.PadLeft(2, ' '));
+                                    var day = value.Day.ToString(context.CultureInfo);
+                                    if (useSpaceForPaddingFlag)
+                                    {
+                                        result.Append(day.PadLeft(2, ' '));
+                                    }
+                                    else if (removeLeadingZerosFlag)
+                                    {
+                                        result.Append(day);
+                                    }
+                                    else
+                                    {
+                                        result.Append(day.PadLeft(2, '0'));
+                                    }
+                                    break;
                                 }
-                                else if (removeLeadingZerosFlag)
-                                {
-                                    result.Append(day);
-                                }
-                                else
-                                {
-                                    result.Append(day.PadLeft(2, '0'));
-                                }
-                                break;
-                            }
                             case 'D': result.Append(value.ToString("d", context.CultureInfo)); break;
                             case 'e': result.Append(value.Day.ToString(context.CultureInfo).PadLeft(2, ' ')); break;
                             case 'F': result.Append(value.ToString("yyyy-MM-dd", context.CultureInfo)); break;
@@ -268,22 +269,22 @@ namespace Fluid.Filters
                             case 'l': result.Append(value.ToString("%h", context.CultureInfo).PadLeft(2, ' ')); break;
                             case 'L': result.Append(value.Millisecond.ToString(context.CultureInfo).PadLeft(3, '0')); break;
                             case 'm':
-                            {
-                                var month = value.Month.ToString(context.CultureInfo);
-                                if (useSpaceForPaddingFlag)
                                 {
-                                    result.Append(month.PadLeft(2, ' '));
+                                    var month = value.Month.ToString(context.CultureInfo);
+                                    if (useSpaceForPaddingFlag)
+                                    {
+                                        result.Append(month.PadLeft(2, ' '));
+                                    }
+                                    else if (removeLeadingZerosFlag)
+                                    {
+                                        result.Append(month);
+                                    }
+                                    else
+                                    {
+                                        result.Append(month.PadLeft(2, '0'));
+                                    }
+                                    break;
                                 }
-                                else if (removeLeadingZerosFlag)
-                                {
-                                    result.Append(month);
-                                }
-                                else
-                                {
-                                    result.Append(month.PadLeft(2, '0'));
-                                }
-                                break;
-                            }
                             case 'M': result.Append(value.Minute.ToString(context.CultureInfo).PadLeft(2, '0')); break;
                             case 'p': result.Append(value.ToString("tt", context.CultureInfo).ToUpper()); break;
                             case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLower()); break;
@@ -295,21 +296,21 @@ namespace Fluid.Filters
                             case 'u': result.Append((int)value.DayOfWeek); break;
                             case 'U': result.Append(context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstDay, DayOfWeek.Sunday).ToString().PadLeft(2, '0')); break;
                             case 'v':
-                            {
-                                var d = value.ToString("D", context.CultureInfo);
-                                result.Append(upperCaseFlag ? d.ToUpper() : d);
-                                break;
-                            }
+                                {
+                                    var d = value.ToString("D", context.CultureInfo);
+                                    result.Append(upperCaseFlag ? d.ToUpper() : d);
+                                    break;
+                                }
                             case 'V': result.Append((value.DayOfYear / 7 + 1).ToString(context.CultureInfo).PadLeft(2, '0')); break;
                             case 'W': result.Append(context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstDay, DayOfWeek.Monday).ToString().PadLeft(2, '0')); break;
                             case 'y': result.Append(value.ToString("yy", context.CultureInfo)); break;
                             case 'Y': result.Append(value.Year); break;
                             case 'z':
-                            {
-                                var zzz = value.ToString("zzz", context.CultureInfo);
-                                result.Append(useColonsForZeeDirectiveFlag ? zzz : zzz.Replace(":", ""));
-                                break;
-                            }
+                                {
+                                    var zzz = value.ToString("zzz", context.CultureInfo);
+                                    result.Append(useColonsForZeeDirectiveFlag ? zzz : zzz.Replace(":", ""));
+                                    break;
+                                }
                             case 'Z':
                                 result.Append(value.ToString("zzz", context.CultureInfo));
                                 break;
@@ -398,24 +399,112 @@ namespace Fluid.Filters
 
             return true;
         }
-
-        public static ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
+        private static async ValueTask WriteJson(Utf8JsonWriter writer, FluidValue input, TemplateContext ctx)
         {
-            var options = new JsonSerializerOptions
+            switch (input.Type)
             {
-                WriteIndented = arguments.At(0).ToBooleanValue()
-            };
+                case FluidValues.Array:
+                    writer.WriteStartArray();
+                    foreach (var item in input.Enumerate())
+                    {
+                        await WriteJson(writer, item, ctx);
+                    }
 
-            return input.Type switch
+                    writer.WriteEndArray();
+                    break;
+                case FluidValues.Boolean:
+                    writer.WriteBooleanValue(input.ToBooleanValue());
+                    break;
+                case FluidValues.Nil:
+                    writer.WriteNullValue();
+                    break;
+                case FluidValues.Number:
+                    writer.WriteNumberValue(input.ToNumberValue());
+                    break;
+                case FluidValues.Dictionary:
+                    if (input.ToObjectValue() is IFluidIndexable dic)
+                    {
+                        writer.WriteStartObject();
+                        foreach (var key in dic.Keys)
+                        {
+                            writer.WritePropertyName(key);
+                            if (dic.TryGetValue(key, out var value))
+                            {
+                                await WriteJson(writer, value, ctx);
+                            }
+                            else
+                            {
+                                await WriteJson(writer, NilValue.Instance, ctx);
+                            }
+                        }
+
+                        writer.WriteEndObject();
+                    }
+
+                    break;
+                case FluidValues.Object:
+                    var obj = input.ToObjectValue();
+                    if (obj != null)
+                    {
+                        writer.WriteStartObject();
+                        var type = obj.GetType();
+                        var properties = type.GetProperties();
+                        var strategy = ctx.Options.MemberAccessStrategy;
+
+                        var conv = strategy.MemberNameStrategy;
+                        foreach (var property in properties)
+                        {
+                            var name = conv(property);
+                            var access = strategy.GetAccessor(type, name);
+                            if (access == null)
+                            {
+                                continue;
+                            }
+
+                            object value;
+                            if (access is IAsyncMemberAccessor asyncMemberAccessor)
+                            {
+                                value = await asyncMemberAccessor.GetAsync(obj, name, ctx);
+                            }
+                            else
+                            {
+                                value = access.Get(obj, name, ctx);
+                            }
+
+                            var fluidValue = FluidValue.Create(value, ctx.Options);
+                            writer.WritePropertyName(name);
+                            await WriteJson(writer, fluidValue, ctx);
+                        }
+
+                        writer.WriteEndObject();
+                    }
+
+                    break;
+                case FluidValues.DateTime:
+                    writer.WriteStringValue(Convert.ToDateTime(input.ToObjectValue()));
+                    break;
+                case FluidValues.String:
+                    writer.WriteStringValue(input.ToStringValue());
+                    break;
+                default:
+                    throw new NotSupportedException("Unrecognized FluidValue");
+            }
+        }
+        public static async ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            using var ms = new MemoryStream();
+            await using (var writer = new Utf8JsonWriter(ms, new JsonWriterOptions
             {
-                FluidValues.Array => new StringValue(JsonSerializer.Serialize(input.Enumerate().Select(o => o.ToObjectValue()), options)),
-                FluidValues.Boolean => new StringValue(JsonSerializer.Serialize(input.ToBooleanValue(), options)),
-                FluidValues.Nil => StringValue.Create("null"),
-                FluidValues.Number => new StringValue(JsonSerializer.Serialize(input.ToNumberValue(), options)),
-                FluidValues.DateTime or FluidValues.Dictionary or FluidValues.Object => new StringValue(JsonSerializer.Serialize(input.ToObjectValue(), options)),
-                FluidValues.String => new StringValue(JsonSerializer.Serialize(input.ToStringValue(), options)),
-                _ => throw new NotSupportedException("Unrecognized FluidValue"),
-            };
+                Indented = arguments.At(0).ToBooleanValue()
+            }))
+            {
+                await WriteJson(writer, input, context);
+            }
+
+            ms.Seek(0, SeekOrigin.Begin);
+            using var sr = new StreamReader(ms, Encoding.UTF8);
+            var json = await sr.ReadToEndAsync();
+            return new StringValue(json);
         }
 
         public static ValueTask<FluidValue> FormatNumber(FluidValue input, FilterArguments arguments, TemplateContext context)
