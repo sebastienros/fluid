@@ -481,7 +481,19 @@ namespace Fluid.Filters
 
                     break;
                 case FluidValues.DateTime:
-                    writer.WriteStringValue(Convert.ToDateTime(input.ToObjectValue()));
+                    var objValue = input.ToObjectValue();
+                    if (objValue is DateTime dateTime)
+                    {
+                        writer.WriteStringValue(dateTime);
+                    }
+                    else if (objValue is DateTimeOffset dateTimeOffset)
+                    {
+                        writer.WriteStringValue(dateTimeOffset);
+                    }
+                    else
+                    {
+                        writer.WriteStringValue(Convert.ToDateTime(objValue));
+                    }
                     break;
                 case FluidValues.String:
                     writer.WriteStringValue(input.ToStringValue());
