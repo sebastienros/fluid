@@ -1,11 +1,13 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 using Fluid.Values;
 
 namespace Fluid.Ast
 {
     public class IdentifierSegment : MemberSegment
     {
-        private IMemberAccessor _accessor;
+        private readonly ConcurrentDictionary<Type, IMemberAccessor> _accessors = new ConcurrentDictionary<Type, IMemberAccessor>();
 
         public IdentifierSegment(string identifier)
         {
@@ -36,17 +38,28 @@ namespace Fluid.Ast
             if (result.IsNil() && context.Model != null)
             {
                 // Check for a custom registration
-                _accessor ??= context.Options.MemberAccessStrategy.GetAccessor(context.Model.GetType(), Identifier);
-                _accessor ??= MemberAccessStrategyExtensions.GetNamedAccessor(context.Model.GetType(), Identifier, MemberNameStrategies.Default);
-
-                if (_accessor != null)
+                var modelType = context.Model.GetType();
+                var accessor = context.Options.MemberAccessStrategy.GetAccessor(modelType, Identifier);
+                if (accessor != null)
                 {
-                    if (_accessor is IAsyncMemberAccessor asyncAccessor)
+                    _accessors.TryAdd(modelType, accessor);
+                }
+                
+                accessor = MemberAccessStrategyExtensions.GetNamedAccessor(modelType, Identifier, MemberNameStrategies.Default);
+                
+                if (accessor != null)
+                {
+                    _accessors.TryAdd(modelType, accessor);
+                }
+
+                if (accessor != null)
+                {
+                    if (accessor is IAsyncMemberAccessor asyncAccessor)
                     {
                         return Awaited(asyncAccessor, context, Identifier);
                     }
 
-                    return new ValueTask<FluidValue>(FluidValue.Create(_accessor.Get(context.Model, Identifier, context), context.Options));
+                    return new ValueTask<FluidValue>(FluidValue.Create(accessor.Get(context.Model, Identifier, context), context.Options));
                 }
 
                 return new ValueTask<FluidValue>(NilValue.Instance);
