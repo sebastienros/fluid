@@ -55,6 +55,10 @@ namespace Fluid.Tests
             // Act
             template.Render(new TemplateContext(model1));
             template.Render(new TemplateContext(model2));
+            template.Render(new TemplateContext(model2));
+            template.Render(new TemplateContext(model2));
+            template.Render(new TemplateContext(model1));
+            template.Render(new TemplateContext(model2));
         }
 
         private class TestClass
