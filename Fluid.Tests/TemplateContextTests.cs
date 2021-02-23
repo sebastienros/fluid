@@ -44,7 +44,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void UseDifferentModelsWithSamePropertyName()
+        public void UseDifferentModelsWithSameMemberName()
         {
             // Arrange
             var parser = new FluidParser();
