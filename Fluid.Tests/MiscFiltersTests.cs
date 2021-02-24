@@ -314,18 +314,22 @@ namespace Fluid.Tests
             Assert.Equal("08/01/17", result.Result.ToStringValue());
         }
 
-        [Fact]
-        public void DateNumberIsParsedAsSeconds()
+        [Theory]
+        [InlineData(0, "0")]
+        [InlineData(10, "10")]
+        [InlineData(-10, "-10")]
+        public void DateNumberIsParsedAsSeconds(long number, string expected)
         {
-            var input = NumberValue.Create(0);
+            // Converting to Unix time should not vary by TimeSone
+
+            var input = NumberValue.Create(number);
             var format = new FilterArguments(new StringValue("%s"));
             var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-5)};
 
             var result = MiscFilters.Date(input, format, context);
 
-            Assert.Equal("18000", result.Result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
-
 
         [Fact]
         public void NoTimeZoneIsParsedAsLocal()
@@ -371,18 +375,6 @@ namespace Fluid.Tests
             var result = MiscFilters.Date(input, format, context);
 
             Assert.Equal("Wed Dec 31 19:00:00 -05:00 1969", result.Result.ToStringValue());
-        }
-
-        [Fact]
-        public void DateNumberInEpochIsRenderedInLocalTimeZone()
-        {
-            var input = NumberValue.Create(0);
-            var format = new FilterArguments(new StringValue("%s"));
-            var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-5) };
-
-            var result = MiscFilters.Date(input, format, context);
-
-            Assert.Equal("18000", result.Result.ToStringValue());
         }
 
         [Fact]

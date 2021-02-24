@@ -366,7 +366,7 @@ namespace Fluid.Filters
                                 result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
                                 break;
                             }
-                            case 's': result.Append(value.ToUnixTimeSeconds() - context.TimeZoneUtcOffset.TotalSeconds); break;
+                            case 's': result.Append(value.ToUnixTimeSeconds()); break;
                             case 'S':
                                 result.Append(value.Second.ToString(context.CultureInfo).PadLeft(2, '0'));
                                 break;
