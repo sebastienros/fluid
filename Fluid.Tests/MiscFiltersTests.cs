@@ -155,7 +155,7 @@ namespace Fluid.Tests
         [InlineData("%P", "pm")]
         [InlineData("%r", "05:04:36 PM")]
         [InlineData("%R", "17:04")]
-        [InlineData("%s", "1501607076")]
+        [InlineData("%s", "1501578276")]
         [InlineData("%S", "36")]
         [InlineData("%T", "17:04:36")]
         [InlineData("%u", "2")]
@@ -179,7 +179,7 @@ namespace Fluid.Tests
                 new DateTime(2017, 8, 1, 17, 4, 36, 123), TimeSpan.FromHours(8)));
 
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions() { CultureInfo = new CultureInfo("en-US") };
+            var options = new TemplateOptions() { CultureInfo = new CultureInfo("en-US"), TimeZoneUtcOffset = TimeSpan.Zero };
             var context = new TemplateContext(options);
 
             var result = MiscFilters.Date(input, arguments, context);
