@@ -19,6 +19,8 @@ namespace Fluid
             _parent = parent;
         }
 
+        public IEnumerable<string> Properties => _properties.Keys;
+
         /// <summary>
         /// Returns the value with the specified name in the chain of scopes, or undefined
         /// if it doesn't exist.
