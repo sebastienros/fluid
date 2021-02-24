@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -6,6 +7,7 @@ namespace Fluid.Ast
     public class IdentifierSegment : MemberSegment
     {
         private IMemberAccessor _accessor;
+        private Type _type;
 
         public IdentifierSegment(string identifier)
         {
@@ -36,8 +38,17 @@ namespace Fluid.Ast
             if (result.IsNil() && context.Model != null)
             {
                 // Check for a custom registration
-                _accessor ??= context.Options.MemberAccessStrategy.GetAccessor(context.Model.GetType(), Identifier);
-                _accessor ??= MemberAccessStrategyExtensions.GetNamedAccessor(context.Model.GetType(), Identifier, MemberNameStrategies.Default);
+                var modelType = context.Model.GetType();
+                if (modelType != _type)
+                {
+                    _accessor = context.Options.MemberAccessStrategy.GetAccessor(modelType, Identifier);
+                    _accessor ??= MemberAccessStrategyExtensions.GetNamedAccessor(modelType, Identifier, MemberNameStrategies.Default);
+
+                    if (_accessor != null)
+                    {
+                        _type = modelType;
+                    }
+                }
 
                 if (_accessor != null)
                 {

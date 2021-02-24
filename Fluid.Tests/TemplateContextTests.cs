@@ -1,8 +1,5 @@
 ﻿using Fluid.Values;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -10,11 +7,6 @@ namespace Fluid.Tests
 {
     public class TemplateContextTests
     {
-        private class TestClass
-        {
-            public string Name { get; set; }
-        }
-
         [Fact]
         public async Task ShouldNotThrowException()
         {
@@ -49,6 +41,34 @@ namespace Fluid.Tests
             Assert.Equal("o1", context.GetValue("o1").ToStringValue());
             Assert.Equal("new o2", context.GetValue("o2").ToStringValue());
             Assert.Equal("o3", context.GetValue("o3").ToStringValue());
+        }
+
+        [Fact]
+        public void UseDifferentModelsWithSameMemberName()
+        {
+            // Arrange
+            var parser = new FluidParser();
+            var template = parser.Parse("Hi {{Name}}");
+            var model1 = new TestClass { Name = "TestClass" };
+            var model2 = new AnotherTestClass { Name = "AnotherTestClass" };
+            
+            // Act
+            template.Render(new TemplateContext(model1));
+            template.Render(new TemplateContext(model2));
+            template.Render(new TemplateContext(model2));
+            template.Render(new TemplateContext(model2));
+            template.Render(new TemplateContext(model1));
+            template.Render(new TemplateContext(model2));
+        }
+
+        private class TestClass
+        {
+            public string Name { get; set; }
+        }
+
+        private class AnotherTestClass
+        {
+            public string Name { get; set; }
         }
     }
 }
