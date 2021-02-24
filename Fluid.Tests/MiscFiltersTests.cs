@@ -138,7 +138,7 @@ namespace Fluid.Tests
         [InlineData("%d", "01")]
         [InlineData("%_d", " 1")]
         [InlineData("%-d", "1")]
-        // [InlineData("%D", "8/1/2017")] Skipped since the result on netcoreapp2.1 on linux is 8/1/17
+        [InlineData("%D", "08/01/17")]
         [InlineData("%e", " 1")]
         [InlineData("%F", "2017-08-01")]
         [InlineData("%H", "17")]
@@ -153,15 +153,15 @@ namespace Fluid.Tests
         [InlineData("%M", "04")]
         [InlineData("%p", "PM")]
         [InlineData("%P", "pm")]
-        [InlineData("%r", "5:04:36 PM")]
-        [InlineData("%R", "5:04 PM")]
-        [InlineData("%s", "1501578276")]
+        [InlineData("%r", "05:04:36 PM")]
+        [InlineData("%R", "17:04")]
+        [InlineData("%s", "1501607076")]
         [InlineData("%S", "36")]
-        [InlineData("%T", "5:04:36 PM")]
+        [InlineData("%T", "17:04:36")]
         [InlineData("%u", "2")]
         [InlineData("%U", "31")]
-        [InlineData("%v", "Tuesday, August 1, 2017")]
-        [InlineData("%^v", "TUESDAY, AUGUST 1, 2017")]
+        [InlineData("%v", " 1-Aug-2017")]
+        [InlineData("%^v", " 1-AUG-2017")]
         [InlineData("%V", "31")]
         [InlineData("%W", "32")]
         [InlineData("%y", "17")]
@@ -169,8 +169,9 @@ namespace Fluid.Tests
         [InlineData("%z", "+0800")]
         [InlineData("%Z", "+08:00")]
         [InlineData("%:z", "+08:00")]
+        [InlineData("%+", "Tue Aug  1 17:04:36 +08:00 2017")]
         [InlineData("%%", "%")]
-        [InlineData("It is %r", "It is 5:04:36 PM")]
+        [InlineData("It is %r", "It is 05:04:36 PM")]
         [InlineData("Chained %z%:z%a%a%^a", "Chained +0800+08:00TueTueTUE")]
         public void Date(string format, string expected)
         {
@@ -257,7 +258,7 @@ namespace Fluid.Tests
 
             var result = MiscFilters.Date(input, arguments, context);
 
-            Assert.Equal("08/01/2017", result.Result.ToStringValue());
+            Assert.Equal("08/01/17", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -276,7 +277,7 @@ namespace Fluid.Tests
 
             var result = MiscFilters.Date(input, arguments, context);
 
-            Assert.Equal("08/01/2017", result.Result.ToStringValue());
+            Assert.Equal("08/01/17", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -305,24 +306,83 @@ namespace Fluid.Tests
             var format = "%D";
 
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture };
+            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture, TimeZoneUtcOffset = TimeSpan.Zero };
             var context = new TemplateContext(options);
 
             var result = MiscFilters.Date(input, arguments, context);
 
-            Assert.Equal("08/01/2017", result.Result.ToStringValue());
+            Assert.Equal("08/01/17", result.Result.ToStringValue());
         }
 
         [Fact]
         public void DateNumberIsParsedAsSeconds()
         {
-            var input = NumberValue.Create(12345);
+            var input = NumberValue.Create(0);
             var format = new FilterArguments(new StringValue("%s"));
-            var context = new TemplateContext();
+            var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-5)};
 
             var result = MiscFilters.Date(input, format, context);
 
-            Assert.Equal("12345", result.Result.ToStringValue());
+            Assert.Equal("18000", result.Result.ToStringValue());
+        }
+
+
+        [Fact]
+        public void NoTimeZoneIsParsedAsLocal()
+        {
+            // This test is issued from a template running in Ruby on a system with -5 TZ
+            // {{ '1970-01-01 00:00:00' | date: '%c' }}
+
+            // This test ensures that a parsed date without TZ uses the one from the settings
+
+            var input = StringValue.Create("1970-01-01 00:00:00");
+            var format = new FilterArguments(new StringValue("%+"));
+            var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-5) };
+
+            var result = MiscFilters.Date(input, format, context);
+
+            Assert.Equal("Wed Dec 31 19:00:00 -05:00 1969", result.Result.ToStringValue());
+        }
+
+        [Fact]
+        public void TimeZoneIsParsed()
+        {
+            // This test ensures that when a TZ is specified it uses it instead of the settings one
+            var input = StringValue.Create("1970-01-01 00:00:00 -05:00");
+
+            var format = new FilterArguments(new StringValue("%s"));
+            var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(0) };
+
+            var result = MiscFilters.Date(input, format, context);
+
+            Assert.Equal("18000", result.Result.ToStringValue());
+        }
+
+        [Fact]
+        public void DateNumberIsParsedInLocalTimeZone()
+        {
+            // This test is issued from a template running in Ruby on a system with -5 TZ
+            // {{ 0 | date: '%c' }}
+
+            var input = NumberValue.Create(0);
+            var format = new FilterArguments(new StringValue("%+"));
+            var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-5) };
+
+            var result = MiscFilters.Date(input, format, context);
+
+            Assert.Equal("Wed Dec 31 19:00:00 -05:00 1969", result.Result.ToStringValue());
+        }
+
+        [Fact]
+        public void DateNumberInEpochIsRenderedInLocalTimeZone()
+        {
+            var input = NumberValue.Create(0);
+            var format = new FilterArguments(new StringValue("%s"));
+            var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-5) };
+
+            var result = MiscFilters.Date(input, format, context);
+
+            Assert.Equal("18000", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -333,10 +393,10 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments(new StringValue(format));
 
-            var context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("fr-FR") });
+            var context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("fr-FR"), TimeZoneUtcOffset = TimeSpan.Zero });
             var resultFR = MiscFilters.Date(input, arguments, context);
 
-            context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("en-US") });
+            context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("en-US"), TimeZoneUtcOffset = TimeSpan.Zero });
             var resultUS = MiscFilters.Date(input, arguments, context);
 
             Assert.Equal("08/01/2017", resultFR.Result.ToStringValue());
@@ -351,10 +411,10 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments(new StringValue(format));
 
-            var context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("fr-FR") });
+            var context = new TemplateContext { CultureInfo = new CultureInfo("fr-FR"), TimeZoneUtcOffset = TimeSpan.Zero };
             var resultFR = MiscFilters.Date(input, arguments, context);
 
-            context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("en-US") });
+            context = new TemplateContext { CultureInfo = new CultureInfo("en-US"), TimeZoneUtcOffset = TimeSpan.Zero };
             var resultUS = MiscFilters.Date(input, arguments, context);
 
             Assert.Equal("dimanche 8 janvier 2017 00:00:00", resultFR.Result.ToStringValue());

@@ -39,6 +39,7 @@ namespace Fluid
             LocalScope.SetValue("empty", NilValue.Empty);
             LocalScope.SetValue("blank", StringValue.Empty);
             CultureInfo = options.CultureInfo;
+            TimeZoneUtcOffset = options.TimeZoneUtcOffset;
         }
 
         /// <summary>
@@ -59,6 +60,11 @@ namespace Fluid
         /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
         /// </summary>
         public CultureInfo CultureInfo { get; set; }
+
+        /// <summary>
+        /// Gets or sets the local Timezone offset used when parsing or creating dates without specific timezone.
+        /// </summary>
+        public TimeSpan TimeZoneUtcOffset { get; set; } = TimeZoneInfo.Local.BaseUtcOffset;
 
         internal void IncrementSteps()
         {
