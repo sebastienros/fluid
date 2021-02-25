@@ -7,7 +7,7 @@ namespace Fluid
     {
         public static readonly MemberNameStrategy Default = RenameDefault;
         public static readonly MemberNameStrategy CamelCase = RenameCamelCase;
-        public static readonly MemberNameStrategy SnakeCase = RenameCamelCase;
+        public static readonly MemberNameStrategy SnakeCase = RenameSnake;
 
         private static string RenameDefault(MemberInfo member) => member.Name;
 
