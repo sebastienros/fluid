@@ -9,11 +9,50 @@ using Fluid.Values;
 using TimeZoneConverter;
 using Fluid.Utils;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace Fluid.Filters
 {
     public static class MiscFilters
     {
+        private static readonly string[] DefaultFormats = {
+            "yyyy-MM-ddTHH:mm:ss.FFF",
+            "yyyy-MM-ddTHH:mm:ss",
+            "yyyy-MM-ddTHH:mm",
+            "yyyy-MM-dd",
+            "yyyy-MM",
+            "yyyy"
+        };
+
+        private static readonly string[] SecondaryFormats = {
+            // Formats used in DatePrototype toString methods
+            "ddd MMM dd yyyy HH:mm:ss 'GMT'K",
+            "ddd MMM dd yyyy",
+            "HH:mm:ss 'GMT'K",
+
+            // standard formats
+            "yyyy-M-dTH:m:s.FFFK",
+            "yyyy/M/dTH:m:s.FFFK",
+            "yyyy-M-dTH:m:sK",
+            "yyyy/M/dTH:m:sK",
+            "yyyy-M-dTH:mK",
+            "yyyy/M/dTH:mK",
+            "yyyy-M-d H:m:s.FFFK",
+            "yyyy/M/d H:m:s.FFFK",
+            "yyyy-M-d H:m:sK",
+            "yyyy/M/d H:m:sK",
+            "yyyy-M-d H:mK",
+            "yyyy/M/d H:mK",
+            "yyyy-M-dK",
+            "yyyy/M/dK",
+            "yyyy-MK",
+            "yyyy/MK",
+            "yyyyK",
+            "THH:mm:ss.FFFK",
+            "THH:mm:ssK",
+            "THH:mmK",
+            "THHK"
+        };
 
         private static readonly Regex HtmlCaseRegex =
             new Regex(
@@ -179,8 +218,15 @@ namespace Fluid.Filters
 
             using (var sb = StringBuilderPool.GetInstance())
             {
-                sb.Builder.EnsureCapacity(format.Length * 2);
                 var result = sb.Builder;
+
+                ForStrf(value, format, result);
+
+                return new StringValue(result.ToString());
+            }
+
+            void ForStrf(DateTimeOffset value, string format, StringBuilder result)
+            {
                 var percent = false;
 
                 var removeLeadingZerosFlag = false;
@@ -211,23 +257,22 @@ namespace Fluid.Filters
                             case '_': useSpaceForPaddingFlag = true; continue;
                             case ':': useColonsForZeeDirectiveFlag = true; continue;
                             case 'a':
-                            {
-                                var abbreviatedDayName = context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int) value.DayOfWeek];
+                                string AbbreviatedDayName() => context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int)value.DayOfWeek];
+
+                                var abbreviatedDayName = AbbreviatedDayName();
                                 result.Append(upperCaseFlag ? abbreviatedDayName.ToUpper() : abbreviatedDayName);
                                 break;
-                            }
                             case 'A':
-                            {
-                                var dayName = context.CultureInfo.DateTimeFormat.DayNames[(int) value.DayOfWeek];
-                                result.Append(upperCaseFlag ? dayName.ToUpper() : dayName);
-                                break;
-                            }
+                                {
+                                    var dayName = context.CultureInfo.DateTimeFormat.DayNames[(int)value.DayOfWeek];
+                                    result.Append(upperCaseFlag ? dayName.ToUpper() : dayName);
+                                    break;
+                                }
                             case 'b':
-                            {
                                 var abbreviatedMonthName = context.CultureInfo.DateTimeFormat.AbbreviatedMonthNames[value.Month - 1];
                                 result.Append(upperCaseFlag ? abbreviatedMonthName.ToUpper() : abbreviatedMonthName);
                                 break;
-                            }
+
                             case 'B':
                             {
                                 var monthName = context.CultureInfo.DateTimeFormat.MonthNames[value.Month - 1];
@@ -236,8 +281,9 @@ namespace Fluid.Filters
                             }
                             case 'c':
                             {
-                                var f = value.ToString("F", context.CultureInfo);
-                                result.Append(upperCaseFlag ? f.ToUpper() : f);
+                                // c is defined as "%a %b %e %T %Y" but it's also supposed to be locale aware, so we are using the 
+                                // C# standard format instead
+                                result.Append(upperCaseFlag ? value.ToString("F", context.CultureInfo).ToUpper() : value.ToString("F", context.CultureInfo));
                                 break;
                             }
                             case 'C': result.Append(value.Year / 100); break;
@@ -258,52 +304,112 @@ namespace Fluid.Filters
                                 }
                                 break;
                             }
-                            case 'D': result.Append(value.ToString("d", context.CultureInfo)); break;
-                            case 'e': result.Append(value.Day.ToString(context.CultureInfo).PadLeft(2, ' ')); break;
-                            case 'F': result.Append(value.ToString("yyyy-MM-dd", context.CultureInfo)); break;
-                            case 'H': result.Append(value.Hour.ToString(context.CultureInfo).PadLeft(2, '0')); break;
+                            case 'D':
+                            {
+                                
+                                var sb = new StringBuilder();
+                                ForStrf(value, "%m/%d/%y", sb);
+                                result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                break;
+                            }
+                            case 'e':
+                                result.Append(value.Day.ToString(context.CultureInfo).PadLeft(2, ' '));
+                                break;
+                            case 'F':
+                            {
+                                var sb = new StringBuilder();
+                                ForStrf(value, "%Y-%m-%d", sb);
+                                result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                break;
+                            }
+                            case 'H':
+                                result.Append(value.ToString("HH"));
+                                break;
                             case 'I': result.Append((value.Hour % 12).ToString(context.CultureInfo).PadLeft(2, '0')); break;
                             case 'j': result.Append(value.DayOfYear.ToString(context.CultureInfo).PadLeft(3, '0')); break;
                             case 'k': result.Append(value.Hour); break;
                             case 'l': result.Append(value.ToString("%h", context.CultureInfo).PadLeft(2, ' ')); break;
                             case 'L': result.Append(value.Millisecond.ToString(context.CultureInfo).PadLeft(3, '0')); break;
                             case 'm':
-                            {
-                                var month = value.Month.ToString(context.CultureInfo);
-                                if (useSpaceForPaddingFlag)
                                 {
-                                    result.Append(month.PadLeft(2, ' '));
+                                    var month = value.Month.ToString(context.CultureInfo);
+                                    if (useSpaceForPaddingFlag)
+                                    {
+                                        result.Append(month.PadLeft(2, ' '));
+                                    }
+                                    else if (removeLeadingZerosFlag)
+                                    {
+                                        result.Append(month);
+                                    }
+                                    else
+                                    {
+                                        result.Append(month.PadLeft(2, '0'));
+                                    }
+                                    break;
                                 }
-                                else if (removeLeadingZerosFlag)
-                                {
-                                    result.Append(month);
-                                }
-                                else
-                                {
-                                    result.Append(month.PadLeft(2, '0'));
-                                }
+                            case 'M':
+                                result.Append(value.Minute.ToString(context.CultureInfo).PadLeft(2, '0'));
                                 break;
-                            }
-                            case 'M': result.Append(value.Minute.ToString(context.CultureInfo).PadLeft(2, '0')); break;
                             case 'p': result.Append(value.ToString("tt", context.CultureInfo).ToUpper()); break;
                             case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLower()); break;
-                            case 'T':
-                            case 'r': result.Append(value.ToString("T", context.CultureInfo).ToUpper()); break;
-                            case 'R': result.Append(value.ToString("t", context.CultureInfo).ToUpper()); break;
+                            case 'r':
+                            {
+                                var sb = new StringBuilder();
+                                ForStrf(value, "%I:%M:%S %p", sb);
+                                result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                break;
+                            }
+                            case 'R':
+                            {
+                                var sb = new StringBuilder();
+                                ForStrf(value, "%H:%M", sb);
+                                result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                break;
+                            }
                             case 's': result.Append(value.ToUnixTimeSeconds()); break;
-                            case 'S': result.Append(value.Second.ToString(context.CultureInfo).PadLeft(2, '0')); break;
+                            case 'S':
+                                result.Append(value.Second.ToString(context.CultureInfo).PadLeft(2, '0'));
+                                break;
+                            case 'x':
+                            {
+                                // x is defined as "%m/%d/%y" but it's also supposed to be locale aware, so we are using the 
+                                // C# short date pattern standard format instead
+
+                                result.Append(upperCaseFlag ? value.ToString("d", context.CultureInfo).ToUpper() : value.ToString("d", context.CultureInfo));
+                                break;
+                            }
+                            case 'X':
+                            {
+                                // X is defined as "%T" but it's also supposed to be locale aware, so we are using the 
+                                // C# short time pattern standard format instead
+
+                                result.Append(upperCaseFlag ? value.ToString("t", context.CultureInfo).ToUpper() : value.ToString("t", context.CultureInfo));
+                                break;
+                            }
+                            case 'T':
+                            {
+                                var sb = new StringBuilder();
+                                ForStrf(value, "%H:%M:%S", sb);
+                                result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                break;
+                            }
                             case 'u': result.Append((int)value.DayOfWeek); break;
                             case 'U': result.Append(context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstDay, DayOfWeek.Sunday).ToString().PadLeft(2, '0')); break;
                             case 'v':
                             {
-                                var d = value.ToString("D", context.CultureInfo);
-                                result.Append(upperCaseFlag ? d.ToUpper() : d);
+                                var sb = new StringBuilder();
+                                ForStrf(value, "%e-%b-%Y", sb);
+                                result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
                                 break;
                             }
                             case 'V': result.Append((value.DayOfYear / 7 + 1).ToString(context.CultureInfo).PadLeft(2, '0')); break;
                             case 'W': result.Append(context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstDay, DayOfWeek.Monday).ToString().PadLeft(2, '0')); break;
-                            case 'y': result.Append(value.ToString("yy", context.CultureInfo)); break;
-                            case 'Y': result.Append(value.Year); break;
+                            case 'y':
+                                result.Append(value.Year % 100);
+                                break;
+                            case 'Y':
+                                result.Append(value.Year.ToString().PadLeft(4, '0'));
+                                break;
                             case 'z':
                             {
                                 var zzz = value.ToString("zzz", context.CultureInfo);
@@ -314,6 +420,13 @@ namespace Fluid.Filters
                                 result.Append(value.ToString("zzz", context.CultureInfo));
                                 break;
                             case '%': result.Append('%'); break;
+                            case '+':
+                            {
+                                var sb = new StringBuilder();
+                                ForStrf(value, "%a %b %e %H:%M:%S %Z %Y", sb);
+                                result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                break;
+                            }
                             default: result.Append('%').Append(c); break;
                         }
 
@@ -324,10 +437,7 @@ namespace Fluid.Filters
                         useColonsForZeeDirectiveFlag = false;
                     }
                 }
-
-                return new StringValue(result.ToString());
             }
-
         }
 
         public static ValueTask<FluidValue> FormatDate(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -368,12 +478,42 @@ namespace Fluid.Filters
                 }
                 else
                 {
-                    return DateTimeOffset.TryParse(stringValue, context.CultureInfo, DateTimeStyles.AssumeUniversal, out result);
+                    var success = true;
+
+                    if (!DateTime.TryParseExact(stringValue, DefaultFormats, context.CultureInfo, DateTimeStyles.None, out var dateTime))
+                    {
+                        if (!DateTime.TryParseExact(stringValue, SecondaryFormats, context.CultureInfo, DateTimeStyles.None, out dateTime))
+                        {
+                            if (!DateTime.TryParse(stringValue, context.CultureInfo, DateTimeStyles.None, out dateTime))
+                            {
+                                if (!DateTime.TryParse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out dateTime))
+                                {
+                                    success = false;
+                                }
+                            }
+                        }
+                    }
+
+                    // If no timezone is specified, assume local using the configured timezone
+                    if (success)
+                    {
+                        if (dateTime.Kind == DateTimeKind.Unspecified)
+                        {
+                            result = new DateTimeOffset(dateTime, context.TimeZoneUtcOffset).Add(context.TimeZoneUtcOffset);
+                        }
+                        else
+                        {
+                            result = new DateTimeOffset(dateTime);
+                        }
+                    }
+
+                    return success;
                 }
             }
             else if (input.Type == FluidValues.Number)
             {
-                result = DateTimeOffset.FromUnixTimeSeconds((long)input.ToNumberValue());
+                // result = new DateTimeOffset(1970, 1, 1, 0, 0, 0, context.TimeZoneUtcOffset).AddSeconds((long)input.ToNumberValue());
+                result = DateTimeOffset.FromUnixTimeSeconds((long)input.ToNumberValue()).ToOffset(context.TimeZoneUtcOffset);
             }
             else if (input.Type == FluidValues.DateTime)
             {
