@@ -32,6 +32,7 @@ To see the corresponding content for v1.0 use [this version](https://github.com/
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
 - [Localization](#localization)
+- [Time zones](#time-zones)
 - [Customizing tags and blocks](#customizing-tags-and-blocks)
 - [ASP.NET MVC View Engine](#aspnet-mvc-view-engine)
 - [Custom filters](#custom-filters)
@@ -361,6 +362,54 @@ var result = template.Render(context);
 ```html
 1234.56
 Tuesday, August 1, 2017
+```
+
+<br>
+
+## Time zones
+
+### System time zone
+
+`TemplateOptions` and `TemplateContext` provides a property to define a default time zone to use when parsing date and times. The default value is the current system's time zone.
+When dates and times are parsed and don't specify a time zone, the default one is assumed. Setting a custom one can also prevent different environments (data centers) from
+generating different results.
+
+> Note: The `date` filter conforms to the Ruby date and time formats https://ruby-doc.org/core-3.0.0/Time.html#method-i-strftime. To use the .NET standard date formats, use the `format_date` filter.
+
+#### Source
+
+```csharp
+var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-5) } ;
+var result = template.Render(context);
+```
+
+```Liquid
+{{ '1970-01-01 00:00:00' | date: '%c' }}
+```
+
+#### Result
+```html
+Wed Dec 31 19:00:00 -05:00 1969
+```
+
+### Converting time zones
+
+Dates and times can be converted to specific time zones using the `time_zone: <iana>` filter.
+
+#### Example
+
+```csharp
+var context = new TemplateContext();
+context.SetValue("published", DateTime.UtcNow);
+```
+
+```Liquid
+{{ published | time_zone: 'America/New_York' | date: '%+' }}
+```
+
+#### Result
+```html
+Tue Aug  1 17:04:36 -05:00 2017
 ```
 
 <br>
