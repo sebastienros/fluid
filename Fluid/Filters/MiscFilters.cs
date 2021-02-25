@@ -10,6 +10,7 @@ using TimeZoneConverter;
 using Fluid.Utils;
 using System.Threading.Tasks;
 using System.Text;
+using System.IO;
 
 namespace Fluid.Filters
 {
@@ -539,23 +540,125 @@ namespace Fluid.Filters
             return true;
         }
 
-        public static ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
+        private static async ValueTask WriteJson(Utf8JsonWriter writer, FluidValue input, TemplateContext ctx)
         {
-            var options = new JsonSerializerOptions
+            switch (input.Type)
             {
-                WriteIndented = arguments.At(0).ToBooleanValue()
-            };
+                case FluidValues.Array:
+                    writer.WriteStartArray();
+                    foreach (var item in input.Enumerate())
+                    {
+                        await WriteJson(writer, item, ctx);
+                    }
 
-            return input.Type switch
+                    writer.WriteEndArray();
+                    break;
+                case FluidValues.Boolean:
+                    writer.WriteBooleanValue(input.ToBooleanValue());
+                    break;
+                case FluidValues.Nil:
+                    writer.WriteNullValue();
+                    break;
+                case FluidValues.Number:
+                    writer.WriteNumberValue(input.ToNumberValue());
+                    break;
+                case FluidValues.Dictionary:
+                    if (input.ToObjectValue() is IFluidIndexable dic)
+                    {
+                        writer.WriteStartObject();
+                        foreach (var key in dic.Keys)
+                        {
+                            writer.WritePropertyName(key);
+                            if (dic.TryGetValue(key, out var value))
+                            {
+                                await WriteJson(writer, value, ctx);
+                            }
+                            else
+                            {
+                                await WriteJson(writer, NilValue.Instance, ctx);
+                            }
+                        }
+
+                        writer.WriteEndObject();
+                    }
+
+                    break;
+                case FluidValues.Object:
+                    var obj = input.ToObjectValue();
+                    if (obj != null)
+                    {
+                        writer.WriteStartObject();
+                        var type = obj.GetType();
+                        var properties = type.GetProperties();
+                        var strategy = ctx.Options.MemberAccessStrategy;
+
+                        var conv = strategy.MemberNameStrategy;
+                        foreach (var property in properties)
+                        {
+                            var name = conv(property);
+                            var access = strategy.GetAccessor(type, name);
+                            if (access == null)
+                            {
+                                continue;
+                            }
+
+                            object value;
+                            if (access is IAsyncMemberAccessor asyncMemberAccessor)
+                            {
+                                value = await asyncMemberAccessor.GetAsync(obj, name, ctx);
+                            }
+                            else
+                            {
+                                value = access.Get(obj, name, ctx);
+                            }
+
+                            var fluidValue = FluidValue.Create(value, ctx.Options);
+                            writer.WritePropertyName(name);
+                            await WriteJson(writer, fluidValue, ctx);
+                        }
+
+                        writer.WriteEndObject();
+                    }
+
+                    break;
+                case FluidValues.DateTime:
+                    var objValue = input.ToObjectValue();
+                    if (objValue is DateTime dateTime)
+                    {
+                        writer.WriteStringValue(dateTime);
+                    }
+                    else if (objValue is DateTimeOffset dateTimeOffset)
+                    {
+                        writer.WriteStringValue(dateTimeOffset);
+                    }
+                    else
+                    {
+                        writer.WriteStringValue(Convert.ToDateTime(objValue));
+                    }
+                    break;
+                case FluidValues.String:
+                    writer.WriteStringValue(input.ToStringValue());
+                    break;
+                default:
+                    throw new NotSupportedException("Unrecognized FluidValue");
+            }
+        }
+
+        public static async ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            using var ms = new MemoryStream();
+            await using (var writer = new Utf8JsonWriter(ms, new JsonWriterOptions
             {
-                FluidValues.Array => new StringValue(JsonSerializer.Serialize(input.Enumerate().Select(o => o.ToObjectValue()), options)),
-                FluidValues.Boolean => new StringValue(JsonSerializer.Serialize(input.ToBooleanValue(), options)),
-                FluidValues.Nil => StringValue.Create("null"),
-                FluidValues.Number => new StringValue(JsonSerializer.Serialize(input.ToNumberValue(), options)),
-                FluidValues.DateTime or FluidValues.Dictionary or FluidValues.Object => new StringValue(JsonSerializer.Serialize(input.ToObjectValue(), options)),
-                FluidValues.String => new StringValue(JsonSerializer.Serialize(input.ToStringValue(), options)),
-                _ => throw new NotSupportedException("Unrecognized FluidValue"),
-            };
+                Indented = arguments.At(0).ToBooleanValue()
+            }))
+            {
+                await WriteJson(writer, input, context);
+            }
+
+            ms.Seek(0, SeekOrigin.Begin);
+            using var sr = new StreamReader(ms, Encoding.UTF8);
+            var json = await sr.ReadToEndAsync();
+            return new StringValue(json);
         }
 
         public static ValueTask<FluidValue> FormatNumber(FluidValue input, FilterArguments arguments, TemplateContext context)
