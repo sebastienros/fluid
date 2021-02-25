@@ -40,6 +40,7 @@ namespace Fluid
             LocalScope.SetValue("blank", StringValue.Empty);
             CultureInfo = options.CultureInfo;
             TimeZoneUtcOffset = options.TimeZoneUtcOffset;
+            Now = options.Now;
         }
 
         /// <summary>
@@ -59,12 +60,17 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
         /// </summary>
-        public CultureInfo CultureInfo { get; set; }
+        public CultureInfo CultureInfo { get; set; } = TemplateOptions.Default.CultureInfo;
+
+        /// <summary>
+        /// Gets or sets the value to returned by the "now" keyword.
+        /// </summary>
+        public Func<DateTimeOffset> Now { get; set; } = TemplateOptions.Default.Now;
 
         /// <summary>
         /// Gets or sets the local Timezone offset used when parsing or creating dates without specific timezone.
         /// </summary>
-        public TimeSpan TimeZoneUtcOffset { get; set; } = TimeZoneInfo.Local.BaseUtcOffset;
+        public TimeSpan TimeZoneUtcOffset { get; set; } = TemplateOptions.Default.TimeZoneUtcOffset;
 
         internal void IncrementSteps()
         {

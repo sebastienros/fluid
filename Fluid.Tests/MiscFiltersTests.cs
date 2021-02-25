@@ -334,18 +334,13 @@ namespace Fluid.Tests
         [Fact]
         public void NoTimeZoneIsParsedAsLocal()
         {
-            // This test is issued from a template running in Ruby on a system with -5 TZ
-            // {{ '1970-01-01 00:00:00' | date: '%c' }}
-
-            // This test ensures that a parsed date without TZ uses the one from the settings
-
             var input = StringValue.Create("1970-01-01 00:00:00");
-            var format = new FilterArguments(new StringValue("%+"));
-            var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-5) };
+            var format = new FilterArguments(new StringValue("%a %b %e %H:%M:%S %Y %z"));
+            var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-8) };
 
             var result = MiscFilters.Date(input, format, context);
 
-            Assert.Equal("Wed Dec 31 19:00:00 -05:00 1969", result.Result.ToStringValue());
+            Assert.Equal("Thu Jan  1 00:00:00 1970 -0800", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -356,6 +351,20 @@ namespace Fluid.Tests
 
             var format = new FilterArguments(new StringValue("%s"));
             var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(0) };
+
+            var result = MiscFilters.Date(input, format, context);
+
+            Assert.Equal("18000", result.Result.ToStringValue());
+        }
+
+        [Fact]
+        public void DefaultTimeZoneIsSetWhenNotParsed()
+        {
+            // This test ensures that when a TZ is specified it uses it instead of the settings one
+            var input = StringValue.Create("1970-01-01 00:00:00");
+
+            var format = new FilterArguments(new StringValue("%s"));
+            var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-5) };
 
             var result = MiscFilters.Date(input, format, context);
 

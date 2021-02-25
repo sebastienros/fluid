@@ -499,7 +499,7 @@ namespace Fluid.Filters
                     {
                         if (dateTime.Kind == DateTimeKind.Unspecified)
                         {
-                            result = new DateTimeOffset(dateTime, context.TimeZoneUtcOffset).Add(context.TimeZoneUtcOffset);
+                            result = new DateTimeOffset(dateTime, context.TimeZoneUtcOffset);
                         }
                         else
                         {
