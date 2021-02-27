@@ -379,7 +379,7 @@ generating different results.
 #### Source
 
 ```csharp
-var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-5) } ;
+var context = new TemplateContext { TimeZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time") } ;
 var result = template.Render(context);
 ```
 
@@ -389,7 +389,7 @@ var result = template.Render(context);
 
 #### Result
 ```html
-Wed Dec 31 19:00:00 -05:00 1969
+Wed Dec 31 19:00:00 -08:00 1969
 ```
 
 ### Converting time zones

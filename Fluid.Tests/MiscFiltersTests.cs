@@ -9,6 +9,9 @@ namespace Fluid.Tests
 {
     public class MiscFiltersTests
     {
+        private static TimeZoneInfo Pacific = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/Los_Angeles");
+        private static TimeZoneInfo Eastern = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/New_York");
+
         [Fact]
         public void DefaultReturnsValueIfDefined()
         {
@@ -179,7 +182,7 @@ namespace Fluid.Tests
                 new DateTime(2017, 8, 1, 17, 4, 36, 123), TimeSpan.FromHours(8)));
 
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions() { CultureInfo = new CultureInfo("en-US"), TimeZoneUtcOffset = TimeSpan.Zero };
+            var options = new TemplateOptions() { CultureInfo = new CultureInfo("en-US"), TimeZone = TimeZoneInfo.Utc };
             var context = new TemplateContext(options);
 
             var result = MiscFilters.Date(input, arguments, context);
@@ -306,7 +309,7 @@ namespace Fluid.Tests
             var format = "%D";
 
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture, TimeZoneUtcOffset = TimeSpan.Zero };
+            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture, TimeZone = TimeZoneInfo.Utc };
             var context = new TemplateContext(options);
 
             var result = MiscFilters.Date(input, arguments, context);
@@ -324,7 +327,7 @@ namespace Fluid.Tests
 
             var input = NumberValue.Create(number);
             var format = new FilterArguments(new StringValue("%s"));
-            var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-5)};
+            var context = new TemplateContext { TimeZone = Eastern};
 
             var result = MiscFilters.Date(input, format, context);
 
@@ -336,7 +339,7 @@ namespace Fluid.Tests
         {
             var input = StringValue.Create("1970-01-01 00:00:00");
             var format = new FilterArguments(new StringValue("%a %b %e %H:%M:%S %Y %z"));
-            var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-8) };
+            var context = new TemplateContext { TimeZone = Pacific };
 
             var result = MiscFilters.Date(input, format, context);
 
@@ -350,7 +353,7 @@ namespace Fluid.Tests
             var input = StringValue.Create("1970-01-01 00:00:00 -05:00");
 
             var format = new FilterArguments(new StringValue("%s"));
-            var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(0) };
+            var context = new TemplateContext { TimeZone = TimeZoneInfo.Utc };
 
             var result = MiscFilters.Date(input, format, context);
 
@@ -364,11 +367,32 @@ namespace Fluid.Tests
             var input = StringValue.Create("1970-01-01 00:00:00");
 
             var format = new FilterArguments(new StringValue("%s"));
-            var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-5) };
+            var context = new TemplateContext { TimeZone = Eastern };
 
             var result = MiscFilters.Date(input, format, context);
 
             Assert.Equal("18000", result.Result.ToStringValue());
+        }
+
+        [Fact]
+        public void DefaultTimeZoneAppliesDaylightSaving()
+        {
+            // This test ensures that the DST is respected when TZ is rendered
+
+            var input = StringValue.Create("2021-01-01 00:00:00");
+
+            var format = new FilterArguments(new StringValue("%z"));
+            var context = new TemplateContext { TimeZone = Pacific };
+
+            var result = MiscFilters.Date(input, format, context);
+
+            Assert.Equal("-0800", result.Result.ToStringValue());
+
+            input = StringValue.Create("2021-06-01 00:00:00");
+
+            result = MiscFilters.Date(input, format, context);
+
+            Assert.Equal("-0700", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -379,7 +403,7 @@ namespace Fluid.Tests
 
             var input = NumberValue.Create(0);
             var format = new FilterArguments(new StringValue("%+"));
-            var context = new TemplateContext { TimeZoneUtcOffset = TimeSpan.FromHours(-5) };
+            var context = new TemplateContext { TimeZone = Eastern };
 
             var result = MiscFilters.Date(input, format, context);
 
@@ -394,10 +418,10 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments(new StringValue(format));
 
-            var context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("fr-FR"), TimeZoneUtcOffset = TimeSpan.Zero });
+            var context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("fr-FR"), TimeZone = TimeZoneInfo.Utc });
             var resultFR = MiscFilters.Date(input, arguments, context);
 
-            context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("en-US"), TimeZoneUtcOffset = TimeSpan.Zero });
+            context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("en-US"), TimeZone = TimeZoneInfo.Utc });
             var resultUS = MiscFilters.Date(input, arguments, context);
 
             Assert.Equal("08/01/2017", resultFR.Result.ToStringValue());
@@ -412,10 +436,10 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments(new StringValue(format));
 
-            var context = new TemplateContext { CultureInfo = new CultureInfo("fr-FR"), TimeZoneUtcOffset = TimeSpan.Zero };
+            var context = new TemplateContext { CultureInfo = new CultureInfo("fr-FR"), TimeZone = TimeZoneInfo.Utc };
             var resultFR = MiscFilters.Date(input, arguments, context);
 
-            context = new TemplateContext { CultureInfo = new CultureInfo("en-US"), TimeZoneUtcOffset = TimeSpan.Zero };
+            context = new TemplateContext { CultureInfo = new CultureInfo("en-US"), TimeZone = TimeZoneInfo.Utc };
             var resultUS = MiscFilters.Date(input, arguments, context);
 
             Assert.Equal("dimanche 8 janvier 2017 00:00:00", resultFR.Result.ToStringValue());
