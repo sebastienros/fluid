@@ -10,7 +10,7 @@ namespace Fluid.Tests
     {
         static FluidParser _parser = new FluidParser();
 
-        private IReadOnlyList<Statement> Parse(string source)
+        private static IReadOnlyList<Statement> Parse(string source)
         {
             _parser.TryParse(source, out var template, out var errors);
             return template.Statements;
@@ -23,7 +23,7 @@ namespace Fluid.Tests
             var statements = Parse("{{ a | b: c:1, 'value', d: 3 }}");
             Assert.Single(statements);
 
-            var outputStatement = statements.First() as OutputStatement;
+            var outputStatement = statements[0] as OutputStatement;
             Assert.NotNull(outputStatement);
 
             var filterExpression = outputStatement.Expression as FilterExpression;
@@ -44,7 +44,7 @@ namespace Fluid.Tests
         {
             var statements = Parse("Hello World");
 
-            var textStatement = statements.First() as TextSpanStatement;
+            var textStatement = statements[0] as TextSpanStatement;
 
             Assert.Single(statements);
             Assert.NotNull(textStatement);
@@ -56,7 +56,7 @@ namespace Fluid.Tests
         {
             var statements = Parse("{{ 1 }}");
 
-            var outputStatement = statements.First() as OutputStatement;
+            var outputStatement = statements[0] as OutputStatement;
 
             Assert.Single(statements);
             Assert.NotNull(outputStatement);
@@ -70,7 +70,7 @@ namespace Fluid.Tests
         {
             var statements = Parse(source);
 
-            var outputStatement = statements.First() as OutputStatement;
+            var outputStatement = statements[0] as OutputStatement;
 
             Assert.Single(statements);
             Assert.NotNull(outputStatement);
@@ -94,6 +94,28 @@ namespace Fluid.Tests
             Assert.True(forStatement.Statements.Count == 1);
             Assert.NotNull(forStatement.Else);
             Assert.True((forStatement.Else is ElseStatement s) && s.Statements.Count == 1);
+        }
+
+        [Fact]
+        public void ShouldParseForLimitLiteral()
+        {
+            var statements = Parse("{% for item in items limit: 1 %}x{% endfor %}");
+
+            Assert.IsType<ForStatement>(statements.ElementAt(0));
+            var forStatement = statements.ElementAt(0) as ForStatement;
+            Assert.True(forStatement.Statements.Count == 1);
+            Assert.True(forStatement.Limit is LiteralExpression);
+        }
+
+        [Fact]
+        public void ShouldParseForLimitMember()
+        {
+            var statements = Parse("{% for item in items limit: limit %}x{% endfor %}");
+
+            Assert.IsType<ForStatement>(statements.ElementAt(0));
+            var forStatement = statements.ElementAt(0) as ForStatement;
+            Assert.True(forStatement.Statements.Count == 1);
+            Assert.True(forStatement.Limit is MemberExpression);
         }
 
         [Fact]

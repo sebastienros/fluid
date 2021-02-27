@@ -15,7 +15,7 @@ namespace Fluid.Tests.Extensibility
             {
                 w.Write("Hello World");
 
-                return Statement.Normal;
+                return Statement.Normal();
             });
 
             var template = parser.Parse("{% hello %}");
@@ -34,7 +34,7 @@ namespace Fluid.Tests.Extensibility
                 w.Write("Hello ");
                 w.Write(s);
 
-                return Statement.Normal;
+                return Statement.Normal();
             });
 
             var template = parser.Parse("{% hello test %}");

@@ -105,7 +105,7 @@ namespace Fluid.Ast
 
             if (_isEmpty)
             {
-                return Normal;
+                return Normal();
             }
 
             context.IncrementSteps();
@@ -116,7 +116,7 @@ namespace Fluid.Ast
 #else
             writer.Write(_text.Span);
 #endif
-            return Normal;
+            return Normal();
         }
     }
 }

@@ -40,7 +40,7 @@ namespace Fluid.Ast
 
             value.WriteTo(writer, encoder, context.CultureInfo);
 
-            return Normal;
+            return Normal();
         }
     }
 }
