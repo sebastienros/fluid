@@ -8,7 +8,7 @@ namespace Fluid.Ast
     {
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            return Break;
+            return Break();
         }
     }
 }

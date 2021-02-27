@@ -269,8 +269,8 @@ namespace Fluid
                             .And(Member)
                             .And(ZeroOrMany(OneOf( // Use * since each can appear in any order. Validation is done once it's parsed
                                 Terms.Text("reversed").Then(x => new ForModifier { IsReversed = true }),
-                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Integer).Then(x => new ForModifier { IsLimit = true, Value = x }),
-                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Integer).Then(x => new ForModifier { IsOffset = true, Value = x })
+                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsLimit = true, Value = x }),
+                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
                                 )))
                             .AndSkip(TagEnd)
                             .And(AnyTagsList)
@@ -293,8 +293,8 @@ namespace Fluid
                             .And(Range)
                             .And(ZeroOrMany(OneOf( // Use * since each can appear in any order. Validation is done once it's parsed
                                 Terms.Text("reversed").Then(x => new ForModifier { IsReversed = true }),
-                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Integer).Then(x => new ForModifier { IsLimit = true, Value = x }),
-                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Integer).Then(x => new ForModifier { IsOffset = true, Value = x })
+                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsLimit = true, Value = x }),
+                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
                                 )))
                             .AndSkip(TagEnd)
                             .And(AnyTagsList)
