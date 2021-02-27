@@ -12,5 +12,7 @@ namespace Fluid.Parser
 
         public TextSpanStatement PreviousTextSpanStatement { get; set; }
         public bool StripNextTextSpanStatement { get; set; }
+        public bool PreviousIsTag { get; set; }
+        public bool PreviousIsOutput { get; set; }
     }
 }

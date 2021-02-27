@@ -60,6 +60,11 @@ namespace Fluid
         /// </summary>
         public List<Func<object, object>> ValueConverters { get; } = new List<Func<object, object>>();
 
+        /// <summary>
+        /// Gets a scope that is available in all the templates.
+        /// </summary>
+        public TrimmingFlags Trimming { get; set; } = TrimmingFlags.None;
+
         public TemplateOptions()
         {
             Filters.WithArrayFilters()

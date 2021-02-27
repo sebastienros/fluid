@@ -60,12 +60,17 @@ namespace Fluid.Parser
 
                     var trim = context.Scanner.ReadChar('-');
 
-                    if (trim)
+                    if (p.PreviousTextSpanStatement != null)
                     {
-                        p.PreviousTextSpanStatement?.StripRight();
-                    }
+                        if (trim)
+                        {
+                            p.PreviousTextSpanStatement.StripRight = true;
+                        }
 
-                    p.PreviousTextSpanStatement = null;
+                        p.PreviousTextSpanStatement.NextIsTag = true;
+
+                        p.PreviousTextSpanStatement = null;
+                    }
 
                     result.Set(start, context.Scanner.Cursor.Offset, trim ? TagResult.TagOpenTrim : TagResult.TagOpen);
                     return true;
@@ -103,6 +108,8 @@ namespace Fluid.Parser
 
                     p.StripNextTextSpanStatement = trim;
                     p.PreviousTextSpanStatement = null;
+                    p.PreviousIsTag = true;
+                    p.PreviousIsOutput = false;
 
                     result.Set(start, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
                     return true;
@@ -138,12 +145,17 @@ namespace Fluid.Parser
 
                     var p = (FluidParseContext)context;
 
-                    if (trim)
+                    if (p.PreviousTextSpanStatement != null)
                     {
-                        p.PreviousTextSpanStatement?.StripRight();
-                    }
+                        if (trim)
+                        {
+                            p.PreviousTextSpanStatement.StripRight = true;
+                        }
 
-                    p.PreviousTextSpanStatement = null;
+                        p.PreviousTextSpanStatement.NextIsOutput = true;
+
+                        p.PreviousTextSpanStatement = null;
+                    }
 
 
                     result.Set(start, context.Scanner.Cursor.Offset, trim ? TagResult.TagOpenTrim : TagResult.TagOpen);
@@ -182,6 +194,8 @@ namespace Fluid.Parser
 
                     p.StripNextTextSpanStatement = trim;
                     p.PreviousTextSpanStatement = null;
+                    p.PreviousIsTag = false;
+                    p.PreviousIsOutput = true;
 
                     result.Set(start, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
                     return true;

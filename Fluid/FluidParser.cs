@@ -180,9 +180,13 @@ namespace Fluid
 
                     if (p.StripNextTextSpanStatement)
                     {
-                        result.StrippedLeft = true;
+                        result.StripLeft = true;
                         p.StripNextTextSpanStatement = false;
                     }
+
+                    result.PreviousIsTag = p.PreviousIsTag;
+                    result.PreviousIsOutput = p.PreviousIsOutput;
+
                     return result;
                 });
 

@@ -22,18 +22,13 @@ namespace Fluid.Ast
             _text = new TextSpan(text);
         }
 
-        public bool StrippedLeft { get; set; }
-        public bool StrippedRight { get; set; }
+        public bool StripLeft { get; set; }
+        public bool StripRight { get; set; }
 
-        public void StripRight()
-        {
-            StrippedRight = true;
-        }
-
-        public void StripLeft()
-        {
-            StrippedLeft = true;
-        }
+        public bool NextIsTag { get; set; }
+        public bool NextIsOutput { get; set; }
+        public bool PreviousIsTag { get; set; }
+        public bool PreviousIsOutput { get; set; }
 
         public ref readonly TextSpan Text => ref _text;
 
@@ -41,11 +36,21 @@ namespace Fluid.Ast
         {
             if (!_isStripped)
             {
+                StripLeft |= 
+                    (PreviousIsTag && context.Options.Trimming.HasFlag(TrimmingFlags.TagRight)) ||
+                    (PreviousIsOutput && context.Options.Trimming.HasFlag(TrimmingFlags.OutputRight))
+                    ;
+
+                StripRight |=
+                    (NextIsTag && context.Options.Trimming.HasFlag(TrimmingFlags.TagLeft)) ||
+                    (NextIsOutput && context.Options.Trimming.HasFlag(TrimmingFlags.OutputLeft))
+                    ;
+
                 var span = _text.Buffer;
                 var start = 0;
                 var end = _text.Length - 1;
 
-                if (StrippedLeft)
+                if (StripLeft)
                 {
                     for (var i = start; i <= end; i++)
                     {
@@ -62,7 +67,7 @@ namespace Fluid.Ast
                     }
                 }
 
-                if (StrippedRight)
+                if (StripRight)
                 {
                     for (var i = end; i >= start; i--)
                     {
