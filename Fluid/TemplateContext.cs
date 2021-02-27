@@ -39,7 +39,7 @@ namespace Fluid
             LocalScope.SetValue("empty", NilValue.Empty);
             LocalScope.SetValue("blank", StringValue.Empty);
             CultureInfo = options.CultureInfo;
-            TimeZoneUtcOffset = options.TimeZoneUtcOffset;
+            TimeZoneInfo = options.TimeZoneInfo;
             Now = options.Now;
         }
 
@@ -68,9 +68,9 @@ namespace Fluid
         public Func<DateTimeOffset> Now { get; set; } = TemplateOptions.Default.Now;
 
         /// <summary>
-        /// Gets or sets the local Timezone offset used when parsing or creating dates without specific timezone.
+        /// Gets or sets the local time zone used when parsing or creating dates without specific ones.
         /// </summary>
-        public TimeSpan TimeZoneUtcOffset { get; set; } = TemplateOptions.Default.TimeZoneUtcOffset;
+        public TimeZoneInfo TimeZoneInfo { get; set; } = TemplateOptions.Default.TimeZoneInfo;
 
         internal void IncrementSteps()
         {

@@ -500,7 +500,7 @@ namespace Fluid.Filters
                     {
                         if (dateTime.Kind == DateTimeKind.Unspecified)
                         {
-                            result = new DateTimeOffset(dateTime, context.TimeZoneUtcOffset);
+                            result = new DateTimeOffset(dateTime, context.TimeZoneInfo.GetUtcOffset(dateTime));
                         }
                         else
                         {
@@ -513,8 +513,8 @@ namespace Fluid.Filters
             }
             else if (input.Type == FluidValues.Number)
             {
-                // result = new DateTimeOffset(1970, 1, 1, 0, 0, 0, context.TimeZoneUtcOffset).AddSeconds((long)input.ToNumberValue());
-                result = DateTimeOffset.FromUnixTimeSeconds((long)input.ToNumberValue()).ToOffset(context.TimeZoneUtcOffset);
+                var dateTime = DateTimeOffset.FromUnixTimeSeconds((long)input.ToNumberValue());
+                result = dateTime.ToOffset(context.TimeZoneInfo.GetUtcOffset(dateTime));
             }
             else if (input.Type == FluidValues.DateTime)
             {
