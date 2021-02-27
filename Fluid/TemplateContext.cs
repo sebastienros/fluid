@@ -39,7 +39,7 @@ namespace Fluid
             LocalScope.SetValue("empty", NilValue.Empty);
             LocalScope.SetValue("blank", StringValue.Empty);
             CultureInfo = options.CultureInfo;
-            TimeZoneInfo = options.TimeZoneInfo;
+            TimeZone = options.TimeZone;
             Now = options.Now;
         }
 
@@ -70,7 +70,7 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the local time zone used when parsing or creating dates without specific ones.
         /// </summary>
-        public TimeZoneInfo TimeZoneInfo { get; set; } = TemplateOptions.Default.TimeZoneInfo;
+        public TimeZoneInfo TimeZone { get; set; } = TemplateOptions.Default.TimeZone;
 
         internal void IncrementSteps()
         {

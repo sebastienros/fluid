@@ -182,7 +182,7 @@ namespace Fluid.Tests
                 new DateTime(2017, 8, 1, 17, 4, 36, 123), TimeSpan.FromHours(8)));
 
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions() { CultureInfo = new CultureInfo("en-US"), TimeZoneInfo = TimeZoneInfo.Utc };
+            var options = new TemplateOptions() { CultureInfo = new CultureInfo("en-US"), TimeZone = TimeZoneInfo.Utc };
             var context = new TemplateContext(options);
 
             var result = MiscFilters.Date(input, arguments, context);
@@ -309,7 +309,7 @@ namespace Fluid.Tests
             var format = "%D";
 
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture, TimeZoneInfo = TimeZoneInfo.Utc };
+            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture, TimeZone = TimeZoneInfo.Utc };
             var context = new TemplateContext(options);
 
             var result = MiscFilters.Date(input, arguments, context);
@@ -327,7 +327,7 @@ namespace Fluid.Tests
 
             var input = NumberValue.Create(number);
             var format = new FilterArguments(new StringValue("%s"));
-            var context = new TemplateContext { TimeZoneInfo = Eastern};
+            var context = new TemplateContext { TimeZone = Eastern};
 
             var result = MiscFilters.Date(input, format, context);
 
@@ -339,7 +339,7 @@ namespace Fluid.Tests
         {
             var input = StringValue.Create("1970-01-01 00:00:00");
             var format = new FilterArguments(new StringValue("%a %b %e %H:%M:%S %Y %z"));
-            var context = new TemplateContext { TimeZoneInfo = Pacific };
+            var context = new TemplateContext { TimeZone = Pacific };
 
             var result = MiscFilters.Date(input, format, context);
 
@@ -353,7 +353,7 @@ namespace Fluid.Tests
             var input = StringValue.Create("1970-01-01 00:00:00 -05:00");
 
             var format = new FilterArguments(new StringValue("%s"));
-            var context = new TemplateContext { TimeZoneInfo = TimeZoneInfo.Utc };
+            var context = new TemplateContext { TimeZone = TimeZoneInfo.Utc };
 
             var result = MiscFilters.Date(input, format, context);
 
@@ -367,7 +367,7 @@ namespace Fluid.Tests
             var input = StringValue.Create("1970-01-01 00:00:00");
 
             var format = new FilterArguments(new StringValue("%s"));
-            var context = new TemplateContext { TimeZoneInfo = Eastern };
+            var context = new TemplateContext { TimeZone = Eastern };
 
             var result = MiscFilters.Date(input, format, context);
 
@@ -382,7 +382,7 @@ namespace Fluid.Tests
             var input = StringValue.Create("2021-01-01 00:00:00");
 
             var format = new FilterArguments(new StringValue("%z"));
-            var context = new TemplateContext { TimeZoneInfo = Pacific };
+            var context = new TemplateContext { TimeZone = Pacific };
 
             var result = MiscFilters.Date(input, format, context);
 
@@ -403,7 +403,7 @@ namespace Fluid.Tests
 
             var input = NumberValue.Create(0);
             var format = new FilterArguments(new StringValue("%+"));
-            var context = new TemplateContext { TimeZoneInfo = Eastern };
+            var context = new TemplateContext { TimeZone = Eastern };
 
             var result = MiscFilters.Date(input, format, context);
 
@@ -418,10 +418,10 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments(new StringValue(format));
 
-            var context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("fr-FR"), TimeZoneInfo = TimeZoneInfo.Utc });
+            var context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("fr-FR"), TimeZone = TimeZoneInfo.Utc });
             var resultFR = MiscFilters.Date(input, arguments, context);
 
-            context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("en-US"), TimeZoneInfo = TimeZoneInfo.Utc });
+            context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("en-US"), TimeZone = TimeZoneInfo.Utc });
             var resultUS = MiscFilters.Date(input, arguments, context);
 
             Assert.Equal("08/01/2017", resultFR.Result.ToStringValue());
@@ -436,10 +436,10 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments(new StringValue(format));
 
-            var context = new TemplateContext { CultureInfo = new CultureInfo("fr-FR"), TimeZoneInfo = TimeZoneInfo.Utc };
+            var context = new TemplateContext { CultureInfo = new CultureInfo("fr-FR"), TimeZone = TimeZoneInfo.Utc };
             var resultFR = MiscFilters.Date(input, arguments, context);
 
-            context = new TemplateContext { CultureInfo = new CultureInfo("en-US"), TimeZoneInfo = TimeZoneInfo.Utc };
+            context = new TemplateContext { CultureInfo = new CultureInfo("en-US"), TimeZone = TimeZoneInfo.Utc };
             var resultUS = MiscFilters.Date(input, arguments, context);
 
             Assert.Equal("dimanche 8 janvier 2017 00:00:00", resultFR.Result.ToStringValue());

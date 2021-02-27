@@ -38,7 +38,7 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the local time zone used when parsing or creating dates without specific ones.
         /// </summary>
-        public TimeZoneInfo TimeZoneInfo { get; set; } = TimeZoneInfo.Local;
+        public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Local;
 
         /// <summary>
         /// Gets or sets the maximum depth of recursions a script can execute. 100 by default.
