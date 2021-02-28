@@ -1,6 +1,4 @@
-﻿using Fluid.Ast;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -10,11 +8,6 @@ namespace Fluid.Tests
     {
         private static FluidParser _parser = new FluidParser();
 
-        private IReadOnlyList<Statement> Parse(string source)
-        {
-            _parser.TryParse(source, out var template, out var errors);
-            return template.Statements;
-        }
         [Fact]
         public async Task ShouldPreserveSpace()
         {
@@ -119,6 +112,66 @@ Wow, John G. Chalmers-Smith, you have a long name!";
         }
 
         [Fact]
+        public async Task ShouldRenderSampleWithTrimLeftTag()
+        {
+            var sample = @"
+<ul id=""products"">
+  {% for product in products %}
+  <li>
+    <h2>{{ product.name }}</h2>
+    Only {{ product.price | price }}
+
+    {{ product.name | prettyprint | paragraph }}
+  </li>
+  {% endfor %}
+</ul>
+";
+
+            var expected = @"
+<ul id=""products"">
+  <li>
+    <h2>product 1</h2>
+    Only 1
+
+    product 1
+  </li>
+  <li>
+    <h2>product 2</h2>
+    Only 2
+
+    product 2
+  </li>
+  <li>
+    <h2>product 3</h2>
+    Only 3
+
+    product 3
+  </li>
+</ul>
+";
+
+            var _products = new[]
+            {
+                new { name = "product 1", price = 1 },
+                new { name = "product 2", price = 2 },
+                new { name = "product 3", price = 3 },
+            };
+
+            _parser.TryParse(sample, out var template, out var messages);
+
+            var options = new TemplateOptions { Trimming = TrimmingFlags.TagLeft } ;
+            var context = new TemplateContext(options);
+            context.SetValue("products", _products);
+            options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
+            options.Filters.AddFilter("paragraph", (input, args, ctx) => input);
+            options.Filters.AddFilter("price", (input, args, ctx) => input);
+            options.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
         public async Task ShouldRenderSampleWithDashesRight()
         {
             var sample = @"
@@ -167,6 +220,66 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             _parser.TryParse(sample, out var template, out var messages);
 
             var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            context.SetValue("products", _products);
+            options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
+            options.Filters.AddFilter("paragraph", (input, args, ctx) => input);
+            options.Filters.AddFilter("price", (input, args, ctx) => input);
+            options.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public async Task ShouldRenderSampleWithTrimTagRight()
+        {
+            var sample = @"
+<ul id=""products"">
+  {% for product in products %}
+  <li>
+    <h2>{{ product.name }}</h2>
+    Only {{ product.price | price }}
+
+    {{ product.name | prettyprint | paragraph }}
+  </li>
+  {% endfor %}
+</ul>
+";
+
+            var expected = @"
+<ul id=""products"">
+  <li>
+    <h2>product 1</h2>
+    Only 1
+
+    product 1
+  </li>
+  <li>
+    <h2>product 2</h2>
+    Only 2
+
+    product 2
+  </li>
+  <li>
+    <h2>product 3</h2>
+    Only 3
+
+    product 3
+  </li>
+  </ul>
+";
+
+            var _products = new[]
+            {
+                new { name = "product 1", price = 1 },
+                new { name = "product 2", price = 2 },
+                new { name = "product 3", price = 3 },
+            };
+
+            _parser.TryParse(sample, out var template, out var messages);
+
+            var options = new TemplateOptions { Trimming = TrimmingFlags.TagRight };
             var context = new TemplateContext(options);
             context.SetValue("products", _products);
             options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
@@ -231,6 +344,34 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             Assert.Equal(expected, result);
         }
 
+        [Theory]
+        [InlineData(" {{ 1 }} ", " 1")]
+        public async Task ShouldTrimOutputRight(string source, string expected)
+        {
+            var success = _parser.TryParse(source, out var template, out var messages);
+            Assert.True(success, String.Join(", ", messages));
+
+            var options = new TemplateOptions { Trimming = TrimmingFlags.OutputRight };
+            var context = new TemplateContext(options);
+            var result = await template.RenderAsync(context);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData(" {{ 1 }} ", "1 ")]
+        public async Task ShouldTrimOutputLeft(string source, string expected)
+        {
+            var success = _parser.TryParse(source, out var template, out var messages);
+            Assert.True(success, String.Join(", ", messages));
+
+            var options = new TemplateOptions { Trimming = TrimmingFlags.OutputLeft };
+            var context = new TemplateContext(options);
+            var result = await template.RenderAsync(context);
+
+            Assert.Equal(expected, result);
+        }
+
         [Fact]
         public void ShouldParseNonBreakingWhitespace()
         {
@@ -240,6 +381,37 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             var rendered = template.Render();
 
             Assert.Equal("a", rendered);
+        }
+
+        [Theory]
+        [InlineData("  {{- 1 }}  ", "1  ")]
+        [InlineData("  {{ 1 -}}  ", "  1")]
+        [InlineData("  {%- assign a = 1 %}  ", "  ")]
+        [InlineData("  {% assign a = 1 -%}  ", "  ")]
+
+        [InlineData("  {{- 1 }}  \r\n", "1  \r\n")]
+        [InlineData("  {{- 1 }}  \n", "1  \n")]
+        [InlineData("\r\n  {{- 1 }}  ", "\r\n1  ")]
+        [InlineData("\n  {{- 1 }}  ", "\n1  ")]
+        [InlineData("\r\n\r\n  {{- 1 }}  ", "\r\n\r\n1  ")]
+        [InlineData("\n\n  {{- 1 }}  ", "\n\n1  ")]
+
+        [InlineData("\r\n  {{ 1 -}}  ", "\r\n  1")]
+        [InlineData("\n  {{ 1 -}}  ", "\n  1")]
+        [InlineData("  {{ 1 -}}  \r\n", "  1")]
+        [InlineData("  {{ 1 -}}  \n", "  1")]
+        [InlineData("  {{ 1 -}}  \r\n\r\n", "  1\r\n")]
+        [InlineData("  {{ 1 -}}  \n\n", "  1\n")]
+        public async Task NotGreedyShouldStripUntilFirstLine(string source, string expected)
+        {
+            var success = _parser.TryParse(source, out var template, out var messages);
+            Assert.True(success, String.Join(", ", messages));
+
+            var options = new TemplateOptions { Greedy = false };
+            var context = new TemplateContext(options);
+            var result = await template.RenderAsync(context);
+
+            Assert.Equal(expected, result);
         }
     }
 }
