@@ -35,6 +35,7 @@ To see the corresponding content for v1.0 use [this version](https://github.com/
 - [Time zones](#time-zones)
 - [Customizing tags and blocks](#customizing-tags-and-blocks)
 - [ASP.NET MVC View Engine](#aspnet-mvc-view-engine)
+- [Whitespace control](#whitespace-control)
 - [Custom filters](#custom-filters)
 - [Performance](#performance)
 - [Used by](#used-by)
@@ -742,6 +743,58 @@ Where `{0}` is the view name, and `{1}` is the controller name.
 The content of a view is parsed once and kept in memory until the file or one of its dependencies changes. Once parsed, the tag are executed every time the view is called. To compare this with Razor, where views are first compiled then instantiated every time they are rendered. This means that on startup or when the view is changed, views with Fluid will run faster than those in Razor, unless you are using precompiled Razor views. In all cases Razor views will be faster on subsequent calls as they are compiled directly to C#.
 
 This difference makes Fluid very adapted for rapid development cycles where the views can be deployed and updated frequently. And because the Liquid language is secure, developers give access to them with more confidence.  
+
+<br>
+
+## Whitespace control
+
+Liquid follows strict rules with regards to whitespace support. By default all spaces and new lines are preserved from the template.
+The Liquid syntax and some Fluid options allow to customize this behavior.
+
+### Hyphens
+
+For example:
+
+```liquid
+{%  assign name = "Bill" %}
+{{ name }}
+```
+
+There is a new line after the `assign` tag which will be preserved.
+
+Outputs:
+
+```
+
+Bill
+```
+
+Tags and values can use hyphens to strip whitespace. 
+
+Example:
+
+```liquid
+{%  assign name = "Bill" -%}
+{{ name }}
+```
+
+Outputs:
+
+```
+Bill
+```
+
+The `-%}` strips the whitespace from the right side of the `assign` tag.
+
+## Template Options
+
+Fluid provides the `TemplateOptions.Trimming` property that can be set with predefined preferences for when whitespace should be stripped automatically, even if hyphens are not
+present in tags and output values.
+
+## Greedy Mode
+
+When greedy model is disabled in `TemplateOptions.Greedy`, only the spaces before the first new line are stripped.
+Greedy mode is enabled by default since this is the standard behavior of the Liquid language.
 
 <br>
 

@@ -345,7 +345,7 @@ Wow, John G. Chalmers-Smith, you have a long name!";
         }
 
         [Theory]
-        [InlineData(" {{ 1 -}} ", " 1")]
+        [InlineData(" {{ 1 }} ", " 1")]
         public async Task ShouldTrimOutputRight(string source, string expected)
         {
             var success = _parser.TryParse(source, out var template, out var messages);
@@ -353,13 +353,13 @@ Wow, John G. Chalmers-Smith, you have a long name!";
 
             var options = new TemplateOptions { Trimming = TrimmingFlags.OutputRight };
             var context = new TemplateContext(options);
-            var result = await template.RenderAsync();
+            var result = await template.RenderAsync(context);
 
             Assert.Equal(expected, result);
         }
 
         [Theory]
-        [InlineData(" {{- 1 }} ", "1 ")]
+        [InlineData(" {{ 1 }} ", "1 ")]
         public async Task ShouldTrimOutputLeft(string source, string expected)
         {
             var success = _parser.TryParse(source, out var template, out var messages);
@@ -367,7 +367,7 @@ Wow, John G. Chalmers-Smith, you have a long name!";
 
             var options = new TemplateOptions { Trimming = TrimmingFlags.OutputLeft };
             var context = new TemplateContext(options);
-            var result = await template.RenderAsync();
+            var result = await template.RenderAsync(context);
 
             Assert.Equal(expected, result);
         }
@@ -381,6 +381,37 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             var rendered = template.Render();
 
             Assert.Equal("a", rendered);
+        }
+
+        [Theory]
+        [InlineData("  {{- 1 }}  ", "1  ")]
+        [InlineData("  {{ 1 -}}  ", "  1")]
+        [InlineData("  {%- assign a = 1 %}  ", "  ")]
+        [InlineData("  {% assign a = 1 -%}  ", "  ")]
+
+        [InlineData("  {{- 1 }}  \r\n", "1  \r\n")]
+        [InlineData("  {{- 1 }}  \n", "1  \n")]
+        [InlineData("\r\n  {{- 1 }}  ", "\r\n1  ")]
+        [InlineData("\n  {{- 1 }}  ", "\n1  ")]
+        [InlineData("\r\n\r\n  {{- 1 }}  ", "\r\n\r\n1  ")]
+        [InlineData("\n\n  {{- 1 }}  ", "\n\n1  ")]
+
+        [InlineData("\r\n  {{ 1 -}}  ", "\r\n  1")]
+        [InlineData("\n  {{ 1 -}}  ", "\n  1")]
+        [InlineData("  {{ 1 -}}  \r\n", "  1")]
+        [InlineData("  {{ 1 -}}  \n", "  1")]
+        [InlineData("  {{ 1 -}}  \r\n\r\n", "  1\r\n")]
+        [InlineData("  {{ 1 -}}  \n\n", "  1\n")]
+        public async Task NotGreedyShouldStripUntilFirstLine(string source, string expected)
+        {
+            var success = _parser.TryParse(source, out var template, out var messages);
+            Assert.True(success, String.Join(", ", messages));
+
+            var options = new TemplateOptions { Greedy = false };
+            var context = new TemplateContext(options);
+            var result = await template.RenderAsync(context);
+
+            Assert.Equal(expected, result);
         }
     }
 }

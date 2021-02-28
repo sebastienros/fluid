@@ -61,9 +61,15 @@ namespace Fluid
         public List<Func<object, object>> ValueConverters { get; } = new List<Func<object, object>>();
 
         /// <summary>
-        /// Gets a scope that is available in all the templates.
+        /// Gets or sets the default trimming rules.
         /// </summary>
         public TrimmingFlags Trimming { get; set; } = TrimmingFlags.None;
+
+        /// <summary>
+        /// Gets or sets whether trimming is greedy. Default is true. When set to true, all successive blank chars are trimmed.
+        /// </summary>
+        public bool Greedy { get; set; } = true;
+
 
         public TemplateOptions()
         {
