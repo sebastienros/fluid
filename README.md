@@ -504,9 +504,9 @@ Operator are used to compare values, like `>` or `contains`. Custom operators ca
 
 #### Source
 
-The following example creates a custom `startsWith` operator that will evaluate to `true` if the left expression starts with the right expression when converted to strings.
+The following example creates a custom `xor` operator that will evaluate to `true` if only one of the left and right expressions is true when converted to booleans.
 
-__StartsWithExpression.cs__
+__XorBinaryExpression.cs__
 
 ```csharp
 using Fluid.Ast;
@@ -515,9 +515,9 @@ using System.Threading.Tasks;
 
 namespace Fluid.Tests.Extensibility
 {
-    public class StartsWithBinaryExpression : BinaryExpression
+    public class XorBinaryExpression : BinaryExpression
     {
-        public StartsWithBinaryExpression(Expression left, Expression right) : base(left, right)
+        public XorBinaryExpression(Expression left, Expression right) : base(left, right)
         {
         }
 
@@ -526,9 +526,7 @@ namespace Fluid.Tests.Extensibility
             var leftValue = await Left.EvaluateAsync(context);
             var rightValue = await Right.EvaluateAsync(context);
 
-            return leftValue.ToStringValue().StartsWith(rightValue.ToStringValue())
-                    ? BooleanValue.True
-                    : BooleanValue.False;
+            return BooleanValue.Create(leftValue.ToBooleanValue() ^ rightValue.ToBooleanValue());
         }
     }
 }
@@ -537,13 +535,13 @@ namespace Fluid.Tests.Extensibility
 __Parser configuration__
 
 ```csharp
-parser.RegisteredOperators["startsWith"] = (a, b) => new StartsWithBinaryExpression(a, b);
+parser.RegisteredOperators["xor"] = (a, b) => new XorBinaryExpression(a, b);
 ```
 
 __Usage__
 
 ```Liquid
-{% if 'abc' startsWith 'ab' %}Hello{% endif %}
+{% if true xor false %}Hello{% endif %}
 ```
 
 #### Result
