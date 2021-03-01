@@ -104,13 +104,13 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData("'abc' startsWith 'bc'", "false")]
-        [InlineData("'abc' startsWith 'ab'", "true")]
-        [InlineData("x startsWith 'b'", "false")]
-        [InlineData("x startsWith 'a'", "true")]
-        [InlineData("y startsWith 2", "false")]
-        [InlineData("y startsWith 1", "true")]
-        [InlineData("z startsWith 'a'", "false")]
+        [InlineData("'abc' startswith 'bc'", "false")]
+        [InlineData("'abc' startswith 'ab'", "true")]
+        [InlineData("x startswith 'b'", "false")]
+        [InlineData("x startswith 'a'", "true")]
+        [InlineData("y startswith 2", "false")]
+        [InlineData("y startswith 1", "true")]
+        [InlineData("z startswith 'a'", "false")]
         public Task StartsWithBinaryExpressionIsEvaluated(string source, string expected)
         {
             return CheckAsync(source, expected, context =>
@@ -122,13 +122,13 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData("'abc' endsWith 'ab'", "false")]
-        [InlineData("'abc' endsWith 'bc'", "true")]
-        [InlineData("x endsWith 'b'", "false")]
-        [InlineData("x endsWith 'c'", "true")]
-        [InlineData("y endsWith 2", "false")]
-        [InlineData("y endsWith 3", "true")]
-        [InlineData("z endsWith 'a'", "false")]
+        [InlineData("'abc' endswith 'ab'", "false")]
+        [InlineData("'abc' endswith 'bc'", "true")]
+        [InlineData("x endswith 'b'", "false")]
+        [InlineData("x endswith 'c'", "true")]
+        [InlineData("y endswith 2", "false")]
+        [InlineData("y endswith 3", "true")]
+        [InlineData("z endswith 'a'", "false")]
         public Task EndsWithBinaryExpressionIsEvaluated(string source, string expected)
         {
             return CheckAsync(source, expected, context =>
