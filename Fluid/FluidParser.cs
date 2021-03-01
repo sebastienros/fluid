@@ -46,6 +46,8 @@ namespace Fluid
         protected static readonly Parser<string> GreaterOr = Terms.Text(">=");
         protected static readonly Parser<string> LowerOr = Terms.Text("<=");
         protected static readonly Parser<string> Contains = Terms.Text("contains");
+        protected static readonly Parser<string> StartsWith = Terms.Text("startsWith");
+        protected static readonly Parser<string> EndsWith = Terms.Text("endsWith");
         protected static readonly Parser<string> BinaryOr = Terms.Text("or");
         protected static readonly Parser<string> BinaryAnd = Terms.Text("and");
 
@@ -100,6 +102,8 @@ namespace Fluid
             RegisteredOperators["or"] = (a, b) => new OrBinaryExpression(a, b);
             RegisteredOperators["and"] = (a, b) => new AndBinaryExpression(a, b);
             RegisteredOperators["contains"] = (a, b) => new ContainsBinaryExpression(a, b);
+            RegisteredOperators["startsWith"] = (a, b) => new StartsWithBinaryExpression(a, b);
+            RegisteredOperators["endsWith"] = (a, b) => new EndsWithBinaryExpression(a, b);
             RegisteredOperators["=="] = (a, b) => new EqualBinaryExpression(a, b);
             RegisteredOperators["!="] = (a, b) => new NotEqualBinaryExpression(a, b);
             RegisteredOperators["<>"] = (a, b) => new NotEqualBinaryExpression(a, b);

@@ -104,6 +104,42 @@ namespace Fluid.Tests
         }
 
         [Theory]
+        [InlineData("'abc' startsWith 'bc'", "false")]
+        [InlineData("'abc' startsWith 'ab'", "true")]
+        [InlineData("x startsWith 'b'", "false")]
+        [InlineData("x startsWith 'a'", "true")]
+        [InlineData("y startsWith 2", "false")]
+        [InlineData("y startsWith 1", "true")]
+        [InlineData("z startsWith 'a'", "false")]
+        public Task StartsWithBinaryExpressionIsEvaluated(string source, string expected)
+        {
+            return CheckAsync(source, expected, context =>
+            {
+                context.SetValue("x", new[] { "a", "b", "c" });
+                context.SetValue("y", new[] { 1, 2, 3 });
+                context.SetValue("z", new string[0]);
+            });
+        }
+
+        [Theory]
+        [InlineData("'abc' endsWith 'ab'", "false")]
+        [InlineData("'abc' endsWith 'bc'", "true")]
+        [InlineData("x endsWith 'b'", "false")]
+        [InlineData("x endsWith 'c'", "true")]
+        [InlineData("y endsWith 2", "false")]
+        [InlineData("y endsWith 3", "true")]
+        [InlineData("z endsWith 'a'", "false")]
+        public Task EndsWithBinaryExpressionIsEvaluated(string source, string expected)
+        {
+            return CheckAsync(source, expected, context =>
+            {
+                context.SetValue("x", new[] { "a", "b", "c" });
+                context.SetValue("y", new[] { 1, 2, 3 });
+                context.SetValue("z", new string[0]);
+            });
+        }
+
+        [Theory]
         [InlineData("'' == empty", "true")]
         [InlineData("'a' == empty", "false")]
         [InlineData("x == empty", "true")]
