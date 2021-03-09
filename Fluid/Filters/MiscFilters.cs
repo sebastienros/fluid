@@ -153,6 +153,7 @@ namespace Fluid.Filters
                         case '<':
                             inside = true;
                             continue;
+
                         case '>':
                             inside = false;
                             continue;

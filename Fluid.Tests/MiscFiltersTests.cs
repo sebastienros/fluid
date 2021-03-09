@@ -87,6 +87,12 @@ namespace Fluid.Tests
         [Theory]
         [InlineData("Have <em>you</em> read <strong>Ulysses</strong>?", "Have you read Ulysses?")]
         [InlineData("Have you read Ulysses?", "Have you read Ulysses?")]
+        [InlineData("<div>test</div>", "test")]
+        [InlineData("<div id='test'>test</div>", "test")]
+        [InlineData("<script type='text/javascript'>document.write('some stuff');</script>", "")]
+        [InlineData("<style type='text/css'>foo bar</style>", "")]
+        [InlineData("<div\nclass='multiline'>test</div>", "test")]
+        [InlineData("<!-- foo bar \n test -->test", "test")]
         [InlineData("", "")]
         [InlineData(null, "")]
         public async Task StripHtml(string value, string expected)
