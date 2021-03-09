@@ -467,7 +467,7 @@ namespace Fluid.Filters
 
         private static bool TryGetDateTimeInput(FluidValue input, TemplateContext context, out DateTimeOffset result)
         {
-            result = context.Options.Now();
+            result = context.Now();
 
             if (input.Type == FluidValues.String)
             {
