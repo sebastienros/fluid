@@ -204,5 +204,13 @@ namespace Fluid.Tests
             return CheckAsync(source, expected);
         }
 
+        [Theory]
+        [InlineData("1 == 1 or 1 == 2 and 1 == 2", "true")]
+        [InlineData("1 == 1 and 1 == 2 and 1 == 2 or 1 == 1", "false")]
+        public Task OperatorsHavePriority(string source, string expected)
+        {
+            return CheckAsync(source, expected);
+        }
+
     }
 }

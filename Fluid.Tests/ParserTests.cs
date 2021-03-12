@@ -1,7 +1,9 @@
 ﻿using Fluid.Ast;
 using Microsoft.Extensions.Primitives;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Fluid.Tests
@@ -14,6 +16,17 @@ namespace Fluid.Tests
         {
             _parser.TryParse(source, out var template, out var errors);
             return template.Statements;
+        }
+
+        private async Task CheckAsync(string source, string expected, Action<TemplateContext> init = null)
+        {
+            _parser.TryParse("{% if " + source + " %}true{% else %}false{% endif %}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            init?.Invoke(context);
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(expected, result);
         }
 
         [Fact]
@@ -517,45 +530,64 @@ def", "at (")]
         [Theory]
 
         [InlineData("'' == p", "false")]
-        [InlineData("p == nil", "true")]
-        [InlineData("p == blank", "true")]
-        [InlineData("p == empty", "true")] // spec not clear, assuming empty is equal to nil and blank and ''
-        [InlineData("empty == blank", "true")]
-        [InlineData("nil == blank", "true")]
-        [InlineData("blank == ''", "true")]
-        [InlineData("nil == ''", "false")]
-        [InlineData("empty == ''", "true")]
-        [InlineData("e == ''", "true")]
-        [InlineData("e == blank", "true")]
-        [InlineData("empty == nil", "true")]
-
         [InlineData("p == ''", "false")]
+        [InlineData("p != ''", "true")]
+
+        [InlineData("p == nil", "true")]
+        [InlineData("p != nil", "false")]
         [InlineData("nil == p", "true")]
+
+        [InlineData("p == blank", "true")]
         [InlineData("blank == p ", "true")]
-        [InlineData("empty == p", "true")] // spec not clear, assuming empty is equal to nil and blank and ''
+
+        [InlineData("empty == blank", "true")]
         [InlineData("blank == empty", "true")]
+
+        [InlineData("nil == blank", "true")]
         [InlineData("blank == nil", "true")]
+
+        [InlineData("blank == ''", "true")]
         [InlineData("'' == blank", "true")]
+
+        [InlineData("nil == ''", "false")]
         [InlineData("'' == nil", "false")]
+
+        [InlineData("empty == ''", "true")]
         [InlineData("'' == empty", "true")]
+
+        [InlineData("e == ''", "true")]
         [InlineData("'' == e", "true")]
+
+        [InlineData("e == blank", "true")]
         [InlineData("blank == e", "true")]
-        [InlineData("nil == empty", "true")]
-        public void EmptyShouldEqualToNil(string source, string expected)
+
+        [InlineData("empty == nil", "false")]
+        [InlineData("nil == empty", "false")]
+
+        [InlineData("p != nil and p != ''", "false")]
+        [InlineData("p != '' and p != nil", "false")]
+
+        [InlineData("e != nil and e != ''", "false")]
+        [InlineData("e != '' and e != nil", "false")]
+
+        [InlineData("f != nil and f != ''", "true")]
+        [InlineData("f != '' and f != nil", "true")]
+
+        [InlineData("e == nil", "false")]
+        [InlineData("nil == e", "false")]
+
+        [InlineData("e == empty ", "true")]
+        [InlineData("empty == e ", "true")]
+
+        [InlineData("empty == f", "false")]
+        [InlineData("f == empty", "false")]
+
+        [InlineData("p == empty", "false")]
+        [InlineData("empty == p", "false")]
+
+        public Task EmptyShouldEqualToNil(string source, string expected)
         {
-            var result = _parser.TryParse("{%if " + source + " %}true{%else%}false{%endif%}", out var template, out var errors);
-
-            Assert.True(result);
-            Assert.NotNull(template);
-            Assert.Null(errors);
-
-            var context = new TemplateContext();
-            context.SetValue("e", "");
-
-            var rendered = template.Render(context);
-
-            Assert.Equal(expected, rendered);
-            
+            return CheckAsync(source, expected, t => t.SetValue("e", "").SetValue("f", "hello"));
         }
     }
 }

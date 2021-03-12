@@ -4,33 +4,30 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Values
 {
-    public sealed class NilValue : FluidValue
+    public sealed class BlankValue : FluidValue
     {
-        public static readonly NilValue Instance = new NilValue(); // a variable that is not defined, or the nil keyword
-        public static readonly NilValue Empty = new NilValue(); // the empty keyword
+        public static readonly BlankValue Instance = new BlankValue();
 
-        private NilValue()
+        private BlankValue()
         {
         }
 
-        public override FluidValues Type => FluidValues.Nil;
+        public override FluidValues Type => FluidValues.Empty;
 
         public override bool Equals(FluidValue other)
         {
-            if (other == EmptyValue.Instance) return false;
+            if (other == this) return true;
+            if (other == BooleanValue.False) return true;
+            if (other == EmptyValue.Instance) return true;
+            if (other.ToObjectValue() == null) return true;
+            if (other.Type == FluidValues.String && string.IsNullOrWhiteSpace(other.ToStringValue())) return true;
 
-            if (other == NilValue.Instance
-                || other == BlankValue.Instance)
-            {
-                return true;
-            }
-
-            return other.ToObjectValue() == null;
+            return false;
         }
 
         public override bool ToBooleanValue()
         {
-            return false;
+            return true;
         }
 
         public override decimal ToNumberValue()
@@ -40,7 +37,7 @@ namespace Fluid.Values
 
         public override object ToObjectValue()
         {
-            return null;
+            return "";
         }
 
         public override string ToStringValue()

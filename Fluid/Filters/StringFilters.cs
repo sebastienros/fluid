@@ -175,7 +175,7 @@ namespace Fluid.Filters
             {
                 if (requestedLength <= 0)
                 {
-                    return StringValue.Blank;
+                    return BlankValue.Instance;
                 }
 
                 var sourceString = input.ToStringValue();
@@ -184,7 +184,7 @@ namespace Fluid.Filters
 
                 if (requestedStartIndex < 0 && Math.Abs(requestedStartIndex) > sourceStringLength)
                 {
-                    return StringValue.Blank;
+                    return BlankValue.Instance;
                 }
 
                 var startIndex = requestedStartIndex < 0 ? Math.Max(sourceStringLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceStringLength);
@@ -250,14 +250,14 @@ namespace Fluid.Filters
         {
             if (input.IsNil())
             {
-                return StringValue.Blank;
+                return StringValue.Empty;
             }
 
             var inputStr = input.ToStringValue();
 
             if (inputStr == null)
             {
-                return StringValue.Blank;
+                return StringValue.Empty;
             }
 
             var ellipsisStr = arguments.At(1).Or(Ellipsis).ToStringValue();
