@@ -136,7 +136,7 @@ namespace Fluid.Filters
             var html = input.ToStringValue();
             if (String.IsNullOrEmpty(html))
             {
-                return StringValue.Empty;
+                return StringValue.Blank;
             }
 
             try
@@ -217,14 +217,11 @@ namespace Fluid.Filters
 
             var format = arguments.At(0).ToStringValue();
 
-            using (var sb = StringBuilderPool.GetInstance())
-            {
-                var result = sb.Builder;
+            var result = new StringBuilder(64);
 
-                ForStrf(value, format, result);
+            ForStrf(value, format, result);
 
-                return new StringValue(result.ToString());
-            }
+            return new StringValue(result.ToString());
 
             void ForStrf(DateTimeOffset value, string format, StringBuilder result)
             {

@@ -10,7 +10,7 @@ namespace Fluid.Values
 {
     public sealed class StringValue : FluidValue, IEquatable<StringValue>
     {
-        public static readonly StringValue Empty = new StringValue("");
+        public static readonly StringValue Blank = new StringValue("");
 
         private static readonly StringValue[] CharToString = new StringValue[256];
 
@@ -72,9 +72,16 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other)
         {
-            if (other.IsNil())
+            if (this == Blank)
             {
-                return _value.Length == 0;
+                return other == Blank
+                    || other.Type == FluidValues.String && other.ToStringValue() == ""
+                    || other.Type == FluidValues.Nil
+                    ;
+            }
+            else if(other.IsNil()) // empty, nil
+            {
+                return other == NilValue.Empty && _value == "";
             }
 
             return _value == other.ToStringValue();

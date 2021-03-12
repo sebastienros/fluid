@@ -6,8 +6,8 @@ namespace Fluid.Values
 {
     public sealed class NilValue : FluidValue
     {
-        public static readonly NilValue Instance = new NilValue();
-        public static readonly NilValue Empty = new NilValue();
+        public static readonly NilValue Instance = new NilValue(); // a variable that is not defined, or the nil keyword
+        public static readonly NilValue Empty = new NilValue(); // the empty keyword
 
         private NilValue()
         {
@@ -17,7 +17,23 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other)
         {
-            return other == Instance;
+            if (this == Empty)
+            {
+                return other == Empty
+                    || other == Instance
+                    || other == StringValue.Blank
+                    || other.Type == FluidValues.String && other.ToStringValue() == ""
+                    ;
+            }
+            else if (this == Instance)
+            {
+                return other == Instance
+                    || other == Empty
+                    || other == StringValue.Blank
+                    ;
+            }
+
+            return false;
         }
 
         public override bool ToBooleanValue()

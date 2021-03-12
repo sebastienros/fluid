@@ -513,5 +513,49 @@ def", "at (")]
 
             Assert.Equal("true", rendered);
         }
+
+        [Theory]
+
+        [InlineData("'' == p", "false")]
+        [InlineData("p == nil", "true")]
+        [InlineData("p == blank", "true")]
+        [InlineData("p == empty", "true")] // spec not clear, assuming empty is equal to nil and blank and ''
+        [InlineData("empty == blank", "true")]
+        [InlineData("nil == blank", "true")]
+        [InlineData("blank == ''", "true")]
+        [InlineData("nil == ''", "false")]
+        [InlineData("empty == ''", "true")]
+        [InlineData("e == ''", "true")]
+        [InlineData("e == blank", "true")]
+        [InlineData("empty == nil", "true")]
+
+        [InlineData("p == ''", "false")]
+        [InlineData("nil == p", "true")]
+        [InlineData("blank == p ", "true")]
+        [InlineData("empty == p", "true")] // spec not clear, assuming empty is equal to nil and blank and ''
+        [InlineData("blank == empty", "true")]
+        [InlineData("blank == nil", "true")]
+        [InlineData("'' == blank", "true")]
+        [InlineData("'' == nil", "false")]
+        [InlineData("'' == empty", "true")]
+        [InlineData("'' == e", "true")]
+        [InlineData("blank == e", "true")]
+        [InlineData("nil == empty", "true")]
+        public void EmptyShouldEqualToNil(string source, string expected)
+        {
+            var result = _parser.TryParse("{%if " + source + " %}true{%else%}false{%endif%}", out var template, out var errors);
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Null(errors);
+
+            var context = new TemplateContext();
+            context.SetValue("e", "");
+
+            var rendered = template.Render(context);
+
+            Assert.Equal(expected, rendered);
+            
+        }
     }
 }
