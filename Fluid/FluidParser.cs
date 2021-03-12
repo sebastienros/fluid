@@ -55,6 +55,7 @@ namespace Fluid
 
         protected readonly Parser<List<FilterArgument>> ArgumentsList;
         protected readonly Parser<Expression> LogicalExpression;
+        protected readonly Parser<Expression> CombinatoryExpression; // and | or
         protected static readonly Deferred<Expression> Primary = Deferred<Expression>();
         protected static readonly Deferred<Expression> FilterExpression = Deferred<Expression>();
         protected readonly Deferred<List<Statement>> KnownTagsList = Deferred<List<Statement>>();
@@ -99,8 +100,6 @@ namespace Fluid
                 .Or(Member.Then<Expression>(x => x))
                 ;
 
-            RegisteredOperators["or"] = (a, b) => new OrBinaryExpression(a, b);
-            RegisteredOperators["and"] = (a, b) => new AndBinaryExpression(a, b);
             RegisteredOperators["contains"] = (a, b) => new ContainsBinaryExpression(a, b);
             RegisteredOperators["startswith"] = (a, b) => new StartsWithBinaryExpression(a, b);
             RegisteredOperators["endswith"] = (a, b) => new EndsWithBinaryExpression(a, b);
@@ -114,7 +113,18 @@ namespace Fluid
 
             var CaseValueList = Separated(BinaryOr, Primary);
 
-            LogicalExpression = Primary.And(ZeroOrMany(Terms.NonWhiteSpace().Then<string>(x => x.ToString()).When(x => RegisteredOperators.ContainsKey(x)).And(Primary)))
+            CombinatoryExpression = Primary.And(ZeroOrOne(Terms.NonWhiteSpace().Then(x => x.ToString()).When(x => RegisteredOperators.ContainsKey(x)).And(Primary)))
+                .Then(x =>
+                 {
+                     if (x.Item2.Item1 == null)
+                     {
+                         return x.Item1;
+                     }
+
+                     return RegisteredOperators[x.Item2.Item1](x.Item1, x.Item2.Item2);
+                 });
+
+            LogicalExpression = CombinatoryExpression.And(ZeroOrMany(OneOf(Terms.Text("or"), Terms.Text("and")).And(CombinatoryExpression)))
                 .Then(x =>
                 {
                     if (x.Item2.Count == 0)
@@ -129,7 +139,13 @@ namespace Fluid
                         var current = x.Item2[i];
                         var previous = i == 0 ? x.Item1 : x.Item2[i - 1].Item2;
 
-                        result = RegisteredOperators[current.Item1](previous, current.Item2);
+                        result = current.Item1 switch
+                        {
+                            "or" => new OrBinaryExpression(previous, current.Item2),
+                            "and" => new AndBinaryExpression(previous, current.Item2),
+                            _ => throw new ParseException()
+                        };
+                        
                     }
 
                     return result;

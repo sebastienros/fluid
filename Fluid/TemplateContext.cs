@@ -36,8 +36,8 @@ namespace Fluid
 
             LocalScope = new Scope(options.Scope);
 
-            LocalScope.SetValue("empty", NilValue.Empty);
-            LocalScope.SetValue("blank", StringValue.Empty);
+            LocalScope.SetValue("empty", EmptyValue.Instance);
+            LocalScope.SetValue("blank", BlankValue.Instance);
             CultureInfo = options.CultureInfo;
             TimeZone = options.TimeZone;
             Now = options.Now;

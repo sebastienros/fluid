@@ -175,7 +175,7 @@ namespace Fluid.Filters
             {
                 if (requestedLength <= 0)
                 {
-                    return StringValue.Empty;
+                    return BlankValue.Instance;
                 }
 
                 var sourceString = input.ToStringValue();
@@ -184,7 +184,7 @@ namespace Fluid.Filters
 
                 if (requestedStartIndex < 0 && Math.Abs(requestedStartIndex) > sourceStringLength)
                 {
-                    return StringValue.Empty;
+                    return BlankValue.Instance;
                 }
 
                 var startIndex = requestedStartIndex < 0 ? Math.Max(sourceStringLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceStringLength);

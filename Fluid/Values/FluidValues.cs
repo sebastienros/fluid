@@ -3,6 +3,8 @@
     public enum FluidValues
     {
         Nil,
+        Empty,
+        Blank,
         Array,
         Boolean,
         Dictionary,
