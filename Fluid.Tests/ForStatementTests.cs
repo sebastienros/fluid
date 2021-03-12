@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
@@ -242,7 +243,7 @@ namespace Fluid.Tests
 
             var sw = new StringWriter();
             var context = new TemplateContext();
-            context.SetValue("items", new int[0]);
+            context.SetValue("items", Array.Empty<int>());
             await e.WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal("y", sw.ToString());
@@ -345,7 +346,7 @@ namespace Fluid.Tests
             Assert.Equal("54", sw.ToString());
         }
 
-        Statement CreateMemberStatement(string p)
+        static Statement CreateMemberStatement(string p)
         {
             return new OutputStatement(new MemberExpression(p.Split('.').Select(x => new IdentifierSegment(x)).ToArray()));
         }

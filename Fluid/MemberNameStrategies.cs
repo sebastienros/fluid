@@ -7,7 +7,7 @@ namespace Fluid
     {
         public static readonly MemberNameStrategy Default = RenameDefault;
         public static readonly MemberNameStrategy CamelCase = RenameCamelCase;
-        public static readonly MemberNameStrategy SnakeCase = RenameCamelCase;
+        public static readonly MemberNameStrategy SnakeCase = RenameSnakeCase;
 
         private static string RenameDefault(MemberInfo member) => member.Name;
 
@@ -24,7 +24,7 @@ namespace Fluid
             return char.ToLowerInvariant(firstChar) + name.Substring(1);
         }
 
-        public static string RenameSnake(MemberInfo member)
+        public static string RenameSnakeCase(MemberInfo member)
         {
             var builder = new StringBuilder();
             var name = member.Name;

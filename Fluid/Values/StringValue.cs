@@ -57,6 +57,11 @@ namespace Fluid.Values
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static StringValue Create(string s)
         {
+            if (s == "")
+            {
+                return Empty;
+            }
+
             return s.Length == 1
                 ? Create(s[0])
                 : new StringValue(s);
@@ -65,6 +70,11 @@ namespace Fluid.Values
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static StringValue Create(in TextSpan span)
         {
+            if (span.Length == 0)
+            {
+                return Empty;
+            }
+
             return span.Length == 1
                 ? Create(span.Buffer[span.Offset])
                 : new StringValue(span.ToString());
@@ -72,12 +82,11 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other)
         {
-            if (other.IsNil())
-            {
-                return _value.Length == 0;
-            }
+            if (other.Type == FluidValues.String) return _value == other.ToStringValue();
+            if (other == BlankValue.Instance) return String.IsNullOrWhiteSpace(ToStringValue());
+            if (other == EmptyValue.Instance) return ToStringValue().Length == 0;
 
-            return _value == other.ToStringValue();
+            return false;
         }
 
         protected override FluidValue GetIndex(FluidValue index, TemplateContext context)

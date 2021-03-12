@@ -15,7 +15,7 @@ namespace Fluid.Tests.Extensibility
             {
                 w.Write("Hello World");
 
-                return Statement.Normal;
+                return Statement.Normal();
             });
 
             var template = parser.Parse("{% hello %}");
@@ -34,7 +34,7 @@ namespace Fluid.Tests.Extensibility
                 w.Write("Hello ");
                 w.Write(s);
 
-                return Statement.Normal;
+                return Statement.Normal();
             });
 
             var template = parser.Parse("{% hello test %}");
@@ -100,9 +100,9 @@ namespace Fluid.Tests.Extensibility
         {
             var parser = new CustomParser();
 
-            parser.RegisteredOperators["startsWith"] = (a, b) => new StartsWithBinaryExpression(a, b);
+            parser.RegisteredOperators["xor"] = (a, b) => new XorBinaryExpression(a, b);
 
-            parser.TryParse("{% if 'abc' startsWith 'ab' %}true{% endif %}", out var template, out var error);
+            parser.TryParse("{% if true xor false %}true{% endif %}", out var template, out var error);
 
             Assert.Equal("true", template.Render());
         }

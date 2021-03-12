@@ -9,7 +9,7 @@ namespace Fluid.Ast
     {
         private bool _isStripped = false;
         private bool _isEmpty = false;
-        private readonly object _synLock = new ();
+        private readonly object _synLock = new();
         private TextSpan _text;
 
         public TextSpanStatement(in TextSpan text)
@@ -22,18 +22,13 @@ namespace Fluid.Ast
             _text = new TextSpan(text);
         }
 
-        public bool StrippedLeft { get; set; }
-        public bool StrippedRight { get; set; }
+        public bool StripLeft { get; set; }
+        public bool StripRight { get; set; }
 
-        public void StripRight()
-        {
-            StrippedRight = true;
-        }
-
-        public void StripLeft()
-        {
-            StrippedLeft = true;
-        }
+        public bool NextIsTag { get; set; }
+        public bool NextIsOutput { get; set; }
+        public bool PreviousIsTag { get; set; }
+        public bool PreviousIsOutput { get; set; }
 
         public ref readonly TextSpan Text => ref _text;
 
@@ -41,12 +36,25 @@ namespace Fluid.Ast
         {
             if (!_isStripped)
             {
+                StripLeft |=
+                    (PreviousIsTag && context.Options.Trimming.HasFlag(TrimmingFlags.TagRight)) ||
+                    (PreviousIsOutput && context.Options.Trimming.HasFlag(TrimmingFlags.OutputRight))
+                    ;
+
+                StripRight |=
+                    (NextIsTag && context.Options.Trimming.HasFlag(TrimmingFlags.TagLeft)) ||
+                    (NextIsOutput && context.Options.Trimming.HasFlag(TrimmingFlags.OutputLeft))
+                    ;
+
                 var span = _text.Buffer;
                 var start = 0;
                 var end = _text.Length - 1;
 
-                if (StrippedLeft)
+                // Does this text need to have its left part trimmed?
+                if (StripLeft)
                 {
+                    var firstNewLine = -1;
+
                     for (var i = start; i <= end; i++)
                     {
                         var c = span[_text.Offset + i];
@@ -54,22 +62,43 @@ namespace Fluid.Ast
                         if (Character.IsWhiteSpaceOrNewLine(c))
                         {
                             start++;
+
+                            if (firstNewLine == -1 && (c == '\n'))
+                            {
+                                firstNewLine = start;
+                            }
                         }
                         else
                         {
                             break;
                         }
                     }
+
+                    if (!context.Options.Greedy)
+                    {
+                        if (firstNewLine != -1)
+                        {
+                            start = firstNewLine;
+                        }
+                    }
                 }
 
-                if (StrippedRight)
+                // Does this text need to have its right part trimmed?
+                if (StripRight)
                 {
+                    var lastNewLine = -1;
+
                     for (var i = end; i >= start; i--)
                     {
                         var c = span[_text.Offset + i];
 
                         if (Character.IsWhiteSpaceOrNewLine(c))
                         {
+                            if (lastNewLine == -1 && c == '\n')
+                            {
+                                lastNewLine = end;
+                            }
+
                             end--;
                         }
                         else
@@ -77,8 +106,15 @@ namespace Fluid.Ast
                             break;
                         }
                     }
-                }
 
+                    if (!context.Options.Greedy)
+                    {
+                        if (lastNewLine != -1)
+                        {
+                            end = lastNewLine;
+                        }
+                    }
+                }
                 // update the current statement with tread-safely since this statements
                 // is shared
                 lock (_synLock)
@@ -100,12 +136,12 @@ namespace Fluid.Ast
                     }
 
                     _isStripped = true;
-                }                
+                }
             }
 
             if (_isEmpty)
             {
-                return Normal;
+                return Normal();
             }
 
             context.IncrementSteps();
@@ -116,7 +152,7 @@ namespace Fluid.Ast
 #else
             writer.Write(_text.Span);
 #endif
-            return Normal;
+            return Normal();
         }
     }
 }

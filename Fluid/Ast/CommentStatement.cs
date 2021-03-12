@@ -20,7 +20,7 @@ namespace Fluid.Ast
         {
             context.IncrementSteps();
 
-            return Normal;
+            return Normal();
         }
     }
 }

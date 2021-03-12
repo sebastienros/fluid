@@ -1,7 +1,9 @@
 ﻿using Fluid.Ast;
 using Microsoft.Extensions.Primitives;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Fluid.Tests
@@ -10,10 +12,21 @@ namespace Fluid.Tests
     {
         static FluidParser _parser = new FluidParser();
 
-        private IReadOnlyList<Statement> Parse(string source)
+        private static IReadOnlyList<Statement> Parse(string source)
         {
             _parser.TryParse(source, out var template, out var errors);
             return template.Statements;
+        }
+
+        private async Task CheckAsync(string source, string expected, Action<TemplateContext> init = null)
+        {
+            _parser.TryParse("{% if " + source + " %}true{% else %}false{% endif %}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            init?.Invoke(context);
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(expected, result);
         }
 
         [Fact]
@@ -23,7 +36,7 @@ namespace Fluid.Tests
             var statements = Parse("{{ a | b: c:1, 'value', d: 3 }}");
             Assert.Single(statements);
 
-            var outputStatement = statements.First() as OutputStatement;
+            var outputStatement = statements[0] as OutputStatement;
             Assert.NotNull(outputStatement);
 
             var filterExpression = outputStatement.Expression as FilterExpression;
@@ -44,7 +57,7 @@ namespace Fluid.Tests
         {
             var statements = Parse("Hello World");
 
-            var textStatement = statements.First() as TextSpanStatement;
+            var textStatement = statements[0] as TextSpanStatement;
 
             Assert.Single(statements);
             Assert.NotNull(textStatement);
@@ -56,7 +69,7 @@ namespace Fluid.Tests
         {
             var statements = Parse("{{ 1 }}");
 
-            var outputStatement = statements.First() as OutputStatement;
+            var outputStatement = statements[0] as OutputStatement;
 
             Assert.Single(statements);
             Assert.NotNull(outputStatement);
@@ -70,7 +83,7 @@ namespace Fluid.Tests
         {
             var statements = Parse(source);
 
-            var outputStatement = statements.First() as OutputStatement;
+            var outputStatement = statements[0] as OutputStatement;
 
             Assert.Single(statements);
             Assert.NotNull(outputStatement);
@@ -94,6 +107,28 @@ namespace Fluid.Tests
             Assert.True(forStatement.Statements.Count == 1);
             Assert.NotNull(forStatement.Else);
             Assert.True((forStatement.Else is ElseStatement s) && s.Statements.Count == 1);
+        }
+
+        [Fact]
+        public void ShouldParseForLimitLiteral()
+        {
+            var statements = Parse("{% for item in items limit: 1 %}x{% endfor %}");
+
+            Assert.IsType<ForStatement>(statements.ElementAt(0));
+            var forStatement = statements.ElementAt(0) as ForStatement;
+            Assert.True(forStatement.Statements.Count == 1);
+            Assert.True(forStatement.Limit is LiteralExpression);
+        }
+
+        [Fact]
+        public void ShouldParseForLimitMember()
+        {
+            var statements = Parse("{% for item in items limit: limit %}x{% endfor %}");
+
+            Assert.IsType<ForStatement>(statements.ElementAt(0));
+            var forStatement = statements.ElementAt(0) as ForStatement;
+            Assert.True(forStatement.Statements.Count == 1);
+            Assert.True(forStatement.Limit is MemberExpression);
         }
 
         [Fact]
@@ -490,6 +525,69 @@ def", "at (")]
             var rendered = template.Render();
 
             Assert.Equal("true", rendered);
+        }
+
+        [Theory]
+
+        [InlineData("'' == p", "false")]
+        [InlineData("p == ''", "false")]
+        [InlineData("p != ''", "true")]
+
+        [InlineData("p == nil", "true")]
+        [InlineData("p != nil", "false")]
+        [InlineData("nil == p", "true")]
+
+        [InlineData("p == blank", "true")]
+        [InlineData("blank == p ", "true")]
+
+        [InlineData("empty == blank", "true")]
+        [InlineData("blank == empty", "true")]
+
+        [InlineData("nil == blank", "true")]
+        [InlineData("blank == nil", "true")]
+
+        [InlineData("blank == ''", "true")]
+        [InlineData("'' == blank", "true")]
+
+        [InlineData("nil == ''", "false")]
+        [InlineData("'' == nil", "false")]
+
+        [InlineData("empty == ''", "true")]
+        [InlineData("'' == empty", "true")]
+
+        [InlineData("e == ''", "true")]
+        [InlineData("'' == e", "true")]
+
+        [InlineData("e == blank", "true")]
+        [InlineData("blank == e", "true")]
+
+        [InlineData("empty == nil", "false")]
+        [InlineData("nil == empty", "false")]
+
+        [InlineData("p != nil and p != ''", "false")]
+        [InlineData("p != '' and p != nil", "false")]
+
+        [InlineData("e != nil and e != ''", "false")]
+        [InlineData("e != '' and e != nil", "false")]
+
+        [InlineData("f != nil and f != ''", "true")]
+        [InlineData("f != '' and f != nil", "true")]
+
+        [InlineData("e == nil", "false")]
+        [InlineData("nil == e", "false")]
+
+        [InlineData("e == empty ", "true")]
+        [InlineData("empty == e ", "true")]
+
+        [InlineData("empty == f", "false")]
+        [InlineData("f == empty", "false")]
+
+        [InlineData("p == empty", "false")]
+        [InlineData("empty == p", "false")]
+
+        public Task EmptyShouldEqualToNil(string source, string expected)
+        {
+            return CheckAsync(source, expected, t => t.SetValue("e", "").SetValue("f", "hello"));
         }
     }
 }

@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 
 namespace Fluid.Tests.Extensibility
 {
-    public class StartsWithBinaryExpression : BinaryExpression
+    public class XorBinaryExpression : BinaryExpression
     {
-        public StartsWithBinaryExpression(Expression left, Expression right) : base(left, right)
+        public XorBinaryExpression(Expression left, Expression right) : base(left, right)
         {
         }
 
@@ -15,9 +15,7 @@ namespace Fluid.Tests.Extensibility
             var leftValue = await Left.EvaluateAsync(context);
             var rightValue = await Right.EvaluateAsync(context);
 
-            return leftValue.ToStringValue().StartsWith(rightValue.ToStringValue())
-                    ? BooleanValue.True
-                    : BooleanValue.False;
+            return BooleanValue.Create(leftValue.ToBooleanValue() ^ rightValue.ToBooleanValue());
         }
     }
 }

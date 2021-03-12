@@ -8,7 +8,7 @@ namespace Fluid
 {
     public class TemplateOptions
     {
-        public static readonly TemplateOptions Default = new TemplateOptions();
+        public static readonly TemplateOptions Default = new();
 
         /// <summary>
         /// Gets ot sets the members than can be accessed in a template.
@@ -36,9 +36,9 @@ namespace Fluid
         public Func<DateTimeOffset> Now { get; set; } = static () => DateTimeOffset.Now;
 
         /// <summary>
-        /// Gets or sets the local Timezone offset used when parsing or creating dates without specific timezone.
+        /// Gets or sets the local time zone used when parsing or creating dates without specific ones.
         /// </summary>
-        public TimeSpan TimeZoneUtcOffset { get; set; } = TimeZoneInfo.Local.BaseUtcOffset;
+        public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Local;
 
         /// <summary>
         /// Gets or sets the maximum depth of recursions a script can execute. 100 by default.
@@ -59,6 +59,17 @@ namespace Fluid
         /// Gets the list of value converters.
         /// </summary>
         public List<Func<object, object>> ValueConverters { get; } = new List<Func<object, object>>();
+
+        /// <summary>
+        /// Gets or sets the default trimming rules.
+        /// </summary>
+        public TrimmingFlags Trimming { get; set; } = TrimmingFlags.None;
+
+        /// <summary>
+        /// Gets or sets whether trimming is greedy. Default is true. When set to true, all successive blank chars are trimmed.
+        /// </summary>
+        public bool Greedy { get; set; } = true;
+
 
         public TemplateOptions()
         {

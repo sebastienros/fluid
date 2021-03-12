@@ -46,6 +46,8 @@ namespace Fluid
         protected static readonly Parser<string> GreaterOr = Terms.Text(">=");
         protected static readonly Parser<string> LowerOr = Terms.Text("<=");
         protected static readonly Parser<string> Contains = Terms.Text("contains");
+        protected static readonly Parser<string> StartsWith = Terms.Text("startswith");
+        protected static readonly Parser<string> EndsWith = Terms.Text("endswith");
         protected static readonly Parser<string> BinaryOr = Terms.Text("or");
         protected static readonly Parser<string> BinaryAnd = Terms.Text("and");
 
@@ -53,6 +55,7 @@ namespace Fluid
 
         protected readonly Parser<List<FilterArgument>> ArgumentsList;
         protected readonly Parser<Expression> LogicalExpression;
+        protected readonly Parser<Expression> CombinatoryExpression; // and | or
         protected static readonly Deferred<Expression> Primary = Deferred<Expression>();
         protected static readonly Deferred<Expression> FilterExpression = Deferred<Expression>();
         protected readonly Deferred<List<Statement>> KnownTagsList = Deferred<List<Statement>>();
@@ -97,9 +100,9 @@ namespace Fluid
                 .Or(Member.Then<Expression>(x => x))
                 ;
 
-            RegisteredOperators["or"] = (a, b) => new OrBinaryExpression(a, b);
-            RegisteredOperators["and"] = (a, b) => new AndBinaryExpression(a, b);
             RegisteredOperators["contains"] = (a, b) => new ContainsBinaryExpression(a, b);
+            RegisteredOperators["startswith"] = (a, b) => new StartsWithBinaryExpression(a, b);
+            RegisteredOperators["endswith"] = (a, b) => new EndsWithBinaryExpression(a, b);
             RegisteredOperators["=="] = (a, b) => new EqualBinaryExpression(a, b);
             RegisteredOperators["!="] = (a, b) => new NotEqualBinaryExpression(a, b);
             RegisteredOperators["<>"] = (a, b) => new NotEqualBinaryExpression(a, b);
@@ -110,7 +113,18 @@ namespace Fluid
 
             var CaseValueList = Separated(BinaryOr, Primary);
 
-            LogicalExpression = Primary.And(ZeroOrMany(Terms.NonWhiteSpace().Then<string>(x => x.ToString()).When(x => RegisteredOperators.ContainsKey(x)).And(Primary)))
+            CombinatoryExpression = Primary.And(ZeroOrOne(Terms.NonWhiteSpace().Then(x => x.ToString()).When(x => RegisteredOperators.ContainsKey(x)).And(Primary)))
+                .Then(x =>
+                 {
+                     if (x.Item2.Item1 == null)
+                     {
+                         return x.Item1;
+                     }
+
+                     return RegisteredOperators[x.Item2.Item1](x.Item1, x.Item2.Item2);
+                 });
+
+            LogicalExpression = CombinatoryExpression.And(ZeroOrMany(OneOf(Terms.Text("or"), Terms.Text("and")).And(CombinatoryExpression)))
                 .Then(x =>
                 {
                     if (x.Item2.Count == 0)
@@ -125,7 +139,13 @@ namespace Fluid
                         var current = x.Item2[i];
                         var previous = i == 0 ? x.Item1 : x.Item2[i - 1].Item2;
 
-                        result = RegisteredOperators[current.Item1](previous, current.Item2);
+                        result = current.Item1 switch
+                        {
+                            "or" => new OrBinaryExpression(previous, current.Item2),
+                            "and" => new AndBinaryExpression(previous, current.Item2),
+                            _ => throw new ParseException()
+                        };
+                        
                     }
 
                     return result;
@@ -180,9 +200,13 @@ namespace Fluid
 
                     if (p.StripNextTextSpanStatement)
                     {
-                        result.StrippedLeft = true;
+                        result.StripLeft = true;
                         p.StripNextTextSpanStatement = false;
                     }
+
+                    result.PreviousIsTag = p.PreviousIsTag;
+                    result.PreviousIsOutput = p.PreviousIsOutput;
+
                     return result;
                 });
 
@@ -269,8 +293,8 @@ namespace Fluid
                             .And(Member)
                             .And(ZeroOrMany(OneOf( // Use * since each can appear in any order. Validation is done once it's parsed
                                 Terms.Text("reversed").Then(x => new ForModifier { IsReversed = true }),
-                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Integer).Then(x => new ForModifier { IsLimit = true, Value = x }),
-                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Integer).Then(x => new ForModifier { IsOffset = true, Value = x })
+                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsLimit = true, Value = x }),
+                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
                                 )))
                             .AndSkip(TagEnd)
                             .And(AnyTagsList)
@@ -293,8 +317,8 @@ namespace Fluid
                             .And(Range)
                             .And(ZeroOrMany(OneOf( // Use * since each can appear in any order. Validation is done once it's parsed
                                 Terms.Text("reversed").Then(x => new ForModifier { IsReversed = true }),
-                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Integer).Then(x => new ForModifier { IsLimit = true, Value = x }),
-                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Integer).Then(x => new ForModifier { IsOffset = true, Value = x })
+                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsLimit = true, Value = x }),
+                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
                                 )))
                             .AndSkip(TagEnd)
                             .And(AnyTagsList)

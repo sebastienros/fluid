@@ -104,6 +104,42 @@ namespace Fluid.Tests
         }
 
         [Theory]
+        [InlineData("'abc' startswith 'bc'", "false")]
+        [InlineData("'abc' startswith 'ab'", "true")]
+        [InlineData("x startswith 'b'", "false")]
+        [InlineData("x startswith 'a'", "true")]
+        [InlineData("y startswith 2", "false")]
+        [InlineData("y startswith 1", "true")]
+        [InlineData("z startswith 'a'", "false")]
+        public Task StartsWithBinaryExpressionIsEvaluated(string source, string expected)
+        {
+            return CheckAsync(source, expected, context =>
+            {
+                context.SetValue("x", new[] { "a", "b", "c" });
+                context.SetValue("y", new[] { 1, 2, 3 });
+                context.SetValue("z", new string[0]);
+            });
+        }
+
+        [Theory]
+        [InlineData("'abc' endswith 'ab'", "false")]
+        [InlineData("'abc' endswith 'bc'", "true")]
+        [InlineData("x endswith 'b'", "false")]
+        [InlineData("x endswith 'c'", "true")]
+        [InlineData("y endswith 2", "false")]
+        [InlineData("y endswith 3", "true")]
+        [InlineData("z endswith 'a'", "false")]
+        public Task EndsWithBinaryExpressionIsEvaluated(string source, string expected)
+        {
+            return CheckAsync(source, expected, context =>
+            {
+                context.SetValue("x", new[] { "a", "b", "c" });
+                context.SetValue("y", new[] { 1, 2, 3 });
+                context.SetValue("z", new string[0]);
+            });
+        }
+
+        [Theory]
         [InlineData("'' == empty", "true")]
         [InlineData("'a' == empty", "false")]
         [InlineData("x == empty", "true")]
@@ -165,6 +201,14 @@ namespace Fluid.Tests
         public Task OperatorsShouldBeEvaluatedFromRightToLeft(string source, string expected)
         {
             // https://shopify.github.io/liquid/basics/operators/
+            return CheckAsync(source, expected);
+        }
+
+        [Theory]
+        [InlineData("1 == 1 or 1 == 2 and 1 == 2", "true")]
+        [InlineData("1 == 1 and 1 == 2 and 1 == 2 or 1 == 1", "false")]
+        public Task OperatorsHavePriority(string source, string expected)
+        {
             return CheckAsync(source, expected);
         }
 

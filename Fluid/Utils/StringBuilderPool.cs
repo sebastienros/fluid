@@ -15,7 +15,7 @@ namespace Fluid.Utils
     /// </summary>
     internal sealed class StringBuilderPool : IDisposable
     {
-        private const int DefaultPoolCapacity = 16 * 1024;
+        private const int DefaultPoolCapacity = 40 * 1024;
         private readonly int _defaultCapacity;
 
         // global pool
@@ -37,7 +37,7 @@ namespace Fluid.Utils
         /// <summary>
         /// If someone need to create a private pool
         /// </summary>
-        internal static ObjectPool<StringBuilderPool> CreatePool(int size = 16, int capacity = DefaultPoolCapacity)
+        internal static ObjectPool<StringBuilderPool> CreatePool(int size = 100, int capacity = DefaultPoolCapacity)
         {
             ObjectPool<StringBuilderPool> pool = null;
             pool = new ObjectPool<StringBuilderPool>(() => new StringBuilderPool(pool, capacity), size);

@@ -104,7 +104,7 @@ namespace Fluid.Values
 
         public override decimal ToNumberValue()
         {
-            return 0;
+            return _value.Length;
         }
 
         public FluidValue[] Values => _value;

@@ -1,4 +1,6 @@
 ﻿using Fluid.Values;
+using System;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
@@ -22,7 +24,6 @@ namespace Fluid.Tests
             templateContext.Options.MemberAccessStrategy.Register(typeof(TestClass));
         }
 
-
         [Fact]
         public void ScopeShouldFallbackToTemplateOptions()
         {
@@ -41,6 +42,40 @@ namespace Fluid.Tests
             Assert.Equal("o1", context.GetValue("o1").ToStringValue());
             Assert.Equal("new o2", context.GetValue("o2").ToStringValue());
             Assert.Equal("o3", context.GetValue("o3").ToStringValue());
+        }
+
+        [Fact]
+        public void CustomContextShouldNotUseTemplateOptionsProperties()
+        {
+            var parser = new FluidParser();
+
+            var options = new TemplateOptions();
+
+            var context = new TemplateContext(options);
+            context.TimeZone = TimeZoneInfo.Utc;
+            context.CultureInfo = new CultureInfo("fr-FR");
+            context.Now = () => new DateTime(2020, 01, 01);
+
+            Assert.Equal(TimeZoneInfo.Utc, context.TimeZone);
+            Assert.Equal(new CultureInfo("fr-FR"), context.CultureInfo);
+            Assert.Equal(new DateTime(2020, 01, 01), context.Now());
+        }
+
+        [Fact]
+        public void DefaultContextShouldUseTemplateOptionsProperties()
+        {
+            var parser = new FluidParser();
+
+            var options = new TemplateOptions();
+            options.TimeZone = TimeZoneInfo.Utc;
+            options.CultureInfo = new CultureInfo("fr-FR");
+            options.Now = () => new DateTime(2020, 01, 01);
+
+            var context = new TemplateContext(options);
+
+            Assert.Equal(TimeZoneInfo.Utc, context.TimeZone);
+            Assert.Equal(new CultureInfo("fr-FR"), context.CultureInfo);
+            Assert.Equal(new DateTime(2020, 01, 01), context.Now());
         }
 
         [Fact]
