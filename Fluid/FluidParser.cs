@@ -227,7 +227,7 @@ namespace Fluid
                         .ElseError("Invalid 'capture' tag")
                         ;
             var CycleTag = ZeroOrOne(Identifier.AndSkip(Colon))
-                        .And(Separated(Comma, String))
+                        .And(Separated(Comma, Primary))
                         .AndSkip(TagEnd)
                         .Then<Statement>(x =>
                         {
@@ -235,11 +235,7 @@ namespace Fluid
                                 ? null
                                 : new LiteralExpression(StringValue.Create(x.Item1));
 
-                            var values = x.Item2
-                                .Select(e => new LiteralExpression(StringValue.Create(e)))
-                                .ToArray<Expression>();
-
-                            return new CycleStatement(group, values);
+                            return new CycleStatement(group, x.Item2);
                         })
                         .ElseError("Invalid 'cycle' tag")
                         ;
