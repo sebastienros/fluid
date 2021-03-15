@@ -636,6 +636,12 @@ namespace Fluid.Filters
                 case FluidValues.String:
                     writer.WriteStringValue(input.ToStringValue());
                     break;
+                case FluidValues.Blank:
+                    writer.WriteStringValue(string.Empty);
+                    break;
+                case FluidValues.Empty:
+                    writer.WriteStringValue(string.Empty);
+                    break;
                 default:
                     throw new NotSupportedException("Unrecognized FluidValue");
             }
