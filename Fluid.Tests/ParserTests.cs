@@ -589,5 +589,21 @@ def", "at (")]
         {
             return CheckAsync(source, expected, t => t.SetValue("e", "").SetValue("f", "hello"));
         }
+
+        [Fact]
+        public void CycleShouldHandleNumbers()
+        {
+            var source = @"{% for i in (1..100) limit:9%}{% cycle 1, 2 ,3 %}<br />{% endfor %}";
+
+            var result = _parser.TryParse(source, out var template, out var errors);
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Null(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal("1<br />2<br />3<br />1<br />2<br />3<br />1<br />2<br />3<br />", rendered);
+        }
     }
 }
