@@ -3,6 +3,7 @@ using Microsoft.Extensions.FileProviders;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using Fluid.Paginating;
 
 namespace Fluid
 {
@@ -76,7 +77,10 @@ namespace Fluid
             Filters.WithArrayFilters()
                 .WithStringFilters()
                 .WithNumberFilters()
-                .WithMiscFilters();
+                .WithMiscFilters()
+                .WithPaginationFilters();
+            MemberAccessStrategy.Register(typeof(PaginateObject));
+            MemberAccessStrategy.Register(typeof(PaginatePartObject));
         }
     }
 

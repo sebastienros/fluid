@@ -11,6 +11,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using Fluid.Paginating;
 using static Parlot.Fluent.Parsers;
 
 namespace Fluid
@@ -420,6 +421,12 @@ namespace Fluid
             KnownTagsList.Parser = ZeroOrMany(Output.Or(KnownTags).Or(Text)); // User in main list and raises an issue when an unknown tag is found
 
             Grammar = KnownTagsList;
+
+            RegisterParserBlock(
+                "paginate",
+                LogicalExpression.AndSkip(Terms.Text("by")).And(Terms.Integer()),
+                PaginateBlock.Render
+            );
         }
 
         public static Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
