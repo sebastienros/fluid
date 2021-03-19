@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Fluid.Paginating;
 using Fluid.Values;
 
 namespace Fluid.Tests.Paginating

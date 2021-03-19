@@ -5,9 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-using Fluid.Values;
 
-namespace Fluid.Paginating
+namespace Fluid.Values
 {
     public abstract class PaginationValue : FluidValue
     {

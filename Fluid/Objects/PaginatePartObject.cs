@@ -1,4 +1,4 @@
-﻿namespace Fluid.Paginating
+﻿namespace Fluid.Objects
 {
     public class PaginatePartObject 
     {

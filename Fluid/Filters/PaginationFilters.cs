@@ -1,7 +1,8 @@
 ﻿using System.Threading.Tasks;
+using Fluid.Objects;
 using Fluid.Values;
 
-namespace Fluid.Paginating
+namespace Fluid.Filters
 {
     public static class PaginationFilters
     {

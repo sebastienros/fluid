@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Fluid.Values;
 
-namespace Fluid.Paginating
+namespace Fluid.Objects
 {
     public class PaginateObject
     {
@@ -31,7 +32,6 @@ namespace Fluid.Paginating
 
             if (ret.Pages > 1)
             {
-                //上一页
                 if (ret.CurrentPage > 1)
                 {
                     ret.Previous = new PaginatePartObject
@@ -41,8 +41,7 @@ namespace Fluid.Paginating
                         Url = value.BuildUrl(ret.CurrentPage - 1)
                     };
                 }
-
-                //后一页
+                
                 if (ret.CurrentPage < ret.Pages)
                 {
                     ret.Next = new PaginatePartObject

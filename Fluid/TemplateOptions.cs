@@ -3,7 +3,7 @@ using Microsoft.Extensions.FileProviders;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Fluid.Paginating;
+using Fluid.Objects;
 
 namespace Fluid
 {
