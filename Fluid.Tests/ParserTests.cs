@@ -605,24 +605,5 @@ def", "at (")]
 
             Assert.Equal("1<br />2<br />3<br />1<br />2<br />3<br />1<br />2<br />3<br />", rendered);
         }
-
-        [Fact]
-        public void ShouldParseBlocksWithCurlyBrace()
-        {
-            var statements = Parse("{% if true %} { {%else%} } {% endif %}");
-
-            var ifStatement = statements.ElementAt(0) as IfStatement;
-            Assert.NotNull(ifStatement);
-            Assert.Single(ifStatement.Statements);
-            Assert.True(ifStatement.Statements[0] is TextSpanStatement);
-            Assert.True(((TextSpanStatement)ifStatement.Statements[0]).Text.ToString() == " { ");
-
-            Assert.NotNull(ifStatement.Else);
-            Assert.Single(ifStatement.Else.Statements);
-            Assert.True(ifStatement.Else.Statements[0] is TextSpanStatement);
-            Assert.True(((TextSpanStatement)ifStatement.Else.Statements[0]).Text.ToString() == " { ");
-
-            Assert.Empty(ifStatement.ElseIfs);
-        }
     }
 }
