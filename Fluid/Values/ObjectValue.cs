@@ -41,13 +41,13 @@ namespace Fluid.Values
 
         public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
-            async ValueTask<FluidValue> Awaited(
+            static async ValueTask<FluidValue> Awaited(
                 IAsyncMemberAccessor asyncAccessor,
                 object value,
                 string n,
                 TemplateContext ctx)
             {
-                return Create(await asyncAccessor.GetAsync(value, n, ctx), context.Options);
+                return Create(await asyncAccessor.GetAsync(value, n, ctx), ctx.Options);
             }
 
             if (name.IndexOf(".", StringComparison.OrdinalIgnoreCase) != -1)

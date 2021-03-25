@@ -23,13 +23,13 @@ namespace Fluid.Ast
 
         public override ValueTask<FluidValue> ResolveAsync(Scope value, TemplateContext context)
         {
-            async ValueTask<FluidValue> Awaited(
+            static async ValueTask<FluidValue> Awaited(
                 IAsyncMemberAccessor asyncAccessor,
                 TemplateContext ctx,
                 string identifier)
             {
                 var o = await asyncAccessor.GetAsync(ctx.Model, identifier, ctx);
-                return FluidValue.Create(o, context.Options);
+                return FluidValue.Create(o, ctx.Options);
             }
 
             var result = value.GetValue(Identifier);
