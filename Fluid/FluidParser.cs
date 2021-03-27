@@ -159,7 +159,7 @@ namespace Fluid
                             ));
 
             // Primary ( | identifer ( ':' ArgumentsList )! ] )*
-            FilterExpression.Parser = Primary
+            FilterExpression.Parser = LogicalExpression
                 .And(ZeroOrMany(
                     Pipe
                     .SkipAnd(Identifier)

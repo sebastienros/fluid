@@ -605,5 +605,257 @@ def", "at (")]
 
             Assert.Equal("1<br />2<br />3<br />1<br />2<br />3<br />1<br />2<br />3<br />", rendered);
         }
+
+        
+
+        [Fact]
+        public void ShouldAssignWithLogicalExpression()
+        {
+            var source = @"{%- assign condition_temp = HasInheritance == false or ConvertConstructorInterfaceData | append: 'o' %}{{ condition_temp }}";
+
+            Assert.True(_parser.TryParse(source, out var template, out var _));
+            Assert.True(template.Statements.Count == 2);
+            var rendered = template.Render();
+
+            Assert.Equal("falseo", rendered);
+        }
+
+        [Fact]
+        public void ShouldParseRecursiveIfs()
+        {
+            var source = @"
+{%- if true %}
+    a1
+    {%- if true %}
+        b1
+        {%- if true %}
+            c1
+        {%- endif %}
+        {%- if true %}
+            c2
+        {%- endif %}
+    {%- endif %}
+    {%- if true %}
+        b2
+    {%- endif %}
+    a2
+{%- endif %}
+";
+
+            Assert.True(_parser.TryParse(source, out var template, out var _));
+            var rendered = template.Render();
+            Assert.Contains("a1", rendered);
+            Assert.Contains("b1", rendered);
+            Assert.Contains("c1", rendered);
+            Assert.Contains("c2", rendered);
+            Assert.Contains("b2", rendered);
+            Assert.Contains("a2", rendered);
+        }
+
+        [Fact]
+        public void ShouldParseNJsonSchema()
+        {
+            var source = @"
+{%- if HasDescription %}
+/** {{ Description }} */
+{%- endif %}
+{% if ExportTypes %}export {% endif %}{% if IsAbstract %}abstract {% endif %}class {{ ClassName }}{{ Inheritance }} {
+{%- for property in Properties %}
+{%-   if property.HasDescription %}
+    /** {{ property.Description }} */
+{%-   endif %}
+    {% if property.IsReadOnly %}readonly {% endif %}{{ property.PropertyName }}{% if property.IsOptional %}?{% elsif RequiresStrictPropertyInitialization and property.HasDefaultValue == false %}!{% endif %}: {{ property.Type }}{{ property.TypePostfix }};
+{%- endfor %}
+{%- if HasIndexerProperty %}
+    [key: string]: {{ IndexerPropertyValueType }}; 
+{%- endif %}
+{%- if HasDiscriminator %}
+    protected _discriminator: string;
+{%- endif %}
+{%- assign condition_temp = HasInheritance == false or ConvertConstructorInterfaceData %}
+{%- if GenerateConstructorInterface or HasBaseDiscriminator %}
+    constructor({% if GenerateConstructorInterface %}data?: I{{ ClassName }}{% endif %}) {
+{%-     if HasInheritance %}
+        super({% if GenerateConstructorInterface %}data{% endif %});
+{%-     endif %}
+{%-     if GenerateConstructorInterface and condition_temp %}
+        if (data) {
+{%-         if HasInheritance == false %}
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+{%-         endif %}
+{%-         if ConvertConstructorInterfaceData %}
+{%-             for property in Properties %}
+{%-                 if property.SupportsConstructorConversion %}
+{%-                     if property.IsArray %}
+            if (data.{{ property.PropertyName }}) {
+                this.{{ property.PropertyName }} = [];
+                for (let i = 0; i < data.{{ property.PropertyName }}.length; i++) {
+                    let item = data.{{ property.PropertyName }}[i];
+                    this.{{ property.PropertyName }}[i] = item && !(<any>item).toJSON ? new {{ property.ArrayItemType }}(item) : <{{ property.ArrayItemType }}>item;
+                }
+            }
+{%-                     elsif property.IsDictionary %}
+            if (data.{{ property.PropertyName }}) {
+                this.{{ property.PropertyName }} = {};
+                for (let key in data.{{ property.PropertyName }}) {
+                    if (data.{{ property.PropertyName }}.hasOwnProperty(key)) {
+                        let item = data.{{ property.PropertyName }}[key];
+                        this.{{ property.PropertyName }}[key] = item && !(<any>item).toJSON ? new {{ property.DictionaryItemType }}(item) : <{{ property.DictionaryItemType }}>item;
+                    }
+                }
+            }
+{%-                     else %}
+            this.{{ property.PropertyName }} = data.{{ property.PropertyName }} && !(<any>data.{{ property.PropertyName }}).toJSON ? new {{ property.Type }}(data.{{ property.PropertyName }}) : <{{ property.Type }}>this.{{ property.PropertyName }}; 
+{%-                     endif %}
+{%-                 endif %}
+{%-             endfor %}
+{%-         endif %}
+        }
+{%-     endif %}
+{%-     if HasDefaultValues %}
+        {% if GenerateConstructorInterface %}if (!data) {% endif %}{
+{%-         for property in Properties %}
+{%-             if property.HasDefaultValue %}
+            this.{{ property.PropertyName }} = {{ property.DefaultValue }};
+{%-             endif %}
+{%-         endfor %}
+        }
+{%-     endif %}
+{%-     if HasBaseDiscriminator %}
+        this._discriminator = ""{{ DiscriminatorName }}"";
+{%-     endif %}
+    }
+{%- endif %}
+    init(_data?: any{% if HandleReferences %}, _mappings?: any{% endif %}) {
+{%- if HasInheritance %}
+        super.init(_data);
+{%- endif %}
+{%- if HasIndexerProperty or HasProperties %}
+        if (_data) {
+{%-     if HasIndexerProperty %}
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+{%-     endif %}
+{%-     for property in Properties %}
+            {{ property.ConvertToClassCode | tab }}
+{%-     endfor %}
+        }
+{%- endif %}
+    }
+    static fromJS(data: any{% if HandleReferences %}, _mappings?: any{% endif %}): {{ ClassName }}{% if HandleReferences %} | null{% endif %} {
+        data = typeof data === 'object' ? data : {};
+{%- if HandleReferences %}
+{%-   if HasBaseDiscriminator %}
+{%-     for derivedClass in DerivedClasses %}
+        if (data[""{{ BaseDiscriminator }}""] === ""{{ derivedClass.Discriminator }}"")
+{%-       if derivedClass.IsAbstract %}
+            throw new Error(""The abstract class '{{ derivedClass.ClassName }}' cannot be instantiated."");
+{%-       else %}
+            return createInstance<{{ derivedClass.ClassName }}>(data, _mappings, {{ derivedClass.ClassName }});
+{%-       endif %}
+{%-     endfor %}
+{%-   endif %}
+{%-   if IsAbstract %}
+        throw new Error(""The abstract class '{{ ClassName }}' cannot be instantiated."");
+{%-   else %}
+        return createInstance<{{ ClassName }}>(data, _mappings, {{ ClassName }});
+{%-   endif %}
+{%- else %}
+{%-   if HasBaseDiscriminator %}
+{%-     for derivedClass in DerivedClasses %}
+        if (data[""{{ BaseDiscriminator }}""] === ""{{ derivedClass.Discriminator }}"") {
+{%-       if derivedClass.IsAbstract %}
+            throw new Error(""The abstract class '{{ derivedClass.ClassName }}' cannot be instantiated."");
+{%-       else %}
+            let result = new {{ derivedClass.ClassName }}();
+            result.init(data);
+            return result;
+{%-       endif %}
+        }
+{%-     endfor %}
+{%-   endif %}
+{%-     if IsAbstract %}
+        throw new Error(""The abstract class '{{ ClassName }}' cannot be instantiated."");
+{%-     else %}
+        let result = new {{ ClassName }}();
+        result.init(data);
+        return result;
+{%-     endif %}
+{%- endif %}
+    }
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+{%- if HasIndexerProperty %}
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+{%- endif %}
+{%- if HasDiscriminator %}
+        data[""{{ BaseDiscriminator }}""] = this._discriminator; 
+{%- endif %}
+{%- for property in Properties %}
+        {{ property.ConvertToJavaScriptCode | tab }}
+{%- endfor %}
+{%- if HasInheritance %}
+        super.toJSON(data);
+{%- endif %}
+        return data; 
+    }
+{%- if GenerateCloneMethod %}
+    clone(): {{ ClassName }} {
+{%-   if IsAbstract %}
+        throw new Error(""The abstract class '{{ ClassName }}' cannot be instantiated."");
+{%-   else %}
+        const json = this.toJSON();
+        let result = new {{ ClassName }}();
+        result.init(json);
+        return result;
+{%-   endif %}
+    }
+{%- endif %}
+}
+{%- if GenerateConstructorInterface %}
+{%-   if HasDescription %}
+/** {{ Description }} */
+{%-   endif %}
+{% if ExportTypes %}export {% endif %}interface I{{ ClassName }}{{ InterfaceInheritance }} {
+{%-   for property in Properties %}
+{%-       if property.HasDescription %}
+    /** {{ property.Description }} */
+{%-       endif %}
+    {{ property.PropertyName }}{% if property.IsOptional %}?{% endif %}: {{ property.ConstructorInterfaceType }}{{ property.TypePostfix }};
+{%-   endfor %}
+{%-   if HasIndexerProperty %}
+    [key: string]: {{ IndexerPropertyValueType }}; 
+{%-   endif %}
+}
+{%- endif %}
+";
+
+            Assert.True(_parser.TryParse(source, out var template, out var _));
+            var rendered = template.Render();
+            Assert.Equal(@"
+class  {
+    init(_data?: any) {
+    }
+    static fromJS(data: any):  {
+        data = typeof data === 'object' ? data : {};
+        let result = new ();
+        result.init(data);
+        return result;
+    }
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        return data; 
+    }
+}
+", rendered);
+        }
     }
 }
