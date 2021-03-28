@@ -268,7 +268,6 @@ in a Liquid template.
 To remedy that we can configure Fluid to map names to `JObject` properties, and convert `JValue` objects to the ones used by Fluid.
 
 ```csharp
-
 var options = new TemplateOptions();
 
 // When a property of a JObject value is accessed, try to look into its properties
@@ -278,16 +277,14 @@ options.MemberAccessStrategy.Register<JObject, object>((source, name) => source[
 options.ValueConverters.Add(x => x is JObject o ? new ObjectValue(o) : null);
 options.ValueConverters.Add(x => x is JValue v ? v.Value : null);
 
-var expression = "{{ Model.Name }}";
 var model = JObject.Parse("{\"Name\": \"Bill\"}");
 
-if (FluidTemplate.TryParse(expression, out var template))
-{
-    var context = new TemplateContext(options);
-    context.SetValue("Model", model);
+var parser = new FluidParser();
 
-    Console.WriteLine(template.Render(context));
-}
+parser.TryParse("His name is {{ Name }}", out var template);
+var context = new TemplateContext(model, options);
+
+Console.WriteLine(template.Render(context));
 ```
 
 <br>

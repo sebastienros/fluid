@@ -126,6 +126,28 @@ namespace Fluid.Tests
             Assert.Equal("2", (await objectValue.GetValueAsync("a.b", context)).ToObjectValue());
             Assert.Null((await objectValue.GetValueAsync("a.c", context)).ToObjectValue());
         }
+
+        [Fact]
+        public async Task ShouldRenderReadmeSample()
+        {
+            var options = new TemplateOptions();
+
+            // When a property of a JObject value is accessed, try to look into its properties
+            options.MemberAccessStrategy.Register<JObject, object>((source, name) => source[name]);
+
+            // Convert JToken to FluidValue
+            options.ValueConverters.Add(x => x is JObject o ? new ObjectValue(o) : null);
+            options.ValueConverters.Add(x => x is JValue v ? v.Value : null);
+
+            var model = JObject.Parse("{\"Name\": \"Bill\"}");
+
+            var parser = new FluidParser();
+
+            parser.TryParse("His name is {{ Name }}", out var template);
+            var context = new TemplateContext(model, options);
+
+            Assert.Equal("His name is Bill", await template.RenderAsync(context));
+        }
     }
 
     public class Class1
