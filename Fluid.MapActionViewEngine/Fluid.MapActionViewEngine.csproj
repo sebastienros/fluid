@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>9</LangVersion>
+    <IsPackable>true</IsPackable>
+    <PackageIcon>logo_64x64.png</PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../Assets/logo_64x64.png" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fluid.ViewEngine\Fluid.ViewEngine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
+    <FrameworkReference Include="Microsoft.AspNetCore.App" Version="6.0.0" />
+  </ItemGroup>
+</Project>
