@@ -9,8 +9,6 @@ namespace Fluid.MapActionViewEngine
         public FluidViewEngineOptionsSetup(IWebHostEnvironment webHostEnvironment)
             : base(options =>
             {
-                //options.IncludesFileProvider = new FileProviderMapper(webHostEnvironment.ContentRootFileProvider, "Views");
-                //options.ViewsFileProvider = new FileProviderMapper(webHostEnvironment.ContentRootFileProvider, "Views");
                 options.IncludesFileProvider = webHostEnvironment.ContentRootFileProvider;
                 options.ViewsFileProvider = webHostEnvironment.ContentRootFileProvider;
                 options.ViewLocationFormats.Add("Views/{0}" + Constants.ViewExtension);
