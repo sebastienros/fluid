@@ -31,7 +31,7 @@ namespace Fluid
         public CultureInfo CultureInfo { get; set; } = CultureInfo.InvariantCulture;
 
         /// <summary>
-        /// Gets or sets the value to returned by the "now" keyword.
+        /// Gets or sets the value returned by the "now" keyword.
         /// </summary>
         public Func<DateTimeOffset> Now { get; set; } = static () => DateTimeOffset.Now;
 

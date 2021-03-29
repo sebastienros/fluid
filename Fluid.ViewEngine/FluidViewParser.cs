@@ -1,11 +1,10 @@
 ﻿using Fluid.Ast;
-using Fluid.Parser;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Fluid.MvcViewEngine
+namespace Fluid.ViewEngine
 {
     public class FluidViewParser : FluidParser
     {
@@ -13,7 +12,7 @@ namespace Fluid.MvcViewEngine
         {
             RegisterIdentifierTag("rendersection", static async (identifier, writer, encoder, context) =>
             {
-                if (context.AmbientValues.TryGetValue("Sections", out var sections))
+                if (context.AmbientValues.TryGetValue(Constants.SectionsIndex, out var sections))
                 {
                     var dictionary = sections as Dictionary<string, IReadOnlyList<Statement>>;
                     if (dictionary.TryGetValue(identifier, out var section))
@@ -30,7 +29,7 @@ namespace Fluid.MvcViewEngine
 
             RegisterEmptyTag("renderbody", static async (writer, encoder, context) =>
             {
-                if (context.AmbientValues.TryGetValue("Body", out var body))
+                if (context.AmbientValues.TryGetValue(Constants.BodyIndex, out var body))
                 {
                     await writer.WriteAsync((string)body);
                 }
@@ -44,7 +43,7 @@ namespace Fluid.MvcViewEngine
 
             RegisterIdentifierBlock("section", static (identifier, statements, writer, encoder, context) =>
             {
-                if (context.AmbientValues.TryGetValue("Sections", out var sections))
+                if (context.AmbientValues.TryGetValue(Constants.SectionsIndex, out var sections))
                 {
                     var dictionary = sections as Dictionary<string, IReadOnlyList<Statement>>;
                     dictionary[identifier] = statements;
@@ -57,16 +56,24 @@ namespace Fluid.MvcViewEngine
             RegisterExpressionTag("layout", static async (pathExpression, writer, encoder, context) =>
             {
                 var relativeLayoutPath = (await pathExpression.EvaluateAsync(context)).ToStringValue();
-                if (!relativeLayoutPath.EndsWith(FluidViewEngine.ViewExtension, StringComparison.OrdinalIgnoreCase))
+
+                // If '' is assigned, remove any Layout, for instance to override one defined in a _viewstart
+                if (string.IsNullOrEmpty(relativeLayoutPath))
                 {
-                    relativeLayoutPath += FluidViewEngine.ViewExtension;
+                    context.AmbientValues[Constants.LayoutIndex] = null;
+                    return Completion.Normal;
                 }
 
-                var currentViewPath = context.AmbientValues[FluidRendering.ViewPath] as string;
+                if (!relativeLayoutPath.EndsWith(Constants.ViewExtension, StringComparison.OrdinalIgnoreCase))
+                {
+                    relativeLayoutPath += Constants.ViewExtension;
+                }
+
+                var currentViewPath = context.AmbientValues[Constants.ViewPathIndex] as string;
                 var currentDirectory = Path.GetDirectoryName(currentViewPath);
                 var layoutPath = Path.Combine(currentDirectory, relativeLayoutPath);
 
-                context.AmbientValues["Layout"] = layoutPath;
+                context.AmbientValues[Constants.LayoutIndex] = layoutPath;
 
                 return Completion.Normal;
             });

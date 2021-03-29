@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <PackageId>Fluid.MvcViewEngine</PackageId>
-    <Description>Fluid.MvcViewEngine is a view engine for ASP.NET Core MVC based on the Liquid markup.</Description>
+    <Description>Fluid.MvcViewEngine is a view engine for ASP.NET Core MVC based on Liquid templates.</Description>
   </PropertyGroup>
 
   <Import Project="../Common.props"/>

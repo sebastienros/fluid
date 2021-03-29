@@ -13,6 +13,7 @@
 
   <ItemGroup>
       <ProjectReference Include="../Fluid/Fluid.csproj" />
+      <ProjectReference Include="..\Fluid.ViewEngine\Fluid.ViewEngine.csproj" />
   </ItemGroup>
 
   <ItemGroup>

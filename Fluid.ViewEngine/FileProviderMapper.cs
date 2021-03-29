@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Primitives;
 using System.IO;
 
-namespace Fluid.MvcViewEngine.Internal
+namespace Fluid.ViewEngine
 {
     public class FileProviderMapper : IFileProvider
     {

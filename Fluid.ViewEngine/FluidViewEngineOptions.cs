@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text.Encodings.Web;
 
-namespace Fluid.MvcViewEngine
+namespace Fluid.ViewEngine
 {
     public class FluidViewEngineOptions
     {
@@ -32,17 +32,18 @@ namespace Fluid.MvcViewEngine
         /// <summary>
         /// Gets or sets the <see cref="IFileProvider"/> used to access views.
         /// </summary>
-        /// <remarks>
-        /// If not set, the ContentRootFileProvider will be used.
-        /// </remarks>
         public IFileProvider ViewsFileProvider { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="IFileProvider"/> used to access includes.
         /// </summary>
-        /// <remarks>
-        /// If not set, the ContentRootFileProvider will be used.
-        /// </remarks>
         public IFileProvider IncludesFileProvider { get; set; }
+
+        /// <summary>
+        /// Gets or sets the path of the views. Default is <code>"Views"</code>
+        /// </summary>
+        public string ViewsPath { get; set; } = "Views";
+
+
     }
 }

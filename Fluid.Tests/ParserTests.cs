@@ -1,4 +1,5 @@
 ﻿using Fluid.Ast;
+using Fluid.Parser;
 using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,7 @@ namespace Fluid.Tests
         private static IReadOnlyList<Statement> Parse(string source)
         {
             _parser.TryParse(source, out var template, out var errors);
-            return template.Statements;
+            return ((FluidTemplate)template).Statements;
         }
 
         private async Task CheckAsync(string source, string expected, Action<TemplateContext> init = null)
@@ -604,9 +605,7 @@ def", "at (")]
             var rendered = template.Render();
 
             Assert.Equal("1<br />2<br />3<br />1<br />2<br />3<br />1<br />2<br />3<br />", rendered);
-        }
-
-        
+        }        
 
         [Fact]
         public void ShouldAssignWithLogicalExpression()
@@ -614,7 +613,7 @@ def", "at (")]
             var source = @"{%- assign condition_temp = HasInheritance == false or ConvertConstructorInterfaceData | append: 'o' %}{{ condition_temp }}";
 
             Assert.True(_parser.TryParse(source, out var template, out var _));
-            Assert.True(template.Statements.Count == 2);
+            Assert.True(((FluidTemplate)template).Statements.Count == 2);
             var rendered = template.Render();
 
             Assert.Equal("falseo", rendered);

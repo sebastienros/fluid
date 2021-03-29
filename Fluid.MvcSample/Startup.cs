@@ -1,5 +1,6 @@
 ﻿using Fluid.MvcSample.Models;
 using Fluid.MvcViewEngine;
+using Fluid.ViewEngine;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
