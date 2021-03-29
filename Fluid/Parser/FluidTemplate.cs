@@ -11,6 +11,11 @@ namespace Fluid.Parser
     {
         private readonly List<Statement> _statements;
 
+        public FluidTemplate(params Statement[] statements)
+        {
+            _statements = new List<Statement>(statements ?? Array.Empty<Statement>());
+        }
+
         public FluidTemplate(List<Statement> statements)
         {
             _statements = statements ?? throw new ArgumentNullException(nameof(statements));

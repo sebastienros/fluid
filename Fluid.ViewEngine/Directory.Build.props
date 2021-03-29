@@ -1,0 +1,10 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <PackageId>Fluid.ViewEngine</PackageId>
+    <Description>Fluid.ViewEngine is a reusable library to build view engines based on Liquid templates. It supports Layouts, Sections, Bodies, ViewStarts like the Razor ASP.NET MVC engine.</Description>
+  </PropertyGroup>
+
+  <Import Project="../Common.props"/>
+
+</Project>

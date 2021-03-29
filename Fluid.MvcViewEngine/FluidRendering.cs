@@ -1,6 +1,6 @@
 ﻿using Fluid.Ast;
-using Fluid.MvcViewEngine.Internal;
 using Fluid.Parser;
+using Fluid.ViewEngine;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -104,7 +104,7 @@ namespace Fluid.MvcViewEngine
         {
             return _memoryCache.GetOrCreate(path, viewEntry =>
             {
-                var statements = new List<Statement>();
+                var subTemplates = new List<IFluidTemplate>();
 
                 // Default sliding expiration to prevent the entries for being kept indefinitely
                 viewEntry.SlidingExpiration = TimeSpan.FromHours(1);
@@ -118,15 +118,16 @@ namespace Fluid.MvcViewEngine
                     foreach (var viewStartPath in FindViewStarts(path, fileProvider))
                     {
                         // Redefine the current view path while processing ViewStart files
-                        statements.Add(new CallbackStatement((writer, encoder, context) =>
+                        var callbackTemplate = new FluidTemplate(new CallbackStatement((writer, encoder, context) =>
                         {
-                            context.AmbientValues[ViewPath] = viewStartPath;
+                            context.AmbientValues[Constants.ViewPathIndex] = viewStartPath;
                             return new ValueTask<Completion>(Completion.Normal);
                         }));
 
                         var viewStartTemplate = ParseLiquidFile(viewStartPath, fileProvider, false);
 
-                        statements.AddRange(viewStartTemplate.Statements);
+                        subTemplates.Add(callbackTemplate);
+                        subTemplates.Add(viewStartTemplate);
                     }
                 }
 
@@ -137,9 +138,9 @@ namespace Fluid.MvcViewEngine
                         var fileContent = sr.ReadToEnd();
                         if (_options.Parser.TryParse(fileContent, out var template, out var errors))
                         {
-                            statements.AddRange(template.Statements);
+                            subTemplates.Add(template);
 
-                            return new FluidTemplate(statements);
+                            return new CompositeFluidTemplate(subTemplates);
                         }
                         else
                         {

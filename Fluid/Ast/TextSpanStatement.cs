@@ -11,6 +11,7 @@ namespace Fluid.Ast
         private bool _isEmpty = false;
         private readonly object _synLock = new();
         private TextSpan _text;
+        private string _buffer;
 
         public TextSpanStatement(in TextSpan text)
         {
@@ -32,7 +33,7 @@ namespace Fluid.Ast
 
         public ref readonly TextSpan Text => ref _text;
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             if (!_isStripped)
             {
@@ -136,23 +137,30 @@ namespace Fluid.Ast
                     }
 
                     _isStripped = true;
+                    _buffer = _text.ToString();
+
                 }
             }
 
             if (_isEmpty)
             {
-                return Normal();
+                return Completion.Normal;
             }
 
             context.IncrementSteps();
 
             // The Text fragments are not encoded, but kept as-is
-#if NETSTANDARD2_0
-            writer.Write(_text.ToString());
-#else
-            writer.Write(_text.Span);
-#endif
-            return Normal();
+
+            // Since WriteAsync needs an actual buffer, we created and reused _buffer
+            await writer.WriteAsync(_buffer);
+
+            //#if NETSTANDARD2_0
+            //            await writer.WriteAsync(_text.ToString());
+            //#else
+            //            await writer.WriteAsync(_text.Span.ToArray());
+            //#endif
+
+            return Completion.Normal;
         }
     }
 }

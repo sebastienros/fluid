@@ -10,6 +10,8 @@ namespace Fluid.Ast
     {
         public const string ViewExtension = ".liquid";
         private readonly FluidParser _parser;
+        private IFluidTemplate _template;
+        private string _identifier;
 
         public IncludeStatement(FluidParser parser, Expression path, Expression with = null, IList<AssignStatement> assignStatements = null)
         {
@@ -29,52 +31,61 @@ namespace Fluid.Ast
         {
             context.IncrementSteps();
 
-            var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
-            if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))
+            if (_template == null)
             {
-                relativePath += ViewExtension;
-            }
-
-            var fileProvider = context.Options.FileProvider;
-            
-            var fileInfo = fileProvider.GetFileInfo(relativePath);
-
-            if (fileInfo == null || !fileInfo.Exists)
-            {
-                throw new FileNotFoundException(relativePath);
-            }
-
-            using (var stream = fileInfo.CreateReadStream())
-            using (var streamReader = new StreamReader(stream))
-            {
-                context.EnterChildScope();
-
-                string partialTemplate = await streamReader.ReadToEndAsync();
-
-                if (_parser.TryParse(partialTemplate, out var result, out var errors))
+                var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
+                if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (With != null)
-                    {
-                        var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
-                        var with = await With.EvaluateAsync(context);
-                        context.SetValue(identifier, with);
-                    }
-
-                    if (AssignStatements != null)
-                    {
-                        foreach (var assignStatement in AssignStatements)
-                        {
-                            await assignStatement.WriteToAsync(writer, encoder, context);
-                        }
-                    }
-
-                    await result.RenderAsync(writer, encoder, context);
+                    relativePath += ViewExtension;
                 }
-                else
+
+                var fileProvider = context.Options.FileProvider;
+
+                var fileInfo = fileProvider.GetFileInfo(relativePath);
+
+                if (fileInfo == null || !fileInfo.Exists)
+                {
+                    throw new FileNotFoundException(relativePath);
+                }
+
+                var content = "";
+
+                using (var stream = fileInfo.CreateReadStream())
+                using (var streamReader = new StreamReader(stream))
+                {
+                    content = await streamReader.ReadToEndAsync();
+                }
+
+                if (!_parser.TryParse(content, out _template, out var errors))
                 {
                     throw new ParseException(errors);
                 }
 
+                _identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
+            }
+
+            try
+            {
+                context.EnterChildScope();
+
+                if (With != null)
+                {
+                    var with = await With.EvaluateAsync(context);
+                    context.SetValue(_identifier, with);
+                }
+
+                if (AssignStatements != null)
+                {
+                    foreach (var assignStatement in AssignStatements)
+                    {
+                        await assignStatement.WriteToAsync(writer, encoder, context);
+                    }
+                }
+
+                await _template.RenderAsync(writer, encoder, context);
+            }
+            finally
+            {
                 context.ReleaseScope();
             }
 
