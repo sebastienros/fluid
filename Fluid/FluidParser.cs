@@ -113,7 +113,7 @@ namespace Fluid
 
             var CaseValueList = Separated(BinaryOr, Primary);
 
-            CombinatoryExpression = Primary.And(ZeroOrOne(Terms.NonWhiteSpace().Then(x => x.ToString()).When(x => RegisteredOperators.ContainsKey(x)).And(Primary)))
+            CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.Pattern(x => x == '=' || x == '!' || x == '<' || x == '>', maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace(failOnEmpty: true))).Then(x => x.ToString()).When(x => RegisteredOperators.ContainsKey(x)).And(Primary)))
                 .Then(x =>
                  {
                      if (x.Item2.Item1 == null)

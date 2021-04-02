@@ -837,5 +837,63 @@ namespace {{ Namespace }} {
 
             Assert.True(_parser.TryParse(source, out var _, out var _));
         }
+
+        [Theory]
+        [InlineData("{% if value==1 %}{% endif %}")]
+        [InlineData("{% if value<=1 %}{% endif %}")]
+        [InlineData("{% if value>=1 %}{% endif %}")]
+        [InlineData("{% if value<1 %}{% endif %}")]
+        [InlineData("{% if value>1 %}{% endif %}")]
+        [InlineData("{% if value contains 1 %}{% endif %}")]
+
+        [InlineData("{% if value=='a' %}{% endif %}")]
+        [InlineData("{% if value<='a' %}{% endif %}")]
+        [InlineData("{% if value>='a' %}{% endif %}")]
+        [InlineData("{% if value<'a' %}{% endif %}")]
+        [InlineData("{% if value>'a' %}{% endif %}")]
+        [InlineData("{% if value contains 'a' %}{% endif %}")]
+
+        [InlineData("{% if value==a %}{% endif %}")]
+        [InlineData("{% if value<=a %}{% endif %}")]
+        [InlineData("{% if value>=a %}{% endif %}")]
+        [InlineData("{% if value<a %}{% endif %}")]
+        [InlineData("{% if value>a %}{% endif %}")]
+        [InlineData("{% if value contains a %}{% endif %}")]
+
+        [InlineData("{% if value== 1 %}{% endif %}")]
+        [InlineData("{% if value<= 1 %}{% endif %}")]
+        [InlineData("{% if value>= 1 %}{% endif %}")]
+        [InlineData("{% if value< 1 %}{% endif %}")]
+        [InlineData("{% if value> 1 %}{% endif %}")]
+
+        [InlineData("{% if value==' a' %}{% endif %}")]
+        [InlineData("{% if value<= 'a' %}{% endif %}")]
+        [InlineData("{% if value>= 'a' %}{% endif %}")]
+        [InlineData("{% if value< 'a' %}{% endif %}")]
+        [InlineData("{% if value> 'a' %}{% endif %}")]
+
+        [InlineData("{% if value== a %}{% endif %}")]
+        [InlineData("{% if value<= a %}{% endif %}")]
+        [InlineData("{% if value>= a %}{% endif %}")]
+        [InlineData("{% if value< a %}{% endif %}")]
+        [InlineData("{% if value> a %}{% endif %}")]
+        public void ShouldParseValidOperators(string source)
+        {
+            Assert.True(_parser.TryParse(source, out var _, out var _));
+        }
+
+        [Theory]
+        [InlineData("{% if value=1 %}{% endif %}")]
+        [InlineData("{% if value===1 %}{% endif %}")]
+        [InlineData("{% if value<<'1' %}{% endif %}")]
+        [InlineData("{% if value<<<'1' %}{% endif %}")]
+        [InlineData("{% if value<=='1' %}{% endif %}")]
+        [InlineData("{% if value=>'1' %}{% endif %}")]
+        [InlineData("{% if value contains'1' %}{% endif %}")] // an identifier operator needs a space after it
+        public void ShouldNotParseInvalidOperators(string source)
+        {
+            Assert.False(_parser.TryParse(source, out var _, out var _));
+        }
+
     }
 }
