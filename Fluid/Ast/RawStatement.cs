@@ -16,11 +16,17 @@ namespace Fluid.Ast
 
         public ref readonly TextSpan Text => ref _text;
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
-            return Normal();
+#if NETSTANDARD2_0
+            await writer.WriteAsync(_text.ToString());
+#else
+            await writer.WriteAsync(_text.Span.ToArray());
+#endif
+
+            return Completion.Normal;
         }
     }
 }

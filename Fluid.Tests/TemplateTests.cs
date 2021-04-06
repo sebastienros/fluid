@@ -895,5 +895,26 @@ namespace {{ Namespace }} {
             Assert.False(_parser.TryParse(source, out var _, out var _));
         }
 
+        [Fact]
+        public async Task RawStatementShouldOutputSameText()
+        {
+            var source = @"
+before
+{% raw %}
+{{ TEST 3 }}
+{% endraw %}
+after
+";
+
+            var expected = @"
+before
+
+{{ TEST 3 }}
+
+after
+";
+
+            await CheckAsync(source, expected);
+        }
     }
 }
