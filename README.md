@@ -149,7 +149,6 @@ public static FluidValue Downcase(FluidValue input, FilterArguments arguments, T
 Filters are registered in an instance of `TemplateOptions`. This options object can be reused every time a template is rendered.
 
 ```csharp
-
 var options = new TemplateOptions();
 options.Filters.AddFilter('downcase', Downcase);
 
@@ -161,9 +160,10 @@ context.Filters.AddFilter('downcase', Downcase);
 
 ## Allow-listing object members
 
-Liquid is a secure template language which will only allow a predefined set of members to be accessed. Like filters, this can be done globally to the application with `GlobalMemberAccessStrategy`, or for each context with `MemberAccessStrategy`. Even if a member is allowed its value won't be able to be changed.
+Liquid is a secure template language which will only allow a predefined set of members to be accessed, and where model members can't be changed. 
+Property are added to the `TemplateOptions.MemberAccessStrategy` property. This options object can be reused every time a template is rendered.
 
-> Warning: To prevent concurrency issues you should always register global filters and members in a static constructor. Local ones can be defined at the time of usage.
+Alternatively, the `MemberAccessStrategy` can be assigned an instance of `UnsafeMemberAccessStrategy` which will allow any property to be accessed.
 
 ### Allow-listing a specific type
 
