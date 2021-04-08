@@ -23,7 +23,7 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the maximum number of steps a script can execute. Leave to 0 for unlimited.
         /// </summary>
-        public int MaxSteps { get; set; } = 0;
+        public int MaxSteps { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.

@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using Fluid.Utils;
 
 namespace Fluid.Ast
 {
@@ -16,17 +17,20 @@ namespace Fluid.Ast
 
         public ref readonly TextSpan Text => ref _text;
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
+            static async ValueTask<Completion> Awaited(Task task)
+            {
+                await task;
+                return Completion.Normal;
+            }
+            
             context.IncrementSteps();
 
-#if NETSTANDARD2_0
-            await writer.WriteAsync(_text.ToString());
-#else
-            await writer.WriteAsync(_text.Span.ToArray());
-#endif
-
-            return Completion.Normal;
+            var task = writer.WriteAsync(_text.ToString());
+            return task.IsCompletedSuccessfully() 
+                ? new ValueTask<Completion>(Completion.Normal)
+                : Awaited(task);
         }
     }
 }
