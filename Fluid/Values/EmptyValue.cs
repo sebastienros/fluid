@@ -18,6 +18,7 @@ namespace Fluid.Values
         {
             if (other.Type == FluidValues.String && other.ToStringValue() == "") return true;
             if (other.Type == FluidValues.Array && other.ToNumberValue() == 0) return true;
+            if (other.Type == FluidValues.Dictionary &&other.ToNumberValue() == 0) return true;
             if (other == BlankValue.Instance) return true;
             if (other == EmptyValue.Instance) return true;
             if (other == NilValue.Instance) return false;

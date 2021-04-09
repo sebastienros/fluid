@@ -82,9 +82,13 @@ namespace Fluid.Values
         public override bool Equals(FluidValue other)
         {
             if (other.Type == FluidValues.String) return _value == other.ToStringValue();
-            if (other == BlankValue.Instance) return String.IsNullOrWhiteSpace(ToStringValue());
-            if (other == EmptyValue.Instance) return ToStringValue().Length == 0;
-
+            
+            // Delegating other types 
+            if (other == BlankValue.Instance || other == NilValue.Instance || other == EmptyValue.Instance)
+            {
+                return other.Equals(this);
+            }
+            
             return false;
         }
 
