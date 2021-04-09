@@ -590,7 +590,30 @@ def", "at (")]
         {
             return CheckAsync(source, expected, t => t.SetValue("e", "").SetValue("f", "hello"));
         }
+        
+        [Theory]
+        [InlineData("zero == empty", "false")]
+        [InlineData("empty == zero", "false")]
+        [InlineData("zero == blank", "false")]
+        [InlineData("blank == zero", "false")]
 
+        [InlineData("one == empty", "false")]
+        [InlineData("empty == one", "false")]
+        [InlineData("one == blank", "false")]
+        [InlineData("blank == one", "false")]
+        public Task EmptyShouldNotEqualNumbers(string source, string expected)
+        {
+            return CheckAsync(source, expected, t => t.SetValue("zero", 0).SetValue("one", 1));
+        }
+
+        [Theory]
+        [InlineData("blank == false", "true")]
+        [InlineData("empty == false", "false")]
+        public Task BlankShouldComparesToFalse(string source, string expected)
+        {
+            return CheckAsync(source, expected, t => t.SetValue("zero", 0).SetValue("one", 1));
+        }
+        
         [Fact]
         public void CycleShouldHandleNumbers()
         {

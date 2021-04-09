@@ -28,6 +28,9 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other)
         {
+            // blank == false -> true
+            if (other.Type == FluidValues.Blank) return _value == false;
+            
             return _value == other.ToBooleanValue();
         }
 

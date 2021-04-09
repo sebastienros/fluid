@@ -27,6 +27,7 @@ namespace Fluid.Values
 
         public override bool ToBooleanValue()
         {
+            // The only values that are falsy in Liquid are nil and false
             return true;
         }
 

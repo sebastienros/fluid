@@ -46,6 +46,10 @@ namespace Fluid.Values
                     }
                 }
             }
+            else if (other.Type == FluidValues.Empty)
+            {
+                return _value.Count == 0;
+            }
 
             return false;
         }
