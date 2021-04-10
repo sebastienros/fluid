@@ -345,6 +345,69 @@ namespace Fluid.Tests
 
             Assert.Equal("54", sw.ToString());
         }
+        
+        [Fact]
+        public async Task NegativeTargetShouldNotRenderLoop()
+        {
+            var e = new ForStatement(
+                new List<Statement> { new TextSpanStatement("x") },
+                "i",
+                new RangeExpression(
+                    new LiteralExpression(NumberValue.Create(0)),
+                    new LiteralExpression(NumberValue.Create(-1))
+                ),
+                null, null, false
+            );
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+
+            Assert.Equal("", sw.ToString());
+        }
+        
+        [Fact]
+        public async Task InvalidRangeShouldNotRenderLoop()
+        {
+            var e = new ForStatement(
+                new List<Statement> { new TextSpanStatement("x") },
+                "i",
+                new RangeExpression(
+                    new LiteralExpression(NumberValue.Create(-10)),
+                    new LiteralExpression(NumberValue.Create(-20))
+                ),
+                null, null, false
+            );
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+
+            Assert.Equal("", sw.ToString());
+        }
+        
+        [Fact]
+        public async Task NegativeLimitShouldStripFromEnd()
+        {
+            var context = new TemplateContext()
+                    .SetValue("limit", -3)
+                ;
+
+            var e = new ForStatement(
+                new List<Statement> { CreateMemberStatement("i") },
+                "i",
+                new RangeExpression(
+                    new LiteralExpression(NumberValue.Create(1)),
+                    new LiteralExpression(NumberValue.Create(9))
+                ),
+                new MemberExpression(new IdentifierSegment("limit")),
+                offset: null,
+                false
+            );
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal("123456", sw.ToString());
+        }
 
         static Statement CreateMemberStatement(string p)
         {

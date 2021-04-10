@@ -54,9 +54,6 @@ namespace Fluid.Ast
         public bool Reversed { get; }
         public Statement Else { get; }
 
-        private List<FluidValue> _rangeElements;
-        private int _rangeStart, _rangeEnd;
-
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             List<FluidValue> list = null;
@@ -68,26 +65,14 @@ namespace Fluid.Ast
             }
             else if (Range != null)
             {
-                int start = Convert.ToInt32((await Range.From.EvaluateAsync(context)).ToNumberValue());
-                int end = Convert.ToInt32((await Range.To.EvaluateAsync(context)).ToNumberValue());
+                var start = Convert.ToInt32((await Range.From.EvaluateAsync(context)).ToNumberValue());
+                var end = Convert.ToInt32((await Range.To.EvaluateAsync(context)).ToNumberValue());
 
-                // Cache range
-                if (_rangeElements == null || _rangeStart != start || _rangeEnd != end)
+                list = new List<FluidValue>(Math.Max(1, end - start));
+
+                for (var i = start; i <= end; i++)
                 {
-                    _rangeElements = new List<FluidValue>(end - start);
-
-                    for (var i = start; i <= end; i++)
-                    {
-                        _rangeElements.Add(NumberValue.Create(i));
-                    }
-
-                    list = _rangeElements;
-                    _rangeStart = start;
-                    _rangeEnd = end;
-                }
-                else
-                {
-                    list = _rangeElements;
+                    list.Add(NumberValue.Create(i));
                 }
             }
 
@@ -113,7 +98,16 @@ namespace Fluid.Ast
             if (Limit is not null)
             {
                 var limit = (int) (await Limit.EvaluateAsync(context)).ToNumberValue();
-                count = Math.Min(count, limit);
+
+                // Limit can be negative
+                if (limit >= 0)
+                {
+                    count = Math.Min(count, limit);
+                }
+                else
+                {
+                    count = Math.Max(0, count + limit);
+                }
             }
 
             if (count == 0)
