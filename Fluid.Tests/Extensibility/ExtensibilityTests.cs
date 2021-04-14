@@ -92,7 +92,7 @@ namespace Fluid.Tests.Extensibility
             parser.TryParse("{% hello %} hi {%- endhello %} {% endhello %}", out var template, out var error);
 
             Assert.Null(template);
-            Assert.Contains("Unexpected tag 'endhello'", error);
+            Assert.Contains("Unknown tag 'endhello'", error);
         }
 
         [Fact]
