@@ -12,6 +12,7 @@ namespace Fluid.Benchmarks
         private readonly TestCase _ifWithAnds;
         private readonly TestCase _ifWithOrs;
         private readonly TestCase _elseIf;
+        private readonly TestCase _assign;
 
         public TagBenchmarks()
         {
@@ -19,6 +20,7 @@ namespace Fluid.Benchmarks
             _ifWithAnds = new TestCase("{% if true and false and false == false %}HIDDEN{% endif %}");
             _ifWithOrs = new TestCase("{% if true == false or false or false %}HIDDEN{% endif %}");
             _elseIf = new TestCase("{% if false %}{% elsif true == false or false or false %}HIDDEN{% endif %}");
+            _assign = new TestCase("{% assign something = 'foo' %} {% assign another = 1234 %} {% assign last = something %}");
 
             _context = new TemplateContext();
         }
@@ -69,6 +71,18 @@ namespace Fluid.Benchmarks
         public string ElseIfStatement_Render()
         {
             return _elseIf.Render(_context);
+        }
+
+        [Benchmark]
+        public object Assign_Parse()
+        {
+            return _assign.Parse();
+        }
+
+        [Benchmark]
+        public string Assign_Render()
+        {
+            return _assign.Render(_context);
         }
 
         private sealed class TestCase
