@@ -14,6 +14,7 @@ namespace Fluid.Benchmarks
         private readonly TestCase _elseIf;
         private readonly TestCase _assign;
         private readonly TestCase _else;
+        private readonly TestCase _textSpan;
 
         public TagBenchmarks()
         {
@@ -23,6 +24,7 @@ namespace Fluid.Benchmarks
             _elseIf = new TestCase("{% if false %}{% elsif true == false or false or false %}HIDDEN{% endif %}");
             _else = new TestCase("{% if false %}{% else %}SHOWN{% endif %}");
             _assign = new TestCase("{% assign something = 'foo' %} {% assign another = 1234 %} {% assign last = something %}");
+            _textSpan = new TestCase("foo");
 
             _context = new TemplateContext();
         }
@@ -97,6 +99,18 @@ namespace Fluid.Benchmarks
         public string Else_Render()
         {
             return _else.Render(_context);
+        }
+
+        [Benchmark]
+        public object TextSpan_Parse()
+        {
+            return _textSpan.Parse();
+        }
+
+        [Benchmark]
+        public string TextSpan_Render()
+        {
+            return _textSpan.Render(_context);
         }
 
         private sealed class TestCase
