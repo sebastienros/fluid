@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using Fluid.Parser;
 using Fluid.Tests.Domain;
 using Fluid.Tests.Domain.WithInterfaces;
 using Fluid.Tests.Mocks;
@@ -487,14 +488,14 @@ turtle
         }
 
         [Theory]
-        [InlineData("abc {{ def", "Invalid tag")]
-        [InlineData("abc {{ def }", "Invalid tag")]
-        [InlineData("abc {%", "Expected tag name")]
-        [InlineData("abc {{", "Invalid tag")]
+        [InlineData("abc {{ def", ErrorMessages.ExpectedOutputEnd)]
+        [InlineData("abc {{ def }", ErrorMessages.ExpectedOutputEnd)]
+        [InlineData("abc {%", ErrorMessages.IdentifierAfterTagStart)]
+        [InlineData("abc {{", ErrorMessages.LogicalExpressionStartsFilter)]
         public void ShouldDetectInvalidTemplate(string source, string expected)
         {
             _parser.TryParse(source, out var template, out var error);
-            Assert.Contains(expected, error);
+            Assert.StartsWith(expected, error);
         }
 
         [Theory]

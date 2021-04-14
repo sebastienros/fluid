@@ -27,7 +27,7 @@ namespace Fluid.Tests.MvcViewEngine
 This is the footer
 {% endsection %}
 
-{% mytag %}
+{% mytag %}{% endmytag %}
 ";
             var parser = new FluidViewParser();
 
