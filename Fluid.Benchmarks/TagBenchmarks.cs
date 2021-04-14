@@ -4,6 +4,7 @@ using BenchmarkDotNet.Attributes;
 namespace Fluid.Benchmarks
 {
     [MemoryDiagnoser]
+    [ShortRunJob]
     public class TagBenchmarks
     {
         private static readonly FluidParser _parser = new();
