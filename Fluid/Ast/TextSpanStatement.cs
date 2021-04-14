@@ -38,14 +38,15 @@ namespace Fluid.Ast
         {
             if (!_isStripped)
             {
+                var trimming = context.Options.Trimming;
                 StripLeft |=
-                    (PreviousIsTag && (context.Options.Trimming & TrimmingFlags.TagRight) != 0) ||
-                    (PreviousIsOutput && (context.Options.Trimming & TrimmingFlags.OutputRight) != 0)
+                    (PreviousIsTag && (trimming & TrimmingFlags.TagRight) != 0) ||
+                    (PreviousIsOutput && (trimming & TrimmingFlags.OutputRight) != 0)
                     ;
 
                 StripRight |=
-                    (NextIsTag && (context.Options.Trimming & TrimmingFlags.TagLeft) != 0) ||
-                    (NextIsOutput && (context.Options.Trimming & TrimmingFlags.OutputLeft) != 0)
+                    (NextIsTag && (trimming & TrimmingFlags.TagLeft) != 0) ||
+                    (NextIsOutput && (trimming & TrimmingFlags.OutputLeft) != 0)
                     ;
 
                 var span = _text.Buffer;
