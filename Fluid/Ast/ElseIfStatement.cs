@@ -17,14 +17,14 @@ namespace Fluid.Ast
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             // Process statements until next block or end of statements
-            for (var index = 0; index < _statements.Count; index++)
+            for (var i = 0; i < _statements.Count; i++)
             {
                 context.IncrementSteps();
 
-                var task = _statements[index].WriteToAsync(writer, encoder, context);
+                var task = _statements[i].WriteToAsync(writer, encoder, context);
                 if (!task.IsCompletedSuccessfully)
                 {
-                    return Awaited(task, index + 1, writer, encoder, context);
+                    return Awaited(task, i + 1, writer, encoder, context);
                 }
 
                 var completion = task.Result;

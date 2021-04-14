@@ -11,14 +11,53 @@ namespace Fluid.Ast
         {
         }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             for (var i = 0; i < _statements.Count; i++)
             {
                 context.IncrementSteps();
 
-                var statement = _statements[i];
-                var completion = await statement.WriteToAsync(writer, encoder, context);
+                var task = _statements[i].WriteToAsync(writer, encoder, context);
+
+                if (!task.IsCompletedSuccessfully)
+                {
+                    return Awaited(task, i + 1, writer, encoder, context);
+                }
+
+                var completion = task.Result;
+
+                if (completion != Completion.Normal)
+                {
+                    // Stop processing the block statements
+                    // We return the completion to flow it to the outer loop
+                    return new ValueTask<Completion>(completion);
+                }
+            }
+
+            return new ValueTask<Completion>(Completion.Normal);
+        }
+
+        private async ValueTask<Completion> Awaited(
+            ValueTask<Completion> task,
+            int startIndex,
+            TextWriter writer,
+            TextEncoder encoder,
+            TemplateContext context)
+        {
+            var completion = await task;
+
+            if (completion != Completion.Normal)
+            {
+                // Stop processing the block statements
+                // We return the completion to flow it to the outer loop
+                return completion;
+            }
+
+            for (var i = startIndex; i < _statements.Count; i++)
+            {
+                context.IncrementSteps();
+
+                completion = await _statements[i].WriteToAsync(writer, encoder, context);
 
                 if (completion != Completion.Normal)
                 {
