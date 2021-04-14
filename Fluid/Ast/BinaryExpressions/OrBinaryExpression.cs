@@ -9,12 +9,25 @@ namespace Fluid.Ast.BinaryExpressions
         {
         }
 
-        public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
+        public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
-            var leftValue = await Left.EvaluateAsync(context);
-            var rightValue = await Right.EvaluateAsync(context);
+            static async ValueTask<FluidValue> Awaited(ValueTask<FluidValue> leftTask, ValueTask<FluidValue> rightTask)
+            {
+                var leftValue = await leftTask;
+                var rightValue = await rightTask;
 
-            return BooleanValue.Create(leftValue.ToBooleanValue() || rightValue.ToBooleanValue());
+                return BooleanValue.Create(leftValue.ToBooleanValue() || rightValue.ToBooleanValue());
+            }
+
+            var leftTask = Left.EvaluateAsync(context);
+            var rightTask = Right.EvaluateAsync(context);
+
+            if (leftTask.IsCompletedSuccessfully && rightTask.IsCompletedSuccessfully)
+            {
+                return BooleanValue.Create(leftTask.Result.ToBooleanValue() || rightTask.Result.ToBooleanValue());
+            }
+
+            return Awaited(leftTask, rightTask);
         }
     }
 }

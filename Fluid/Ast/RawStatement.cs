@@ -24,11 +24,11 @@ namespace Fluid.Ast
                 await task;
                 return Completion.Normal;
             }
-            
+
             context.IncrementSteps();
 
             var task = writer.WriteAsync(_text.ToString());
-            return task.IsCompletedSuccessfully() 
+            return task.IsCompletedSuccessfully()
                 ? new ValueTask<Completion>(Completion.Normal)
                 : Awaited(task);
         }

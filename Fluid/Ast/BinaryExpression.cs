@@ -2,7 +2,7 @@
 {
     public abstract class BinaryExpression : Expression
     {
-        public BinaryExpression(Expression left, Expression right)
+        protected BinaryExpression(Expression left, Expression right)
         {
             Left = left;
             Right = right;
