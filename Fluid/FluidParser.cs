@@ -141,8 +141,8 @@ namespace Fluid
 
                         result = current.Item1 switch
                         {
-                            "or" => new OrBinaryExpression(previous, current.Item2),
-                            "and" => new AndBinaryExpression(previous, current.Item2),
+                            "or" => new OrBinaryExpression(previous, result),
+                            "and" => new AndBinaryExpression(previous, result),
                             _ => throw new ParseException()
                         };
                         
