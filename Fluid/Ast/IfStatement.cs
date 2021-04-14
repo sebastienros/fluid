@@ -124,7 +124,7 @@ namespace Fluid.Ast
             }
             else
             {
-                await AwaitedElseBranch(new ValueTask<FluidValue>(BooleanValue.False), null, writer, encoder, context, startIndex: 0);
+                await AwaitedElseBranch(new ValueTask<FluidValue>(BooleanValue.False), new ValueTask<Completion>(), writer, encoder, context, startIndex: 0);
             }
 
             return Completion.Normal;
