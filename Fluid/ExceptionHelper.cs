@@ -29,9 +29,15 @@ namespace Fluid
             throw new ParseException(message);
         }
 
+        [DoesNotReturn]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static void ThrowMaximumStatementsException()
+        {
+            throw new InvalidOperationException("The maximum number of statements has been reached. Your script took too long to run.");
+        }
+
 #if NETSTANDARD2_0
         private class DoesNotReturnAttribute : Attribute {}
 #endif
-
     }
 }

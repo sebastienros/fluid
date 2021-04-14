@@ -74,9 +74,10 @@ namespace Fluid
 
         internal void IncrementSteps()
         {
-            if (Options.MaxSteps != 0 && _steps++ > Options.MaxSteps)
+            var maxSteps = Options.MaxSteps;
+            if (maxSteps > 0 && _steps++ > maxSteps)
             {
-                throw new InvalidOperationException("The maximum number of statements has been reached. Your script took too long to run.");
+                ExceptionHelper.ThrowMaximumStatementsException();
             }
         }
 

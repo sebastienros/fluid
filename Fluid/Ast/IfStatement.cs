@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using Fluid.Values;
 
 namespace Fluid.Ast
 {
@@ -27,13 +27,87 @@ namespace Fluid.Ast
 
         public IReadOnlyList<ElseIfStatement> ElseIfs => _elseIfStatements;
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            var result = (await Condition.EvaluateAsync(context)).ToBooleanValue();
+            var conditionTask = Condition.EvaluateAsync(context);
+            if (conditionTask.IsCompletedSuccessfully)
+            {
+                var result = conditionTask.Result.ToBooleanValue();
+
+                if (result)
+                {
+                    for (var i = 0; i < _statements.Count; i++)
+                    {
+                        var statement = _statements[i];
+                        var task = statement.WriteToAsync(writer, encoder, context);
+                        if (!task.IsCompletedSuccessfully)
+                        {
+                            return Awaited(conditionTask, writer, encoder, context, i + 1);
+                        }
+
+                        var completion = task.Result;
+
+                        if (completion != Completion.Normal)
+                        {
+                            // Stop processing the block statements
+                            // We return the completion to flow it to the outer loop
+                            return new ValueTask<Completion>(completion);
+                        }
+                    }
+
+                    return new ValueTask<Completion>(Completion.Normal);
+                }
+                else
+                {
+                    for (var i = 0; i < _elseIfStatements.Count; i++)
+                    {
+                        var elseIf = _elseIfStatements[i];
+                        var elseIfConditionTask = elseIf.Condition.EvaluateAsync(context);
+                        if (!elseIfConditionTask.IsCompletedSuccessfully)
+                        {
+                            var writeTask = elseIf.WriteToAsync(writer, encoder, context);
+                            return AwaitedElseBranch(elseIfConditionTask, writeTask, writer, encoder, context, i + 1);
+                        }
+
+                        if (elseIfConditionTask.Result.ToBooleanValue())
+                        {
+                            var writeTask = elseIf.WriteToAsync(writer, encoder, context);
+                            if (!writeTask.IsCompletedSuccessfully)
+                            {
+                                return AwaitedElseBranch(elseIfConditionTask, writeTask, writer, encoder, context, i + 1);
+                            }
+
+                            return new ValueTask<Completion>(writeTask.Result);
+                        }
+                    }
+
+                    if (Else != null)
+                    {
+                        return Else.WriteToAsync(writer, encoder, context);
+                    }
+                }
+
+                return new ValueTask<Completion>(Completion.Normal);
+            }
+            else
+            {
+                return Awaited(conditionTask, writer, encoder, context, statementStartIndex: 0);
+            }
+        }
+
+
+        private async ValueTask<Completion> Awaited(
+            ValueTask<FluidValue> conditionTask,
+            TextWriter writer,
+            TextEncoder encoder,
+            TemplateContext context,
+            int statementStartIndex)
+        {
+            var result = (await conditionTask).ToBooleanValue();
 
             if (result)
             {
-                for (var i = 0; i < _statements.Count; i++)
+                for (var i = statementStartIndex; i < _statements.Count; i++)
                 {
                     var statement = _statements[i];
                     var completion = await statement.WriteToAsync(writer, encoder, context);
@@ -50,19 +124,38 @@ namespace Fluid.Ast
             }
             else
             {
-                for (var i = 0; i < _elseIfStatements.Count; i++)
-                {
-                    var elseIf = _elseIfStatements[i];
-                    if ((await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue())
-                    {
-                        return await elseIf.WriteToAsync(writer, encoder, context);
-                    }
-                }
+                await AwaitedElseBranch(new ValueTask<FluidValue>(BooleanValue.False), new ValueTask<Completion>(), writer, encoder, context, startIndex: 0);
+            }
 
-                if (Else != null)
+            return Completion.Normal;
+        }
+
+        private async ValueTask<Completion> AwaitedElseBranch(
+            ValueTask<FluidValue> conditionTask,
+            ValueTask<Completion> elseIfTask,
+            TextWriter writer,
+            TextEncoder encoder,
+            TemplateContext context,
+            int startIndex)
+        {
+            bool condition = (await conditionTask).ToBooleanValue();
+            if (condition)
+            {
+                await elseIfTask;
+            }
+
+            for (var i = startIndex; i < _elseIfStatements.Count; i++)
+            {
+                var elseIf = _elseIfStatements[i];
+                if ((await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue())
                 {
-                    await Else.WriteToAsync(writer, encoder, context);
+                    return await elseIf.WriteToAsync(writer, encoder, context);
                 }
+            }
+
+            if (Else != null)
+            {
+                return await Else.WriteToAsync(writer, encoder, context);
             }
 
             return Completion.Normal;

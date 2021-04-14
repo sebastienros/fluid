@@ -26,8 +26,8 @@ namespace Fluid.Ast
             var prefixedIdentifier = Prefix + Identifier;
 
             var value = context.GetValue(prefixedIdentifier);
-            
-            if (value.IsNil()) 
+
+            if (value.IsNil())
             {
                 value = NumberValue.Zero;
             }

@@ -2,13 +2,14 @@
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using Fluid.Utils;
 
 namespace Fluid.Ast
 {
-    public class TextSpanStatement : Statement
+    public sealed class TextSpanStatement : Statement
     {
-        private bool _isStripped = false;
-        private bool _isEmpty = false;
+        private bool _isStripped;
+        private bool _isEmpty;
         private readonly object _synLock = new();
         private TextSpan _text;
         private string _buffer;
@@ -33,18 +34,19 @@ namespace Fluid.Ast
 
         public ref readonly TextSpan Text => ref _text;
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             if (!_isStripped)
             {
+                var trimming = context.Options.Trimming;
                 StripLeft |=
-                    (PreviousIsTag && context.Options.Trimming.HasFlag(TrimmingFlags.TagRight)) ||
-                    (PreviousIsOutput && context.Options.Trimming.HasFlag(TrimmingFlags.OutputRight))
+                    (PreviousIsTag && (trimming & TrimmingFlags.TagRight) != 0) ||
+                    (PreviousIsOutput && (trimming & TrimmingFlags.OutputRight) != 0)
                     ;
 
                 StripRight |=
-                    (NextIsTag && context.Options.Trimming.HasFlag(TrimmingFlags.TagLeft)) ||
-                    (NextIsOutput && context.Options.Trimming.HasFlag(TrimmingFlags.OutputLeft))
+                    (NextIsTag && (trimming & TrimmingFlags.TagLeft) != 0) ||
+                    (NextIsOutput && (trimming & TrimmingFlags.OutputLeft) != 0)
                     ;
 
                 var span = _text.Buffer;
@@ -144,7 +146,7 @@ namespace Fluid.Ast
 
             if (_isEmpty)
             {
-                return Completion.Normal;
+                return new ValueTask<Completion>(Completion.Normal);
             }
 
             context.IncrementSteps();
@@ -152,15 +154,20 @@ namespace Fluid.Ast
             // The Text fragments are not encoded, but kept as-is
 
             // Since WriteAsync needs an actual buffer, we created and reused _buffer
-            await writer.WriteAsync(_buffer);
 
-            //#if NETSTANDARD2_0
-            //            await writer.WriteAsync(_text.ToString());
-            //#else
-            //            await writer.WriteAsync(_text.Span.ToArray());
-            //#endif
+            static async ValueTask<Completion> Awaited(Task task)
+            {
+                await task;
+                return Completion.Normal;
+            }
 
-            return Completion.Normal;
+            var task = writer.WriteAsync(_buffer);
+            if (!task.IsCompletedSuccessfully())
+            {
+                return Awaited(task);
+            }
+
+            return new ValueTask<Completion>(Completion.Normal);
         }
     }
 }
