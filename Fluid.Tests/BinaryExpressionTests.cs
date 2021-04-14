@@ -198,6 +198,9 @@ namespace Fluid.Tests
         [Theory]
         [InlineData("true or false and false", "true")]
         [InlineData("true and false and false or true", "false")]
+        [InlineData("true and true and false == false", "true")]
+        [InlineData("true and true and true == false", "false")]
+        [InlineData("false or false or true == true", "true")]
         public Task OperatorsShouldBeEvaluatedFromRightToLeft(string source, string expected)
         {
             // https://shopify.github.io/liquid/basics/operators/
