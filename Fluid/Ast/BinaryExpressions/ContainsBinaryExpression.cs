@@ -1,22 +1,18 @@
-﻿using System.Threading.Tasks;
-using Fluid.Values;
+﻿using Fluid.Values;
 
 namespace Fluid.Ast.BinaryExpressions
 {
-    public class ContainsBinaryExpression : BinaryExpression
+    public sealed class ContainsBinaryExpression : BinaryExpression
     {
         public ContainsBinaryExpression(Expression left, Expression right) : base(left, right)
         {
         }
 
-        public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
+        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
-            var leftValue = await Left.EvaluateAsync(context);
-            var rightValue = await Right.EvaluateAsync(context);
-
             return leftValue.Contains(rightValue)
-                    ? BooleanValue.True
-                    : BooleanValue.False;
+                ? BooleanValue.True
+                : BooleanValue.False;
         }
     }
 }

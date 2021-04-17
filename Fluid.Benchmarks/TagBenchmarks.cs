@@ -31,7 +31,6 @@ namespace Fluid.Benchmarks
             _context = new TemplateContext();
         }
 
-        /*
         [Benchmark]
         public object RawTag_Parse()
         {
@@ -115,7 +114,7 @@ namespace Fluid.Benchmarks
         {
             return _textSpan.Render(_context);
         }
-*/
+
         [Benchmark]
         public object BinaryExpressions_Parse()
         {
