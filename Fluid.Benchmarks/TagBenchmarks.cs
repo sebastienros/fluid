@@ -15,6 +15,7 @@ namespace Fluid.Benchmarks
         private readonly TestCase _assign;
         private readonly TestCase _else;
         private readonly TestCase _textSpan;
+        private readonly TestCase _binaryExpressions;
 
         public TagBenchmarks()
         {
@@ -25,10 +26,12 @@ namespace Fluid.Benchmarks
             _else = new TestCase("{% if false %}{% else %}SHOWN{% endif %}");
             _assign = new TestCase("{% assign something = 'foo' %} {% assign another = 1234 %} {% assign last = something %}");
             _textSpan = new TestCase("foo");
+            _binaryExpressions = new TestCase("{% if 1 == 'elvis' or 0 == 1 or 1 == 2 or 2 < 1 or 4 > 4 or 1 != 1 or 1 >= 2 or 4 <= 2 or 'abc' contains 'd' or 'abc' startswith 'd' or 'abc' endswith 'd' %}TEXT{% endif %}");
 
             _context = new TemplateContext();
         }
 
+        /*
         [Benchmark]
         public object RawTag_Parse()
         {
@@ -111,6 +114,18 @@ namespace Fluid.Benchmarks
         public string TextSpan_Render()
         {
             return _textSpan.Render(_context);
+        }
+*/
+        [Benchmark]
+        public object BinaryExpressions_Parse()
+        {
+            return _binaryExpressions.Parse();
+        }
+
+        [Benchmark]
+        public string BinaryExpressions_Render()
+        {
+            return _binaryExpressions.Render(_context);
         }
 
         private sealed class TestCase
