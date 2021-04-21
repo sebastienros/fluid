@@ -1,19 +1,15 @@
-﻿using System.Threading.Tasks;
-using Fluid.Values;
+﻿using Fluid.Values;
 
 namespace Fluid.Ast.BinaryExpressions
 {
-    public class AddBinaryExpression : BinaryExpression
+    public sealed class AddBinaryExpression : BinaryExpression
     {
         public AddBinaryExpression(Expression left, Expression right) : base(left, right)
         {
         }
 
-        public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
+        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
-            var leftValue = await Left.EvaluateAsync(context);
-            var rightValue = await Right.EvaluateAsync(context);
-            
             if (leftValue is StringValue)
             {
                 return new StringValue(leftValue.ToStringValue() + rightValue.ToStringValue());

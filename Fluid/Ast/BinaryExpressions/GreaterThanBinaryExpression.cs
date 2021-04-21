@@ -1,9 +1,8 @@
-﻿using System.Threading.Tasks;
-using Fluid.Values;
+﻿using Fluid.Values;
 
 namespace Fluid.Ast.BinaryExpressions
 {
-    public class GreaterThanBinaryExpression : BinaryExpression
+    public sealed class GreaterThanBinaryExpression : BinaryExpression
     {
         public GreaterThanBinaryExpression(Expression left, Expression right, bool strict) : base(left, right)
         {
@@ -12,24 +11,18 @@ namespace Fluid.Ast.BinaryExpressions
 
         public bool Strict { get; }
 
-        public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
+        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
-            var leftValue = await Left.EvaluateAsync(context);
-            var rightValue = await Right.EvaluateAsync(context);
-
             if (leftValue.IsNil() || rightValue.IsNil())
             {
                 if (Strict)
                 {
                     return BooleanValue.False;
                 }
-                else
-                {
-                    return leftValue.IsNil() && rightValue.IsNil()
-                        ? BooleanValue.True
-                        : BooleanValue.False
-                        ;
-                }
+
+                return leftValue.IsNil() && rightValue.IsNil()
+                    ? BooleanValue.True
+                    : BooleanValue.False;
             }
 
             if (leftValue is NumberValue)
@@ -38,16 +31,12 @@ namespace Fluid.Ast.BinaryExpressions
                 {
                     return leftValue.ToNumberValue() > rightValue.ToNumberValue()
                         ? BooleanValue.True
-                        : BooleanValue.False
-                        ;
+                        : BooleanValue.False;
                 }
-                else
-                {
-                    return leftValue.ToNumberValue() >= rightValue.ToNumberValue()
-                        ? BooleanValue.True
-                        : BooleanValue.False
-                        ;
-                }
+
+                return leftValue.ToNumberValue() >= rightValue.ToNumberValue()
+                    ? BooleanValue.True
+                    : BooleanValue.False;
             }
 
             return NilValue.Instance;

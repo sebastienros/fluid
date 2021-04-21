@@ -106,25 +106,24 @@ namespace Fluid.Values
                 return fluidValue;
             }
 
-            if (options.ValueConverters.Count > 0)
+            var converters = options.ValueConverters;
+            for (var i = 0; i < converters.Count; i++)
             {
-                foreach (var valueConverter in options.ValueConverters)
+                var valueConverter = converters[i];
+                var result = valueConverter(value);
+
+                if (result != null)
                 {
-                    var result = valueConverter(value);
-
-                    if (result != null)
+                    // If a converter returned a FluidValue instance use it directly
+                    if (result is FluidValue resultFluidValue)
                     {
-                        // If a converter returned a FluidValue instance use it directly
-                        if (result is FluidValue resultFluidValue)
-                        {
-                            return resultFluidValue;
-                        }
-
-                        // Otherwise stop custom conversions
-
-                        value = result;
-                        break;
+                        return resultFluidValue;
                     }
+
+                    // Otherwise stop custom conversions
+
+                    value = result;
+                    break;
                 }
             }
 
