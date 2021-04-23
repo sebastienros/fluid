@@ -96,6 +96,21 @@ namespace Fluid.Tests
             template.Render(new TemplateContext(model2));
         }
 
+        [Fact]
+        public void SegmentAccessorCacheShouldVaryByType()
+        {
+            FluidParser parser = new();
+            var options = new TemplateOptions { MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var template = parser.Parse("{% if Model1 %}{{ Model1.Name }}{% endif %}");
+
+            var model1 = new { Model1 = new { Name = "model1" } };
+            var model2 = new { Model2 = new { Name = "model2" } };
+
+            Assert.Equal("model1", template.Render(new TemplateContext(model1, options)));
+            Assert.Equal("", template.Render(new TemplateContext(model2, options)));
+            Assert.Equal("model1", template.Render(new TemplateContext(model1, options)));
+        }
+
         private class TestClass
         {
             public string Name { get; set; }
