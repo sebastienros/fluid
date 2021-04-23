@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Threading.Tasks;
 
 namespace Fluid
 {
@@ -21,15 +20,19 @@ namespace Fluid
         /// <summary>
         /// Initializes a new instance of <see cref="TemplateContext"/>.
         /// </summary>
-        public TemplateContext(object model, TemplateOptions options) : this(options)
+        /// <param name="model">The model.</param>
+        /// <param name="options">The template options.</param>
+        /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
+        public TemplateContext(object model, TemplateOptions options, bool allowModelMembers = true) : this(options)
         {
             Model = model ?? throw new ArgumentNullException(nameof(model));
+            AllowModelMembers = allowModelMembers;
         }
 
         /// <summary>
         /// Initializes a new instance of <see cref="TemplateContext"/> with the specified <see cref="TemplateOptions"/>.
         /// </summary>
-        /// <param name="options"></param>
+        /// <param name="options">The template options.</param>
         public TemplateContext(TemplateOptions options)
         {
             Options = options;
@@ -47,9 +50,11 @@ namespace Fluid
         /// Initializes a new instance of <see cref="TemplateContext"/> wih a model and option regiter its properties.
         /// </summary>
         /// <param name="model">The model.</param>
-        public TemplateContext(object model) : this()
+        /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
+        public TemplateContext(object model, bool allowModelMembers = true) : this()
         {
             Model = model ?? throw new ArgumentNullException(nameof(model));
+            AllowModelMembers = allowModelMembers;
         }
 
         /// <summary>
@@ -94,6 +99,11 @@ namespace Fluid
         /// global scopes are unsuccessfull.
         /// </summary>
         public object Model { get; set; }
+
+        /// <summary>
+        /// Whether the direct properties of the Model can be accessed without being registered. Default is <code>true</code>.
+        /// </summary>
+        public bool AllowModelMembers { get; set; } = true;
 
         /// <summary>
         /// Creates a new isolated scope. After than any value added to this content object will be released once

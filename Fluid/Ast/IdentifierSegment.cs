@@ -45,12 +45,17 @@ namespace Fluid.Ast
                 var localAccessor = _accessor;
 
                 // The cached accessor might differ from the one that needs to be used if the type of the mode is different
-                // from the previous invokation
+                // from the previous invocation
 
                 if (localAccessor.Type != modelType)
                 {
                     localAccessor.Accessor = context.Options.MemberAccessStrategy.GetAccessor(modelType, Identifier);
-                    localAccessor.Accessor ??= MemberAccessStrategyExtensions.GetNamedAccessor(modelType, Identifier, MemberNameStrategies.Default);
+
+                    // We should only build the accessor of the Model's properties if the content is not preventing it.
+                    if (context.AllowModelMembers)
+                    {
+                        localAccessor.Accessor ??= MemberAccessStrategyExtensions.GetNamedAccessor(modelType, Identifier, MemberNameStrategies.Default);
+                    }
 
                     // Update the local type even if _accessor is null since it means there is no such property on this type
                     localAccessor.Type = modelType;
