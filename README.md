@@ -174,7 +174,8 @@ var options = new TemplateOptions();
 options.MemberAccessStrategy.Register<Person>();
 ``` 
 
-> Note: When passing a model with `new TemplateContext(model)` the type of the `model` object is automatically registered.
+> Note: When passing a model with `new TemplateContext(model)` the type of the `model` object is automatically registered. This behavior can be disable
+by calling `new TemplateContext(model, false)`
 
 ### Allow-listing specific members
 
