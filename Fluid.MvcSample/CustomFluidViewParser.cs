@@ -7,7 +7,7 @@ namespace Fluid.MvcSample
     {
         public CustomFluidViewParser()
         {
-            RegisterEmptyBlock("mytag", static async (s, w, e, c) =>
+            RegisterEmptyTag("mytag", static async (w, e, c) =>
             {
                 await w.WriteAsync("Hello from MyTag");
 

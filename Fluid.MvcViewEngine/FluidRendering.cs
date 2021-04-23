@@ -20,9 +20,6 @@ namespace Fluid.MvcViewEngine
     /// </summary>
     public class FluidRendering : IFluidRendering
     {
-        private const string ViewStartFilename = "_ViewStart.liquid";
-        public const string ViewPath = "ViewPath";
-
         static FluidRendering()
         {
         }
@@ -47,23 +44,24 @@ namespace Fluid.MvcViewEngine
 
         public async ValueTask<string> RenderAsync(string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
         {
-            var context = new TemplateContext(model, _options.TemplateOptions);
+            var context = new TemplateContext(_options.TemplateOptions);
             context.SetValue("ViewData", viewData);
             context.SetValue("ModelState", modelState);
+            context.SetValue("Model", model);
 
             // Provide some services to all statements
-            context.AmbientValues[ViewPath] = path;
-            context.AmbientValues["Sections"] = new Dictionary<string, IReadOnlyList<Statement>>();
+            context.AmbientValues[Constants.ViewPathIndex] = path;
+            context.AmbientValues[Constants.SectionsIndex] = new Dictionary<string, IReadOnlyList<Statement>>();
 
             var template = ParseLiquidFile(path, _options.ViewsFileProvider ?? _hostingEnvironment.ContentRootFileProvider, true);
 
             var body = await template.RenderAsync(context, _options.TextEncoder);
 
             // If a layout is specified while rendering a view, execute it
-            if (context.AmbientValues.TryGetValue("Layout", out var layoutPath))
+            if (context.AmbientValues.TryGetValue(Constants.LayoutIndex, out var layoutPath))
             {
-                context.AmbientValues[ViewPath] = layoutPath;
-                context.AmbientValues["Body"] = body;
+                context.AmbientValues[Constants.ViewPathIndex] = layoutPath;
+                context.AmbientValues[Constants.BodyIndex] = body;
                 var layoutTemplate = ParseLiquidFile((string)layoutPath, _options.ViewsFileProvider ?? _hostingEnvironment.ContentRootFileProvider, false);
 
                 return await layoutTemplate.RenderAsync(context, _options.TextEncoder);
@@ -86,7 +84,7 @@ namespace Fluid.MvcViewEngine
                     return viewStarts;
                 }
 
-                viewPath = viewPath.Substring(0, index + 1) + ViewStartFilename;
+                viewPath = viewPath.Substring(0, index + 1) + Constants.ViewStartFilename;
 
                 var viewStartInfo = fileProvider.GetFileInfo(viewPath);
                 if (viewStartInfo.Exists)
