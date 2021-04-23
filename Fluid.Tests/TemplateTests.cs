@@ -205,13 +205,13 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateObjectProperty()
         {
-            _parser.TryParse("{{ p.Name }}", out var template, out var error);
+            _parser.TryParse("{{ p.Firstname }}", out var template, out var error);
 
             var options = new TemplateOptions();
             options.MemberAccessStrategy.Register<Person>();
 
             var context = new TemplateContext(options);
-            context.SetValue("p", new Person { Name = "John" });
+            context.SetValue("p", new Person { Firstname = "John" });
             
 
             var result = await template.RenderAsync(context);
@@ -280,11 +280,11 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateInheritedObjectProperty()
         {
-            _parser.TryParse("{{ e.Name }} {{ e.Salary }}", out var template, out var error);
+            _parser.TryParse("{{ e.Firstname }} {{ e.Salary }}", out var template, out var error);
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            context.SetValue("e", new Employee { Name = "John", Salary = 550 });
+            context.SetValue("e", new Employee { Firstname = "John", Salary = 550 });
             options.MemberAccessStrategy.Register<Employee>();
 
             var result = await template.RenderAsync(context);
@@ -294,11 +294,11 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldNotAllowNotRegisteredMember()
         {
-            _parser.TryParse("{{ c.Director.Name }} {{ c.Director.Salary }}", out var template, out var error);
+            _parser.TryParse("{{ c.Director.Firstname }} {{ c.Director.Salary }}", out var template, out var error);
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            context.SetValue("c", new Company { Director = new Employee { Name = "John", Salary = 550 } });
+            context.SetValue("c", new Company { Director = new Employee { Firstname = "John", Salary = 550 } });
             options.MemberAccessStrategy.Register<Company>();
 
             var result = await template.RenderAsync(context);
@@ -310,11 +310,11 @@ namespace Fluid.Tests
         {
             // The Employee class is not registered, hence any access to its properties should return nothing
             // but the Person class is registered, so Name should be available
-            _parser.TryParse("{{ c.Director.Name }} {{ c.Director.Salary }}", out var template, out var error);
+            _parser.TryParse("{{ c.Director.Firstname }} {{ c.Director.Salary }}", out var template, out var error);
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            context.SetValue("c", new Company { Director = new Employee { Name = "John", Salary = 550 } });
+            context.SetValue("c", new Company { Director = new Employee { Firstname = "John", Salary = 550 } });
             options.MemberAccessStrategy.Register<Company>();
             options.MemberAccessStrategy.Register<Person>();
 
@@ -761,12 +761,12 @@ shape: '{{ shape }}'");
         [Fact]
         public async Task IgnoreCasing()
         {
-            _parser.TryParse("{{ p.NaMe }}", out var template, out var error);
+            _parser.TryParse("{{ p.Firstname }}", out var template, out var error);
 
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            context.SetValue("p", new Person { Name = "John" });
+            context.SetValue("p", new Person { Firstname = "John" });
             options.MemberAccessStrategy.IgnoreCasing = true;
             options.MemberAccessStrategy.Register<Person>();
 

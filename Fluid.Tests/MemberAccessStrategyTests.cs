@@ -1,4 +1,5 @@
 ﻿using Fluid.Accessors;
+using Fluid.Tests.Domain;
 using Fluid.Values;
 using Newtonsoft.Json.Linq;
 using System.Threading.Tasks;
@@ -147,6 +148,47 @@ namespace Fluid.Tests
             var context = new TemplateContext(model, options);
 
             Assert.Equal("His name is Bill", await template.RenderAsync(context));
+        }
+
+        [Fact]
+        public void SubPropertyShouldNotBeAccessible()
+        {
+            var parser = new FluidParser();
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<Person>(x => x.Firstname);
+
+            var john = new Person { Firstname = "John", Lastname = "Wick", Address = new Address { City = "Redmond", State = "Washington" } };
+
+            var template = parser.Parse("{{Firstname}};{{Lastname}};{{Address.City}};{{Address.State}}");
+            Assert.Equal("John;;;", template.Render(new TemplateContext(john, options, false)));
+        }
+
+        [Fact]
+        public void SimblingPropertyShouldNotBeAccessible()
+        {
+            var parser = new FluidParser();
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<Person>(x => x.Firstname);
+            // Address is not registered
+            options.MemberAccessStrategy.Register<Address>(x => x.State);
+
+            var john = new Person { Firstname = "John", Lastname = "Wick", Address = new Address { City = "Redmond", State = "Washington" } };
+
+            var template = parser.Parse("{{Firstname}};{{Lastname}};{{Address.City}};{{Address.State}}");
+            Assert.Equal("John;;;", template.Render(new TemplateContext(john, options, false)));
+        }
+
+        [Fact]
+        public void ShouldResolveModelProperty()
+        {
+            var parser = new FluidParser();
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<Person>(x => x.Firstname);
+
+            var john = new Person { Firstname = "John", Lastname = "Wick", Address = new Address { City = "Redmond", State = "Washington" } };
+
+            var template = parser.Parse("{{Firstname}}{{Lastname}}");
+            Assert.Equal("John", template.Render(new TemplateContext(john, options, false)));
         }
     }
 
