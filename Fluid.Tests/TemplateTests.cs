@@ -14,7 +14,7 @@ namespace Fluid.Tests
 {
     public class TemplateTests
     {
-        static FluidParser _parser = new FluidParser();
+        static FluidParser _parser = new FluidParser().Compile();
 
         private object _products = new []
         {

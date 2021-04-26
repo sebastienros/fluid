@@ -11,7 +11,7 @@ namespace Fluid.Tests
 {
     public class ParserTests
     {
-        static FluidParser _parser = new FluidParser();
+        static FluidParser _parser = new FluidParser().Compile();
 
         private static IReadOnlyList<Statement> Parse(string source)
         {

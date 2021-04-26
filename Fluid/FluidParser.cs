@@ -114,7 +114,7 @@ namespace Fluid
 
             var CaseValueList = Separated(BinaryOr, Primary);
 
-            CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.Pattern(x => x == '=' || x == '!' || x == '<' || x == '>', maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace(failOnEmpty: true))).Then(x => x.ToString()).When(x => RegisteredOperators.ContainsKey(x)).And(Primary)))
+            CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.Pattern(x => x == '=' || x == '!' || x == '<' || x == '>', maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString()).When(x => RegisteredOperators.ContainsKey(x)).And(Primary)))
                 .Then(x =>
                  {
                      if (x.Item2.Item1 == null)
@@ -254,7 +254,7 @@ namespace Fluid
             var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
             var AssignTag = Identifier.ElseError(IdentifierAfterAssign).AndSkip(Equal.ElseError(EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
             var IfTag = LogicalExpression
-                        .AndSkip(TagEnd)
+                        .AndSkip(TagEnd).Then(x => x)
                         .And(AnyTagsList)
                         .And(ZeroOrMany(
                             TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(AnyTagsList))
@@ -471,6 +471,23 @@ namespace Fluid
                 .Then<Statement>(x => new EmptyBlockStatement(x, render))
                 .ElseError($"Invalid '{tagName}' tag")
                 ;
+        }
+
+        /// <summary>
+        /// Compiles all expressions.
+        /// </summary>
+        public FluidParser Compile()
+        {
+            //foreach (var entry in RegisteredTags.ToArray())
+            //{
+            //    RegisteredTags[entry.Key] = entry.Value.Compile();
+            //}
+
+            RegisteredTags["if"] = RegisteredTags["if"].Compile();
+
+            Grammar = Grammar.Compile();
+
+            return this;
         }
     }
 }
