@@ -6,12 +6,11 @@ namespace Fluid.Benchmarks
     public class CompiledFluidBenchmarks : BaseBenchmarks
     {
         private readonly TemplateOptions _options = new TemplateOptions();
-        private readonly FluidParser _parser  = new FluidParser();
+        private readonly FluidParser _parser  = new FluidParser().Compile();
         private readonly IFluidTemplate _fluidTemplate;
 
         public CompiledFluidBenchmarks()
         {
-            _parser.Compile();
             _options.MemberAccessStrategy.Register<Product>();
             _options.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
             _parser.TryParse(ProductTemplate, out _fluidTemplate, out var _);

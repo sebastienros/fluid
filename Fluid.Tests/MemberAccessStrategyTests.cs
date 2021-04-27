@@ -9,6 +9,8 @@ namespace Fluid.Tests
 {
     public class MemberAccessStrategyTests
     {
+        public static FluidParser _parser = new FluidParser().Compile();
+
         [Fact]
         public void RegisterByTypeAddPublicFields()
         {
@@ -142,9 +144,7 @@ namespace Fluid.Tests
 
             var model = JObject.Parse("{\"Name\": \"Bill\"}");
 
-            var parser = new FluidParser();
-
-            parser.TryParse("His name is {{ Name }}", out var template);
+            _parser.TryParse("His name is {{ Name }}", out var template);
             var context = new TemplateContext(model, options);
 
             Assert.Equal("His name is Bill", await template.RenderAsync(context));
@@ -153,20 +153,18 @@ namespace Fluid.Tests
         [Fact]
         public void SubPropertyShouldNotBeAccessible()
         {
-            var parser = new FluidParser();
             var options = new TemplateOptions();
             options.MemberAccessStrategy.Register<Person>(x => x.Firstname);
 
             var john = new Person { Firstname = "John", Lastname = "Wick", Address = new Address { City = "Redmond", State = "Washington" } };
 
-            var template = parser.Parse("{{Firstname}};{{Lastname}};{{Address.City}};{{Address.State}}");
+            var template = _parser.Parse("{{Firstname}};{{Lastname}};{{Address.City}};{{Address.State}}");
             Assert.Equal("John;;;", template.Render(new TemplateContext(john, options, false)));
         }
 
         [Fact]
         public void SimblingPropertyShouldNotBeAccessible()
         {
-            var parser = new FluidParser();
             var options = new TemplateOptions();
             options.MemberAccessStrategy.Register<Person>(x => x.Firstname);
             // Address is not registered
@@ -174,20 +172,19 @@ namespace Fluid.Tests
 
             var john = new Person { Firstname = "John", Lastname = "Wick", Address = new Address { City = "Redmond", State = "Washington" } };
 
-            var template = parser.Parse("{{Firstname}};{{Lastname}};{{Address.City}};{{Address.State}}");
+            var template = _parser.Parse("{{Firstname}};{{Lastname}};{{Address.City}};{{Address.State}}");
             Assert.Equal("John;;;", template.Render(new TemplateContext(john, options, false)));
         }
 
         [Fact]
         public void ShouldResolveModelProperty()
         {
-            var parser = new FluidParser();
             var options = new TemplateOptions();
             options.MemberAccessStrategy.Register<Person>(x => x.Firstname);
 
             var john = new Person { Firstname = "John", Lastname = "Wick", Address = new Address { City = "Redmond", State = "Washington" } };
 
-            var template = parser.Parse("{{Firstname}}{{Lastname}}");
+            var template = _parser.Parse("{{Firstname}}{{Lastname}}");
             Assert.Equal("John", template.Render(new TemplateContext(john, options, false)));
         }
     }

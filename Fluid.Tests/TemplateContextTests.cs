@@ -9,6 +9,8 @@ namespace Fluid.Tests
 {
     public class TemplateContextTests
     {
+        static FluidParser _parser = new FluidParser().Compile();
+
         [Fact]
         public async Task ShouldNotThrowException()
         {
@@ -27,9 +29,7 @@ namespace Fluid.Tests
         [Fact]
         public void ScopeShouldFallbackToTemplateOptions()
         {
-            var parser = new FluidParser();
-
-            parser.TryParse("{{ p.NaMe }}", out var template, out var error);
+            _parser.TryParse("{{ p.NaMe }}", out var template, out var error);
 
             var options = new TemplateOptions();
             options.Scope.SetValue("o1", new StringValue("o1"));
@@ -47,8 +47,6 @@ namespace Fluid.Tests
         [Fact]
         public void CustomContextShouldNotUseTemplateOptionsProperties()
         {
-            var parser = new FluidParser();
-
             var options = new TemplateOptions();
 
             var context = new TemplateContext(options);
@@ -64,8 +62,6 @@ namespace Fluid.Tests
         [Fact]
         public void DefaultContextShouldUseTemplateOptionsProperties()
         {
-            var parser = new FluidParser();
-
             var options = new TemplateOptions();
             options.TimeZone = TimeZoneInfo.Utc;
             options.CultureInfo = new CultureInfo("fr-FR");
@@ -82,8 +78,7 @@ namespace Fluid.Tests
         public void UseDifferentModelsWithSameMemberName()
         {
             // Arrange
-            var parser = new FluidParser();
-            var template = parser.Parse("Hi {{Name}}");
+            var template = _parser.Parse("Hi {{Name}}");
             var model1 = new TestClass { Name = "TestClass" };
             var model2 = new AnotherTestClass { Name = "AnotherTestClass" };
             

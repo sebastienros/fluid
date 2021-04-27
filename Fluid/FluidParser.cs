@@ -254,7 +254,7 @@ namespace Fluid
             var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
             var AssignTag = Identifier.ElseError(IdentifierAfterAssign).AndSkip(Equal.ElseError(EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
             var IfTag = LogicalExpression
-                        .AndSkip(TagEnd).Then(x => x)
+                        .AndSkip(TagEnd)
                         .And(AnyTagsList)
                         .And(ZeroOrMany(
                             TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(AnyTagsList))
@@ -278,7 +278,7 @@ namespace Fluid
                        .AndSkip(TagEnd)
                        .AndSkip(AnyCharBefore(TagStart, canBeEmpty: true))
                        .And(ZeroOrMany(
-                           TagStart.Then(x => x).AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList))
+                           TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList))
                            .Then(x => x.Select(e => new WhenStatement(e.Item2, e.Item3)).ToArray()))
                        .And(ZeroOrOne(
                            CreateTag("else").SkipAnd(AnyTagsList))
@@ -476,14 +476,12 @@ namespace Fluid
         /// <summary>
         /// Compiles all expressions.
         /// </summary>
-        public FluidParser Compile()
+        public virtual FluidParser Compile()
         {
-            //foreach (var entry in RegisteredTags.ToArray())
-            //{
-            //    RegisteredTags[entry.Key] = entry.Value.Compile();
-            //}
-
-            RegisteredTags["if"] = RegisteredTags["if"].Compile();
+            foreach (var entry in RegisteredTags.ToArray())
+            {
+                RegisteredTags[entry.Key] = entry.Value.Compile();
+            }
 
             Grammar = Grammar.Compile();
 

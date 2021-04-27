@@ -6,7 +6,7 @@ namespace Fluid.Tests
 {
     public class WhiteSpaceTests
     {
-        private static FluidParser _parser = new FluidParser();
+        private static FluidParser _parser = new FluidParser().Compile();
 
         [Fact]
         public async Task ShouldPreserveSpace()

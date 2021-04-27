@@ -8,7 +8,7 @@ namespace Fluid.Tests
 {
     public class BinaryExpressionTests
     {
-        private static FluidParser _parser = new FluidParser();
+        private static FluidParser _parser = new FluidParser().Compile();
 
         private async Task CheckAsync(string source, string expected, Action<TemplateContext> init = null)
         {
