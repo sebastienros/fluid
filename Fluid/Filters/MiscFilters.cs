@@ -97,7 +97,12 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return input.Or(arguments.At(0));
+            if (input.IsNil() || input == BooleanValue.False || EmptyValue.Instance.Equals(input))
+            {
+                return arguments.At(0);
+            }
+            
+            return input;
         }
 
         public static ValueTask<FluidValue> Raw(FluidValue input, FilterArguments arguments, TemplateContext context)
