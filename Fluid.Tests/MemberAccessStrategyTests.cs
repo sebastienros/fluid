@@ -9,7 +9,11 @@ namespace Fluid.Tests
 {
     public class MemberAccessStrategyTests
     {
-        public static FluidParser _parser = new FluidParser().Compile();
+#if COMPILED
+        private static FluidParser _parser = new FluidParser().Compile();
+#else
+        private static FluidParser _parser = new FluidParser();
+#endif
 
         [Fact]
         public void RegisterByTypeAddPublicFields()

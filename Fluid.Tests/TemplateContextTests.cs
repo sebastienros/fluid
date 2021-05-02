@@ -9,7 +9,11 @@ namespace Fluid.Tests
 {
     public class TemplateContextTests
     {
-        static FluidParser _parser = new FluidParser().Compile();
+#if COMPILED
+        private static FluidParser _parser = new FluidParser().Compile();
+#else
+        private static FluidParser _parser = new FluidParser();
+#endif
 
         [Fact]
         public async Task ShouldNotThrowException()
