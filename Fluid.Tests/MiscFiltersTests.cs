@@ -27,16 +27,17 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task DefaultReturnsDefaultIfNotDefined()
+        public async Task DefaultReturnsDefaultIfNotDefinedOrEmptyOrFalse()
         {
-            var input = NilValue.Instance;
+            foreach (var value in new FluidValue[] { NilValue.Instance, new StringValue(""), BooleanValue.False, ArrayValue.Empty })
+            {
+                var arguments = new FilterArguments().Add(new StringValue("bar"));
+                var context = new TemplateContext();
 
-            var arguments = new FilterArguments().Add(new StringValue("bar"));
-            var context = new TemplateContext();
+                var result = await MiscFilters.Default(value, arguments, context);
 
-            var result = await MiscFilters.Default(input, arguments, context);
-
-            Assert.Equal("bar", result.ToStringValue());
+                Assert.Equal("bar", result.ToStringValue());
+            }
         }
 
         [Fact]
