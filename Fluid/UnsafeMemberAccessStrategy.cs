@@ -1,30 +1,23 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace Fluid
 {
-    public class UnsafeMemberAccessStrategy : MemberAccessStrategy
+    public class UnsafeMemberAccessStrategy : DefaultMemberAccessStrategy
     {
         public static readonly UnsafeMemberAccessStrategy Instance = new UnsafeMemberAccessStrategy();
 
-        private readonly MemberAccessStrategy baseMemberAccessStrategy = new DefaultMemberAccessStrategy();
-
         public override IMemberAccessor GetAccessor(Type type, string name)
         {
-            var accessor = baseMemberAccessStrategy.GetAccessor(type, name);
+            var accessor = base.GetAccessor(type, name);
             
             if (accessor != null)
             {
                 return accessor;
             }
 
-            baseMemberAccessStrategy.Register(type);
-            return baseMemberAccessStrategy.GetAccessor(type, name);
-        }
+            this.Register(type);
 
-        public override void Register(Type type, IEnumerable<KeyValuePair<string, IMemberAccessor>> accessors)
-        {
-           baseMemberAccessStrategy.Register(type, accessors);
+            return base.GetAccessor(type, name);
         }
     }
 }

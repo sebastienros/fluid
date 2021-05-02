@@ -917,5 +917,77 @@ after
 
             await CheckAsync(source, expected);
         }
+
+        [Fact]
+        public async Task DefaultMemberStrategyShouldSupportCamelCase()
+        {
+            var model = new { FirstName = "Sebastien" };
+            var source = "{{ firstName }}";
+            var expected = "Sebastien";
+
+            _parser.TryParse(source, out var template, out var error);
+
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy = new DefaultMemberAccessStrategy { MemberNameStrategy = MemberNameStrategies.CamelCase };
+            var context = new TemplateContext(model, options);
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public async Task DefaultMemberStrategyShouldSupportSnakeCase()
+        {
+            var model = new { FirstName = "Sebastien" };
+            var source = "{{ first_name }}";
+            var expected = "Sebastien";
+
+            _parser.TryParse(source, out var template, out var error);
+
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy = new DefaultMemberAccessStrategy { MemberNameStrategy = MemberNameStrategies.SnakeCase };
+            var context = new TemplateContext(model, options);
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task UnsafeMemberStrategyShouldSupportCamelCase(bool registerModelType)
+        {
+            var model = new { FirstName = "Sebastien" };
+            var source = "{{ firstName }}";
+            var expected = "Sebastien";
+
+            _parser.TryParse(source, out var template, out var error);
+
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy = new UnsafeMemberAccessStrategy { MemberNameStrategy = MemberNameStrategies.CamelCase };
+            var context = new TemplateContext(model, options, registerModelType);
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task UnsafeMemberStrategyShouldSupportSnakeCase(bool registerModelType)
+        {
+            var model = new { FirstName = "Sebastien" };
+            var source = "{{ first_name }}";
+            var expected = "Sebastien";
+
+            _parser.TryParse(source, out var template, out var error);
+
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy = new UnsafeMemberAccessStrategy { MemberNameStrategy = MemberNameStrategies.SnakeCase };
+            var context = new TemplateContext(model, options, registerModelType);
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(expected, result);
+        }
     }
 }

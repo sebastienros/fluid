@@ -6,7 +6,13 @@ namespace Fluid.Ast
 {
     public class IdentifierSegment : MemberSegment
     {
-        private (Type Type, IMemberAccessor Accessor) _accessor;
+        private class AccessorCache
+        {
+            public Type Type;
+            public IMemberAccessor Accessor;
+        }
+
+        private AccessorCache _accessor = new AccessorCache();
 
         public IdentifierSegment(string identifier)
         {
@@ -54,7 +60,7 @@ namespace Fluid.Ast
                     // We should only build the accessor of the Model's properties if the content is not preventing it.
                     if (context.AllowModelMembers)
                     {
-                        localAccessor.Accessor ??= MemberAccessStrategyExtensions.GetNamedAccessor(modelType, Identifier, MemberNameStrategies.Default);
+                        localAccessor.Accessor ??= MemberAccessStrategyExtensions.GetNamedAccessor(modelType, Identifier, context.Options.MemberAccessStrategy.MemberNameStrategy);
                     }
 
                     // Update the local type even if _accessor is null since it means there is no such property on this type

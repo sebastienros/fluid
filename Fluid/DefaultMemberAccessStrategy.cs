@@ -9,20 +9,10 @@ namespace Fluid
     {
         private readonly object _synLock = new();
 
-        private Dictionary<Type, Dictionary<string, IMemberAccessor>> _map;
-
-        public DefaultMemberAccessStrategy()
-        {
-            _map = new Dictionary<Type, Dictionary<string, IMemberAccessor>>();
-        }
+        private Dictionary<Type, Dictionary<string, IMemberAccessor>> _map = new Dictionary<Type, Dictionary<string, IMemberAccessor>>();
 
         public override IMemberAccessor GetAccessor(Type type, string name)
         {
-            if (_map is null)
-            {
-                return null;
-            }
-
             // Look for specific property map
             if (TryGetAccessor(type, name, out var accessor))
             {
@@ -87,7 +77,7 @@ namespace Fluid
             lock (_synLock)
             {
                 // Clone current dictionary
-                var temp = _map != null ? new Dictionary<Type, Dictionary<string, IMemberAccessor>>(_map) : new Dictionary<Type, Dictionary<string, IMemberAccessor>>();
+                var temp = new Dictionary<Type, Dictionary<string, IMemberAccessor>>(_map);
 
                 // Clone inner dictionaries
                 foreach (var typeEntry in temp)
