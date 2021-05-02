@@ -12,7 +12,11 @@ namespace Fluid.Tests
 {
     public class IncludeStatementTests
     {
+#if COMPILED
+        private static FluidParser _parser = new FluidParser().Compile();
+#else
         private static FluidParser _parser = new FluidParser();
+#endif
 
         [Fact]
         public async Task IncludeSatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()

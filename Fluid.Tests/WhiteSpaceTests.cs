@@ -6,7 +6,11 @@ namespace Fluid.Tests
 {
     public class WhiteSpaceTests
     {
+#if COMPILED
+        private static FluidParser _parser = new FluidParser().Compile();
+#else
         private static FluidParser _parser = new FluidParser();
+#endif
 
         [Fact]
         public async Task ShouldPreserveSpace()
@@ -377,10 +381,8 @@ Wow, John G. Chalmers-Smith, you have a long name!";
         {
             var c = (char)160;
 
-            var result = _parser.TryParse("{{" + c + "'a'" + c + "}}", out var template, out var errors);
-            var rendered = template.Render();
-
-            Assert.Equal("a", rendered);
+            Assert.True(_parser.TryParse("{{" + c + "'a'" + c + "}}", out var template, out var errors));
+            Assert.Equal("a", template.Render());
         }
 
         [Theory]

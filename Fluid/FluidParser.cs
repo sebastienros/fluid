@@ -278,7 +278,7 @@ namespace Fluid
                        .AndSkip(TagEnd)
                        .AndSkip(AnyCharBefore(TagStart, canBeEmpty: true))
                        .And(ZeroOrMany(
-                           TagStart.Then(x => x).AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList))
+                           TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList))
                            .Then(x => x.Select(e => new WhenStatement(e.Item2, e.Item3)).ToArray()))
                        .And(ZeroOrOne(
                            CreateTag("else").SkipAnd(AnyTagsList))
@@ -471,6 +471,21 @@ namespace Fluid
                 .Then<Statement>(x => new EmptyBlockStatement(x, render))
                 .ElseError($"Invalid '{tagName}' tag")
                 ;
+        }
+
+        /// <summary>
+        /// Compiles all expressions.
+        /// </summary>
+        public virtual FluidParser Compile()
+        {
+            foreach (var entry in RegisteredTags.ToArray())
+            {
+                RegisteredTags[entry.Key] = entry.Value.Compile();
+            }
+
+            Grammar = Grammar.Compile();
+
+            return this;
         }
     }
 }

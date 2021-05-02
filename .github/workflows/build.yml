@@ -37,3 +37,5 @@ jobs:
         dotnet-version: 5.0.*
     - name: Test
       run: dotnet test --configuration Release
+    - name: Test - Compiled
+      run: dotnet test --configuration Release /p:Compiled=true
