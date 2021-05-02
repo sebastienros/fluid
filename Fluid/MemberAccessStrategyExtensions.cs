@@ -12,15 +12,15 @@ namespace Fluid
     public static class MemberAccessStrategyExtensions
     {
         // A cache of accessors so we don't rebuild them once they are added to global or contextual access strategies
-        internal static ConcurrentDictionary<Type, Dictionary<string, IMemberAccessor>> _typeMembers = new ConcurrentDictionary<Type, Dictionary<string, IMemberAccessor>>();
+        internal static ConcurrentDictionary<(Type Type, MemberNameStrategy MemberNameStrategy), Dictionary<string, IMemberAccessor>> _typeMembers = new ConcurrentDictionary<(Type, MemberNameStrategy), Dictionary<string, IMemberAccessor>>();
 
         internal static Dictionary<string, IMemberAccessor> GetTypeMembers(Type type, MemberNameStrategy memberNameStrategy)
         {
-            return _typeMembers.GetOrAdd(type, t =>
+            return _typeMembers.GetOrAdd((type, memberNameStrategy), key =>
             {
                 var list = new Dictionary<string, IMemberAccessor>();
 
-                foreach (var propertyInfo in t.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                foreach (var propertyInfo in key.Type.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {
                     if (propertyInfo.GetIndexParameters().Length > 0)
                     {
@@ -39,7 +39,7 @@ namespace Fluid
                         list[memberNameStrategy(propertyInfo)] = new PropertyInfoAccessor(propertyInfo);
                 }
 
-                foreach (var fieldInfo in t.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))
+                foreach (var fieldInfo in key.Type.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))
                 {
                     if (fieldInfo.FieldType.IsGenericType && fieldInfo.FieldType.GetGenericTypeDefinition() == typeof(Task<>))
                         list[memberNameStrategy(fieldInfo)] = new AsyncDelegateAccessor(async (o, n) =>

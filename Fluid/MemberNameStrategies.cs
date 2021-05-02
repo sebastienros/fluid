@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 using System.Text;
 
 namespace Fluid
@@ -11,17 +12,20 @@ namespace Fluid
 
         private static string RenameDefault(MemberInfo member) => member.Name;
 
+#if NETSTANDARD2_0
         public static string RenameCamelCase(MemberInfo member)
         {
-            var name = member.Name;
-            var firstChar = name[0];
+            var firstChar = member.Name[0];
 
             if (firstChar == char.ToLowerInvariant(firstChar))
             {
-                return name;
+                return member.Name;
             }
 
-            return char.ToLowerInvariant(firstChar) + name.Substring(1);
+            var name = member.Name.ToCharArray();
+            name[0] = char.ToLowerInvariant(firstChar);
+
+            return new String(name);
         }
 
         public static string RenameSnakeCase(MemberInfo member)
@@ -50,5 +54,52 @@ namespace Fluid
             }
             return builder.ToString();
         }
+#else
+        public static string RenameCamelCase(MemberInfo member)
+        {
+            return String.Create(member.Name.Length, member.Name, (data, name) =>
+            {
+                data[0] = char.ToLowerInvariant(name[0]);
+                name.AsSpan().Slice(1).CopyTo(data.Slice(1));
+            });
+        }
+
+        public static string RenameSnakeCase(MemberInfo member)
+        {
+            var upper = 0;
+            for (var i = 1; i < member.Name.Length; i++)
+            {
+                if (char.IsUpper(member.Name[i]))
+                {
+                    upper++;
+                }
+            }
+
+            return String.Create(member.Name.Length + upper, member.Name, (data, name) =>
+            {
+                var previousUpper = false;
+                var k = 0;
+
+                for (var i = 0; i < name.Length; i++)
+                {
+                    var c = name[i];
+                    if (char.IsUpper(c))
+                    {
+                        if (i > 0 && !previousUpper)
+                        {
+                            data[k++] = '_';
+                        }
+                        data[k++] = char.ToLowerInvariant(c);
+                        previousUpper = true;
+                    }
+                    else
+                    {
+                        data[k++] = c;
+                        previousUpper = false;
+                    }
+                }
+            });
+        }
+#endif
     }
 }
