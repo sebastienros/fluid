@@ -993,5 +993,26 @@ after
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
         }
+
+        [Fact]
+        public async Task ShouldIterateOnDictionaries()
+        {
+            var model = new
+            {
+                Capitals = new Dictionary<string, string> { { "France", "Paris" }, { "Spain", "Madrid" }, { "Italy", "Rome" } }
+            };
+
+            var source = "{% for i in Capitals %}{{ Capitals[i.first] }}{{ i[1] }}{% endfor %}";
+            var expected = "ParisParisMadridMadridRomeRome";
+
+            _parser.TryParse(source, out var template, out var error);
+
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance;
+            var context = new TemplateContext(model, options);
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(expected, result);
+        }
     }
 }
