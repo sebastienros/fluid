@@ -517,13 +517,20 @@ def", "at (")]
         [Fact]
         public void ShouldSkipNewLines()
         {
-            var source = @"{%if true
-                                    and 
-                                        true%}true{%endif%}";
+            var source = @"{% 
+if
+true
+or
+false
+-%}
+true
+{%-
+endif
+%}";
 
             var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.True(result);
+            Assert.True(result, errors);
             Assert.NotNull(template);
             Assert.Null(errors);
 
