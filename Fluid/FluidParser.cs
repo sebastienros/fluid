@@ -332,6 +332,14 @@ namespace Fluid
 
                             })
                         ).ElseError("Invalid 'for' tag");
+            var PaginateTag = LogicalExpression
+                .AndSkip(Terms.Text("by"))
+                .And(Terms.Integer())
+                .AndSkip(TagEnd)
+                .And(AnyTagsList)
+                .AndSkip(CreateTag("endpaginate"))
+                .Then<Statement>(x => new PaginateStatement(x.Item1, x.Item2, x.Item3))
+                .ElseError("Invalid 'paginate' tag");
 
             RegisteredTags["break"] = BreakTag;
             RegisteredTags["continue"] = ContinueTag;
@@ -347,6 +355,7 @@ namespace Fluid
             RegisteredTags["unless"] = UnlessTag;
             RegisteredTags["case"] = CaseTag;
             RegisteredTags["for"] = ForTag;
+            RegisteredTags["paginate"] = PaginateTag;
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             static (Expression limitResult, Expression offsetResult, bool reversed) ReadForStatementConfiguration(List<ForModifier> modifiers)
@@ -423,6 +432,7 @@ namespace Fluid
             KnownTagsList.Parser = ZeroOrMany(Output.Or(KnownTags).Or(Text)); // User in main list and raises an issue when an unknown tag is found
 
             Grammar = KnownTagsList;
+
         }
 
         public static Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
