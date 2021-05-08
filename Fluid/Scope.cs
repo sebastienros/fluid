@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Fluid.Values;
 
@@ -19,7 +20,7 @@ namespace Fluid
             _parent = parent;
         }
 
-        public IEnumerable<string> Properties => (_properties ??= new Dictionary<string, FluidValue>()).Keys;
+        public IEnumerable<string> Properties => _properties == null ? Array.Empty<string>() : _properties.Keys;
 
         /// <summary>
         /// Returns the value with the specified name in the chain of scopes, or undefined
@@ -34,12 +35,7 @@ namespace Fluid
                 ExceptionHelper.ThrowArgumentNullException(nameof(name));
             }
 
-            if (_properties == null)
-            {
-                return NilValue.Instance;
-            }
-
-            if (_properties.TryGetValue(name, out var result))
+            if (_properties != null && _properties.TryGetValue(name, out var result))
             {
                 return result;
             }
