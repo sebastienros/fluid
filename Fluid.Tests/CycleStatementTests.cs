@@ -9,11 +9,6 @@ namespace Fluid.Tests
 {
     public class CycleStatementTests
     {
-        private Statement[] TEXT(string text)
-        {
-            return new Statement[] { new TextSpanStatement(text) };
-        }
-
         private LiteralExpression LIT(string text)
         {
             return new LiteralExpression(new StringValue(text));
@@ -72,6 +67,35 @@ namespace Fluid.Tests
             }
 
             Assert.Equal("aabbccaabb", sw.ToString());
+        }
+
+        [Fact]
+        public async Task CycleShouldGroupByStringRepresentation()
+        {
+            var group1 = new CycleStatement(
+                LIT(2),
+                new[] {
+                    LIT("a"), LIT("b"), LIT("c")
+                    }
+                );
+
+            var group2 = new CycleStatement(
+                LIT("2"),
+                new[] {
+                    LIT("a"), LIT("b"), LIT("c")
+                    }
+                );
+
+            var context = new TemplateContext();
+
+            var sw = new StringWriter();
+            for (var i = 1; i <= 5; i++)
+            {
+                await group1.WriteToAsync(sw, HtmlEncoder.Default, context);
+                await group2.WriteToAsync(sw, HtmlEncoder.Default, context);
+            }
+
+            Assert.Equal("abcabcabca", sw.ToString());
         }
 
         [Fact]

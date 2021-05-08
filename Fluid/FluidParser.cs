@@ -226,17 +226,10 @@ namespace Fluid
                         .Then<Statement>(x => new CaptureStatement(x.Item1, x.Item2))
                         .ElseError("Invalid 'capture' tag")
                         ;
-            var CycleTag = ZeroOrOne(Identifier.AndSkip(Colon))
+            var CycleTag = ZeroOrOne(Primary.AndSkip(Colon))
                         .And(Separated(Comma, Primary))
                         .AndSkip(TagEnd)
-                        .Then<Statement>(x =>
-                        {
-                            var group = string.IsNullOrEmpty(x.Item1)
-                                ? null
-                                : new LiteralExpression(StringValue.Create(x.Item1));
-
-                            return new CycleStatement(group, x.Item2);
-                        })
+                        .Then<Statement>(x => new CycleStatement(x.Item1, x.Item2))
                         .ElseError("Invalid 'cycle' tag")
                         ;
             var DecrementTag = Identifier.AndSkip(TagEnd)

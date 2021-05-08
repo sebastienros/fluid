@@ -30,7 +30,7 @@ namespace Fluid.Ast
         {
             context.IncrementSteps();
 
-            var groupValue = Group == null ? "$defautGroup" : "$" + (await Group.EvaluateAsync(context)).ToStringValue();
+            var groupValue = Group == null ? "$cycle_" : "$cycle_" + (await Group.EvaluateAsync(context)).ToStringValue();
 
             var currentValue = context.GetValue(groupValue);
 
