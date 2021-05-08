@@ -36,11 +36,7 @@ namespace Fluid
         public TemplateContext(TemplateOptions options)
         {
             Options = options;
-
             LocalScope = new Scope(options.Scope);
-
-            LocalScope.SetValue("empty", EmptyValue.Instance);
-            LocalScope.SetValue("blank", BlankValue.Instance);
             CultureInfo = options.CultureInfo;
             TimeZone = options.TimeZone;
             Now = options.Now;

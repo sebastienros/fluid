@@ -7,6 +7,7 @@ namespace Fluid.Benchmarks
     public class ComparisonBenchmarks
     {
         private FluidBenchmarks _fluidBenchmarks = new FluidBenchmarks();
+        private HandlebarsBenchmarks _handlebarsBenchmarks = new HandlebarsBenchmarks();
         private DotLiquidBenchmarks _dotLiquidBenchmarks = new DotLiquidBenchmarks();
         private LiquidNetBenchmarks _liquidNetBenchmarks = new LiquidNetBenchmarks();
         private ScribanBenchmarks _scribanBenchmarks = new ScribanBenchmarks();
@@ -81,6 +82,18 @@ namespace Fluid.Benchmarks
         public string LiquidNet_Render()
         {
             return _liquidNetBenchmarks.Render();
+        }
+
+        [Benchmark, BenchmarkCategory("Parse")]
+        public object Handlebars_Parse()
+        {
+            return _handlebarsBenchmarks.Parse();
+        }
+
+        [Benchmark, BenchmarkCategory("Render")]
+        public string Handlebars_Render()
+        {
+            return _handlebarsBenchmarks.Render();
         }
     }
 }
