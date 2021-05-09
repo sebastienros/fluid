@@ -16,18 +16,21 @@
   <ItemGroup>
     <None Remove="blogpost.liquid" />
     <None Remove="product.liquid" />
+    <None Remove="product.mustache" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="product.mustache" />
     <EmbeddedResource Include="product.liquid" />
     <EmbeddedResource Include="blogpost.liquid" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.12.1" />
-    <PackageReference Include="DotLiquid" Version="2.1.405" />
+    <PackageReference Include="DotLiquid" Version="2.1.436" />
     <PackageReference Include="Liquid.NET" Version="0.10.0" />
-    <PackageReference Include="Scriban" Version="3.6.0" />
+    <PackageReference Include="Scriban" Version="3.7.0" />
+    <PackageReference Include="Handlebars.Net" Version="2.0.7" />
   </ItemGroup>
 
   <ItemGroup>

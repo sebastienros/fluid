@@ -1,4 +1,5 @@
 ﻿using Fluid.Filters;
+using Fluid.Values;
 using Microsoft.Extensions.FileProviders;
 using System;
 using System.Collections.Generic;
@@ -77,6 +78,9 @@ namespace Fluid
                 .WithStringFilters()
                 .WithNumberFilters()
                 .WithMiscFilters();
+
+            Scope.SetValue("empty", EmptyValue.Instance);
+            Scope.SetValue("blank", BlankValue.Instance);
         }
     }
 

@@ -1,0 +1,9 @@
+﻿<ul id='products'>
+  {{#products}}
+    <li>
+      <h2>{{ name }}</h2>
+           Only {{ price }}
+           {{#truncate}}{{description}}{{/truncate}}
+    </li>
+  {{/products}}
+</ul>
