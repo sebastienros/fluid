@@ -31,14 +31,15 @@ namespace Fluid.Ast
         {
             context.IncrementSteps();
 
-            if (_template == null)
-            {
-                var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
-                if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))
-                {
-                    relativePath += ViewExtension;
-                }
+            var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
 
+            if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))
+            {
+                relativePath += ViewExtension;
+            }
+
+            if (_template == null || !string.Equals(_identifier, System.IO.Path.GetFileNameWithoutExtension(relativePath), StringComparison.OrdinalIgnoreCase))
+            {
                 var fileProvider = context.Options.FileProvider;
 
                 var fileInfo = fileProvider.GetFileInfo(relativePath);

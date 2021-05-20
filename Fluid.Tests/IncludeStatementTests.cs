@@ -63,6 +63,51 @@ shape: ''";
         }
 
         [Fact]
+        public async Task IncludeSatement_ShouldLoadCorrectTemplate_IfTheMemberExpressionValueChanges()
+        {
+            var expression = new MemberExpression(new IdentifierSegment("Firstname"));
+            var sw = new StringWriter();
+
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("_First.liquid", @"{{ 'Partial Content One' }}
+Partials_One: '{{ Partials }}'
+color_One: '{{ color }}'
+shape_One: '{{ shape }}'");
+
+            fileProvider.Add("_Second.liquid", @"{{ 'Partial Content Two' }}
+Partials_Two: '{{ Partials }}'
+color_Two: '{{ color }}'
+shape_Two: '{{ shape }}'");
+
+            var model = new Domain.Person { Firstname = "_First.liquid" };
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(model, options);
+            var expectedResultFirstCall = @"Partial Content One
+Partials_One: ''
+color_One: ''
+shape_One: ''";
+
+            var expectedResultSecondCall = @"Partial Content Two
+Partials_Two: ''
+color_Two: ''
+shape_Two: ''";
+
+            var include = new IncludeStatement(_parser, expression);
+
+            await include.WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal(expectedResultFirstCall, sw.ToString());
+
+            model.Firstname = "_Second.liquid";
+            sw = new StringWriter();
+
+            await include.WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal(expectedResultSecondCall, sw.ToString());
+        }
+
+        [Fact]
         public async Task IncludeSatement_WithInlinevariableAssignment_ShouldBeEvaluated()
         {
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
