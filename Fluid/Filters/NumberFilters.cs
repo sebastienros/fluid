@@ -52,6 +52,11 @@ namespace Fluid.Filters
             var first = arguments.At(0);
             decimal divisor = first.ToNumberValue();
 
+            if (divisor == 0)
+            {
+                throw new RenderException("Attempted to divide by zero.");
+            }
+
             // The result is rounded down to the nearest integer(that is, the floor) if the divisor is an integer.
             // https://shopify.github.io/liquid/filters/divided_by/
 

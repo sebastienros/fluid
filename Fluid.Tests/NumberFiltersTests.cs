@@ -102,6 +102,17 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void DividedByZeroShouldThrow()
+        {
+            var input = NumberValue.Create(4.6, TemplateOptions.Default);
+
+            var arguments = new FilterArguments(NumberValue.Create(0, TemplateOptions.Default));
+            var context = new TemplateContext();
+
+            Assert.Throws<RenderException>(() => NumberFilters.DividedBy(input, arguments, context));
+        }
+
+        [Fact]
         public void Minus()
         {
             var input = NumberValue.Create(6);
