@@ -136,7 +136,7 @@ namespace Fluid.Parser
             {
                 if (_skipWhiteSpace)
                 {
-                    context.Scanner.SkipWhiteSpace();
+                    context.SkipWhiteSpace();
                 }
 
                 var start = context.Scanner.Cursor.Position;
@@ -184,7 +184,7 @@ namespace Fluid.Parser
             {
                 if (_skipWhiteSpace)
                 {
-                    context.Scanner.SkipWhiteSpace();
+                    context.SkipWhiteSpace();
                 }
 
                 var start = context.Scanner.Cursor.Position;
