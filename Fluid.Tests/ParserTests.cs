@@ -515,7 +515,7 @@ def", "at (")]
         }
 
         [Fact]
-        public void ShouldSkipNewLines()
+        public void ShouldSkipNewLinesInTags()
         {
             var source = @"{% 
 if
@@ -527,6 +527,24 @@ true
 {%-
 endif
 %}";
+
+            var result = _parser.TryParse(source, out var template, out var errors);
+
+            Assert.True(result, errors);
+            Assert.NotNull(template);
+            Assert.Null(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal("true", rendered);
+        }
+
+        [Fact]
+        public void ShouldSkipNewLinesInOutput()
+        {
+            var source = @"{{
+true
+}}";
 
             var result = _parser.TryParse(source, out var template, out var errors);
 
