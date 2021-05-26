@@ -908,5 +908,18 @@ class  {
 }
 ", rendered);
         }
+
+
+        [Theory]
+        [InlineData("{{1}}", "1")]
+        [InlineData("{{-1-}}", "1")]
+        [InlineData("{%-assign len='1,2,3'|split:','|size-%}{{len}}", "3")] // size-%} is ambiguous and can be read as "size -%}" or "size- %}"
+        public async Task ShouldSupportCompactNotation(string source, string expected)
+        {
+            Assert.True(_parser.TryParse(source, out var template, out var _));
+            var context = new TemplateContext();
+            var result = await template.RenderAsync(context);
+            Assert.Equal(expected, result);
+        }
     }
 }
