@@ -52,7 +52,22 @@ namespace Fluid
         protected static readonly Parser<string> BinaryOr = Terms.Text("or");
         protected static readonly Parser<string> BinaryAnd = Terms.Text("and");
 
-        protected static readonly Parser<string> Identifier = Terms.Identifier(extraPart: static c => c == '-').Then(x => x.ToString());
+        protected static readonly Parser<string> Identifier = Terms.Identifier(extraPart: static c => c == '-').Then((ctx, x) =>
+        {
+            // Detect patterns like {{ size-}} to exclude the '-' from the identifier
+            // c.f. https://github.com/sebastienros/fluid/issues/347
+            if (x.Buffer[x.Offset + x.Length - 1] == '-' && (ctx.Scanner.Cursor.Current == '%' || ctx.Scanner.Cursor.Current == '}'))
+            {
+                // Trim the '-'
+                x = new TextSpan(x.Buffer, x.Offset, x.Length - 1);
+
+                // Reset the cursor to the '-'
+                var current = ctx.Scanner.Cursor.Position;
+                ctx.Scanner.Cursor.ResetPosition(new TextPosition(current.Offset - 1, current.Line, current.Column - 1));
+            }
+
+            return x.ToString();
+        });
 
         protected readonly Parser<List<FilterArgument>> ArgumentsList;
         protected readonly Parser<Expression> LogicalExpression;
@@ -165,7 +180,7 @@ namespace Fluid
                     Pipe
                     .SkipAnd(Identifier.ElseError(IdentifierAfterPipe))
                     .And(ZeroOrOne(Colon.SkipAnd(ArgumentsList)))))
-                .Then(x =>
+                .Then((ctx, x) =>
                     {
                         // Primary
                         var result = x.Item1;
