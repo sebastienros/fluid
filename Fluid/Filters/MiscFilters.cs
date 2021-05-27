@@ -542,7 +542,7 @@ namespace Fluid.Filters
             return true;
         }
 
-        private static async ValueTask WriteJson(Utf8JsonWriter writer, FluidValue input, TemplateContext ctx, params object[] stack)
+        private static async ValueTask WriteJson(Utf8JsonWriter writer, FluidValue input, TemplateContext ctx, HashSet<object> stack = null)
         {
             switch (input.Type)
             {
@@ -616,10 +616,10 @@ namespace Fluid.Filters
 
                             if (value is object)
                             {
-                                var occurrences = stack.GroupBy(o => o).ToDictionary(o => o.Key, o => o.Count());
-                                if (occurrences.ContainsKey(value) && occurrences[value] > 1)
+                                stack ??= new HashSet<object>();
+                                if (stack.Contains(value))
                                 {
-                                    value = "Cycle detected...stopping";
+                                    value = "circular reference detected.";
                                 }
                             }
 
@@ -630,7 +630,8 @@ namespace Fluid.Filters
                             }
 
                             writer.WritePropertyName(name);
-                            await WriteJson(writer, fluidValue, ctx, stack.Concat(new [] { obj }).ToArray());
+                            stack.Add(obj);
+                            await WriteJson(writer, fluidValue, ctx, new HashSet<object>(stack));
                         }
 
                         writer.WriteEndObject();

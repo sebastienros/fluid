@@ -530,7 +530,7 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
 
-            Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Cycle detected...stopping\"}}}}", result.ToStringValue());
+            Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}}", result.ToStringValue());
         }
 
         [Theory]
