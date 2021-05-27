@@ -628,7 +628,8 @@ namespace Fluid.Filters
 
                             writer.WritePropertyName(name);
                             stack.Add(obj);
-                            await WriteJson(writer, fluidValue, ctx, new HashSet<object>(stack));
+                            await WriteJson(writer, fluidValue, ctx, stack);
+                            stack.Remove(obj);
                         }
 
                         writer.WriteEndObject();
