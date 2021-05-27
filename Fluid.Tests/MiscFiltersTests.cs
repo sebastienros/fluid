@@ -533,6 +533,20 @@ namespace Fluid.Tests
             Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}}", result.ToStringValue());
         }
 
+        [Fact]
+        public async Task JsonShouldHandleCircularReferencesOnSiblingPropertiesSeparately()
+        {
+            var model = TestObjects.SiblingPropertiesHaveSameReferenceObject;
+            var input = FluidValue.Create(model, TemplateOptions.Default);
+            var to = new TemplateOptions();
+            to.MemberAccessStrategy.Register<TestObjects.Node>();
+            to.MemberAccessStrategy.Register<TestObjects.MultipleNode>();
+
+            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
+
+            Assert.Equal("{\"Name\":\"MultipleNode1\",\"Node1\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}},\"Node2\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}}}", result.ToStringValue());
+        }
+
         [Theory]
         [InlineData("", "", "", "0")]
         [InlineData(123456, "", "", "123456")]
@@ -585,7 +599,17 @@ namespace Fluid.Tests
                 public string Name { get; set; }
                 public Node NodeRef { get; set; }
             }
-            public static object RecursiveReferenceObject
+
+            public class MultipleNode
+            {
+                public string Name { get; set; }
+
+                public Node Node1 { get; set; }
+
+                public Node Node2 { get; set; }
+            }
+
+            public static Node RecursiveReferenceObject
             {
                 get
                 {
@@ -600,6 +624,21 @@ namespace Fluid.Tests
                     };
                     parent.NodeRef = child;
                     return parent;
+                }
+            }
+
+            public static object SiblingPropertiesHaveSameReferenceObject
+            {
+                get
+                {
+                    var n = RecursiveReferenceObject;
+                    var m = new MultipleNode
+                    {
+                        Name = "MultipleNode1",
+                        Node1 = n,
+                        Node2 = n
+                    };
+                    return m;
                 }
             }
         }
