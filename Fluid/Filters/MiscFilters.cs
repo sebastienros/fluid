@@ -614,13 +614,10 @@ namespace Fluid.Filters
                                 value = access.Get(obj, name, ctx);
                             }
 
-                            if (value is object)
+                            stack ??= new HashSet<object>();
+                            if (stack.Contains(value))
                             {
-                                stack ??= new HashSet<object>();
-                                if (stack.Contains(value))
-                                {
-                                    value = "circular reference detected.";
-                                }
+                                value = "circular reference detected.";
                             }
 
                             var fluidValue = FluidValue.Create(value, ctx.Options);
