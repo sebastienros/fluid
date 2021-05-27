@@ -520,6 +520,33 @@ namespace Fluid.Tests
             Assert.Equal(expected, result.ToStringValue());
         }
 
+        [Fact]
+        public async Task JsonShouldHandleCircularReferences()
+        {
+            var model = TestObjects.RecursiveReferenceObject;
+            var input = FluidValue.Create(model, TemplateOptions.Default);
+            var to = new TemplateOptions();
+            to.MemberAccessStrategy.Register<TestObjects.Node>();
+
+            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
+
+            Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}}", result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task JsonShouldHandleCircularReferencesOnSiblingPropertiesSeparately()
+        {
+            var model = TestObjects.SiblingPropertiesHaveSameReferenceObject;
+            var input = FluidValue.Create(model, TemplateOptions.Default);
+            var to = new TemplateOptions();
+            to.MemberAccessStrategy.Register<TestObjects.Node>();
+            to.MemberAccessStrategy.Register<TestObjects.MultipleNode>();
+
+            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
+
+            Assert.Equal("{\"Name\":\"MultipleNode1\",\"Node1\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}},\"Node2\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}}}", result.ToStringValue());
+        }
+
         [Theory]
         [InlineData("", "", "", "0")]
         [InlineData(123456, "", "", "123456")]
@@ -563,6 +590,57 @@ namespace Fluid.Tests
             var result = await MiscFilters.FormatString(FluidValue.Create(input, context.Options), arguments, context);
 
             Assert.Equal(expected, result.ToStringValue());
+        }
+
+        public static class TestObjects
+        {
+            public class Node
+            {
+                public string Name { get; set; }
+                public Node NodeRef { get; set; }
+            }
+
+            public class MultipleNode
+            {
+                public string Name { get; set; }
+
+                public Node Node1 { get; set; }
+
+                public Node Node2 { get; set; }
+            }
+
+            public static Node RecursiveReferenceObject
+            {
+                get
+                {
+                    var parent = new Node
+                    {
+                        Name = "Object1",
+                    };
+                    var child = new Node
+                    {
+                        Name = "Child1",
+                        NodeRef = parent
+                    };
+                    parent.NodeRef = child;
+                    return parent;
+                }
+            }
+
+            public static object SiblingPropertiesHaveSameReferenceObject
+            {
+                get
+                {
+                    var n = RecursiveReferenceObject;
+                    var m = new MultipleNode
+                    {
+                        Name = "MultipleNode1",
+                        Node1 = n,
+                        Node2 = n
+                    };
+                    return m;
+                }
+            }
         }
 
         private class JsonAccessStrategy
