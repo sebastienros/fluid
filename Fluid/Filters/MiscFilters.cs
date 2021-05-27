@@ -542,7 +542,7 @@ namespace Fluid.Filters
             return true;
         }
 
-        private static async ValueTask WriteJson(Utf8JsonWriter writer, FluidValue input, TemplateContext ctx)
+        private static async ValueTask WriteJson(Utf8JsonWriter writer, FluidValue input, TemplateContext ctx, params object[] stack)
         {
             switch (input.Type)
             {
@@ -614,6 +614,15 @@ namespace Fluid.Filters
                                 value = access.Get(obj, name, ctx);
                             }
 
+                            if (value is object)
+                            {
+                                var occurrences = stack.GroupBy(o => o).ToDictionary(o => o.Key, o => o.Count());
+                                if (occurrences.ContainsKey(value) && occurrences[value] > 1)
+                                {
+                                    value = "Cycle detected...stopping";
+                                }
+                            }
+
                             var fluidValue = FluidValue.Create(value, ctx.Options);
                             if (fluidValue.IsNil())
                             {
@@ -621,7 +630,7 @@ namespace Fluid.Filters
                             }
 
                             writer.WritePropertyName(name);
-                            await WriteJson(writer, fluidValue, ctx);
+                            await WriteJson(writer, fluidValue, ctx, stack.Concat(new [] { obj }).ToArray());
                         }
 
                         writer.WriteEndObject();

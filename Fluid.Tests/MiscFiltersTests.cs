@@ -520,6 +520,19 @@ namespace Fluid.Tests
             Assert.Equal(expected, result.ToStringValue());
         }
 
+        [Fact]
+        public async Task JsonShouldHandleCircularReferences()
+        {
+            var model = TestObjects.RecursiveReferenceObject;
+            var input = FluidValue.Create(model, TemplateOptions.Default);
+            var to = new TemplateOptions();
+            to.MemberAccessStrategy.Register<TestObjects.Node>();
+
+            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
+
+            Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Cycle detected...stopping\"}}}}", result.ToStringValue());
+        }
+
         [Theory]
         [InlineData("", "", "", "0")]
         [InlineData(123456, "", "", "123456")]
@@ -563,6 +576,32 @@ namespace Fluid.Tests
             var result = await MiscFilters.FormatString(FluidValue.Create(input, context.Options), arguments, context);
 
             Assert.Equal(expected, result.ToStringValue());
+        }
+
+        public static class TestObjects
+        {
+            public class Node
+            {
+                public string Name { get; set; }
+                public Node NodeRef { get; set; }
+            }
+            public static object RecursiveReferenceObject
+            {
+                get
+                {
+                    var parent = new Node
+                    {
+                        Name = "Object1",
+                    };
+                    var child = new Node
+                    {
+                        Name = "Child1",
+                        NodeRef = parent
+                    };
+                    parent.NodeRef = child;
+                    return parent;
+                }
+            }
         }
 
         private class JsonAccessStrategy
