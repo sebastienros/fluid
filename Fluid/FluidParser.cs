@@ -21,6 +21,7 @@ namespace Fluid
         public Parser<List<Statement>> Grammar;
         public Dictionary<string, Parser<Statement>> RegisteredTags { get; } = new();
         public Dictionary<string, Func<Expression, Expression, Expression>> RegisteredOperators { get; } = new();
+        public IReadOnlyList<string> RegisteredEndTags { get { return _registeredEndTags.ToList(); } } 
 
         protected static readonly Parser<char> LBrace = Terms.Char('{');
         protected static readonly Parser<char> RBrace = Terms.Char('}');
@@ -76,6 +77,7 @@ namespace Fluid
         protected static readonly Deferred<Expression> FilterExpression = Deferred<Expression>();
         protected readonly Deferred<List<Statement>> KnownTagsList = Deferred<List<Statement>>();
         protected readonly Deferred<List<Statement>> AnyTagsList = Deferred<List<Statement>>();
+        private readonly HashSet<string> _registeredEndTags = new();
 
         protected static readonly Parser<TagResult> OutputStart = TagParsers.OutputTagStart();
         protected static readonly Parser<TagResult> OutputEnd = TagParsers.OutputTagEnd(true);
@@ -161,7 +163,7 @@ namespace Fluid
                             "and" => new AndBinaryExpression(previous, result),
                             _ => throw new ParseException()
                         };
-                        
+
                     }
 
                     return result;
@@ -433,7 +435,14 @@ namespace Fluid
             Grammar = KnownTagsList;
         }
 
-        public static Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
+        public Parser<string> CreateTag(string tagName)
+        {
+            if (tagName.StartsWith("end"))
+            {
+                _registeredEndTags.Add(tagName);
+            }
+            return TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
+        }
 
         public void RegisterIdentifierTag(string tagName, Func<string, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {

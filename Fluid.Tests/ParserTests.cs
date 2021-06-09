@@ -619,7 +619,7 @@ true
         {
             return CheckAsync(source, expected, t => t.SetValue("e", "").SetValue("f", "hello"));
         }
-        
+
         [Theory]
         [InlineData("zero == empty", "false")]
         [InlineData("empty == zero", "false")]
@@ -642,7 +642,7 @@ true
         {
             return CheckAsync(source, expected, t => t.SetValue("zero", 0).SetValue("one", 1));
         }
-        
+
         [Fact]
         public void CycleShouldHandleNumbers()
         {
@@ -657,7 +657,7 @@ true
             var rendered = template.Render();
 
             Assert.Equal("1<br />2<br />3<br />1<br />2<br />3<br />1<br />2<br />3<br />", rendered);
-        }        
+        }
 
         [Fact]
         public void ShouldAssignWithLogicalExpression()
@@ -921,5 +921,28 @@ class  {
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
         }
+
+        [Fact]
+        public void ShouldListEndTags()
+        {
+            var endTags = _parser.RegisteredEndTags;
+
+            Assert.Equal(7, endTags.Count);
+        }
+
+        [Fact]
+        public void ShouldTrackUniqueEndTags()
+        {
+            _parser.RegisterExpressionBlock("raw", (e, s, w, t, c) =>
+            {
+                w.Write("New raw registration");
+
+                return Statement.Normal();
+            });
+
+            var endTags = _parser.RegisteredEndTags;
+            Assert.Equal(7, endTags.Count);
+        }
+
     }
 }
