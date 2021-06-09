@@ -11,10 +11,23 @@ namespace Fluid.Tests
 {
     public class ParserTests
     {
+
+        static FluidParser NewFluidParser()
+        {
+            var p = new FluidParser();
+            p.RegisterExpressionBlock("my-block", (e, s, w, t, c) =>
+            {
+                w.Write("my-block registration");
+                return Statement.Normal();
+            });
+
+            return p;
+        }
+
 #if COMPILED
-        private static FluidParser _parser = new FluidParser().Compile();
+        private static FluidParser _parser = NewFluidParser().Compile();
 #else
-        private static FluidParser _parser = new FluidParser();
+        private static FluidParser _parser = NewFluidParser();
 #endif
 
         private static IReadOnlyList<Statement> Parse(string source)
@@ -927,21 +940,20 @@ class  {
         {
             var endTags = _parser.RegisteredEndTags;
 
-            Assert.Equal(7, endTags.Count);
+            Assert.Equal(8, endTags.Count);
         }
 
         [Fact]
         public void ShouldTrackUniqueEndTags()
         {
-            _parser.RegisterExpressionBlock("raw", (e, s, w, t, c) =>
+            _parser.RegisterExpressionBlock("my-block", (e, s, w, t, c) =>
             {
-                w.Write("New raw registration");
-
+                w.Write("Override my-block registration");
                 return Statement.Normal();
             });
 
             var endTags = _parser.RegisteredEndTags;
-            Assert.Equal(7, endTags.Count);
+            Assert.Equal(8, endTags.Count);
         }
 
     }
