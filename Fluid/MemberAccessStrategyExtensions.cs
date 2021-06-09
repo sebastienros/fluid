@@ -22,7 +22,7 @@ namespace Fluid
 
                 foreach (var propertyInfo in key.Type.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {
-                    if (propertyInfo.GetIndexParameters().Length > 0)
+                    if (propertyInfo.GetIndexParameters().Length > 0 || !propertyInfo.CanRead)
                     {
                         // Indexed property...
                         continue;
