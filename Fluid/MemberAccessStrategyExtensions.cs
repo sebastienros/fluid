@@ -28,6 +28,12 @@ namespace Fluid
                         continue;
                     }
 
+                    if (propertyInfo.GetGetMethod() == null)
+                    {
+                        //Write-only property...
+                        continue;
+                    }
+
                     if (propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Task<>))
                         list[memberNameStrategy(propertyInfo)] = new AsyncDelegateAccessor(async (o, n) =>
                         {

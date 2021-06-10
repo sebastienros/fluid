@@ -191,6 +191,15 @@ namespace Fluid.Tests
             var template = _parser.Parse("{{Firstname}}{{Lastname}}");
             Assert.Equal("John", template.Render(new TemplateContext(john, options, false)));
         }
+        [Fact]
+        public void ShouldSkipWriteOnlyProperty()
+        {
+            var strategy = new DefaultMemberAccessStrategy();
+
+            strategy.Register<Class1>();
+
+            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.WriteOnlyProperty)));
+        }
     }
 
     public class Class1
@@ -205,5 +214,6 @@ namespace Fluid.Tests
         public string Property1 { get; set; }
         public int Property2 { get; set; }
         public Task<string> Property3 { get; set; }
+        public string WriteOnlyProperty { private get; set; }
     }
 }
