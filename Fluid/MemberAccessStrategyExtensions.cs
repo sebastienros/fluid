@@ -22,9 +22,15 @@ namespace Fluid
 
                 foreach (var propertyInfo in key.Type.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {
-                    if (propertyInfo.GetIndexParameters().Length > 0 || !propertyInfo.CanRead)
+                    if (propertyInfo.GetIndexParameters().Length > 0)
                     {
                         // Indexed property...
+                        continue;
+                    }
+
+                    if (propertyInfo.GetGetMethod() == null)
+                    {
+                        //Write-only property...
                         continue;
                     }
 
