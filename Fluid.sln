@@ -23,7 +23,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{BE5EF08E
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.ViewEngine", "Fluid.ViewEngine\Fluid.ViewEngine.csproj", "{3510D4C5-8328-4425-B2F1-B8591E85B965}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fluid.ViewEngine", "Fluid.ViewEngine\Fluid.ViewEngine.csproj", "{3510D4C5-8328-4425-B2F1-B8591E85B965}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.MapActionSample", "Fluid.MapActionSample\Fluid.MapActionSample.csproj", "{03BE4428-3251-4115-93E4-C488E4249FB3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fluid.MapActionViewEngine", "Fluid.MapActionViewEngine\Fluid.MapActionViewEngine.csproj", "{0ACE7D6B-AC02-48D5-875F-56B576A0DE54}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,6 +59,14 @@ Global
 		{3510D4C5-8328-4425-B2F1-B8591E85B965}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3510D4C5-8328-4425-B2F1-B8591E85B965}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3510D4C5-8328-4425-B2F1-B8591E85B965}.Release|Any CPU.Build.0 = Release|Any CPU
+		{03BE4428-3251-4115-93E4-C488E4249FB3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{03BE4428-3251-4115-93E4-C488E4249FB3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{03BE4428-3251-4115-93E4-C488E4249FB3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{03BE4428-3251-4115-93E4-C488E4249FB3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0ACE7D6B-AC02-48D5-875F-56B576A0DE54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0ACE7D6B-AC02-48D5-875F-56B576A0DE54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0ACE7D6B-AC02-48D5-875F-56B576A0DE54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0ACE7D6B-AC02-48D5-875F-56B576A0DE54}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

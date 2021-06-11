@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
+    <IsPackable>false</IsPackable>
+    <LangVersion>9</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fluid.MapActionViewEngine\Fluid.MapActionViewEngine.csproj" />
+  </ItemGroup>
+
+</Project>
