@@ -1,9 +1,8 @@
-﻿using Fluid.ViewEngine;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Fluid.MapActionViewEngine;
+using Fluid.ViewEngine;
 using Microsoft.Extensions.Options;
-using System;
 
-namespace Fluid.MapActionViewEngine
+namespace Microsoft.Extensions.DependencyInjection
 {
     public static class MapActionViewEngineBuilderExtensions
     {
@@ -29,7 +28,6 @@ namespace Fluid.MapActionViewEngine
             });
 
             return services;
-
         }
     }
 }

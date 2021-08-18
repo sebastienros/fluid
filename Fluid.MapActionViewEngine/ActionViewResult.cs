@@ -2,8 +2,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using System.IO;
-using System.Threading.Tasks;
 
 namespace Fluid.MapActionViewEngine
 {
@@ -50,13 +48,11 @@ namespace Fluid.MapActionViewEngine
             httpContext.Response.StatusCode = 200;
             httpContext.Response.ContentType = ContentType;
 
-            await using (var sw = new StreamWriter(httpContext.Response.Body))
-            {
-                await fluidViewRenderer.RenderViewAsync(sw, viewPath, _model);
-            }
+            await using var sw = new StreamWriter(httpContext.Response.Body);
+            await fluidViewRenderer.RenderViewAsync(sw, viewPath, _model);
         }
 
-        private string LocatePageFromViewLocations(string viewName, string area, FluidViewEngineOptions options)
+        private static string LocatePageFromViewLocations(string viewName, string area, FluidViewEngineOptions options)
         {
             var fileProvider = options.ViewsFileProvider;
 

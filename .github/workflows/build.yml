@@ -38,7 +38,7 @@ jobs:
     - name: Setup dotnet 6.0
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.100-preview.4.21178.1
+        dotnet-version: 6.0.*
         
     - name: Test
       run: dotnet test --configuration Release

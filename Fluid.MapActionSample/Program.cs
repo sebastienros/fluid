@@ -1,42 +1,20 @@
-﻿using Fluid.MapActionViewEngine;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System;
+﻿var builder = WebApplication.CreateBuilder(args);
 
-using var host = Host.CreateDefaultBuilder(args)
-    .ConfigureWebHostDefaults(webBuilder =>
-    {
-        webBuilder.ConfigureServices(services =>
-        {
-            services.AddFluid();
-        });
+// Add services to the container.
 
-        webBuilder.Configure(app =>
-        {
-            app.UseRouting();
+builder.Services.AddFluid();
 
-            app.UseEndpoints(endpoints =>
-            {
-                IResult ViewAsync()
-                {
-                    var todo = new Todo(1, "Go back to work!", false);
-                    return new ActionViewResult("index", todo);
-                };
+var app = builder.Build();
 
-                endpoints.MapGet("/", (Func<IResult>)ViewAsync);
+// Configure the HTTP request pipeline.
 
-            });
+app.UseRouting();
 
-        });
-    })
-    .Build();
+app.MapGet("/", () =>
+{
+    return LiquidResults.View("index", new Todo(1, "Go back to work!", false));
+});
 
-await host.StartAsync();
-
-await host.WaitForShutdownAsync();
+app.Run();
 
 record Todo(int Id, string Name, bool IsComplete);
