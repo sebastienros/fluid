@@ -8,8 +8,6 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 
-app.UseRouting();
-
 app.MapGet("/", () =>
 {
     return LiquidResults.View("index", new Todo(1, "Go back to work!", false));
