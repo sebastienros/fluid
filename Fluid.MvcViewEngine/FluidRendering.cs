@@ -35,7 +35,7 @@ namespace Fluid.MvcViewEngine
 
             _options.TemplateOptions.MemberAccessStrategy.Register<ViewDataDictionary>();
             _options.TemplateOptions.MemberAccessStrategy.Register<ModelStateDictionary>();
-            _options.TemplateOptions.FileProvider = new FileProviderMapper(_options.IncludesFileProvider ?? _hostingEnvironment.ContentRootFileProvider, "Views");
+            _options.TemplateOptions.FileProvider = _options.IncludesFileProvider ?? new FileProviderMapper(_hostingEnvironment.ContentRootFileProvider, _options.ViewsPath);
         }
 
         private readonly IMemoryCache _memoryCache;

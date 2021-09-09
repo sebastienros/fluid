@@ -37,7 +37,8 @@ namespace Fluid.ViewEngine
         /// <summary>
         /// Gets or sets the <see cref="IFileProvider"/> used to access includes.
         /// </summary>
-        public IFileProvider IncludesFileProvider { get; set; }
+        public FileProviderMapper IncludesFileProvider { get; set; }
+
 
         /// <summary>
         /// Gets or sets the path of the views. Default is <code>"Views"</code>
