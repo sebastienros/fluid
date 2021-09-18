@@ -167,7 +167,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void SimblingPropertyShouldNotBeAccessible()
+        public void SiblingPropertyShouldNotBeAccessible()
         {
             var options = new TemplateOptions();
             options.MemberAccessStrategy.Register<Person>(x => x.Firstname);
