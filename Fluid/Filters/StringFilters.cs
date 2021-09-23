@@ -19,9 +19,9 @@ namespace Fluid.Filters
             filters.AddFilter("rstrip", RStrip);
             filters.AddFilter("newline_to_br", NewLineToBr);
             filters.AddFilter("prepend", Prepend);
-            filters.AddFilter("removefirst", RemoveFirst);
+            filters.AddFilter("remove_first", RemoveFirst);
             filters.AddFilter("remove", Remove);
-            filters.AddFilter("replacefirst", ReplaceFirst);
+            filters.AddFilter("replace_first", ReplaceFirst);
             filters.AddFilter("replace", Replace);
             filters.AddFilter("slice", Slice);
             filters.AddFilter("split", Split);
