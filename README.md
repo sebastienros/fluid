@@ -196,7 +196,7 @@ var options = new TemplateOptions();
 options.MemberAccessStrategy.Register<JObject, object>((obj, name) => obj[name]);
 ``` 
 
-Another common pattern is to pass a dictionary as the modelto allow members to represent the keys of the dictionary:
+Another common pattern is to pass a dictionary as the model to allow members to represent the keys of the dictionary:
 
 ```csharp
 var options = new TemplateOptions();
