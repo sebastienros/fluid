@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Text.Json;
 using Fluid.Values;
 using TimeZoneConverter;
-using Fluid.Utils;
 using System.Threading.Tasks;
 using System.Text;
 using System.IO;
@@ -83,6 +81,8 @@ namespace Fluid.Filters
             filters.AddFilter("format_number", FormatNumber);
             filters.AddFilter("format_string", FormatString);
             filters.AddFilter("format_date", FormatDate);
+
+            filters.AddFilter("md5", MD5);
 
             return filters;
         }
@@ -720,6 +720,26 @@ namespace Fluid.Filters
             var parameters = arguments.ValuesToObjectArray();
 
             return new StringValue(string.Format(culture, format, parameters));
+        }
+
+        public static ValueTask<FluidValue> MD5(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            if (String.IsNullOrEmpty(value))
+            {
+                return StringValue.Empty;
+            }
+
+            using (var provider = System.Security.Cryptography.MD5.Create())
+            {
+                var builder = new StringBuilder(32);
+                foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+                {
+                    builder.Append(b.ToString("x2").ToLower());
+                }
+
+                return new StringValue(builder.ToString());
+            }
         }
     }
 }
