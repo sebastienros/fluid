@@ -72,6 +72,8 @@ namespace Fluid.Filters
             filters.AddFilter("compact", Compact);
             filters.AddFilter("url_encode", UrlEncode);
             filters.AddFilter("url_decode", UrlDecode);
+            filters.AddFilter("base64_encode", Base64Encode);
+            filters.AddFilter("base64_decode", Base64Decode);
             filters.AddFilter("strip_html", StripHtml);
             filters.AddFilter("escape", Escape);
             filters.AddFilter("escape_once", EscapeOnce);
@@ -134,6 +136,24 @@ namespace Fluid.Filters
         public static ValueTask<FluidValue> UrlDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(WebUtility.UrlDecode(input.ToStringValue()));
+        }
+
+        public static ValueTask<FluidValue> Base64Encode(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            
+            return String.IsNullOrEmpty(value)
+                ? StringValue.Empty
+                : new StringValue(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
+        }
+
+        public static ValueTask<FluidValue> Base64Decode(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+
+            return String.IsNullOrEmpty(value)
+                ? StringValue.Empty
+                : new StringValue(Encoding.UTF8.GetString(Convert.FromBase64String(value)));
         }
 
         public static ValueTask<FluidValue> StripHtml(FluidValue input, FilterArguments arguments, TemplateContext context)
