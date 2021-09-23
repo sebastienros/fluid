@@ -84,6 +84,9 @@ namespace Fluid.Filters
             filters.AddFilter("format_string", FormatString);
             filters.AddFilter("format_date", FormatDate);
 
+            filters.AddFilter("sha1", Sha1);
+            filters.AddFilter("sha256", Sha256);
+
             return filters;
         }
 
@@ -720,6 +723,46 @@ namespace Fluid.Filters
             var parameters = arguments.ValuesToObjectArray();
 
             return new StringValue(string.Format(culture, format, parameters));
+        }
+
+        public static ValueTask<FluidValue> Sha1(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            if (String.IsNullOrEmpty(value))
+            {
+                return StringValue.Empty;
+            }
+
+            using (var provider = System.Security.Cryptography.SHA1.Create())
+            {
+                var builder = new StringBuilder(32);
+                foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+                {
+                    builder.Append(b.ToString("x2").ToLower());
+                }
+
+                return new StringValue(builder.ToString());
+            }
+        }
+
+        public static ValueTask<FluidValue> Sha256(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            if (String.IsNullOrEmpty(value))
+            {
+                return StringValue.Empty;
+            }
+
+            using (var provider = System.Security.Cryptography.SHA256.Create())
+            {
+                var builder = new StringBuilder(32);
+                foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+                {
+                    builder.Append(b.ToString("x2").ToLower());
+                }
+
+                return new StringValue(builder.ToString());
+            }
         }
     }
 }
