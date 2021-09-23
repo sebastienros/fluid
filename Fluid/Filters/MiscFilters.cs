@@ -726,6 +726,12 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> MD5(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            var value = input.ToStringValue();
+            if (String.IsNullOrEmpty(value))
+            {
+                return StringValue.Empty;
+            }
+
             using (var provider = System.Security.Cryptography.MD5.Create())
             {
                 var builder = new StringBuilder(32);
