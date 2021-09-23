@@ -591,7 +591,7 @@ namespace Fluid.Tests
 
             Assert.Equal(expected, result.ToStringValue());
         }
-      
+
         [Fact]
         public async Task MD5()
         {
