@@ -732,7 +732,7 @@ namespace Fluid.Filters
 
             using (var provider = System.Security.Cryptography.MD5.Create())
             {
-                var builder = new StringBuilder();
+                var builder = new StringBuilder(32);
                 foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
                 {
                     builder.Append(b.ToString("x2").ToLower());
