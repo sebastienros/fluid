@@ -216,7 +216,7 @@ namespace Fluid.Tests
 
             var template = _parser.Parse("{{Firstname}} {{Lastname}}");
             
-            Assert.Equal("Bill Gates", template.Render(new TemplateContext(model)));
+            Assert.Equal("Bill Gates", template.Render(new TemplateContext(model, options)));
         }
     }
 

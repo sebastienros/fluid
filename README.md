@@ -207,6 +207,8 @@ model.Add("Firstname", "Bill");
 model.Add("Lastname", "Gates");
 
 var template = _parser.Parse("{{Firstname}} {{Lastname}}");
+
+template.Render(new TemplateContext(model, options));
 ```
 
 ### Inheritance
