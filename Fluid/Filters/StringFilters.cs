@@ -137,10 +137,22 @@ namespace Fluid.Filters
             }
             else
             {
+                String reversedString;
                 var valueAsArray = value.ToCharArray();
+#if NETSTANDARD2_0
                 Array.Reverse(valueAsArray);
 
-                return new StringValue(new String(valueAsArray));
+                reversedString = new String(valueAsArray);
+#else
+                reversedString = String.Create(valueAsArray.Length, valueAsArray, (c, b) => {
+                    for (int i = 0; i < c.Length; i++)
+                    {
+                        c[i] = b[c.Length - 1 - i];
+                    }
+                });
+#endif
+
+                return new StringValue(reversedString);
             }
         }
 
