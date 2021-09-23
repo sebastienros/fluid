@@ -2,6 +2,8 @@
 using Fluid.Tests.Domain;
 using Fluid.Values;
 using Newtonsoft.Json.Linq;
+using System.Collections;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -191,6 +193,7 @@ namespace Fluid.Tests
             var template = _parser.Parse("{{Firstname}}{{Lastname}}");
             Assert.Equal("John", template.Render(new TemplateContext(john, options, false)));
         }
+
         [Fact]
         public void ShouldSkipWriteOnlyProperty()
         {
@@ -199,6 +202,21 @@ namespace Fluid.Tests
             strategy.Register<Class1>();
 
             Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.WriteOnlyProperty)));
+        }
+
+        [Fact]
+        public void ShouldUseDictionaryAsModel()
+        {
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<IDictionary, object>((obj, name) => obj[name]);
+
+            var model = new Dictionary<string, object>();
+            model.Add("Firstname", "Bill");
+            model.Add("Lastname", "Gates");
+
+            var template = _parser.Parse("{{Firstname}} {{Lastname}}");
+            
+            Assert.Equal("Bill Gates", template.Render(new TemplateContext(model)));
         }
     }
 

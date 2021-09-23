@@ -196,6 +196,19 @@ var options = new TemplateOptions();
 options.MemberAccessStrategy.Register<JObject, object>((obj, name) => obj[name]);
 ``` 
 
+Another common pattern is to pass a dictionary as the modelto allow members to represent the keys of the dictionary:
+
+```csharp
+var options = new TemplateOptions();
+options.MemberAccessStrategy.Register<IDictionary, object>((obj, name) => obj[name]);
+
+var model = new Dictionary<string, object>();
+model.Add("Firstname", "Bill");
+model.Add("Lastname", "Gates");
+
+var template = _parser.Parse("{{Firstname}} {{Lastname}}");
+```
+
 ### Inheritance
 
 All the members of the class hierarchy are registered. Besides, all inherited classes will be correctly evaluated when a base class is registered and
