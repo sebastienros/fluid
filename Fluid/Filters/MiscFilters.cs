@@ -735,7 +735,7 @@ namespace Fluid.Filters
 
             using (var provider = System.Security.Cryptography.SHA1.Create())
             {
-                var builder = new StringBuilder(32);
+                var builder = new StringBuilder(40);
                 foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
                 {
                     builder.Append(b.ToString("x2").ToLower());
@@ -755,7 +755,7 @@ namespace Fluid.Filters
 
             using (var provider = System.Security.Cryptography.SHA256.Create())
             {
-                var builder = new StringBuilder(32);
+                var builder = new StringBuilder(64);
                 foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
                 {
                     builder.Append(b.ToString("x2").ToLower());
