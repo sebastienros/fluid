@@ -591,6 +591,21 @@ namespace Fluid.Tests
 
             Assert.Equal(expected, result.ToStringValue());
         }
+      
+        [Fact]
+        public async Task MD5()
+        {
+            // Arrange
+            var input = new StringValue("Fluid");
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            // Act
+            var result = await MiscFilters.MD5(input, arguments, context);
+
+            // Assert
+            Assert.Equal("c2e7db5ac7ab74ea4bb9a7a89d251f3a", result.ToStringValue());
+        }
 
         [Fact]
         public async Task Sha1()
