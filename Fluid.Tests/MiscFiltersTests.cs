@@ -607,6 +607,36 @@ namespace Fluid.Tests
             Assert.Equal("c2e7db5ac7ab74ea4bb9a7a89d251f3a", result.ToStringValue());
         }
 
+        [Fact]
+        public async Task Sha1()
+        {
+            // Arrange
+            var input = new StringValue("Fluid");
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            // Act
+            var result = await MiscFilters.Sha1(input, arguments, context);
+
+            // Assert
+            Assert.Equal("8bc9b7abbb676300656203a17863a0f0b8a2c2bf", result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task Sha256()
+        {
+            // Arrange
+            var input = new StringValue("Fluid");
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            // Act
+            var result = await MiscFilters.Sha256(input, arguments, context);
+
+            // Assert
+            Assert.Equal("c7ac4687585ab5d3d5030db5a5cfc959fdf4e608cc396f1f615db345e35adb9e", result.ToStringValue());
+        }
+
         public static class TestObjects
         {
             public class Node

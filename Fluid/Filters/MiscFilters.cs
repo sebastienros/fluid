@@ -83,6 +83,8 @@ namespace Fluid.Filters
             filters.AddFilter("format_date", FormatDate);
 
             filters.AddFilter("md5", MD5);
+            filters.AddFilter("sha1", Sha1);
+            filters.AddFilter("sha256", Sha256);
 
             return filters;
         }
@@ -733,6 +735,46 @@ namespace Fluid.Filters
             using (var provider = System.Security.Cryptography.MD5.Create())
             {
                 var builder = new StringBuilder(32);
+                foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+                {
+                    builder.Append(b.ToString("x2").ToLower());
+                }
+
+                return new StringValue(builder.ToString());
+            }
+        }
+        
+        public static ValueTask<FluidValue> Sha1(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            if (String.IsNullOrEmpty(value))
+            {
+                return StringValue.Empty;
+            }
+
+            using (var provider = System.Security.Cryptography.SHA1.Create())
+            {
+                var builder = new StringBuilder(40);
+                foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+                {
+                    builder.Append(b.ToString("x2").ToLower());
+                }
+
+                return new StringValue(builder.ToString());
+            }
+        }
+
+        public static ValueTask<FluidValue> Sha256(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            if (String.IsNullOrEmpty(value))
+            {
+                return StringValue.Empty;
+            }
+
+            using (var provider = System.Security.Cryptography.SHA256.Create())
+            {
+                var builder = new StringBuilder(64);
                 foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
                 {
                     builder.Append(b.ToString("x2").ToLower());
