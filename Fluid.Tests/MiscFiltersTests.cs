@@ -112,6 +112,40 @@ namespace Fluid.Tests
         }
 
         [Theory]
+        [InlineData("http://www.domain.com", "aHR0cDovL3d3dy5kb21haW4uY29t")]
+        [InlineData("http://www.domain.com?q=param1+param2", "aHR0cDovL3d3dy5kb21haW4uY29tP3E9cGFyYW0xK3BhcmFtMg==")]
+        public async Task Base64UrlSafeEncode(string value, string expected)
+        {
+            // Arrange
+            var input = new StringValue(value);
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            // Act
+            var result = await MiscFilters.Base64UrlSafeEncode(input, arguments, context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("aHR0cDovL3d3dy5kb21haW4uY29t", "http://www.domain.com")]
+        [InlineData("aHR0cDovL3d3dy5kb21haW4uY29tP3E9cGFyYW0xK3BhcmFtMg==", "http://www.domain.com?q=param1+param2")]
+        public async Task Base64UrlSafeDecode(string value, string expected)
+        {
+            // Arrange
+            var input = new StringValue(value);
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            // Act
+            var result = await MiscFilters.Base64UrlSafeDecode(input, arguments, context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
         [InlineData("Have <em>you</em> read <strong>Ulysses</strong>?", "Have you read Ulysses?")]
         [InlineData("Have you read Ulysses?", "Have you read Ulysses?")]
         [InlineData("", "")]

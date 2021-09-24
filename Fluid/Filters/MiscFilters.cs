@@ -72,6 +72,8 @@ namespace Fluid.Filters
             filters.AddFilter("url_decode", UrlDecode);
             filters.AddFilter("base64_encode", Base64Encode);
             filters.AddFilter("base64_decode", Base64Decode);
+            filters.AddFilter("base64_url_safe_encode", Base64UrlSafeEncode);
+            filters.AddFilter("base64_url_safe_decode", Base64UrlSafeDecode);
             filters.AddFilter("strip_html", StripHtml);
             filters.AddFilter("escape", Escape);
             filters.AddFilter("escape_once", EscapeOnce);
@@ -156,6 +158,40 @@ namespace Fluid.Filters
             return String.IsNullOrEmpty(value)
                 ? StringValue.Empty
                 : new StringValue(Encoding.UTF8.GetString(Convert.FromBase64String(value)));
+        }
+
+        public static ValueTask<FluidValue> Base64UrlSafeEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            if (String.IsNullOrEmpty(value))
+            {
+                return StringValue.Empty;
+            }
+            else
+            {
+                var encodedBase64 = Base64Encode(input, arguments, context).Result.ToStringValue();
+                var encodedBase64StringBuilder = new StringBuilder(encodedBase64);
+
+                encodedBase64StringBuilder.Replace('+', '-');
+                encodedBase64StringBuilder.Replace('/', '_');
+
+                return new StringValue(encodedBase64StringBuilder.ToString());
+            }
+        }
+
+        public static ValueTask<FluidValue> Base64UrlSafeDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var value = input.ToStringValue();
+            if (String.IsNullOrEmpty(value))
+            {
+                return StringValue.Empty;
+            }
+            else
+            {
+                var decodedBase64 = Base64Decode(input, arguments, context).Result.ToStringValue();
+
+                return new StringValue(decodedBase64);
+            }
         }
 
         public static ValueTask<FluidValue> StripHtml(FluidValue input, FilterArguments arguments, TemplateContext context)
