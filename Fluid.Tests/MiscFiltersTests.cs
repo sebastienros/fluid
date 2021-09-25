@@ -85,35 +85,36 @@ namespace Fluid.Tests
             Assert.Equal("john@liquid.com", result.ToStringValue());
         }
 
-        [Fact]
-        public async Task Base64Encode()
+        [Theory]
+        [InlineData("a<>:a?", "YTw+OmE/")]
+        public async Task Base64Encode(string value, string expected)
         {
-            var input = new StringValue("one two three");
+            var input = new StringValue(value);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
             var result = await MiscFilters.Base64Encode(input, arguments, context);
 
-            Assert.Equal("b25lIHR3byB0aHJlZQ==", result.ToStringValue());
+            Assert.Equal(expected, result.ToStringValue());
         }
 
-        [Fact]
-        public async Task Base64Decode()
+        [Theory]
+        [InlineData("YTw+OmE/", "a<>:a?")]
+        public async Task Base64Decode(string value, string expected)
         {
-            var input = new StringValue("b25lIHR3byB0aHJlZQ==");
+            var input = new StringValue(value);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
             var result = await MiscFilters.Base64Decode(input, arguments, context);
 
-            Assert.Equal("one two three", result.ToStringValue());
+            Assert.Equal(expected, result.ToStringValue());
         }
 
         [Theory]
-        [InlineData("http://www.domain.com", "aHR0cDovL3d3dy5kb21haW4uY29t")]
-        [InlineData("http://www.domain.com?q=param1+param2", "aHR0cDovL3d3dy5kb21haW4uY29tP3E9cGFyYW0xK3BhcmFtMg==")]
+        [InlineData("a<>:a?", "YTw-OmE_")]
         public async Task Base64UrlSafeEncode(string value, string expected)
         {
             // Arrange
@@ -129,8 +130,7 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData("aHR0cDovL3d3dy5kb21haW4uY29t", "http://www.domain.com")]
-        [InlineData("aHR0cDovL3d3dy5kb21haW4uY29tP3E9cGFyYW0xK3BhcmFtMg==", "http://www.domain.com?q=param1+param2")]
+        [InlineData("YTw-OmE_", "a<>:a?")]
         public async Task Base64UrlSafeDecode(string value, string expected)
         {
             // Arrange

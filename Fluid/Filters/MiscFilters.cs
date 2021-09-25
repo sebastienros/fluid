@@ -145,7 +145,7 @@ namespace Fluid.Filters
         public static ValueTask<FluidValue> Base64Encode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var value = input.ToStringValue();
-            
+
             return String.IsNullOrEmpty(value)
                 ? StringValue.Empty
                 : new StringValue(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
@@ -188,7 +188,11 @@ namespace Fluid.Filters
             }
             else
             {
-                var decodedBase64 = Base64Decode(input, arguments, context).Result.ToStringValue();
+                var encodedBase64StringBuilder = new StringBuilder(value);
+                encodedBase64StringBuilder.Replace('-', '+');
+                encodedBase64StringBuilder.Replace('_', '/');
+
+                var decodedBase64 = Base64Decode(new StringValue(encodedBase64StringBuilder.ToString()), arguments, context).Result.ToStringValue();
 
                 return new StringValue(decodedBase64);
             }
@@ -799,7 +803,7 @@ namespace Fluid.Filters
                 return new StringValue(builder.ToString());
             }
         }
-        
+
         public static ValueTask<FluidValue> Sha1(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var value = input.ToStringValue();
