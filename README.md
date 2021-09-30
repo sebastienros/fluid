@@ -282,6 +282,8 @@ in a Liquid template.
 
 To remedy that we can configure Fluid to map names to `JObject` properties, and convert `JValue` objects to the ones used by Fluid.
 
+### JObjectFluidIndexable
+
 ```csharp
 class JObjectFluidIndexable : IFluidIndexable
 {
@@ -310,6 +312,11 @@ class JObjectFluidIndexable : IFluidIndexable
 		return false;
 	}
 }
+```
+
+### Source
+
+```csharp
 
 var options = new TemplateOptions();
 
