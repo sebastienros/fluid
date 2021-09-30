@@ -283,13 +283,41 @@ in a Liquid template.
 To remedy that we can configure Fluid to map names to `JObject` properties, and convert `JValue` objects to the ones used by Fluid.
 
 ```csharp
+class JObjectFluidIndexable : IFluidIndexable
+{
+	private readonly JObject _obj;
+	private readonly TemplateOptions _options;
+	public JObjectFluidIndexable(JObject jObject, TemplateOptions options)
+	{
+		_obj = jObject;
+		_options = options;
+	}
+	public int Count => _obj.Count;
+
+	public IEnumerable<string> Keys => _obj.Properties().Select(i => i.Name);
+
+	public bool TryGetValue(string name, out FluidValue value)
+	{
+		if (_obj.TryGetValue(name, out var token))
+		{
+			value = FluidValue.Create(token, _options);
+			return true;
+		}
+		else
+		{
+			value = NilValue.Instance;
+		}
+		return false;
+	}
+}
+
 var options = new TemplateOptions();
 
 // When a property of a JObject value is accessed, try to look into its properties
 options.MemberAccessStrategy.Register<JObject, object>((source, name) => source[name]);
 
 // Convert JToken to FluidValue
-options.ValueConverters.Add(x => x is JObject o ? new ObjectValue(o) : null);
+options.ValueConverters.Add(x => x is JObject o ? new DictionaryValue(new JObjectFluidIndexable(o, options)) : null);
 options.ValueConverters.Add(x => x is JValue v ? v.Value : null);
 
 var model = JObject.Parse("{\"Name\": \"Bill\"}");
