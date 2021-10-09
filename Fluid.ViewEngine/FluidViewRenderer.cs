@@ -10,8 +10,7 @@ using System.Threading.Tasks;
 namespace Fluid.ViewEngine
 {
     /// <summary>
-    /// This class is registered as a singleton. As such it can store application wide 
-    /// state.
+    /// This class is registered as a singleton.
     /// </summary>
     public class FluidViewRenderer : IFluidViewRenderer
     {
@@ -26,10 +25,8 @@ namespace Fluid.ViewEngine
 
         private readonly FluidViewEngineOptions _fluidViewEngineOptions;
 
-        public virtual async Task RenderViewAsync(TextWriter writer, string relativePath, object model)
+        public virtual async Task RenderViewAsync(TextWriter writer, string relativePath, TemplateContext context)
         {
-            var context = new TemplateContext(model, _fluidViewEngineOptions.TemplateOptions);
-
             // Provide some services to all statements
             context.AmbientValues[Constants.ViewPathIndex] = relativePath;
             context.AmbientValues[Constants.SectionsIndex] = new Dictionary<string, IReadOnlyList<Statement>>();
@@ -115,11 +112,6 @@ namespace Fluid.ViewEngine
         protected virtual void SetCachedTemplate(string path, IFluidTemplate template)
         {
             _cache[path] = template;
-
-            //// Default sliding expiration to prevent the entries for being kept indefinitely
-            //viewEntry.SlidingExpiration = TimeSpan.FromHours(1);
-
-            //viewEntry.ExpirationTokens.Add(fileProvider.Watch(path));
         }
 
         protected virtual async ValueTask<IFluidTemplate> ParseLiquidFileAsync(string path, IFileProvider fileProvider, bool includeViewStarts)

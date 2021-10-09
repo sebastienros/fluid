@@ -3,7 +3,10 @@ using Microsoft.Extensions.Options;
 
 namespace Fluid.MvcViewEngine
 {
-    public class FluidMvcViewOptionsSetup : IConfigureOptions<MvcViewOptions>
+    /// <summary>
+    /// This class is registered automatically to register the Fluid View Engine into ASP.NET MVC
+    /// </summary>
+    internal class MvcViewOptionsSetup : IConfigureOptions<MvcViewOptions>
     {
         private readonly IFluidViewEngine _fluidViewEngine;
 
@@ -11,7 +14,7 @@ namespace Fluid.MvcViewEngine
         /// Initializes a new instance of <see cref="FluidMvcViewOptionsSetup"/>.
         /// </summary>
         /// <param name="fluidViewEngine">The <see cref="IFluidViewEngine"/>.</param>
-        public FluidMvcViewOptionsSetup(IFluidViewEngine fluidViewEngine)
+        public MvcViewOptionsSetup(IFluidViewEngine fluidViewEngine)
         {
             if (fluidViewEngine is null)
             {
