@@ -85,6 +85,32 @@ namespace Fluid.Tests
             Assert.Equal("john@liquid.com", result.ToStringValue());
         }
 
+        [Fact]
+        public async Task Base64Encode()
+        {
+            var input = new StringValue("one two three");
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = await MiscFilters.Base64Encode(input, arguments, context);
+
+            Assert.Equal("b25lIHR3byB0aHJlZQ==", result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task Base64Decode()
+        {
+            var input = new StringValue("b25lIHR3byB0aHJlZQ==");
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = await MiscFilters.Base64Decode(input, arguments, context);
+
+            Assert.Equal("one two three", result.ToStringValue());
+        }
+
         [Theory]
         [InlineData("a<>:a?", "YTw+OmE/")]
         public async Task Base64Encode(string value, string expected)
