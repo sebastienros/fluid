@@ -63,12 +63,28 @@ namespace Fluid.ViewEngine
                     return viewStarts;
                 }
 
-                viewPath = viewPath.Substring(0, index + 1) + Constants.ViewStartFilename;
+                viewPath = viewPath.Substring(0, index + 1);
 
-                var viewStartInfo = fileProvider.GetFileInfo(viewPath);
+                var viewStartPath = viewPath + Constants.ViewStartFilename;
+
+                var viewStartInfo = fileProvider.GetFileInfo(viewStartPath);
+
                 if (viewStartInfo.Exists)
                 {
-                    viewStarts.Add(viewPath);
+                    viewStarts.Add(viewStartPath);
+                }
+                else
+                {
+                    // Try with the lower cased version for backward compatibility, c.f. https://github.com/sebastienros/fluid/issues/361
+
+                    viewStartPath = viewPath + Constants.ViewStartFilename.ToLowerInvariant();
+
+                    viewStartInfo = fileProvider.GetFileInfo(viewStartPath);
+
+                    if (viewStartInfo.Exists)
+                    {
+                        viewStarts.Add(viewStartPath);
+                    }
                 }
 
                 index = index - 1;
