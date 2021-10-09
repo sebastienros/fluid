@@ -169,8 +169,7 @@ namespace Fluid.Filters
             }
             else
             {
-                var encodedBase64 = Base64Encode(input, arguments, context).Result.ToStringValue();
-                var encodedBase64StringBuilder = new StringBuilder(encodedBase64);
+                var encodedBase64StringBuilder = new StringBuilder(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
 
                 encodedBase64StringBuilder.Replace('+', '-');
                 encodedBase64StringBuilder.Replace('/', '_');
@@ -192,7 +191,7 @@ namespace Fluid.Filters
                 encodedBase64StringBuilder.Replace('-', '+');
                 encodedBase64StringBuilder.Replace('_', '/');
 
-                var decodedBase64 = Base64Decode(new StringValue(encodedBase64StringBuilder.ToString()), arguments, context).Result.ToStringValue();
+                var decodedBase64 = Encoding.UTF8.GetString(Convert.FromBase64String(encodedBase64StringBuilder.ToString()));
 
                 return new StringValue(decodedBase64);
             }
