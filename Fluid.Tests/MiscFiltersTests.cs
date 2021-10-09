@@ -85,30 +85,64 @@ namespace Fluid.Tests
             Assert.Equal("john@liquid.com", result.ToStringValue());
         }
 
-        [Fact]
-        public async Task Base64Encode()
+        [Theory]
+        [InlineData("a<>:a?", "YTw+OmE/")]
+        public async Task Base64Encode(string value, string expected)
         {
-            var input = new StringValue("one two three");
+            var input = new StringValue(value);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
             var result = await MiscFilters.Base64Encode(input, arguments, context);
 
-            Assert.Equal("b25lIHR3byB0aHJlZQ==", result.ToStringValue());
+            Assert.Equal(expected, result.ToStringValue());
         }
 
-        [Fact]
-        public async Task Base64Decode()
+        [Theory]
+        [InlineData("YTw+OmE/", "a<>:a?")]
+        public async Task Base64Decode(string value, string expected)
         {
-            var input = new StringValue("b25lIHR3byB0aHJlZQ==");
+            var input = new StringValue(value);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
             var result = await MiscFilters.Base64Decode(input, arguments, context);
 
-            Assert.Equal("one two three", result.ToStringValue());
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("a<>:a?", "YTw-OmE_")]
+        public async Task Base64UrlSafeEncode(string value, string expected)
+        {
+            // Arrange
+            var input = new StringValue(value);
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            // Act
+            var result = await MiscFilters.Base64UrlSafeEncode(input, arguments, context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("YTw-OmE_", "a<>:a?")]
+        public async Task Base64UrlSafeDecode(string value, string expected)
+        {
+            // Arrange
+            var input = new StringValue(value);
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            // Act
+            var result = await MiscFilters.Base64UrlSafeDecode(input, arguments, context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
         }
 
         [Theory]
