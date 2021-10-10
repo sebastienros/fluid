@@ -1,10 +1,12 @@
-﻿using Fluid.ViewEngine;
-using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace Fluid.MvcViewEngine
 {
-    public class FluidViewEngineOptionsSetup : ConfigureOptions<FluidViewEngineOptions>
+    /// <summary>
+    /// Defines the default configuration of <see cref="FluidMvcViewOptions"/>.
+    /// </summary>
+    internal class FluidViewEngineOptionsSetup : ConfigureOptions<FluidMvcViewOptions>
     {
         public FluidViewEngineOptionsSetup(IWebHostEnvironment webHostEnvironment)
             : base(options =>

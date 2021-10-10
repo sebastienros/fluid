@@ -1,16 +1,10 @@
 ﻿using Microsoft.Extensions.FileProviders;
-using System.Collections.Generic;
 using System.Text.Encodings.Web;
 
 namespace Fluid.ViewEngine
 {
     public class FluidViewEngineOptions
     {
-        /// <summary>
-        /// Gets les list of view location formats.
-        /// </summary>
-        public IList<string> ViewLocationFormats { get; } = new List<string>();
-
         /// <summary>
         /// Gets or set the <see cref="FluidViewParser"/> instance to use with the view engine.
         /// </summary>
@@ -43,7 +37,6 @@ namespace Fluid.ViewEngine
         /// Gets or sets the path of the views. Default is <code>"Views"</code>
         /// </summary>
         public string ViewsPath { get; set; } = "Views";
-
 
     }
 }
