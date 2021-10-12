@@ -2,13 +2,15 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Fluid.MapActionViewEngine
 {
     public class ActionViewResult : IResult
     {
         private readonly string _viewName;
-        private readonly string _area;
         private readonly object _model;
 
         public ActionViewResult(string viewName)
@@ -23,13 +25,6 @@ namespace Fluid.MapActionViewEngine
             _model = model;
         }
 
-        public ActionViewResult(string viewName, string area, object model)
-        {
-            _viewName = viewName;
-            _area = area;
-            _model = model;
-        }
-
         public string ContentType { get; set; } = "text/html";
 
         public async Task ExecuteAsync(HttpContext httpContext)
@@ -37,7 +32,7 @@ namespace Fluid.MapActionViewEngine
             var fluidViewRenderer = httpContext.RequestServices.GetService<IFluidViewRenderer>();
             var options = httpContext.RequestServices.GetService<IOptions<FluidViewEngineOptions>>().Value;
 
-            var viewPath = LocatePageFromViewLocations(_viewName, _area, options);
+            var viewPath = LocatePageFromViewLocations(_viewName, options);
 
             if (viewPath == null)
             {
@@ -48,22 +43,26 @@ namespace Fluid.MapActionViewEngine
             httpContext.Response.StatusCode = 200;
             httpContext.Response.ContentType = ContentType;
 
+            var context = new TemplateContext(_model);
+            context.Options.FileProvider = options.PartialsFileProvider;
+
             await using var sw = new StreamWriter(httpContext.Response.Body);
-            await fluidViewRenderer.RenderViewAsync(sw, viewPath, _model);
+            await fluidViewRenderer.RenderViewAsync(sw, viewPath, context);
         }
 
-        private static string LocatePageFromViewLocations(string viewName, string area, FluidViewEngineOptions options)
+        private static string LocatePageFromViewLocations(string viewName, FluidViewEngineOptions options)
         {
             var fileProvider = options.ViewsFileProvider;
 
-            foreach (var location in options.ViewLocationFormats)
+            foreach (var location in options.ViewsLocationFormats)
             {
-                var viewPath = string.Format(location, viewName, area);
-                var fileInfo = fileProvider.GetFileInfo(viewPath);
-                
+                var viewFilename = Path.Combine(String.Format(location, viewName));
+
+                var fileInfo = fileProvider.GetFileInfo(viewFilename);
+
                 if (fileInfo.Exists)
                 {
-                    return viewPath;
+                    return viewFilename;
                 }
             }
 

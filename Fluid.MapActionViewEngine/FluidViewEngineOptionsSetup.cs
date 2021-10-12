@@ -9,12 +9,18 @@ namespace Fluid.MapActionViewEngine
         public FluidViewEngineOptionsSetup(IWebHostEnvironment webHostEnvironment)
             : base(options =>
             {
-                options.IncludesFileProvider = webHostEnvironment.ContentRootFileProvider;
-                options.ViewsFileProvider = webHostEnvironment.ContentRootFileProvider;
-                options.ViewLocationFormats.Add("Views/{0}" + Constants.ViewExtension);
-                options.ViewLocationFormats.Add("Views/{1}/{0}" + Constants.ViewExtension);
-                options.ViewLocationFormats.Add("Views/Shared/{0}" + Constants.ViewExtension);
+                options.PartialsFileProvider = new FileProviderMapper(webHostEnvironment.ContentRootFileProvider, "Views");
+                options.ViewsFileProvider = new FileProviderMapper(webHostEnvironment.ContentRootFileProvider, "Views");
+
                 options.TemplateOptions.MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance;
+
+                options.ViewsLocationFormats.Clear();
+                options.ViewsLocationFormats.Add("/{0}" + Constants.ViewExtension);
+
+                options.PartialsLocationFormats.Clear();
+                options.PartialsLocationFormats.Add("{0}" + Constants.ViewExtension);
+                options.PartialsLocationFormats.Add("/Partials/{0}" + Constants.ViewExtension);
+
             })
         {
         }

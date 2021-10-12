@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
   <head>
@@ -17,11 +16,11 @@
     <h1 class="display-5 fw-bold">Title from the layout</h1>
   <div class="col-lg-6 mx-auto">
     <p class="lead mb-4">
-        {% renderbody %}		
+		{% renderbody %}
 
-        {% include 'component', x: 1, y:2 %}
+		{% partial 'Component', x: 1, y:2 %}
 
-    </p>
+	</p>
   </div>
 </div>
 
