@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Fluid.Tests.MvcViewEngine
 {
-    public class MvcViewEngineTests
+    public class SampleTests
     {
         [Fact]
         public void ShouldParseIndex()

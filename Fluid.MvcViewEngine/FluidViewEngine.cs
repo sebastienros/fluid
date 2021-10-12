@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Fluid.ViewEngine;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewEngines;
@@ -13,7 +14,6 @@ namespace Fluid.MvcViewEngine
     {
         private FluidRendering _fluidRendering;
         private readonly IWebHostEnvironment _hostingEnvironment;
-        public static readonly string ViewExtension = ".liquid";
         private const string ControllerKey = "controller";
         private const string AreaKey = "area";
         private FluidMvcViewOptions _options;
@@ -41,13 +41,13 @@ namespace Fluid.MvcViewEngine
 
             var checkedLocations = new List<string>();
 
-            foreach (var location in _options.ViewLocationFormats)
+            foreach (var location in _options.ViewsLocationFormats)
             {
-                var view = string.Format(location, viewName, controllerName, areaName);
+                var view = String.Format(location, viewName, controllerName, areaName);
 
                 if (fileProvider.GetFileInfo(view).Exists)
                 {
-                    return ViewEngineResult.Found("Default", new FluidView(view, _fluidRendering));
+                    return ViewEngineResult.Found(viewName, new FluidView(view, _fluidRendering));
                 }
 
                 checkedLocations.Add(view);
@@ -116,7 +116,7 @@ namespace Fluid.MvcViewEngine
             Debug.Assert(!string.IsNullOrEmpty(name));
 
             // Though ./ViewName looks like a relative path, framework searches for that view using view locations.
-            return name.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase);
+            return name.EndsWith(Constants.ViewExtension, StringComparison.OrdinalIgnoreCase);
         }
 
         public static string GetNormalizedRouteValue(ActionContext context, string key)

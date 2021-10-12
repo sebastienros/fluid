@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.FileProviders;
+using System.Collections.Generic;
 using System.Text.Encodings.Web;
 
 namespace Fluid.ViewEngine
@@ -31,12 +32,22 @@ namespace Fluid.ViewEngine
         /// <summary>
         /// Gets or sets the <see cref="IFileProvider"/> used to access includes.
         /// </summary>
-        public IFileProvider IncludesFileProvider { get; set; }
+        public IFileProvider PartialsFileProvider { get; set; }
 
         /// <summary>
-        /// Gets or sets the path of the views. Default is <code>"Views"</code>
+        /// Gets the list of view location format strings. The formatting arguments can differ for each implementation of <see cref="IFluidViewRenderer"/>.
         /// </summary>
-        public string ViewsPath { get; set; } = "Views";
+        /// <example>
+        /// /Views/{0}.liquid
+        /// </example>
+        public List<string> ViewsLocationFormats { get; } = new();
 
+        /// <summary>
+        /// Gets the list of partial views location format strings. The formatting arguments can differ for each implementation of <see cref="IFluidViewRenderer"/>.
+        /// </summary>
+        /// <example>
+        /// /Views/Includes/{0}.liquid
+        /// </example>
+        public List<string> PartialsLocationFormats { get; } = new();
     }
 }

@@ -24,7 +24,7 @@ namespace Fluid.MvcViewEngine
 
             _options.TemplateOptions.MemberAccessStrategy.Register<ViewDataDictionary>();
             _options.TemplateOptions.MemberAccessStrategy.Register<ModelStateDictionary>();
-            _options.TemplateOptions.FileProvider = new FileProviderMapper(_options.IncludesFileProvider ?? _hostingEnvironment.ContentRootFileProvider, _options.ViewsPath);
+            _options.TemplateOptions.FileProvider = _options.PartialsFileProvider ?? _hostingEnvironment.ContentRootFileProvider;
 
             _fluidViewRenderer = new FluidViewRenderer(_options);
 

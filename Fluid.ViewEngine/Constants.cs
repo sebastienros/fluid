@@ -6,6 +6,7 @@
         public const string SectionsIndex = "$$sections";
         public const string BodyIndex = "$$body";
         public const string LayoutIndex = "$$layout";
+        public const string RendererIndex = "$$renderer";
 
         public const string ViewStartFilename = "_ViewStart.liquid";
         public const string ViewExtension = ".liquid";

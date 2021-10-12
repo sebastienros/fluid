@@ -565,7 +565,7 @@ Hello
 
 ## ASP.NET MVC View Engine
 
-To provide a convenient view engine implementation for ASP.NET Core MVC the grammar is extended as described in [Customizing tags](#customizing-tags) by adding these new tags:
+The package `Fluid.MvcViewEngine` provides a convenient way to use Liquid as a replacement or in combination of Razor in ASP.NET MVC.
 
 ### Configuration
 
@@ -610,7 +610,7 @@ More way to register types and members can be found in the [Allow-listing object
 
 #### Registering custom tags
 
-When using the MVC View engine, custom tags can be added to the parser. Refer to [this section](https://github.com/sebastienros/fluid#registering-a-custom-tag) on how to create custom tags.
+When using the MVC View engine, custom tags can still be added to the parser. Refer to [this section](https://github.com/sebastienros/fluid#registering-a-custom-tag) on how to create custom tags.
 
 It is recommended to create a custom class inheriting from `FluidViewParser`, and to customize the tags in the constructor of this new class.
 This class can then be registered as the default parser for the MVC view engine.
@@ -641,7 +641,7 @@ public class Startup
 {
     public void ConfigureServices(IServiceCollection services)
     {
-        services.Configure<FluidViewEngineOptions>(options =>
+        services.Configure<MvcViewOptions>(options =>
         {
             options.Parser = new CustomFluidViewParser();
         });
@@ -740,7 +740,7 @@ You can also define other variables or render some content.
 
 ### Custom views locations
 
-It is possible to add custom file locations containing views by adding them to `FluidViewEngineOptions.ViewLocationFormats`.
+It is possible to add custom file locations containing views by adding them to `MvcViewOptions.ViewsLocationForm`.
 
 The default ones are:
 - `Views/{1}/{0}`
@@ -755,6 +755,17 @@ The content of a view is parsed once and kept in memory until the file or one of
 This difference makes Fluid very adapted for rapid development cycles where the views can be deployed and updated frequently. And because the Liquid language is secure, developers give access to them with more confidence.  
 
 <br>
+
+## View Engine
+
+The Fluid ASP.NET MVC View Engine is based on an MVC agnostic view engine provided in the `Fluid.ViewEngine` package. The same options and features are available, but without 
+requiring ASP.NET MVC. This is useful to provide the same experience to build template using layouts and sections.
+
+### Usage
+
+Use the class `FluidViewRenderer : IFluidViewRender` and `FluidViewEngineOptions`. 
+
+
 
 ## Whitespace control
 
