@@ -17,7 +17,7 @@ namespace Fluid
         public MemberAccessStrategy MemberAccessStrategy { get; set; } = new DefaultMemberAccessStrategy();
 
         /// <summary>
-        /// Gets or sets the <see cref="IFileProvider"/> used to access files.
+        /// Gets or sets the <see cref="IFileProvider"/> used to access files for include and render statements.
         /// </summary>
         public IFileProvider FileProvider { get; set; } = new NullFileProvider();
 

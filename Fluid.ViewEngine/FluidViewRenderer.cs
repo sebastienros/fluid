@@ -20,7 +20,7 @@ namespace Fluid.ViewEngine
         {
             _fluidViewEngineOptions = fluidViewEngineOptions;
 
-            _fluidViewEngineOptions.TemplateOptions.FileProvider = new FileProviderMapper(_fluidViewEngineOptions.IncludesFileProvider, _fluidViewEngineOptions.ViewsPath);
+            _fluidViewEngineOptions.TemplateOptions.FileProvider = _fluidViewEngineOptions.PartialsFileProvider ?? _fluidViewEngineOptions.ViewsFileProvider ?? new NullFileProvider();
         }
 
         private readonly FluidViewEngineOptions _fluidViewEngineOptions;
@@ -29,9 +29,14 @@ namespace Fluid.ViewEngine
         {
             // Provide some services to all statements
             context.AmbientValues[Constants.ViewPathIndex] = relativePath;
-            context.AmbientValues[Constants.SectionsIndex] = new Dictionary<string, IReadOnlyList<Statement>>();
+            context.AmbientValues[Constants.SectionsIndex] = null; // it is lazily initialized when first used
+            context.AmbientValues[Constants.RendererIndex] = this;
 
             var template = await GetFluidTemplateAsync(relativePath, _fluidViewEngineOptions.ViewsFileProvider, true);
+
+            // The body is rendered and buffer before the Layout since it can contain fragments 
+            // that need to be rendered as part of the Layout.
+            // Also the body or its _ViewStarts might contain a Layout tag.
 
             var body = await template.RenderAsync(context, _fluidViewEngineOptions.TextEncoder);
 
@@ -44,21 +49,36 @@ namespace Fluid.ViewEngine
 
                 await layoutTemplate.RenderAsync(writer, _fluidViewEngineOptions.TextEncoder, context);
             }
+            else
+            {
+                writer.Write(body);
+            }
+        }
+
+        public virtual async Task RenderPartialAsync(TextWriter writer, string relativePath, TemplateContext context)
+        {
+            // Substitute View Path
+            context.AmbientValues.TryGetValue(Constants.ViewPathIndex, out var viewPath);
+            context.AmbientValues[Constants.ViewPathIndex] = relativePath;
+
+            var template = await GetFluidTemplateAsync(relativePath, _fluidViewEngineOptions.PartialsFileProvider, false);
+
+            await template.RenderAsync(writer, _fluidViewEngineOptions.TextEncoder, context);
         }
 
         protected virtual List<string> FindViewStarts(string viewPath, IFileProvider fileProvider)
         {
             var viewStarts = new List<string>();
             int index = viewPath.Length - 1;
-            while (!String.IsNullOrEmpty(viewPath) &&
-                !(String.Equals(viewPath, _fluidViewEngineOptions.ViewsPath, StringComparison.OrdinalIgnoreCase)))
+            
+            while (!String.IsNullOrEmpty(viewPath))
             {
-                index = viewPath.LastIndexOf('/', index);
-
                 if (index == -1)
                 {
                     return viewStarts;
                 }
+
+                index = viewPath.LastIndexOf('/', index);
 
                 viewPath = viewPath.Substring(0, index + 1);
 
@@ -69,19 +89,6 @@ namespace Fluid.ViewEngine
                 if (viewStartInfo.Exists)
                 {
                     viewStarts.Add(viewStartPath);
-                }
-                else
-                {
-                    // Try with the lower cased version for backward compatibility, c.f. https://github.com/sebastienros/fluid/issues/361
-
-                    viewStartPath = viewPath + Constants.ViewStartFilename.ToLowerInvariant();
-
-                    viewStartInfo = fileProvider.GetFileInfo(viewStartPath);
-
-                    if (viewStartInfo.Exists)
-                    {
-                        viewStarts.Add(viewStartPath);
-                    }
                 }
 
                 index = index - 1;
@@ -116,6 +123,13 @@ namespace Fluid.ViewEngine
 
         protected virtual async ValueTask<IFluidTemplate> ParseLiquidFileAsync(string path, IFileProvider fileProvider, bool includeViewStarts)
         {
+            var fileInfo = fileProvider.GetFileInfo(path);
+
+            if (!fileInfo.Exists)
+            {
+                return new FluidTemplate();
+            }
+
             var subTemplates = new List<IFluidTemplate>();
                 
             if (includeViewStarts)
@@ -136,8 +150,6 @@ namespace Fluid.ViewEngine
                     subTemplates.Add(viewStartTemplate);
                 }
             }
-
-            var fileInfo = fileProvider.GetFileInfo(path);
 
             using (var stream = fileInfo.CreateReadStream())
             {

@@ -7,34 +7,35 @@ namespace Fluid.ViewEngine
     public class FileProviderMapper : IFileProvider
     {
         private readonly IFileProvider _fileProvider;
-        private readonly string _partialsFolder;
+        private readonly string _mappedFolder;
 
-        public FileProviderMapper(IFileProvider fileProvider)
+        public FileProviderMapper(IFileProvider fileProvider, string mappedFolder)
         {
             _fileProvider = fileProvider;
-        }
+            _mappedFolder = mappedFolder;
 
-        public FileProviderMapper(IFileProvider fileProvider, string partialsFolder = "Partials")
-        {
-            _fileProvider = fileProvider;
-            _partialsFolder = partialsFolder;
+            if (!_mappedFolder.EndsWith("/") || _mappedFolder.EndsWith("\\"))
+            {
+                _mappedFolder = _mappedFolder + Path.DirectorySeparatorChar;
+            }
         }
 
         public IDirectoryContents GetDirectoryContents(string subpath)
         {
-            var path = Path.Combine(_partialsFolder, subpath);
+            var path = _mappedFolder + subpath;
             return _fileProvider.GetDirectoryContents(path);
         }
 
         public IFileInfo GetFileInfo(string subpath)
         {
-            var path = Path.Combine(_partialsFolder, subpath);
+            var path = _mappedFolder + subpath;
             return _fileProvider.GetFileInfo(path);
         }
 
         public IChangeToken Watch(string filter)
         {
-            return _fileProvider.Watch(filter);
+            var mappedFilter = _mappedFolder + filter;
+            return _fileProvider.Watch(mappedFilter);
         }
     }
 }

@@ -17,6 +17,13 @@ namespace Fluid
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
+        public static void ThrowInvalidOperationException(string message)
+        {
+            throw new InvalidOperationException(message);
+        }
+
+        [DoesNotReturn]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public static void ThrowArgumentOutOfRangeException(string paramName, string message)
         {
             throw new ArgumentOutOfRangeException(paramName, message);
@@ -28,6 +35,13 @@ namespace Fluid
         {
             throw new ParseException(message);
         }
+
+        [DoesNotReturn]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static void ThrowMaximumRecursionException()
+        {
+            throw new InvalidOperationException("The maximum level of recursion has been reached. Your script must have a cyclic include statement.");
+        }        
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]

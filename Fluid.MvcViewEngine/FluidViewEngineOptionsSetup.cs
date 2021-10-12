@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Hosting;
+﻿using Fluid.ViewEngine;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace Fluid.MvcViewEngine
@@ -11,10 +12,18 @@ namespace Fluid.MvcViewEngine
         public FluidViewEngineOptionsSetup(IWebHostEnvironment webHostEnvironment)
             : base(options =>
             {
-                options.IncludesFileProvider = webHostEnvironment.ContentRootFileProvider;
-                options.ViewsFileProvider = webHostEnvironment.ContentRootFileProvider;
-                options.ViewLocationFormats.Add("Views/{1}/{0}" + FluidViewEngine.ViewExtension);
-                options.ViewLocationFormats.Add("Views/Shared/{0}" + FluidViewEngine.ViewExtension);
+                options.PartialsFileProvider = new FileProviderMapper(webHostEnvironment.ContentRootFileProvider, "Views");
+                options.ViewsFileProvider = new FileProviderMapper(webHostEnvironment.ContentRootFileProvider, "Views");
+
+                options.ViewsLocationFormats.Clear();
+                options.ViewsLocationFormats.Add("/{1}/{0}" + Constants.ViewExtension);
+                options.ViewsLocationFormats.Add("/Shared/{0}" + Constants.ViewExtension);
+
+                options.PartialsLocationFormats.Clear();
+                options.PartialsLocationFormats.Add("{0}" + Constants.ViewExtension);
+                options.PartialsLocationFormats.Add("/Partials/{0}" + Constants.ViewExtension);
+                options.PartialsLocationFormats.Add("/Partials/{1}/{0}" + Constants.ViewExtension);
+                options.PartialsLocationFormats.Add("/Shared/Partials/{0}" + Constants.ViewExtension);
             })
         {
         }
