@@ -129,6 +129,36 @@ namespace Fluid.Values
             }
             return new NumberValue(value);
         }
+        
+        internal static NumberValue CreateFromDouble(double value)
+        {
+            if (value >= (double)decimal.MaxValue)
+            {
+                return new NumberValue(decimal.MaxValue);
+            }
+    
+            if (value <= (double)decimal.MinValue)
+            {
+                return new NumberValue(decimal.MinValue);
+            }
+
+            return new NumberValue((decimal)value);
+        }
+
+        internal static NumberValue CreateFromSingle(float value)
+        {
+            if (value >= (double)decimal.MaxValue)
+            {
+                return new NumberValue(decimal.MaxValue);
+            }
+    
+            if (value <= (double)decimal.MinValue)
+            {
+                return new NumberValue(decimal.MinValue);
+            }
+
+            return new NumberValue((decimal)value);
+        }
 
         public static int GetScale(decimal value)
         {

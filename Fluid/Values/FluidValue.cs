@@ -144,9 +144,11 @@ namespace Fluid.Values
                 case TypeCode.UInt64:
                 case TypeCode.Int64:
                 case TypeCode.Decimal:
-                case TypeCode.Double:
-                case TypeCode.Single:
                     return NumberValue.Create(Convert.ToDecimal(value));
+                case TypeCode.Double:
+                    return NumberValue.CreateFromDouble(Convert.ToDouble(value));
+                case TypeCode.Single:
+                    return NumberValue.CreateFromSingle(Convert.ToSingle(value));
                 case TypeCode.Empty:
                     return NilValue.Instance;
                 case TypeCode.Object:
