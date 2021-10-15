@@ -110,6 +110,20 @@ namespace Fluid.Tests
             Assert.Equal("model1", template.Render(new TemplateContext(model1, options)));
         }
 
+        [Fact]
+        public void CaptureShouldUpdateContext()
+        {
+            _parser.TryParse("{% capture greetings %}Hello {{text1}}{%endcapture%}", out var template, out var error);
+
+            var context = new TemplateContext();
+            context.SetValue("text1", "World");
+            
+            template.Render(context);
+
+            Assert.Equal("Hello World", context.GetValue("greetings").ToStringValue());
+            Assert.Contains("greetings", context.ValueNames);
+        }
+
         private class TestClass
         {
             public string Name { get; set; }

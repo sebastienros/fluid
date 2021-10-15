@@ -150,11 +150,26 @@ namespace Fluid
             }
         }
 
+        /// <summary>
+        /// Gets the names of the values.
+        /// </summary>
+        public IEnumerable<string> ValueNames => LocalScope.Properties;
+
+        /// <summary>
+        /// Gets a value from the context.
+        /// </summary>
+        /// <param name="name">The name of the value.</param>
         public FluidValue GetValue(string name)
         {
             return LocalScope.GetValue(name);
         }
 
+        /// <summary>
+        /// Sets a value on the context.
+        /// </summary>
+        /// <param name="name">The name of the value.</param>
+        /// <param name="value">Teh value to set.</param>
+        /// <returns></returns>
         public TemplateContext SetValue(string name, FluidValue value)
         {
             LocalScope.SetValue(name, value);
