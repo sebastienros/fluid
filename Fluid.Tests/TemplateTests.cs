@@ -117,9 +117,9 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldCustomizeCaptures()
         {
-            _parser.TryParse("{% capture foo %}hello world{% endcapture %}{{ foo }}", out var template, out var error);
+            _parser.TryParse("{% capture foo %}hello <br /> world{% endcapture %}{{ foo }}", out var template, out var error);
             var result = await template.RenderAsync(new TemplateContext { Captured = (identifier, captured) => new ValueTask<string>(captured.ToUpper()) }, HtmlEncoder.Default);
-            Assert.Equal("HELLO WORLD", result);
+            Assert.Equal("HELLO <BR /> WORLD", result);
         }
 
         [Theory]
