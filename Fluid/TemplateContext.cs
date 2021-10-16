@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading.Tasks;
 
 namespace Fluid
 {
@@ -44,6 +45,7 @@ namespace Fluid
             LocalScope = new Scope(options.Scope);
             CultureInfo = options.CultureInfo;
             TimeZone = options.TimeZone;
+            Captured = options.Captured;
             Now = options.Now;
         }
 
@@ -115,6 +117,11 @@ namespace Fluid
         /// Whether the direct properties of the Model can be accessed without being registered. Default is <code>true</code>.
         /// </summary>
         public bool AllowModelMembers { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
+        /// </summary>
+        public Func<string, string, ValueTask<string>> Captured { get; set; }
 
         /// <summary>
         /// Creates a new isolated scope. After than any value added to this content object will be released once
