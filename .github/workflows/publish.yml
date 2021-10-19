@@ -15,14 +15,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Setup .NET Core
+    - name: Setup dotnet 6.0
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 5.0.*
+        dotnet-version: 6.0.x
+        include-prerelease: true
     - name: Install dependencies
       run: dotnet restore
     - name: Test
-      run: dotnet test -c Release --framework net5.0
+      run: dotnet test -c Release --framework net6.0
     - name: Pack with dotnet
       run: |
         arrTag=(${GITHUB_REF//\// })

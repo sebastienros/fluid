@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp2.1;netcoreapp3.1;net5.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
     <LangVersion>9</LangVersion>
     <DefineConstants Condition="'$(Compiled)' == 'true'">$(DefineConstants);COMPILED</DefineConstants>
   </PropertyGroup>
@@ -15,11 +15,8 @@
     <PackageReference Include="xunit.analyzers" Version="0.10.0" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)'!='netcoreapp2.1'">
-    <ProjectReference Include="..\Fluid.MvcViewEngine\Fluid.MvcViewEngine.csproj" />
-  </ItemGroup>
-
   <ItemGroup>
+    <ProjectReference Include="..\Fluid.MvcViewEngine\Fluid.MvcViewEngine.csproj" />
     <ProjectReference Include="..\Fluid.ViewEngine\Fluid.ViewEngine.csproj" />
     <ProjectReference Include="..\Fluid\Fluid.csproj" />
   </ItemGroup>
