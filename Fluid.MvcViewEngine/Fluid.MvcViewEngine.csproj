@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
     <LangVersion>9</LangVersion>
     <PackageIcon>logo_64x64.png</PackageIcon>
     <IsPackable>true</IsPackable>
@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-      <ProjectReference Include="../Fluid/Fluid.csproj" />
+      <ProjectReference Include="..\Fluid\Fluid.csproj" />
       <ProjectReference Include="..\Fluid.ViewEngine\Fluid.ViewEngine.csproj" />
   </ItemGroup>
 
@@ -26,6 +26,10 @@
 
   <ItemGroup Condition="'$(TargetFramework)'=='net5.0'">
     <FrameworkReference Include="Microsoft.AspNetCore.App" Version="5.0.0" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
+    <FrameworkReference Include="Microsoft.AspNetCore.App" Version="6.0.0" />
   </ItemGroup>
   
   <ItemGroup>
