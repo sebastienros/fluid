@@ -38,7 +38,7 @@ namespace Fluid.Ast
         {
             if (!_isStripped)
             {
-                // Prevent two threads from stipping the same statement in case WriteToAsync is called concurrently
+                // Prevent two threads from strsipping the same statement in case WriteToAsync is called concurrently
                 // 
                 lock (_synLock)
                 {
