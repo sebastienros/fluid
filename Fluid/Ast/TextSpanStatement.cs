@@ -38,93 +38,92 @@ namespace Fluid.Ast
         {
             if (!_isStripped)
             {
-                var trimming = context.Options.Trimming;
-                StripLeft |=
-                    (PreviousIsTag && (trimming & TrimmingFlags.TagRight) != 0) ||
-                    (PreviousIsOutput && (trimming & TrimmingFlags.OutputRight) != 0)
-                    ;
-
-                StripRight |=
-                    (NextIsTag && (trimming & TrimmingFlags.TagLeft) != 0) ||
-                    (NextIsOutput && (trimming & TrimmingFlags.OutputLeft) != 0)
-                    ;
-
-                var span = _text.Buffer;
-                var start = 0;
-                var end = _text.Length - 1;
-
-                // Does this text need to have its left part trimmed?
-                if (StripLeft)
-                {
-                    var firstNewLine = -1;
-
-                    for (var i = start; i <= end; i++)
-                    {
-                        var c = span[_text.Offset + i];
-
-                        if (Character.IsWhiteSpaceOrNewLine(c))
-                        {
-                            start++;
-
-                            if (firstNewLine == -1 && (c == '\n'))
-                            {
-                                firstNewLine = start;
-                            }
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-
-                    if (!context.Options.Greedy)
-                    {
-                        if (firstNewLine != -1)
-                        {
-                            start = firstNewLine;
-                        }
-                    }
-                }
-
-                // Does this text need to have its right part trimmed?
-                if (StripRight)
-                {
-                    var lastNewLine = -1;
-
-                    for (var i = end; i >= start; i--)
-                    {
-                        var c = span[_text.Offset + i];
-
-                        if (Character.IsWhiteSpaceOrNewLine(c))
-                        {
-                            if (lastNewLine == -1 && c == '\n')
-                            {
-                                lastNewLine = end;
-                            }
-
-                            end--;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-
-                    if (!context.Options.Greedy)
-                    {
-                        if (lastNewLine != -1)
-                        {
-                            end = lastNewLine;
-                        }
-                    }
-                }
-                // update the current statement with tread-safely since this statements
-                // is shared
+                // Prevent two threads from stipping the same statement in case WriteToAsync is called concurrently
+                // 
                 lock (_synLock)
                 {
-                    // it might have been stripped by another thread while locked
                     if (!_isStripped)
                     {
+                        var trimming = context.Options.Trimming;
+                        StripLeft |=
+                            (PreviousIsTag && (trimming & TrimmingFlags.TagRight) != 0) ||
+                            (PreviousIsOutput && (trimming & TrimmingFlags.OutputRight) != 0)
+                            ;
+
+                        StripRight |=
+                            (NextIsTag && (trimming & TrimmingFlags.TagLeft) != 0) ||
+                            (NextIsOutput && (trimming & TrimmingFlags.OutputLeft) != 0)
+                            ;
+
+                        var span = _text.Buffer;
+                        var start = 0;
+                        var end = _text.Length - 1;
+
+                        // Does this text need to have its left part trimmed?
+                        if (StripLeft)
+                        {
+                            var firstNewLine = -1;
+
+                            for (var i = start; i <= end; i++)
+                            {
+                                var c = span[_text.Offset + i];
+
+                                if (Character.IsWhiteSpaceOrNewLine(c))
+                                {
+                                    start++;
+
+                                    if (firstNewLine == -1 && (c == '\n'))
+                                    {
+                                        firstNewLine = start;
+                                    }
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+
+                            if (!context.Options.Greedy)
+                            {
+                                if (firstNewLine != -1)
+                                {
+                                    start = firstNewLine;
+                                }
+                            }
+                        }
+
+                        // Does this text need to have its right part trimmed?
+                        if (StripRight)
+                        {
+                            var lastNewLine = -1;
+
+                            for (var i = end; i >= start; i--)
+                            {
+                                var c = span[_text.Offset + i];
+
+                                if (Character.IsWhiteSpaceOrNewLine(c))
+                                {
+                                    if (lastNewLine == -1 && c == '\n')
+                                    {
+                                        lastNewLine = end;
+                                    }
+
+                                    end--;
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+
+                            if (!context.Options.Greedy)
+                            {
+                                if (lastNewLine != -1)
+                                {
+                                    end = lastNewLine;
+                                }
+                            }
+                        }
                         if (end - start + 1 == 0)
                         {
                             _isEmpty = true;
@@ -136,11 +135,10 @@ namespace Fluid.Ast
 
                             _text = new TextSpan(buffer, offset + start, end - start + 1);
                         }
+
+                        _buffer = _text.ToString();
+                        _isStripped = true;
                     }
-
-                    _isStripped = true;
-                    _buffer = _text.ToString();
-
                 }
             }
 
