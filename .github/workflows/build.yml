@@ -38,8 +38,8 @@ jobs:
     - name: Setup dotnet 6.0
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.100-rc.2.21505.57
-        
+        dotnet-version: 6.0.x
+        include-prerelease: true        
     - name: Test
       run: dotnet test --configuration Release
     - name: Test - Compiled

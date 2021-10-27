@@ -1,25 +1,35 @@
 {
-    "version": "0.1.0",
+    "version": "2.0.0",
     "command": "dotnet",
-    "isShellCommand": true,
     "args": [],
     "tasks": [
         {
-            "taskName": "build",
+            "label": "build",
+            "type": "shell",
+            "command": "dotnet",
             "args": [
+                "build",
                 "${workspaceRoot}/Fluid/Fluid.csproj"
             ],
-            "isBuildCommand": true,
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "group": {
+                "_id": "build",
+                "isDefault": false
+            }
         },
         {
-        "taskName": "test",
-        "args": [ 
-            "${workspaceRoot}/Fluid.Tests/Fluid.Tests.csproj"
-        ],
-        "isTestCommand": true,
-        "showOutput": "always",
-        "problemMatcher": "$msCompile"
+            "label": "test",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "test",
+                "${workspaceRoot}/Fluid.Tests/Fluid.Tests.csproj"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": {
+                "_id": "test",
+                "isDefault": false
+            }
         }
     ]
 }

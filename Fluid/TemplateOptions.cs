@@ -4,6 +4,7 @@ using Microsoft.Extensions.FileProviders;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading.Tasks;
 
 namespace Fluid
 {
@@ -60,6 +61,11 @@ namespace Fluid
         /// Gets the list of value converters.
         /// </summary>
         public List<Func<object, object>> ValueConverters { get; } = new List<Func<object, object>>();
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
+        /// </summary>
+        public Func<string, string, ValueTask<string>> Captured { get; set; }
 
         /// <summary>
         /// Gets or sets the default trimming rules.

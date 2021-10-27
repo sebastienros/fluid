@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading.Tasks;
 
 namespace Fluid
 {
@@ -44,6 +45,7 @@ namespace Fluid
             LocalScope = new Scope(options.Scope);
             CultureInfo = options.CultureInfo;
             TimeZone = options.TimeZone;
+            Captured = options.Captured;
             Now = options.Now;
         }
 
@@ -117,6 +119,11 @@ namespace Fluid
         public bool AllowModelMembers { get; set; } = true;
 
         /// <summary>
+        /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
+        /// </summary>
+        public Func<string, string, ValueTask<string>> Captured { get; set; }
+
+        /// <summary>
         /// Creates a new isolated scope. After than any value added to this content object will be released once
         /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
         /// </summary>
@@ -150,11 +157,26 @@ namespace Fluid
             }
         }
 
+        /// <summary>
+        /// Gets the names of the values.
+        /// </summary>
+        public IEnumerable<string> ValueNames => LocalScope.Properties;
+
+        /// <summary>
+        /// Gets a value from the context.
+        /// </summary>
+        /// <param name="name">The name of the value.</param>
         public FluidValue GetValue(string name)
         {
             return LocalScope.GetValue(name);
         }
 
+        /// <summary>
+        /// Sets a value on the context.
+        /// </summary>
+        /// <param name="name">The name of the value.</param>
+        /// <param name="value">Teh value to set.</param>
+        /// <returns></returns>
         public TemplateContext SetValue(string name, FluidValue value)
         {
             LocalScope.SetValue(name, value);

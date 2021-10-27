@@ -34,8 +34,16 @@ namespace Fluid.Ast
                 }
             }
 
+            var result = sw.ToString();
+
+            // Substitute the result if a custom callback is provided
+            if (context.Captured != null)
+            {
+                 result = await context.Captured.Invoke(Identifier, result);
+            }
+
             // Don't encode captured blocks
-            context.SetValue(Identifier, new StringValue(sw.ToString(), false));
+            context.SetValue(Identifier, new StringValue(result, false));
 
             return completion;
         }

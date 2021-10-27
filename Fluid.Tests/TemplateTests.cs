@@ -114,6 +114,14 @@ namespace Fluid.Tests
             Assert.Equal(expected, result);
         }
 
+        [Fact]
+        public async Task ShouldCustomizeCaptures()
+        {
+            _parser.TryParse("{% capture foo %}hello <br /> world{% endcapture %}{{ foo }}", out var template, out var error);
+            var result = await template.RenderAsync(new TemplateContext { Captured = (identifier, captured) => new ValueTask<string>(captured.ToUpper()) }, HtmlEncoder.Default);
+            Assert.Equal("HELLO <BR /> WORLD", result);
+        }
+
         [Theory]
         [InlineData("{{ 0 }}", "0")]
         [InlineData("{{ 123 }}", "123")]
