@@ -86,6 +86,66 @@ namespace Fluid.Tests
         }
 
         [Theory]
+        [InlineData("a<>:a?", "YTw+OmE/")]
+        public async Task Base64Encode(string value, string expected)
+        {
+            var input = new StringValue(value);
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = await MiscFilters.Base64Encode(input, arguments, context);
+
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("YTw+OmE/", "a<>:a?")]
+        public async Task Base64Decode(string value, string expected)
+        {
+            var input = new StringValue(value);
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = await MiscFilters.Base64Decode(input, arguments, context);
+
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("a<>:a?", "YTw-OmE_")]
+        public async Task Base64UrlSafeEncode(string value, string expected)
+        {
+            // Arrange
+            var input = new StringValue(value);
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            // Act
+            var result = await MiscFilters.Base64UrlSafeEncode(input, arguments, context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("YTw-OmE_", "a<>:a?")]
+        public async Task Base64UrlSafeDecode(string value, string expected)
+        {
+            // Arrange
+            var input = new StringValue(value);
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            // Act
+            var result = await MiscFilters.Base64UrlSafeDecode(input, arguments, context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
         [InlineData("Have <em>you</em> read <strong>Ulysses</strong>?", "Have you read Ulysses?")]
         [InlineData("Have you read Ulysses?", "Have you read Ulysses?")]
         [InlineData("", "")]

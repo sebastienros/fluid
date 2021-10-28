@@ -600,7 +600,7 @@ Hello
 
 ## ASP.NET MVC View Engine
 
-To provide a convenient view engine implementation for ASP.NET Core MVC the grammar is extended as described in [Customizing tags](#customizing-tags) by adding these new tags:
+The package `Fluid.MvcViewEngine` provides a convenient way to use Liquid as a replacement or in combination of Razor in ASP.NET MVC.
 
 ### Configuration
 
@@ -645,7 +645,7 @@ More way to register types and members can be found in the [Allow-listing object
 
 #### Registering custom tags
 
-When using the MVC View engine, custom tags can be added to the parser. Refer to [this section](https://github.com/sebastienros/fluid#registering-a-custom-tag) on how to create custom tags.
+When using the MVC View engine, custom tags can still be added to the parser. Refer to [this section](https://github.com/sebastienros/fluid#registering-a-custom-tag) on how to create custom tags.
 
 It is recommended to create a custom class inheriting from `FluidViewParser`, and to customize the tags in the constructor of this new class.
 This class can then be registered as the default parser for the MVC view engine.
@@ -676,7 +676,7 @@ public class Startup
 {
     public void ConfigureServices(IServiceCollection services)
     {
-        services.Configure<FluidViewEngineOptions>(options =>
+        services.Configure<MvcViewOptions>(options =>
         {
             options.Parser = new CustomFluidViewParser();
         });
@@ -775,7 +775,7 @@ You can also define other variables or render some content.
 
 ### Custom views locations
 
-It is possible to add custom file locations containing views by adding them to `FluidViewEngineOptions.ViewLocationFormats`.
+It is possible to add custom file locations containing views by adding them to `MvcViewOptions.ViewsLocationForm`.
 
 The default ones are:
 - `Views/{1}/{0}`
@@ -790,6 +790,17 @@ The content of a view is parsed once and kept in memory until the file or one of
 This difference makes Fluid very adapted for rapid development cycles where the views can be deployed and updated frequently. And because the Liquid language is secure, developers give access to them with more confidence.  
 
 <br>
+
+## View Engine
+
+The Fluid ASP.NET MVC View Engine is based on an MVC agnostic view engine provided in the `Fluid.ViewEngine` package. The same options and features are available, but without 
+requiring ASP.NET MVC. This is useful to provide the same experience to build template using layouts and sections.
+
+### Usage
+
+Use the class `FluidViewRenderer : IFluidViewRender` and `FluidViewEngineOptions`. 
+
+
 
 ## Whitespace control
 
@@ -914,51 +925,51 @@ These object are thread-safe as long as each call to `Render()` uses a dedicated
 
 ### Benchmarks
 
-A benchmark application is provided in the source code to compare Fluid, [Scriban](https://github.com/scriban/scriban), [DotLiquid](https://github.com/dotliquid/dotliquid) and [Liquid.NET](https://github.com/mikebridge/Liquid.NET).
+A benchmark application is provided in the source code to compare Fluid, [Scriban](https://github.com/scriban/scriban), [DotLiquid](https://github.com/dotliquid/dotliquid), [Liquid.NET](https://github.com/mikebridge/Liquid.NET) and Handlebars.NET (https://github.com/Handlebars-Net).
 Run it locally to analyze the time it takes to execute specific templates.
 
 #### Results
 
 Fluid is faster and allocates less memory than all other well-known .NET Liquid parsers.
-For parsing, Fluid is 30% faster than Scriban, allocating 3 times less memory.
-For rendering, Fluid is slightly faster than Handlebars, 3 times faster than Scriban, but is allocating a few times less memory.
-Compared to DotLiquid, Fluid renders 10 times faster, and allocates 40 times less memory.
+For parsing, Fluid is 30% faster than Scriban, allocating 2 times less memory.
+For rendering, Fluid is slightly faster than Handlebars, 3 times faster than Scriban, but allocates at least half the memory.
+Compared to DotLiquid, Fluid renders 9 times faster, and allocates 30 times less memory.
 
 ```
-BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.22000
 Intel Core i7-1065G7 CPU 1.30GHz, 1 CPU, 8 logical and 4 physical cores
-.NET Core SDK=5.0.201
-  [Host]   : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
-  ShortRun : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+.NET Core SDK=6.0.100-rc.2.21505.57
+  [Host]   : .NET Core 6.0.0 (CoreCLR 6.0.21.48005, CoreFX 6.0.21.48005), X64 RyuJIT
+  ShortRun : .NET Core 6.0.0 (CoreCLR 6.0.21.48005, CoreFX 6.0.21.48005), X64 RyuJIT
 
 Job=ShortRun  IterationCount=3  LaunchCount=1
 WarmupCount=3
 
-|             Method |          Mean |         Error |      StdDev |  Ratio | RatioSD |     Gen 0 |    Gen 1 |   Gen 2 |  Allocated |
-|------------------- |--------------:|--------------:|------------:|-------:|--------:|----------:|---------:|--------:|-----------:|
-|        Fluid_Parse |      7.423 us |      5.678 us |   0.3112 us |   1.00 |    0.00 |    0.7019 |        - |       - |    2.88 KB |
-|      Scriban_Parse |     12.226 us |      2.912 us |   0.1596 us |   1.65 |    0.07 |    1.8005 |        - |       - |    7.41 KB |
-|    DotLiquid_Parse |     22.582 us |     13.804 us |   0.7567 us |   3.05 |    0.22 |    3.9673 |        - |       - |   16.21 KB |
-|    LiquidNet_Parse |     88.729 us |     23.242 us |   1.2740 us |  11.97 |    0.54 |   15.1367 |   0.1221 |       - |   62.08 KB |
-|   Handlebars_Parse |  4,118.144 us |  2,852.877 us | 156.3758 us | 556.06 |   45.12 |   31.2500 |        - |       - |  157.91 KB |
-|                    |               |               |             |        |         |           |          |         |            |
-|     Fluid_ParseBig |     41.033 us |     18.167 us |   0.9958 us |   1.00 |    0.00 |    3.1738 |        - |       - |   13.02 KB |
-|   Scriban_ParseBig |     60.069 us |     15.197 us |   0.8330 us |   1.46 |    0.05 |    7.8125 |   1.0986 |       - |   32.05 KB |
-| DotLiquid_ParseBig |     86.152 us |     35.531 us |   1.9476 us |   2.10 |    0.10 |   23.0713 |        - |       - |   94.32 KB |
-| LiquidNet_ParseBig | 29,854.219 us | 10,570.585 us | 579.4094 us | 727.79 |   18.80 | 6843.7500 | 375.0000 |       - | 28557.5 KB |
-|                    |               |               |             |        |         |           |          |         |            |
-|       Fluid_Render |    494.335 us |     76.086 us |   4.1705 us |   1.00 |    0.00 |   22.4609 |   4.8828 |       - |   95.52 KB |
-|  Handlebars_Render |    525.813 us |     44.308 us |   2.4287 us |   1.06 |    0.01 |   43.9453 |  14.6484 |       - |  183.86 KB |
-|     Scriban_Render |  1,465.749 us |    336.759 us |  18.4589 us |   2.97 |    0.04 |   99.6094 |  66.4063 | 66.4063 |  487.62 KB |
-|   LiquidNet_Render |  4,137.292 us |    121.268 us |   6.6471 us |   8.37 |    0.07 |  992.1875 | 390.6250 |       - | 5324.52 KB |
-|   DotLiquid_Render |  5,418.730 us |  2,265.219 us | 124.1643 us |  10.96 |    0.23 |  875.0000 | 187.5000 | 23.4375 | 3878.86 KB |
+|             Method |          Mean |         Error |        StdDev |  Ratio | RatioSD |     Gen 0 |    Gen 1 |   Gen 2 |   Allocated |
+|------------------- |--------------:|--------------:|--------------:|-------:|--------:|----------:|---------:|--------:|------------:|
+|        Fluid_Parse |      6.387 us |      1.815 us |     0.0995 us |   1.00 |    0.00 |    0.7019 |        - |       - |     2.88 KB |
+|      Scriban_Parse |      8.731 us |      2.153 us |     0.1180 us |   1.37 |    0.03 |    1.7853 |        - |       - |     7.32 KB |
+|    DotLiquid_Parse |     26.626 us |     74.726 us |     4.0960 us |   4.18 |    0.70 |    3.9673 |        - |       - |    16.21 KB |
+|    LiquidNet_Parse |     90.636 us |     54.499 us |     2.9873 us |  14.19 |    0.30 |   15.1367 |   0.1221 |       - |    62.08 KB |
+|   Handlebars_Parse |  3,942.611 us |  1,134.420 us |    62.1814 us | 617.40 |   15.44 |   39.0625 |        - |       - |   159.38 KB |
+|                    |               |               |               |        |         |           |          |         |             |
+|     Fluid_ParseBig |     37.779 us |     14.975 us |     0.8208 us |   1.00 |    0.00 |    3.1738 |        - |       - |    13.02 KB |
+|   Scriban_ParseBig |     44.500 us |     13.322 us |     0.7303 us |   1.18 |    0.02 |    8.1787 |        - |       - |    33.54 KB |
+| DotLiquid_ParseBig |     79.929 us |    123.318 us |     6.7595 us |   2.12 |    0.16 |   23.0713 |        - |       - |    94.37 KB |
+| LiquidNet_ParseBig | 34,916.067 us | 63,809.961 us | 3,497.6393 us | 924.79 |   97.54 | 6812.5000 | 500.0000 |       - | 28543.69 KB |
+|                    |               |               |               |        |         |           |          |         |             |
+|       Fluid_Render |    386.133 us |    178.984 us |     9.8107 us |   1.00 |    0.00 |   22.9492 |        - |       - |    95.45 KB |
+|     Scriban_Render |  1,260.079 us |    171.254 us |     9.3870 us |   3.26 |    0.09 |   95.7031 |  66.4063 | 66.4063 |    486.6 KB |
+|   DotLiquid_Render |  3,586.364 us |    742.398 us |    40.6933 us |   9.29 |    0.28 |  730.4688 | 214.8438 | 27.3438 |  3364.13 KB |
+|   LiquidNet_Render |  2,490.968 us |  1,792.951 us |    98.2777 us |   6.45 |    0.10 |  515.6250 | 257.8125 |       - |  3144.11 KB |
+|  Handlebars_Render |    409.511 us |    139.444 us |     7.6434 us |   1.06 |    0.05 |   47.3633 |  11.7188 |       - |   195.11 KB |
 ```
 
-Tested on 5/8/2021 with 
-- Scriban 3.7.0
-- DotLiquid 2.1436
+Tested on 10/26/2021 with 
+- Scriban 5.0.0
+- DotLiquid 2.2.548
 - Liquid.NET 0.10.0
-- Handlebars.Net 2.0.7
+- Handlebars.Net 2.0.9
 
 ##### Legend
 

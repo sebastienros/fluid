@@ -7,6 +7,10 @@ namespace Fluid.Tests.Mocks
 {
     public class MockFileInfo : IFileInfo
     {
+        public static readonly MockFileInfo Null = new MockFileInfo("", "") { _exists = false };
+
+        private bool _exists = true;
+
         public MockFileInfo(string name, string content)
         {
             Name = name;
@@ -14,7 +18,7 @@ namespace Fluid.Tests.Mocks
         }
 
         public string Content { get; set; }
-        public bool Exists => true;
+        public bool Exists => _exists;
 
         public bool IsDirectory => false;
 

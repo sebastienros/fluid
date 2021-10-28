@@ -12,15 +12,14 @@ namespace Fluid.MvcViewEngine
 {
     public class FluidViewEngine : IFluidViewEngine
     {
-        private IFluidRendering _fluidRendering;
+        private FluidRendering _fluidRendering;
         private readonly IWebHostEnvironment _hostingEnvironment;
-        public static readonly string ViewExtension = ".liquid";
         private const string ControllerKey = "controller";
         private const string AreaKey = "area";
-        private FluidViewEngineOptions _options;
+        private FluidMvcViewOptions _options;
 
-        public FluidViewEngine(IFluidRendering fluidRendering,
-            IOptions<FluidViewEngineOptions> optionsAccessor,
+        public FluidViewEngine(FluidRendering fluidRendering,
+            IOptions<FluidMvcViewOptions> optionsAccessor,
             IWebHostEnvironment hostingEnvironment)
         {
             _options = optionsAccessor.Value;
@@ -30,13 +29,10 @@ namespace Fluid.MvcViewEngine
 
         public ViewEngineResult FindView(ActionContext context, string viewName, bool isMainPage)
         {
-            return LocatePageFromViewLocations(context, viewName, isMainPage);
+            return LocatePageFromViewLocations(context, viewName);
         }
 
-        private ViewEngineResult LocatePageFromViewLocations(
-            ActionContext actionContext,
-            string viewName,
-            bool isMainPage)
+        private ViewEngineResult LocatePageFromViewLocations(ActionContext actionContext, string viewName)
         {
             var controllerName = GetNormalizedRouteValue(actionContext, ControllerKey);
             var areaName = GetNormalizedRouteValue(actionContext, AreaKey);
@@ -44,13 +40,19 @@ namespace Fluid.MvcViewEngine
             var fileProvider = _options.ViewsFileProvider ?? _hostingEnvironment.ContentRootFileProvider;
 
             var checkedLocations = new List<string>();
-            foreach (var location in _options.ViewLocationFormats)
+
+            foreach (var location in _options.ViewsLocationFormats)
             {
-                var view = string.Format(location, viewName, controllerName);
-                if(fileProvider.GetFileInfo(view).Exists)
-                    return ViewEngineResult.Found("Default", new FluidView(view, _fluidRendering));
+                var view = String.Format(location, viewName, controllerName, areaName);
+
+                if (fileProvider.GetFileInfo(view).Exists)
+                {
+                    return ViewEngineResult.Found(viewName, new FluidView(view, _fluidRendering));
+                }
+
                 checkedLocations.Add(view);
             }
+
             return ViewEngineResult.NotFound(viewName, checkedLocations);
         }
 
@@ -114,7 +116,7 @@ namespace Fluid.MvcViewEngine
             Debug.Assert(!string.IsNullOrEmpty(name));
 
             // Though ./ViewName looks like a relative path, framework searches for that view using view locations.
-            return name.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase);
+            return name.EndsWith(Constants.ViewExtension, StringComparison.OrdinalIgnoreCase);
         }
 
         public static string GetNormalizedRouteValue(ActionContext context, string key)

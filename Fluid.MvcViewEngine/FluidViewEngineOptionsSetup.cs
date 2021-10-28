@@ -4,15 +4,26 @@ using Microsoft.Extensions.Options;
 
 namespace Fluid.MvcViewEngine
 {
-    public class FluidViewEngineOptionsSetup : ConfigureOptions<FluidViewEngineOptions>
+    /// <summary>
+    /// Defines the default configuration of <see cref="FluidMvcViewOptions"/>.
+    /// </summary>
+    internal class FluidViewEngineOptionsSetup : ConfigureOptions<FluidMvcViewOptions>
     {
         public FluidViewEngineOptionsSetup(IWebHostEnvironment webHostEnvironment)
             : base(options =>
             {
-                options.IncludesFileProvider = webHostEnvironment.ContentRootFileProvider;
-                options.ViewsFileProvider = webHostEnvironment.ContentRootFileProvider;
-                options.ViewLocationFormats.Add("Views/{1}/{0}" + FluidViewEngine.ViewExtension);
-                options.ViewLocationFormats.Add("Views/Shared/{0}" + FluidViewEngine.ViewExtension);
+                options.PartialsFileProvider = new FileProviderMapper(webHostEnvironment.ContentRootFileProvider, "Views");
+                options.ViewsFileProvider = new FileProviderMapper(webHostEnvironment.ContentRootFileProvider, "Views");
+
+                options.ViewsLocationFormats.Clear();
+                options.ViewsLocationFormats.Add("/{1}/{0}" + Constants.ViewExtension);
+                options.ViewsLocationFormats.Add("/Shared/{0}" + Constants.ViewExtension);
+
+                options.PartialsLocationFormats.Clear();
+                options.PartialsLocationFormats.Add("{0}" + Constants.ViewExtension);
+                options.PartialsLocationFormats.Add("/Partials/{0}" + Constants.ViewExtension);
+                options.PartialsLocationFormats.Add("/Partials/{1}/{0}" + Constants.ViewExtension);
+                options.PartialsLocationFormats.Add("/Shared/Partials/{0}" + Constants.ViewExtension);
             })
         {
         }

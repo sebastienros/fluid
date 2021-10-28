@@ -4,6 +4,7 @@ using Microsoft.Extensions.FileProviders;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading.Tasks;
 
 namespace Fluid
 {
@@ -17,7 +18,7 @@ namespace Fluid
         public MemberAccessStrategy MemberAccessStrategy { get; set; } = new DefaultMemberAccessStrategy();
 
         /// <summary>
-        /// Gets or sets the <see cref="IFileProvider"/> used to access files.
+        /// Gets or sets the <see cref="IFileProvider"/> used to access files for include and render statements.
         /// </summary>
         public IFileProvider FileProvider { get; set; } = new NullFileProvider();
 
@@ -60,6 +61,11 @@ namespace Fluid
         /// Gets the list of value converters.
         /// </summary>
         public List<Func<object, object>> ValueConverters { get; } = new List<Func<object, object>>();
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
+        /// </summary>
+        public Func<string, string, ValueTask<string>> Captured { get; set; }
 
         /// <summary>
         /// Gets or sets the default trimming rules.

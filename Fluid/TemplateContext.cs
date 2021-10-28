@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading.Tasks;
 
 namespace Fluid
 {
@@ -25,7 +26,12 @@ namespace Fluid
         /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
         public TemplateContext(object model, TemplateOptions options, bool allowModelMembers = true) : this(options)
         {
-            Model = model ?? throw new ArgumentNullException(nameof(model));
+            if (model == null)
+            {
+                ExceptionHelper.ThrowArgumentNullException(nameof(model));
+            }
+
+            Model = model;
             AllowModelMembers = allowModelMembers;
         }
 
@@ -39,6 +45,7 @@ namespace Fluid
             LocalScope = new Scope(options.Scope);
             CultureInfo = options.CultureInfo;
             TimeZone = options.TimeZone;
+            Captured = options.Captured;
             Now = options.Now;
         }
 
@@ -49,7 +56,12 @@ namespace Fluid
         /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
         public TemplateContext(object model, bool allowModelMembers = true) : this()
         {
-            Model = model ?? throw new ArgumentNullException(nameof(model));
+            if (model == null)
+            {
+                ExceptionHelper.ThrowArgumentNullException(nameof(model));
+            }
+
+            Model = model;
             AllowModelMembers = allowModelMembers;
         }
 
@@ -73,12 +85,15 @@ namespace Fluid
         /// </summary>
         public TimeZoneInfo TimeZone { get; set; } = TemplateOptions.Default.TimeZone;
 
-        internal void IncrementSteps()
+        /// <summary>
+        /// Increments the number of statements the current template is processing.
+        /// </summary>
+        public void IncrementSteps()
         {
             var maxSteps = Options.MaxSteps;
             if (maxSteps > 0 && _steps++ > maxSteps)
             {
-                ExceptionHelper.ThrowMaximumStatementsException();
+                ExceptionHelper.ThrowMaximumRecursionException();
             }
         }
 
@@ -104,6 +119,11 @@ namespace Fluid
         public bool AllowModelMembers { get; set; } = true;
 
         /// <summary>
+        /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
+        /// </summary>
+        public Func<string, string, ValueTask<string>> Captured { get; set; }
+
+        /// <summary>
         /// Creates a new isolated scope. After than any value added to this content object will be released once
         /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
         /// </summary>
@@ -111,7 +131,8 @@ namespace Fluid
         {
             if (Options.MaxRecursion > 0 && _recursion++ > Options.MaxRecursion)
             {
-                throw new InvalidOperationException("The maximum level of recursion has been reached. Your script must have a cyclic include statement.");
+                ExceptionHelper.ThrowMaximumRecursionException();
+                return;
             }
 
             LocalScope = LocalScope.EnterChildScope();
@@ -131,15 +152,31 @@ namespace Fluid
 
             if (LocalScope == null)
             {
-                throw new InvalidOperationException();
+                ExceptionHelper.ThrowInvalidOperationException("Release scoped invoked without corresponding EnterChildScope");
+                return;
             }
         }
 
+        /// <summary>
+        /// Gets the names of the values.
+        /// </summary>
+        public IEnumerable<string> ValueNames => LocalScope.Properties;
+
+        /// <summary>
+        /// Gets a value from the context.
+        /// </summary>
+        /// <param name="name">The name of the value.</param>
         public FluidValue GetValue(string name)
         {
             return LocalScope.GetValue(name);
         }
 
+        /// <summary>
+        /// Sets a value on the context.
+        /// </summary>
+        /// <param name="name">The name of the value.</param>
+        /// <param name="value">Teh value to set.</param>
+        /// <returns></returns>
         public TemplateContext SetValue(string name, FluidValue value)
         {
             LocalScope.SetValue(name, value);

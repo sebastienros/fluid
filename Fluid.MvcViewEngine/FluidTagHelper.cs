@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.IO;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 
 namespace Fluid.MvcViewEngine
@@ -6,9 +7,9 @@ namespace Fluid.MvcViewEngine
     [HtmlTargetElement("fluid")]
     public class FluidTagHelper : TagHelper
     {
-        public IFluidRendering _fluidRendering { get; set; }
+        private FluidRendering _fluidRendering { get; set; }
 
-        public FluidTagHelper(IFluidRendering fluidRendering)
+        public FluidTagHelper(FluidRendering fluidRendering)
         {
             _fluidRendering = fluidRendering;
         }
@@ -21,21 +22,26 @@ namespace Fluid.MvcViewEngine
 
         public override Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
         {
-            static async Task Awaited(TagHelperOutput o, ValueTask<string> t)
+            static async Task Awaited(TagHelperOutput o, StringWriter sw, Task t)
             {
+                await t;
                 o.TagName = null;
-                o.Content.AppendHtml(await t);
+                o.Content.AppendHtml(sw.ToString());
             }
 
-            var task = _fluidRendering.RenderAsync(View, Model, null, null);
-            if (task.IsCompletedSuccessfully)
+            using (var sw = new StringWriter())
             {
-                output.TagName = null;
-                output.Content.AppendHtml(task.Result);
-                return Task.FromResult(output);
-            }
+                var task = _fluidRendering.RenderAsync(sw, View, Model, null, null);
 
-            return Awaited(output, task);
+                if (task.IsCompletedSuccessfully)
+                {
+                    output.TagName = null;
+                    output.Content.AppendHtml(sw.ToString());
+                    return Task.FromResult(output);
+                }
+
+                return Awaited(output, sw, task);
+            }
         }
     }
 }

@@ -7,9 +7,9 @@ namespace Fluid.MvcViewEngine
     public class FluidView : IView
     {
         private string _path;
-        private IFluidRendering _fluidRendering;
+        private FluidRendering _fluidRendering;
 
-        public FluidView(string path, IFluidRendering fluidRendering)
+        public FluidView(string path, FluidRendering fluidRendering)
         {
             _path = path;
             _fluidRendering = fluidRendering;
@@ -25,8 +25,7 @@ namespace Fluid.MvcViewEngine
 
         public async Task RenderAsync(ViewContext context)
         {
-            var result = await _fluidRendering.RenderAsync(Path, context.ViewData.Model, context.ViewData, context.ModelState);
-            context.Writer.Write(result);
+            await _fluidRendering.RenderAsync(context.Writer, Path, context.ViewData.Model, context.ViewData, context.ModelState);
         }
     }
 }
