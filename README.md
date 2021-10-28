@@ -289,11 +289,13 @@ class JObjectFluidIndexable : IFluidIndexable
 {
 	private readonly JObject _obj;
 	private readonly TemplateOptions _options;
+	
 	public JObjectFluidIndexable(JObject jObject, TemplateOptions options)
 	{
 		_obj = jObject;
 		_options = options;
 	}
+	
 	public int Count => _obj.Count;
 
 	public IEnumerable<string> Keys => _obj.Properties().Select(i => i.Name);
