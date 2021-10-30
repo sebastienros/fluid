@@ -22,7 +22,11 @@ namespace Fluid.Values
             {
                 foreach (var key in _dictionary.Keys)
                 {
-                    yield return key.ToString();
+                    // Only handle string keys since this is what TryGetValue returns
+                    if (key is string)
+                    {
+                        yield return key.ToString();
+                    }
                 }
             }
         }

@@ -2,7 +2,6 @@
 using Fluid.Tests.Domain;
 using Fluid.Values;
 using Newtonsoft.Json.Linq;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
@@ -125,10 +124,6 @@ namespace Fluid.Tests
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
 
-            options.MemberAccessStrategy.Register<JObject, object>((o, name) => o[name]);
-            options.ValueConverters.Add(x => x is JObject o ? new ObjectValue(o) : null);
-            options.ValueConverters.Add(x => x is JValue o ? o.Value : null);
-
             var objectValue = FluidValue.Create(obj, options);
 
             Assert.Equal("1", (await objectValue.GetValueAsync("a", context)).ToObjectValue());
@@ -137,7 +132,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task ShouldRenderReadmeSample()
+        public async Task ShouldNotBreakJObjectCustomizations()
         {
             var options = new TemplateOptions();
 
@@ -148,12 +143,39 @@ namespace Fluid.Tests
             options.ValueConverters.Add(x => x is JObject o ? new ObjectValue(o) : null);
             options.ValueConverters.Add(x => x is JValue v ? v.Value : null);
 
-            var model = JObject.Parse("{\"Name\": \"Bill\"}");
+            var model = JObject.Parse("{\"Name\": \"Bill\",\"Company\":{\"Name\":\"Microsoft\"}}");
 
-            _parser.TryParse("His name is {{ Name }}", out var template);
+            _parser.TryParse("His name is {{ Name }}, Company : {{ Company.Name }}", out var template);
+            var context = new TemplateContext(model, options);
+
+            Assert.Equal("His name is Bill, Company : Microsoft", await template.RenderAsync(context));
+        }
+
+        [Fact]
+        public async Task ShouldRenderReadmeSample()
+        {
+            var options = new TemplateOptions();
+
+            options.MemberAccessStrategy.Register<Person, object>((p, name) => p.Firstname);
+            var model = new Person { Firstname = "Bill" };
+
+            _parser.TryParse("His name is {{ Something }}", out var template);
             var context = new TemplateContext(model, options);
 
             Assert.Equal("His name is Bill", await template.RenderAsync(context));
+        }
+
+        [Fact]
+        public async Task ShouldAccessJObject()
+        {
+            var options = new TemplateOptions();
+
+            var model = JObject.Parse("{\"Name\": \"Bill\",\"Company\":{\"Name\":\"Microsoft\"}}");
+
+            _parser.TryParse("His name is {{ Name }}, Company : {{ Company | json }}", out var template);
+            var context = new TemplateContext(model, options);
+
+            Assert.Equal("His name is Bill, Company : {\"Name\":\"Microsoft\"}", await template.RenderAsync(context));
         }
 
         [Fact]
@@ -208,7 +230,6 @@ namespace Fluid.Tests
         public void ShouldUseDictionaryAsModel()
         {
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<IDictionary, object>((obj, name) => obj[name]);
 
             var model = new Dictionary<string, object>();
             model.Add("Firstname", "Bill");

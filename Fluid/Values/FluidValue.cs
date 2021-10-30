@@ -14,6 +14,8 @@ namespace Fluid.Values
     {
         public abstract void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
 
+        public static Dictionary<Type, Type> _genericDictionaryTypeCache = new();
+
         [Conditional("DEBUG")]
         protected static void AssertWriteToParameters(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
@@ -156,8 +158,14 @@ namespace Fluid.Values
                         case DateTimeOffset dateTimeOffset:
                             return new DateTimeValue(dateTimeOffset);
 
+                        case IFormattable formattable:
+                            return new StringValue(formattable.ToString(null, options.CultureInfo.NumberFormat));
+
+                        case IConvertible convertible:
+                            return new StringValue(convertible.ToString(options.CultureInfo.NumberFormat));
+
                         case IDictionary<string, object> dictionary:
-                            return new DictionaryValue(new ObjectDictionaryFluidIndexable(dictionary, options));
+                            return new DictionaryValue(new ObjectDictionaryFluidIndexable<object>(dictionary, options));
 
                         case IDictionary<string, FluidValue> fluidDictionary:
                             return new DictionaryValue(new FluidValueDictionaryFluidIndexable(fluidDictionary));
@@ -167,7 +175,42 @@ namespace Fluid.Values
 
                         case FluidValue[] array:
                             return new ArrayValue(array);
+                    }
 
+                    // Check if it's a more specific IDictionary<string, V>, e.g. JObject
+
+                    if (!_genericDictionaryTypeCache.TryGetValue(typeOfValue, out var genericType))
+                    {
+                        lock (_genericDictionaryTypeCache)
+                        {
+                            if (!_genericDictionaryTypeCache.TryGetValue(typeOfValue, out genericType))
+                            {
+                                foreach (var i in typeOfValue.GetInterfaces())
+                                {
+                                    if (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>) && i.GetGenericArguments()[0] == typeof(string))
+                                    {
+                                        genericType = typeof(ObjectDictionaryFluidIndexable<>).MakeGenericType(i.GetGenericArguments()[1]);
+
+                                        // Swap the previous cache with a new copy to prevent locking on reads
+
+                                        var dictionary = new Dictionary<Type, Type>(_genericDictionaryTypeCache);
+                                        dictionary[typeOfValue] = genericType;
+                                        _genericDictionaryTypeCache = dictionary;
+
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (genericType != null)
+                    {
+                        return new DictionaryValue(Activator.CreateInstance(genericType, value, options) as IFluidIndexable);
+                    }
+
+                    switch (value)
+                    {
                         case IList<FluidValue> list:
                             return new ArrayValue(list);
 

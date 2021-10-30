@@ -13,6 +13,8 @@ namespace Fluid.Values
 
         private readonly object _value;
 
+        private bool? _isModelType;
+
         public ObjectValue(object value)
         {
             _value = value;
@@ -50,10 +52,18 @@ namespace Fluid.Values
                 return Create(await asyncAccessor.GetAsync(value, n, ctx), ctx.Options);
             }
 
+            // The model type has a custom ability to allow any of its members optionally
+            _isModelType ??= context.Model != null && context.Model?.ToObjectValue()?.GetType() == _value.GetType();
+
+            var accessor = context.Options.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
+
+            if (accessor == null && _isModelType.Value && context.AllowModelMembers)
+            {
+                accessor = MemberAccessStrategyExtensions.GetNamedAccessor(_value.GetType(), name, context.Options.MemberAccessStrategy.MemberNameStrategy);
+            }
+
             if (name.IndexOf(".", StringComparison.OrdinalIgnoreCase) != -1)
             {
-                var accessor = context.Options.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
-
                 // Try to access the property with dots inside
                 if (accessor != null)
                 {
@@ -75,8 +85,6 @@ namespace Fluid.Values
             }
             else
             {
-                var accessor = context.Options.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
-
                 if (accessor != null)
                 {
                     if (accessor is IAsyncMemberAccessor asyncAccessor)

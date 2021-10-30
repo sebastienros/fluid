@@ -189,27 +189,16 @@ options.MemberAccessStrategy.Register<Person>("Firstname", "Lastname");
 
 This will provide a method to intercept when a member is accessed and either return a custom value or prevent it.
 
-This example demonstrates how to intercept calls to a `JObject` and return the corresponding property.
+NB: If the model implements `IDictionary` or any similar generic dictionary types the dictionary access has priority over the custom accessors.
+
+This example demonstrates how to intercept calls to a `Person` and always return the same property.
 
 ```csharp
+var model = new Person { Name = "Bill" };
+
 var options = new TemplateOptions();
-options.MemberAccessStrategy.Register<JObject, object>((obj, name) => obj[name]);
+options.MemberAccessStrategy.Register<Person, object>((obj, name) => obj.Name);
 ``` 
-
-Another common pattern is to pass a dictionary as the model to allow members to represent the keys of the dictionary:
-
-```csharp
-var options = new TemplateOptions();
-options.MemberAccessStrategy.Register<IDictionary, object>((obj, name) => obj[name]);
-
-var model = new Dictionary<string, object>();
-model.Add("Firstname", "Bill");
-model.Add("Lastname", "Gates");
-
-var template = _parser.Parse("{{Firstname}} {{Lastname}}");
-
-template.Render(new TemplateContext(model, options));
-```
 
 ### Inheritance
 
@@ -272,35 +261,6 @@ options.ValueConverters.Add((value) => value is IUser user ? user.Name : null);
 ```
 
 > Note: Type mapping are defined globally for the application.
-
-<br>
-
-## Using Json.NET object in models
-
-The classes that are used in Json.NET don't have direct named properties like classes, which makes them unusable out of the box
-in a Liquid template.
-
-To remedy that we can configure Fluid to map names to `JObject` properties, and convert `JValue` objects to the ones used by Fluid.
-
-```csharp
-var options = new TemplateOptions();
-
-// When a property of a JObject value is accessed, try to look into its properties
-options.MemberAccessStrategy.Register<JObject, object>((source, name) => source[name]);
-
-// Convert JToken to FluidValue
-options.ValueConverters.Add(x => x is JObject o ? new ObjectValue(o) : null);
-options.ValueConverters.Add(x => x is JValue v ? v.Value : null);
-
-var model = JObject.Parse("{\"Name\": \"Bill\"}");
-
-var parser = new FluidParser();
-
-parser.TryParse("His name is {{ Name }}", out var template);
-var context = new TemplateContext(model, options);
-
-Console.WriteLine(template.Render(context));
-```
 
 <br>
 

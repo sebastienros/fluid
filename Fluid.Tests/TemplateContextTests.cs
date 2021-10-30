@@ -98,6 +98,8 @@ namespace Fluid.Tests
         [Fact]
         public void SegmentAccessorCacheShouldVaryByType()
         {
+            // NB: Based on a previous implementation what would cache accessors too aggressively
+
             FluidParser parser = new();
             var options = new TemplateOptions { MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
             var template = parser.Parse("{% if Model1 %}{{ Model1.Name }}{% endif %}");

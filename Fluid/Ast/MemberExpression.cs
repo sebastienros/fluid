@@ -21,14 +21,33 @@ namespace Fluid.Ast
 
         public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
-            FluidValue value = null;
+            // The first segment can only be an IdentifierSegment
 
-            for (var i = 0; i < Segments.Count; i++)
+            var initial = Segments[0] as IdentifierSegment;
+
+            // Search the initial segment in the local scope first
+
+            FluidValue value = context.LocalScope.GetValue(initial.Identifier);
+
+            // If it was not successful, try again with a member of the model
+
+            int start = 1;
+
+            if (value.IsNil())
+            {
+                if (context.Model == null)
+                {
+                    return new ValueTask<FluidValue>(value);
+                }
+
+                start = 0;
+                value = context.Model;
+            }
+
+            for (var i = start; i < Segments.Count; i++)
             {
                 var s = Segments[i];
-                var task = value == null
-                    ? s.ResolveAsync(context.LocalScope, context) // root
-                    : s.ResolveAsync(value, context);
+                var task = s.ResolveAsync(value, context);
 
                 if (!task.IsCompletedSuccessfully)
                 {
@@ -36,6 +55,7 @@ namespace Fluid.Ast
                 }
 
                 value = task.Result;
+
                 // Stop processing as soon as a member returns nothing
                 if (value.IsNil())
                 {
@@ -56,9 +76,7 @@ namespace Fluid.Ast
             for (var i = startIndex; i < segments.Count; i++)
             {
                 var s = segments[i];
-                value = await (value == null
-                    ? s.ResolveAsync(context.LocalScope, context) // root
-                    : s.ResolveAsync(value, context));
+                value = await s.ResolveAsync(value, context);
 
                 // Stop processing as soon as a member returns nothing
                 if (value.IsNil())
