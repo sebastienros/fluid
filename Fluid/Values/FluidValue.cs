@@ -15,6 +15,8 @@ namespace Fluid.Values
         public abstract void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
 
         public static Dictionary<Type, Type> _genericDictionaryTypeCache = new();
+        public static object _synLock = new();
+
 
         [Conditional("DEBUG")]
         protected static void AssertWriteToParameters(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
@@ -181,7 +183,7 @@ namespace Fluid.Values
 
                     if (!_genericDictionaryTypeCache.TryGetValue(typeOfValue, out var genericType))
                     {
-                        lock (_genericDictionaryTypeCache)
+                        lock (_synLock)
                         {
                             if (!_genericDictionaryTypeCache.TryGetValue(typeOfValue, out genericType))
                             {
