@@ -161,10 +161,10 @@ namespace Fluid.Values
                             return new DateTimeValue(dateTimeOffset);
 
                         case IFormattable formattable:
-                            return new StringValue(formattable.ToString(null, options.CultureInfo.NumberFormat));
+                            return new StringValue(formattable.ToString(null, options.CultureInfo));
 
                         case IConvertible convertible:
-                            return new StringValue(convertible.ToString(options.CultureInfo.NumberFormat));
+                            return new StringValue(convertible.ToString(options.CultureInfo));
 
                         case IDictionary<string, object> dictionary:
                             return new DictionaryValue(new ObjectDictionaryFluidIndexable<object>(dictionary, options));
