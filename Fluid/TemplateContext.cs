@@ -31,8 +31,15 @@ namespace Fluid
                 ExceptionHelper.ThrowArgumentNullException(nameof(model));
             }
 
-            Model = model;
-            AllowModelMembers = allowModelMembers;
+            if (model is FluidValue fluidValue)
+            {
+                Model = fluidValue;
+            }
+            else
+            {
+                Model = FluidValue.Create(model, options);
+                AllowModelMembers = allowModelMembers;
+            }
         }
 
         /// <summary>
@@ -61,8 +68,15 @@ namespace Fluid
                 ExceptionHelper.ThrowArgumentNullException(nameof(model));
             }
 
-            Model = model;
-            AllowModelMembers = allowModelMembers;
+            if (model is FluidValue fluidValue)
+            {
+                Model = fluidValue;
+            }
+            else
+            {
+                Model = FluidValue.Create(model, TemplateOptions.Default);
+                AllowModelMembers = allowModelMembers;
+            }
         }
 
         /// <summary>
@@ -111,7 +125,7 @@ namespace Fluid
         /// Gets or sets a model object that is used to resolve properties in a template. This object is used if local and
         /// global scopes are unsuccessfull.
         /// </summary>
-        public object Model { get; set; }
+        public FluidValue Model { get; }
 
         /// <summary>
         /// Whether the direct properties of the Model can be accessed without being registered. Default is <code>true</code>.
