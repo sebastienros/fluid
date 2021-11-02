@@ -340,6 +340,13 @@ namespace Fluid
 
                             })
                         ).ElseError("Invalid 'for' tag");
+            var PaginateTag = LogicalExpression.AndSkip(Terms.Text("by")).And(Terms.Integer())
+                .AndSkip(TagEnd)
+                .And(AnyTagsList)
+                .AndSkip(CreateTag("endpaginate"))
+                .ElseError("{{% endpaginate %}} was expected")
+                .Then<Statement>(x => new PaginateStatement(x.Item1, x.Item2, x.Item3))
+                .ElseError("Invalid paginate tag");
 
             RegisteredTags["break"] = BreakTag;
             RegisteredTags["continue"] = ContinueTag;
@@ -355,6 +362,7 @@ namespace Fluid
             RegisteredTags["unless"] = UnlessTag;
             RegisteredTags["case"] = CaseTag;
             RegisteredTags["for"] = ForTag;
+            RegisteredTags["paginate"] = PaginateTag;
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             static (Expression limitResult, Expression offsetResult, bool reversed) ReadForStatementConfiguration(List<ForModifier> modifiers)
