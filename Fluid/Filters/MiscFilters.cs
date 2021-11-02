@@ -1,14 +1,17 @@
-﻿using System;
+﻿using Fluid.Ast;
+using Fluid.Utils;
+using Fluid.Values;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Net;
-using System.Text.RegularExpressions;
-using System.Text.Json;
-using Fluid.Values;
-using TimeZoneConverter;
-using System.Threading.Tasks;
-using System.Text;
 using System.IO;
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Web;
+using TimeZoneConverter;
 
 namespace Fluid.Filters
 {
@@ -89,6 +92,8 @@ namespace Fluid.Filters
             filters.AddFilter("md5", MD5);
             filters.AddFilter("sha1", Sha1);
             filters.AddFilter("sha256", Sha256);
+
+            filters.AddFilter("default_pagination", DefaultPagination);
 
             return filters;
         }
@@ -840,6 +845,78 @@ namespace Fluid.Filters
                 }
 
                 return new StringValue(builder.ToString());
+            }
+        }
+
+        /// <summary>
+        /// https://shopify.dev/api/liquid/filters/additional-filters#default_pagination
+        /// </summary>
+        public static ValueTask<FluidValue> DefaultPagination(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (input.ToObjectValue() is not PaginateStatement.PaginateValue paginate) return StringValue.Empty;
+
+
+            using (var sb = StringBuilderPool.GetInstance())
+            {
+                var builder = sb.Builder;
+
+                if (paginate.Previous?.IsLink == true)
+                {
+                    var title = paginate.Previous.Title;
+
+                    if (arguments.HasNamed("previous"))
+                    {
+                        var str = arguments["previous"].ToStringValue();
+                        if (!string.IsNullOrWhiteSpace(str)) title = str;
+                    }
+
+                    builder.AppendFormat(
+                            "<span class=\"prev\"><a href=\"{0}\">{1}</a></span>",
+                            HttpUtility.HtmlAttributeEncode(paginate.Previous.Url),
+                            HttpUtility.HtmlEncode(title)
+                        );
+                }
+
+                if (paginate.Parts is not null and { Count: > 0 })
+                {
+                    foreach (var part in paginate.Parts)
+                    {
+                        if (part.IsLink)
+                        {
+                            builder.AppendFormat(
+                                "<span class=\"page\"><a href=\"{0}\">{1}</a></span>",
+                                HttpUtility.HtmlAttributeEncode(part.Url),
+                                HttpUtility.HtmlEncode(part.Title)
+                                );
+                        }
+                        else
+                        {
+                            builder.AppendFormat(
+                                "<span class=\"deco\">{0}</span>",
+                                HttpUtility.HtmlEncode(part.Title)
+                                );
+                        }
+                    }
+                }
+
+                if (paginate.Next?.IsLink == true)
+                {
+                    var title = paginate.Next.Title;
+
+                    if (arguments.HasNamed("next"))
+                    {
+                        var str = arguments["next"].ToStringValue();
+                        if (!string.IsNullOrWhiteSpace(str)) title = str;
+                    }
+
+                    builder.AppendFormat(
+                            "<span class=\"next\"><a href=\"{0}\">{1}</a></span>",
+                            HttpUtility.HtmlAttributeEncode(paginate.Previous.Url),
+                            HttpUtility.HtmlEncode(title)
+                        );
+                }
+
+                return new StringValue(builder.ToString(), false);
             }
         }
     }
