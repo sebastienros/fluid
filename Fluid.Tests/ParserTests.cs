@@ -289,6 +289,7 @@ def", "at (")]
         [InlineData("{% unless true %}")]
         [InlineData("{% case a %}")]
         [InlineData("{% capture myVar %}")]
+        [InlineData("{% paginate myVar by 50 %}")]
         public void ShouldFailNotClosedBlock(string source)
         {
             var result = _parser.TryParse(source, out var template, out var errors);
@@ -303,6 +304,7 @@ def", "at (")]
         [InlineData("{% unless true %} {% endunless %}")]
         [InlineData("{% case a %} {% when 'cake' %} blah {% endcase %}")]
         [InlineData("{% capture myVar %} capture me! {% endcapture %}")]
+        [InlineData("{% paginate myVar by 50 %} paginate {% endpaginate %}")]
         public void ShouldSucceedClosedBlock(string source)
         {
             var result = _parser.TryParse(source, out var template, out var error);
@@ -414,6 +416,7 @@ def", "at (")]
         [InlineData("{% comment %}")]
         [InlineData("{% raw %}")]
         [InlineData("{% capture %}")]
+        [InlineData("{% paginate %}")]
 
         public void ShouldThrowParseExceptionMissingTag(string template)
         {
@@ -619,7 +622,7 @@ true
         {
             return CheckAsync(source, expected, t => t.SetValue("e", "").SetValue("f", "hello"));
         }
-        
+
         [Theory]
         [InlineData("zero == empty", "false")]
         [InlineData("empty == zero", "false")]
@@ -642,7 +645,7 @@ true
         {
             return CheckAsync(source, expected, t => t.SetValue("zero", 0).SetValue("one", 1));
         }
-        
+
         [Fact]
         public void CycleShouldHandleNumbers()
         {
@@ -657,7 +660,7 @@ true
             var rendered = template.Render();
 
             Assert.Equal("1<br />2<br />3<br />1<br />2<br />3<br />1<br />2<br />3<br />", rendered);
-        }        
+        }
 
         [Fact]
         public void ShouldAssignWithLogicalExpression()
@@ -920,6 +923,24 @@ class  {
             var context = new TemplateContext();
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void ShouldParsePaginateTag()
+        {
+            var statements = Parse("{% paginate list by 10 %}{% endpaginate %}");
+
+            Assert.IsType<PaginateStatement>(statements.ElementAt(0));
+        }
+        [Fact]
+        public void ShouldParsePaginateWithPageSizeTag()
+        {
+            var statements = Parse("{% paginate list by 10 %}{% endpaginate %}");
+
+            Assert.IsType<PaginateStatement>(statements.ElementAt(0));
+
+            var forStatement = statements.ElementAt(0) as PaginateStatement;
+            Assert.True(forStatement.PageSize == 10);
         }
     }
 }

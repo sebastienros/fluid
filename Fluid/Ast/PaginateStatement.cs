@@ -22,6 +22,8 @@ namespace Fluid.Ast
             _statements = statements ?? new List<Statement>();
         }
 
+        public long PageSize => _pageSize;
+
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var value = await _expression.EvaluateAsync(context);
@@ -29,7 +31,7 @@ namespace Fluid.Ast
             context.EnterChildScope();
             try
             {
-                paginateableValue.PageSize = (int)_pageSize;
+                paginateableValue.PageSize = (int)PageSize;
 
                 var data = paginateableValue.GetPaginatedData();
                 var paginate = CreatePaginate(paginateableValue, data);
