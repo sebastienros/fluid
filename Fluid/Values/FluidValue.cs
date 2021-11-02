@@ -111,7 +111,9 @@ namespace Fluid.Values
             }
 
             var converters = options.ValueConverters;
-            for (var i = 0; i < converters.Count; i++)
+            var length = converters.Count;
+
+            for (var i = 0; i < length; i++)
             {
                 var valueConverter = converters[i];
                 var result = valueConverter(value);

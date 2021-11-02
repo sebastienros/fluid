@@ -200,6 +200,35 @@ var options = new TemplateOptions();
 options.MemberAccessStrategy.Register<Person, object>((obj, name) => obj.Name);
 ``` 
 
+### Customizing object accessors
+
+To provide advanced customization for specific types, it is recommended to use value converters and a custom `FluidValue` implementation by inheriting from `ObjectValueBase`.
+
+The following example show how to provide a custom transformation for any `Person` object:
+
+```csharp
+private class PersonValue : ObjectValueBase
+{
+    public PersonValue(Person value) : base(value)
+    {
+    }
+
+    public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
+    {
+        return Create(((Person)Value).Firstname + "!!!" + index.ToStringValue(), context.Options);
+    }
+}
+```
+
+This custom type can be used with a converter such that any time a `Person` is used, it is wrapped as a `PersonValue`.
+
+```csharp
+var options = new TemplateOptions();
+options.ValueConverters.Add(o => o is Person p ? new PersonValue(p) : null);
+```
+
+It can also be used to replace custom member access by customizing `GetValueAsync`, or do custom conversions to standard Fluid types. 
+
 ### Inheritance
 
 All the members of the class hierarchy are registered. Besides, all inherited classes will be correctly evaluated when a base class is registered and
@@ -239,9 +268,9 @@ To prevent this the `TemplateOptions` class defines a default `MaxSteps`. By def
 
 Whenever an object is manipulated in a template it is converted to a specific `FluidValue` instance that provides a dynamic type system somehow similar to the one in JavaScript.
 
-In Liquid they can be Number, String, Boolean, Array, or Dictionary. Fluid will automatically convert the CLR types to the corresponding Liquid ones, and also provides specialized ones.
+In Liquid they can be Number, String, Boolean, Array, Dictionary, or Object. Fluid will automatically convert the CLR types to the corresponding Liquid ones, and also provides specialized ones.
 
-To be able to customize this conversion you can either add **value converters**.
+To be able to customize this conversion you can add **value converters**.
 
 ### Adding a value converter
 
