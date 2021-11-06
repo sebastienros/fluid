@@ -134,12 +134,18 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (input.Type != FluidValues.Array)
+            if (input.Type == FluidValues.Array)
+            {
+                return new ArrayValue(input.Enumerate().Reverse());
+            }
+            else if (input.Type == FluidValues.String)
+            {
+                return StringFilters.Reverse(input, arguments, context);
+            }
+            else
             {
                 return input;
             }
-
-            return new ArrayValue(input.Enumerate().Reverse());
         }
 
         public static async ValueTask<FluidValue> Size(FluidValue input, FilterArguments arguments, TemplateContext context)

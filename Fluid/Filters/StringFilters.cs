@@ -23,7 +23,6 @@ namespace Fluid.Filters
             filters.AddFilter("remove", Remove);
             filters.AddFilter("replace_first", ReplaceFirst);
             filters.AddFilter("replace", Replace);
-            filters.AddFilter("reverse", Reverse);
             filters.AddFilter("slice", Slice);
             filters.AddFilter("split", Split);
             filters.AddFilter("strip", Strip);
@@ -128,6 +127,7 @@ namespace Fluid.Filters
             return new StringValue(input.ToStringValue().Replace(arguments.At(0).ToStringValue(), arguments.At(1).ToStringValue()));
         }
 
+        // This is called by ArrayFilters.Reverse() to avoid naming collision
         public static ValueTask<FluidValue> Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var value = input.ToStringValue();
