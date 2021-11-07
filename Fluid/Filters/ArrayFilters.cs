@@ -15,6 +15,7 @@ namespace Fluid.Filters
             filters.AddFilter("last", Last);
             filters.AddFilter("concat", Concat);
             filters.AddFilter("map", Map);
+            filters.AddFilter("reverse", Reverse);
             filters.AddFilter("size", Size);
             filters.AddFilter("sort", Sort);
             filters.AddFilter("sort_natural", SortNatural);
@@ -100,6 +101,45 @@ namespace Fluid.Filters
             }
 
             return new ArrayValue(list);
+        }
+
+        public static ValueTask<FluidValue> Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (input.Type == FluidValues.Array)
+            {
+                return new ArrayValue(input.Enumerate().Reverse());
+            }
+            else if (input.Type == FluidValues.String)
+            {
+                var value = input.ToStringValue();
+                if (String.IsNullOrEmpty(value))
+                {
+                    return StringValue.Empty;
+                }
+                else
+                {
+                    String reversedString;
+                    var valueAsArray = value.ToCharArray();
+#if NETSTANDARD2_0
+                    Array.Reverse(valueAsArray);
+
+                    reversedString = new String(valueAsArray);
+#else
+                    reversedString = String.Create(valueAsArray.Length, valueAsArray, (c, b) => {
+                        for (int i = 0; i < c.Length; i++)
+                        {
+                            c[i] = b[c.Length - 1 - i];
+                        }
+                    });
+#endif
+
+                    return new StringValue(reversedString);
+                }
+            }
+            else
+            {
+                return input;
+            }
         }
 
         // https://github.com/Shopify/liquid/commit/842986a9721de11e71387732be51951285225977

@@ -667,45 +667,6 @@ namespace Fluid.Tests
             Assert.Equal("c2e7db5ac7ab74ea4bb9a7a89d251f3a", result.ToStringValue());
         }
 
-        [Theory]
-        [InlineData("fluid", "diulf")]
-        [InlineData("dad", "dad")]
-        [InlineData(null, "")]
-        [InlineData("", "")]
-        public void ReverseString(string value, string expected)
-        {
-            // Arange
-            var input = new StringValue(value);
-            var arguments = new FilterArguments();
-            var context = new TemplateContext();
-
-            // Act
-            var result = MiscFilters.Reverse(input, arguments, context);
-
-            // Assert
-            Assert.Equal(expected, result.Result.ToStringValue());
-        }
-
-        [Fact]
-        public void ReverseArray()
-        {
-            var input = new ArrayValue(new[] {
-                new StringValue("a"),
-                new StringValue("b"),
-                new StringValue("c")
-                });
-
-            var arguments = new FilterArguments();
-            var context = new TemplateContext();
-
-            var result = MiscFilters.Reverse(input, arguments, context);
-
-            Assert.Equal(3, result.Result.Enumerate().Count());
-            Assert.Equal(new StringValue("c"), result.Result.Enumerate().ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Result.Enumerate().ElementAt(1));
-            Assert.Equal(new StringValue("a"), result.Result.Enumerate().ElementAt(2));
-        }
-
         [Fact]
         public async Task Sha1()
         {
