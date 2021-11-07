@@ -190,25 +190,6 @@ world
         }
 
         [Theory]
-        [InlineData("fluid", "diulf")]
-        [InlineData("dad", "dad")]
-        [InlineData(null, "")]
-        [InlineData("", "")]
-        public void Reverse(string value, string expected)
-        {
-            // Arange
-            var input = new StringValue(value);
-            var arguments = new FilterArguments();
-            var context = new TemplateContext();
-
-            // Act
-            var result = StringFilters.Reverse(input, arguments, context);
-
-            // Assert
-            Assert.Equal(expected, result.Result.ToStringValue());
-        }
-
-        [Theory]
 
         [InlineData("hello", new object[] { 0 }, "h")]
         [InlineData("hello", new object[] { 1 }, "e")]

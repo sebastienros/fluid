@@ -9,6 +9,7 @@ using TimeZoneConverter;
 using System.Threading.Tasks;
 using System.Text;
 using System.IO;
+using System.Linq;
 
 namespace Fluid.Filters
 {
@@ -81,6 +82,7 @@ namespace Fluid.Filters
             filters.AddFilter("handleize", Handleize);
             filters.AddFilter("json", Json);
             filters.AddFilter("time_zone", ChangeTimeZone);
+            filters.AddFilter("reverse", Reverse);
 
             filters.AddFilter("format_number", FormatNumber);
             filters.AddFilter("format_string", FormatString);
@@ -116,6 +118,45 @@ namespace Fluid.Filters
             var stringValue = new StringValue(input.ToStringValue(), false);
 
             return stringValue;
+        }
+
+        public static ValueTask<FluidValue> Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (input.Type == FluidValues.Array)
+            {
+                return new ArrayValue(input.Enumerate().Reverse());
+            }
+            else if (input.Type == FluidValues.String)
+            {
+                var value = input.ToStringValue();
+                if (String.IsNullOrEmpty(value))
+                {
+                    return StringValue.Empty;
+                }
+                else
+                {
+                    String reversedString;
+                    var valueAsArray = value.ToCharArray();
+#if NETSTANDARD2_0
+                    Array.Reverse(valueAsArray);
+
+                    reversedString = new String(valueAsArray);
+#else
+                    reversedString = String.Create(valueAsArray.Length, valueAsArray, (c, b) => {
+                        for (int i = 0; i < c.Length; i++)
+                        {
+                            c[i] = b[c.Length - 1 - i];
+                        }
+                    });
+#endif
+
+                    return new StringValue(reversedString);
+                }
+            }
+            else
+            {
+                return input;
+            }
         }
 
         public static ValueTask<FluidValue> Compact(FluidValue input, FilterArguments arguments, TemplateContext context)

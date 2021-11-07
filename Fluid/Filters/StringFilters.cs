@@ -127,35 +127,6 @@ namespace Fluid.Filters
             return new StringValue(input.ToStringValue().Replace(arguments.At(0).ToStringValue(), arguments.At(1).ToStringValue()));
         }
 
-        // This is called by ArrayFilters.Reverse() to avoid naming collision
-        public static ValueTask<FluidValue> Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
-        {
-            var value = input.ToStringValue();
-            if (String.IsNullOrEmpty(value))
-            {
-                return StringValue.Empty;
-            }
-            else
-            {
-                String reversedString;
-                var valueAsArray = value.ToCharArray();
-#if NETSTANDARD2_0
-                Array.Reverse(valueAsArray);
-
-                reversedString = new String(valueAsArray);
-#else
-                reversedString = String.Create(valueAsArray.Length, valueAsArray, (c, b) => {
-                    for (int i = 0; i < c.Length; i++)
-                    {
-                        c[i] = b[c.Length - 1 - i];
-                    }
-                });
-#endif
-
-                return new StringValue(reversedString);
-            }
-        }
-
         public static ValueTask<FluidValue> Slice(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var firstArgument = arguments.At(0);

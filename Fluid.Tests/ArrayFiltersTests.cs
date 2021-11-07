@@ -158,26 +158,6 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void Reverse()
-        {
-            var input = new ArrayValue(new[] {
-                new StringValue("a"),
-                new StringValue("b"),
-                new StringValue("c")
-                });
-
-            var arguments = new FilterArguments();
-            var context = new TemplateContext();
-
-            var result = ArrayFilters.Reverse(input, arguments, context);
-
-            Assert.Equal(3, result.Result.Enumerate().Count());
-            Assert.Equal(new StringValue("c"), result.Result.Enumerate().ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Result.Enumerate().ElementAt(1));
-            Assert.Equal(new StringValue("a"), result.Result.Enumerate().ElementAt(2));
-        }
-
-        [Fact]
         public async Task Size()
         {
             var input = new ArrayValue(new[] {

@@ -15,7 +15,6 @@ namespace Fluid.Filters
             filters.AddFilter("last", Last);
             filters.AddFilter("concat", Concat);
             filters.AddFilter("map", Map);
-            filters.AddFilter("reverse", Reverse);
             filters.AddFilter("size", Size);
             filters.AddFilter("sort", Sort);
             filters.AddFilter("sort_natural", SortNatural);
@@ -130,22 +129,6 @@ namespace Fluid.Filters
             }
 
             return new ArrayValue(list);
-        }
-
-        public static ValueTask<FluidValue> Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
-        {
-            if (input.Type == FluidValues.Array)
-            {
-                return new ArrayValue(input.Enumerate().Reverse());
-            }
-            else if (input.Type == FluidValues.String)
-            {
-                return StringFilters.Reverse(input, arguments, context);
-            }
-            else
-            {
-                return input;
-            }
         }
 
         public static async ValueTask<FluidValue> Size(FluidValue input, FilterArguments arguments, TemplateContext context)
