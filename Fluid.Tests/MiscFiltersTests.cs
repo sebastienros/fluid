@@ -607,6 +607,18 @@ namespace Fluid.Tests
             Assert.Equal("{\"Name\":\"MultipleNode1\",\"Node1\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}},\"Node2\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}}}", result.ToStringValue());
         }
 
+        [Fact]
+        public async Task JsonShouldIgnoreStaticMembers()
+        {
+            var model = new JsonWithStaticMember { Id = 100 };
+            var input = FluidValue.Create(model, TemplateOptions.Default);
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<JsonWithStaticMember>();
+
+            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
+            Assert.Equal("{\"Id\":100}", result.ToStringValue());
+        }
+
         [Theory]
         [InlineData("", "", "", "0")]
         [InlineData(123456, "", "", "123456")]
@@ -753,6 +765,12 @@ namespace Fluid.Tests
             public string Visible { get; set; } = "Visible";
             public string Null { get; set; }
             public string Hidden { get; set; } = "Hidden";
+        }
+
+        private class JsonWithStaticMember
+        {
+            public static Int32 StaticMember { get; set; } = 1;
+            public Int32 Id { get; set; }
         }
     }
 }
