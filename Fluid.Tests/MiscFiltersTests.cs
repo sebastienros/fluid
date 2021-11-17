@@ -769,8 +769,8 @@ namespace Fluid.Tests
 
         private class JsonWithStaticMember
         {
-            public static Int32 StaticMember { get; set; } = 1;
-            public Int32 Id { get; set; }
+            public static int StaticMember { get; set; } = 1;
+            public int Id { get; set; }
         }
     }
 }
