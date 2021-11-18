@@ -9,7 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-#if !HAS_TIMEZONE_API
+#if !NET6_0_OR_GREATER
 using TimeZoneConverter;
 #endif
 
@@ -266,7 +266,7 @@ namespace Fluid.Filters
             var timeZone = arguments.At(0).ToStringValue();
 
 
-#if HAS_TIMEZONE_API
+#if NET6_0_OR_GREATER
             try
             {
                 var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(timeZone);

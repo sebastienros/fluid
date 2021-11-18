@@ -10,7 +10,7 @@ namespace Fluid.Tests
 {
     public class MiscFiltersTests
     {
-#if HAS_TIMEZONE_API
+#if NET6_0_OR_GREATER
         private static readonly TimeZoneInfo Pacific = TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles");
         private static readonly TimeZoneInfo Eastern = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
 #else

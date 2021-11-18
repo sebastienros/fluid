@@ -4,7 +4,6 @@
     <TargetFrameworks>netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
     <LangVersion>9</LangVersion>
     <DefineConstants Condition="'$(Compiled)' == 'true'">$(DefineConstants);COMPILED</DefineConstants>
-    <DefineConstants Condition="'$(TargetFramework)' == 'net6.0'">$(DefineConstants);HAS_TIMEZONE_API</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

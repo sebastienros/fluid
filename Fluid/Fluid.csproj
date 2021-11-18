@@ -7,7 +7,6 @@
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
-    <DefineConstants Condition="'$(TargetFramework)'=='net6.0'">$(DefineConstants);HAS_TIMEZONE_API</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
