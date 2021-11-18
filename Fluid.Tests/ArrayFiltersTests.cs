@@ -157,15 +157,11 @@ namespace Fluid.Tests
             Assert.Equal(new StringValue("c"), result.Enumerate().ElementAt(2));
         }
 
-        [Theory]
-        [InlineData("fluid", "diulf")]
-        [InlineData("dad", "dad")]
-        [InlineData(null, "")]
-        [InlineData("", "")]
-        public void ReverseString(string value, string expected)
+        [Fact]
+        public void ReverseString()
         {
-            // Arange
-            var input = new StringValue(value);
+            // Arrange
+            var input = new StringValue("Fluid");
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
@@ -173,7 +169,12 @@ namespace Fluid.Tests
             var result = ArrayFilters.Reverse(input, arguments, context);
 
             // Assert
-            Assert.Equal(expected, result.Result.ToStringValue());
+            Assert.Equal(5, result.Result.Enumerate().Count());
+            Assert.Equal(new StringValue("d"), result.Result.Enumerate().ElementAt(0));
+            Assert.Equal(new StringValue("i"), result.Result.Enumerate().ElementAt(1));
+            Assert.Equal(new StringValue("u"), result.Result.Enumerate().ElementAt(2));
+            Assert.Equal(new StringValue("l"), result.Result.Enumerate().ElementAt(3));
+            Assert.Equal(new StringValue("F"), result.Result.Enumerate().ElementAt(4));
         }
 
         [Fact]
