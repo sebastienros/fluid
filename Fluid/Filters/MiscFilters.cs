@@ -9,9 +9,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-#if !NET6_0_OR_GREATER
-using TimeZoneConverter;
-#endif
 
 namespace Fluid.Filters
 {
@@ -277,7 +274,7 @@ namespace Fluid.Filters
                 return new DateTimeValue(value);
             }
 #else
-            if (!TZConvert.TryGetTimeZoneInfo(timeZone, out var timeZoneInfo)) 
+            if (!TimeZoneConverter.TZConvert.TryGetTimeZoneInfo(timeZone, out var timeZoneInfo)) 
             {
                 return new DateTimeValue(value);
             }
