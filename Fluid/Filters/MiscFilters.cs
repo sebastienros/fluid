@@ -1,16 +1,17 @@
-﻿using System;
+﻿using Fluid.Values;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Net;
-using System.Text.RegularExpressions;
-using System.Text.Json;
-using Fluid.Values;
-using TimeZoneConverter;
-using System.Threading.Tasks;
-using System.Text;
 using System.IO;
-using System.Linq;
+using System.Net;
 using System.Reflection;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+#if !HAS_TIMEZONE_API
+using TimeZoneConverter;
+#endif
 
 namespace Fluid.Filters
 {
@@ -264,10 +265,27 @@ namespace Fluid.Filters
 
             var timeZone = arguments.At(0).ToStringValue();
 
-            if (!TZConvert.TryGetTimeZoneInfo(timeZone, out var timeZoneInfo)) return new DateTimeValue(value);
+
+#if HAS_TIMEZONE_API
+            try
+            {
+                var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(timeZone);
+                return new DateTimeValue(TimeZoneInfo.ConvertTime(value, timeZoneInfo));
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                return new DateTimeValue(value);
+            }
+#else
+            if (!TZConvert.TryGetTimeZoneInfo(timeZone, out var timeZoneInfo)) 
+            {
+                return new DateTimeValue(value);
+            }
 
             var result = TimeZoneInfo.ConvertTime(value, timeZoneInfo);
+
             return new DateTimeValue(result);
+#endif
         }
 
 

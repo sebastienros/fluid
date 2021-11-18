@@ -10,8 +10,13 @@ namespace Fluid.Tests
 {
     public class MiscFiltersTests
     {
+#if HAS_TIMEZONE_API
+        private static readonly TimeZoneInfo Pacific = TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles");
+        private static readonly TimeZoneInfo Eastern = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
+#else
         private static readonly TimeZoneInfo Pacific = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/Los_Angeles");
         private static readonly TimeZoneInfo Eastern = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/New_York");
+#endif
 
         [Fact]
         public async Task DefaultReturnsValueIfDefined()
