@@ -174,7 +174,7 @@ namespace Fluid.Values
             return _value.Contains(value.ToStringValue());
         }
 
-        public override IEnumerable<FluidValue> Enumerate()
+        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
         {
             foreach (var c in _value)
             {
@@ -182,34 +182,12 @@ namespace Fluid.Values
             }
         }
 
-        internal override string[] ToStringArray()
-        {
-            var array = new string[_value.Length];
-            for (var i = 0; i < _value.Length; i++)
-            {
-                array[i] = _value[i].ToString();
-            }
-
-            return array;
-        }
-
-        internal override List<FluidValue> ToList()
-        {
-            var list = new List<FluidValue>(_value.Length);
-            foreach (var c in _value)
-            {
-                list.Add(Create(c));
-            }
-
-            return list;
-        }
-
-        internal override FluidValue FirstOrDefault()
+        internal override FluidValue FirstOrDefault(TemplateContext context)
         {
             return _value.Length > 0 ? Create(_value[0]) : null;
         }
 
-        internal override FluidValue LastOrDefault()
+        internal override FluidValue LastOrDefault(TemplateContext context)
         {
             return _value.Length > 0 ? Create(_value[_value.Length - 1]) : null;
         }

@@ -255,39 +255,55 @@ namespace Fluid.Values
             return false;
         }
 
+        [Obsolete("Use Enumerate(TemplateContext) instead.")]
         public virtual IEnumerable<FluidValue> Enumerate()
         {
             return Array.Empty<FluidValue>();
         }
 
+        public virtual IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        {
+            return Array.Empty<FluidValue>();
+        }
+
+        [Obsolete("Use Enumerate(TemplateContext) instead.")]
         internal virtual string[] ToStringArray()
         {
             return Array.Empty<string>();
         }
 
+        [Obsolete("Use Enumerate(TemplateContext) instead.")]
         internal virtual List<FluidValue> ToList()
         {
             return Enumerate().ToList();
         }
 
+        [Obsolete("Use FirstOrDefault(TemplateContext) instead.")]
         internal virtual FluidValue FirstOrDefault()
         {
             return Enumerate().FirstOrDefault();
         }
 
+        /// <summary>
+        /// Returns the first element. Used by the <code>first</code> filter.
+        /// </summary>
+        internal virtual FluidValue FirstOrDefault(TemplateContext context)
+        {
+            return Enumerate(context).FirstOrDefault();
+        }
+
+        [Obsolete("Use LastOrDefault(TemplateContext) instead.")]
         internal virtual FluidValue LastOrDefault()
         {
             return Enumerate().LastOrDefault();
         }
 
-        public FluidValue Or(FluidValue other)
+        /// <summary>
+        /// Returns the last element. Used by the <code>last</code> filter.
+        /// </summary>
+        internal virtual FluidValue LastOrDefault(TemplateContext context)
         {
-            if (IsNil())
-            {
-                return other;
-            }
-
-            return this;
+            return Enumerate(context).LastOrDefault();
         }
 
         public static implicit operator ValueTask<FluidValue>(FluidValue value) => new(value);

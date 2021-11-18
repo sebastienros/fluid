@@ -106,7 +106,7 @@ namespace Fluid.Tests
 
             var result = ArrayFilters.Concat(input, arguments, context);
 
-            Assert.Equal(6, result.Result.Enumerate().Count());
+            Assert.Equal(6, result.Result.Enumerate(context).Count());
         }
 
         [Fact]
@@ -126,10 +126,10 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.Map(input, arguments, context);
 
-            Assert.Equal(3, result.Enumerate().Count());
-            Assert.Equal(new StringValue("a"), result.Enumerate().ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Enumerate().ElementAt(1));
-            Assert.Equal(new StringValue("c"), result.Enumerate().ElementAt(2));
+            Assert.Equal(3, result.Enumerate(context).Count());
+            Assert.Equal(new StringValue("a"), result.Enumerate(context).ElementAt(0));
+            Assert.Equal(new StringValue("b"), result.Enumerate(context).ElementAt(1));
+            Assert.Equal(new StringValue("c"), result.Enumerate(context).ElementAt(2));
         }
 
         [Fact]
@@ -151,10 +151,10 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.Map(input, arguments, context);
 
-            Assert.Equal(3, result.Enumerate().Count());
-            Assert.Equal(new StringValue("a"), result.Enumerate().ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Enumerate().ElementAt(1));
-            Assert.Equal(new StringValue("c"), result.Enumerate().ElementAt(2));
+            Assert.Equal(3, result.Enumerate(context).Count());
+            Assert.Equal(new StringValue("a"), result.Enumerate(context).ElementAt(0));
+            Assert.Equal(new StringValue("b"), result.Enumerate(context).ElementAt(1));
+            Assert.Equal(new StringValue("c"), result.Enumerate(context).ElementAt(2));
         }
 
         [Fact]
@@ -169,12 +169,12 @@ namespace Fluid.Tests
             var result = ArrayFilters.Reverse(input, arguments, context);
 
             // Assert
-            Assert.Equal(5, result.Result.Enumerate().Count());
-            Assert.Equal(new StringValue("d"), result.Result.Enumerate().ElementAt(0));
-            Assert.Equal(new StringValue("i"), result.Result.Enumerate().ElementAt(1));
-            Assert.Equal(new StringValue("u"), result.Result.Enumerate().ElementAt(2));
-            Assert.Equal(new StringValue("l"), result.Result.Enumerate().ElementAt(3));
-            Assert.Equal(new StringValue("F"), result.Result.Enumerate().ElementAt(4));
+            Assert.Equal(5, result.Result.Enumerate(context).Count());
+            Assert.Equal(new StringValue("d"), result.Result.Enumerate(context).ElementAt(0));
+            Assert.Equal(new StringValue("i"), result.Result.Enumerate(context).ElementAt(1));
+            Assert.Equal(new StringValue("u"), result.Result.Enumerate(context).ElementAt(2));
+            Assert.Equal(new StringValue("l"), result.Result.Enumerate(context).ElementAt(3));
+            Assert.Equal(new StringValue("F"), result.Result.Enumerate(context).ElementAt(4));
         }
 
         [Fact]
@@ -191,10 +191,10 @@ namespace Fluid.Tests
 
             var result = ArrayFilters.Reverse(input, arguments, context);
 
-            Assert.Equal(3, result.Result.Enumerate().Count());
-            Assert.Equal(new StringValue("c"), result.Result.Enumerate().ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Result.Enumerate().ElementAt(1));
-            Assert.Equal(new StringValue("a"), result.Result.Enumerate().ElementAt(2));
+            Assert.Equal(3, result.Result.Enumerate(context).Count());
+            Assert.Equal(new StringValue("c"), result.Result.Enumerate(context).ElementAt(0));
+            Assert.Equal(new StringValue("b"), result.Result.Enumerate(context).ElementAt(1));
+            Assert.Equal(new StringValue("a"), result.Result.Enumerate(context).ElementAt(2));
         }
 
         [Fact]
@@ -233,10 +233,10 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.Sort(input, arguments, context);
 
-            Assert.Equal(3, result.Enumerate().Count());
-            Assert.Equal("a", ((dynamic)result.Enumerate().ElementAt(0).ToObjectValue()).Title);
-            Assert.Equal("b", ((dynamic)result.Enumerate().ElementAt(1).ToObjectValue()).Title);
-            Assert.Equal("c", ((dynamic)result.Enumerate().ElementAt(2).ToObjectValue()).Title);
+            Assert.Equal(3, result.Enumerate(context).Count());
+            Assert.Equal("a", ((dynamic)result.Enumerate(context).ElementAt(0).ToObjectValue()).Title);
+            Assert.Equal("b", ((dynamic)result.Enumerate(context).ElementAt(1).ToObjectValue()).Title);
+            Assert.Equal("c", ((dynamic)result.Enumerate(context).ElementAt(2).ToObjectValue()).Title);
 
             arguments = new FilterArguments().Add(new StringValue("Address.Zip"));
 
@@ -247,10 +247,10 @@ namespace Fluid.Tests
 
             result = await ArrayFilters.Sort(input, arguments, context);
 
-            Assert.Equal(3, result.Enumerate().Count());
-            Assert.Equal("b", ((dynamic)result.Enumerate().ElementAt(0).ToObjectValue()).Title);
-            Assert.Equal("c", ((dynamic)result.Enumerate().ElementAt(1).ToObjectValue()).Title);
-            Assert.Equal("a", ((dynamic)result.Enumerate().ElementAt(2).ToObjectValue()).Title);
+            Assert.Equal(3, result.Enumerate(context).Count());
+            Assert.Equal("b", ((dynamic)result.Enumerate(context).ElementAt(0).ToObjectValue()).Title);
+            Assert.Equal("c", ((dynamic)result.Enumerate(context).ElementAt(1).ToObjectValue()).Title);
+            Assert.Equal("a", ((dynamic)result.Enumerate(context).ElementAt(2).ToObjectValue()).Title);
         }
 
         [Fact]
@@ -268,10 +268,10 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.Sort(input, arguments, context);
 
-            Assert.Equal(3, result.Enumerate().Count());
-            Assert.Equal("B", result.Enumerate().ElementAt(0).ToStringValue());
-            Assert.Equal("a", result.Enumerate().ElementAt(1).ToStringValue());
-            Assert.Equal("c", result.Enumerate().ElementAt(2).ToStringValue());
+            Assert.Equal(3, result.Enumerate(context).Count());
+            Assert.Equal("B", result.Enumerate(context).ElementAt(0).ToStringValue());
+            Assert.Equal("a", result.Enumerate(context).ElementAt(1).ToStringValue());
+            Assert.Equal("c", result.Enumerate(context).ElementAt(2).ToStringValue());
         }
 
         [Fact]
@@ -289,10 +289,10 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.SortNatural(input, arguments, context);
 
-            Assert.Equal(3, result.Enumerate().Count());
-            Assert.Equal("a", result.Enumerate().ElementAt(0).ToStringValue());
-            Assert.Equal("B", result.Enumerate().ElementAt(1).ToStringValue());
-            Assert.Equal("c", result.Enumerate().ElementAt(2).ToStringValue());
+            Assert.Equal(3, result.Enumerate(context).Count());
+            Assert.Equal("a", result.Enumerate(context).ElementAt(0).ToStringValue());
+            Assert.Equal("B", result.Enumerate(context).ElementAt(1).ToStringValue());
+            Assert.Equal("c", result.Enumerate(context).ElementAt(2).ToStringValue());
         }
 
         [Fact]
@@ -309,7 +309,7 @@ namespace Fluid.Tests
 
             var result = ArrayFilters.Uniq(input, arguments, context);
 
-            Assert.Equal(2, result.Result.Enumerate().Count());
+            Assert.Equal(2, result.Result.Enumerate(context).Count());
         }
 
         [Fact]
@@ -329,7 +329,7 @@ namespace Fluid.Tests
 
             var result1 = await ArrayFilters.Where(input, arguments1, context);
 
-            Assert.Equal(2, result1.Enumerate().Count());
+            Assert.Equal(2, result1.Enumerate(context).Count());
 
             var arguments2 = new FilterArguments()
                 .Add(new StringValue("Pinned"))
@@ -338,7 +338,7 @@ namespace Fluid.Tests
 
             var result2 = await ArrayFilters.Where(input, arguments2, context);
 
-            Assert.Single(result2.Enumerate());
+            Assert.Single(result2.Enumerate(context));
 
             var arguments3 = new FilterArguments()
                 .Add(new StringValue("Title"))
@@ -346,7 +346,7 @@ namespace Fluid.Tests
 
             var result3 = await  ArrayFilters.Where(input, arguments3, context);
 
-            Assert.Single(result3.Enumerate());
+            Assert.Single(result3.Enumerate(context));
         }
 
         [Fact]
@@ -366,7 +366,7 @@ namespace Fluid.Tests
 
             var result1 = await ArrayFilters.Where(input, arguments1, context);
 
-            Assert.Empty(result1.Enumerate());
+            Assert.Empty(result1.Enumerate(context));
         }
     }
 }

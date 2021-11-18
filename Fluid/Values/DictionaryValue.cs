@@ -118,39 +118,13 @@ namespace Fluid.Values
             return false;
         }
 
-        public override IEnumerable<FluidValue> Enumerate()
+        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
         {
             foreach (var key in _value.Keys)
             {
                 _value.TryGetValue(key, out var value);
                 yield return new ArrayValue(new[] { new StringValue(key),  value });
             }
-        }
-
-        internal override string[] ToStringArray()
-        {
-            var array = new string[_value.Count];
-            var i = 0;
-            foreach (var key in _value.Keys)
-            {
-                _value.TryGetValue(key, out var value);
-                array[i] = string.Join("", key, value.ToStringValue());
-                i++;
-            }
-
-            return array;
-        }
-
-        internal override List<FluidValue> ToList()
-        {
-            var list = new List<FluidValue>(_value.Count);
-            foreach (var key in _value.Keys)
-            {
-                _value.TryGetValue(key, out var value);
-                list.Add(new ArrayValue(new[] { new StringValue(key), value }));
-            }
-
-            return list;
         }
 
         public override bool Equals(object other)
