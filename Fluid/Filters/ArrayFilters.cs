@@ -32,7 +32,7 @@ namespace Fluid.Filters
             }
 
             var separator = arguments.At(0).ToStringValue();
-            var values = input.ToStringArray();
+            var values = input.Enumerate(context).Select(x => x.ToStringValue());
             var joined = string.Join(separator, values);
             return new StringValue(joined);
         }
@@ -44,7 +44,7 @@ namespace Fluid.Filters
                 return input;
             }
 
-            return input.FirstOrDefault() ?? NilValue.Instance;
+            return input.FirstOrDefault(context) ?? NilValue.Instance;
         }
 
         public static ValueTask<FluidValue> Last(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -54,7 +54,7 @@ namespace Fluid.Filters
                 return input;
             }
 
-            return input.LastOrDefault() ?? NilValue.Instance;
+            return input.LastOrDefault(context) ?? NilValue.Instance;
         }
 
         public static ValueTask<FluidValue> Concat(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -71,12 +71,12 @@ namespace Fluid.Filters
 
             var concat = new List<FluidValue>();
 
-            foreach(var item in input.Enumerate())
+            foreach(var item in input.Enumerate(context))
             {
                 concat.Add(item);
             }
 
-            foreach (var item in arguments.At(0).Enumerate())
+            foreach (var item in arguments.At(0).Enumerate(context))
             {
                 concat.Add(item);
             }
@@ -95,7 +95,7 @@ namespace Fluid.Filters
 
             var list = new List<FluidValue>();
 
-            foreach(var item in input.Enumerate())
+            foreach(var item in input.Enumerate(context))
             {
                 list.Add(await item.GetValueAsync(member, context));
             }
@@ -107,7 +107,7 @@ namespace Fluid.Filters
         {
             if (input.Type == FluidValues.Array)
             {
-                return new ArrayValue(input.Enumerate().Reverse());
+                return new ArrayValue(input.Enumerate(context).Reverse());
             }
             else if (input.Type == FluidValues.String)
             {
@@ -147,7 +147,7 @@ namespace Fluid.Filters
 
             var list = new List<FluidValue>();
 
-            foreach (var item in input.Enumerate())
+            foreach (var item in input.Enumerate(context))
             {
                 var itemValue = await item.GetValueAsync(member, context);
 
@@ -183,7 +183,7 @@ namespace Fluid.Filters
 
                 var values = new List<KeyValuePair<FluidValue, object>>();
 
-                foreach (var item in input.Enumerate())
+                foreach (var item in input.Enumerate(context))
                 {
                     values.Add(new KeyValuePair<FluidValue, object>(item, (await item.GetValueAsync(member, context)).ToObjectValue()));
                 }
@@ -197,7 +197,7 @@ namespace Fluid.Filters
             }
             else
             {
-                return new ArrayValue(input.Enumerate().OrderBy(x => x.ToStringValue(), StringComparer.Ordinal).ToArray());
+                return new ArrayValue(input.Enumerate(context).OrderBy(x => x.ToStringValue(), StringComparer.Ordinal).ToArray());
             }
         }
 
@@ -209,7 +209,7 @@ namespace Fluid.Filters
 
                 var values = new List<KeyValuePair<FluidValue, object>>();
 
-                foreach (var item in input.Enumerate())
+                foreach (var item in input.Enumerate(context))
                 {
                     values.Add(new KeyValuePair<FluidValue, object>(item, (await item.GetValueAsync(member, context)).ToObjectValue()));
                 }
@@ -223,13 +223,13 @@ namespace Fluid.Filters
             }
             else
             {
-                return new ArrayValue(input.Enumerate().OrderBy(x => x.ToStringValue(), StringComparer.OrdinalIgnoreCase));
+                return new ArrayValue(input.Enumerate(context).OrderBy(x => x.ToStringValue(), StringComparer.OrdinalIgnoreCase));
             }
         }
 
         public static ValueTask<FluidValue> Uniq(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new ArrayValue(input.Enumerate().Distinct().ToArray());
+            return new ArrayValue(input.Enumerate(context).Distinct().ToArray());
         }
     }
 }

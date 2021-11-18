@@ -28,9 +28,9 @@ namespace Fluid.Values
             return _factory.Value.Contains(value);
         }
 
-        public override IEnumerable<FluidValue> Enumerate()
+        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
         {
-            return _factory.Value.Enumerate();
+            return _factory.Value.Enumerate(context);
         }
 
         public override bool Equals(object obj)

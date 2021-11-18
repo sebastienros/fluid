@@ -55,7 +55,7 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Compact(input, arguments, context);
 
-            Assert.Equal(3, result.Enumerate().Count());
+            Assert.Equal(3, result.Enumerate(context).Count());
         }
 
 

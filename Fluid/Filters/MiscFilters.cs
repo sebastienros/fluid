@@ -123,7 +123,7 @@ namespace Fluid.Filters
         public static ValueTask<FluidValue> Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var compacted = new List<FluidValue>();
-            foreach (var value in input.Enumerate())
+            foreach (var value in input.Enumerate(context))
             {
                 if (!value.IsNil())
                 {
@@ -611,7 +611,7 @@ namespace Fluid.Filters
             {
                 case FluidValues.Array:
                     writer.WriteStartArray();
-                    foreach (var item in input.Enumerate())
+                    foreach (var item in input.Enumerate(ctx))
                     {
                         await WriteJson(writer, item, ctx);
                     }
