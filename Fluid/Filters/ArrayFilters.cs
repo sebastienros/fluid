@@ -103,6 +103,34 @@ namespace Fluid.Filters
             return new ArrayValue(list);
         }
 
+        public static ValueTask<FluidValue> Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (input.Type == FluidValues.Array)
+            {
+                return new ArrayValue(input.Enumerate().Reverse());
+            }
+            else if (input.Type == FluidValues.String)
+            {
+                var value = input.ToStringValue();
+                if (String.IsNullOrEmpty(value))
+                {
+                    return StringValue.Empty;
+                }
+                else
+                {
+                    var valueAsArray = value.ToCharArray();
+                    
+                    Array.Reverse(valueAsArray);
+
+                    return new ArrayValue(valueAsArray.Select(e => new StringValue(e.ToString())));
+                }
+            }
+            else
+            {
+                return input;
+            }
+        }
+
         // https://github.com/Shopify/liquid/commit/842986a9721de11e71387732be51951285225977
         public static async ValueTask<FluidValue> Where(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
@@ -130,16 +158,6 @@ namespace Fluid.Filters
             }
 
             return new ArrayValue(list);
-        }
-
-        public static ValueTask<FluidValue> Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
-        {
-            if (input.Type != FluidValues.Array)
-            {
-                return input;
-            }
-
-            return new ArrayValue(input.Enumerate().Reverse());
         }
 
         public static async ValueTask<FluidValue> Size(FluidValue input, FilterArguments arguments, TemplateContext context)

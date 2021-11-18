@@ -158,7 +158,27 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void Reverse()
+        public void ReverseString()
+        {
+            // Arrange
+            var input = new StringValue("Fluid");
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            // Act
+            var result = ArrayFilters.Reverse(input, arguments, context);
+
+            // Assert
+            Assert.Equal(5, result.Result.Enumerate().Count());
+            Assert.Equal(new StringValue("d"), result.Result.Enumerate().ElementAt(0));
+            Assert.Equal(new StringValue("i"), result.Result.Enumerate().ElementAt(1));
+            Assert.Equal(new StringValue("u"), result.Result.Enumerate().ElementAt(2));
+            Assert.Equal(new StringValue("l"), result.Result.Enumerate().ElementAt(3));
+            Assert.Equal(new StringValue("F"), result.Result.Enumerate().ElementAt(4));
+        }
+
+        [Fact]
+        public void ReverseArray()
         {
             var input = new ArrayValue(new[] {
                 new StringValue("a"),
