@@ -372,6 +372,13 @@ namespace Fluid.Tests
         }
 
         [Theory]
+        [InlineData("{% assign my_array = 'abc,123' | split: ',' %}{{ my_array | reverse | join: ',' }}", "123,abc")]
+        public Task ShouldReverseArray(string source, string expected)
+        {
+            return CheckAsync(source, expected);
+        }
+
+        [Theory]
         [InlineData("{% for i in (1..3) %}{{i}}{% endfor %}", "123")]
         [InlineData("{% for p in products %}{{p.price}}{% endfor %}", "123")]
         public Task ShouldEvaluateForStatement(string source, string expected)
