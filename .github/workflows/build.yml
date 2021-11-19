@@ -46,12 +46,6 @@ jobs:
         dotnet-version: 6.0.x
         include-prerelease: true        
     - name: Test
-      run: |
-        dotnet test --configuration Release --framework netcoreapp3.1
-        dotnet test --configuration Release --framework net5.0
-        dotnet test --configuration Release --framework net6.0
+      run: dotnet test --configuration Release
     - name: Test - Compiled
-      run: |
-        dotnet test --configuration Release --framework netcoreapp3.1 /p:Compiled=true
-        dotnet test --configuration Release --framework net5.0 /p:Compiled=true
-        dotnet test --configuration Release --framework net6.0 /p:Compiled=true
+      run: dotnet test --configuration Release /p:Compiled=true
