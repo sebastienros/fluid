@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Fluid.Filters;
 using Fluid.Values;
@@ -17,6 +19,19 @@ namespace Fluid.Tests
         private static readonly TimeZoneInfo Pacific = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/Los_Angeles");
         private static readonly TimeZoneInfo Eastern = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/New_York");
 #endif
+
+        [Fact]
+        public void RenderInfo()
+        {
+            var result = "";
+
+            result += $"{RuntimeInformation.OSDescription}\n";
+            result += $"{RuntimeInformation.FrameworkDescription}\n";
+            result += $".... UseNls:                 {typeof(object).Assembly.GetType("System.Globalization.GlobalizationMode").GetProperty("UseNls", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null)} ....\n";
+            result += $".... Invariant:              {typeof(object).Assembly.GetType("System.Globalization.GlobalizationMode").GetProperty("Invariant", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null)} ....\n";
+
+            throw new ApplicationException(result);
+        }
 
         [Fact]
         public async Task DefaultReturnsValueIfDefined()
