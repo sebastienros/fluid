@@ -5,6 +5,8 @@
     <LangVersion>9</LangVersion>
     <IsPackable>true</IsPackable>
     <PackageIcon>logo_64x64.png</PackageIcon>
+    <PackageId>MinimalApis.LiquidViews</PackageId>
+    <Description>MinimalApis.LiquidViews is a view engine for ASP.NET Core Minimal APIs based on the Liquid templating language.</Description>
   </PropertyGroup>
 
   <ItemGroup>
