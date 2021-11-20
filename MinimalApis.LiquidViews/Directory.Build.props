@@ -1,0 +1,10 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <PackageId>Fluid.MapActionViewEngine</PackageId>
+    <Description>Fluid.MapActionViewEngine is a view engine for ASP.NET Core Map Actions based on the Liquid markup.</Description>
+  </PropertyGroup>
+
+  <Import Project="../Common.props"/>
+
+</Project>

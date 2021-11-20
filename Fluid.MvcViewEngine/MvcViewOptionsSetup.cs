@@ -11,7 +11,7 @@ namespace Fluid.MvcViewEngine
         private readonly IFluidViewEngine _fluidViewEngine;
 
         /// <summary>
-        /// Initializes a new instance of <see cref="FluidMvcViewOptionsSetup"/>.
+        /// Initializes a new instance of <see cref="MvcViewOptionsSetup"/>.
         /// </summary>
         /// <param name="fluidViewEngine">The <see cref="IFluidViewEngine"/>.</param>
         public MvcViewOptionsSetup(IFluidViewEngine fluidViewEngine)

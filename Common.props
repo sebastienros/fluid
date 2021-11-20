@@ -12,7 +12,15 @@
     <DebugSymbols>true</DebugSymbols>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <DebugType>portable</DebugType>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <LangVersion>latest</LangVersion>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    
+    <!-- Sourcelink -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
 
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>

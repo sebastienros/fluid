@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.28606.126
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.31903.286
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid", "Fluid\Fluid.csproj", "{8CD687F1-AC65-4E4A-A510-67768999C81C}"
 EndProject
@@ -24,6 +24,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{BE5EF08E
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.ViewEngine", "Fluid.ViewEngine\Fluid.ViewEngine.csproj", "{3510D4C5-8328-4425-B2F1-B8591E85B965}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MinimalApis.LiquidViews", "MinimalApis.LiquidViews\MinimalApis.LiquidViews.csproj", "{DD0B5036-D5E6-4E6E-8405-27F6C2FD5917}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.MinimalApisSample", "Fluid.MinimalApisSample\Fluid.MinimalApisSample.csproj", "{6390F2D4-564B-455E-9C02-3DB998E5BD09}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,6 +59,14 @@ Global
 		{3510D4C5-8328-4425-B2F1-B8591E85B965}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3510D4C5-8328-4425-B2F1-B8591E85B965}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3510D4C5-8328-4425-B2F1-B8591E85B965}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD0B5036-D5E6-4E6E-8405-27F6C2FD5917}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD0B5036-D5E6-4E6E-8405-27F6C2FD5917}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD0B5036-D5E6-4E6E-8405-27F6C2FD5917}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD0B5036-D5E6-4E6E-8405-27F6C2FD5917}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6390F2D4-564B-455E-9C02-3DB998E5BD09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6390F2D4-564B-455E-9C02-3DB998E5BD09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6390F2D4-564B-455E-9C02-3DB998E5BD09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6390F2D4-564B-455E-9C02-3DB998E5BD09}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
