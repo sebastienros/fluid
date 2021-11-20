@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Fluid.MapActionViewEngine\Fluid.MapActionViewEngine.csproj" />
+    <ProjectReference Include="..\MinimalApis.LiquidViews\MinimalApis.LiquidViews.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,8 +1,9 @@
-﻿using Fluid.ViewEngine;
+﻿using Fluid;
+using Fluid.ViewEngine;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Options;
 
-namespace Fluid.MapActionViewEngine
+namespace MinimalApis.LiquidViews
 {
     public class FluidViewEngineOptionsSetup : ConfigureOptions<FluidViewEngineOptions>
     {

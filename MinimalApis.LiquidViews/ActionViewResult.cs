@@ -1,4 +1,5 @@
-﻿using Fluid.ViewEngine;
+﻿using Fluid;
+using Fluid.ViewEngine;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -6,7 +7,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Fluid.MapActionViewEngine
+namespace MinimalApis.LiquidViews
 {
     public class ActionViewResult : IResult
     {

@@ -1,6 +1,6 @@
-﻿using Fluid.MapActionViewEngine;
-using Fluid.ViewEngine;
+﻿using Fluid.ViewEngine;
 using Microsoft.Extensions.Options;
+using MinimalApis.LiquidViews;
 using System;
 
 namespace Microsoft.Extensions.DependencyInjection
