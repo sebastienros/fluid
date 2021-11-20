@@ -11,6 +11,7 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <DebugSymbols>true</DebugSymbols>
     <IncludeSymbols>true</IncludeSymbols>
+    <Deterministic>true</Deterministic>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
