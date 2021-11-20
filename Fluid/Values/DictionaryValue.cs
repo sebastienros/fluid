@@ -61,36 +61,12 @@ namespace Fluid.Values
                 return new ValueTask<FluidValue>(NumberValue.Create(_value.Count));
             }
 
-            object value = null;
-
-            // NOTE: This code block doesn't seem to make any sense for a dictionary, just keeping it
-            // as a comment in case it breaks something at some point.
-
-            //var accessor = context.MemberAccessStrategy.GetAccessor(_value.GetType(), name);
-
-            //if (accessor != null)
-            //{
-            //    if (accessor is IAsyncMemberAccessor asyncAccessor)
-            //    {
-            //        value = await asyncAccessor.GetAsync(_value,  context);
-            //    }
-            //    else
-            //    {
-            //        value = accessor.Get(_value,  context);
-            //    }
-            //}
-
-            if (value == null)
+            if (!_value.TryGetValue(name, out var fluidValue))
             {
-                if (!_value.TryGetValue(name, out var fluidValue))
-                {
-                    return new ValueTask<FluidValue>(NilValue.Instance);
-                }
-
-                return new ValueTask<FluidValue>(fluidValue);
+                return new ValueTask<FluidValue>(NilValue.Instance);
             }
 
-            return new ValueTask<FluidValue>(FluidValue.Create(value, context.Options));
+            return new ValueTask<FluidValue>(fluidValue);
         }
 
         protected override FluidValue GetIndex(FluidValue index, TemplateContext context)
@@ -142,39 +118,13 @@ namespace Fluid.Values
             return false;
         }
 
-        public override IEnumerable<FluidValue> Enumerate()
+        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
         {
             foreach (var key in _value.Keys)
             {
                 _value.TryGetValue(key, out var value);
                 yield return new ArrayValue(new[] { new StringValue(key),  value });
             }
-        }
-
-        internal override string[] ToStringArray()
-        {
-            var array = new string[_value.Count];
-            var i = 0;
-            foreach (var key in _value.Keys)
-            {
-                _value.TryGetValue(key, out var value);
-                array[i] = string.Join("", key, value.ToStringValue());
-                i++;
-            }
-
-            return array;
-        }
-
-        internal override List<FluidValue> ToList()
-        {
-            var list = new List<FluidValue>(_value.Count);
-            foreach (var key in _value.Keys)
-            {
-                _value.TryGetValue(key, out var value);
-                list.Add(new ArrayValue(new[] { new StringValue(key), value }));
-            }
-
-            return list;
         }
 
         public override bool Equals(object other)

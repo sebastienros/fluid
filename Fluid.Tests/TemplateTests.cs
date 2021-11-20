@@ -345,6 +345,39 @@ namespace Fluid.Tests
             Assert.Equal("b", result);
         }
 
+        [Fact]
+        public async Task ShouldEvaluateCustomObjectIndex()
+        {
+            var options = new TemplateOptions();
+            options.ValueConverters.Add(o => o is Person p ? new PersonValue(p) : null);
+
+            var context = new TemplateContext(options);
+            context.SetValue("p", new Person { Firstname = "Bill" } );
+
+            _parser.TryParse("{{ p[1] }} {{ p['blah'] }}", out var template, out var error);
+            var result = await template.RenderAsync(context);
+            Assert.Equal("Bill 1 Bill blah", result);
+        }
+
+        private class PersonValue : ObjectValueBase
+        {
+            public PersonValue(Person value) : base(value)
+            {
+            }
+
+            public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
+            {
+                return Create(((Person)Value).Firstname + " " + index.ToStringValue(), context.Options);
+            }
+        }
+
+        [Theory]
+        [InlineData("{% assign my_array = 'abc,123' | split: ',' %}{{ my_array | reverse | join: ',' }}", "123,abc")]
+        public Task ShouldReverseArray(string source, string expected)
+        {
+            return CheckAsync(source, expected);
+        }
+
         [Theory]
         [InlineData("{% for i in (1..3) %}{{i}}{% endfor %}", "123")]
         [InlineData("{% for p in products %}{{p.price}}{% endfor %}", "123")]

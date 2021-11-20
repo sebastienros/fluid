@@ -189,27 +189,45 @@ options.MemberAccessStrategy.Register<Person>("Firstname", "Lastname");
 
 This will provide a method to intercept when a member is accessed and either return a custom value or prevent it.
 
-This example demonstrates how to intercept calls to a `JObject` and return the corresponding property.
+NB: If the model implements `IDictionary` or any similar generic dictionary types the dictionary access has priority over the custom accessors.
+
+This example demonstrates how to intercept calls to a `Person` and always return the same property.
 
 ```csharp
+var model = new Person { Name = "Bill" };
+
 var options = new TemplateOptions();
-options.MemberAccessStrategy.Register<JObject, object>((obj, name) => obj[name]);
+options.MemberAccessStrategy.Register<Person, object>((obj, name) => obj.Name);
 ``` 
 
-Another common pattern is to pass a dictionary as the model to allow members to represent the keys of the dictionary:
+### Customizing object accessors
+
+To provide advanced customization for specific types, it is recommended to use value converters and a custom `FluidValue` implementation by inheriting from `ObjectValueBase`.
+
+The following example show how to provide a custom transformation for any `Person` object:
+
+```csharp
+private class PersonValue : ObjectValueBase
+{
+    public PersonValue(Person value) : base(value)
+    {
+    }
+
+    public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
+    {
+        return Create(((Person)Value).Firstname + "!!!" + index.ToStringValue(), context.Options);
+    }
+}
+```
+
+This custom type can be used with a converter such that any time a `Person` is used, it is wrapped as a `PersonValue`.
 
 ```csharp
 var options = new TemplateOptions();
-options.MemberAccessStrategy.Register<IDictionary, object>((obj, name) => obj[name]);
-
-var model = new Dictionary<string, object>();
-model.Add("Firstname", "Bill");
-model.Add("Lastname", "Gates");
-
-var template = _parser.Parse("{{Firstname}} {{Lastname}}");
-
-template.Render(new TemplateContext(model, options));
+options.ValueConverters.Add(o => o is Person p ? new PersonValue(p) : null);
 ```
+
+It can also be used to replace custom member access by customizing `GetValueAsync`, or do custom conversions to standard Fluid types. 
 
 ### Inheritance
 
@@ -250,9 +268,9 @@ To prevent this the `TemplateOptions` class defines a default `MaxSteps`. By def
 
 Whenever an object is manipulated in a template it is converted to a specific `FluidValue` instance that provides a dynamic type system somehow similar to the one in JavaScript.
 
-In Liquid they can be Number, String, Boolean, Array, or Dictionary. Fluid will automatically convert the CLR types to the corresponding Liquid ones, and also provides specialized ones.
+In Liquid they can be Number, String, Boolean, Array, Dictionary, or Object. Fluid will automatically convert the CLR types to the corresponding Liquid ones, and also provides specialized ones.
 
-To be able to customize this conversion you can either add **value converters**.
+To be able to customize this conversion you can add **value converters**.
 
 ### Adding a value converter
 
@@ -272,35 +290,6 @@ options.ValueConverters.Add((value) => value is IUser user ? user.Name : null);
 ```
 
 > Note: Type mapping are defined globally for the application.
-
-<br>
-
-## Using Json.NET object in models
-
-The classes that are used in Json.NET don't have direct named properties like classes, which makes them unusable out of the box
-in a Liquid template.
-
-To remedy that we can configure Fluid to map names to `JObject` properties, and convert `JValue` objects to the ones used by Fluid.
-
-```csharp
-var options = new TemplateOptions();
-
-// When a property of a JObject value is accessed, try to look into its properties
-options.MemberAccessStrategy.Register<JObject, object>((source, name) => source[name]);
-
-// Convert JToken to FluidValue
-options.ValueConverters.Add(x => x is JObject o ? new ObjectValue(o) : null);
-options.ValueConverters.Add(x => x is JValue v ? v.Value : null);
-
-var model = JObject.Parse("{\"Name\": \"Bill\"}");
-
-var parser = new FluidParser();
-
-parser.TryParse("His name is {{ Name }}", out var template);
-var context = new TemplateContext(model, options);
-
-Console.WriteLine(template.Render(context));
-```
 
 <br>
 

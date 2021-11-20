@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Values;
@@ -61,7 +62,7 @@ namespace Fluid.Ast
             if (Member != null)
             {
                 var member = await Member.EvaluateAsync(context);
-                list = member.ToList();
+                list = member.Enumerate(context).ToList();
             }
             else if (Range != null)
             {

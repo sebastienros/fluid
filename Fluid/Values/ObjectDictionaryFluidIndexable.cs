@@ -2,12 +2,12 @@
 
 namespace Fluid.Values
 {
-    public sealed class ObjectDictionaryFluidIndexable : IFluidIndexable
+    public sealed class ObjectDictionaryFluidIndexable<T> : IFluidIndexable
     {
-        private readonly IDictionary<string, object> _dictionary;
+        private readonly IDictionary<string, T> _dictionary;
         private readonly TemplateOptions _options;
 
-        public ObjectDictionaryFluidIndexable(IDictionary<string, object> dictionary, TemplateOptions options)
+        public ObjectDictionaryFluidIndexable(IDictionary<string, T> dictionary, TemplateOptions options)
         {
             _dictionary = dictionary;
             _options = options;

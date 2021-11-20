@@ -9,6 +9,8 @@ using TimeZoneConverter;
 using System.Threading.Tasks;
 using System.Text;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 
 namespace Fluid.Filters
 {
@@ -121,7 +123,7 @@ namespace Fluid.Filters
         public static ValueTask<FluidValue> Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var compacted = new List<FluidValue>();
-            foreach (var value in input.Enumerate())
+            foreach (var value in input.Enumerate(context))
             {
                 if (!value.IsNil())
                 {
@@ -609,7 +611,7 @@ namespace Fluid.Filters
             {
                 case FluidValues.Array:
                     writer.WriteStartArray();
-                    foreach (var item in input.Enumerate())
+                    foreach (var item in input.Enumerate(ctx))
                     {
                         await WriteJson(writer, item, ctx);
                     }
@@ -652,7 +654,7 @@ namespace Fluid.Filters
                     {
                         writer.WriteStartObject();
                         var type = obj.GetType();
-                        var properties = type.GetProperties();
+                        var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
                         var strategy = ctx.Options.MemberAccessStrategy;
 
                         var conv = strategy.MemberNameStrategy;
