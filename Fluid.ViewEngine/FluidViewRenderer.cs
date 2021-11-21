@@ -14,7 +14,13 @@ namespace Fluid.ViewEngine
     /// </summary>
     public class FluidViewRenderer : IFluidViewRenderer
     {
-        private readonly ConcurrentDictionary<string, IFluidTemplate> _cache = new ConcurrentDictionary<string, IFluidTemplate>();
+        private class CacheEntry
+        {
+            public IDisposable Callback;
+            public ConcurrentDictionary<string, IFluidTemplate> TemplateCache = new();
+        }
+
+        private readonly ConcurrentDictionary<IFileProvider, CacheEntry> _cache = new();
 
         public FluidViewRenderer(FluidViewEngineOptions fluidViewEngineOptions)
         {
@@ -34,18 +40,18 @@ namespace Fluid.ViewEngine
 
             var template = await GetFluidTemplateAsync(relativePath, _fluidViewEngineOptions.ViewsFileProvider, true);
 
-            // The body is rendered and buffer before the Layout since it can contain fragments 
+            // The body is rendered and buffered before the Layout since it can contain fragments 
             // that need to be rendered as part of the Layout.
             // Also the body or its _ViewStarts might contain a Layout tag.
 
             var body = await template.RenderAsync(context, _fluidViewEngineOptions.TextEncoder);
 
             // If a layout is specified while rendering a view, execute it
-            if (context.AmbientValues.TryGetValue(Constants.LayoutIndex, out var layoutPath) && !String.IsNullOrEmpty(Convert.ToString(layoutPath)))
+            if (context.AmbientValues.TryGetValue(Constants.LayoutIndex, out var layoutPath) && layoutPath is string layoutPathString && !String.IsNullOrEmpty(layoutPathString))
             {
                 context.AmbientValues[Constants.ViewPathIndex] = layoutPath;
                 context.AmbientValues[Constants.BodyIndex] = body;
-                var layoutTemplate = await GetFluidTemplateAsync((string)layoutPath, _fluidViewEngineOptions.ViewsFileProvider, false);
+                var layoutTemplate = await GetFluidTemplateAsync(layoutPathString, _fluidViewEngineOptions.ViewsFileProvider, false);
 
                 await layoutTemplate.RenderAsync(writer, _fluidViewEngineOptions.TextEncoder, context);
             }
@@ -58,7 +64,6 @@ namespace Fluid.ViewEngine
         public virtual async Task RenderPartialAsync(TextWriter writer, string relativePath, TemplateContext context)
         {
             // Substitute View Path
-            context.AmbientValues.TryGetValue(Constants.ViewPathIndex, out var viewPath);
             context.AmbientValues[Constants.ViewPathIndex] = relativePath;
 
             var template = await GetFluidTemplateAsync(relativePath, _fluidViewEngineOptions.PartialsFileProvider, false);
@@ -97,28 +102,47 @@ namespace Fluid.ViewEngine
             return viewStarts;
         }
 
-        protected async ValueTask<IFluidTemplate> GetFluidTemplateAsync(string path, IFileProvider fileProvider, bool includeViewStarts)
+        protected virtual async ValueTask<IFluidTemplate> GetFluidTemplateAsync(string path, IFileProvider fileProvider, bool includeViewStarts)
         {
-            if (TryGetCachedTemplate(path, out var template))
+            var cache = _cache.GetOrAdd(fileProvider, f =>
+            {
+                var cacheEntry = new CacheEntry();
+
+                if (_fluidViewEngineOptions.TrackFileChanges)
+                {
+                    Action<object> callback = null;
+
+                    callback = c =>
+                    {
+                        // The order here is important. We need to take the token and then apply our changes BEFORE
+                        // registering. This prevents us from possible having two change updates to process concurrently.
+                        //
+                        // If the file changes after we take the token, then we'll process the update immediately upon
+                        // registering the callback.
+
+                        var entry = (CacheEntry)c;
+                        var previousCallBack = entry.Callback;
+                        previousCallBack?.Dispose();
+                        var token = fileProvider.Watch("**/*" + Constants.ViewExtension);
+                        entry.TemplateCache.Clear();
+                        entry.Callback = token.RegisterChangeCallback(callback, c);
+                    };
+
+                    cacheEntry.Callback = fileProvider.Watch("**/*" + Constants.ViewExtension).RegisterChangeCallback(callback, cacheEntry);
+                }
+                return cacheEntry;
+            });
+
+            if (cache.TemplateCache.TryGetValue(path, out var template))
             {
                 return template;
             }
 
             template = await ParseLiquidFileAsync(path, fileProvider, includeViewStarts);
 
-            SetCachedTemplate(path, template);
+            cache.TemplateCache[path] = template;
 
             return template;
-        }
-
-        protected virtual bool TryGetCachedTemplate(string path, out IFluidTemplate template)
-        {
-            return _cache.TryGetValue(path, out template);
-        }
-
-        protected virtual void SetCachedTemplate(string path, IFluidTemplate template)
-        {
-            _cache[path] = template;
         }
 
         protected virtual async ValueTask<IFluidTemplate> ParseLiquidFileAsync(string path, IFileProvider fileProvider, bool includeViewStarts)

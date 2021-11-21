@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -17,6 +18,7 @@ namespace Fluid.MvcViewEngine
         private const string ControllerKey = "controller";
         private const string AreaKey = "area";
         private FluidMvcViewOptions _options;
+        private ConcurrentDictionary<LocationCacheKey, FluidView> _locationCache = new();
 
         public FluidViewEngine(FluidRendering fluidRendering,
             IOptions<FluidMvcViewOptions> optionsAccessor,
@@ -37,9 +39,16 @@ namespace Fluid.MvcViewEngine
             var controllerName = GetNormalizedRouteValue(actionContext, ControllerKey);
             var areaName = GetNormalizedRouteValue(actionContext, AreaKey);
 
+            var key = new LocationCacheKey(controllerName, areaName, viewName);
+
+            if (_locationCache.TryGetValue(key, out var fluidView))
+            {
+                return ViewEngineResult.Found(viewName, fluidView);
+            }
+
             var fileProvider = _options.ViewsFileProvider ?? _hostingEnvironment.ContentRootFileProvider;
 
-            var checkedLocations = new List<string>();
+            List<string> checkedLocations = null;
 
             foreach (var location in _options.ViewsLocationFormats)
             {
@@ -47,9 +56,11 @@ namespace Fluid.MvcViewEngine
 
                 if (fileProvider.GetFileInfo(view).Exists)
                 {
-                    return ViewEngineResult.Found(viewName, new FluidView(view, _fluidRendering));
+                    _locationCache[key] = fluidView = new FluidView(view, _fluidRendering);
+                    return ViewEngineResult.Found(viewName, fluidView);
                 }
 
+                checkedLocations ??= new();
                 checkedLocations.Add(view);
             }
 
@@ -139,8 +150,7 @@ namespace Fluid.MvcViewEngine
             var actionDescriptor = context.ActionDescriptor;
             string normalizedValue = null;
 
-            if (actionDescriptor.RouteValues.TryGetValue(key, out string value) &&
-                !string.IsNullOrEmpty(value))
+            if (actionDescriptor.RouteValues.TryGetValue(key, out string value) && !string.IsNullOrEmpty(value))
             {
                 normalizedValue = value;
             }
@@ -153,5 +163,7 @@ namespace Fluid.MvcViewEngine
 
             return stringRouteValue;
         }
+
+        public readonly record struct LocationCacheKey(string ControllerName, string AreaName, string ViewName);
     }
 }
