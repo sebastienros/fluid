@@ -252,12 +252,25 @@ namespace Fluid
                         .ElseError("Invalid 'decrement' tag")
                         ;
             var IncludeTag = OneOf(
-                        Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new IncludeStatement(this, x.Item1, null, x.Item2)),
-                        Primary.AndSkip(Terms.Text("with")).And(Primary).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2)),
-                        Primary.Then(x => new IncludeStatement(this, x))
+                        Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new IncludeStatement(this, x.Item1, null, null, null, x.Item2, isolatedScope: false)),
+                        Primary.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3, isolatedScope: false)),
+                        Primary.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, @for: x.Item2, alias: x.Item3, isolatedScope: false)),
+                        Primary.Then(x => new IncludeStatement(this, x, isolatedScope: false))
                         ).AndSkip(TagEnd)
                         .Then<Statement>(x => x)
-                        .ElseError("Invalid 'include' tag");
+                        .ElseError("Invalid 'include' tag")
+                        ;
+            var RenderTag = OneOf(
+                        Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new IncludeStatement(this, x.Item1, null, null, null, x.Item2, isolatedScope: true)),
+                        Primary.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3, isolatedScope: true)),
+                        Primary.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, @for: x.Item2, alias: x.Item3, isolatedScope: true)),
+                        Primary.Then(x => new IncludeStatement(this, x, isolatedScope: true))
+                        ).AndSkip(TagEnd)
+                        .Then<Statement>(x => x)
+                        .ElseError("Invalid 'render' tag")
+                        ;
+
+
             var IncrementTag = Identifier.AndSkip(TagEnd).Then<Statement>(x => new IncrementStatement(x)).ElseError("Invalid 'increment' tag");
             var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
             var AssignTag = Identifier.ElseError(IdentifierAfterAssign).AndSkip(Equal.ElseError(EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
@@ -348,6 +361,7 @@ namespace Fluid
             RegisteredTags["cycle"] = CycleTag;
             RegisteredTags["decrement"] = DecrementTag;
             RegisteredTags["include"] = IncludeTag;
+            RegisteredTags["render"] = RenderTag;
             RegisteredTags["increment"] = IncrementTag;
             RegisteredTags["raw"] = RawTag;
             RegisteredTags["assign"] = AssignTag;
