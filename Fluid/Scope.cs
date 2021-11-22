@@ -61,9 +61,9 @@ namespace Fluid
             _properties[name] = value;
         }
 
-        public Scope EnterChildScope()
+        public Scope EnterChildScope(Scope parent = null)
         {
-            return new Scope(this);
+            return new Scope(parent ?? this);
         }
 
         public Scope ReleaseScope()

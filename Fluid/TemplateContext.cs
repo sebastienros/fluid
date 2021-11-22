@@ -111,7 +111,7 @@ namespace Fluid
             }
         }
 
-        internal Scope LocalScope { get; private set; }
+        internal Scope LocalScope { get; set; }
 
         private Dictionary<string, object> _ambientValues;
 
@@ -138,7 +138,7 @@ namespace Fluid
         public Func<string, string, ValueTask<string>> Captured { get; set; }
 
         /// <summary>
-        /// Creates a new isolated scope. After than any value added to this content object will be released once
+        /// Creates a new isolated child scope. After than any value added to this content object will be released once
         /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
         /// </summary>
         public void EnterChildScope()
@@ -150,6 +150,21 @@ namespace Fluid
             }
 
             LocalScope = LocalScope.EnterChildScope();
+        }
+
+        /// <summary>
+        /// Creates a new isolated scope. After than any value added to this content object will be released once
+        /// <see cref="ReleaseScope" /> is called. The global scope is linked such that its values are still available.
+        /// </summary>
+        public void EnterIsolatedScope()
+        {
+            if (Options.MaxRecursion > 0 && _recursion++ > Options.MaxRecursion)
+            {
+                ExceptionHelper.ThrowMaximumRecursionException();
+                return;
+            }
+
+            LocalScope = LocalScope.EnterChildScope(Options.Scope);
         }
 
         /// <summary>

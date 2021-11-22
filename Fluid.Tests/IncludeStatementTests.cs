@@ -175,5 +175,113 @@ shape: ''";
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => new IncludeStatement(_parser, expression).WriteToAsync(sw, HtmlEncoder.Default, context).AsTask());
         }
+
+        [Fact]
+        public void IncludeTag_With()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("product.liquid", "Product: {{ product.title }} ");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
+            _parser.TryParse("{% include 'product' with products[0] %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Product: Draft 151cm ", result);
+        }
+
+        [Fact]
+        public void IncludeTag_With_Alias()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("product_alias.liquid", "Product: {{ product.title }} ");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
+            _parser.TryParse("{% include 'product_alias' with products[0] as product %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Product: Draft 151cm ", result);
+        }
+
+        [Fact]
+        public void IncludeTag_With_Default_Name()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("product.liquid", "Product: {{ product.title }} ");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            context.SetValue("product", new { title = "Draft 151cm" });
+            _parser.TryParse("{% include 'product' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Product: Draft 151cm ", result);
+        }
+
+        [Fact]
+        public void IncludeTag_For_Loop()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} ");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
+            _parser.TryParse("{% include 'product' for products %}", out var template);
+            
+            var result = template.Render(context);
+
+            Assert.Equal("Product: Draft 151cm first  index:1 Product: Element 155cm  last index:2 ", result);
+        }
+
+        [Fact]
+        public void RenderTag_Does_Not_Inherit_Parent_Scope_Variables()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("snippet.liquid", "{{ outer_variable }}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            context.SetValue("product", new { title = "Draft 151cm" });
+            _parser.TryParse("{% assign outer_variable = 'should not be visible' %}{% render 'snippet' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("", result);
+        }
+
+        [Fact]
+        public void IncludeTag_Does_Inherit_Parent_Scope_Variables()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("snippet.liquid", "{{ outer_variable }}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            context.SetValue("product", new { title = "Draft 151cm" });
+            _parser.TryParse("{% assign outer_variable = 'should be visible' %}{% include 'snippet' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("should be visible", result);
+        }
+
+        [Fact]
+        public void RenderTag_Inherits_Global_Scope_Variables()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("snippet.liquid", "{{ global_variable }}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            options.Scope.SetValue("global_variable", new StringValue("global value"));
+            context.SetValue("product", new { title = "Draft 151cm" });
+            _parser.TryParse("{% render 'snippet' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("global value", result);
+        }
+
     }
 }
