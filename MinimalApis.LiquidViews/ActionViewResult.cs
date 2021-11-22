@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -13,6 +14,8 @@ namespace MinimalApis.LiquidViews
     {
         private readonly string _viewName;
         private readonly object _model;
+
+        private readonly static ConcurrentDictionary<string, string> _viewLocationsCache = new();
 
         public ActionViewResult(string viewName)
         {
@@ -53,6 +56,11 @@ namespace MinimalApis.LiquidViews
 
         private static string LocatePageFromViewLocations(string viewName, FluidViewEngineOptions options)
         {
+            if (_viewLocationsCache.TryGetValue(viewName, out var cachedLocation) && cachedLocation != null)
+            {
+                return cachedLocation;
+            }
+
             var fileProvider = options.ViewsFileProvider;
 
             foreach (var location in options.ViewsLocationFormats)
@@ -63,6 +71,7 @@ namespace MinimalApis.LiquidViews
 
                 if (fileInfo.Exists)
                 {
+                    _viewLocationsCache[viewName] = viewFilename;
                     return viewFilename;
                 }
             }
