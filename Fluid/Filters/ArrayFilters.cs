@@ -39,22 +39,12 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> First(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (input.Type != FluidValues.Array)
-            {
-                return input;
-            }
-
-            return input.FirstOrDefault(context) ?? NilValue.Instance;
+            return input.GetValueAsync("first", context);
         }
 
         public static ValueTask<FluidValue> Last(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (input.Type != FluidValues.Array)
-            {
-                return input;
-            }
-
-            return input.LastOrDefault(context) ?? NilValue.Instance;
+            return input.GetValueAsync("last", context);
         }
 
         public static ValueTask<FluidValue> Concat(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -160,19 +150,9 @@ namespace Fluid.Filters
             return new ArrayValue(list);
         }
 
-        public static async ValueTask<FluidValue> Size(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> Size(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (input.Type == FluidValues.Array)
-            {
-                return await ((ArrayValue)input).GetValueAsync("size", context);
-            }
-
-            if (input.Type == FluidValues.String)
-            {
-                return await ((StringValue)input).GetValueAsync("size", context);
-            }
-
-            return NilValue.Instance;
+            return input.GetValueAsync("size", context);
         }
 
         public static async ValueTask<FluidValue> Sort(FluidValue input, FilterArguments arguments, TemplateContext context)
