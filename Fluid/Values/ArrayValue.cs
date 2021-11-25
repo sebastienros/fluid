@@ -142,16 +142,6 @@ namespace Fluid.Values
             return _value;
         }
 
-        internal override FluidValue FirstOrDefault(TemplateContext context)
-        {
-            return _value.Length > 0 ? _value[0] : null;
-        }
-
-        internal override FluidValue LastOrDefault(TemplateContext context)
-        {
-            return _value.Length > 0 ? _value[_value.Length - 1] : null;
-        }
-
         public override bool Equals(object other)
         {
             // The is operator will return false if null

@@ -255,13 +255,15 @@ namespace Fluid.Values
             return false;
         }
 
-        [Obsolete("Use Enumerate(TemplateContext) instead.")]
-        public virtual IEnumerable<FluidValue> Enumerate()
+        public virtual IEnumerable<FluidValue> Enumerate(TemplateContext context)
         {
             return Array.Empty<FluidValue>();
         }
 
-        public virtual IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        #region Obsolete members
+
+        [Obsolete("Use Enumerate(TemplateContext) instead.")]
+        public virtual IEnumerable<FluidValue> Enumerate()
         {
             return Array.Empty<FluidValue>();
         }
@@ -278,7 +280,7 @@ namespace Fluid.Values
             return Enumerate().ToList();
         }
 
-        [Obsolete("Use FirstOrDefault(TemplateContext) instead.")]
+        [Obsolete("Handle the property 'first' in GetValueAsync() instead")]
         internal virtual FluidValue FirstOrDefault()
         {
             return Enumerate().FirstOrDefault();
@@ -287,12 +289,13 @@ namespace Fluid.Values
         /// <summary>
         /// Returns the first element. Used by the <code>first</code> filter.
         /// </summary>
+        [Obsolete("Handle the property 'first' in GetValueAsync() instead")]
         internal virtual FluidValue FirstOrDefault(TemplateContext context)
         {
             return Enumerate(context).FirstOrDefault();
         }
 
-        [Obsolete("Use LastOrDefault(TemplateContext) instead.")]
+        [Obsolete("Handle the property 'last' in GetValueAsync() instead")]
         internal virtual FluidValue LastOrDefault()
         {
             return Enumerate().LastOrDefault();
@@ -301,10 +304,12 @@ namespace Fluid.Values
         /// <summary>
         /// Returns the last element. Used by the <code>last</code> filter.
         /// </summary>
+        [Obsolete("Handle the property 'last' in GetValueAsync() instead")]
         internal virtual FluidValue LastOrDefault(TemplateContext context)
         {
             return Enumerate(context).LastOrDefault();
         }
+        #endregion
 
         public static implicit operator ValueTask<FluidValue>(FluidValue value) => new(value);
     }

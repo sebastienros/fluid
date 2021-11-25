@@ -106,12 +106,13 @@ namespace Fluid.Values
 
         protected override FluidValue GetValue(string name, TemplateContext context)
         {
-            if (name == "size")
+            return name switch
             {
-                return NumberValue.Create(_value.Length);
-            }
-
-            return NilValue.Instance;
+                "size" => NumberValue.Create(_value.Length),
+                "first" => _value.Length > 0 ? Create(_value[0]) : NilValue.Instance,
+                "last" => _value.Length > 0 ? Create(_value[_value.Length - 1]) : NilValue.Instance,
+                _ => NilValue.Instance,
+            };
         }
 
         public override bool ToBooleanValue()
@@ -180,16 +181,6 @@ namespace Fluid.Values
             {
                 yield return StringValue.Create(c);
             }
-        }
-
-        internal override FluidValue FirstOrDefault(TemplateContext context)
-        {
-            return _value.Length > 0 ? Create(_value[0]) : null;
-        }
-
-        internal override FluidValue LastOrDefault(TemplateContext context)
-        {
-            return _value.Length > 0 ? Create(_value[_value.Length - 1]) : null;
         }
 
         public override bool Equals(object other)

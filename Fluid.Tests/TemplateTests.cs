@@ -359,6 +359,18 @@ namespace Fluid.Tests
             Assert.Equal("Bill 1 Bill blah", result);
         }
 
+        [Fact]
+        public async Task FirstLastSizeShouldUseGetValue()
+        {
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            context.SetValue("p", new PersonValue(new Person()));
+
+            _parser.TryParse("{{ p | size }} {{ p | first }} {{ p | last }}", out var template, out var error);
+            var result = await template.RenderAsync(context);
+            Assert.Equal("123 456 789", result);
+        }
+
         private class PersonValue : ObjectValueBase
         {
             public PersonValue(Person value) : base(value)
@@ -368,6 +380,17 @@ namespace Fluid.Tests
             public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
             {
                 return Create(((Person)Value).Firstname + " " + index.ToStringValue(), context.Options);
+            }
+
+            public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
+            {
+                return name switch
+                {
+                    "size" => NumberValue.Create(123),
+                    "first" => NumberValue.Create(456),
+                    "last" => NumberValue.Create(789),
+                    _ => NilValue.Instance
+                };
             }
         }
 
