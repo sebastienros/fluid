@@ -201,7 +201,6 @@ namespace Fluid
                 .Then<Statement>(static x => new OutputStatement(x.Item1))
                 );
 
-
             var Text = AnyCharBefore(OutputStart.Or(TagStart))
                 .Then<Statement>(static (ctx, x) =>
                 {
@@ -354,6 +353,30 @@ namespace Fluid
                             })
                         ).ElseError("Invalid 'for' tag");
 
+            var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
+                .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = true; return x;})
+                .SkipAnd(OneOrMany(Identifier.Switch((context, previous) =>
+            {
+                // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
+                // as inner tags in blocks like {% if %} TagsList {% endif $}
+
+                var tagName = previous;
+
+                if (RegisteredTags.TryGetValue(tagName, out var tag))
+                {
+                    return tag;
+                }
+                else
+                {
+                    throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
+                }
+            })))
+                .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = false; return x; })
+                .AndSkip(TagEnd).Then<Statement>(x => new LiquidStatement(x))
+                ;
+
+            var EchoTag = FilterExpression.AndSkip(TagEnd).Then<Statement>(x => new OutputStatement(x));
+
             RegisteredTags["break"] = BreakTag;
             RegisteredTags["continue"] = ContinueTag;
             RegisteredTags["comment"] = CommentTag;
@@ -369,6 +392,8 @@ namespace Fluid
             RegisteredTags["unless"] = UnlessTag;
             RegisteredTags["case"] = CaseTag;
             RegisteredTags["for"] = ForTag;
+            RegisteredTags["liquid"] = LiquidTag;
+            RegisteredTags["echo"] = EchoTag;
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             static (Expression limitResult, Expression offsetResult, bool reversed) ReadForStatementConfiguration(List<ForModifier> modifiers)
@@ -424,7 +449,7 @@ namespace Fluid
                 }
             }));
 
-            var KnownTags = TagStart.SkipAnd(Identifier.ElseError(IdentifierAfterTagStart).Switch((context, previous) =>
+            var KnownTags = TagStart.SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart).Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
@@ -442,7 +467,7 @@ namespace Fluid
             }));
 
             AnyTagsList.Parser = ZeroOrMany(Output.Or(AnyTags).Or(Text)); // Used in block and stop when an unknown tag is found
-            KnownTagsList.Parser = ZeroOrMany(Output.Or(KnownTags).Or(Text)); // User in main list and raises an issue when an unknown tag is found
+            KnownTagsList.Parser = ZeroOrMany(Output.Or(KnownTags).Or(Text)); // Used in main list and raises an issue when an unknown tag is found
 
             Grammar = KnownTagsList;
         }

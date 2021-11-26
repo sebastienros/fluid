@@ -54,9 +54,16 @@ namespace Fluid.Parser
 
                 var start = context.Scanner.Cursor.Position;
 
+                var p = (FluidParseContext)context;
+
+                if (p.InsideLiquidTag)
+                {
+                    result.Set(start.Offset, context.Scanner.Cursor.Offset, TagResult.TagOpen);
+                    return true;
+                }
+
                 if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('%'))
                 {
-                    var p = (FluidParseContext)context;
 
                     var trim = context.Scanner.ReadChar('-');
 
@@ -94,19 +101,72 @@ namespace Fluid.Parser
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
+                var p = (FluidParseContext)context;
+
+                var newLineIsPresent = false;
+
                 if (_skipWhiteSpace)
                 {
-                    context.SkipWhiteSpace();
+                    if (p.InsideLiquidTag)
+                    {
+                        var cursor = context.Scanner.Cursor;
+
+                        while (Character.IsWhiteSpace(cursor.Current))
+                        {
+                            cursor.Advance();
+                        }
+
+                        if (Character.IsNewLine(cursor.Current))
+                        {
+                            newLineIsPresent = true;
+                            while (Character.IsNewLine(cursor.Current))
+                            {
+                                cursor.Advance();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        context.SkipWhiteSpace();
+                    }
                 }
 
                 var start = context.Scanner.Cursor.Position;
+                bool trim;
 
-                bool trim = context.Scanner.ReadChar('-');
+                if (p.InsideLiquidTag)
+                {
+                    if (newLineIsPresent)
+                    {
+                        result.Set(start.Offset, context.Scanner.Cursor.Offset, TagResult.TagClose);
+                        return true;
+                    }
+                    else
+                    {
+                        trim = context.Scanner.ReadChar('-');
+
+                        if (context.Scanner.ReadChar('%') && context.Scanner.ReadChar('}'))
+                        {
+                            p.StripNextTextSpanStatement = trim;
+                            p.PreviousTextSpanStatement = null;
+                            p.PreviousIsTag = true;
+                            p.PreviousIsOutput = false;
+
+                            context.Scanner.Cursor.ResetPosition(start);
+
+                            result.Set(start.Offset, start.Offset, TagResult.TagClose);
+                            return true;
+                        }
+
+                        context.Scanner.Cursor.ResetPosition(start);
+                        return false;
+                    }
+                }
+
+                trim = context.Scanner.ReadChar('-');
 
                 if (context.Scanner.ReadChar('%') && context.Scanner.ReadChar('}'))
                 {
-                    var p = (FluidParseContext)context;
-
                     p.StripNextTextSpanStatement = trim;
                     p.PreviousTextSpanStatement = null;
                     p.PreviousIsTag = true;
