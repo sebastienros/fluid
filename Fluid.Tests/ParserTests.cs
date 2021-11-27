@@ -921,5 +921,48 @@ class  {
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
         }
+
+        [Fact]
+        public void ShouldParseEchoTag()
+        {
+            var source = @"{% echo 'welcome to the liquid tag' | upcase %}";
+
+            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
+        }
+
+        [Fact]
+        public void ShouldParseLiquidTag()
+        {
+            var source = @"
+{% 
+   liquid 
+   echo 
+      'welcome ' | upcase 
+   echo 'to the liquid tag' 
+    | upcase 
+%}";
+
+            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
+        }
+
+        [Fact]
+        public void ShouldParseLiquidTagWithBlocks()
+        {
+            var source = @"
+{% liquid assign cool = true
+   if cool
+     echo 'welcome to the liquid tag' | upcase
+   endif 
+%}
+";
+
+            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
+        }
     }
 }
