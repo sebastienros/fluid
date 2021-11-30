@@ -642,7 +642,17 @@ true
         {
             return CheckAsync(source, expected, t => t.SetValue("zero", 0).SetValue("one", 1));
         }
-        
+
+        [Fact]
+        public void ModelShouldNotImpactBlank()
+        {
+            var source = "{% assign a = ' ' %}{{ a == blank }}";
+            var model = new { a = " ", b = "" };
+            var context = new TemplateContext(model);
+            var template = _parser.Parse(source);
+            Assert.Equal("true", template.Render(context));
+        }
+
         [Fact]
         public void CycleShouldHandleNumbers()
         {

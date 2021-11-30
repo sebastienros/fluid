@@ -84,10 +84,6 @@ namespace Fluid
                 .WithStringFilters()
                 .WithNumberFilters()
                 .WithMiscFilters();
-
-            Scope.SetValue("empty", EmptyValue.Instance);
-            Scope.SetValue("blank", BlankValue.Instance);
         }
     }
-
 }
