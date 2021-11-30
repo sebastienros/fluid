@@ -964,5 +964,15 @@ class  {
             var rendered = template.Render();
             Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
         }
+
+        [Fact]
+        public void ShouldParseLiquidTagInline()
+        {
+            var source = @"{% liquid if cool echo 'cool' else echo 'not cool' endif %}";
+
+            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Contains("not cool", rendered);
+        }
     }
 }

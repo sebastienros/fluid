@@ -1,5 +1,4 @@
 ﻿using Fluid.Values;
-using System.Threading.Tasks;
 
 namespace Fluid.Ast.BinaryExpressions
 {
@@ -9,21 +8,19 @@ namespace Fluid.Ast.BinaryExpressions
         {
         }
 
-        public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
+        internal override FluidValue Evaluate(FluidValue left, FluidValue right)
         {
-            var leftValue = await Left.EvaluateAsync(context);
-            var rightValue = await Right.EvaluateAsync(context);
-
-            if (leftValue is ArrayValue)
+            if (left is ArrayValue arrayValue)
             {
-                var first = await leftValue.GetValueAsync("last", context);
-                return first.Equals(rightValue)
+                var values = arrayValue.Values;
+                var last = values.Length > 0 ? values[values.Length - 1] : NilValue.Instance;
+                return last.Equals(right)
                         ? BooleanValue.True
                         : BooleanValue.False;
             }
             else
             {
-                return leftValue.ToStringValue().EndsWith(rightValue.ToStringValue())
+                return left.ToStringValue().EndsWith(right.ToStringValue())
                         ? BooleanValue.True
                         : BooleanValue.False;
             }

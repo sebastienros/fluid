@@ -113,6 +113,7 @@ namespace Fluid.Parser
 
                         while (Character.IsWhiteSpace(cursor.Current))
                         {
+                            newLineIsPresent = true;
                             cursor.Advance();
                         }
 
