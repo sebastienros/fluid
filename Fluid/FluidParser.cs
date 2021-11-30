@@ -38,6 +38,8 @@ namespace Fluid
         protected static readonly Parser<decimal> Number = Terms.Decimal(NumberOptions.AllowSign);
         protected static readonly Parser<string> True = Terms.Text("true");
         protected static readonly Parser<string> False = Terms.Text("false");
+        protected static readonly Parser<string> Empty = Terms.Text("empty");
+        protected static readonly Parser<string> Blank = Terms.Text("blank");
 
         protected static readonly Parser<string> DoubleEquals = Terms.Text("==");
         protected static readonly Parser<string> NotEquals = Terms.Text("!=");
@@ -113,6 +115,8 @@ namespace Fluid
                 .Or(String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x))))
                 .Or(True.Then<Expression>(x => new LiteralExpression(BooleanValue.True)))
                 .Or(False.Then<Expression>(x => new LiteralExpression(BooleanValue.False)))
+                .Or(Empty.Then<Expression>(x => new LiteralExpression(EmptyValue.Instance)))
+                .Or(Blank.Then<Expression>(x => new LiteralExpression(BlankValue.Instance)))
                 .Or(Member.Then<Expression>(x => x))
                 ;
 
