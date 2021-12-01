@@ -8,14 +8,14 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class IncludeStatement : Statement
+    public class RenderStatement : Statement
     {
         public const string ViewExtension = ".liquid";
         private readonly FluidParser _parser;
         private IFluidTemplate _template;
         private string _identifier;
 
-        public IncludeStatement(FluidParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
+        public RenderStatement(FluidParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
         {
             _parser = parser;
             Path = path;
@@ -79,7 +79,19 @@ namespace Fluid.Ast
 
                     context.SetValue(Alias ?? _identifier, with);
 
-                    await _template.RenderAsync(writer, encoder, context);
+                    var previousScope = context.LocalScope;
+                        
+                    try
+                    {
+                        var renderScope = previousScope.Clone(context.Options.Scope);
+                        context.LocalScope = renderScope;
+
+                        await _template.RenderAsync(writer, encoder, context);
+                    }
+                    finally
+                    {
+                        context.LocalScope = previousScope;
+                    }
                 }
                 else if (AssignStatements != null)
                 {
@@ -88,7 +100,19 @@ namespace Fluid.Ast
                         await assignStatement.WriteToAsync(writer, encoder, context);
                     }
 
-                    await _template.RenderAsync(writer, encoder, context);
+                    var previousScope = context.LocalScope;
+
+                    try
+                    {
+                        var renderScope = previousScope.Clone(context.Options.Scope);
+                        context.LocalScope = renderScope;
+
+                        await _template.RenderAsync(writer, encoder, context);
+                    }
+                    finally
+                    {
+                        context.LocalScope = previousScope;
+                    }
                 }
                 else if (For != null)
                 {
@@ -98,31 +122,43 @@ namespace Fluid.Ast
 
                         var list = (await For.EvaluateAsync(context)).Enumerate(context).ToList();
 
-                        var length = forloop.Length = list.Count;
+                        var previousScope = context.LocalScope;
 
-                        context.SetValue("forloop", forloop);
-
-                        for (var i = 0; i < length; i++)
+                        try
                         {
-                            context.IncrementSteps();
+                            var renderScope = previousScope.Clone(context.Options.Scope);
+                            context.LocalScope = renderScope;
 
-                            var item = list[i];
+                            var length = forloop.Length = list.Count;
 
-                            context.SetValue(Alias ?? _identifier, item);
-
-                            // Set helper variables
-                            forloop.Index = i + 1;
-                            forloop.Index0 = i;
-                            forloop.RIndex = length - i - 1;
-                            forloop.RIndex0 = length - i;
-                            forloop.First = i == 0;
-                            forloop.Last = i == length - 1;
-
-                            await _template.RenderAsync(writer, encoder, context);
-
-                            // Restore the forloop property after every statement in case it replaced it,
-                            // for instance if it contains a nested for loop
                             context.SetValue("forloop", forloop);
+
+                            for (var i = 0; i < length; i++)
+                            {
+                                context.IncrementSteps();
+
+                                var item = list[i];
+
+                                context.SetValue(Alias ?? _identifier, item);
+
+                                // Set helper variables
+                                forloop.Index = i + 1;
+                                forloop.Index0 = i;
+                                forloop.RIndex = length - i - 1;
+                                forloop.RIndex0 = length - i;
+                                forloop.First = i == 0;
+                                forloop.Last = i == length - 1;
+
+                                await _template.RenderAsync(writer, encoder, context);
+
+                                // Restore the forloop property after every statement in case it replaced it,
+                                // for instance if it contains a nested for loop
+                                context.SetValue("forloop", forloop);
+                            }
+                        }
+                        finally
+                        {
+                            context.LocalScope = previousScope;
                         }
                     }
                     finally
@@ -133,7 +169,19 @@ namespace Fluid.Ast
                 else
                 {
                     // no with, for or assignments, e.g. {% include 'products' %}
-                    await _template.RenderAsync(writer, encoder, context);
+                    var previousScope = context.LocalScope;
+
+                    try
+                    {
+                        var renderScope = previousScope.Clone(context.Options.Scope);
+                        context.LocalScope = renderScope;
+
+                        await _template.RenderAsync(writer, encoder, context);
+                    }
+                    finally
+                    {
+                        context.LocalScope = previousScope;
+                    }
                 }
             }
             finally

@@ -75,5 +75,20 @@ namespace Fluid
         {
             return GetValue(index.ToString());
         }
+
+        public Scope Clone(Scope parent)
+        {
+            var scope = new Scope(parent);
+
+            if (_properties != null)
+            {
+                foreach (var property in _properties)
+                {
+                    scope.SetValue(property.Key, property.Value);
+                }
+            }
+
+            return scope;
+        }
     }
 }
