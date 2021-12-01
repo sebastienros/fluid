@@ -502,7 +502,7 @@ namespace Fluid
         {
             RegisteredTags[tagName] = parser.AndSkip(TagEnd).And(AnyTagsList).AndSkip(CreateTag("end" + tagName).ElseError($"'{{% end{tagName} %}}' was expected"))
                 .Then<Statement>(x => new ParserBlockStatement<T>(x.Item1, x.Item2, render))
-                .ElseError($"Invalid 'tagName' tag")
+                .ElseError($"Invalid {tagName} tag")
                 ;
         }
 
@@ -513,7 +513,7 @@ namespace Fluid
 
         public void RegisterEmptyTag(string tagName, Func<TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
-            RegisteredTags[tagName] = TagEnd.Then<Statement>(x => new EmptyTagStatement(render));
+            RegisteredTags[tagName] = TagEnd.Then<Statement>(x => new EmptyTagStatement(render)).ElseError($"Unexpected arguments in {tagName} tag");
         }
 
         public void RegisterEmptyBlock(string tagName, Func<IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)

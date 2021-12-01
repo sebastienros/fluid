@@ -1,5 +1,6 @@
 ﻿using Fluid.Ast;
 using Parlot.Fluent;
+using System;
 using Xunit;
 
 namespace Fluid.Tests.Extensibility
@@ -22,6 +23,21 @@ namespace Fluid.Tests.Extensibility
             var result = template.Render();
 
             Assert.Equal("Hello World", result);
+        }
+
+        [Fact]
+        public void ShouldReportAndErrorOnEmptyTags()
+        {
+            var parser = new CustomParser();
+
+            parser.RegisterEmptyTag("hello", (w, e, c) =>
+            {
+                w.Write("Hello World");
+
+                return Statement.Normal();
+            });
+
+            Assert.Throws<ParseException>(() => parser.Parse("{% hello foo %}"));
         }
 
         [Fact]
