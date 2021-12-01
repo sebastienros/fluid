@@ -255,19 +255,19 @@ namespace Fluid
                         .ElseError("Invalid 'decrement' tag")
                         ;
             var IncludeTag = OneOf(
-                        Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new IncludeStatement(this, x.Item1, null, null, null, x.Item2, isolatedScope: false)),
-                        Primary.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3, isolatedScope: false)),
-                        Primary.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, @for: x.Item2, alias: x.Item3, isolatedScope: false)),
-                        Primary.Then(x => new IncludeStatement(this, x, isolatedScope: false))
+                        Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new IncludeStatement(this, x.Item1, null, null, null, x.Item2)),
+                        Primary.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3)),
+                        Primary.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, @for: x.Item2, alias: x.Item3)),
+                        Primary.Then(x => new IncludeStatement(this, x))
                         ).AndSkip(TagEnd)
                         .Then<Statement>(x => x)
                         .ElseError("Invalid 'include' tag")
                         ;
             var RenderTag = OneOf(
-                        Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new IncludeStatement(this, x.Item1, null, null, null, x.Item2, isolatedScope: true)),
-                        Primary.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3, isolatedScope: true)),
-                        Primary.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, @for: x.Item2, alias: x.Item3, isolatedScope: true)),
-                        Primary.Then(x => new IncludeStatement(this, x, isolatedScope: true))
+                        Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new RenderStatement(this, x.Item1, null, null, null, x.Item2)),
+                        Primary.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new RenderStatement(this, x.Item1, with: x.Item2, alias: x.Item3)),
+                        Primary.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new RenderStatement(this, x.Item1, @for: x.Item2, alias: x.Item3)),
+                        Primary.Then(x => new RenderStatement(this, x))
                         ).AndSkip(TagEnd)
                         .Then<Statement>(x => x)
                         .ElseError("Invalid 'render' tag")

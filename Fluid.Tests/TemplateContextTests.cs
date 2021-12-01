@@ -113,17 +113,18 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void CaptureShouldUpdateContext()
+        public void TemplateContextShouldBeImmutable()
         {
-            _parser.TryParse("{% capture greetings %}Hello {{text1}}{%endcapture%}", out var template, out var error);
+            _parser.TryParse("{% capture greetings %}Hello {{text1}}{%endcapture%} {% assign foo = 'bar' %}", out var template, out var error);
 
             var context = new TemplateContext();
             context.SetValue("text1", "World");
             
             template.Render(context);
 
-            Assert.Equal("Hello World", context.GetValue("greetings").ToStringValue());
-            Assert.Contains("greetings", context.ValueNames);
+            Assert.Equal("World", context.GetValue("text1").ToStringValue());
+            Assert.DoesNotContain("greetings", context.ValueNames);
+            Assert.DoesNotContain("foo", context.ValueNames);
         }
 
         [Fact]

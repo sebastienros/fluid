@@ -207,6 +207,21 @@ shape: ''";
         }
 
         [Fact]
+        public void RenderTag_With_Alias()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("product_alias.liquid", "Product: {{ product.title }} ");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
+            _parser.TryParse("{% render 'product_alias' with products[0] as product %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Product: Draft 151cm ", result);
+        }
+
+        [Fact]
         public void IncludeTag_With_Default_Name()
         {
             var fileProvider = new MockFileProvider();
@@ -222,6 +237,21 @@ shape: ''";
         }
 
         [Fact]
+        public void RenderTag_With_Default_Name()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("product.liquid", "Product: {{ product.title }} ");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            context.SetValue("product", new { title = "Draft 151cm" });
+            _parser.TryParse("{% render 'product' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Product: Draft 151cm ", result);
+        }
+
+        [Fact]
         public void IncludeTag_For_Loop()
         {
             var fileProvider = new MockFileProvider();
@@ -231,7 +261,23 @@ shape: ''";
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% include 'product' for products %}", out var template);
-            
+
+            var result = template.Render(context);
+
+            Assert.Equal("Product: Draft 151cm first  index:1 Product: Element 155cm  last index:2 ", result);
+        }
+
+        [Fact]
+        public void RenderTag_For_Loop()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} ");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
+            _parser.TryParse("{% render 'product' for products %}", out var template);
+
             var result = template.Render(context);
 
             Assert.Equal("Product: Draft 151cm first  index:1 Product: Element 155cm  last index:2 ", result);

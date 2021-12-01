@@ -50,6 +50,7 @@ namespace Fluid
         {
             Options = options;
             LocalScope = new Scope(options.Scope);
+            RootScope = LocalScope;
             CultureInfo = options.CultureInfo;
             TimeZone = options.TimeZone;
             Captured = options.Captured;
@@ -111,7 +112,15 @@ namespace Fluid
             }
         }
 
+        /// <summary>
+        /// Gets or sets the current scope.
+        /// </summary>
         internal Scope LocalScope { get; set; }
+
+        /// <summary>
+        /// Gets or sets the root scope.
+        /// </summary>
+        internal Scope RootScope { get; set; }
 
         private Dictionary<string, object> _ambientValues;
 
@@ -153,21 +162,6 @@ namespace Fluid
         }
 
         /// <summary>
-        /// Creates a new isolated scope. After than any value added to this content object will be released once
-        /// <see cref="ReleaseScope" /> is called. The global scope is linked such that its values are still available.
-        /// </summary>
-        public void EnterIsolatedScope()
-        {
-            if (Options.MaxRecursion > 0 && _recursion++ > Options.MaxRecursion)
-            {
-                ExceptionHelper.ThrowMaximumRecursionException();
-                return;
-            }
-
-            LocalScope = LocalScope.EnterChildScope(Options.Scope);
-        }
-
-        /// <summary>
         /// Exits the current scope that has been created by <see cref="EnterChildScope" />
         /// </summary>
         public void ReleaseScope()
@@ -181,7 +175,7 @@ namespace Fluid
 
             if (LocalScope == null)
             {
-                ExceptionHelper.ThrowInvalidOperationException("Release scoped invoked without corresponding EnterChildScope");
+                ExceptionHelper.ThrowInvalidOperationException("ReleaseScope invoked without corresponding EnterChildScope");
                 return;
             }
         }

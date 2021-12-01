@@ -8,14 +8,17 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class IncludeStatement : Statement
+    /// <summary>
+    /// The render tag can only access immutable environments, which means the scope of the context that was passed to the main template, the options' scope, and the model.
+    /// </summary>
+    public class RenderStatement : Statement
     {
         public const string ViewExtension = ".liquid";
         private readonly FluidParser _parser;
         private IFluidTemplate _template;
         private string _identifier;
 
-        public IncludeStatement(FluidParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
+        public RenderStatement(FluidParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
         {
             _parser = parser;
             Path = path;
@@ -69,16 +72,19 @@ namespace Fluid.Ast
                 _identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
             }
 
+            context.EnterChildScope();
+            var previousScope = context.LocalScope;
+
             try
             {
-                context.EnterChildScope(); 
-                
                 if (With != null)
                 {
                     var with = await With.EvaluateAsync(context);
 
-                    context.SetValue(Alias ?? _identifier, with);
+                    context.LocalScope = new Scope(context.RootScope);
+                    previousScope.CopyTo(context.LocalScope);
 
+                    context.SetValue(Alias ?? _identifier, with);
                     await _template.RenderAsync(writer, encoder, context);
                 }
                 else if (AssignStatements != null)
@@ -89,6 +95,9 @@ namespace Fluid.Ast
                         await AssignStatements[i].WriteToAsync(writer, encoder, context);
                     }
 
+                    context.LocalScope = new Scope(context.RootScope);
+                    previousScope.CopyTo(context.LocalScope);
+
                     await _template.RenderAsync(writer, encoder, context);
                 }
                 else if (For != null)
@@ -98,6 +107,9 @@ namespace Fluid.Ast
                         var forloop = new ForLoopValue();
 
                         var list = (await For.EvaluateAsync(context)).Enumerate(context).ToList();
+
+                        context.LocalScope = new Scope(context.RootScope);
+                        previousScope.CopyTo(context.LocalScope);
 
                         var length = forloop.Length = list.Count;
 
@@ -133,12 +145,15 @@ namespace Fluid.Ast
                 }
                 else
                 {
-                    // no with, for or assignments, e.g. {% include 'products' %}
+                    context.LocalScope = new Scope(context.RootScope);
+                    previousScope.CopyTo(context.LocalScope);
+
                     await _template.RenderAsync(writer, encoder, context);
                 }
             }
             finally
             {
+                context.LocalScope = previousScope;
                 context.ReleaseScope();
             }
 

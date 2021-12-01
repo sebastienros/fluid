@@ -75,5 +75,16 @@ namespace Fluid
         {
             return GetValue(index.ToString());
         }
+
+        public void CopyTo(Scope scope)
+        {
+            if (_properties != null)
+            {
+                foreach (var property in _properties)
+                {
+                    scope.SetValue(property.Key, property.Value);
+                }
+            }
+        }
     }
 }
