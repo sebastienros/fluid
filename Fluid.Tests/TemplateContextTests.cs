@@ -126,6 +126,14 @@ namespace Fluid.Tests
             Assert.Contains("greetings", context.ValueNames);
         }
 
+        [Fact]
+        public void ScopeSetValueAcceptsNull()
+        {
+            var context = new TemplateContext();
+            context.SetValue("text", null);
+            Assert.Equal(NilValue.Instance, context.GetValue("text"));
+        }
+
         private class TestClass
         {
             public string Name { get; set; }
