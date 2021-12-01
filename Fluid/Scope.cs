@@ -58,7 +58,7 @@ namespace Fluid
         {
             _properties ??= new Dictionary<string, FluidValue>();
 
-            _properties[name] = value;
+            _properties[name] = value ?? NilValue.Instance;
         }
 
         public Scope EnterChildScope(Scope parent = null)
