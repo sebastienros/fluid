@@ -83,9 +83,10 @@ namespace Fluid.Ast
                 }
                 else if (AssignStatements != null)
                 {
-                    foreach (var assignStatement in AssignStatements)
+                    var length = AssignStatements.Count;
+                    for (var i = 0; i < length; i++)
                     {
-                        await assignStatement.WriteToAsync(writer, encoder, context);
+                        await AssignStatements[i].WriteToAsync(writer, encoder, context);
                     }
 
                     await _template.RenderAsync(writer, encoder, context);

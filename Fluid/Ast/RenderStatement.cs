@@ -74,7 +74,7 @@ namespace Fluid.Ast
 
             context.EnterChildScope();
             var previousScope = context.LocalScope;
-            
+
             try
             {
                 if (With != null)
@@ -89,9 +89,10 @@ namespace Fluid.Ast
                 }
                 else if (AssignStatements != null)
                 {
-                    foreach (var assignStatement in AssignStatements)
+                    var length = AssignStatements.Count;
+                    for (var i = 0; i < length; i++)
                     {
-                        await assignStatement.WriteToAsync(writer, encoder, context);
+                        await AssignStatements[i].WriteToAsync(writer, encoder, context);
                     }
 
                     context.LocalScope = new Scope(context.RootScope);
