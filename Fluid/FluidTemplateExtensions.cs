@@ -59,17 +59,29 @@ namespace Fluid
 
             var sb = StringBuilderPool.GetInstance();
             var writer = new StringWriter(sb.Builder);
-            var task = template.RenderAsync(writer, encoder, context);
-            if (!task.IsCompletedSuccessfully)
-            {
-                return Awaited(task, writer, sb);
-            }
 
-            writer.Flush();
+            try
+            {
+                // A template is evaluated in a child scope such that the provided TemplateContext is immutable
+                context.EnterChildScope();
+
+                var task = template.RenderAsync(writer, encoder, context);
+                if (!task.IsCompletedSuccessfully)
+                {
+                    return Awaited(task, writer, sb);
+                }
+
+                writer.Flush();
+            }
+            finally
+            {
+                context.ReleaseScope();
+            }
 
             var result = sb.ToString();
             sb.Dispose();
             writer.Dispose();
+
             return new ValueTask<string>(result);
         }
 

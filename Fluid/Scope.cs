@@ -76,10 +76,8 @@ namespace Fluid
             return GetValue(index.ToString());
         }
 
-        public Scope Clone(Scope parent)
+        public void CopyTo(Scope scope)
         {
-            var scope = new Scope(parent);
-
             if (_properties != null)
             {
                 foreach (var property in _properties)
@@ -87,8 +85,6 @@ namespace Fluid
                     scope.SetValue(property.Key, property.Value);
                 }
             }
-
-            return scope;
         }
     }
 }
