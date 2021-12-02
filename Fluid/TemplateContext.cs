@@ -158,7 +158,22 @@ namespace Fluid
                 return;
             }
 
-            LocalScope = LocalScope.EnterChildScope();
+            LocalScope = new Scope(LocalScope);
+        }
+
+        /// <summary>
+        /// Creates a new for loop scope. After than any value added to this content object will be released once
+        /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
+        /// </summary>
+        public void EnterForLoopScope()
+        {
+            if (Options.MaxRecursion > 0 && _recursion++ > Options.MaxRecursion)
+            {
+                ExceptionHelper.ThrowMaximumRecursionException();
+                return;
+            }
+
+            LocalScope = new Scope(LocalScope, forLoopScope: true);
         }
 
         /// <summary>
@@ -171,7 +186,7 @@ namespace Fluid
                 _recursion--;
             }
 
-            LocalScope = LocalScope.ReleaseScope();
+            LocalScope = LocalScope.Parent;
 
             if (LocalScope == null)
             {

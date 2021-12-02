@@ -1089,5 +1089,35 @@ after
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
         }
+
+        [Fact]
+        public async Task ForVariableShouldNotAlterContext()
+        {
+            var source = @"
+                {%- assign c = '0' -%}
+                {%- for c in (1..3) -%}{{ c }}{%- assign c = 4 -%}{% endfor -%}
+                {{- c -}}
+            ";
+
+            _parser.TryParse(source, out var template, out var error);
+            var context = new TemplateContext();
+            var result = await template.RenderAsync(context);
+            Assert.Equal("1234", result);
+        }
+
+        [Fact]
+        public async Task ForStringValueDoesntEnumerate()
+        {
+            var source = @"
+                {%- assign x = '123' -%}
+                {%- for c in x -%}{{ c }}{{ c }}{% endfor -%}
+                {{- c -}}
+            ";
+
+            _parser.TryParse(source, out var template, out var error);
+            var context = new TemplateContext();
+            var result = await template.RenderAsync(context);
+            Assert.Equal("123123", result);
+        }
     }
 }
