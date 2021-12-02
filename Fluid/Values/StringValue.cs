@@ -177,10 +177,7 @@ namespace Fluid.Values
 
         public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
         {
-            foreach (var c in _value)
-            {
-                yield return StringValue.Create(c);
-            }
+            yield return this;
         }
 
         public override bool Equals(object other)

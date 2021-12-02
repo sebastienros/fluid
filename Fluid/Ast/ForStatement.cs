@@ -125,13 +125,15 @@ namespace Fluid.Ast
                 list.Reverse(startIndex, count);
             }
 
+            context.EnterForLoopScope();
+
             try
             {
                 var forloop = new ForLoopValue();
 
                 var length = forloop.Length = startIndex + count;
 
-                context.SetValue("forloop", forloop);
+                context.LocalScope._properties["forloop"] = forloop;
 
                 for (var i = startIndex; i < length; i++)
                 {
@@ -139,7 +141,7 @@ namespace Fluid.Ast
 
                     var item = list[i];
 
-                    context.SetValue(Identifier, item);
+                    context.LocalScope._properties[Identifier] = item;
 
                     // Set helper variables
                     forloop.Index = i + 1;
@@ -156,9 +158,9 @@ namespace Fluid.Ast
                         var statement = _statements[index];
                         completion = await statement.WriteToAsync(writer, encoder, context);
 
-                        // Restore the forloop property after every statement in case it replaced it,
-                        // for instance if it contains a nested for loop
-                        context.SetValue("forloop", forloop);
+                        //// Restore the forloop property after every statement in case it replaced it,
+                        //// for instance if it contains a nested for loop
+                        //context.LocalScope._properties["forloop"] = forloop;
 
                         if (completion != Completion.Normal)
                         {
@@ -182,7 +184,7 @@ namespace Fluid.Ast
             }
             finally
             {
-                context.LocalScope.Delete("forloop");
+                context.ReleaseScope();
             }
 
             return Completion.Normal;
