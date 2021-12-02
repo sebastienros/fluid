@@ -10,7 +10,7 @@ namespace Fluid.Ast
         public const string Prefix = "$$incdec$$$";
         public IncrementStatement(string identifier)
         {
-            Identifier = identifier;
+            Identifier = identifier ?? "";
         }
 
         public string Identifier { get; }
