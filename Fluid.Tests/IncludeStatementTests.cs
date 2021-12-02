@@ -253,6 +253,21 @@ shape: ''";
         }
 
         [Fact]
+        public void Increment_Is_Isolated_Between_Renders()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("incr.liquid", "{% increment %}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% increment %}{% increment %}{% render 'incr' %}", out var template, out var error);
+            Assert.Null(error);
+            var result = template.Render(context);
+
+            Assert.Equal("010", result);
+        }
+
+        [Fact]
         public void RenderTagCantUseDynamicName()
         {
             var fileProvider = new MockFileProvider();

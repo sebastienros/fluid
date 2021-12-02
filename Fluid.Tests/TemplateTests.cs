@@ -592,6 +592,15 @@ turtle
             return CheckAsync(source, expected);
         }
 
+        [Theory]
+        [InlineData("{% increment %}{% increment %}{% increment %}", "012")]
+        [InlineData("{% decrement %}{% decrement %}{% decrement %}", "0-1-2")]
+        [InlineData("{% increment %}{% decrement %}{% increment %}", "0-10")]
+        public Task IncrementCanBeUsedWithoutIdentifier(string source, string expected)
+        {
+            return CheckAsync(source, expected);
+        }
+
         [Fact]
         public async Task ModelIsUsedAsFallback()
         {

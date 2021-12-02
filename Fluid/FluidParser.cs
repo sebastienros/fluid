@@ -250,10 +250,15 @@ namespace Fluid
                         .Then<Statement>(x => new CycleStatement(x.Item1, x.Item2))
                         .ElseError("Invalid 'cycle' tag")
                         ;
-            var DecrementTag = Identifier.AndSkip(TagEnd)
+            var DecrementTag = ZeroOrOne(Identifier).AndSkip(TagEnd)
                         .Then<Statement>(x => new DecrementStatement(x))
                         .ElseError("Invalid 'decrement' tag")
                         ;
+            var IncrementTag = ZeroOrOne(Identifier).AndSkip(TagEnd)
+                        .Then<Statement>(x => new IncrementStatement(x))
+                        .ElseError("Invalid 'increment' tag")
+                        ;
+
             var IncludeTag = OneOf(
                         Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new IncludeStatement(this, x.Item1, null, null, null, x.Item2)),
                         Primary.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3)),
@@ -276,7 +281,6 @@ namespace Fluid
                         .ElseError("Invalid 'render' tag")
                         ;
 
-            var IncrementTag = Identifier.AndSkip(TagEnd).Then<Statement>(x => new IncrementStatement(x)).ElseError("Invalid 'increment' tag");
             var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
             var AssignTag = Identifier.ElseError(IdentifierAfterAssign).AndSkip(Equal.ElseError(EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
             var IfTag = LogicalExpression
