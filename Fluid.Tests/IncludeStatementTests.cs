@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
+using Fluid.Parser;
 using Fluid.Tests.Mocks;
 using Fluid.Values;
 using Xunit;
@@ -249,6 +250,17 @@ shape: ''";
             var result = template.Render(context);
 
             Assert.Equal("Product: Draft 151cm ", result);
+        }
+
+        [Fact]
+        public void RenderTagCantUseDynamicName()
+        {
+            var fileProvider = new MockFileProvider();
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            var result = _parser.TryParse("{% assign name = 'snippet' %}{% render name %}", out var template, out var error);
+            Assert.False(result);
+            Assert.Contains(ErrorMessages.ExpectedStringRender, error);
         }
 
         [Fact]

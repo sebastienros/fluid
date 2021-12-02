@@ -18,7 +18,7 @@ namespace Fluid.Ast
         private IFluidTemplate _template;
         private string _identifier;
 
-        public RenderStatement(FluidParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
+        public RenderStatement(FluidParser parser, string path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
         {
             _parser = parser;
             Path = path;
@@ -28,7 +28,7 @@ namespace Fluid.Ast
             AssignStatements = assignStatements;
         }
 
-        public Expression Path { get; }
+        public string Path { get; }
         public IList<AssignStatement> AssignStatements { get; }
         public Expression With { get; }
         public Expression For { get; }
@@ -38,7 +38,7 @@ namespace Fluid.Ast
         {
             context.IncrementSteps();
 
-            var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
+            var relativePath = Path;
 
             if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))
             {

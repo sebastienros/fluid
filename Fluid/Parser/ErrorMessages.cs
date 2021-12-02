@@ -7,7 +7,8 @@
         public const string IdentifierAfterTagStart = "An identifier was expected after '{%'";
         public const string LogicalExpressionStartsFilter = "A value was expected";
         public const string IdentifierAfterPipe = "An identifier was expected after the '|' sign";
-        public const string ExpectedTagEnd = "'%}' was expected";
-        public const string ExpectedOutputEnd = "'}}' was expected";
+        public const string ExpectedTagEnd = "End of tag '%}' was expected";
+        public const string ExpectedOutputEnd = "End of tag '}}' was expected";
+        public const string ExpectedStringRender = "A quoted string value is required for the render tag";
     }
 }
