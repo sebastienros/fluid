@@ -26,18 +26,29 @@ namespace Fluid.Tests
             Assert.Equal("foo", result.ToStringValue());
         }
 
-        [Fact]
-        public async Task DefaultReturnsDefaultIfNotDefinedOrEmptyOrFalse()
+        [Theory]
+        [InlineData("foo", "foo", "bar", false)]
+        [InlineData("bar", null, "bar", false)]
+        [InlineData("bar", false, "bar", false)]
+        [InlineData("bar", new int[0], "bar", false)]
+        [InlineData("bar", "", "bar", false)]
+        [InlineData("bar", "empty", "bar", false)]
+        [InlineData("foo", "foo", "bar", true)]
+        [InlineData("bar", null, "bar", true)]
+        [InlineData("bar", "", "bar", true)]
+        [InlineData(false, false, "bar", true)]
+        [InlineData("bar", new int[0], "bar", true)]
+        [InlineData("bar", "empty", "bar", true)]
+        public async Task DefaultReturnsDefaultIfNotDefinedOrEmptyOrFalse(object expected, object input, object @default, bool allowFalse)
         {
-            foreach (var value in new FluidValue[] { NilValue.Instance, new StringValue(""), BooleanValue.False, ArrayValue.Empty })
-            {
-                var arguments = new FilterArguments().Add(new StringValue("bar"));
-                var context = new TemplateContext();
+            var arguments = new FilterArguments()
+                .Add("default", FluidValue.Create(@default, TemplateOptions.Default))
+                .Add("allow_false", FluidValue.Create(allowFalse, TemplateOptions.Default));
 
-                var result = await MiscFilters.Default(value, arguments, context);
+            var context = new TemplateContext();
+            var result = await MiscFilters.Default("empty" == input as string ? EmptyValue.Instance : FluidValue.Create(input, TemplateOptions.Default), arguments, context);
 
-                Assert.Equal("bar", result.ToStringValue());
-            }
+            Assert.Equal(expected, result.ToObjectValue());
         }
 
         [Fact]

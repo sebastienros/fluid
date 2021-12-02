@@ -105,9 +105,21 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (input.IsNil() || input == BooleanValue.False || EmptyValue.Instance.Equals(input))
+            var falseCheck = arguments.HasNamed("allow_false") && arguments["allow_false"] == BooleanValue.True;
+
+            if (falseCheck)
             {
-                return arguments.At(0);
+                if (input.IsNil() || EmptyValue.Instance.Equals(input))
+                {
+                    return arguments.At(0);
+                }
+            }
+            else
+            {
+                if (input.IsNil() || input == BooleanValue.False || EmptyValue.Instance.Equals(input))
+                {
+                    return arguments.At(0);
+                }
             }
 
             return input;
