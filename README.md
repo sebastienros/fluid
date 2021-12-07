@@ -937,6 +937,8 @@ Fluid is known to be used in the following projects:
 - [Orchard Core CMS](https://github.com/OrchardCMS/Orchard2)
 - [MaltReport](https://github.com/oldrev/maltreport) OpenDocument/OfficeOpenXML powered reporting engine for .NET and Mono
 - [Elsa Workflows](https://github.com/elsa-workflows/elsa-core) .NET Workflows Library
-- [FluentEmail](https://github.com/lukencode/FluentEmail/) All in one email sender for .NET
+- [FluentEmail](https://github.com/lukencode/FluentEmail) All in one email sender for .NET
+- [NJsonSchema](https://github.com/RicoSuter/NJsonSchema) Library to read, generate and validate JSON Schema draft v4+ schemas.
+- [NSwag](https://github.com/RicoSuter/NSwag) Swagger/OpenAPI 2.0 and 3.0 toolchain for .NET
 
 _Please file an issue to be listed here._
