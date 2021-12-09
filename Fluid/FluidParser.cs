@@ -54,22 +54,7 @@ namespace Fluid
         protected static readonly Parser<string> BinaryOr = Terms.Text("or");
         protected static readonly Parser<string> BinaryAnd = Terms.Text("and");
 
-        protected static readonly Parser<string> Identifier = Terms.Identifier(extraPart: static c => c == '-').Then((ctx, x) =>
-        {
-            // Detect patterns like {{ size-}} to exclude the '-' from the identifier
-            // c.f. https://github.com/sebastienros/fluid/issues/347
-            if (x.Buffer[x.Offset + x.Length - 1] == '-' && (ctx.Scanner.Cursor.Current == '%' || ctx.Scanner.Cursor.Current == '}'))
-            {
-                // Trim the '-'
-                x = new TextSpan(x.Buffer, x.Offset, x.Length - 1);
-
-                // Reset the cursor to the '-'
-                var current = ctx.Scanner.Cursor.Position;
-                ctx.Scanner.Cursor.ResetPosition(new TextPosition(current.Offset - 1, current.Line, current.Column - 1));
-            }
-
-            return x.ToString();
-        });
+        protected static readonly Parser<string> Identifier = SkipWhiteSpace(new IdentifierParser()).Then(x => x.ToString());
 
         protected readonly Parser<List<FilterArgument>> ArgumentsList;
         protected readonly Parser<Expression> LogicalExpression;
@@ -111,13 +96,13 @@ namespace Fluid
 
             // primary => NUMBER | STRING | BOOLEAN | property
             Primary.Parser =
-                Number.Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)))
-                .Or(String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x))))
+                String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x)))
                 .Or(True.Then<Expression>(x => new LiteralExpression(BooleanValue.True)))
                 .Or(False.Then<Expression>(x => new LiteralExpression(BooleanValue.False)))
                 .Or(Empty.Then<Expression>(x => new LiteralExpression(EmptyValue.Instance)))
                 .Or(Blank.Then<Expression>(x => new LiteralExpression(BlankValue.Instance)))
                 .Or(Member.Then<Expression>(x => x))
+                .Or(Number.Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))))
                 ;
 
             RegisteredOperators["contains"] = (a, b) => new ContainsBinaryExpression(a, b);
@@ -282,7 +267,7 @@ namespace Fluid
                         ;
 
             var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
-            var AssignTag = Identifier.ElseError(IdentifierAfterAssign).AndSkip(Equal.ElseError(EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
+            var AssignTag = Identifier.Then(x => x).ElseError(IdentifierAfterAssign).AndSkip(Equal.ElseError(EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
             var IfTag = LogicalExpression
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
