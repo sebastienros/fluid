@@ -259,6 +259,19 @@ namespace Fluid.Tests
         }
 
         [Theory]
+        [InlineData("{% assign 1f = 123 %}{{ 1f }}")]
+        [InlineData("{% assign 123f = 123 %}{{ 123f }}")]
+        [InlineData("{% assign 1_ = 123 %}{{ 1_ }}")]
+        [InlineData("{% assign 1-1 = 123 %}{{ 1-1 }}")]
+        public void ShouldAcceptDigitsAtStartOfIdentifiers(string source)
+        {
+            var result = _parser.TryParse(source, out var template, out var error);
+
+            Assert.True(result, error);
+            Assert.Equal("123", template.Render());
+        }
+
+        [Theory]
         [InlineData(@"abc 
   {% {{ %}
 def", "at (")]
