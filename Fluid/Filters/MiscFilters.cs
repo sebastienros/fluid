@@ -9,13 +9,14 @@ using TimeZoneConverter;
 using System.Threading.Tasks;
 using System.Text;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 
 namespace Fluid.Filters
 {
     public static class MiscFilters
     {
+        private const char KebabCaseSeparator = '-';
+
         private static readonly string[] DefaultFormats = {
             "yyyy-MM-ddTHH:mm:ss.FFF",
             "yyyy-MM-ddTHH:mm:ss",
@@ -100,20 +101,32 @@ namespace Fluid.Filters
         /// </summary>
         public static ValueTask<FluidValue> Handleize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var value = input.ToStringValue();
+            var kebabCase = HtmlCaseRegex.Replace(input.ToStringValue(), "-$1$2").ToLowerInvariant();
+            var value = new StringBuilder(kebabCase);
+            var previousChar = value[0];
 
-            var result = HtmlCaseRegex.Replace(value, "-$1$2").ToLowerInvariant();
+            for (int i = 1; i < value.Length; i++)
+            {
+                var currentChar = value[i];
+                
+                if (Char.IsWhiteSpace(currentChar) || Char.IsPunctuation(currentChar))
+                {
+                    value.Replace(currentChar, KebabCaseSeparator);
 
-            // Replace all non-alphanumeric characters with a dash
-            result = Regex.Replace(result, @"[^0-9a-zA-Z_]", "-");
+                    currentChar = value[i];
+                }
 
-            // Replace all subsequent dashes with a single dash
-            result = Regex.Replace(result, @"[-]{2,}", "-");
+                if (previousChar == currentChar && currentChar == KebabCaseSeparator)
+                {
+                    value.Remove(i - 1, 1);
 
-            // Remove any trailing dashes
-            result = Regex.Replace(result, @"-+$", string.Empty);
+                    --i;
+                }
 
-            return new StringValue(result);
+                previousChar = currentChar;
+            }
+
+            return new StringValue(value.Trim('-').ToString());
         }
 
         public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
