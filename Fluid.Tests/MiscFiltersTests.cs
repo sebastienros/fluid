@@ -528,6 +528,7 @@ namespace Fluid.Tests
         [InlineData("One1Two2Three3", "one1-two2-three3")]
         [InlineData("ONE1TWO2THREE3", "one1two2three3")]
         [InlineData("First_Second_ThirdHi", "first_second_third-hi")]
+        [InlineData("100% M & Ms!!!", "100-m-ms")]
         public async Task Handleize(string text, string expected)
         {
             var input = new StringValue(text);
