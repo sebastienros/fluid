@@ -100,7 +100,20 @@ namespace Fluid.Filters
         /// </summary>
         public static ValueTask<FluidValue> Handleize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(HtmlCaseRegex.Replace(input.ToStringValue(), "-$1$2").ToLowerInvariant());
+            var value = input.ToStringValue();
+
+            var result = HtmlCaseRegex.Replace(value, "-$1$2").ToLowerInvariant();
+
+            // Replace all non-alphanumeric characters with a dash
+            result = Regex.Replace(result, @"[^0-9a-zA-Z_]", "-");
+
+            // Replace all subsequent dashes with a single dash
+            result = Regex.Replace(result, @"[-]{2,}", "-");
+
+            // Remove any trailing dashes
+            result = Regex.Replace(result, @"-+$", string.Empty);
+
+            return new StringValue(result);
         }
 
         public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
