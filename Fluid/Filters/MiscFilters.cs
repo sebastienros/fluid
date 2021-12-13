@@ -104,6 +104,7 @@ namespace Fluid.Filters
             var kebabCase = HtmlCaseRegex.Replace(input.ToStringValue(), "-$1$2").ToLowerInvariant();
             var value = new StringBuilder(kebabCase);
             var replace = false;
+            var removedCharsNo = 0;
 
             for (int i = 0; i < value.Length; i++)
             {
@@ -112,8 +113,8 @@ namespace Fluid.Filters
                 while (Char.IsWhiteSpace(currentChar) || Char.IsPunctuation(currentChar))
                 {
                     replace = true;
-
-                    value.Remove(i, 1);
+                    ++i;
+                    ++removedCharsNo;
 
                     if (i == value.Length)
                     {
@@ -125,9 +126,14 @@ namespace Fluid.Filters
 
                 if (replace)
                 {
-                    value.Insert(i, KebabCaseSeparator);
+                    var index = i - removedCharsNo;
+                    value.Remove(index, removedCharsNo);
+                    value.Insert(index, KebabCaseSeparator);
+
+                    --i;
 
                     replace = false;
+                    removedCharsNo = 0;
                 }
             }
 
