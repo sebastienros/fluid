@@ -131,7 +131,7 @@ namespace Fluid.Filters
                 }
             }
 
-            return new StringValue(value.Trim('-').ToString());
+            return new StringValue(value.Trim(KebabCaseSeparator).ToString());
         }
 
         public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
