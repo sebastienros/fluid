@@ -101,43 +101,31 @@ namespace Fluid.Filters
         /// </summary>
         public static ValueTask<FluidValue> Handleize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var kebabCase = HtmlCaseRegex.Replace(input.ToStringValue(), "-$1$2").ToLowerInvariant();
-            var value = new StringBuilder(kebabCase);
-            var replace = false;
-            var removedCharsNo = 0;
+            var kebabCase = HtmlCaseRegex
+                .Replace(input.ToStringValue(), "-$1$2")
+                .ToLowerInvariant();
+            var result = new StringBuilder();
+            var appendDash = false;
 
-            for (int i = 0; i < value.Length; i++)
+            for (int i = 0; i < kebabCase.Length; i++)
             {
-                var currentChar = value[i];
-                
-                while (Char.IsWhiteSpace(currentChar) || Char.IsPunctuation(currentChar))
+                var currentChar = kebabCase[i];
+                if (char.IsLetterOrDigit(currentChar))
                 {
-                    replace = true;
-                    ++i;
-                    ++removedCharsNo;
-
-                    if (i == value.Length)
-                    {
-                        break;
-                    }
-
-                    currentChar = value[i];
+                    appendDash = true;
+                    result.Append(currentChar);
                 }
-
-                if (replace)
+                else
                 {
-                    var index = i - removedCharsNo;
-                    value.Remove(index, removedCharsNo);
-                    value.Insert(index, KebabCaseSeparator);
-
-                    --i;
-
-                    replace = false;
-                    removedCharsNo = 0;
+                    if (appendDash)
+                    {
+                        appendDash = false;
+                        result.Append(KebabCaseSeparator);
+                    }
                 }
             }
 
-            return new StringValue(value.Trim(KebabCaseSeparator).ToString());
+            return new StringValue(result.ToString());
         }
 
         public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
