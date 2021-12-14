@@ -101,15 +101,15 @@ namespace Fluid.Filters
         /// </summary>
         public static ValueTask<FluidValue> Handleize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var kebabCase = HtmlCaseRegex
+            var value = HtmlCaseRegex
                 .Replace(input.ToStringValue(), "-$1$2")
                 .ToLowerInvariant();
             var result = new StringBuilder();
             var appendDash = false;
 
-            for (int i = 0; i < kebabCase.Length; i++)
+            for (int i = 0; i < value.Length; i++)
             {
-                var currentChar = kebabCase[i];
+                var currentChar = value[i];
                 if (char.IsLetterOrDigit(currentChar))
                 {
                     appendDash = true;
@@ -123,6 +123,12 @@ namespace Fluid.Filters
                         result.Append(KebabCaseSeparator);
                     }
                 }
+            }
+
+            var lastIndex = result.Length - 1;
+            if (result[lastIndex] == KebabCaseSeparator)
+            {
+                result.Remove(lastIndex, 1);
             }
 
             return new StringValue(result.ToString());
