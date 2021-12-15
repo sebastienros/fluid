@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
-using System.Text.RegularExpressions;
 using System.Text.Json;
 using Fluid.Values;
 using TimeZoneConverter;
@@ -56,12 +55,6 @@ namespace Fluid.Filters
             "THHK"
         };
 
-        private static readonly Regex HtmlCaseRegex =
-            new Regex(
-                "(?<!^)((?<=[a-zA-Z0-9])[A-Z][a-z])|((?<=[a-z])[A-Z])",
-                RegexOptions.None,
-                TimeSpan.FromMilliseconds(500));
-
         private const string Now = "now";
         private const string Today = "today";
 
@@ -101,37 +94,66 @@ namespace Fluid.Filters
         /// </summary>
         public static ValueTask<FluidValue> Handleize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var value = HtmlCaseRegex
-                .Replace(input.ToStringValue(), "-$1$2")
-                .ToLowerInvariant();
+            var value = input.ToStringValue();
             var result = new StringBuilder();
-            var appendDash = false;
+            var lastIndex = value.Length - 1;
 
             for (int i = 0; i < value.Length; i++)
             {
                 var currentChar = value[i];
-                if (char.IsLetterOrDigit(currentChar))
+                var lookAheadChar = i == lastIndex
+                    ? '\0'
+                    : value[i + 1];
+
+                if (!char.IsLetterOrDigit(currentChar))
                 {
-                    appendDash = true;
+                    continue;
+                }
+
+                if (i == 0 || i == lastIndex)
+                {
                     result.Append(currentChar);
+
+                    continue;
+                }
+                
+                if (IsCapitalLetter(lookAheadChar))
+                {
+                    if (IsCapitalLetter(currentChar))
+                    {
+                        result.Append(currentChar);
+                    }
+                    else
+                    {
+                        if (IsCapitalLetter(lookAheadChar) && char.IsDigit(currentChar))
+                        {
+                            result.Append(currentChar);
+                        }
+                        else
+                        {
+                            result
+                                .Append(currentChar)
+                                .Append(KebabCaseSeparator);
+                        }
+                    }
                 }
                 else
                 {
-                    if (appendDash)
+                    if (IsCapitalLetter(currentChar))
                     {
-                        appendDash = false;
-                        result.Append(KebabCaseSeparator);
+                        if (result[result.Length - 1] != KebabCaseSeparator && !char.IsDigit(lookAheadChar))
+                        {
+                            result.Append(KebabCaseSeparator);
+                        }
                     }
+
+                    result.Append(currentChar);
                 }
             }
 
-            var lastIndex = result.Length - 1;
-            if (result[lastIndex] == KebabCaseSeparator)
-            {
-                result.Remove(lastIndex, 1);
-            }
+            static bool IsCapitalLetter(char c) => c >= 'A' && c <= 'Z';
 
-            return new StringValue(result.ToString());
+            return new StringValue(result.ToString().ToLowerInvariant());
         }
 
         public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
