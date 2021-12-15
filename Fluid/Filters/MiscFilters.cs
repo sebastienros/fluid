@@ -673,32 +673,17 @@ namespace Fluid.Filters
                         foreach (var property in properties)
                         {
                             var name = conv(property);
-                            var access = strategy.GetAccessor(type, name);
-                            if (access == null)
-                            {
-                                continue;
-                            }
-
-                            object value;
-                            if (access is IAsyncMemberAccessor asyncMemberAccessor)
-                            {
-                                value = await asyncMemberAccessor.GetAsync(obj, name, ctx);
-                            }
-                            else
-                            {
-                                value = access.Get(obj, name, ctx);
-                            }
-
-                            stack ??= new HashSet<object>();
-                            if (stack.Contains(value))
-                            {
-                                value = "circular reference detected.";
-                            }
-
-                            var fluidValue = FluidValue.Create(value, ctx.Options);
+                            var fluidValue = await input.GetValueAsync(name, ctx);
                             if (fluidValue.IsNil())
                             {
                                 continue;
+                            }
+
+                            stack ??= new HashSet<object>();
+                            if(fluidValue is ObjectValue)
+                            {
+                                var value = fluidValue.ToObjectValue();
+                                if(stack.Contains(value)) fluidValue = StringValue.Create("circular reference detected.");
                             }
 
                             writer.WritePropertyName(name);
