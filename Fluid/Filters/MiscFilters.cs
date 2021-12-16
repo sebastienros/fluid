@@ -627,7 +627,6 @@ namespace Fluid.Filters
                     {
                         await WriteJson(writer, item, ctx);
                     }
-
                     writer.WriteEndArray();
                     break;
                 case FluidValues.Boolean:
@@ -658,7 +657,10 @@ namespace Fluid.Filters
 
                         writer.WriteEndObject();
                     }
-
+                    else
+                    {
+                        writer.WriteNullValue();
+                    }
                     break;
                 case FluidValues.Object:
                     var obj = input.ToObjectValue();
@@ -694,7 +696,10 @@ namespace Fluid.Filters
 
                         writer.WriteEndObject();
                     }
-
+                    else
+                    {
+                        writer.WriteNullValue();
+                    }
                     break;
                 case FluidValues.DateTime:
                     var objValue = input.ToObjectValue();
