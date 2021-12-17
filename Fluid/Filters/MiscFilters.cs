@@ -682,10 +682,13 @@ namespace Fluid.Filters
                             }
 
                             stack ??= new HashSet<object>();
-                            if(fluidValue is ObjectValue)
+                            if (fluidValue is ObjectValue)
                             {
                                 var value = fluidValue.ToObjectValue();
-                                if(stack.Contains(value)) fluidValue = StringValue.Create("circular reference detected.");
+                                if (stack.Contains(value))
+                                {
+                                    fluidValue = StringValue.Create("Circular reference has been detected.");
+                                }
                             }
 
                             writer.WritePropertyName(name);

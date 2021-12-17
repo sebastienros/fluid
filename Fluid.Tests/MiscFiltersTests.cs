@@ -642,18 +642,8 @@ namespace Fluid.Tests
             var options = new TemplateOptions();
             options.MemberAccessStrategy.Register(model.GetType());
             var input = FluidValue.Create(model, options);
-
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             Assert.Equal("{\"Id\":1,\"WithoutIndexable\":null,\"Bool\":true}", result.ToStringValue());
-        }
-
-        private class DictionaryWithoutIndexableTestObjects : ObjectValueBase
-        {
-            public override FluidValues Type => FluidValues.Dictionary;
-            public DictionaryWithoutIndexableTestObjects(object value) : base(value)
-            {
-
-            }
         }
 
         [Theory]
@@ -808,6 +798,15 @@ namespace Fluid.Tests
         {
             public static int StaticMember { get; set; } = 1;
             public int Id { get; set; }
+        }
+
+        private class DictionaryWithoutIndexableTestObjects : ObjectValueBase
+        {
+            public override FluidValues Type => FluidValues.Dictionary;
+            public DictionaryWithoutIndexableTestObjects(object value) : base(value)
+            {
+
+            }
         }
     }
 }
