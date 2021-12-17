@@ -601,7 +601,7 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
 
-            Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}}", result.ToStringValue());
+            Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}}", result.ToStringValue());
         }
 
         [Fact]
@@ -615,7 +615,7 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
 
-            Assert.Equal("{\"Name\":\"MultipleNode1\",\"Node1\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}},\"Node2\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}}}", result.ToStringValue());
+            Assert.Equal("{\"Name\":\"MultipleNode1\",\"Node1\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}},\"Node2\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}}}", result.ToStringValue());
         }
 
         [Fact]
