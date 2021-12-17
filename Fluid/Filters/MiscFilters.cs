@@ -264,7 +264,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> ChangeTimeZone(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (!TryGetDateTimeInput(input, context, out var value))
+            if (!input.TryGetDateTimeInput(context, out var value))
             {
                 return NilValue.Instance;
             }
@@ -285,7 +285,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Date(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (!TryGetDateTimeInput(input, context, out var value))
+            if (!input.TryGetDateTimeInput(context, out var value))
             {
                 return NilValue.Instance;
             }
@@ -520,7 +520,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> FormatDate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (!TryGetDateTimeInput(input, context, out var value))
+            if (!input.TryGetDateTimeInput(context, out var value))
             {
                 return NilValue.Instance;
             }
@@ -542,7 +542,7 @@ namespace Fluid.Filters
             return new StringValue(value.ToString(format, culture));
         }
 
-        private static bool TryGetDateTimeInput(FluidValue input, TemplateContext context, out DateTimeOffset result)
+        public static bool TryGetDateTimeInput(this FluidValue input, TemplateContext context, out DateTimeOffset result)
         {
             result = context.Now();
 
