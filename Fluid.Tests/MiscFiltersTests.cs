@@ -630,6 +630,32 @@ namespace Fluid.Tests
             Assert.Equal("{\"Id\":100}", result.ToStringValue());
         }
 
+        [Fact]
+        public async Task JsonShouldWriteNullIfDictionaryNotReturnFluidIndexable()
+        {
+            var model = new
+            {
+                Id = 1,
+                WithoutIndexable = new DictionaryWithoutIndexableTestObjects(new { }),
+                Bool = true
+            };
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register(model.GetType());
+            var input = FluidValue.Create(model, options);
+
+            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
+            Assert.Equal("{\"Id\":1,\"WithoutIndexable\":null,\"Bool\":true}", result.ToStringValue());
+        }
+
+        private class DictionaryWithoutIndexableTestObjects : ObjectValueBase
+        {
+            public override FluidValues Type => FluidValues.Dictionary;
+            public DictionaryWithoutIndexableTestObjects(object value) : base(value)
+            {
+
+            }
+        }
+
         [Theory]
         [InlineData("", "", "", "0")]
         [InlineData(123456, "", "", "123456")]
