@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
-using System.Text.RegularExpressions;
 using System.Text.Json;
 using Fluid.Values;
 using TimeZoneConverter;
@@ -15,11 +14,7 @@ namespace Fluid.Filters
 {
     public static class MiscFilters
     {
-        private static readonly Regex HtmlCaseRegex =
-            new Regex(
-                "(?<!^)((?<=[a-zA-Z0-9])[A-Z][a-z])|((?<=[a-z])[A-Z])",
-                RegexOptions.None,
-                TimeSpan.FromMilliseconds(500));
+        private const char KebabCaseSeparator = '-';
 
         public static FilterCollection WithMiscFilters(this FilterCollection filters)
         {
@@ -57,7 +52,66 @@ namespace Fluid.Filters
         /// </summary>
         public static ValueTask<FluidValue> Handleize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(HtmlCaseRegex.Replace(input.ToStringValue(), "-$1$2").ToLowerInvariant());
+            var value = input.ToStringValue();
+            var result = new StringBuilder();
+            var lastIndex = value.Length - 1;
+
+            for (int i = 0; i < value.Length; i++)
+            {
+                var currentChar = value[i];
+                var lookAheadChar = i == lastIndex
+                    ? '\0'
+                    : value[i + 1];
+
+                if (!char.IsLetterOrDigit(currentChar))
+                {
+                    continue;
+                }
+
+                if (i == 0 || i == lastIndex)
+                {
+                    result.Append(currentChar);
+
+                    continue;
+                }
+                
+                if (IsCapitalLetter(lookAheadChar))
+                {
+                    if (IsCapitalLetter(currentChar))
+                    {
+                        result.Append(currentChar);
+                    }
+                    else
+                    {
+                        if (IsCapitalLetter(lookAheadChar) && char.IsDigit(currentChar))
+                        {
+                            result.Append(currentChar);
+                        }
+                        else
+                        {
+                            result
+                                .Append(currentChar)
+                                .Append(KebabCaseSeparator);
+                        }
+                    }
+                }
+                else
+                {
+                    if (IsCapitalLetter(currentChar))
+                    {
+                        if (result[result.Length - 1] != KebabCaseSeparator && !char.IsDigit(lookAheadChar))
+                        {
+                            result.Append(KebabCaseSeparator);
+                        }
+                    }
+
+                    result.Append(currentChar);
+                }
+            }
+
+            static bool IsCapitalLetter(char c) => c >= 'A' && c <= 'Z';
+
+            return new StringValue(result.ToString().ToLowerInvariant());
         }
 
         public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
