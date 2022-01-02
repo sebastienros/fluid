@@ -182,6 +182,7 @@ namespace Fluid.Values
 
                     // Check if it's a more specific IDictionary<string, V>, e.g. JObject
                     var cache = _genericDictionaryTypeCache;
+
                     if (!cache.TryGetValue(typeOfValue, out var genericType))
                     {
                         foreach (var i in typeOfValue.GetInterfaces())
@@ -193,8 +194,9 @@ namespace Fluid.Values
                             }
                         }
 
-                        // Swap the previous cache with a new copy to prevent locking on reads
-                        // make sure we also store null value so we don't try again
+                        // Swap the previous cache with a new copy if no other thread has updated the reference.
+                        // This ensures the dictionary can only grow and not replace another one of the same size.
+                        // Store a null value for non-matching types so we don't try again
                         Interlocked.CompareExchange(ref _genericDictionaryTypeCache, new Dictionary<Type, Type>(cache)
                         {
                             [typeOfValue] = genericType
