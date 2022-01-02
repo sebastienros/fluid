@@ -15,8 +15,9 @@ namespace Fluid.Ast
         {
             context.IncrementSteps();
 
-            foreach (var statement in Statements)
+            for (var i = 0; i < _statements.Count; i++)
             {
+                var statement = _statements[i];
                 await statement.WriteToAsync(writer, encoder, context);
             }
 
