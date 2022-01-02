@@ -603,7 +603,7 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
 
-            Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}}", result.ToStringValue());
+            Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}}", result.ToStringValue());
         }
 
         [Fact]
@@ -617,7 +617,7 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
 
-            Assert.Equal("{\"Name\":\"MultipleNode1\",\"Node1\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}},\"Node2\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}}}", result.ToStringValue());
+            Assert.Equal("{\"Name\":\"MultipleNode1\",\"Node1\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}},\"Node2\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}}}", result.ToStringValue());
         }
 
         [Fact]
@@ -630,6 +630,22 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             Assert.Equal("{\"Id\":100}", result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task JsonShouldWriteNullIfDictionaryNotReturnFluidIndexable()
+        {
+            var model = new
+            {
+                Id = 1,
+                WithoutIndexable = new DictionaryWithoutIndexableTestObjects(new { }),
+                Bool = true
+            };
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register(model.GetType());
+            var input = FluidValue.Create(model, options);
+            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
+            Assert.Equal("{\"Id\":1,\"WithoutIndexable\":null,\"Bool\":true}", result.ToStringValue());
         }
 
         [Theory]
@@ -784,6 +800,15 @@ namespace Fluid.Tests
         {
             public static int StaticMember { get; set; } = 1;
             public int Id { get; set; }
+        }
+
+        private class DictionaryWithoutIndexableTestObjects : ObjectValueBase
+        {
+            public override FluidValues Type => FluidValues.Dictionary;
+            public DictionaryWithoutIndexableTestObjects(object value) : base(value)
+            {
+
+            }
         }
     }
 }

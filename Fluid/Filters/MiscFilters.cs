@@ -563,7 +563,6 @@ namespace Fluid.Filters
                     {
                         await WriteJson(writer, item, ctx);
                     }
-
                     writer.WriteEndArray();
                     break;
                 case FluidValues.Boolean:
@@ -594,7 +593,10 @@ namespace Fluid.Filters
 
                         writer.WriteEndObject();
                     }
-
+                    else
+                    {
+                        writer.WriteNullValue();
+                    }
                     break;
                 case FluidValues.Object:
                     var obj = input.ToObjectValue();
@@ -609,32 +611,20 @@ namespace Fluid.Filters
                         foreach (var property in properties)
                         {
                             var name = conv(property);
-                            var access = strategy.GetAccessor(type, name);
-                            if (access == null)
-                            {
-                                continue;
-                            }
-
-                            object value;
-                            if (access is IAsyncMemberAccessor asyncMemberAccessor)
-                            {
-                                value = await asyncMemberAccessor.GetAsync(obj, name, ctx);
-                            }
-                            else
-                            {
-                                value = access.Get(obj, name, ctx);
-                            }
-
-                            stack ??= new HashSet<object>();
-                            if (stack.Contains(value))
-                            {
-                                value = "circular reference detected.";
-                            }
-
-                            var fluidValue = FluidValue.Create(value, ctx.Options);
+                            var fluidValue = await input.GetValueAsync(name, ctx);
                             if (fluidValue.IsNil())
                             {
                                 continue;
+                            }
+
+                            stack ??= new HashSet<object>();
+                            if (fluidValue is ObjectValue)
+                            {
+                                var value = fluidValue.ToObjectValue();
+                                if (stack.Contains(value))
+                                {
+                                    fluidValue = StringValue.Create("Circular reference has been detected.");
+                                }
                             }
 
                             writer.WritePropertyName(name);
@@ -645,7 +635,10 @@ namespace Fluid.Filters
 
                         writer.WriteEndObject();
                     }
-
+                    else
+                    {
+                        writer.WriteNullValue();
+                    }
                     break;
                 case FluidValues.DateTime:
                     var objValue = input.ToObjectValue();
