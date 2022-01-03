@@ -27,7 +27,7 @@ namespace Fluid.Ast
 
             // Search the initial segment in the local scope first
 
-            FluidValue value = context.LocalScope.GetValue(initial.Identifier);
+            var value = context.LocalScope.GetValue(initial.Identifier);
 
             // If it was not successful, try again with a member of the model
 
