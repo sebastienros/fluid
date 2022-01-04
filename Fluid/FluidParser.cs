@@ -91,7 +91,7 @@ namespace Fluid
 
             var Call = parserOptions.AllowFunctions
                 ? LParen.SkipAnd(FunctionCallArgumentsList).AndSkip(RParen).Then<MemberSegment>(x => new FunctionCallSegment(x))
-                : LParen.Then<MemberSegment>(_ => null).Error(ErrorMessages.FunctionsNotAllowed)
+                : LParen.Then<MemberSegment>(_ => throw new ParseException(ErrorMessages.FunctionsNotAllowed)) //.Error(ErrorMessages.FunctionsNotAllowed)
                 ;
 
             var Member = Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)).And(
