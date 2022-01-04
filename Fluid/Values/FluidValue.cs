@@ -61,6 +61,11 @@ namespace Fluid.Values
             return new ValueTask<FluidValue>(GetIndex(index, context));
         }
 
+        public virtual ValueTask<FluidValue> InvokeAsync(FunctionArguments arguments, TemplateContext context)
+        {
+            return NilValue.Instance;
+        }
+
         protected virtual FluidValue GetIndex(FluidValue index, TemplateContext context)
         {
             return NilValue.Instance;

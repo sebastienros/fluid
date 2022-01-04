@@ -57,10 +57,11 @@ namespace Fluid
         protected static readonly Parser<string> Identifier = SkipWhiteSpace(new IdentifierParser()).Then(x => x.ToString());
 
         protected readonly Parser<List<FilterArgument>> ArgumentsList;
+        protected readonly Parser<List<FunctionCallArgument>> FunctionCallArgumentsList;
         protected readonly Parser<Expression> LogicalExpression;
         protected readonly Parser<Expression> CombinatoryExpression; // and | or
-        protected static readonly Deferred<Expression> Primary = Deferred<Expression>();
-        protected static readonly Deferred<Expression> FilterExpression = Deferred<Expression>();
+        protected readonly Deferred<Expression> Primary = Deferred<Expression>();
+        protected readonly Deferred<Expression> FilterExpression = Deferred<Expression>();
         protected readonly Deferred<List<Statement>> KnownTagsList = Deferred<List<Statement>>();
         protected readonly Deferred<List<Statement>> AnyTagsList = Deferred<List<Statement>>();
 
@@ -69,18 +70,35 @@ namespace Fluid
         protected static readonly Parser<TagResult> TagStart = TagParsers.TagStart();
         protected static readonly Parser<TagResult> TagStartSpaced = TagParsers.TagStart(true);
         protected static readonly Parser<TagResult> TagEnd = TagParsers.TagEnd(true);
-
-        public FluidParser()
+        
+        public FluidParser() : this (new())
+        {
+        }
+        
+        public FluidParser(FluidParserOptions parserOptions) 
         {
             var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)));
 
             // Member expressions
             var Indexer = Between(LBracket, Primary, RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
 
+            // ([name =] value ,)+
+            FunctionCallArgumentsList = ZeroOrOne(Separated(Comma,
+                            OneOf(
+                                Identifier.AndSkip(Equal).And(Primary).Then(static x => new FunctionCallArgument(x.Item1, x.Item2)),
+                                Primary.Then(static x => new FunctionCallArgument(null, x))
+                            ))).Then(x => x ?? new List<FunctionCallArgument>());
+
+            var Call = parserOptions.AllowFunctions
+                ? LParen.SkipAnd(FunctionCallArgumentsList).AndSkip(RParen).Then<MemberSegment>(x => new FunctionCallSegment(x))
+                : LParen.Then<MemberSegment>(_ => null).Error(ErrorMessages.FunctionsNotAllowed)
+                ;
+
             var Member = Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)).And(
                 ZeroOrMany(
                     Dot.SkipAnd(Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)))
-                    .Or(Indexer)))
+                    .Or(Indexer)
+                    .Or(Call)))
                 .Then(x =>
                 {
                     x.Item2.Insert(0, x.Item1);
