@@ -99,5 +99,22 @@ namespace Fluid.Tests
                 Assert.Equal("hh", result);
             }
         }
+
+        [Fact]
+        public async Task ShouldDefineMacro()
+        {
+            var source = @"
+                {%- macro hello(first, last='Smith') -%}
+                Hello {{first | capitalize }} {{last}}
+                {%- endmacro -%}
+
+                {{- hello('mike') }} {{ hello(last= 'ros', first='sebastien') -}}
+            ";
+
+            _parser.TryParse(source, out var template, out var error);
+            var context = new TemplateContext();
+            var result = await template.RenderAsync(context);
+            Assert.Equal("Hello Mike Smith Hello Sebastien ros", result);
+        }
     }
 }

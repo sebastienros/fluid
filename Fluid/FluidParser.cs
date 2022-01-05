@@ -81,12 +81,17 @@ namespace Fluid
             // Member expressions
             var Indexer = Between(LBracket, Primary, RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
 
-            // ([name =] value ,)+
+            // ([name =] value,)+
             FunctionCallArgumentsList = ZeroOrOne(Separated(Comma,
                             OneOf(
                                 Identifier.AndSkip(Equal).And(Primary).Then(static x => new FunctionCallArgument(x.Item1, x.Item2)),
                                 Primary.Then(static x => new FunctionCallArgument(null, x))
                             ))).Then(x => x ?? new List<FunctionCallArgument>());
+
+            // (name [= value],)+
+            var FunctionDefinitionArgumentsList = ZeroOrOne(Separated(Comma,
+                            Identifier.And(ZeroOrOne(Equal.SkipAnd(Primary))).Then(static x => new FunctionCallArgument(x.Item1, x.Item2)))
+                            ).Then(x => x ?? new List<FunctionCallArgument>());
 
             var Call = parserOptions.AllowFunctions
                 ? LParen.SkipAnd(FunctionCallArgumentsList).AndSkip(RParen).Then<MemberSegment>(x => new FunctionCallSegment(x))
@@ -245,6 +250,16 @@ namespace Fluid
                         .AndSkip(CreateTag("endcapture").ElseError($"'{{% endcapture %}}' was expected"))
                         .Then<Statement>(x => new CaptureStatement(x.Item1, x.Item2))
                         .ElseError("Invalid 'capture' tag")
+                        ;
+            var MacroTag = Identifier.ElseError(ErrorMessages.IdentifierAfterMacro)
+                        .AndSkip(LParen).ElseError(ErrorMessages.IdentifierAfterMacro)
+                        .And(FunctionDefinitionArgumentsList)
+                        .AndSkip(RParen)
+                        .AndSkip(TagEnd)
+                        .And(AnyTagsList)
+                        .AndSkip(CreateTag("endmacro").ElseError($"'{{% endmacro %}}' was expected"))
+                        .Then<Statement>(x => new MacroStatement(x.Item1, x.Item2, x.Item3))
+                        .ElseError("Invalid 'macro' tag")
                         ;
             var CycleTag = ZeroOrOne(Primary.AndSkip(Colon))
                         .And(Separated(Comma, Primary))
@@ -406,6 +421,11 @@ namespace Fluid
             RegisteredTags["for"] = ForTag;
             RegisteredTags["liquid"] = LiquidTag;
             RegisteredTags["echo"] = EchoTag;
+
+            if (parserOptions.AllowFunctions)
+            {
+                RegisteredTags["macro"] = MacroTag;
+            }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             static (Expression limitResult, Expression offsetResult, bool reversed) ReadForStatementConfiguration(List<ForModifier> modifiers)
