@@ -37,7 +37,7 @@ To see the corresponding content for v1.0 use [this version](https://github.com/
 - [ASP.NET MVC View Engine](#aspnet-mvc-view-engine)
 - [Whitespace control](#whitespace-control)
 - [Custom filters](#custom-filters)
-- [Functions] (#functions)
+- [Functions](#functions)
 - [Performance](#performance)
 - [Used by](#used-by)
 
