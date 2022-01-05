@@ -12,7 +12,6 @@ using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using static Parlot.Fluent.Parsers;
-using static Fluid.Parser.ErrorMessages;
 
 namespace Fluid
 {
@@ -91,7 +90,7 @@ namespace Fluid
 
             var Call = parserOptions.AllowFunctions
                 ? LParen.SkipAnd(FunctionCallArgumentsList).AndSkip(RParen).Then<MemberSegment>(x => new FunctionCallSegment(x))
-                : LParen.Then<MemberSegment>(_ => throw new ParseException(ErrorMessages.FunctionsNotAllowed)) //.Error(ErrorMessages.FunctionsNotAllowed)
+                : LParen.Error<MemberSegment>(ErrorMessages.FunctionsNotAllowed)
                 ;
 
             var Member = Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)).And(
@@ -182,10 +181,10 @@ namespace Fluid
                             ));
 
             // Primary ( | identifer ( ':' ArgumentsList )! ] )*
-            FilterExpression.Parser = LogicalExpression.ElseError(LogicalExpressionStartsFilter)
+            FilterExpression.Parser = LogicalExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter)
                 .And(ZeroOrMany(
                     Pipe
-                    .SkipAnd(Identifier.ElseError(IdentifierAfterPipe))
+                    .SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterPipe))
                     .And(ZeroOrOne(Colon.SkipAnd(ArgumentsList)))))
                 .Then((ctx, x) =>
                     {
@@ -204,7 +203,7 @@ namespace Fluid
                         return result;
                     });
 
-            var Output = OutputStart.SkipAnd(FilterExpression.And(OutputEnd.ElseError(ExpectedOutputEnd))
+            var Output = OutputStart.SkipAnd(FilterExpression.And(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd))
                 .Then<Statement>(static x => new OutputStatement(x.Item1))
                 );
 
@@ -272,7 +271,7 @@ namespace Fluid
                         .ElseError("Invalid 'include' tag")
                         ;
 
-            var StringAfterRender = String.ElseError(ExpectedStringRender);
+            var StringAfterRender = String.ElseError(ErrorMessages.ExpectedStringRender);
 
             var RenderTag = OneOf(
                         StringAfterRender.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new RenderStatement(this, x.Item1.ToString(), null, null, null, x.Item2)),
@@ -285,7 +284,7 @@ namespace Fluid
                         ;
 
             var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
-            var AssignTag = Identifier.Then(x => x).ElseError(IdentifierAfterAssign).AndSkip(Equal.ElseError(EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
+            var AssignTag = Identifier.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
             var IfTag = LogicalExpression
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
