@@ -2,7 +2,7 @@
 
 namespace Fluid.Ast
 {
-    public class NamedExpressionList
+    public sealed class NamedExpressionList
     {
         public static readonly NamedExpressionList Empty = new NamedExpressionList();
 

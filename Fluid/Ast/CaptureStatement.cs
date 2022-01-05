@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class CaptureStatement : TagStatement
+    internal sealed class CaptureStatement : TagStatement
     {
+        private readonly string _identifier;
+
         public CaptureStatement(string identifier, List<Statement> statements): base(statements)
         {
-            Identifier = identifier;
+            _identifier = identifier;
         }
-
-        public string Identifier { get; }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -39,11 +39,11 @@ namespace Fluid.Ast
             // Substitute the result if a custom callback is provided
             if (context.Captured != null)
             {
-                 result = await context.Captured.Invoke(Identifier, result);
+                 result = await context.Captured.Invoke(_identifier, result);
             }
 
             // Don't encode captured blocks
-            context.SetValue(Identifier, new StringValue(result, false));
+            context.SetValue(_identifier, new StringValue(result, false));
 
             return completion;
         }

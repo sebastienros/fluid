@@ -3,8 +3,14 @@ using Parlot.Fluent;
 
 namespace Fluid.Parser
 {
-    public sealed class IdentifierParser : Parser<TextSpan>
+    internal sealed class IdentifierParser : Parser<TextSpan>
     {
+        public static readonly IdentifierParser Instance = new();
+
+        private IdentifierParser()
+        {
+        }
+
         public override bool Parse(ParseContext context, ref ParseResult<TextSpan> result)
         {
             context.EnterParser(this);

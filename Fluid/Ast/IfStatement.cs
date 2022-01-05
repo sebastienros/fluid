@@ -6,8 +6,10 @@ using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class IfStatement : TagStatement
+    internal sealed class IfStatement : TagStatement
     {
+        private readonly Expression _condition;
+        private readonly ElseStatement _else;
         private readonly List<ElseIfStatement> _elseIfStatements;
 
         public IfStatement(
@@ -17,28 +19,29 @@ namespace Fluid.Ast
             List<ElseIfStatement> elseIfStatements = null
         ) : base(statements)
         {
-            Condition = condition;
-            Else = elseStatement;
+            _condition = condition;
+            _else = elseStatement;
             _elseIfStatements = elseIfStatements ?? new List<ElseIfStatement>();
         }
 
-        public Expression Condition { get; }
-        public ElseStatement Else { get; }
+        public Expression Condition => _condition;
+
+        public ElseStatement Else => _else;
 
         public IReadOnlyList<ElseIfStatement> ElseIfs => _elseIfStatements;
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            var conditionTask = Condition.EvaluateAsync(context);
+            var conditionTask = _condition.EvaluateAsync(context);
             if (conditionTask.IsCompletedSuccessfully)
             {
                 var result = conditionTask.Result.ToBooleanValue();
 
                 if (result)
                 {
-                    for (var i = 0; i < _statements.Count; i++)
+                    var i = 0;
+                    foreach (var statement in _statements.AsSpan())
                     {
-                        var statement = _statements[i];
                         var task = statement.WriteToAsync(writer, encoder, context);
                         if (!task.IsCompletedSuccessfully)
                         {
@@ -53,15 +56,17 @@ namespace Fluid.Ast
                             // We return the completion to flow it to the outer loop
                             return new ValueTask<Completion>(completion);
                         }
+
+                        i++;
                     }
 
                     return new ValueTask<Completion>(Completion.Normal);
                 }
                 else
                 {
-                    for (var i = 0; i < _elseIfStatements.Count; i++)
+                    var i = 0;
+                    foreach (var elseIf in _elseIfStatements.AsSpan())
                     {
-                        var elseIf = _elseIfStatements[i];
                         var elseIfConditionTask = elseIf.Condition.EvaluateAsync(context);
                         if (!elseIfConditionTask.IsCompletedSuccessfully)
                         {
@@ -79,11 +84,12 @@ namespace Fluid.Ast
 
                             return new ValueTask<Completion>(writeTask.Result);
                         }
+                        i++;
                     }
 
-                    if (Else != null)
+                    if (_else != null)
                     {
-                        return Else.WriteToAsync(writer, encoder, context);
+                        return _else.WriteToAsync(writer, encoder, context);
                     }
                 }
 
@@ -168,9 +174,9 @@ namespace Fluid.Ast
                 }
             }
 
-            if (Else != null)
+            if (_else != null)
             {
-                return await Else.WriteToAsync(writer, encoder, context);
+                return await _else.WriteToAsync(writer, encoder, context);
             }
 
             return Completion.Normal;

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Parser
 {
-    public class FluidTemplate : IFluidTemplate
+    public sealed class FluidTemplate : IFluidTemplate
     {
         private readonly List<Statement> _statements;
 
@@ -21,7 +21,7 @@ namespace Fluid.Parser
             _statements = statements ?? throw new ArgumentNullException(nameof(statements));
         }
 
-        public IReadOnlyList<Statement> Statements => _statements;
+        internal IReadOnlyList<Statement> Statements => _statements;
 
         public ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -40,10 +40,10 @@ namespace Fluid.Parser
                 ExceptionHelper.ThrowArgumentNullException(nameof(context));
             }
 
-            var count = Statements.Count;
-            for (var i = 0; i < count; i++)
+            var i = 0;
+            foreach (var statement in _statements.AsSpan())
             {
-                var task = Statements[i].WriteToAsync(writer, encoder, context);
+                var task = statement.WriteToAsync(writer, encoder, context);
                 if (!task.IsCompletedSuccessfully)
                 {
                     return Awaited(
@@ -51,9 +51,11 @@ namespace Fluid.Parser
                         writer,
                         encoder,
                         context,
-                        Statements,
+                        _statements,
                         startIndex: i + 1);
                 }
+
+                i++;
             }
 
             return new ValueTask();

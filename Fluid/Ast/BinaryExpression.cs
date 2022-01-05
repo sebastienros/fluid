@@ -13,9 +13,9 @@ namespace Fluid.Ast
             Right = right;
         }
 
-        public Expression Left { get; }
+        protected Expression Left { get; }
 
-        public Expression Right { get; }
+        protected Expression Right { get; }
 
         /// <summary>
         /// Evaluates two operands and tries to avoid state machines.
@@ -45,7 +45,7 @@ namespace Fluid.Ast
         }
 
         // sub-classes using the default implementation need to override this
-        internal virtual FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+        protected virtual FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
             throw new NotImplementedException();
         }

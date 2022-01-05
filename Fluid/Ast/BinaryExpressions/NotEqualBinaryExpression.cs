@@ -2,16 +2,16 @@
 
 namespace Fluid.Ast.BinaryExpressions
 {
-    public sealed class NotEqualBinaryExpression : BinaryExpression
+    internal sealed class NotEqualBinaryExpression : BinaryExpression
     {
         public NotEqualBinaryExpression(Expression left, Expression right) : base(left, right)
         {
         }
 
-        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+        protected override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
             return leftValue.Equals(rightValue)
-                ? BooleanValue.False 
+                ? BooleanValue.False
                 : BooleanValue.True;
         }
     }

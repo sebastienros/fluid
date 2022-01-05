@@ -21,7 +21,7 @@ namespace Fluid.Parser
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            return _render(Value, Statements, writer, encoder, context);
+            return _render(Value, _statements, writer, encoder, context);
         }
     }
 }

@@ -7,7 +7,7 @@ namespace Fluid
     /// <summary>
     /// Represents the list of arguments of a function.
     /// </summary>
-    public class FunctionArguments
+    public sealed class FunctionArguments
     {
         public static readonly FunctionArguments Empty = new FunctionArguments();
 

@@ -2,13 +2,13 @@
 
 namespace Fluid.Ast.BinaryExpressions
 {
-    public sealed class DivideBinaryExpression : BinaryExpression
+    internal sealed class DivideBinaryExpression : BinaryExpression
     {
         public DivideBinaryExpression(Expression left, Expression right) : base(left, right)
         {
         }
 
-        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+        protected override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
             if (leftValue is NumberValue && rightValue is NumberValue)
             {

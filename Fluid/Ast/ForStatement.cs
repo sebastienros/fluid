@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class ForStatement : TagStatement
+    internal sealed class ForStatement : TagStatement
     {
         public ForStatement(
             List<Statement> statements,

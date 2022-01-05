@@ -12,34 +12,41 @@ namespace Fluid.Ast
     /// <summary>
     /// The render tag can only access immutable environments, which means the scope of the context that was passed to the main template, the options' scope, and the model.
     /// </summary>
-    public class RenderStatement : Statement
+    internal sealed class RenderStatement : Statement
     {
-        public const string ViewExtension = ".liquid";
+        private const string ViewExtension = ".liquid";
+
         private readonly FluidParser _parser;
         private volatile CachedTemplate _cachedTemplate;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
-        public RenderStatement(FluidParser parser, string path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
+        private readonly string _path;
+        private readonly Expression _with;
+        private readonly Expression _for;
+        private readonly string _alias;
+        private readonly List<AssignStatement> _assignStatements;
+
+        public RenderStatement(
+            FluidParser parser,
+            string path,
+            Expression with = null,
+            Expression @for = null,
+            string alias = null,
+            List<AssignStatement> assignStatements = null)
         {
             _parser = parser;
-            Path = path;
-            With = with;
-            For = @for;
-            Alias = alias;
-            AssignStatements = assignStatements;
+            _path = path;
+            _with = with;
+            _for = @for;
+            _alias = alias;
+            _assignStatements = assignStatements;
         }
-
-        public string Path { get; }
-        public IList<AssignStatement> AssignStatements { get; }
-        public Expression With { get; }
-        public Expression For { get; }
-        public string Alias { get; }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
-            var relativePath = Path;
+            var relativePath = _path;
 
             if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))
             {
@@ -92,22 +99,22 @@ namespace Fluid.Ast
 
             try
             {
-                if (With != null)
+                if (_with != null)
                 {
-                    var with = await With.EvaluateAsync(context);
+                    var with = await _with.EvaluateAsync(context);
 
                     context.LocalScope = new Scope(context.RootScope);
                     previousScope.CopyTo(context.LocalScope);
 
-                    context.SetValue(Alias ?? _cachedTemplate.Name, with);
+                    context.SetValue(_alias ?? _cachedTemplate.Name, with);
                     await _cachedTemplate.Template.RenderAsync(writer, encoder, context);
                 }
-                else if (AssignStatements != null)
+                else if (_assignStatements != null)
                 {
-                    var length = AssignStatements.Count;
+                    var length = _assignStatements.Count;
                     for (var i = 0; i < length; i++)
                     {
-                        await AssignStatements[i].WriteToAsync(writer, encoder, context);
+                        await _assignStatements[i].WriteToAsync(writer, encoder, context);
                     }
 
                     context.LocalScope = new Scope(context.RootScope);
@@ -115,13 +122,13 @@ namespace Fluid.Ast
 
                     await _cachedTemplate.Template.RenderAsync(writer, encoder, context);
                 }
-                else if (For != null)
+                else if (_for != null)
                 {
                     try
                     {
                         var forloop = new ForLoopValue();
 
-                        var list = (await For.EvaluateAsync(context)).Enumerate(context).ToList();
+                        var list = (await _for.EvaluateAsync(context)).Enumerate(context).ToList();
 
                         context.LocalScope = new Scope(context.RootScope);
                         previousScope.CopyTo(context.LocalScope);
@@ -136,7 +143,7 @@ namespace Fluid.Ast
 
                             var item = list[i];
 
-                            context.SetValue(Alias ?? _cachedTemplate.Name, item);
+                            context.SetValue(_alias ?? _cachedTemplate.Name, item);
 
                             // Set helper variables
                             forloop.Index = i + 1;

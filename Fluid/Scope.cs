@@ -5,7 +5,7 @@ using Fluid.Values;
 
 namespace Fluid
 {
-    public class Scope
+    public sealed class Scope
     {
         internal Dictionary<string, FluidValue> _properties;
         private readonly bool _forLoopScope;

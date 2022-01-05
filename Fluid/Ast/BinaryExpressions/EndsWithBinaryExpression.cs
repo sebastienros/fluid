@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast.BinaryExpressions
 {
-    public sealed class EndsWithBinaryExpression : BinaryExpression
+    internal sealed class EndsWithBinaryExpression : BinaryExpression
     {
         public EndsWithBinaryExpression(Expression left, Expression right) : base(left, right)
         {

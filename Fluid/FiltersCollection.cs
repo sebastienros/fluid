@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Fluid
 {
-    public class FilterCollection : IEnumerable<KeyValuePair<string, FilterDelegate>>
+    public sealed class FilterCollection : IEnumerable<KeyValuePair<string, FilterDelegate>>
     {
         private Dictionary<string, FilterDelegate> _filters;
 

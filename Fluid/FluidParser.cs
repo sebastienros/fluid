@@ -53,7 +53,7 @@ namespace Fluid
         protected static readonly Parser<string> BinaryOr = Terms.Text("or");
         protected static readonly Parser<string> BinaryAnd = Terms.Text("and");
 
-        protected static readonly Parser<string> Identifier = SkipWhiteSpace(new IdentifierParser()).Then(x => x.ToString());
+        protected static readonly Parser<string> Identifier = SkipWhiteSpace(IdentifierParser.Instance).Then(x => x.ToString());
 
         protected readonly Parser<List<FilterArgument>> ArgumentsList;
         protected readonly Parser<List<FunctionCallArgument>> FunctionCallArgumentsList;
@@ -172,7 +172,7 @@ namespace Fluid
                             "and" => new AndBinaryExpression(previous, result),
                             _ => throw new ParseException()
                         };
-                        
+
                     }
 
                     return result;
