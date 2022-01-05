@@ -1,7 +1,6 @@
 <p align="center"><img width=25% src="https://github.com/sebastienros/fluid/raw/main/Assets/logo-vertical.png"></p>
 
 [![NuGet](https://img.shields.io/nuget/v/Fluid.Core.svg)](https://nuget.org/packages/Fluid.Core)
-[![NuGet](https://img.shields.io/nuget/vpre/Fluid.Core.svg)](https://nuget.org/packages/Fluid.Core)
 [![MIT](https://img.shields.io/github/license/sebastienros/fluid)](https://github.com/sebastienros/fluid/blob/main/LICENSE)
 
 ## Basic Overview
