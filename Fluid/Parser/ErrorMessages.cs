@@ -10,5 +10,8 @@
         public const string ExpectedTagEnd = "End of tag '%}' was expected";
         public const string ExpectedOutputEnd = "End of tag '}}' was expected";
         public const string ExpectedStringRender = "A quoted string value is required for the render tag";
+        public const string FunctionsNotAllowed = "Functions are not allowed";
+        public const string IdentifierAfterMacro = "An identifier was expected after the 'macro' tag";
+        public const string ParentesesAfterFunctionName = "Start of arguments '(' is expected after a function name";
     }
 }

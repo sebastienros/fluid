@@ -37,6 +37,7 @@ To see the corresponding content for v1.0 use [this version](https://github.com/
 - [ASP.NET MVC View Engine](#aspnet-mvc-view-engine)
 - [Whitespace control](#whitespace-control)
 - [Custom filters](#custom-filters)
+- [Functions] (#functions)
 - [Performance](#performance)
 - [Used by](#used-by)
 
@@ -866,6 +867,66 @@ hello world $123.00
 ```
 
 Documentation: https://docs.microsoft.com/en-us/dotnet/api/system.string.format
+
+<br>
+
+## Functions
+
+Fluid provides optional support for functions, which is not part of the standard Liquid templating language. As such it is not enabled by default.
+
+### Enabling functions
+
+When instantiating a `FluidParser` set the `FluidParserOptions.AllowFunction` property to `true`.
+
+```
+var parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
+```
+
+When functions are used while the feature is not enabled, a parse error will be returned.
+
+### Declaring local functions with the `macro` tag
+
+`macro` allows you to define reusable chunks of content invoke with local function.
+
+```
+{% macro field(name, value='', type='text') %}
+<div class="field">
+  <input type="{{ type }}" name="{{ name }}"
+         value="{{ value }}" />
+</div>
+{% endmacro %}
+```
+
+Now `field` is available as a local property of the template and can be invoked as a function.
+
+```
+{{ field('user') }}
+{{ field('pass', type='password') }}
+```
+
+> Macros need to be defined before they are used as they are discovered as the template is executed. They can also be defined in external templates and imported using the `{% include %}` tag.
+
+### Extensibility
+
+Functions are `FluidValue` instances implementing the `InvokeAsync` method. It allows any template to be provided custom function values as part of the model, the `TemplateContext` or globally with options.
+
+A `FunctionValue` type is also available to provide out of the box functions. It takes a delegate that returns a `ValueTask<FluidValue>` as the result.
+
+```c#
+var lowercase = new FunctionValue((args, context) => 
+{
+  var firstArg = args.At(0).ToStringValue().ToLowerCase();
+  var lower = firstArg.ToLowerCase();
+  return new ValueTask<FluidValue>(new StringValue(lower));
+});
+
+var context = new TemplateContext();
+context.SetValue("tolower", lowercase);
+
+var parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
+parser.TryParse("{{ tolower('HELLO') }}", out var template, out var error);
+template.Render(context);
+```
 
 <br>
 

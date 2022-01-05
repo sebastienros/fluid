@@ -987,5 +987,47 @@ class  {
             var rendered = template.Render();
             Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
         }
+
+        [Fact]
+        public void ShouldParseFunctionCall()
+        {
+
+            var options = new FluidParserOptions { AllowFunctions = true };
+
+#if COMPILED
+        var _parser = new FluidParser(options).Compile();
+#else
+            var _parser = new FluidParser(options);
+#endif
+
+            _parser.TryParse("{{ a() }}", out var template, out var errors);
+            var statements = ((FluidTemplate)template).Statements;
+
+            Assert.Single(statements);
+
+            var outputStatement = statements[0] as OutputStatement;
+            Assert.NotNull(outputStatement);
+
+            var memberExpression = outputStatement.Expression as MemberExpression;
+            Assert.Equal(2, memberExpression.Segments.Count);
+            Assert.IsType<IdentifierSegment>(memberExpression.Segments[0]);
+            Assert.IsType<FunctionCallSegment>(memberExpression.Segments[1]);
+        }
+
+        [Fact]
+        public void ShouldNotParseFunctionCall()
+        {
+
+            var options = new FluidParserOptions { AllowFunctions = false };
+
+#if COMPILED
+        var parser = new FluidParser(options).Compile();
+#else
+        var parser = new FluidParser(options);
+#endif
+
+            Assert.False(parser.TryParse("{{ a() }}", out var template, out var errors));
+            Assert.Contains(ErrorMessages.FunctionsNotAllowed, errors);
+        }
     }
 }
