@@ -840,17 +840,24 @@ shape: '{{ shape }}'");
         [Fact]
         public async Task IgnoreCasing()
         {
-            _parser.TryParse("{{ p.Firstname }}", out var template, out var error);
-
+            _parser.TryParse("{{ p.firsTname }}", out var template, out var error);
 
             var options = new TemplateOptions();
-            var context = new TemplateContext(options);
-            context.SetValue("p", new Person { Firstname = "John" });
             options.MemberAccessStrategy.IgnoreCasing = true;
             options.MemberAccessStrategy.Register<Person>();
 
+            var context = new TemplateContext(options);
+            context.SetValue("p", new Person { Firstname = "John" });
             var result = await template.RenderAsync(context);
             Assert.Equal("John", result);
+
+            options = new TemplateOptions();
+            options.MemberAccessStrategy.IgnoreCasing = false;
+            options.MemberAccessStrategy.Register<Person>();
+            context = new TemplateContext(options);
+            context.SetValue("p", new Person { Firstname = "John" });
+            result = await template.RenderAsync(context);
+            Assert.Equal("", result);
         }
 
         [Theory]
