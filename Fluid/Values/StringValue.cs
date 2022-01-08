@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Parlot;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
-using Parlot;
 
 namespace Fluid.Values
 {
@@ -27,6 +27,9 @@ namespace Fluid.Values
 
         public StringValue(string value)
         {
+            // Returns a StringValue instance and not NilValue since this is what is asked for.
+            // However FluidValue.Create(null) returns NilValue.
+
             _value = value ?? NilValue.Instance.ToStringValue();
         }
 
@@ -56,7 +59,7 @@ namespace Fluid.Values
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static StringValue Create(string s)
         {
-            if (s == "")
+            if (String.IsNullOrEmpty(s))
             {
                 return Empty;
             }
@@ -64,6 +67,12 @@ namespace Fluid.Values
             return s.Length == 1
                 ? Create(s[0])
                 : new StringValue(s);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static StringValue Create(string s, bool encode)
+        {
+            return Create(s, encode);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
