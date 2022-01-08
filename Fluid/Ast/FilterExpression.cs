@@ -4,21 +4,27 @@ using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class FilterExpression : Expression
+    internal sealed class FilterExpression : Expression
     {
-        public FilterExpression(Expression input, string name, List<FilterArgument> parameters)
-        {
-            Input = input;
-            Name = name;
-            Parameters = parameters ?? new List<FilterArgument>();
-        }
-
-        public Expression Input { get; }
-        public string Name { get; }
-        public List<FilterArgument> Parameters { get; }
+        private readonly Expression _input;
+        private readonly string _name;
+        private readonly List<FilterArgument> _parameters;
 
         private volatile bool _canBeCached = true;
         private volatile FilterArguments _cachedArguments;
+
+        public FilterExpression(Expression input, string name, List<FilterArgument> parameters)
+        {
+            _input = input;
+            _name = name;
+            _parameters = parameters ?? new List<FilterArgument>();
+        }
+
+        public Expression Input => _input;
+
+        public string Name => _name;
+
+        public IReadOnlyList<FilterArgument> Parameters => _parameters;
 
         public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
@@ -29,7 +35,7 @@ namespace Fluid.Ast
             {
                 arguments = new FilterArguments();
 
-                foreach (var parameter in Parameters)
+                foreach (var parameter in _parameters)
                 {
                     _canBeCached = _canBeCached && parameter.Expression is LiteralExpression;
                     arguments.Add(parameter.Name, await parameter.Expression.EvaluateAsync(context));
@@ -46,9 +52,9 @@ namespace Fluid.Ast
                 arguments = _cachedArguments;
             }
 
-            var input = await Input.EvaluateAsync(context);
+            var input = await _input.EvaluateAsync(context);
 
-            if (!context.Options.Filters.TryGetValue(Name, out FilterDelegate filter))
+            if (!context.Options.Filters.TryGetValue(_name, out FilterDelegate filter))
             {
                 // When a filter is not defined, return the input
                 return input;

@@ -1,21 +1,20 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class FunctionCallSegment : MemberSegment
+    internal sealed class FunctionCallSegment : MemberSegment
     {
         private static readonly FunctionArguments NonCacheableArguments = new();
-        private volatile FunctionArguments _cachedArguments = null;
+        private volatile FunctionArguments _cachedArguments;
 
-        public FunctionCallSegment(IReadOnlyList<FunctionCallArgument> arguments)
+        private readonly List<FunctionCallArgument> _arguments;
+
+        public FunctionCallSegment(List<FunctionCallArgument> arguments)
         {
-            Arguments = arguments;
+            _arguments = arguments;
         }
-
-        public IReadOnlyList<FunctionCallArgument> Arguments { get; }
 
         public override async ValueTask<FluidValue> ResolveAsync(FluidValue value, TemplateContext context)
         {
@@ -25,23 +24,24 @@ namespace Fluid.Ast
 
             if (arguments == null || arguments == NonCacheableArguments)
             {
-                if (Arguments.Count == 0)
+                if (_arguments.Count == 0)
                 {
                     arguments = FunctionArguments.Empty;
                     _cachedArguments = arguments;
                 }
                 else
                 {
+                    var allLiteral = true;
                     var newArguments = new FunctionArguments();
-
-                    foreach (var argument in Arguments)
+                    for (var i = 0; i < _arguments.Count; i++)
                     {
+                        var argument = _arguments[i];
                         newArguments.Add(argument.Name, await argument.Expression.EvaluateAsync(context));
+                        allLiteral = allLiteral && argument.Expression is LiteralExpression;
                     }
 
                     // The arguments can be cached if all the parameters are LiteralExpression
-
-                    if (arguments == null && Arguments.All(x => x.Expression is LiteralExpression))
+                    if (arguments == null && allLiteral)
                     {
                         _cachedArguments = newArguments;
                     }

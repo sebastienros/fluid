@@ -5,26 +5,20 @@ using System.Threading.Tasks;
 
 namespace Fluid.Parser
 {
-    public class CompositeFluidTemplate : IFluidTemplate
+    public sealed class CompositeFluidTemplate : IFluidTemplate
     {
         private readonly List<IFluidTemplate> _templates;
-
-        public CompositeFluidTemplate(params IFluidTemplate[] templates)
-        {
-            _templates = new List<IFluidTemplate>(templates);
-        }
 
         public CompositeFluidTemplate(IEnumerable<IFluidTemplate> templates)
         {
             _templates = new List<IFluidTemplate>(templates);
         }
 
-        public IReadOnlyList<IFluidTemplate> Templates => _templates;
-
         public async ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            foreach (var template in Templates)
+            for (var i = 0; i < _templates.Count; i++)
             {
+                var template = _templates[i];
                 await template.RenderAsync(writer, encoder, context);
             }
         }

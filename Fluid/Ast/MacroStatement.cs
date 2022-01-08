@@ -7,25 +7,25 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class MacroStatement : TagStatement
+    internal sealed class MacroStatement : TagStatement
     {
-        public MacroStatement(string identifier, IReadOnlyList<FunctionCallArgument> arguments, List<Statement> statements): base(statements)
-        {
-            Identifier = identifier;
-            Arguments = arguments;
-        }
+        private readonly string _identifier;
+        private readonly List<FunctionCallArgument> _arguments;
 
-        public string Identifier { get; }
-        public IReadOnlyList<FunctionCallArgument> Arguments { get; }
+        public MacroStatement(string identifier, List<FunctionCallArgument> arguments, List<Statement> statements): base(statements)
+        {
+            _identifier = identifier;
+            _arguments = arguments;
+        }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             // Evaluate all default values only once
             var defaultValues = new Dictionary<string, FluidValue>();
 
-            for (var i = 0; i < Arguments.Count; i++)
+            for (var i = 0; i < _arguments.Count; i++)
             {
-                var argument = Arguments[i];
+                var argument = _arguments[i];
                 defaultValues[argument.Name] = argument.Expression == null ? NilValue.Instance : await argument.Expression.EvaluateAsync(context);
             }
 
@@ -51,7 +51,7 @@ namespace Fluid.Ast
 
                     for (var i = 0; i < args.Count; i++)
                     {
-                        var positionalName = Arguments[i].Name;
+                        var positionalName = _arguments[i].Name;
 
                         namedArguments |= args.HasNamed(positionalName);
 
@@ -88,7 +88,7 @@ namespace Fluid.Ast
                 }
             });
 
-            context.SetValue(Identifier, f);
+            context.SetValue(_identifier, f);
 
             return Completion.Normal;
         }

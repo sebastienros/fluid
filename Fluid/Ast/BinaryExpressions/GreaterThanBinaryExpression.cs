@@ -2,7 +2,7 @@
 
 namespace Fluid.Ast.BinaryExpressions
 {
-    public sealed class GreaterThanBinaryExpression : BinaryExpression
+    internal sealed class GreaterThanBinaryExpression : BinaryExpression
     {
         public GreaterThanBinaryExpression(Expression left, Expression right, bool strict) : base(left, right)
         {
@@ -11,7 +11,7 @@ namespace Fluid.Ast.BinaryExpressions
 
         public bool Strict { get; }
 
-        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+        protected override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
             if (leftValue.IsNil() || rightValue.IsNil())
             {

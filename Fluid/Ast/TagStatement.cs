@@ -4,7 +4,7 @@ namespace Fluid.Ast
 {
     public abstract class TagStatement : Statement
     {
-        protected readonly List<Statement> _statements;
+        internal readonly List<Statement> _statements;
 
         protected TagStatement(List<Statement> statements)
         {

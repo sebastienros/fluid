@@ -1,5 +1,4 @@
-﻿#if !NETCOREAPP2_1
-using Fluid.Ast;
+﻿using Fluid.Ast;
 using Fluid.MvcViewEngine;
 using Fluid.ViewEngine;
 using Xunit;
@@ -11,7 +10,7 @@ namespace Fluid.Tests.MvcViewEngine
         [Fact]
         public void ShouldParseIndex()
         {
-            var index = 
+            var index =
 @"Hello World from Liquid 2
 
 <h1>{{ ViewData[""Title""] }}</h1>
@@ -44,4 +43,3 @@ This is the footer
         }
     }
 }
-#endif

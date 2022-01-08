@@ -1,12 +1,11 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class OutputStatement : Statement
+    internal sealed class OutputStatement : Statement
     {
         public OutputStatement(Expression expression)
         {
@@ -14,8 +13,6 @@ namespace Fluid.Ast
         }
 
         public Expression Expression { get; }
-
-        public IList<FilterExpression> Filters { get ; }
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {

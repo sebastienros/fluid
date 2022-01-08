@@ -1,21 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class WhenStatement : TagStatement
+    internal sealed class WhenStatement : TagStatement
     {
-        private readonly IReadOnlyList<Expression> _options;
+        internal readonly List<Expression> _options;
 
-        public WhenStatement(IReadOnlyList<Expression> options, List<Statement> statements) : base(statements)
+        public WhenStatement(List<Expression> options, List<Statement> statements) : base(statements)
         {
-            _options = options ?? Array.Empty<Expression>();
+            _options = options ?? new List<Expression>();
         }
 
-        public IReadOnlyList<Expression> Options => _options;
+
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {

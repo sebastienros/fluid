@@ -9,47 +9,53 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class IncludeStatement : Statement
+    internal sealed class IncludeStatement : Statement
     {
-        public const string ViewExtension = ".liquid";
+        private const string ViewExtension = ".liquid";
+
         private readonly FluidParser _parser;
         private volatile CachedTemplate _cachedTemplate;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
+        private readonly Expression _path;
+        private readonly Expression _with;
+        private readonly Expression _for;
+        private readonly string _alias;
+        private readonly List<AssignStatement> _assignStatements;
 
-        public IncludeStatement(FluidParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
+        public IncludeStatement(
+            FluidParser parser,
+            Expression path,
+            Expression with = null,
+            Expression @for = null,
+            string alias = null,
+            List<AssignStatement> assignStatements = null)
         {
             _parser = parser;
-            Path = path;
-            With = with;
-            For = @for;
-            Alias = alias;
-            AssignStatements = assignStatements;
+            _path = path;
+            _with = with;
+            _for = @for;
+            _alias = alias;
+            _assignStatements = assignStatements;
         }
-
-        public Expression Path { get; }
-        public IList<AssignStatement> AssignStatements { get; }
-        public Expression With { get; }
-        public Expression For { get; }
-        public string Alias { get; }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
-            var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
+            var relativePath = (await _path.EvaluateAsync(context)).ToStringValue();
 
             if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))
             {
                 relativePath += ViewExtension;
             }
 
-            if (_cachedTemplate == null || !string.Equals(_cachedTemplate.Name, System.IO.Path.GetFileNameWithoutExtension(relativePath), StringComparison.Ordinal))
+            if (_cachedTemplate == null || !string.Equals(_cachedTemplate.Name, Path.GetFileNameWithoutExtension(relativePath), StringComparison.Ordinal))
             {
                 await _semaphore.WaitAsync();
 
                 try
                 {
-                    if (_cachedTemplate == null || !string.Equals(_cachedTemplate.Name, System.IO.Path.GetFileNameWithoutExtension(relativePath), StringComparison.Ordinal))
+                    if (_cachedTemplate == null || !string.Equals(_cachedTemplate.Name, Path.GetFileNameWithoutExtension(relativePath), StringComparison.Ordinal))
                     {
 
                         var fileProvider = context.Options.FileProvider;
@@ -74,7 +80,7 @@ namespace Fluid.Ast
                             throw new ParseException(errors);
                         }
 
-                        var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
+                        var identifier = Path.GetFileNameWithoutExtension(relativePath);
 
                         _cachedTemplate = new CachedTemplate(template, identifier);
                     }
@@ -87,33 +93,33 @@ namespace Fluid.Ast
 
             try
             {
-                context.EnterChildScope(); 
-                
-                if (With != null)
-                {
-                    var with = await With.EvaluateAsync(context);
+                context.EnterChildScope();
 
-                    context.SetValue(Alias ?? _cachedTemplate.Name, with);
+                if (_with != null)
+                {
+                    var with = await _with.EvaluateAsync(context);
+
+                    context.SetValue(_alias ?? _cachedTemplate.Name, with);
 
                     await _cachedTemplate.Template.RenderAsync(writer, encoder, context);
                 }
-                else if (AssignStatements != null)
+                else if (_assignStatements != null)
                 {
-                    var length = AssignStatements.Count;
+                    var length = _assignStatements.Count;
                     for (var i = 0; i < length; i++)
                     {
-                        await AssignStatements[i].WriteToAsync(writer, encoder, context);
+                        await _assignStatements[i].WriteToAsync(writer, encoder, context);
                     }
 
                     await _cachedTemplate.Template.RenderAsync(writer, encoder, context);
                 }
-                else if (For != null)
+                else if (_for != null)
                 {
                     try
                     {
                         var forloop = new ForLoopValue();
 
-                        var list = (await For.EvaluateAsync(context)).Enumerate(context).ToList();
+                        var list = (await _for.EvaluateAsync(context)).Enumerate(context).ToList();
 
                         var length = forloop.Length = list.Count;
 
@@ -125,7 +131,7 @@ namespace Fluid.Ast
 
                             var item = list[i];
 
-                            context.SetValue(Alias ?? _cachedTemplate.Name, item);
+                            context.SetValue(_alias ?? _cachedTemplate.Name, item);
 
                             // Set helper variables
                             forloop.Index = i + 1;

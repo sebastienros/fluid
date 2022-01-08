@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class ElseStatement : TagStatement
+    internal sealed class ElseStatement : TagStatement
     {
         public ElseStatement(List<Statement> statements) : base(statements)
         {
@@ -13,11 +13,12 @@ namespace Fluid.Ast
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            for (var i = 0; i < _statements.Count; i++)
+            var i = 0;
+            foreach (var statement in _statements.AsSpan())
             {
                 context.IncrementSteps();
 
-                var task = _statements[i].WriteToAsync(writer, encoder, context);
+                var task = statement.WriteToAsync(writer, encoder, context);
 
                 if (!task.IsCompletedSuccessfully)
                 {

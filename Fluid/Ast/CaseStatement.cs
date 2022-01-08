@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class CaseStatement : TagStatement
+    internal sealed class CaseStatement : TagStatement
     {
+        private readonly Expression _expression;
+        private readonly ElseStatement _else;
         private readonly WhenStatement[] _whenStatements;
 
         public CaseStatement(
@@ -16,27 +18,22 @@ namespace Fluid.Ast
             WhenStatement[] whenStatements = null
         ) : base(new List<Statement>())
         {
-            Expression = expression;
-            Else = elseStatement;
+            _expression = expression;
+            _else = elseStatement;
             _whenStatements = whenStatements ?? Array.Empty<WhenStatement>();
         }
-
-        public Expression Expression { get; }
-
-        public ElseStatement Else { get; }
-
-        public IReadOnlyList<WhenStatement> Whens => _whenStatements;
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
-            var value = await Expression.EvaluateAsync(context);
+            var value = await _expression.EvaluateAsync(context);
 
             foreach (var when in _whenStatements)
             {
-                foreach (var option in when.Options)
+                for (var i = 0; i < when._options.Count; i++)
                 {
+                    var option = when._options[i];
                     if (value.Equals(await option.EvaluateAsync(context)))
                     {
                         return await when.WriteToAsync(writer, encoder, context);
@@ -44,9 +41,9 @@ namespace Fluid.Ast
                 }
             }
 
-            if (Else != null)
+            if (_else != null)
             {
-                await Else.WriteToAsync(writer, encoder, context);
+                await _else.WriteToAsync(writer, encoder, context);
             }
 
             return Completion.Normal;

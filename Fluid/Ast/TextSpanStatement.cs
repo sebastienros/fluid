@@ -6,7 +6,7 @@ using Fluid.Utils;
 
 namespace Fluid.Ast
 {
-    public sealed class TextSpanStatement : Statement
+    internal sealed class TextSpanStatement : Statement
     {
         private bool _isStripped;
         private bool _isEmpty;
@@ -39,7 +39,7 @@ namespace Fluid.Ast
             if (!_isStripped)
             {
                 // Prevent two threads from strsipping the same statement in case WriteToAsync is called concurrently
-                // 
+                //
                 lock (_synLock)
                 {
                     if (!_isStripped)

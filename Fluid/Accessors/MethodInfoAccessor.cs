@@ -2,7 +2,7 @@
 
 namespace Fluid.Accessors
 {
-    public class MethodInfoAccessor : IMemberAccessor
+    internal sealed class MethodInfoAccessor : IMemberAccessor
     {
         private readonly MethodInfo _methodInfo;
 

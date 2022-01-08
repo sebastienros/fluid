@@ -2,13 +2,13 @@
 
 namespace Fluid.Ast.BinaryExpressions
 {
-    public sealed class ContainsBinaryExpression : BinaryExpression
+    internal sealed class ContainsBinaryExpression : BinaryExpression
     {
         public ContainsBinaryExpression(Expression left, Expression right) : base(left, right)
         {
         }
 
-        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+        protected override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
             return leftValue.Contains(rightValue)
                 ? BooleanValue.True

@@ -5,23 +5,45 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class LiquidStatement : TagStatement
+    internal sealed class LiquidStatement : TagStatement
     {
         public LiquidStatement(List<Statement> statements) : base(statements)
         {
         }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            context.IncrementSteps();
-
-            for (var i = 0; i < _statements.Count; i++)
+            static async ValueTask<Completion> Awaited(
+                ValueTask<Completion> t,
+                TextWriter w,
+                TextEncoder enc,
+                TemplateContext ctx,
+                List<Statement> statements,
+                int startIndex)
             {
-                var statement = _statements[i];
-                await statement.WriteToAsync(writer, encoder, context);
+                await t;
+                for (var i = startIndex; i < statements.Count; ++i)
+                {
+                    await statements[i].WriteToAsync(w, enc, ctx);
+                }
+                return Completion.Normal;
             }
 
-            return Completion.Normal;
+            context.IncrementSteps();
+
+            var i = 0;
+            foreach (var statement in _statements.AsSpan())
+            {
+                var task = statement.WriteToAsync(writer, encoder, context);
+                if (!task.IsCompletedSuccessfully)
+                {
+                    return Awaited(task, writer, encoder, context, _statements, i + 1);
+                }
+
+                i++;
+            }
+
+            return Normal();
         }
     }
 }

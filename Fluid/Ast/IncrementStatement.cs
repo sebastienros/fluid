@@ -5,15 +5,15 @@ using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class IncrementStatement : Statement
+    internal sealed class IncrementStatement : Statement
     {
         public const string Prefix = "$$incdec$$$";
+        private readonly string _identifier;
+
         public IncrementStatement(string identifier)
         {
-            Identifier = identifier ?? "";
+            _identifier = identifier ?? "";
         }
-
-        public string Identifier { get; }
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -23,7 +23,7 @@ namespace Fluid.Ast
             // Variable identifiers don't represent the same slots as inc/dec ones.
             // c.f. https://shopify.github.io/liquid/tags/variable/
 
-            var prefixedIdentifier = Prefix + Identifier;
+            var prefixedIdentifier = Prefix + _identifier;
 
             var value = context.GetValue(prefixedIdentifier);
 

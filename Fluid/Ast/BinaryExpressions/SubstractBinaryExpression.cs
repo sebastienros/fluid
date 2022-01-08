@@ -2,13 +2,13 @@
 
 namespace Fluid.Ast.BinaryExpressions
 {
-    public class SubstractBinaryExpression : BinaryExpression
+    internal sealed class SubstractBinaryExpression : BinaryExpression
     {
         public SubstractBinaryExpression(Expression left, Expression right) : base(left, right)
         {
         }
 
-        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+        protected override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
             return leftValue is NumberValue && rightValue is NumberValue
                 ? NumberValue.Create(leftValue.ToNumberValue() - rightValue.ToNumberValue())

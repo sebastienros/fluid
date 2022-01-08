@@ -4,7 +4,7 @@ using Parlot.Fluent;
 
 namespace Fluid.Parser
 {
-    public class FluidParseContext : ParseContext
+    internal sealed class FluidParseContext : ParseContext
     {
         public FluidParseContext(string text) : base(new Scanner(text))
         {

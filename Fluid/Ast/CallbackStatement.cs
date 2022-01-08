@@ -8,7 +8,7 @@ namespace Fluid.Ast
     /// <summary>
     /// An instance of this class is used to execute some custom code in a template.
     /// </summary>
-    public class CallbackStatement : Statement
+    public sealed class CallbackStatement : Statement
     {
         public CallbackStatement(Func<TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> action)
         {

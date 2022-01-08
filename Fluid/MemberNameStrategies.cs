@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Fluid
 {
-    public class MemberNameStrategies
+    public static class MemberNameStrategies
     {
         public static readonly MemberNameStrategy Default = RenameDefault;
         public static readonly MemberNameStrategy CamelCase = RenameCamelCase;

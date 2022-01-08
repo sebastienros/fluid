@@ -1,29 +1,29 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class MemberExpression : Expression
+    internal sealed class MemberExpression : Expression
     {
-        public MemberExpression(params MemberSegment[] segments)
+        private readonly List<MemberSegment> _segments;
+
+        public MemberExpression(params MemberSegment[] segments) : this(new List<MemberSegment>(segments))
         {
-            Segments = segments.ToList();
         }
 
         public MemberExpression(List<MemberSegment> segments)
         {
-            Segments = segments;
+            _segments = segments;
         }
 
-        public List<MemberSegment> Segments { get; }
+        public IReadOnlyList<MemberSegment> Segments => _segments;
 
         public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
             // The first segment can only be an IdentifierSegment
 
-            var initial = Segments[0] as IdentifierSegment;
+            var initial = _segments[0] as IdentifierSegment;
 
             // Search the initial segment in the local scope first
 
@@ -44,14 +44,14 @@ namespace Fluid.Ast
                 value = context.Model;
             }
 
-            for (var i = start; i < Segments.Count; i++)
+            var i = start;
+            foreach (var s in _segments.AsSpan(start))
             {
-                var s = Segments[i];
                 var task = s.ResolveAsync(value, context);
 
                 if (!task.IsCompletedSuccessfully)
                 {
-                    return Awaited(task, context, Segments, i + 1);
+                    return Awaited(task, context, _segments, i + 1);
                 }
 
                 value = task.Result;
@@ -61,6 +61,8 @@ namespace Fluid.Ast
                 {
                     return new ValueTask<FluidValue>(value);
                 }
+
+                i++;
             }
 
             return new ValueTask<FluidValue>(value);

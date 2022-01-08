@@ -10,6 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Fluid.Tests, PublicKey=00240000048000009400000006020000002400005253413100040000010001001182125c952dc299d7cecc8ad125b0451fca4baecea957288b7865c6d333bc5110a265d97a502e716bb5b2cc71ea05648c3885f2955065eba8aec2e9225c3e84d5d9bd91929cd20354f479acaa60b76d340844d2161f213fdd324b55c8e79de5c292490c59261f46f97d1872be0cfd5db21a5ea1f02fd245ea35a9296e6e30a7" />
+    <InternalsVisibleTo Include="Fluid.ViewEngine, PublicKey=00240000048000009400000006020000002400005253413100040000010001001182125c952dc299d7cecc8ad125b0451fca4baecea957288b7865c6d333bc5110a265d97a502e716bb5b2cc71ea05648c3885f2955065eba8aec2e9225c3e84d5d9bd91929cd20354f479acaa60b76d340844d2161f213fdd324b55c8e79de5c292490c59261f46f97d1872be0cfd5db21a5ea1f02fd245ea35a9296e6e30a7" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Parlot" Version="0.0.20" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="1.1.1" />
     <PackageReference Include="TimeZoneConverter" Version="3.5.0" />

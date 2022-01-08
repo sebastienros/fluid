@@ -5,23 +5,23 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class UnlessStatement : TagStatement
+    internal sealed class UnlessStatement : TagStatement
     {
+        private readonly Expression _condition;
+        private readonly ElseStatement _else;
+
         public UnlessStatement(
             Expression condition,
             List<Statement> statements,
             ElseStatement elseStatement = null) : base(statements)
         {
-            Condition = condition;
-            Else = elseStatement;
+            _condition = condition;
+            _else = elseStatement;
         }
-
-        public Expression Condition { get; }
-        public ElseStatement Else { get; }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            var result = (await Condition.EvaluateAsync(context)).ToBooleanValue();
+            var result = (await _condition.EvaluateAsync(context)).ToBooleanValue();
 
             if (!result)
             {
@@ -42,9 +42,9 @@ namespace Fluid.Ast
             }
             else
             {
-                if (Else != null)
+                if (_else != null)
                 {
-                    await Else.WriteToAsync(writer, encoder, context);
+                    await _else.WriteToAsync(writer, encoder, context);
                 }
             }
 

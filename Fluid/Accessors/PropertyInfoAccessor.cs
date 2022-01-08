@@ -3,7 +3,7 @@ using System.Reflection;
 
 namespace Fluid.Accessors
 {
-    public class PropertyInfoAccessor : IMemberAccessor
+    internal sealed class PropertyInfoAccessor : IMemberAccessor
     {
         private readonly IInvoker _invoker;
 
