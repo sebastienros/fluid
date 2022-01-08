@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
@@ -63,7 +64,7 @@ namespace Fluid.Values
             return false;
         }
 
-        protected override FluidValue GetValue(string name, TemplateContext context)
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             switch (name)
             {
@@ -89,7 +90,7 @@ namespace Fluid.Values
             return NilValue.Instance;
         }
 
-        protected override FluidValue GetIndex(FluidValue index, TemplateContext context)
+        public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
             var i = (int)index.ToNumberValue();
 
@@ -137,9 +138,9 @@ namespace Fluid.Values
             return Array.IndexOf(_value, value) > -1;
         }
 
-        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        public override ValueTask<IEnumerable<FluidValue>> EnumerateAsync(TemplateContext context)
         {
-            return _value;
+            return new ValueTask<IEnumerable<FluidValue>>(_value);
         }
 
         public override bool Equals(object other)

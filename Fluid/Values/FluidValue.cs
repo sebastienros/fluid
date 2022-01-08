@@ -48,25 +48,20 @@ namespace Fluid.Values
 
         public virtual ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
-            return new ValueTask<FluidValue>(GetValue(name, context));
+            return NilValue.Instance;
         }
 
-        protected virtual FluidValue GetValue(string name, TemplateContext context)
+        public virtual ValueTask<IEnumerable<FluidValue>> EnumerateAsync(TemplateContext context)
         {
-            return NilValue.Instance;
+            return new ValueTask<IEnumerable<FluidValue>>(Array.Empty<FluidValue>());
         }
 
         public virtual ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
-            return new ValueTask<FluidValue>(GetIndex(index, context));
-        }
-
-        public virtual ValueTask<FluidValue> InvokeAsync(FunctionArguments arguments, TemplateContext context)
-        {
             return NilValue.Instance;
         }
 
-        protected virtual FluidValue GetIndex(FluidValue index, TemplateContext context)
+        public virtual ValueTask<FluidValue> InvokeAsync(FunctionArguments arguments, TemplateContext context)
         {
             return NilValue.Instance;
         }
@@ -255,62 +250,6 @@ namespace Fluid.Values
             // Used by the 'contains' keyword
             return false;
         }
-
-        public virtual IEnumerable<FluidValue> Enumerate(TemplateContext context)
-        {
-            return Array.Empty<FluidValue>();
-        }
-
-        #region Obsolete members
-
-        [Obsolete("Use Enumerate(TemplateContext) instead.")]
-        public virtual IEnumerable<FluidValue> Enumerate()
-        {
-            return Array.Empty<FluidValue>();
-        }
-
-        [Obsolete("Use Enumerate(TemplateContext) instead.")]
-        internal virtual string[] ToStringArray()
-        {
-            return Array.Empty<string>();
-        }
-
-        [Obsolete("Use Enumerate(TemplateContext) instead.")]
-        internal virtual List<FluidValue> ToList()
-        {
-            return Enumerate().ToList();
-        }
-
-        [Obsolete("Handle the property 'first' in GetValueAsync() instead")]
-        internal virtual FluidValue FirstOrDefault()
-        {
-            return Enumerate().FirstOrDefault();
-        }
-
-        /// <summary>
-        /// Returns the first element. Used by the <code>first</code> filter.
-        /// </summary>
-        [Obsolete("Handle the property 'first' in GetValueAsync() instead")]
-        internal virtual FluidValue FirstOrDefault(TemplateContext context)
-        {
-            return Enumerate(context).FirstOrDefault();
-        }
-
-        [Obsolete("Handle the property 'last' in GetValueAsync() instead")]
-        internal virtual FluidValue LastOrDefault()
-        {
-            return Enumerate().LastOrDefault();
-        }
-
-        /// <summary>
-        /// Returns the last element. Used by the <code>last</code> filter.
-        /// </summary>
-        [Obsolete("Handle the property 'last' in GetValueAsync() instead")]
-        internal virtual FluidValue LastOrDefault(TemplateContext context)
-        {
-            return Enumerate(context).LastOrDefault();
-        }
-        #endregion
 
         public static implicit operator ValueTask<FluidValue>(FluidValue value) => new(value);
     }

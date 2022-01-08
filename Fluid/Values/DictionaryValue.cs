@@ -69,7 +69,7 @@ namespace Fluid.Values
             return new ValueTask<FluidValue>(fluidValue);
         }
 
-        protected override FluidValue GetIndex(FluidValue index, TemplateContext context)
+        public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
             var name = index.ToStringValue();
 
@@ -118,13 +118,17 @@ namespace Fluid.Values
             return false;
         }
 
-        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        public override ValueTask<IEnumerable<FluidValue>> EnumerateAsync(TemplateContext context)
         {
+            var list = new List<FluidValue>();
+
             foreach (var key in _value.Keys)
             {
                 _value.TryGetValue(key, out var value);
-                yield return new ArrayValue(new[] { new StringValue(key),  value });
+                list.Add(new ArrayValue(new[] { new StringValue(key),  value }));
             }
+
+            return new ValueTask<IEnumerable<FluidValue>>(list);
         }
 
         public override bool Equals(object other)
