@@ -80,7 +80,7 @@ namespace Fluid.Ast
                     var result = sw.ToString();
 
                     // Don't encode the result
-                    return new StringValue(result, false);
+                    return StringValue.Create(result, false);
                 }
                 finally
                 {

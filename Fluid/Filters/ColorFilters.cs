@@ -34,13 +34,13 @@ namespace Fluid.Filters
             {
                 var rgbColor = (RgbColor)hexColor;
 
-                return new StringValue(rgbColor.ToString());
+                return StringValue.Create(rgbColor.ToString());
             }
             else if (HslColor.TryParse(value, out HslColor hslColor))
             {
                 var rgbColor = (RgbColor)hslColor;
 
-                return new StringValue(rgbColor.ToString());
+                return StringValue.Create(rgbColor.ToString());
             }
             else
             {
@@ -55,13 +55,13 @@ namespace Fluid.Filters
             {
                 var hexColor = (HexColor)rgbColor;
 
-                return new StringValue(hexColor.ToString());
+                return StringValue.Create(hexColor.ToString());
             }
             else if (HslColor.TryParse(value, out HslColor hslColor))
             {
                 var hexColor = (HexColor)hslColor;
 
-                return new StringValue(hexColor.ToString());
+                return StringValue.Create(hexColor.ToString());
             }
             else
             {
@@ -76,13 +76,13 @@ namespace Fluid.Filters
             {
                 var hslColor = (HslColor)hexColor;
 
-                return new StringValue(hslColor.ToString());
+                return StringValue.Create(hslColor.ToString());
             }
             else if (RgbColor.TryParse(value, out RgbColor rgbColor))
             {
                 var hslColor = (HslColor)rgbColor;
 
-                return new StringValue(hslColor.ToString());
+                return StringValue.Create(hslColor.ToString());
             }
             else
             {
@@ -115,13 +115,13 @@ namespace Fluid.Filters
 
             return arguments.At(0).ToStringValue() switch
             {
-                "alpha" => new StringValue(rgbColor.A.ToString()),
-                "red" => new StringValue(rgbColor.R.ToString()),
-                "green" => new StringValue(rgbColor.G.ToString()),
-                "blue" => new StringValue(rgbColor.B.ToString()),
-                "hue" => new StringValue(hslColor.H.ToString()),
-                "saturation" => new StringValue(Convert.ToInt32(hslColor.S * 100.0).ToString()),
-                "lightness" => new StringValue(Convert.ToInt32(hslColor.L * 100.0).ToString()),
+                "alpha" => StringValue.Create(rgbColor.A.ToString()),
+                "red" => StringValue.Create(rgbColor.R.ToString()),
+                "green" => StringValue.Create(rgbColor.G.ToString()),
+                "blue" => StringValue.Create(rgbColor.B.ToString()),
+                "hue" => StringValue.Create(hslColor.H.ToString()),
+                "saturation" => StringValue.Create(Convert.ToInt32(hslColor.S * 100.0).ToString()),
+                "lightness" => StringValue.Create(Convert.ToInt32(hslColor.L * 100.0).ToString()),
                 _ => NilValue.Empty,
             };
         }
@@ -162,13 +162,13 @@ namespace Fluid.Filters
 
                 return arguments.At(0).ToStringValue() switch
                 {
-                    "alpha" => new StringValue(new RgbColor(rgbColor.R, rgbColor.G, rgbColor.B, (double)modifiedValue).ToString()),
-                    "red" => new StringValue(new RgbColor((int)modifiedValue, rgbColor.G, rgbColor.B, rgbColor.A).ToString()),
-                    "green" => new StringValue(new RgbColor(rgbColor.R, (int)modifiedValue, rgbColor.B, rgbColor.A).ToString()),
-                    "blue" => new StringValue(new RgbColor(rgbColor.R, rgbColor.G, (int)modifiedValue, rgbColor.A).ToString()),
-                    "hue" => new StringValue(((RgbColor)new HslColor((int)modifiedValue, hslColor.S, hslColor.L, hslColor.A)).ToString()),
-                    "saturation" => new StringValue(((RgbColor)new HslColor(hslColor.H, (double)modifiedValue / 100.0, hslColor.L, hslColor.A)).ToString()),
-                    "lightness" => new StringValue(((RgbColor)new HslColor(hslColor.H, hslColor.S, (double)modifiedValue / 100.0, hslColor.A)).ToString()),
+                    "alpha" => StringValue.Create(new RgbColor(rgbColor.R, rgbColor.G, rgbColor.B, (double)modifiedValue).ToString()),
+                    "red" => StringValue.Create(new RgbColor((int)modifiedValue, rgbColor.G, rgbColor.B, rgbColor.A).ToString()),
+                    "green" => StringValue.Create(new RgbColor(rgbColor.R, (int)modifiedValue, rgbColor.B, rgbColor.A).ToString()),
+                    "blue" => StringValue.Create(new RgbColor(rgbColor.R, rgbColor.G, (int)modifiedValue, rgbColor.A).ToString()),
+                    "hue" => StringValue.Create(((RgbColor)new HslColor((int)modifiedValue, hslColor.S, hslColor.L, hslColor.A)).ToString()),
+                    "saturation" => StringValue.Create(((RgbColor)new HslColor(hslColor.H, (double)modifiedValue / 100.0, hslColor.L, hslColor.A)).ToString()),
+                    "lightness" => StringValue.Create(((RgbColor)new HslColor(hslColor.H, hslColor.S, (double)modifiedValue / 100.0, hslColor.A)).ToString()),
                     _ => NilValue.Empty,
                 };
             }
@@ -178,13 +178,13 @@ namespace Fluid.Filters
 
                 return arguments.At(0).ToStringValue() switch
                 {
-                    "alpha" => new StringValue(((HslColor)new RgbColor(rgbColor.R, rgbColor.G, rgbColor.B, (double)modifiedValue)).ToString()),
-                    "red" => new StringValue(((HslColor)new RgbColor((int)modifiedValue, rgbColor.G, rgbColor.B, rgbColor.A)).ToString()),
-                    "green" => new StringValue(((HslColor)new RgbColor(rgbColor.R, (int)modifiedValue, rgbColor.B, rgbColor.A)).ToString()),
-                    "blue" => new StringValue(((HslColor)new RgbColor(rgbColor.R, rgbColor.G, (int)modifiedValue, rgbColor.A)).ToString()),
-                    "hue" => new StringValue(new HslColor((int)modifiedValue, hslColor.S, hslColor.L, hslColor.A).ToString()),
-                    "saturation" => new StringValue(new HslColor(hslColor.H, (double)modifiedValue / 100.0, hslColor.L, hslColor.A).ToString()),
-                    "lightness" => new StringValue(new HslColor(hslColor.H, hslColor.S, (double)modifiedValue / 100.0, hslColor.A).ToString()),
+                    "alpha" => StringValue.Create(((HslColor)new RgbColor(rgbColor.R, rgbColor.G, rgbColor.B, (double)modifiedValue)).ToString()),
+                    "red" => StringValue.Create(((HslColor)new RgbColor((int)modifiedValue, rgbColor.G, rgbColor.B, rgbColor.A)).ToString()),
+                    "green" => StringValue.Create(((HslColor)new RgbColor(rgbColor.R, (int)modifiedValue, rgbColor.B, rgbColor.A)).ToString()),
+                    "blue" => StringValue.Create(((HslColor)new RgbColor(rgbColor.R, rgbColor.G, (int)modifiedValue, rgbColor.A)).ToString()),
+                    "hue" => StringValue.Create(new HslColor((int)modifiedValue, hslColor.S, hslColor.L, hslColor.A).ToString()),
+                    "saturation" => StringValue.Create(new HslColor(hslColor.H, (double)modifiedValue / 100.0, hslColor.L, hslColor.A).ToString()),
+                    "lightness" => StringValue.Create(new HslColor(hslColor.H, hslColor.S, (double)modifiedValue / 100.0, hslColor.A).ToString()),
                     _ => NilValue.Empty,
                 };
             }
@@ -195,13 +195,13 @@ namespace Fluid.Filters
 
                 return arguments.At(0).ToStringValue() switch
                 {
-                    "alpha" => new StringValue(new RgbColor(rgbColor.R, rgbColor.G, rgbColor.B, (double)modifiedValue).ToString()),
-                    "red" => new StringValue(((HexColor)new RgbColor((int)modifiedValue, rgbColor.G, rgbColor.B, rgbColor.A)).ToString()),
-                    "green" => new StringValue(((HexColor)new RgbColor(rgbColor.R, (int)modifiedValue, rgbColor.B, rgbColor.A)).ToString()),
-                    "blue" => new StringValue(((HexColor)new RgbColor(rgbColor.R, rgbColor.G, (int)modifiedValue, rgbColor.A)).ToString()),
-                    "hue" => new StringValue(((HexColor)new HslColor((int)modifiedValue, hslColor.S, hslColor.L, hslColor.A)).ToString()),
-                    "saturation" => new StringValue(((HexColor)new HslColor(hslColor.H, (double)modifiedValue / 100.0, hslColor.L, hslColor.A)).ToString()),
-                    "lightness" => new StringValue(((HexColor)new HslColor(hslColor.H, hslColor.S, (double)modifiedValue / 100.0, hslColor.A)).ToString()),
+                    "alpha" => StringValue.Create(new RgbColor(rgbColor.R, rgbColor.G, rgbColor.B, (double)modifiedValue).ToString()),
+                    "red" => StringValue.Create(((HexColor)new RgbColor((int)modifiedValue, rgbColor.G, rgbColor.B, rgbColor.A)).ToString()),
+                    "green" => StringValue.Create(((HexColor)new RgbColor(rgbColor.R, (int)modifiedValue, rgbColor.B, rgbColor.A)).ToString()),
+                    "blue" => StringValue.Create(((HexColor)new RgbColor(rgbColor.R, rgbColor.G, (int)modifiedValue, rgbColor.A)).ToString()),
+                    "hue" => StringValue.Create(((HexColor)new HslColor((int)modifiedValue, hslColor.S, hslColor.L, hslColor.A)).ToString()),
+                    "saturation" => StringValue.Create(((HexColor)new HslColor(hslColor.H, (double)modifiedValue / 100.0, hslColor.L, hslColor.A)).ToString()),
+                    "lightness" => StringValue.Create(((HexColor)new HslColor(hslColor.H, hslColor.S, (double)modifiedValue / 100.0, hslColor.A)).ToString()),
                     _ => NilValue.Empty,
                 };
             }
@@ -269,13 +269,13 @@ namespace Fluid.Filters
 
                 var saturation = (hslColor.S * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
 
-                return new StringValue(((HexColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
+                return StringValue.Create(((HexColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
             }
             else if (isHsl)
             {
                 var saturation = (hslColor.S * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
 
-                return new StringValue(new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A).ToString());
+                return StringValue.Create(new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A).ToString());
             }
             else if (isRgb)
             {
@@ -283,7 +283,7 @@ namespace Fluid.Filters
 
                 var saturation = (hslColor.S * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
 
-                return new StringValue(((RgbColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
+                return StringValue.Create(((RgbColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
             }
             else
             {
@@ -323,13 +323,13 @@ namespace Fluid.Filters
 
                 var saturation = (hslColor.S * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
 
-                return new StringValue(((HexColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
+                return StringValue.Create(((HexColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
             }
             else if (isHsl)
             {
                 var saturation = (hslColor.S * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
 
-                return new StringValue(new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A).ToString());
+                return StringValue.Create(new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A).ToString());
             }
             else if (isRgb)
             {
@@ -337,7 +337,7 @@ namespace Fluid.Filters
 
                 var saturation = (hslColor.S * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
 
-                return new StringValue(((RgbColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
+                return StringValue.Create(((RgbColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
             }
             else
             {
@@ -377,13 +377,13 @@ namespace Fluid.Filters
 
                 var lightness = (hslColor.L * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
 
-                return new StringValue(((HexColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
+                return StringValue.Create(((HexColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
             }
             else if (isHsl)
             {
                 var lightness = (hslColor.L * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
 
-                return new StringValue(new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A).ToString());
+                return StringValue.Create(new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A).ToString());
             }
             else if (isRgb)
             {
@@ -391,7 +391,7 @@ namespace Fluid.Filters
 
                 var lightness = (hslColor.L * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
 
-                return new StringValue(((RgbColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
+                return StringValue.Create(((RgbColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
             }
             else
             {
@@ -432,13 +432,13 @@ namespace Fluid.Filters
 
                 var lightness = (hslColor.L * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
 
-                return new StringValue(((HexColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
+                return StringValue.Create(((HexColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
             }
             else if (isHsl)
             {
                 var lightness = (hslColor.L * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
 
-                return new StringValue(new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A).ToString());
+                return StringValue.Create(new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A).ToString());
             }
             else if (isRgb)
             {
@@ -446,7 +446,7 @@ namespace Fluid.Filters
 
                 var lightness = (hslColor.L * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
 
-                return new StringValue(((RgbColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
+                return StringValue.Create(((RgbColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
             }
             else
             {

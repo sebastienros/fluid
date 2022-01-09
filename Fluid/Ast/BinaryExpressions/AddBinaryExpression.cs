@@ -12,7 +12,7 @@ namespace Fluid.Ast.BinaryExpressions
         {
             if (leftValue is StringValue)
             {
-                return new StringValue(leftValue.ToStringValue() + rightValue.ToStringValue());
+                return StringValue.Create(leftValue.ToStringValue() + rightValue.ToStringValue());
             }
 
             if (leftValue is NumberValue)

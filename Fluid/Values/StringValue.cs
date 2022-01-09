@@ -1,10 +1,8 @@
-﻿using Parlot;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
@@ -12,7 +10,7 @@ namespace Fluid.Values
 {
     public sealed class StringValue : FluidValue, IEquatable<StringValue>
     {
-        public static readonly StringValue Empty = new StringValue("");
+        public static readonly StringValue Empty = new StringValue("", false);
 
         private static readonly StringValue[] CharToString = new StringValue[256];
 
@@ -22,21 +20,17 @@ namespace Fluid.Values
         {
             for (var i = 0; i < CharToString.Length; ++i)
             {
-                var c = (char) i;
-                CharToString[i] = new StringValue(c.ToString());
+                var c = (char)i;
+                CharToString[i] = new StringValue(c.ToString(), false);
             }
         }
 
-        public StringValue(string value)
+        private StringValue(string value, bool encode)
         {
             // Returns a StringValue instance and not NilValue since this is what is asked for.
             // However FluidValue.Create(null) returns NilValue.
 
             _value = value ?? NilValue.Instance.ToStringValue();
-        }
-
-        public StringValue(string value, bool encode) : this(value)
-        {
             Encode = encode;
         }
 
@@ -51,15 +45,15 @@ namespace Fluid.Values
         internal static StringValue Create(char c)
         {
             var temp = CharToString;
-            if ((uint) c < (uint) temp.Length)
+            if ((uint)c < (uint)temp.Length)
             {
                 return temp[c];
             }
-            return new StringValue(c.ToString());
+            return new StringValue(c.ToString(), false);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static StringValue Create(string s)
+        public static StringValue Create(string s, bool encode)
         {
             if (String.IsNullOrEmpty(s))
             {
@@ -68,44 +62,31 @@ namespace Fluid.Values
 
             return s.Length == 1
                 ? Create(s[0])
-                : new StringValue(s);
+                : new StringValue(s, encode);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static StringValue Create(string s, bool encode)
+        public static StringValue Create(string s)
         {
-            return Create(s, encode);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static StringValue Create(in TextSpan span)
-        {
-            if (span.Length == 0)
-            {
-                return Empty;
-            }
-
-            return span.Length == 1
-                ? Create(span.Buffer[span.Offset])
-                : new StringValue(span.ToString());
+            return Create(s, true);
         }
 
         public override bool Equals(FluidValue other)
         {
             if (other.Type == FluidValues.String) return _value == other.ToStringValue();
-            
+
             // Delegating other types 
             if (other == BlankValue.Instance || other == NilValue.Instance || other == EmptyValue.Instance)
             {
                 return other.Equals(this);
             }
-            
+
             return false;
         }
 
         public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
-            var i = (int) index.ToNumberValue();
+            var i = (int)index.ToNumberValue();
 
             if (i < _value.Length)
             {

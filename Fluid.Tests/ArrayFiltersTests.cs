@@ -11,13 +11,13 @@ namespace Fluid.Tests
         [Fact]
         public void Join()
         {
-            var input = new ArrayValue(new[] {
-                new StringValue("a"),
-                new StringValue("b"),
-                new StringValue("c")
+            var input = ArrayValue.Create(new[] {
+                StringValue.Create("a"),
+                StringValue.Create("b"),
+                StringValue.Create("c")
                 });
 
-            var arguments = new FilterArguments().Add(new StringValue(", "));
+            var arguments = new FilterArguments().Add(StringValue.Create(", "));
             var context = new TemplateContext();
 
             var result = ArrayFilters.Join(input, arguments, context);
@@ -28,10 +28,10 @@ namespace Fluid.Tests
         [Fact]
         public void First()
         {
-            var input = new ArrayValue(new[] {
-                new StringValue("a"),
-                new StringValue("b"),
-                new StringValue("c")
+            var input = ArrayValue.Create(new[] {
+                StringValue.Create("a"),
+                StringValue.Create("b"),
+                StringValue.Create("c")
                 });
 
             var arguments = new FilterArguments();
@@ -39,13 +39,13 @@ namespace Fluid.Tests
 
             var result = ArrayFilters.First(input, arguments, context);
 
-            Assert.Equal(new StringValue("a"), result);
+            Assert.Equal(StringValue.Create("a"), result);
         }
 
         [Fact]
         public async Task First_EmptyArray()
         {
-            var input = new ArrayValue(new StringValue[0]);
+            var input = ArrayValue.Create(new StringValue[0]);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -58,10 +58,10 @@ namespace Fluid.Tests
         [Fact]
         public void Last()
         {
-            var input = new ArrayValue(new[] {
-                new StringValue("a"),
-                new StringValue("b"),
-                new StringValue("c")
+            var input = ArrayValue.Create(new[] {
+                StringValue.Create("a"),
+                StringValue.Create("b"),
+                StringValue.Create("c")
                 });
 
             var arguments = new FilterArguments();
@@ -69,13 +69,13 @@ namespace Fluid.Tests
 
             var result = ArrayFilters.Last(input, arguments, context);
 
-            Assert.Equal(new StringValue("c"), result);
+            Assert.Equal(StringValue.Create("c"), result);
         }
 
         [Fact]
         public async Task Last_EmptyArray()
         {
-            var input = new ArrayValue(new StringValue[0]);
+            var input = ArrayValue.Create(new StringValue[0]);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -88,17 +88,17 @@ namespace Fluid.Tests
         [Fact]
         public void Concat()
         {
-            var input = new ArrayValue(new[] {
-                new StringValue("a"),
-                new StringValue("b"),
-                new StringValue("c")
+            var input = ArrayValue.Create(new[] {
+                StringValue.Create("a"),
+                StringValue.Create("b"),
+                StringValue.Create("c")
                 });
 
             var arguments = new FilterArguments().Add(
-                new ArrayValue(new[] {
-                    new StringValue("1"),
-                    new StringValue("2"),
-                    new StringValue("3")
+                ArrayValue.Create(new[] {
+                    StringValue.Create("1"),
+                    StringValue.Create("2"),
+                    StringValue.Create("3")
                     })
             );
 
@@ -112,13 +112,13 @@ namespace Fluid.Tests
         [Fact]
         public async Task Map()
         {
-            var input = new ArrayValue(new[] {
+            var input = ArrayValue.Create(new[] {
                 new ObjectValue(new { Title = "a" }),
                 new ObjectValue(new { Title = "b" }),
                 new ObjectValue(new { Title = "c" })
                 });
 
-            var arguments = new FilterArguments().Add(new StringValue("Title"));
+            var arguments = new FilterArguments().Add(StringValue.Create("Title"));
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
@@ -127,22 +127,22 @@ namespace Fluid.Tests
             var result = await ArrayFilters.Map(input, arguments, context);
 
             Assert.Equal(3, result.EnumerateAsync(context).Result.Count());
-            Assert.Equal(new StringValue("a"), result.EnumerateAsync(context).Result.ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.EnumerateAsync(context).Result.ElementAt(1));
-            Assert.Equal(new StringValue("c"), result.EnumerateAsync(context).Result.ElementAt(2));
+            Assert.Equal(StringValue.Create("a"), result.EnumerateAsync(context).Result.ElementAt(0));
+            Assert.Equal(StringValue.Create("b"), result.EnumerateAsync(context).Result.ElementAt(1));
+            Assert.Equal(StringValue.Create("c"), result.EnumerateAsync(context).Result.ElementAt(2));
         }
 
         [Fact]
         public async Task Map_DeepProperties() 
         {
             var sample = new { Title = new { Text = "a" } };
-            var input = new ArrayValue(new[] {
+            var input = ArrayValue.Create(new[] {
                 new ObjectValue(new { Title = new { Text = "a" }}),
                 new ObjectValue(new { Title = new { Text = "b" }}),
                 new ObjectValue(new { Title = new { Text = "c" }})
                 });
 
-            var arguments = new FilterArguments().Add(new StringValue("Title.Text"));
+            var arguments = new FilterArguments().Add(StringValue.Create("Title.Text"));
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
@@ -152,16 +152,16 @@ namespace Fluid.Tests
             var result = await ArrayFilters.Map(input, arguments, context);
 
             Assert.Equal(3, result.EnumerateAsync(context).Result.Count());
-            Assert.Equal(new StringValue("a"), result.EnumerateAsync(context).Result.ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.EnumerateAsync(context).Result.ElementAt(1));
-            Assert.Equal(new StringValue("c"), result.EnumerateAsync(context).Result.ElementAt(2));
+            Assert.Equal(StringValue.Create("a"), result.EnumerateAsync(context).Result.ElementAt(0));
+            Assert.Equal(StringValue.Create("b"), result.EnumerateAsync(context).Result.ElementAt(1));
+            Assert.Equal(StringValue.Create("c"), result.EnumerateAsync(context).Result.ElementAt(2));
         }
 
         [Fact]
         public void ReverseString()
         {
             // Arrange
-            var input = new StringValue("Fluid");
+            var input = StringValue.Create("Fluid");
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
@@ -170,20 +170,20 @@ namespace Fluid.Tests
 
             // Assert
             Assert.Equal(5, result.Result.EnumerateAsync(context).Result.Count());
-            Assert.Equal(new StringValue("d"), result.Result.EnumerateAsync(context).Result.ElementAt(0));
-            Assert.Equal(new StringValue("i"), result.Result.EnumerateAsync(context).Result.ElementAt(1));
-            Assert.Equal(new StringValue("u"), result.Result.EnumerateAsync(context).Result.ElementAt(2));
-            Assert.Equal(new StringValue("l"), result.Result.EnumerateAsync(context).Result.ElementAt(3));
-            Assert.Equal(new StringValue("F"), result.Result.EnumerateAsync(context).Result.ElementAt(4));
+            Assert.Equal(StringValue.Create("d"), result.Result.EnumerateAsync(context).Result.ElementAt(0));
+            Assert.Equal(StringValue.Create("i"), result.Result.EnumerateAsync(context).Result.ElementAt(1));
+            Assert.Equal(StringValue.Create("u"), result.Result.EnumerateAsync(context).Result.ElementAt(2));
+            Assert.Equal(StringValue.Create("l"), result.Result.EnumerateAsync(context).Result.ElementAt(3));
+            Assert.Equal(StringValue.Create("F"), result.Result.EnumerateAsync(context).Result.ElementAt(4));
         }
 
         [Fact]
         public void ReverseArray()
         {
-            var input = new ArrayValue(new[] {
-                new StringValue("a"),
-                new StringValue("b"),
-                new StringValue("c")
+            var input = ArrayValue.Create(new[] {
+                StringValue.Create("a"),
+                StringValue.Create("b"),
+                StringValue.Create("c")
                 });
 
             var arguments = new FilterArguments();
@@ -192,18 +192,18 @@ namespace Fluid.Tests
             var result = ArrayFilters.Reverse(input, arguments, context);
 
             Assert.Equal(3, result.Result.EnumerateAsync(context).Result.Count());
-            Assert.Equal(new StringValue("c"), result.Result.EnumerateAsync(context).Result.ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Result.EnumerateAsync(context).Result.ElementAt(1));
-            Assert.Equal(new StringValue("a"), result.Result.EnumerateAsync(context).Result.ElementAt(2));
+            Assert.Equal(StringValue.Create("c"), result.Result.EnumerateAsync(context).Result.ElementAt(0));
+            Assert.Equal(StringValue.Create("b"), result.Result.EnumerateAsync(context).Result.ElementAt(1));
+            Assert.Equal(StringValue.Create("a"), result.Result.EnumerateAsync(context).Result.ElementAt(2));
         }
 
         [Fact]
         public async Task Size()
         {
-            var input = new ArrayValue(new[] {
-                new StringValue("a"),
-                new StringValue("b"),
-                new StringValue("c")
+            var input = ArrayValue.Create(new[] {
+                StringValue.Create("a"),
+                StringValue.Create("b"),
+                StringValue.Create("c")
                 });
 
             var arguments = new FilterArguments();
@@ -219,13 +219,13 @@ namespace Fluid.Tests
         {
             var sample = new { Title = "", Address = new { Zip = 0 } };
 
-            var input = new ArrayValue(new[] {
+            var input = ArrayValue.Create(new[] {
                 new ObjectValue(new { Title = "c", Address = new { Zip = 2 } }),
                 new ObjectValue(new { Title = "a", Address = new { Zip = 3 } }),
                 new ObjectValue(new { Title = "b", Address = new { Zip = 1 } })
                 });
 
-            var arguments = new FilterArguments().Add(new StringValue("Title"));
+            var arguments = new FilterArguments().Add(StringValue.Create("Title"));
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
@@ -238,7 +238,7 @@ namespace Fluid.Tests
             Assert.Equal("b", ((dynamic)result.EnumerateAsync(context).Result.ElementAt(1).ToObjectValue()).Title);
             Assert.Equal("c", ((dynamic)result.EnumerateAsync(context).Result.ElementAt(2).ToObjectValue()).Title);
 
-            arguments = new FilterArguments().Add(new StringValue("Address.Zip"));
+            arguments = new FilterArguments().Add(StringValue.Create("Address.Zip"));
 
             options = new TemplateOptions();
             context = new TemplateContext(options); 
@@ -256,10 +256,10 @@ namespace Fluid.Tests
         [Fact]
         public async Task SortWithoutArgument()
         {
-            var input = new ArrayValue(new[] {
-                new StringValue("c"),
-                new StringValue("a"),
-                new StringValue("B"),
+            var input = ArrayValue.Create(new[] {
+                StringValue.Create("c"),
+                StringValue.Create("a"),
+                StringValue.Create("B"),
                 });
 
             var arguments = new FilterArguments();
@@ -277,10 +277,10 @@ namespace Fluid.Tests
         [Fact]
         public async Task SortNaturalWithoutArgument()
         {
-            var input = new ArrayValue(new[] {
-                new StringValue("c"),
-                new StringValue("a"),
-                new StringValue("B"),
+            var input = ArrayValue.Create(new[] {
+                StringValue.Create("c"),
+                StringValue.Create("a"),
+                StringValue.Create("B"),
                 });
 
             var arguments = new FilterArguments();
@@ -298,10 +298,10 @@ namespace Fluid.Tests
         [Fact]
         public void Uniq()
         {
-            var input = new ArrayValue(new[] {
-                new StringValue("a"),
-                new StringValue("b"),
-                new StringValue("b")
+            var input = ArrayValue.Create(new[] {
+                StringValue.Create("a"),
+                StringValue.Create("b"),
+                StringValue.Create("b")
                 });
 
             var arguments = new FilterArguments();
@@ -315,7 +315,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task Where()
         {
-            var input = new ArrayValue(new[] {
+            var input = ArrayValue.Create(new[] {
                 new ObjectValue(new { Title = "a", Pinned = true }),
                 new ObjectValue(new { Title = "b", Pinned = false }),
                 new ObjectValue(new { Title = "c", Pinned = true })
@@ -325,14 +325,14 @@ namespace Fluid.Tests
             var context = new TemplateContext(options);
             options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
 
-            var arguments1 = new FilterArguments().Add(new StringValue("Pinned"));
+            var arguments1 = new FilterArguments().Add(StringValue.Create("Pinned"));
 
             var result1 = await ArrayFilters.Where(input, arguments1, context);
 
             Assert.Equal(2, result1.EnumerateAsync(context).Result.Count());
 
             var arguments2 = new FilterArguments()
-                .Add(new StringValue("Pinned"))
+                .Add(StringValue.Create("Pinned"))
                 .Add(BooleanValue.Create(false))
                 ;
 
@@ -341,8 +341,8 @@ namespace Fluid.Tests
             Assert.Single(result2.EnumerateAsync(context).Result);
 
             var arguments3 = new FilterArguments()
-                .Add(new StringValue("Title"))
-                .Add(new StringValue("c"));
+                .Add(StringValue.Create("Title"))
+                .Add(StringValue.Create("c"));
 
             var result3 = await  ArrayFilters.Where(input, arguments3, context);
 
@@ -352,7 +352,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task WhereShouldNotThrow()
         {
-            var input = new ArrayValue(new[] {
+            var input = ArrayValue.Create(new[] {
                 new ObjectValue(new { Title = "a", Pinned = true }),
                 new ObjectValue(new { Title = "b", Pinned = false }),
                 new ObjectValue(new { Title = "c", Pinned = true })
@@ -362,7 +362,7 @@ namespace Fluid.Tests
             var context = new TemplateContext(options);
             options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
 
-            var arguments1 = new FilterArguments().Add(new StringValue("a.b.c"));
+            var arguments1 = new FilterArguments().Add(StringValue.Create("a.b.c"));
 
             var result1 = await ArrayFilters.Where(input, arguments1, context);
 

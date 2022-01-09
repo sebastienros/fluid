@@ -231,7 +231,7 @@ namespace Fluid
 
         public static TemplateContext SetValue(this TemplateContext context, string name, string value)
         {
-            return context.SetValue(name, new StringValue(value));
+            return context.SetValue(name, StringValue.Create(value));
         }
 
         public static TemplateContext SetValue(this TemplateContext context, string name, char value)

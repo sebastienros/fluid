@@ -12,7 +12,7 @@ namespace Fluid.Tests
         public void CreateStringValue(string value, string expected, bool isEmpty)
         {
             // Arrange & Act
-            var stringValue = new StringValue(value);
+            var stringValue = StringValue.Create(value);
 
             // Assert
             Assert.Equal(expected, stringValue.ToStringValue());
@@ -22,7 +22,7 @@ namespace Fluid.Tests
         [Fact]
         public void StringValueCreateNullShouldReturnEmpty()
         {
-            var stringValue = new StringValue(null);
+            var stringValue = StringValue.Create(null);
 
             // Assert
             Assert.Equal(StringValue.Empty, stringValue);

@@ -43,7 +43,7 @@ namespace Fluid.Ast
             }
 
             // Don't encode captured blocks
-            context.SetValue(_identifier, new StringValue(result, false));
+            context.SetValue(_identifier, StringValue.Create(result, false));
 
             return completion;
         }

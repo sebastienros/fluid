@@ -10,9 +10,9 @@ namespace Fluid.Tests
         [Fact]
         public void Append()
         {
-            var input = new StringValue("Hello");
+            var input = StringValue.Create("Hello");
 
-            var arguments = new FilterArguments().Add(new StringValue(" World"));
+            var arguments = new FilterArguments().Add(StringValue.Create(" World"));
             var context = new TemplateContext();
 
             var result = StringFilters.Append(input, arguments, context);
@@ -23,7 +23,7 @@ namespace Fluid.Tests
         [Fact]
         public void Capitalize()
         {
-            var input = new StringValue("hello world");
+            var input = StringValue.Create("hello world");
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -36,7 +36,7 @@ namespace Fluid.Tests
         [Fact]
         public void Downcase()
         {
-            var input = new StringValue("Hello World");
+            var input = StringValue.Create("Hello World");
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -49,7 +49,7 @@ namespace Fluid.Tests
         [Fact]
         public void LStrip()
         {
-            var input = new StringValue("   Hello World   ");
+            var input = StringValue.Create("   Hello World   ");
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -62,7 +62,7 @@ namespace Fluid.Tests
         [Fact]
         public void RStrip()
         {
-            var input = new StringValue("   Hello World   ");
+            var input = StringValue.Create("   Hello World   ");
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -75,7 +75,7 @@ namespace Fluid.Tests
         [Fact]
         public void Strip()
         {
-            var input = new StringValue("   Hello World   ");
+            var input = StringValue.Create("   Hello World   ");
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -88,7 +88,7 @@ namespace Fluid.Tests
         [Fact]
         public void StripNewLines()
         {
-            var input = new StringValue(@"
+            var input = StringValue.Create(@"
 Hello
 world
 ");
@@ -103,7 +103,7 @@ world
         [Fact]
         public void NewLineToBr()
         {
-            var input = new StringValue("Hello\nWorld");
+            var input = StringValue.Create("Hello\nWorld");
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -116,9 +116,9 @@ world
         [Fact]
         public void Prepend()
         {
-            var input = new StringValue("World");
+            var input = StringValue.Create("World");
 
-            var arguments = new FilterArguments().Add(new StringValue("Hello "));
+            var arguments = new FilterArguments().Add(StringValue.Create("Hello "));
             var context = new TemplateContext();
 
             var result = StringFilters.Prepend(input, arguments, context);
@@ -129,9 +129,9 @@ world
         [Fact]
         public void RemoveFirst()
         {
-            var input = new StringValue("abcabc");
+            var input = StringValue.Create("abcabc");
 
-            var arguments = new FilterArguments().Add(new StringValue("b"));
+            var arguments = new FilterArguments().Add(StringValue.Create("b"));
             var context = new TemplateContext();
 
             var result = StringFilters.RemoveFirst(input, arguments, context);
@@ -142,9 +142,9 @@ world
         [Fact]
         public void Remove()
         {
-            var input = new StringValue("abcabc");
+            var input = StringValue.Create("abcabc");
 
-            var arguments = new FilterArguments().Add(new StringValue("b"));
+            var arguments = new FilterArguments().Add(StringValue.Create("b"));
             var context = new TemplateContext();
 
             var result = StringFilters.Remove(input, arguments, context);
@@ -155,7 +155,7 @@ world
         [Fact]
         public void RemovesReturnsInputWhenArgumentIsEmpty()
         {
-            var input = new StringValue("abcabc");
+            var input = StringValue.Create("abcabc");
 
             var arguments = FilterArguments.Empty;
             var context = new TemplateContext();
@@ -166,9 +166,9 @@ world
         [Fact]
         public void ReplaceFirst()
         {
-            var input = new StringValue("abcabc");
+            var input = StringValue.Create("abcabc");
 
-            var arguments = new FilterArguments().Add(new StringValue("b")).Add(new StringValue("B"));
+            var arguments = new FilterArguments().Add(StringValue.Create("b")).Add(StringValue.Create("B"));
             var context = new TemplateContext();
 
             var result = StringFilters.ReplaceFirst(input, arguments, context);
@@ -179,9 +179,9 @@ world
         [Fact]
         public void Replace()
         {
-            var input = new StringValue("abcabc");
+            var input = StringValue.Create("abcabc");
 
-            var arguments = new FilterArguments().Add(new StringValue("b")).Add(new StringValue("B"));
+            var arguments = new FilterArguments().Add(StringValue.Create("b")).Add(StringValue.Create("B"));
             var context = new TemplateContext();
 
             var result = StringFilters.Replace(input, arguments, context);
@@ -233,23 +233,23 @@ world
         [Fact]
         public void Split()
         {
-            var input = new StringValue("a.b.c");
+            var input = StringValue.Create("a.b.c");
 
-            var arguments = new FilterArguments().Add(new StringValue("."));
+            var arguments = new FilterArguments().Add(StringValue.Create("."));
             var context = new TemplateContext();
 
             var result = StringFilters.Split(input, arguments, context);
 
             Assert.Equal(3, result.Result.EnumerateAsync(context).Result.Count());
-            Assert.Equal(new StringValue("a"), result.Result.EnumerateAsync(context).Result.ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Result.EnumerateAsync(context).Result.ElementAt(1));
-            Assert.Equal(new StringValue("c"), result.Result.EnumerateAsync(context).Result.ElementAt(2));
+            Assert.Equal(StringValue.Create("a"), result.Result.EnumerateAsync(context).Result.ElementAt(0));
+            Assert.Equal(StringValue.Create("b"), result.Result.EnumerateAsync(context).Result.ElementAt(1));
+            Assert.Equal(StringValue.Create("c"), result.Result.EnumerateAsync(context).Result.ElementAt(2));
         }
 
         [Fact]
         public void SplitWithEmptyString()
         {
-            var input = new StringValue("abc");
+            var input = StringValue.Create("abc");
 
             var arguments = new FilterArguments().Add(StringValue.Empty);
             var context = new TemplateContext();
@@ -257,9 +257,9 @@ world
             var result = StringFilters.Split(input, arguments, context);
 
             Assert.Equal(3, result.Result.EnumerateAsync(context).Result.Count());
-            Assert.Equal(new StringValue("a"), result.Result.EnumerateAsync(context).Result.ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Result.EnumerateAsync(context).Result.ElementAt(1));
-            Assert.Equal(new StringValue("c"), result.Result.EnumerateAsync(context).Result.ElementAt(2));
+            Assert.Equal(StringValue.Create("a"), result.Result.EnumerateAsync(context).Result.ElementAt(0));
+            Assert.Equal(StringValue.Create("b"), result.Result.EnumerateAsync(context).Result.ElementAt(1));
+            Assert.Equal(StringValue.Create("c"), result.Result.EnumerateAsync(context).Result.ElementAt(2));
         }
 
         [Theory]
@@ -270,7 +270,7 @@ world
         [InlineData(null, 5, "")]
         public void Truncate(string input, int size, string output)
         {
-            var source = new StringValue(input);
+            var source = StringValue.Create(input);
             var arguments = new FilterArguments().Add(NumberValue.Create(size));
             var context = new TemplateContext();
             var result = StringFilters.Truncate(source, arguments, context);
@@ -286,10 +286,10 @@ world
         [InlineData("ABCD EFGH IJKLM NOPQRS TUVWXYZ", 0, "", "")]
         public void TruncateWithCustomEllipsis(string input, int size, string ellipsis, string output)
         {
-            var source = new StringValue(input);
+            var source = StringValue.Create(input);
             var arguments = new FilterArguments()
                 .Add(NumberValue.Create(size))
-                .Add(new StringValue(ellipsis));
+                .Add(StringValue.Create(ellipsis));
             var context = new TemplateContext();
             var result = StringFilters.Truncate(source, arguments, context);
 
@@ -303,7 +303,7 @@ world
         [InlineData("The    cat came  back", 10, "The    cat came  back...")]
         public void TruncateWords(string input, int size, string output)
         {
-            var source = new StringValue(input);
+            var source = StringValue.Create(input);
             var arguments = new FilterArguments()
                 .Add(NumberValue.Create(size));
             var context = new TemplateContext();
@@ -319,10 +319,10 @@ world
         [InlineData("The cat came back the very next day", 0, "", "")]
         public void TruncateWordsWithCustomEllipsis(string input, int size, string ellispsis, string output)
         {
-            var source = new StringValue(input);
+            var source = StringValue.Create(input);
             var arguments = new FilterArguments()
                 .Add(NumberValue.Create(size))
-                .Add(new StringValue(ellispsis));
+                .Add(StringValue.Create(ellispsis));
 
             var context = new TemplateContext();
 
@@ -334,7 +334,7 @@ world
         [Fact]
         public void Upcase()
         {
-            var input = new StringValue("Hello World");
+            var input = StringValue.Create("Hello World");
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();

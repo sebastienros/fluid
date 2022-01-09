@@ -37,8 +37,8 @@ namespace Fluid.Tests
             _parser.TryParse("{{ p.NaMe }}", out var template, out var error);
 
             var options = new TemplateOptions();
-            options.Scope.SetValue("o1", new StringValue("o1"));
-            options.Scope.SetValue("o2", new StringValue("o2"));
+            options.Scope.SetValue("o1", StringValue.Create("o1"));
+            options.Scope.SetValue("o2", StringValue.Create("o2"));
 
             var context = new TemplateContext(options);
             context.SetValue("o2", "new o2");

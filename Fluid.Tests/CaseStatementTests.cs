@@ -11,10 +11,10 @@ namespace Fluid.Tests
 {
     public class CaseStatementTests
     {
-        private LiteralExpression A = new LiteralExpression(new StringValue("a"));
-        private LiteralExpression B = new LiteralExpression(new StringValue("b"));
-        private LiteralExpression C = new LiteralExpression(new StringValue("c"));
-        private LiteralExpression D = new LiteralExpression(new StringValue("d"));
+        private LiteralExpression A = new LiteralExpression(StringValue.Create("a"));
+        private LiteralExpression B = new LiteralExpression(StringValue.Create("b"));
+        private LiteralExpression C = new LiteralExpression(StringValue.Create("c"));
+        private LiteralExpression D = new LiteralExpression(StringValue.Create("d"));
 
         private List<Statement> TEXT(string text)
         {

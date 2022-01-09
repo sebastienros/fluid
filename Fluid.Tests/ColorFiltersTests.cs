@@ -26,7 +26,7 @@ namespace Fluid.Tests
         public void ToRgb(string color, string expected)
         {
             // Arrange
-            var input = new StringValue(color);
+            var input = StringValue.Create(color);
             var context = new TemplateContext();
 
             // Act
@@ -59,7 +59,7 @@ namespace Fluid.Tests
         public void ToHex(string color, string expected)
         {
             // Arrange
-            var input = new StringValue(color);
+            var input = StringValue.Create(color);
             var context = new TemplateContext();
 
             // Act
@@ -86,7 +86,7 @@ namespace Fluid.Tests
         public void ToHsl(string color, string expected)
         {
             // Arrange
-            var input = new StringValue(color);
+            var input = StringValue.Create(color);
             var context = new TemplateContext();
 
             // Act
@@ -123,7 +123,7 @@ namespace Fluid.Tests
         public void ColorExtract(string color, object[] arguments, string expected)
         {
             // Arrange
-            var input = new StringValue(color);
+            var input = StringValue.Create(color);
             var context = new TemplateContext();
 
             // Act
@@ -158,7 +158,7 @@ namespace Fluid.Tests
         public void ColorModify(string color, object[] arguments, string expected)
         {
             // Arrange
-            var input = new StringValue(color);
+            var input = StringValue.Create(color);
             var context = new TemplateContext();
 
             // Act
@@ -175,7 +175,7 @@ namespace Fluid.Tests
         public void CalculateBrightness(string color, decimal expected)
         {
             // Arrange
-            var input = new StringValue(color);
+            var input = StringValue.Create(color);
             var context = new TemplateContext();
 
             // Act
@@ -192,7 +192,7 @@ namespace Fluid.Tests
         public void ColorSaturate(string color, object[] arguments, string expected)
         {
             // Arrange
-            var input = new StringValue(color);
+            var input = StringValue.Create(color);
             var context = new TemplateContext();
 
             // Act
@@ -209,7 +209,7 @@ namespace Fluid.Tests
         public void ColorDesaturate(string color, object[] arguments, string expected)
         {
             // Arrange
-            var input = new StringValue(color);
+            var input = StringValue.Create(color);
             var context = new TemplateContext();
 
             // Act
@@ -226,7 +226,7 @@ namespace Fluid.Tests
         public void ColorLighten(string color, object[] arguments, string expected)
         {
             // Arrange
-            var input = new StringValue(color);
+            var input = StringValue.Create(color);
             var context = new TemplateContext();
 
             // Act
@@ -243,7 +243,7 @@ namespace Fluid.Tests
         public void ColorDarken(string color, object[] arguments, string expected)
         {
             // Arrange
-            var input = new StringValue(color);
+            var input = StringValue.Create(color);
             var context = new TemplateContext();
 
             // Act
@@ -260,7 +260,7 @@ namespace Fluid.Tests
         public void ColorDifference(string color, object[] arguments, decimal expected)
         {
             // Arrange
-            var input = new StringValue(color);
+            var input = StringValue.Create(color);
             var context = new TemplateContext();
 
             // Act
@@ -277,7 +277,7 @@ namespace Fluid.Tests
         public void BrightnessDifference(string color, object[] arguments, decimal expected)
         {
             // Arrange
-            var input = new StringValue(color);
+            var input = StringValue.Create(color);
             var context = new TemplateContext();
 
             // Act
@@ -294,7 +294,7 @@ namespace Fluid.Tests
         public void ColorContrast(string color, object[] arguments, decimal expected)
         {
             // Arrange
-            var input = new StringValue(color);
+            var input = StringValue.Create(color);
             var context = new TemplateContext();
 
             // Act

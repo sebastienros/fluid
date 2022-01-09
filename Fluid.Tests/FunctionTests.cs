@@ -34,8 +34,8 @@ namespace Fluid.Tests
             _parser.TryParse(source, out var template, out var error);
             Assert.True(template != null, error);
             var context = new TemplateContext();
-            context.SetValue("a", new FunctionValue((args, c) => new StringValue("hello")));
-            context.SetValue("b", new FunctionValue((args, c) => new ValueTask<FluidValue>(new StringValue("world"))));
+            context.SetValue("a", new FunctionValue((args, c) => StringValue.Create("hello")));
+            context.SetValue("b", new FunctionValue((args, c) => new ValueTask<FluidValue>(StringValue.Create("world"))));
 
             // Use a loop to exercise the arguments cache
             for (var i = 0; i < 10; i++)
@@ -53,7 +53,7 @@ namespace Fluid.Tests
             _parser.TryParse(source, out var template, out var error);
             Assert.True(template != null, error);
             var context = new TemplateContext();
-            context.SetValue("a", new FunctionValue((args, c) => new StringValue(new String(args.At(0).ToStringValue()[0], (int) args.At(1).ToNumberValue()))));
+            context.SetValue("a", new FunctionValue((args, c) => StringValue.Create(new String(args.At(0).ToStringValue()[0], (int) args.At(1).ToNumberValue()))));
 
             // Use a loop to exercise the arguments cache
             for (var i = 0; i < 10; i++)
@@ -71,7 +71,7 @@ namespace Fluid.Tests
             _parser.TryParse(source, out var template, out var error);
             Assert.True(template != null, error);
             var context = new TemplateContext();
-            context.SetValue("a", new FunctionValue((args, c) => new StringValue(new String(args["c"].ToStringValue()[0], (int)args["r"].ToNumberValue()))));
+            context.SetValue("a", new FunctionValue((args, c) => StringValue.Create(new String(args["c"].ToStringValue()[0], (int)args["r"].ToNumberValue()))));
 
             // Use a loop to exercise the arguments cache
             for (var i = 0; i < 10; i++)
@@ -89,8 +89,8 @@ namespace Fluid.Tests
             _parser.TryParse(source, out var template, out var error);
             Assert.True(template != null, error);
             var context = new TemplateContext();
-            context.SetValue("a", new FunctionValue((args, c) => new StringValue(new String(args.At(0).ToStringValue()[0], (int)args["r"].ToNumberValue()))));
-            context.SetValue("b", new FunctionValue((args, c) => new StringValue("hello")));
+            context.SetValue("a", new FunctionValue((args, c) => StringValue.Create(new String(args.At(0).ToStringValue()[0], (int)args["r"].ToNumberValue()))));
+            context.SetValue("b", new FunctionValue((args, c) => StringValue.Create("hello")));
 
             // Use a loop to exercise the arguments cache
             for (var i = 0; i < 10; i++)

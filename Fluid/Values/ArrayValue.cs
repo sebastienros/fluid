@@ -12,40 +12,42 @@ namespace Fluid.Values
     {
         public static readonly ArrayValue Empty = new ArrayValue(Array.Empty<FluidValue>());
 
-        private readonly FluidValue[] _value;
+        private readonly IReadOnlyList<FluidValue> _value;
 
         public override FluidValues Type => FluidValues.Array;
 
-        public ArrayValue(FluidValue[] value)
+        public IReadOnlyList<FluidValue> Values => _value;
+
+        private ArrayValue(IReadOnlyList<FluidValue> value)
         {
             _value = value;
         }
 
-        public ArrayValue(IEnumerable<FluidValue> value)
+        public static ArrayValue Create(FluidValue[] value)
         {
-            _value = value.ToArray();
+            return new ArrayValue(value);
         }
 
-        internal ArrayValue(IList<FluidValue> value)
+        public static ArrayValue Create(IEnumerable<FluidValue> value)
         {
-            _value = value.ToArray();
+            return new ArrayValue(value.ToArray());
         }
 
         public override bool Equals(FluidValue other)
         {
             if (other.IsNil())
             {
-                return _value.Length == 0;
+                return _value.Count == 0;
             }
 
             if (other is ArrayValue arrayValue)
             {
-                if (_value.Length != arrayValue._value.Length)
+                if (_value.Count != arrayValue._value.Count)
                 {
                     return false;
                 }
 
-                for (var i = 0; i < _value.Length; i++)
+                for (var i = 0; i < _value.Count; i++)
                 {
                     var item = _value[i];
                     var otherItem = arrayValue._value[i];
@@ -58,9 +60,9 @@ namespace Fluid.Values
             }
             else if (other.Type == FluidValues.Empty)
             {
-                return _value.Length == 0;
+                return _value.Count == 0;
             }
-            
+
             return false;
         }
 
@@ -69,19 +71,19 @@ namespace Fluid.Values
             switch (name)
             {
                 case "size":
-                    return NumberValue.Create(_value.Length);
+                    return NumberValue.Create(_value.Count);
 
                 case "first":
-                    if (_value.Length > 0)
+                    if (_value.Count > 0)
                     {
                         return _value[0];
                     }
                     break;
 
                 case "last":
-                    if (_value.Length > 0)
+                    if (_value.Count > 0)
                     {
-                        return _value[_value.Length - 1];
+                        return _value[_value.Count - 1];
                     }
                     break;
 
@@ -94,7 +96,7 @@ namespace Fluid.Values
         {
             var i = (int)index.ToNumberValue();
 
-            if (i >= 0 && i < _value.Length)
+            if (i >= 0 && i < _value.Count)
             {
                 return FluidValue.Create(_value[i], context.Options);
             }
@@ -109,14 +111,13 @@ namespace Fluid.Values
 
         public override decimal ToNumberValue()
         {
-            return _value.Length;
+            return _value.Count;
         }
 
-        public FluidValue[] Values => _value;
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
-            
+
             foreach (var v in _value)
             {
                 writer.Write(v.ToStringValue());
@@ -135,7 +136,7 @@ namespace Fluid.Values
 
         public override bool Contains(FluidValue value)
         {
-            return Array.IndexOf(_value, value) > -1;
+            return _value.Contains(value);
         }
 
         public override ValueTask<IEnumerable<FluidValue>> EnumerateAsync(TemplateContext context)
