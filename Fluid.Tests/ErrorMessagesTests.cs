@@ -27,5 +27,17 @@ namespace Fluid.Tests
             Assert.False(_parser.TryParse(source, out var _, out var error));
             Assert.StartsWith(expected, error); // e.g., message then 'at (1:15)'
         }
+
+        [Theory]
+        [InlineData("  {% assign a 'b' %}")]
+        [InlineData("{% assign a = 'b' %}\n  {% assign a 'b' %}")]
+        [InlineData("  {% assign a 'b' %}\n  {% assign a = 'b' %}")]
+        [InlineData("  {% assign a 'b' %}\n\r  {% assign a = 'b' %}")]
+        [InlineData("  {% assign a 'b' %}\n{% assign a = 'b' %}\n  {% assign a 'b' %}")]
+        public void ErrorMessageContainsLineSource(string source)
+        {
+            Assert.False(_parser.TryParse(source, out var _, out var error));
+            Assert.Contains("Source:\n  {% assign a 'b' %}", error);
+        }
     }
 }
