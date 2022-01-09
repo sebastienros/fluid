@@ -128,7 +128,7 @@ namespace Fluid.Ast
                     {
                         var forloop = new ForLoopValue();
 
-                        var list = (await _for.EvaluateAsync(context)).Enumerate(context).ToList();
+                        var list = (await (await _for.EvaluateAsync(context)).EnumerateAsync(context)).ToList();
 
                         context.LocalScope = new Scope(context.RootScope);
                         previousScope.CopyTo(context.LocalScope);

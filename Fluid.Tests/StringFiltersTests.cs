@@ -240,10 +240,10 @@ world
 
             var result = StringFilters.Split(input, arguments, context);
 
-            Assert.Equal(3, result.Result.Enumerate(context).Count());
-            Assert.Equal(new StringValue("a"), result.Result.Enumerate(context).ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Result.Enumerate(context).ElementAt(1));
-            Assert.Equal(new StringValue("c"), result.Result.Enumerate(context).ElementAt(2));
+            Assert.Equal(3, result.Result.EnumerateAsync(context).Result.Count());
+            Assert.Equal(new StringValue("a"), result.Result.EnumerateAsync(context).Result.ElementAt(0));
+            Assert.Equal(new StringValue("b"), result.Result.EnumerateAsync(context).Result.ElementAt(1));
+            Assert.Equal(new StringValue("c"), result.Result.EnumerateAsync(context).Result.ElementAt(2));
         }
 
         [Fact]
@@ -256,10 +256,10 @@ world
 
             var result = StringFilters.Split(input, arguments, context);
 
-            Assert.Equal(3, result.Result.Enumerate(context).Count());
-            Assert.Equal(new StringValue("a"), result.Result.Enumerate(context).ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Result.Enumerate(context).ElementAt(1));
-            Assert.Equal(new StringValue("c"), result.Result.Enumerate(context).ElementAt(2));
+            Assert.Equal(3, result.Result.EnumerateAsync(context).Result.Count());
+            Assert.Equal(new StringValue("a"), result.Result.EnumerateAsync(context).Result.ElementAt(0));
+            Assert.Equal(new StringValue("b"), result.Result.EnumerateAsync(context).Result.ElementAt(1));
+            Assert.Equal(new StringValue("c"), result.Result.EnumerateAsync(context).Result.ElementAt(2));
         }
 
         [Theory]

@@ -61,7 +61,7 @@ namespace Fluid.Ast
             if (Member != null)
             {
                 var member = await Member.EvaluateAsync(context);
-                list = member.Enumerate(context).ToList();
+                list = (await member.EnumerateAsync(context)).ToList();
             }
             else if (Range != null)
             {
