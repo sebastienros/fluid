@@ -11,7 +11,7 @@ namespace Fluid.Tests
     {
         private LiteralExpression LIT(string text)
         {
-            return new LiteralExpression(new StringValue(text));
+            return new LiteralExpression(StringValue.Create(text));
         }
 
         private LiteralExpression LIT(int number)

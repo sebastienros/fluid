@@ -125,7 +125,7 @@ namespace Fluid.Values
             foreach (var key in _value.Keys)
             {
                 _value.TryGetValue(key, out var value);
-                list.Add(new ArrayValue(new[] { new StringValue(key),  value }));
+                list.Add(ArrayValue.Create(new[] { StringValue.Create(key),  value }));
             }
 
             return new ValueTask<IEnumerable<FluidValue>>(list);

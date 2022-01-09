@@ -173,7 +173,7 @@ namespace Fluid.Tests
                     s += args.At(k).ToStringValue();
                 }
 
-                return new StringValue(s);
+                return StringValue.Create(s);
             });
 
             var result = await template.RenderAsync(context);

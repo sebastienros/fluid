@@ -159,13 +159,13 @@ namespace Fluid.Values
                     switch (value)
                     {
                         case DateTimeOffset dateTimeOffset:
-                            return new DateTimeValue(dateTimeOffset);
+                            return DateTimeValue.Create(dateTimeOffset);
 
                         case IFormattable formattable:
-                            return new StringValue(formattable.ToString(null, options.CultureInfo));
+                            return StringValue.Create(formattable.ToString(null, options.CultureInfo));
 
                         case IConvertible convertible:
-                            return new StringValue(convertible.ToString(options.CultureInfo));
+                            return StringValue.Create(convertible.ToString(options.CultureInfo));
 
                         case IDictionary<string, object> dictionary:
                             return new DictionaryValue(new ObjectDictionaryFluidIndexable<object>(dictionary, options));
@@ -177,7 +177,7 @@ namespace Fluid.Values
                             return new DictionaryValue(new DictionaryDictionaryFluidIndexable(otherDictionary, options));
 
                         case FluidValue[] array:
-                            return new ArrayValue(array);
+                            return ArrayValue.Create(array);
                     }
 
                     // Check if it's a more specific IDictionary<string, V>, e.g. JObject
@@ -211,10 +211,10 @@ namespace Fluid.Values
                     switch (value)
                     {
                         case IList<FluidValue> list:
-                            return new ArrayValue(list);
+                            return ArrayValue.Create(list);
 
                         case IEnumerable<FluidValue> enumerable:
-                            return new ArrayValue(enumerable);
+                            return ArrayValue.Create(enumerable);
 
                         case IList list:
                             var values = new FluidValue[list.Count];
@@ -223,7 +223,7 @@ namespace Fluid.Values
                                 values[i] = Create(list[i], options);
                             }
 
-                            return new ArrayValue(values);
+                            return ArrayValue.Create(values);
 
                         case IEnumerable enumerable:
                             var fluidValues = new List<FluidValue>();
@@ -231,15 +231,15 @@ namespace Fluid.Values
                             {
                                 fluidValues.Add(Create(item, options));
                             }
-                            return new ArrayValue(fluidValues);
+                            return ArrayValue.Create(fluidValues);
                     }
 
                     return new ObjectValue(value);
                 case TypeCode.DateTime:
-                    return new DateTimeValue((DateTime)value);
+                    return DateTimeValue.Create((DateTime)value);
                 case TypeCode.Char:
                 case TypeCode.String:
-                    return new StringValue(Convert.ToString(value, CultureInfo.InvariantCulture));
+                    return StringValue.Create(Convert.ToString(value, CultureInfo.InvariantCulture));
                 default:
                     throw new InvalidOperationException();
             }

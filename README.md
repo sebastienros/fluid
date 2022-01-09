@@ -141,7 +141,7 @@ Here is the `downcase` filter as defined in Fluid.
 ```csharp
 public static ValueTask<FluidValue> Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
 {
-    return new StringValue(input.ToStringValue().ToLower());
+    return StringValue.Create(input.ToStringValue().ToLower());
 }
 ```
 
@@ -916,7 +916,7 @@ var lowercase = new FunctionValue((args, context) =>
 {
   var firstArg = args.At(0).ToStringValue().ToLowerCase();
   var lower = firstArg.ToLowerCase();
-  return new ValueTask<FluidValue>(new StringValue(lower));
+  return new ValueTask<FluidValue>(StringValue.Create(lower));
 });
 
 var context = new TemplateContext();

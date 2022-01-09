@@ -16,9 +16,9 @@ namespace Fluid.Tests
         [Fact]
         public async Task DefaultReturnsValueIfDefined()
         {
-            var input = new StringValue("foo");
+            var input = StringValue.Create("foo");
 
-            var arguments = new FilterArguments().Add(new StringValue("bar"));
+            var arguments = new FilterArguments().Add(StringValue.Create("bar"));
             var context = new TemplateContext();
 
             var result = await MiscFilters.Default(input, arguments, context);
@@ -54,11 +54,11 @@ namespace Fluid.Tests
         [Fact]
         public async Task CompactRemovesNilValues()
         {
-            var input = new ArrayValue(new FluidValue[] {
-                new StringValue("a"),
+            var input = ArrayValue.Create(new FluidValue[] {
+                StringValue.Create("a"),
                 NumberValue.Zero,
                 NilValue.Instance,
-                new StringValue("b")
+                StringValue.Create("b")
                 });
 
             var arguments = new FilterArguments();
@@ -73,7 +73,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task EncodeUrl()
         {
-            var input = new StringValue("john@liquid.com");
+            var input = StringValue.Create("john@liquid.com");
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -86,7 +86,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task DecodeUrl()
         {
-            var input = new StringValue("john%40liquid.com");
+            var input = StringValue.Create("john%40liquid.com");
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -100,7 +100,7 @@ namespace Fluid.Tests
         [InlineData("a<>:a?", "YTw+OmE/")]
         public async Task Base64Encode(string value, string expected)
         {
-            var input = new StringValue(value);
+            var input = StringValue.Create(value);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -114,7 +114,7 @@ namespace Fluid.Tests
         [InlineData("YTw+OmE/", "a<>:a?")]
         public async Task Base64Decode(string value, string expected)
         {
-            var input = new StringValue(value);
+            var input = StringValue.Create(value);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -129,7 +129,7 @@ namespace Fluid.Tests
         public async Task Base64UrlSafeEncode(string value, string expected)
         {
             // Arrange
-            var input = new StringValue(value);
+            var input = StringValue.Create(value);
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
@@ -145,7 +145,7 @@ namespace Fluid.Tests
         public async Task Base64UrlSafeDecode(string value, string expected)
         {
             // Arrange
-            var input = new StringValue(value);
+            var input = StringValue.Create(value);
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
@@ -163,7 +163,7 @@ namespace Fluid.Tests
         [InlineData(null, "")]
         public async Task StripHtml(string value, string expected)
         {
-            var input = new StringValue(value);
+            var input = StringValue.Create(value);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -176,7 +176,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task Escape()
         {
-            var input = new StringValue("Have you read 'James & the Giant Peach'?");
+            var input = StringValue.Create("Have you read 'James & the Giant Peach'?");
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -189,7 +189,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task EscapeOnce()
         {
-            var input = new StringValue("1 &lt; 2 &amp; 3");
+            var input = StringValue.Create("1 &lt; 2 &amp; 3");
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -251,10 +251,10 @@ namespace Fluid.Tests
         [InlineData("Chained %z%:z%a%a%^a", "Chained +0800+08:00TueTueTUE")]
         public async Task Date(string format, string expected)
         {
-            var input = new DateTimeValue(new DateTimeOffset(
+            var input = DateTimeValue.Create(new DateTimeOffset(
                 new DateTime(2017, 8, 1, 17, 4, 36, 123), TimeSpan.FromHours(8)));
 
-            var arguments = new FilterArguments(new StringValue(format));
+            var arguments = new FilterArguments(StringValue.Create(format));
             var options = new TemplateOptions() { CultureInfo = new CultureInfo("en-US"), TimeZone = TimeZoneInfo.Utc };
             var context = new TemplateContext(options);
 
@@ -272,9 +272,9 @@ namespace Fluid.Tests
         [InlineData("2020-05-18T11:59:00+01:00", "%l:%M%P", "11:59am")]
         public async Task Time12hFormatFormDateTimeOffset(string dateTimeOffset, string format, string expected)
         {
-            var input = new DateTimeValue(DateTimeOffset.Parse(dateTimeOffset));
+            var input = DateTimeValue.Create(DateTimeOffset.Parse(dateTimeOffset));
 
-            var arguments = new FilterArguments(new StringValue(format));
+            var arguments = new FilterArguments(StringValue.Create(format));
             var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture };
             var context = new TemplateContext(options);
 
@@ -289,9 +289,9 @@ namespace Fluid.Tests
         [InlineData("2020-05-18T02:13:09+00:00", "Europe/wrongTZ", "2020-05-18T02:13:09+00:00")]
         public async Task ChangeTimeZone(string initialDateTime, string timeZone, string expected)
         {
-            var input = new DateTimeValue(DateTimeOffset.Parse(initialDateTime));
+            var input = DateTimeValue.Create(DateTimeOffset.Parse(initialDateTime));
 
-            var arguments = new FilterArguments(new StringValue(timeZone));
+            var arguments = new FilterArguments(StringValue.Create(timeZone));
             var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture };
             var context = new TemplateContext(options);
 
@@ -307,9 +307,9 @@ namespace Fluid.Tests
         [InlineData("2020-05-18T02:13:09+00:00", "Australia/Adelaide", "%l:%M%P", "11:43am")]
         public async Task ChangeTimeZoneAndApply12hFormat(string initialDateTime, string timeZone, string format, string expected)
         {
-            var input = new DateTimeValue(DateTimeOffset.Parse(initialDateTime));
-            var timeZoneArgument = new FilterArguments(new StringValue(timeZone));
-            var formatArgument = new FilterArguments(new StringValue(format));
+            var input = DateTimeValue.Create(DateTimeOffset.Parse(initialDateTime));
+            var timeZoneArgument = new FilterArguments(StringValue.Create(timeZone));
+            var formatArgument = new FilterArguments(StringValue.Create(format));
             var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture };
             var context = new TemplateContext(options);
 
@@ -322,10 +322,10 @@ namespace Fluid.Tests
         [Fact]
         public async Task DateResolvesNow()
         {
-            var input = new StringValue("now");
+            var input = StringValue.Create("now");
             var format = "%D";
 
-            var arguments = new FilterArguments(new StringValue(format));
+            var arguments = new FilterArguments(StringValue.Create(format));
             var options = new TemplateOptions()
             {
                 CultureInfo = CultureInfo.InvariantCulture,
@@ -341,10 +341,10 @@ namespace Fluid.Tests
         [Fact]
         public async Task DateResolvesToday()
         {
-            var input = new StringValue("today");
+            var input = StringValue.Create("today");
             var format = "%D";
 
-            var arguments = new FilterArguments(new StringValue(format));
+            var arguments = new FilterArguments(StringValue.Create(format));
             var options = new TemplateOptions()
             {
                 CultureInfo = CultureInfo.InvariantCulture,
@@ -360,10 +360,10 @@ namespace Fluid.Tests
         [Fact]
         public async Task FormatDate()
         {
-            var input = new StringValue("now");
+            var input = StringValue.Create("now");
             var format = "d";
 
-            var arguments = new FilterArguments(new StringValue(format));
+            var arguments = new FilterArguments(StringValue.Create(format));
             var options = new TemplateOptions()
             {
                 CultureInfo = CultureInfo.InvariantCulture,
@@ -379,10 +379,10 @@ namespace Fluid.Tests
         [Fact]
         public async Task DateIsParsed()
         {
-            var input = new StringValue("08/01/2017");
+            var input = StringValue.Create("08/01/2017");
             var format = "%D";
 
-            var arguments = new FilterArguments(new StringValue(format));
+            var arguments = new FilterArguments(StringValue.Create(format));
             var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture, TimeZone = TimeZoneInfo.Utc };
             var context = new TemplateContext(options);
 
@@ -400,7 +400,7 @@ namespace Fluid.Tests
             // Converting to Unix time should not vary by TimeSone
 
             var input = NumberValue.Create(number);
-            var format = new FilterArguments(new StringValue("%s"));
+            var format = new FilterArguments(StringValue.Create("%s"));
             var context = new TemplateContext { TimeZone = Eastern };
 
             var result = await MiscFilters.Date(input, format, context);
@@ -412,7 +412,7 @@ namespace Fluid.Tests
         public async Task NoTimeZoneIsParsedAsLocal()
         {
             var input = StringValue.Create("1970-01-01 00:00:00");
-            var format = new FilterArguments(new StringValue("%a %b %e %H:%M:%S %Y %z"));
+            var format = new FilterArguments(StringValue.Create("%a %b %e %H:%M:%S %Y %z"));
             var context = new TemplateContext { TimeZone = Pacific };
 
             var result = await MiscFilters.Date(input, format, context);
@@ -426,7 +426,7 @@ namespace Fluid.Tests
             // This test ensures that when a TZ is specified it uses it instead of the settings one
             var input = StringValue.Create("1970-01-01 00:00:00 -05:00");
 
-            var format = new FilterArguments(new StringValue("%s"));
+            var format = new FilterArguments(StringValue.Create("%s"));
             var context = new TemplateContext { TimeZone = TimeZoneInfo.Utc };
 
             var result = await MiscFilters.Date(input, format, context);
@@ -440,7 +440,7 @@ namespace Fluid.Tests
             // This test ensures that when a TZ is specified it uses it instead of the settings one
             var input = StringValue.Create("1970-01-01 00:00:00");
 
-            var format = new FilterArguments(new StringValue("%s"));
+            var format = new FilterArguments(StringValue.Create("%s"));
             var context = new TemplateContext { TimeZone = Eastern };
 
             var result = await MiscFilters.Date(input, format, context);
@@ -455,7 +455,7 @@ namespace Fluid.Tests
 
             var input = StringValue.Create("2021-01-01 00:00:00");
 
-            var format = new FilterArguments(new StringValue("%z"));
+            var format = new FilterArguments(StringValue.Create("%z"));
             var context = new TemplateContext { TimeZone = Pacific };
 
             var result = await MiscFilters.Date(input, format, context);
@@ -476,7 +476,7 @@ namespace Fluid.Tests
             // {{ 0 | date: '%c' }}
 
             var input = NumberValue.Create(0);
-            var format = new FilterArguments(new StringValue("%+"));
+            var format = new FilterArguments(StringValue.Create("%+"));
             var context = new TemplateContext { TimeZone = Eastern };
 
             var result = await MiscFilters.Date(input, format, context);
@@ -487,10 +487,10 @@ namespace Fluid.Tests
         [Fact]
         public async Task DateIsParsedWithCulture()
         {
-            var input = new StringValue("08/01/2017");
+            var input = StringValue.Create("08/01/2017");
             var format = "%d/%m/%Y";
 
-            var arguments = new FilterArguments(new StringValue(format));
+            var arguments = new FilterArguments(StringValue.Create(format));
 
             var context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("fr-FR"), TimeZone = TimeZoneInfo.Utc });
             var resultFR = await MiscFilters.Date(input, arguments, context);
@@ -505,10 +505,10 @@ namespace Fluid.Tests
         [Fact]
         public async Task DateIsRenderedWithCulture()
         {
-            var input = new StringValue("08/01/2017");
+            var input = StringValue.Create("08/01/2017");
             var format = "%c";
 
-            var arguments = new FilterArguments(new StringValue(format));
+            var arguments = new FilterArguments(StringValue.Create(format));
 
             var context = new TemplateContext { CultureInfo = new CultureInfo("fr-FR"), TimeZone = TimeZoneInfo.Utc };
             var resultFR = await MiscFilters.Date(input, arguments, context);
@@ -532,7 +532,7 @@ namespace Fluid.Tests
         [InlineData("!!!100% M & Ms", "100-m-ms")]
         public async Task Handleize(string text, string expected)
         {
-            var input = new StringValue(text);
+            var input = StringValue.Create(text);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -576,8 +576,8 @@ namespace Fluid.Tests
             {
                 return name switch
                 {
-                    nameof(JsonAccessStrategy.Visible) => new StringValue(obj.Visible),
-                    nameof(JsonAccessStrategy.Null) => new StringValue(obj.Null),
+                    nameof(JsonAccessStrategy.Visible) => StringValue.Create(obj.Visible),
+                    nameof(JsonAccessStrategy.Null) => StringValue.Create(obj.Null),
                     _ => NilValue.Instance
                 };
             });
@@ -665,7 +665,7 @@ namespace Fluid.Tests
                 : CultureInfo.CreateSpecificCulture(culture)
                 ;
 
-            var arguments = new FilterArguments(new StringValue(format));
+            var arguments = new FilterArguments(StringValue.Create(format));
             var context = new TemplateContext(new TemplateOptions { CultureInfo = cultureInfo });
 
             var result = await MiscFilters.FormatNumber(FluidValue.Create(input, context.Options), arguments, context);
@@ -697,7 +697,7 @@ namespace Fluid.Tests
         public async Task MD5()
         {
             // Arrange
-            var input = new StringValue("Fluid");
+            var input = StringValue.Create("Fluid");
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
@@ -712,7 +712,7 @@ namespace Fluid.Tests
         public async Task Sha1()
         {
             // Arrange
-            var input = new StringValue("Fluid");
+            var input = StringValue.Create("Fluid");
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 
@@ -727,7 +727,7 @@ namespace Fluid.Tests
         public async Task Sha256()
         {
             // Arrange
-            var input = new StringValue("Fluid");
+            var input = StringValue.Create("Fluid");
             var arguments = new FilterArguments();
             var context = new TemplateContext();
 

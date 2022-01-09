@@ -111,7 +111,7 @@ namespace Fluid.Filters
 
             static bool IsCapitalLetter(char c) => c >= 'A' && c <= 'Z';
 
-            return new StringValue(result.ToString().ToLowerInvariant());
+            return StringValue.Create(result.ToString().ToLowerInvariant());
         }
 
         public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -138,7 +138,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Raw(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var stringValue = new StringValue(input.ToStringValue(), false);
+            var stringValue = StringValue.Create(input.ToStringValue(), false);
 
             return stringValue;
         }
@@ -154,17 +154,17 @@ namespace Fluid.Filters
                 }
             }
 
-            return new ArrayValue(compacted);
+            return ArrayValue.Create(compacted);
         }
 
         public static ValueTask<FluidValue> UrlEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(WebUtility.UrlEncode(input.ToStringValue()));
+            return StringValue.Create(WebUtility.UrlEncode(input.ToStringValue()));
         }
 
         public static ValueTask<FluidValue> UrlDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(WebUtility.UrlDecode(input.ToStringValue()));
+            return StringValue.Create(WebUtility.UrlDecode(input.ToStringValue()));
         }
 
         public static ValueTask<FluidValue> Base64Encode(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -173,7 +173,7 @@ namespace Fluid.Filters
 
             return String.IsNullOrEmpty(value)
                 ? StringValue.Empty
-                : new StringValue(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
+                : StringValue.Create(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
         }
 
         public static ValueTask<FluidValue> Base64Decode(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -182,7 +182,7 @@ namespace Fluid.Filters
 
             return String.IsNullOrEmpty(value)
                 ? StringValue.Empty
-                : new StringValue(Encoding.UTF8.GetString(Convert.FromBase64String(value)));
+                : StringValue.Create(Encoding.UTF8.GetString(Convert.FromBase64String(value)));
         }
 
         public static ValueTask<FluidValue> Base64UrlSafeEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -199,7 +199,7 @@ namespace Fluid.Filters
                 encodedBase64StringBuilder.Replace('+', '-');
                 encodedBase64StringBuilder.Replace('/', '_');
 
-                return new StringValue(encodedBase64StringBuilder.ToString());
+                return StringValue.Create(encodedBase64StringBuilder.ToString());
             }
         }
 
@@ -218,7 +218,7 @@ namespace Fluid.Filters
 
                 var decodedBase64 = Encoding.UTF8.GetString(Convert.FromBase64String(encodedBase64StringBuilder.ToString()));
 
-                return new StringValue(decodedBase64);
+                return StringValue.Create(decodedBase64);
             }
         }
 
@@ -255,22 +255,22 @@ namespace Fluid.Filters
                     }
                 }
 
-                return new StringValue(new string(result, 0, cursor));
+                return StringValue.Create(new string(result, 0, cursor));
             }
             catch
             {
-                return new StringValue(String.Empty);
+                return StringValue.Create(String.Empty);
             }
         }
 
         public static ValueTask<FluidValue> Escape(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(WebUtility.HtmlEncode(input.ToStringValue()));
+            return StringValue.Create(WebUtility.HtmlEncode(input.ToStringValue()));
         }
 
         public static ValueTask<FluidValue> EscapeOnce(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())));
+            return StringValue.Create(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())));
         }
 
         public static ValueTask<FluidValue> ChangeTimeZone(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -287,10 +287,14 @@ namespace Fluid.Filters
 
             var timeZone = arguments.At(0).ToStringValue();
 
-            if (!TZConvert.TryGetTimeZoneInfo(timeZone, out var timeZoneInfo)) return new DateTimeValue(value);
+            if (!TZConvert.TryGetTimeZoneInfo(timeZone, out var timeZoneInfo))
+            {
+                return DateTimeValue.Create(value);
+            }
 
             var result = TimeZoneInfo.ConvertTime(value, timeZoneInfo);
-            return new DateTimeValue(result);
+
+            return DateTimeValue.Create(result);
         }
 
 
@@ -312,7 +316,7 @@ namespace Fluid.Filters
 
             ForStrf(value, format, result);
 
-            return new StringValue(result.ToString());
+            return StringValue.Create(result.ToString());
 
             void ForStrf(DateTimeOffset value, string format, StringBuilder result)
             {
@@ -550,7 +554,7 @@ namespace Fluid.Filters
                 culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue()) ?? context.CultureInfo;
             }
 
-            return new StringValue(value.ToString(format, culture));
+            return StringValue.Create(value.ToString(format, culture));
         }
 
         private static async ValueTask WriteJson(Utf8JsonWriter writer, FluidValue input, TemplateContext ctx, HashSet<object> stack = null)
@@ -683,7 +687,7 @@ namespace Fluid.Filters
             ms.Seek(0, SeekOrigin.Begin);
             using var sr = new StreamReader(ms, Encoding.UTF8);
             var json = await sr.ReadToEndAsync();
-            return new StringValue(json);
+            return StringValue.Create(json);
         }
 
         public static ValueTask<FluidValue> FormatNumber(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -702,7 +706,7 @@ namespace Fluid.Filters
                 culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue()) ?? context.CultureInfo;
             }
 
-            return new StringValue(input.ToNumberValue().ToString(format, culture));
+            return StringValue.Create(input.ToNumberValue().ToString(format, culture));
         }
 
         public static ValueTask<FluidValue> FormatString(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -723,7 +727,7 @@ namespace Fluid.Filters
 
             var parameters = arguments.ValuesToObjectArray();
 
-            return new StringValue(string.Format(culture, format, parameters));
+            return StringValue.Create(string.Format(culture, format, parameters));
         }
 
         public static ValueTask<FluidValue> MD5(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -742,7 +746,7 @@ namespace Fluid.Filters
                     builder.Append(b.ToString("x2").ToLower());
                 }
 
-                return new StringValue(builder.ToString());
+                return StringValue.Create(builder.ToString());
             }
         }
 
@@ -762,7 +766,7 @@ namespace Fluid.Filters
                     builder.Append(b.ToString("x2").ToLower());
                 }
 
-                return new StringValue(builder.ToString());
+                return StringValue.Create(builder.ToString());
             }
         }
 
@@ -782,7 +786,7 @@ namespace Fluid.Filters
                     builder.Append(b.ToString("x2").ToLower());
                 }
 
-                return new StringValue(builder.ToString());
+                return StringValue.Create(builder.ToString());
             }
         }
     }

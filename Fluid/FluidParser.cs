@@ -118,7 +118,7 @@ namespace Fluid
 
             // primary => NUMBER | STRING | BOOLEAN | property
             Primary.Parser =
-                String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x)))
+                String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x.ToString())))
                 .Or(True.Then<Expression>(x => new LiteralExpression(BooleanValue.True)))
                 .Or(False.Then<Expression>(x => new LiteralExpression(BooleanValue.False)))
                 .Or(Empty.Then<Expression>(x => new LiteralExpression(EmptyValue.Instance)))

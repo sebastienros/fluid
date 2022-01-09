@@ -9,12 +9,22 @@ namespace Fluid.Values
     {
         private readonly DateTimeOffset _value;
 
-        public DateTimeValue(DateTimeOffset value)
+        public override FluidValues Type => FluidValues.DateTime;
+
+        private DateTimeValue(DateTimeOffset value)
         {
             _value = value;
         }
 
-        public override FluidValues Type => FluidValues.DateTime;
+        public static DateTimeValue Create(DateTimeOffset value)
+        {
+            return new DateTimeValue(value);
+        }
+
+        public static DateTimeValue Create(DateTime value)
+        {
+            return new DateTimeValue(value);
+        }
 
         public override bool Equals(FluidValue other)
         {
