@@ -9,7 +9,7 @@ namespace Fluid.ViewEngine
 {
     public class FluidViewParser : FluidParser
     {
-        public FluidViewParser()
+        public FluidViewParser(FluidParserOptions parserOptions) : base(parserOptions)
         {
             RegisterIdentifierTag("rendersection", static async (identifier, writer, encoder, context) =>
             {
