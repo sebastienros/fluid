@@ -19,7 +19,14 @@ namespace Fluid
 
             if (parlotError != null)
             {
-                throw new ParseException($"{parlotError.Message} at {parlotError.Position}");
+                // Extract line with error
+                var start = parlotError.Position.Offset - 1;
+                var end = parlotError.Position.Offset;
+                while (start > 0 && template[start] != '\n' && template[start] != '\r') start--;
+                while (end < template.Length && template[end] != '\n') end++;
+                var source = template.Substring(start, end - start).Trim('\n', '\r');
+
+                throw new ParseException($"{parlotError.Message} at {parlotError.Position}\nSource:\n{source}");
             }
 
             if (!success)

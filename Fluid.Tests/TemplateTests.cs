@@ -359,6 +359,18 @@ namespace Fluid.Tests
             Assert.Equal("Bill 1 Bill blah", result);
         }
 
+        [Fact]
+        public async Task FirstLastSizeShouldUseGetValue()
+        {
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            context.SetValue("p", new PersonValue(new Person()));
+
+            _parser.TryParse("{{ p | size }} {{ p | first }} {{ p | last }}", out var template, out var error);
+            var result = await template.RenderAsync(context);
+            Assert.Equal("123 456 789", result);
+        }
+
         private class PersonValue : ObjectValueBase
         {
             public PersonValue(Person value) : base(value)
@@ -369,6 +381,24 @@ namespace Fluid.Tests
             {
                 return Create(((Person)Value).Firstname + " " + index.ToStringValue(), context.Options);
             }
+
+            public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
+            {
+                return name switch
+                {
+                    "size" => NumberValue.Create(123),
+                    "first" => NumberValue.Create(456),
+                    "last" => NumberValue.Create(789),
+                    _ => NilValue.Instance
+                };
+            }
+        }
+
+        [Theory]
+        [InlineData("{% assign my_array = 'abc,123' | split: ',' %}{{ my_array | reverse | join: ',' }}", "123,abc")]
+        public Task ShouldReverseArray(string source, string expected)
+        {
+            return CheckAsync(source, expected);
         }
 
         [Theory]
@@ -558,6 +588,15 @@ turtle
         [InlineData("{% assign var = 10 %}{% increment var %}{% increment var %}{{ var }}", "0110")]
         [InlineData("{% assign var = 10 %}{% decrement var %}{% decrement var %}{{ var }}", "0-110")]
         public Task IncrementDoesntAffectVariable(string source, string expected)
+        {
+            return CheckAsync(source, expected);
+        }
+
+        [Theory]
+        [InlineData("{% increment %}{% increment %}{% increment %}", "012")]
+        [InlineData("{% decrement %}{% decrement %}{% decrement %}", "0-1-2")]
+        [InlineData("{% increment %}{% decrement %}{% increment %}", "0-10")]
+        public Task IncrementCanBeUsedWithoutIdentifier(string source, string expected)
         {
             return CheckAsync(source, expected);
         }
@@ -801,17 +840,24 @@ shape: '{{ shape }}'");
         [Fact]
         public async Task IgnoreCasing()
         {
-            _parser.TryParse("{{ p.Firstname }}", out var template, out var error);
-
+            _parser.TryParse("{{ p.firsTname }}", out var template, out var error);
 
             var options = new TemplateOptions();
-            var context = new TemplateContext(options);
-            context.SetValue("p", new Person { Firstname = "John" });
             options.MemberAccessStrategy.IgnoreCasing = true;
             options.MemberAccessStrategy.Register<Person>();
 
+            var context = new TemplateContext(options);
+            context.SetValue("p", new Person { Firstname = "John" });
             var result = await template.RenderAsync(context);
             Assert.Equal("John", result);
+
+            options = new TemplateOptions();
+            options.MemberAccessStrategy.IgnoreCasing = false;
+            options.MemberAccessStrategy.Register<Person>();
+            context = new TemplateContext(options);
+            context.SetValue("p", new Person { Firstname = "John" });
+            result = await template.RenderAsync(context);
+            Assert.Equal("", result);
         }
 
         [Theory]
@@ -1049,6 +1095,36 @@ after
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public async Task ForVariableShouldNotAlterContext()
+        {
+            var source = @"
+                {%- assign c = '0' -%}
+                {%- for c in (1..3) -%}{{ c }}{%- assign c = 4 -%}{% endfor -%}
+                {{- c -}}
+            ";
+
+            _parser.TryParse(source, out var template, out var error);
+            var context = new TemplateContext();
+            var result = await template.RenderAsync(context);
+            Assert.Equal("1234", result);
+        }
+
+        [Fact]
+        public async Task ForStringValueDoesntEnumerate()
+        {
+            var source = @"
+                {%- assign x = '123' -%}
+                {%- for c in x -%}{{ c }}{{ c }}{% endfor -%}
+                {{- c -}}
+            ";
+
+            _parser.TryParse(source, out var template, out var error);
+            var context = new TemplateContext();
+            var result = await template.RenderAsync(context);
+            Assert.Equal("123123", result);
         }
     }
 }

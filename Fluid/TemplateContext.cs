@@ -50,6 +50,7 @@ namespace Fluid
         {
             Options = options;
             LocalScope = new Scope(options.Scope);
+            RootScope = LocalScope;
             CultureInfo = options.CultureInfo;
             TimeZone = options.TimeZone;
             Captured = options.Captured;
@@ -111,7 +112,15 @@ namespace Fluid
             }
         }
 
-        internal Scope LocalScope { get; private set; }
+        /// <summary>
+        /// Gets or sets the current scope.
+        /// </summary>
+        internal Scope LocalScope { get; set; }
+
+        /// <summary>
+        /// Gets or sets the root scope.
+        /// </summary>
+        internal Scope RootScope { get; set; }
 
         private Dictionary<string, object> _ambientValues;
 
@@ -138,7 +147,7 @@ namespace Fluid
         public Func<string, string, ValueTask<string>> Captured { get; set; }
 
         /// <summary>
-        /// Creates a new isolated scope. After than any value added to this content object will be released once
+        /// Creates a new isolated child scope. After than any value added to this content object will be released once
         /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
         /// </summary>
         public void EnterChildScope()
@@ -149,7 +158,22 @@ namespace Fluid
                 return;
             }
 
-            LocalScope = LocalScope.EnterChildScope();
+            LocalScope = new Scope(LocalScope);
+        }
+
+        /// <summary>
+        /// Creates a new for loop scope. After than any value added to this content object will be released once
+        /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
+        /// </summary>
+        public void EnterForLoopScope()
+        {
+            if (Options.MaxRecursion > 0 && _recursion++ > Options.MaxRecursion)
+            {
+                ExceptionHelper.ThrowMaximumRecursionException();
+                return;
+            }
+
+            LocalScope = new Scope(LocalScope, forLoopScope: true);
         }
 
         /// <summary>
@@ -162,11 +186,11 @@ namespace Fluid
                 _recursion--;
             }
 
-            LocalScope = LocalScope.ReleaseScope();
+            LocalScope = LocalScope.Parent;
 
             if (LocalScope == null)
             {
-                ExceptionHelper.ThrowInvalidOperationException("Release scoped invoked without corresponding EnterChildScope");
+                ExceptionHelper.ThrowInvalidOperationException("ReleaseScope invoked without corresponding EnterChildScope");
                 return;
             }
         }
@@ -222,6 +246,11 @@ namespace Fluid
 
         public static TemplateContext SetValue(this TemplateContext context, string name, object value)
         {
+            if (value == null)
+            {
+                return context.SetValue(name, NilValue.Instance);
+            }
+
             return context.SetValue(name, FluidValue.Create(value, context.Options));
         }
 

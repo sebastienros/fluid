@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+	<TargetFramework>net6.0</TargetFramework>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<OutputType>Exe</OutputType>
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
+    <IsPackable>false</IsPackable>
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MinimalApis.LiquidViews\MinimalApis.LiquidViews.csproj" />
+  </ItemGroup>
+
+</Project>

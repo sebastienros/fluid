@@ -1,7 +1,6 @@
 <p align="center"><img width=25% src="https://github.com/sebastienros/fluid/raw/main/Assets/logo-vertical.png"></p>
 
 [![NuGet](https://img.shields.io/nuget/v/Fluid.Core.svg)](https://nuget.org/packages/Fluid.Core)
-[![NuGet](https://img.shields.io/nuget/vpre/Fluid.Core.svg)](https://nuget.org/packages/Fluid.Core)
 [![MIT](https://img.shields.io/github/license/sebastienros/fluid)](https://github.com/sebastienros/fluid/blob/main/LICENSE)
 
 ## Basic Overview
@@ -37,6 +36,7 @@ To see the corresponding content for v1.0 use [this version](https://github.com/
 - [ASP.NET MVC View Engine](#aspnet-mvc-view-engine)
 - [Whitespace control](#whitespace-control)
 - [Custom filters](#custom-filters)
+- [Functions](#functions)
 - [Performance](#performance)
 - [Used by](#used-by)
 
@@ -869,6 +869,66 @@ Documentation: https://docs.microsoft.com/en-us/dotnet/api/system.string.format
 
 <br>
 
+## Functions
+
+Fluid provides optional support for functions, which is not part of the standard Liquid templating language. As such it is not enabled by default.
+
+### Enabling functions
+
+When instantiating a `FluidParser` set the `FluidParserOptions.AllowFunction` property to `true`.
+
+```
+var parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
+```
+
+When functions are used while the feature is not enabled, a parse error will be returned.
+
+### Declaring local functions with the `macro` tag
+
+`macro` allows you to define reusable chunks of content invoke with local function.
+
+```
+{% macro field(name, value='', type='text') %}
+<div class="field">
+  <input type="{{ type }}" name="{{ name }}"
+         value="{{ value }}" />
+</div>
+{% endmacro %}
+```
+
+Now `field` is available as a local property of the template and can be invoked as a function.
+
+```
+{{ field('user') }}
+{{ field('pass', type='password') }}
+```
+
+> Macros need to be defined before they are used as they are discovered as the template is executed. They can also be defined in external templates and imported using the `{% include %}` tag.
+
+### Extensibility
+
+Functions are `FluidValue` instances implementing the `InvokeAsync` method. It allows any template to be provided custom function values as part of the model, the `TemplateContext` or globally with options.
+
+A `FunctionValue` type is also available to provide out of the box functions. It takes a delegate that returns a `ValueTask<FluidValue>` as the result.
+
+```c#
+var lowercase = new FunctionValue((args, context) => 
+{
+  var firstArg = args.At(0).ToStringValue().ToLowerCase();
+  var lower = firstArg.ToLowerCase();
+  return new ValueTask<FluidValue>(new StringValue(lower));
+});
+
+var context = new TemplateContext();
+context.SetValue("tolower", lowercase);
+
+var parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
+parser.TryParse("{{ tolower('HELLO') }}", out var template, out var error);
+template.Render(context);
+```
+
+<br>
+
 ## Performance
 
 ### Caching
@@ -891,35 +951,33 @@ Compared to DotLiquid, Fluid renders 9 times faster, and allocates 30 times less
 
 ```
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.22000
-Intel Core i7-1065G7 CPU 1.30GHz, 1 CPU, 8 logical and 4 physical cores
-.NET Core SDK=6.0.100-rc.2.21505.57
-  [Host]   : .NET Core 6.0.0 (CoreCLR 6.0.21.48005, CoreFX 6.0.21.48005), X64 RyuJIT
-  ShortRun : .NET Core 6.0.0 (CoreCLR 6.0.21.48005, CoreFX 6.0.21.48005), X64 RyuJIT
+Intel Core i7-8700 CPU 3.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=6.0.100
+  [Host]     : .NET Core 6.0.0 (CoreCLR 6.0.21.52210, CoreFX 6.0.21.52210), X64 RyuJIT
+  DefaultJob : .NET Core 6.0.0 (CoreCLR 6.0.21.52210, CoreFX 6.0.21.52210), X64 RyuJIT
 
-Job=ShortRun  IterationCount=3  LaunchCount=1
-WarmupCount=3
 
-|             Method |          Mean |         Error |        StdDev |  Ratio | RatioSD |     Gen 0 |    Gen 1 |   Gen 2 |   Allocated |
-|------------------- |--------------:|--------------:|--------------:|-------:|--------:|----------:|---------:|--------:|------------:|
-|        Fluid_Parse |      6.387 us |      1.815 us |     0.0995 us |   1.00 |    0.00 |    0.7019 |        - |       - |     2.88 KB |
-|      Scriban_Parse |      8.731 us |      2.153 us |     0.1180 us |   1.37 |    0.03 |    1.7853 |        - |       - |     7.32 KB |
-|    DotLiquid_Parse |     26.626 us |     74.726 us |     4.0960 us |   4.18 |    0.70 |    3.9673 |        - |       - |    16.21 KB |
-|    LiquidNet_Parse |     90.636 us |     54.499 us |     2.9873 us |  14.19 |    0.30 |   15.1367 |   0.1221 |       - |    62.08 KB |
-|   Handlebars_Parse |  3,942.611 us |  1,134.420 us |    62.1814 us | 617.40 |   15.44 |   39.0625 |        - |       - |   159.38 KB |
-|                    |               |               |               |        |         |           |          |         |             |
-|     Fluid_ParseBig |     37.779 us |     14.975 us |     0.8208 us |   1.00 |    0.00 |    3.1738 |        - |       - |    13.02 KB |
-|   Scriban_ParseBig |     44.500 us |     13.322 us |     0.7303 us |   1.18 |    0.02 |    8.1787 |        - |       - |    33.54 KB |
-| DotLiquid_ParseBig |     79.929 us |    123.318 us |     6.7595 us |   2.12 |    0.16 |   23.0713 |        - |       - |    94.37 KB |
-| LiquidNet_ParseBig | 34,916.067 us | 63,809.961 us | 3,497.6393 us | 924.79 |   97.54 | 6812.5000 | 500.0000 |       - | 28543.69 KB |
-|                    |               |               |               |        |         |           |          |         |             |
-|       Fluid_Render |    386.133 us |    178.984 us |     9.8107 us |   1.00 |    0.00 |   22.9492 |        - |       - |    95.45 KB |
-|     Scriban_Render |  1,260.079 us |    171.254 us |     9.3870 us |   3.26 |    0.09 |   95.7031 |  66.4063 | 66.4063 |    486.6 KB |
-|   DotLiquid_Render |  3,586.364 us |    742.398 us |    40.6933 us |   9.29 |    0.28 |  730.4688 | 214.8438 | 27.3438 |  3364.13 KB |
-|   LiquidNet_Render |  2,490.968 us |  1,792.951 us |    98.2777 us |   6.45 |    0.10 |  515.6250 | 257.8125 |       - |  3144.11 KB |
-|  Handlebars_Render |    409.511 us |    139.444 us |     7.6434 us |   1.06 |    0.05 |   47.3633 |  11.7188 |       - |   195.11 KB |
+|             Method |          Mean |       Error |      StdDev |  Ratio | RatioSD |     Gen 0 |    Gen 1 |   Gen 2 |   Allocated |
+|------------------- |--------------:|------------:|------------:|-------:|--------:|----------:|---------:|--------:|------------:|
+|        Fluid_Parse |      5.813 us |   0.0230 us |   0.0204 us |   1.00 |    0.00 |    0.4196 |        - |       - |      2.6 KB |
+|      Scriban_Parse |      7.851 us |   0.0545 us |   0.0510 us |   1.35 |    0.01 |    1.1902 |   0.0458 |       - |     7.32 KB |
+|    DotLiquid_Parse |     18.535 us |   0.3078 us |   0.2879 us |   3.19 |    0.05 |    2.6245 |   0.0305 |       - |    16.21 KB |
+|    LiquidNet_Parse |     70.425 us |   0.6556 us |   0.5812 us |  12.12 |    0.12 |   10.1318 |   0.9766 |       - |    62.08 KB |
+|   Handlebars_Parse |  3,313.126 us |  18.5763 us |  16.4674 us | 569.95 |    3.62 |   23.4375 |  11.7188 |       - |   158.32 KB |
+|                    |               |             |             |        |         |           |          |         |             |
+|     Fluid_ParseBig |     31.433 us |   0.2956 us |   0.2621 us |   1.00 |    0.00 |    1.8311 |   0.0610 |       - |    11.53 KB |
+|   Scriban_ParseBig |     42.889 us |   0.1736 us |   0.1450 us |   1.36 |    0.02 |    5.4321 |   0.7324 |       - |    33.53 KB |
+| DotLiquid_ParseBig |     68.809 us |   0.6813 us |   0.6373 us |   2.19 |    0.03 |   15.3809 |   1.0986 |       - |    94.36 KB |
+| LiquidNet_ParseBig | 23,711.643 us | 241.8211 us | 226.1996 us | 754.77 |    8.40 | 4656.2500 |  93.7500 |       - | 28543.66 KB |
+|                    |               |             |             |        |         |           |          |         |             |
+|       Fluid_Render |    303.708 us |   2.2888 us |   2.1409 us |   1.00 |    0.00 |   15.1367 |   3.4180 |       - |    95.65 KB |
+|     Scriban_Render |    974.136 us |   4.7278 us |   3.9479 us |   3.21 |    0.03 |   66.4063 |  66.4063 | 66.4063 |   486.59 KB |
+|   DotLiquid_Render |  2,738.586 us |  22.8373 us |  21.3621 us |   9.02 |    0.11 |  539.0625 |  93.7500 | 27.3438 |  3363.97 KB |
+|   LiquidNet_Render |  1,726.024 us |  18.2744 us |  17.0938 us |   5.68 |    0.06 |  511.7188 | 234.3750 |       - |  3144.26 KB |
+|  Handlebars_Render |    336.993 us |   2.0607 us |   1.8268 us |   1.11 |    0.01 |   31.7383 |   7.8125 |       - |   195.11 KB |
 ```
 
-Tested on 10/26/2021 with 
+Tested on 2/1/2022 with 
 - Scriban 5.0.0
 - DotLiquid 2.2.548
 - Liquid.NET 0.10.0
@@ -937,6 +995,8 @@ Fluid is known to be used in the following projects:
 - [Orchard Core CMS](https://github.com/OrchardCMS/Orchard2)
 - [MaltReport](https://github.com/oldrev/maltreport) OpenDocument/OfficeOpenXML powered reporting engine for .NET and Mono
 - [Elsa Workflows](https://github.com/elsa-workflows/elsa-core) .NET Workflows Library
-- [FluentEmail](https://github.com/lukencode/FluentEmail/) All in one email sender for .NET
+- [FluentEmail](https://github.com/lukencode/FluentEmail) All in one email sender for .NET
+- [NJsonSchema](https://github.com/RicoSuter/NJsonSchema) Library to read, generate and validate JSON Schema draft v4+ schemas.
+- [NSwag](https://github.com/RicoSuter/NSwag) Swagger/OpenAPI 2.0 and 3.0 toolchain for .NET
 
 _Please file an issue to be listed here._

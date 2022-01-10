@@ -49,5 +49,10 @@ namespace Fluid.ViewEngine
         /// /Views/Includes/{0}.liquid
         /// </example>
         public List<string> PartialsLocationFormats { get; } = new();
+
+        /// <summary>
+        /// Gets or sets whether files should be reloaded automatically when changed. Default is <code>true</code>;
+        /// </summary>
+        public bool TrackFileChanges { get; set; } = true;
     }
 }

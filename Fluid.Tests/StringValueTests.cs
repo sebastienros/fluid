@@ -18,5 +18,14 @@ namespace Fluid.Tests
             Assert.Equal(expected, stringValue.ToStringValue());
             Assert.Equal(isEmpty, stringValue.Equals(StringValue.Empty));
         }
+
+        [Fact]
+        public void StringValueCreateNullShouldReturnEmpty()
+        {
+            var stringValue = new StringValue(null);
+
+            // Assert
+            Assert.Equal(StringValue.Empty, stringValue);
+        }
     }
 }

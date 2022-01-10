@@ -17,8 +17,8 @@ namespace Fluid.Ast
         public string Name { get; }
         public List<FilterArgument> Parameters { get; }
 
-        private bool _canBeCached = true;
-        private FilterArguments _cachedArguments;
+        private volatile bool _canBeCached = true;
+        private volatile FilterArguments _cachedArguments;
 
         public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {

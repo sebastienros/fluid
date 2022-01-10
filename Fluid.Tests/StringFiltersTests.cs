@@ -190,25 +190,6 @@ world
         }
 
         [Theory]
-        [InlineData("fluid", "diulf")]
-        [InlineData("dad", "dad")]
-        [InlineData(null, "")]
-        [InlineData("", "")]
-        public void Reverse(string value, string expected)
-        {
-            // Arange
-            var input = new StringValue(value);
-            var arguments = new FilterArguments();
-            var context = new TemplateContext();
-
-            // Act
-            var result = StringFilters.Reverse(input, arguments, context);
-
-            // Assert
-            Assert.Equal(expected, result.Result.ToStringValue());
-        }
-
-        [Theory]
 
         [InlineData("hello", new object[] { 0 }, "h")]
         [InlineData("hello", new object[] { 1 }, "e")]
@@ -259,10 +240,10 @@ world
 
             var result = StringFilters.Split(input, arguments, context);
 
-            Assert.Equal(3, result.Result.Enumerate().Count());
-            Assert.Equal(new StringValue("a"), result.Result.Enumerate().ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Result.Enumerate().ElementAt(1));
-            Assert.Equal(new StringValue("c"), result.Result.Enumerate().ElementAt(2));
+            Assert.Equal(3, result.Result.Enumerate(context).Count());
+            Assert.Equal(new StringValue("a"), result.Result.Enumerate(context).ElementAt(0));
+            Assert.Equal(new StringValue("b"), result.Result.Enumerate(context).ElementAt(1));
+            Assert.Equal(new StringValue("c"), result.Result.Enumerate(context).ElementAt(2));
         }
 
         [Fact]
@@ -275,10 +256,10 @@ world
 
             var result = StringFilters.Split(input, arguments, context);
 
-            Assert.Equal(3, result.Result.Enumerate().Count());
-            Assert.Equal(new StringValue("a"), result.Result.Enumerate().ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Result.Enumerate().ElementAt(1));
-            Assert.Equal(new StringValue("c"), result.Result.Enumerate().ElementAt(2));
+            Assert.Equal(3, result.Result.Enumerate(context).Count());
+            Assert.Equal(new StringValue("a"), result.Result.Enumerate(context).ElementAt(0));
+            Assert.Equal(new StringValue("b"), result.Result.Enumerate(context).ElementAt(1));
+            Assert.Equal(new StringValue("c"), result.Result.Enumerate(context).ElementAt(2));
         }
 
         [Theory]

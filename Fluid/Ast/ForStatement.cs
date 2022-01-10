@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Fluid.Values;
+using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-using Fluid.Values;
 
 namespace Fluid.Ast
 {
@@ -61,7 +61,7 @@ namespace Fluid.Ast
             if (Member != null)
             {
                 var member = await Member.EvaluateAsync(context);
-                list = member.ToList();
+                list = member.Enumerate(context).ToList();
             }
             else if (Range != null)
             {
@@ -125,13 +125,15 @@ namespace Fluid.Ast
                 list.Reverse(startIndex, count);
             }
 
+            context.EnterForLoopScope();
+
             try
             {
                 var forloop = new ForLoopValue();
 
                 var length = forloop.Length = startIndex + count;
 
-                context.SetValue("forloop", forloop);
+                context.LocalScope._properties["forloop"] = forloop;
 
                 for (var i = startIndex; i < length; i++)
                 {
@@ -139,7 +141,7 @@ namespace Fluid.Ast
 
                     var item = list[i];
 
-                    context.SetValue(Identifier, item);
+                    context.LocalScope._properties[Identifier] = item;
 
                     // Set helper variables
                     forloop.Index = i + 1;
@@ -156,9 +158,9 @@ namespace Fluid.Ast
                         var statement = _statements[index];
                         completion = await statement.WriteToAsync(writer, encoder, context);
 
-                        // Restore the forloop property after every statement in case it replaced it,
-                        // for instance if it contains a nested for loop
-                        context.SetValue("forloop", forloop);
+                        //// Restore the forloop property after every statement in case it replaced it,
+                        //// for instance if it contains a nested for loop
+                        //context.LocalScope._properties["forloop"] = forloop;
 
                         if (completion != Completion.Normal)
                         {
@@ -182,69 +184,10 @@ namespace Fluid.Ast
             }
             finally
             {
-                context.LocalScope.Delete("forloop");
+                context.ReleaseScope();
             }
 
             return Completion.Normal;
-        }
-
-        private sealed class ForLoopValue : FluidValue
-        {
-            public int Length { get; set; }
-            public int Index { get; set; }
-            public int Index0 { get; set; }
-            public int RIndex { get; set; }
-            public int RIndex0 { get; set; }
-            public bool First { get; set; }
-            public bool Last { get; set; }
-
-            public int Count => Length;
-
-            public override FluidValues Type => FluidValues.Dictionary;
-
-            public override bool Equals(FluidValue other)
-            {
-                return false;
-            }
-
-            public override bool ToBooleanValue()
-            {
-                return false;
-            }
-
-            public override decimal ToNumberValue()
-            {
-                return Length;
-            }
-
-            public override object ToObjectValue()
-            {
-                return null;
-            }
-
-            public override string ToStringValue()
-            {
-                return "forloop";
-            }
-
-            public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
-            {
-                return name switch
-                {
-                    "length" => new ValueTask<FluidValue>(NumberValue.Create(Length)),
-                    "index" => new ValueTask<FluidValue>(NumberValue.Create(Index)),
-                    "index0" => new ValueTask<FluidValue>(NumberValue.Create(Index0)),
-                    "rindex" => new ValueTask<FluidValue>(NumberValue.Create(RIndex)),
-                    "rindex0" => new ValueTask<FluidValue>(NumberValue.Create(RIndex0)),
-                    "first" => new ValueTask<FluidValue>(BooleanValue.Create(First)),
-                    "last" => new ValueTask<FluidValue>(BooleanValue.Create(Last)),
-                    _ => new ValueTask<FluidValue>(NilValue.Instance),
-                };
-            }
-
-            public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-            {
-            }
         }
     }
 }

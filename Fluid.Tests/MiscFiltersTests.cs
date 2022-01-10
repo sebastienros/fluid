@@ -26,18 +26,29 @@ namespace Fluid.Tests
             Assert.Equal("foo", result.ToStringValue());
         }
 
-        [Fact]
-        public async Task DefaultReturnsDefaultIfNotDefinedOrEmptyOrFalse()
+        [Theory]
+        [InlineData("foo", "foo", "bar", false)]
+        [InlineData("bar", null, "bar", false)]
+        [InlineData("bar", false, "bar", false)]
+        [InlineData("bar", new int[0], "bar", false)]
+        [InlineData("bar", "", "bar", false)]
+        [InlineData("bar", "empty", "bar", false)]
+        [InlineData("foo", "foo", "bar", true)]
+        [InlineData("bar", null, "bar", true)]
+        [InlineData("bar", "", "bar", true)]
+        [InlineData(false, false, "bar", true)]
+        [InlineData("bar", new int[0], "bar", true)]
+        [InlineData("bar", "empty", "bar", true)]
+        public async Task DefaultReturnsDefaultIfNotDefinedOrEmptyOrFalse(object expected, object input, object @default, bool allowFalse)
         {
-            foreach (var value in new FluidValue[] { NilValue.Instance, new StringValue(""), BooleanValue.False, ArrayValue.Empty })
-            {
-                var arguments = new FilterArguments().Add(new StringValue("bar"));
-                var context = new TemplateContext();
+            var arguments = new FilterArguments()
+                .Add("default", FluidValue.Create(@default, TemplateOptions.Default))
+                .Add("allow_false", FluidValue.Create(allowFalse, TemplateOptions.Default));
 
-                var result = await MiscFilters.Default(value, arguments, context);
+            var context = new TemplateContext();
+            var result = await MiscFilters.Default("empty" == input as string ? EmptyValue.Instance : FluidValue.Create(input, TemplateOptions.Default), arguments, context);
 
-                Assert.Equal("bar", result.ToStringValue());
-            }
+            Assert.Equal(expected, result.ToObjectValue());
         }
 
         [Fact]
@@ -55,7 +66,7 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Compact(input, arguments, context);
 
-            Assert.Equal(3, result.Enumerate().Count());
+            Assert.Equal(3, result.Enumerate(context).Count());
         }
 
 
@@ -516,7 +527,9 @@ namespace Fluid.Tests
         [InlineData("ALLCAPS", "allcaps")]
         [InlineData("One1Two2Three3", "one1-two2-three3")]
         [InlineData("ONE1TWO2THREE3", "one1two2three3")]
-        [InlineData("First_Second_ThirdHi", "first_second_third-hi")]
+        [InlineData("First_Second_ThirdHi", "first-second-third-hi")]
+        [InlineData("100% M & Ms!!!", "100-m-ms")]
+        [InlineData("!!!100% M & Ms", "100-m-ms")]
         public async Task Handleize(string text, string expected)
         {
             var input = new StringValue(text);
@@ -590,7 +603,7 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
 
-            Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}}", result.ToStringValue());
+            Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}}", result.ToStringValue());
         }
 
         [Fact]
@@ -604,7 +617,7 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
 
-            Assert.Equal("{\"Name\":\"MultipleNode1\",\"Node1\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}},\"Node2\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"circular reference detected.\"}}}", result.ToStringValue());
+            Assert.Equal("{\"Name\":\"MultipleNode1\",\"Node1\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}},\"Node2\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}}}", result.ToStringValue());
         }
 
         [Fact]
@@ -617,6 +630,22 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             Assert.Equal("{\"Id\":100}", result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task JsonShouldWriteNullIfDictionaryNotReturnFluidIndexable()
+        {
+            var model = new
+            {
+                Id = 1,
+                WithoutIndexable = new DictionaryWithoutIndexableTestObjects(new { }),
+                Bool = true
+            };
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register(model.GetType());
+            var input = FluidValue.Create(model, options);
+            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
+            Assert.Equal("{\"Id\":1,\"WithoutIndexable\":null,\"Bool\":true}", result.ToStringValue());
         }
 
         [Theory]
@@ -771,6 +800,15 @@ namespace Fluid.Tests
         {
             public static int StaticMember { get; set; } = 1;
             public int Id { get; set; }
+        }
+
+        private class DictionaryWithoutIndexableTestObjects : ObjectValueBase
+        {
+            public override FluidValues Type => FluidValues.Dictionary;
+            public DictionaryWithoutIndexableTestObjects(object value) : base(value)
+            {
+
+            }
         }
     }
 }

@@ -32,7 +32,7 @@ namespace Fluid
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ValueTask<string> RenderAsync(this IFluidTemplate template, TemplateContext context, TextEncoder encoder)
+        public static async ValueTask<string> RenderAsync(this IFluidTemplate template, TemplateContext context, TextEncoder encoder)
         {
             if (context == null)
             {
@@ -44,33 +44,25 @@ namespace Fluid
                 ExceptionHelper.ThrowArgumentNullException(nameof(template));
             }
 
-            static async ValueTask<string> Awaited(
-                ValueTask task,
-                StringWriter writer,
-                StringBuilderPool builder)
-            {
-                await task;
-                await writer.FlushAsync();
-                var s = builder.ToString();
-                builder.Dispose();
-                writer.Dispose();
-                return s;
-            }
-
             var sb = StringBuilderPool.GetInstance();
             var writer = new StringWriter(sb.Builder);
-            var task = template.RenderAsync(writer, encoder, context);
-            if (!task.IsCompletedSuccessfully)
+
+            // A template is evaluated in a child scope such that the provided TemplateContext is immutable
+            context.EnterChildScope();
+
+            try
             {
-                return Awaited(task, writer, sb);
+                await template.RenderAsync(writer, encoder, context);
+
+                writer.Flush();
+                return sb.ToString();
             }
-
-            writer.Flush();
-
-            var result = sb.ToString();
-            sb.Dispose();
-            writer.Dispose();
-            return new ValueTask<string>(result);
+            finally
+            {
+                sb.Dispose();
+                writer.Dispose();
+                context.ReleaseScope();
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

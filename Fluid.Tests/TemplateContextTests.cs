@@ -1,4 +1,5 @@
-﻿using Fluid.Values;
+﻿using Fluid.Ast;
+using Fluid.Values;
 using System;
 using System.Globalization;
 using System.Linq;
@@ -113,17 +114,51 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void CaptureShouldUpdateContext()
+        public void TemplateContextShouldBeImmutable()
         {
-            _parser.TryParse("{% capture greetings %}Hello {{text1}}{%endcapture%}", out var template, out var error);
+            _parser.TryParse("{% capture greetings %}Hello {{text1}}{%endcapture%} {% assign foo = 'bar' %}", out var template, out var error);
 
             var context = new TemplateContext();
             context.SetValue("text1", "World");
             
             template.Render(context);
 
-            Assert.Equal("Hello World", context.GetValue("greetings").ToStringValue());
-            Assert.Contains("greetings", context.ValueNames);
+            Assert.Equal("World", context.GetValue("text1").ToStringValue());
+            Assert.DoesNotContain("greetings", context.ValueNames);
+            Assert.DoesNotContain("foo", context.ValueNames);
+        }
+
+        [Fact]
+        public void ScopeSetValueAcceptsNull()
+        {
+            var context = new TemplateContext();
+            context.SetValue("text", null);
+            Assert.Equal(NilValue.Instance, context.GetValue("text"));
+        }
+
+        [Fact]
+        public async Task ShouldNotReleaseScopeAsynchronously()
+        {
+            var parser = new FluidParser();
+
+            parser.RegisterEmptyBlock("sleep", async (statements, writer, encoder, context) =>
+            {
+                context.EnterChildScope();
+                context.IncrementSteps();
+                context.SetValue("id", "0");
+                await Task.Delay(100);
+                await statements.RenderStatementsAsync(writer, encoder, context);
+                context.ReleaseScope();
+                return Completion.Normal;
+            });
+
+            var context = new TemplateContext { };
+            context.SetValue("id", "1");
+            var template = parser.Parse(@"{{id}}{%sleep%}{{id}}{%endsleep%}{{id}}");
+
+            var output = await template.RenderAsync(context);
+
+            Assert.Equal("101", output);
         }
 
         private class TestClass

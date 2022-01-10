@@ -3,6 +3,7 @@ using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Fluid.Tests.Mocks
 {
@@ -45,7 +46,7 @@ namespace Fluid.Tests.Mocks
 
         public IChangeToken Watch(string filter)
         {
-            throw new NotImplementedException();
+            return NullChangeToken.Singleton;
         }
 
         private string NormalizePath(string path)

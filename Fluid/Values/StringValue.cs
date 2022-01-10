@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Parlot;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
-using Parlot;
 
 namespace Fluid.Values
 {
@@ -27,6 +27,9 @@ namespace Fluid.Values
 
         public StringValue(string value)
         {
+            // Returns a StringValue instance and not NilValue since this is what is asked for.
+            // However FluidValue.Create(null) returns NilValue.
+
             _value = value ?? NilValue.Instance.ToStringValue();
         }
 
@@ -56,7 +59,7 @@ namespace Fluid.Values
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static StringValue Create(string s)
         {
-            if (s == "")
+            if (String.IsNullOrEmpty(s))
             {
                 return Empty;
             }
@@ -64,6 +67,12 @@ namespace Fluid.Values
             return s.Length == 1
                 ? Create(s[0])
                 : new StringValue(s);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static StringValue Create(string s, bool encode)
+        {
+            return Create(s, encode);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -106,12 +115,13 @@ namespace Fluid.Values
 
         protected override FluidValue GetValue(string name, TemplateContext context)
         {
-            if (name == "size")
+            return name switch
             {
-                return NumberValue.Create(_value.Length);
-            }
-
-            return NilValue.Instance;
+                "size" => NumberValue.Create(_value.Length),
+                "first" => _value.Length > 0 ? Create(_value[0]) : NilValue.Instance,
+                "last" => _value.Length > 0 ? Create(_value[_value.Length - 1]) : NilValue.Instance,
+                _ => NilValue.Instance,
+            };
         }
 
         public override bool ToBooleanValue()
@@ -174,44 +184,9 @@ namespace Fluid.Values
             return _value.Contains(value.ToStringValue());
         }
 
-        public override IEnumerable<FluidValue> Enumerate()
+        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
         {
-            foreach (var c in _value)
-            {
-                yield return StringValue.Create(c);
-            }
-        }
-
-        internal override string[] ToStringArray()
-        {
-            var array = new string[_value.Length];
-            for (var i = 0; i < _value.Length; i++)
-            {
-                array[i] = _value[i].ToString();
-            }
-
-            return array;
-        }
-
-        internal override List<FluidValue> ToList()
-        {
-            var list = new List<FluidValue>(_value.Length);
-            foreach (var c in _value)
-            {
-                list.Add(Create(c));
-            }
-
-            return list;
-        }
-
-        internal override FluidValue FirstOrDefault()
-        {
-            return _value.Length > 0 ? Create(_value[0]) : null;
-        }
-
-        internal override FluidValue LastOrDefault()
-        {
-            return _value.Length > 0 ? Create(_value[_value.Length - 1]) : null;
+            yield return this;
         }
 
         public override bool Equals(object other)

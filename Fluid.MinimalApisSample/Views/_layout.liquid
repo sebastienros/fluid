@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Hello, world!</title>
+  </head>
+  <body>
+
+    <h1>Title from the layout</h1>
+    {% renderbody %}
+
+    {% partial 'Component', x: 1, y:2 %}
+
+    <footer>
+      {% rendersection footer %}
+    </footer>
+
+  </body>
+</html>

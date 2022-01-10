@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
-using System.Text.RegularExpressions;
 using System.Text.Json;
 using Fluid.Values;
 using TimeZoneConverter;
@@ -15,53 +14,7 @@ namespace Fluid.Filters
 {
     public static class MiscFilters
     {
-        private static readonly string[] DefaultFormats = {
-            "yyyy-MM-ddTHH:mm:ss.FFF",
-            "yyyy-MM-ddTHH:mm:ss",
-            "yyyy-MM-ddTHH:mm",
-            "yyyy-MM-dd",
-            "yyyy-MM",
-            "yyyy"
-        };
-
-        private static readonly string[] SecondaryFormats = {
-            // Formats used in DatePrototype toString methods
-            "ddd MMM dd yyyy HH:mm:ss 'GMT'K",
-            "ddd MMM dd yyyy",
-            "HH:mm:ss 'GMT'K",
-
-            // standard formats
-            "yyyy-M-dTH:m:s.FFFK",
-            "yyyy/M/dTH:m:s.FFFK",
-            "yyyy-M-dTH:m:sK",
-            "yyyy/M/dTH:m:sK",
-            "yyyy-M-dTH:mK",
-            "yyyy/M/dTH:mK",
-            "yyyy-M-d H:m:s.FFFK",
-            "yyyy/M/d H:m:s.FFFK",
-            "yyyy-M-d H:m:sK",
-            "yyyy/M/d H:m:sK",
-            "yyyy-M-d H:mK",
-            "yyyy/M/d H:mK",
-            "yyyy-M-dK",
-            "yyyy/M/dK",
-            "yyyy-MK",
-            "yyyy/MK",
-            "yyyyK",
-            "THH:mm:ss.FFFK",
-            "THH:mm:ssK",
-            "THH:mmK",
-            "THHK"
-        };
-
-        private static readonly Regex HtmlCaseRegex =
-            new Regex(
-                "(?<!^)((?<=[a-zA-Z0-9])[A-Z][a-z])|((?<=[a-z])[A-Z])",
-                RegexOptions.None,
-                TimeSpan.FromMilliseconds(500));
-
-        private const string Now = "now";
-        private const string Today = "today";
+        private const char KebabCaseSeparator = '-';
 
         public static FilterCollection WithMiscFilters(this FilterCollection filters)
         {
@@ -99,14 +52,85 @@ namespace Fluid.Filters
         /// </summary>
         public static ValueTask<FluidValue> Handleize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(HtmlCaseRegex.Replace(input.ToStringValue(), "-$1$2").ToLowerInvariant());
+            var value = input.ToStringValue();
+            var result = new StringBuilder();
+            var lastIndex = value.Length - 1;
+
+            for (int i = 0; i < value.Length; i++)
+            {
+                var currentChar = value[i];
+                var lookAheadChar = i == lastIndex
+                    ? '\0'
+                    : value[i + 1];
+
+                if (!char.IsLetterOrDigit(currentChar))
+                {
+                    continue;
+                }
+
+                if (i == 0 || i == lastIndex)
+                {
+                    result.Append(currentChar);
+
+                    continue;
+                }
+                
+                if (IsCapitalLetter(lookAheadChar))
+                {
+                    if (IsCapitalLetter(currentChar))
+                    {
+                        result.Append(currentChar);
+                    }
+                    else
+                    {
+                        if (IsCapitalLetter(lookAheadChar) && char.IsDigit(currentChar))
+                        {
+                            result.Append(currentChar);
+                        }
+                        else
+                        {
+                            result
+                                .Append(currentChar)
+                                .Append(KebabCaseSeparator);
+                        }
+                    }
+                }
+                else
+                {
+                    if (IsCapitalLetter(currentChar))
+                    {
+                        if (result[result.Length - 1] != KebabCaseSeparator && !char.IsDigit(lookAheadChar))
+                        {
+                            result.Append(KebabCaseSeparator);
+                        }
+                    }
+
+                    result.Append(currentChar);
+                }
+            }
+
+            static bool IsCapitalLetter(char c) => c >= 'A' && c <= 'Z';
+
+            return new StringValue(result.ToString().ToLowerInvariant());
         }
 
         public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (input.IsNil() || input == BooleanValue.False || EmptyValue.Instance.Equals(input))
+            var falseCheck = arguments.HasNamed("allow_false") && arguments["allow_false"] == BooleanValue.True;
+
+            if (falseCheck)
             {
-                return arguments.At(0);
+                if (input.IsNil() || EmptyValue.Instance.Equals(input))
+                {
+                    return arguments.At(0);
+                }
+            }
+            else
+            {
+                if (input.IsNil() || input == BooleanValue.False || EmptyValue.Instance.Equals(input))
+                {
+                    return arguments.At(0);
+                }
             }
 
             return input;
@@ -122,7 +146,7 @@ namespace Fluid.Filters
         public static ValueTask<FluidValue> Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var compacted = new List<FluidValue>();
-            foreach (var value in input.Enumerate())
+            foreach (var value in input.Enumerate(context))
             {
                 if (!value.IsNil())
                 {
@@ -251,7 +275,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> ChangeTimeZone(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (!TryGetDateTimeInput(input, context, out var value))
+            if (!input.TryGetDateTimeInput(context, out var value))
             {
                 return NilValue.Instance;
             }
@@ -272,7 +296,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Date(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (!TryGetDateTimeInput(input, context, out var value))
+            if (!input.TryGetDateTimeInput(context, out var value))
             {
                 return NilValue.Instance;
             }
@@ -507,7 +531,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> FormatDate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (!TryGetDateTimeInput(input, context, out var value))
+            if (!input.TryGetDateTimeInput(context, out var value))
             {
                 return NilValue.Instance;
             }
@@ -529,92 +553,16 @@ namespace Fluid.Filters
             return new StringValue(value.ToString(format, culture));
         }
 
-        private static bool TryGetDateTimeInput(FluidValue input, TemplateContext context, out DateTimeOffset result)
-        {
-            result = context.Now();
-
-            if (input.Type == FluidValues.String)
-            {
-                var stringValue = input.ToStringValue();
-
-                if (stringValue == Now || stringValue == Today)
-                {
-                    return true;
-                }
-                else
-                {
-                    var success = true;
-
-                    if (!DateTime.TryParseExact(stringValue, DefaultFormats, context.CultureInfo, DateTimeStyles.None, out var dateTime))
-                    {
-                        if (!DateTime.TryParseExact(stringValue, SecondaryFormats, context.CultureInfo, DateTimeStyles.None, out dateTime))
-                        {
-                            if (!DateTime.TryParse(stringValue, context.CultureInfo, DateTimeStyles.None, out dateTime))
-                            {
-                                if (!DateTime.TryParse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out dateTime))
-                                {
-                                    success = false;
-                                }
-                            }
-                        }
-                    }
-
-                    // If no timezone is specified, assume local using the configured timezone
-                    if (success)
-                    {
-                        if (dateTime.Kind == DateTimeKind.Unspecified)
-                        {
-                            result = new DateTimeOffset(dateTime, context.TimeZone.GetUtcOffset(dateTime));
-                        }
-                        else
-                        {
-                            result = new DateTimeOffset(dateTime);
-                        }
-                    }
-
-                    return success;
-                }
-            }
-            else if (input.Type == FluidValues.Number)
-            {
-                var dateTime = DateTimeOffset.FromUnixTimeSeconds((long)input.ToNumberValue());
-                result = dateTime.ToOffset(context.TimeZone.GetUtcOffset(dateTime));
-            }
-            else if (input.Type == FluidValues.DateTime)
-            {
-                result = (DateTimeOffset)input.ToObjectValue();
-            }
-            else
-            {
-                switch (input.ToObjectValue())
-                {
-                    case DateTime dateTime:
-                        result = dateTime;
-                        break;
-
-                    case DateTimeOffset dateTimeOffset:
-                        result = dateTimeOffset;
-                        break;
-
-                    default:
-                        return false;
-                }
-            }
-
-            return true;
-        }
-
         private static async ValueTask WriteJson(Utf8JsonWriter writer, FluidValue input, TemplateContext ctx, HashSet<object> stack = null)
         {
             switch (input.Type)
             {
                 case FluidValues.Array:
                     writer.WriteStartArray();
-                    foreach (var item in input.Enumerate())
+                    foreach (var item in input.Enumerate(ctx))
                     {
                         await WriteJson(writer, item, ctx);
                     }
-
                     writer.WriteEndArray();
                     break;
                 case FluidValues.Boolean:
@@ -645,7 +593,10 @@ namespace Fluid.Filters
 
                         writer.WriteEndObject();
                     }
-
+                    else
+                    {
+                        writer.WriteNullValue();
+                    }
                     break;
                 case FluidValues.Object:
                     var obj = input.ToObjectValue();
@@ -660,32 +611,20 @@ namespace Fluid.Filters
                         foreach (var property in properties)
                         {
                             var name = conv(property);
-                            var access = strategy.GetAccessor(type, name);
-                            if (access == null)
-                            {
-                                continue;
-                            }
-
-                            object value;
-                            if (access is IAsyncMemberAccessor asyncMemberAccessor)
-                            {
-                                value = await asyncMemberAccessor.GetAsync(obj, name, ctx);
-                            }
-                            else
-                            {
-                                value = access.Get(obj, name, ctx);
-                            }
-
-                            stack ??= new HashSet<object>();
-                            if (stack.Contains(value))
-                            {
-                                value = "circular reference detected.";
-                            }
-
-                            var fluidValue = FluidValue.Create(value, ctx.Options);
+                            var fluidValue = await input.GetValueAsync(name, ctx);
                             if (fluidValue.IsNil())
                             {
                                 continue;
+                            }
+
+                            stack ??= new HashSet<object>();
+                            if (fluidValue is ObjectValue)
+                            {
+                                var value = fluidValue.ToObjectValue();
+                                if (stack.Contains(value))
+                                {
+                                    fluidValue = StringValue.Create("Circular reference has been detected.");
+                                }
                             }
 
                             writer.WritePropertyName(name);
@@ -696,7 +635,10 @@ namespace Fluid.Filters
 
                         writer.WriteEndObject();
                     }
-
+                    else
+                    {
+                        writer.WriteNullValue();
+                    }
                     break;
                 case FluidValues.DateTime:
                     var objValue = input.ToObjectValue();

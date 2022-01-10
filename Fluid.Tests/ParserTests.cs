@@ -259,6 +259,19 @@ namespace Fluid.Tests
         }
 
         [Theory]
+        [InlineData("{% assign 1f = 123 %}{{ 1f }}")]
+        [InlineData("{% assign 123f = 123 %}{{ 123f }}")]
+        [InlineData("{% assign 1_ = 123 %}{{ 1_ }}")]
+        [InlineData("{% assign 1-1 = 123 %}{{ 1-1 }}")]
+        public void ShouldAcceptDigitsAtStartOfIdentifiers(string source)
+        {
+            var result = _parser.TryParse(source, out var template, out var error);
+
+            Assert.True(result, error);
+            Assert.Equal("123", template.Render());
+        }
+
+        [Theory]
         [InlineData(@"abc 
   {% {{ %}
 def", "at (")]
@@ -642,7 +655,17 @@ true
         {
             return CheckAsync(source, expected, t => t.SetValue("zero", 0).SetValue("one", 1));
         }
-        
+
+        [Fact]
+        public void ModelShouldNotImpactBlank()
+        {
+            var source = "{% assign a = ' ' %}{{ a == blank }}";
+            var model = new { a = " ", b = "" };
+            var context = new TemplateContext(model);
+            var template = _parser.Parse(source);
+            Assert.Equal("true", template.Render(context));
+        }
+
         [Fact]
         public void CycleShouldHandleNumbers()
         {
@@ -920,6 +943,91 @@ class  {
             var context = new TemplateContext();
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void ShouldParseEchoTag()
+        {
+            var source = @"{% echo 'welcome to the liquid tag' | upcase %}";
+
+            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
+        }
+
+        [Fact]
+        public void ShouldParseLiquidTag()
+        {
+            var source = @"
+{% 
+   liquid 
+   echo 
+      'welcome ' | upcase 
+   echo 'to the liquid tag' 
+    | upcase 
+%}";
+
+            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
+        }
+
+        [Fact]
+        public void ShouldParseLiquidTagWithBlocks()
+        {
+            var source = @"
+{% liquid assign cool = true
+   if cool
+     echo 'welcome to the liquid tag' | upcase
+   endif 
+%}
+";
+
+            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
+        }
+
+        [Fact]
+        public void ShouldParseFunctionCall()
+        {
+
+            var options = new FluidParserOptions { AllowFunctions = true };
+
+#if COMPILED
+        var _parser = new FluidParser(options).Compile();
+#else
+            var _parser = new FluidParser(options);
+#endif
+
+            _parser.TryParse("{{ a() }}", out var template, out var errors);
+            var statements = ((FluidTemplate)template).Statements;
+
+            Assert.Single(statements);
+
+            var outputStatement = statements[0] as OutputStatement;
+            Assert.NotNull(outputStatement);
+
+            var memberExpression = outputStatement.Expression as MemberExpression;
+            Assert.Equal(2, memberExpression.Segments.Count);
+            Assert.IsType<IdentifierSegment>(memberExpression.Segments[0]);
+            Assert.IsType<FunctionCallSegment>(memberExpression.Segments[1]);
+        }
+
+        [Fact]
+        public void ShouldNotParseFunctionCall()
+        {
+
+            var options = new FluidParserOptions { AllowFunctions = false };
+
+#if COMPILED
+        var parser = new FluidParser(options).Compile();
+#else
+        var parser = new FluidParser(options);
+#endif
+
+            Assert.False(parser.TryParse("{{ a() }}", out var template, out var errors));
+            Assert.Contains(ErrorMessages.FunctionsNotAllowed, errors);
         }
     }
 }

@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Fluid.Values
@@ -14,9 +15,7 @@ namespace Fluid.Values
     {
         public abstract void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
 
-        public static Dictionary<Type, Type> _genericDictionaryTypeCache = new();
-        public static object _synLock = new();
-
+        private static Dictionary<Type, Type> _genericDictionaryTypeCache = new();
 
         [Conditional("DEBUG")]
         protected static void AssertWriteToParameters(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
@@ -60,6 +59,11 @@ namespace Fluid.Values
         public virtual ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
             return new ValueTask<FluidValue>(GetIndex(index, context));
+        }
+
+        public virtual ValueTask<FluidValue> InvokeAsync(FunctionArguments arguments, TemplateContext context)
+        {
+            return NilValue.Instance;
         }
 
         protected virtual FluidValue GetIndex(FluidValue index, TemplateContext context)
@@ -182,30 +186,26 @@ namespace Fluid.Values
                     }
 
                     // Check if it's a more specific IDictionary<string, V>, e.g. JObject
+                    var cache = _genericDictionaryTypeCache;
 
-                    if (!_genericDictionaryTypeCache.TryGetValue(typeOfValue, out var genericType))
+                    if (!cache.TryGetValue(typeOfValue, out var genericType))
                     {
-                        lock (_synLock)
+                        foreach (var i in typeOfValue.GetInterfaces())
                         {
-                            if (!_genericDictionaryTypeCache.TryGetValue(typeOfValue, out genericType))
+                            if (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>) && i.GetGenericArguments()[0] == typeof(string))
                             {
-                                foreach (var i in typeOfValue.GetInterfaces())
-                                {
-                                    if (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>) && i.GetGenericArguments()[0] == typeof(string))
-                                    {
-                                        genericType = typeof(ObjectDictionaryFluidIndexable<>).MakeGenericType(i.GetGenericArguments()[1]);
-
-                                        // Swap the previous cache with a new copy to prevent locking on reads
-
-                                        var dictionary = new Dictionary<Type, Type>(_genericDictionaryTypeCache);
-                                        dictionary[typeOfValue] = genericType;
-                                        _genericDictionaryTypeCache = dictionary;
-
-                                        break;
-                                    }
-                                }
+                                genericType = typeof(ObjectDictionaryFluidIndexable<>).MakeGenericType(i.GetGenericArguments()[1]);
+                                break;
                             }
                         }
+
+                        // Swap the previous cache with a new copy if no other thread has updated the reference.
+                        // This ensures the dictionary can only grow and not replace another one of the same size.
+                        // Store a null value for non-matching types so we don't try again
+                        Interlocked.CompareExchange(ref _genericDictionaryTypeCache, new Dictionary<Type, Type>(cache)
+                        {
+                            [typeOfValue] = genericType
+                        }, cache);
                     }
 
                     if (genericType != null)
@@ -222,11 +222,12 @@ namespace Fluid.Values
                             return new ArrayValue(enumerable);
 
                         case IList list:
-                            var values = new List<FluidValue>(list.Count);
-                            foreach (var item in list)
+                            var values = new FluidValue[list.Count];
+                            for (var i = 0; i < values.Length; i++)
                             {
-                                values.Add(Create(item, options));
+                                values[i] = Create(list[i], options);
                             }
+
                             return new ArrayValue(values);
 
                         case IEnumerable enumerable:
@@ -255,40 +256,61 @@ namespace Fluid.Values
             return false;
         }
 
+        public virtual IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        {
+            return Array.Empty<FluidValue>();
+        }
+
+        #region Obsolete members
+
+        [Obsolete("Use Enumerate(TemplateContext) instead.")]
         public virtual IEnumerable<FluidValue> Enumerate()
         {
             return Array.Empty<FluidValue>();
         }
 
+        [Obsolete("Use Enumerate(TemplateContext) instead.")]
         internal virtual string[] ToStringArray()
         {
             return Array.Empty<string>();
         }
 
+        [Obsolete("Use Enumerate(TemplateContext) instead.")]
         internal virtual List<FluidValue> ToList()
         {
             return Enumerate().ToList();
         }
 
+        [Obsolete("Handle the property 'first' in GetValueAsync() instead")]
         internal virtual FluidValue FirstOrDefault()
         {
             return Enumerate().FirstOrDefault();
         }
 
+        /// <summary>
+        /// Returns the first element. Used by the <code>first</code> filter.
+        /// </summary>
+        [Obsolete("Handle the property 'first' in GetValueAsync() instead")]
+        internal virtual FluidValue FirstOrDefault(TemplateContext context)
+        {
+            return Enumerate(context).FirstOrDefault();
+        }
+
+        [Obsolete("Handle the property 'last' in GetValueAsync() instead")]
         internal virtual FluidValue LastOrDefault()
         {
             return Enumerate().LastOrDefault();
         }
 
-        public FluidValue Or(FluidValue other)
+        /// <summary>
+        /// Returns the last element. Used by the <code>last</code> filter.
+        /// </summary>
+        [Obsolete("Handle the property 'last' in GetValueAsync() instead")]
+        internal virtual FluidValue LastOrDefault(TemplateContext context)
         {
-            if (IsNil())
-            {
-                return other;
-            }
-
-            return this;
+            return Enumerate(context).LastOrDefault();
         }
+        #endregion
 
         public static implicit operator ValueTask<FluidValue>(FluidValue value) => new(value);
     }
