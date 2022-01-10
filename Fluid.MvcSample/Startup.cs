@@ -14,7 +14,7 @@ namespace Fluid.MvcSample
         {
             services.Configure<FluidMvcViewOptions>(options =>
             {
-                options.Parser = new CustomFluidViewParser();
+                options.Parser = new CustomFluidViewParser(new FluidParserOptions());
                 options.TemplateOptions.MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance;
             });
 

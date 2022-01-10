@@ -5,7 +5,7 @@ namespace Fluid.MvcSample
 {
     public class CustomFluidViewParser : FluidViewParser
     {
-        public CustomFluidViewParser()
+        public CustomFluidViewParser(FluidParserOptions options) : base(options)
         {
             RegisterEmptyTag("mytag", static async (w, e, c) =>
             {

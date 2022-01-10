@@ -29,7 +29,7 @@ This is the footer
 
 {% mytag %}
 ";
-            var parser = new FluidViewParser();
+            var parser = new FluidViewParser(new FluidParserOptions());
 
             parser.RegisterEmptyTag("mytag", static async (w, e, c) =>
             {
