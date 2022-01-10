@@ -12,7 +12,7 @@ namespace Fluid.ViewEngine
         /// <remarks>
         /// To add custom tags which require special primitive elements, create a sub-class of <see cref="FluidViewParser"/>.
         /// </remarks>
-        public FluidViewParser Parser { get; set; } = new FluidViewParser(new FluidParserOptions());
+        public FluidViewParser Parser { get; set; } = new FluidViewParser();
 
         /// <summary>
         /// Gets or sets the text encoder to use during rendering.
