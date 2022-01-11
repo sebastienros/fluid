@@ -1,5 +1,4 @@
 ﻿using Fluid.ViewEngine;
-using System.Collections.Generic;
 
 namespace Fluid.MvcViewEngine
 {
