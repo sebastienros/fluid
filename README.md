@@ -560,9 +560,9 @@ The package `Fluid.MvcViewEngine` provides a convenient way to use Liquid as a r
 
 #### Registering the view engine
 
-1- Reference the `Fluid.MvcViewEngine` NuGet package
-2- Add a `using` statement on `FluidMvcViewEngine`
-3- Call `AddFluid()` in your `Startup.cs`.
+1. Reference the `Fluid.MvcViewEngine` NuGet package
+2. Add a `using` statement on `Fluid.MvcViewEngine`
+3. Call `AddFluid()` in your `Startup.cs`.
 
 #### Sample
 ```csharp
@@ -647,7 +647,7 @@ public class Startup
 ```Liquid
 {% layout '_layout.liquid' %}
 
-This is is the home page
+This is the home page
 ```
 
 The `{% layout [template] %}` tag accepts one argument which can be any expression that return the relative location of a liquid template that will be used as the master template.
