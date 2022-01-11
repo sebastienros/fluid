@@ -914,7 +914,7 @@ A `FunctionValue` type is also available to provide out of the box functions. It
 ```c#
 var lowercase = new FunctionValue((args, context) => 
 {
-  var firstArg = args.At(0).ToStringValue().ToLowerCase();
+  var firstArg = args.At(0).ToStringValue();
   var lower = firstArg.ToLowerCase();
   return new ValueTask<FluidValue>(new StringValue(lower));
 });
