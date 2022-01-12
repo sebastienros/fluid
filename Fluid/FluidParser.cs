@@ -115,7 +115,20 @@ namespace Fluid
             // primary => NUMBER | STRING | property
             Primary.Parser =
                 String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x)))
-                .Or(Member.Then<Expression>(x => x))
+                .Or(Member.Then<Expression>(static x => {
+                    if (x.Segments.Count == 1)
+                    {
+                        switch ((x.Segments[0] as IdentifierSegment).Identifier)
+                        {
+                            case "empty": return new LiteralExpression(EmptyValue.Instance);
+                            case "blank": return new LiteralExpression(BlankValue.Instance);
+                            case "true": return new LiteralExpression(BooleanValue.True);
+                            case "false": return new LiteralExpression(BooleanValue.False);
+                        }
+                    }
+
+                    return x;
+                }))
                 .Or(Number.Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))))
                 ;
 
