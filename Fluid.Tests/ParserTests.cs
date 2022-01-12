@@ -1036,10 +1036,10 @@ class  {
             // Ensure the parser doesn't read 'empty' when identifiers start with this keywork
             // Same for blank, true, false
 
-            var source = "{% assign emptyThing = 'this is not empty' %}{{ emptyThing }}";
-            var context = new TemplateContext();
+            var source = "{% assign emptyThing = 'this is not empty' %}{{ emptyThing }}{{ empty.size }}";
+            var context = new TemplateContext(new { empty = "eric" });
             var template = _parser.Parse(source);
-            Assert.Equal("this is not empty", template.Render(context));
+            Assert.Equal("this is not empty4", template.Render(context));
         }
     }
 }
