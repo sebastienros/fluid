@@ -25,23 +25,37 @@ namespace Fluid.Ast
 
             var initial = Segments[0] as IdentifierSegment;
 
-            // Search the initial segment in the local scope first
-
-            FluidValue value = context.LocalScope.GetValue(initial.Identifier);
-
-            // If it was not successful, try again with a member of the model
-
+            FluidValue value = NilValue.Instance;
             int start = 1;
 
-            if (value.IsNil())
+            switch (initial.Identifier)
             {
-                if (context.Model == null)
-                {
-                    return new ValueTask<FluidValue>(value);
-                }
+                case "empty": value = EmptyValue.Instance; break;
+                case "blank": value = BlankValue.Instance; break;
+                case "true": value = BooleanValue.True; break;
+                case "false": value = BooleanValue.False; break;
+                default:
 
-                start = 0;
-                value = context.Model;
+                    // Search the initial segment in the local scope first
+
+                    value = context.LocalScope.GetValue(initial.Identifier);
+
+                    // If it was not successful, try again with a member of the model
+
+                    if (value.IsNil())
+                    {
+                        if (context.Model == null)
+                        {
+                            return new ValueTask<FluidValue>(value);
+                        }
+                        else
+                        {
+                            start = 0;
+                            value = context.Model;
+                        }
+                    }
+
+                    break;
             }
 
             for (var i = start; i < Segments.Count; i++)

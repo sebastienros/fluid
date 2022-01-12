@@ -35,10 +35,6 @@ namespace Fluid
 
         protected static readonly Parser<TextSpan> String = Terms.String(StringLiteralQuotes.SingleOrDouble);
         protected static readonly Parser<decimal> Number = Terms.Decimal(NumberOptions.AllowSign);
-        protected static readonly Parser<string> True = Terms.Text("true");
-        protected static readonly Parser<string> False = Terms.Text("false");
-        protected static readonly Parser<string> Empty = Terms.Text("empty");
-        protected static readonly Parser<string> Blank = Terms.Text("blank");
 
         protected static readonly Parser<string> DoubleEquals = Terms.Text("==");
         protected static readonly Parser<string> NotEquals = Terms.Text("!=");
@@ -116,13 +112,9 @@ namespace Fluid
                 .AndSkip(RParen)
                 .Then(x => new RangeExpression(x.Item1, x.Item2));
 
-            // primary => NUMBER | STRING | BOOLEAN | property
+            // primary => NUMBER | STRING | property
             Primary.Parser =
                 String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x)))
-                .Or(True.Then<Expression>(x => new LiteralExpression(BooleanValue.True)))
-                .Or(False.Then<Expression>(x => new LiteralExpression(BooleanValue.False)))
-                .Or(Empty.Then<Expression>(x => new LiteralExpression(EmptyValue.Instance)))
-                .Or(Blank.Then<Expression>(x => new LiteralExpression(BlankValue.Instance)))
                 .Or(Member.Then<Expression>(x => x))
                 .Or(Number.Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))))
                 ;
