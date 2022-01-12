@@ -1029,5 +1029,17 @@ class  {
             Assert.False(parser.TryParse("{{ a() }}", out var template, out var errors));
             Assert.Contains(ErrorMessages.FunctionsNotAllowed, errors);
         }
+
+        [Fact]
+        public void KeywordsShouldNotConflictWithIdentifiers()
+        {
+            // Ensure the parser doesn't read 'empty' when identifiers start with this keywork
+            // Same for blank, true, false
+
+            var source = "{% assign emptyThing = 'this is not empty' %}{{ emptyThing }}";
+            var context = new TemplateContext();
+            var template = _parser.Parse(source);
+            Assert.Equal("this is not empty", template.Render(context));
+        }
     }
 }
