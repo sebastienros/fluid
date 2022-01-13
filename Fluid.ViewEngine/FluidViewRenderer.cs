@@ -40,6 +40,11 @@ namespace Fluid.ViewEngine
 
             var template = await GetFluidTemplateAsync(relativePath, _fluidViewEngineOptions.ViewsFileProvider, true);
 
+            if (_fluidViewEngineOptions.RenderingViewAsync != null)
+            {
+                await _fluidViewEngineOptions.RenderingViewAsync.Invoke(relativePath, context);
+            }
+
             // The body is rendered and buffered before the Layout since it can contain fragments 
             // that need to be rendered as part of the Layout.
             // Also the body or its _ViewStarts might contain a Layout tag.
@@ -65,6 +70,11 @@ namespace Fluid.ViewEngine
         {
             // Substitute View Path
             context.AmbientValues[Constants.ViewPathIndex] = relativePath;
+
+            if (_fluidViewEngineOptions.RenderingViewAsync != null)
+            {
+                await _fluidViewEngineOptions.RenderingViewAsync.Invoke(relativePath, context);
+            }
 
             var template = await GetFluidTemplateAsync(relativePath, _fluidViewEngineOptions.PartialsFileProvider, false);
 

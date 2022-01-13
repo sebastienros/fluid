@@ -131,5 +131,21 @@ namespace Fluid.Tests.MvcViewEngine
 
             Assert.Equal("A S1 Hi B", sw.ToString());
         }
+
+        [Fact]
+        public async Task ShouldInvokeRenderingViewAsync()
+        {
+            _options.RenderingViewAsync = (view, context) => { context.SetValue("custom", "hello"); return default; };
+
+            _mockFileProvider.Add("Views/Index.liquid", "{{ custom }}");
+
+            var sw = new StringWriter();
+            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await sw.FlushAsync();
+
+            _options.RenderingViewAsync = null;
+
+            Assert.Equal("hello", sw.ToString());
+        }
     }
 }

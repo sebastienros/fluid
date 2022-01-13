@@ -1,5 +1,7 @@
 ﻿using System.IO;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 
 namespace Fluid.MvcViewEngine
@@ -13,6 +15,10 @@ namespace Fluid.MvcViewEngine
         {
             _fluidRendering = fluidRendering;
         }
+
+        [HtmlAttributeNotBound]
+        [ViewContext]
+        public ViewContext ViewContext { get; set; }
 
         [HtmlAttributeName("model")]
         public object Model { get; set; }
@@ -31,7 +37,7 @@ namespace Fluid.MvcViewEngine
 
             using (var sw = new StringWriter())
             {
-                var task = _fluidRendering.RenderAsync(sw, View, Model, null, null);
+                var task = _fluidRendering.RenderAsync(sw, View, ViewContext);
 
                 if (task.IsCompletedSuccessfully)
                 {
