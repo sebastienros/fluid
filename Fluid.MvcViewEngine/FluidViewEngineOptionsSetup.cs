@@ -24,6 +24,9 @@ namespace Fluid.MvcViewEngine
                 options.PartialsLocationFormats.Add("/Partials/{0}" + Constants.ViewExtension);
                 options.PartialsLocationFormats.Add("/Partials/{1}/{0}" + Constants.ViewExtension);
                 options.PartialsLocationFormats.Add("/Shared/Partials/{0}" + Constants.ViewExtension);
+
+                options.LayoutsLocationFormats.Clear();
+                options.LayoutsLocationFormats.Add("/Shared/{0}" + Constants.ViewExtension);
             })
         {
         }

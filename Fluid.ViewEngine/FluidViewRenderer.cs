@@ -14,6 +14,8 @@ namespace Fluid.ViewEngine
     /// </summary>
     public class FluidViewRenderer : IFluidViewRenderer
     {
+        private record struct LayoutKey (string ViewPath, string LayoutPath);
+
         private class CacheEntry
         {
             public IDisposable Callback;
@@ -21,6 +23,7 @@ namespace Fluid.ViewEngine
         }
 
         private readonly ConcurrentDictionary<IFileProvider, CacheEntry> _cache = new();
+        private readonly ConcurrentDictionary<LayoutKey, string> _layoutsCache = new();
 
         public FluidViewRenderer(FluidViewEngineOptions fluidViewEngineOptions)
         {
@@ -49,9 +52,13 @@ namespace Fluid.ViewEngine
             // If a layout is specified while rendering a view, execute it
             if (context.AmbientValues.TryGetValue(Constants.LayoutIndex, out var layoutPath) && layoutPath is string layoutPathString && !String.IsNullOrEmpty(layoutPathString))
             {
-                context.AmbientValues[Constants.ViewPathIndex] = layoutPath;
+                layoutPathString = ResolveLayoutPath(relativePath, layoutPathString, _fluidViewEngineOptions.ViewsFileProvider);
+
+                context.AmbientValues[Constants.ViewPathIndex] = layoutPathString;
                 context.AmbientValues[Constants.BodyIndex] = body;
-                var layoutTemplate = await GetFluidTemplateAsync(layoutPathString, _fluidViewEngineOptions.ViewsFileProvider, false);
+
+                // Parse the Layout file but ignore viewstarts
+                var layoutTemplate = await GetFluidTemplateAsync(layoutPathString, _fluidViewEngineOptions.ViewsFileProvider, includeViewStarts: false);
 
                 await layoutTemplate.RenderAsync(writer, _fluidViewEngineOptions.TextEncoder, context);
             }
@@ -99,7 +106,71 @@ namespace Fluid.ViewEngine
                 index = index - 1;
             }
 
+            viewStarts.Reverse();
+
             return viewStarts;
+        }
+
+        protected virtual string ResolveLayoutPath(string viewPath, string layoutPath, IFileProvider fileProvider)
+        {
+            // When a partial view is referenced by name without a file extension, the following locations are searched in the stated order:
+            // Currently executing view's folder
+            // Directory graph above the view's folder
+            // options.LayoutsLocationFormats
+
+            if (layoutPath.EndsWith(Constants.ViewExtension))
+            {
+                return Path.Combine(Path.GetDirectoryName(viewPath), layoutPath);
+            }
+
+            var key = new LayoutKey(viewPath, layoutPath);
+
+            return _layoutsCache.GetOrAdd(key, k =>
+            {
+                var layoutPath = k.LayoutPath;
+                var viewPath = k.ViewPath;
+
+                int index = viewPath.Length - 1;
+
+                while (!String.IsNullOrEmpty(viewPath))
+                {
+                    if (index == -1)
+                    {
+                        return layoutPath;
+                    }
+
+                    index = viewPath.LastIndexOf('/', index);
+
+                    viewPath = viewPath.Substring(0, index + 1);
+
+                    var layoutPathPath = Path.Combine(viewPath, layoutPath) + Constants.ViewExtension;
+
+                    var layoutPathInfo = fileProvider.GetFileInfo(layoutPathPath);
+
+                    if (layoutPathInfo.Exists)
+                    {
+                        return layoutPathPath;
+                    }
+
+                    index = index - 1;
+                }
+
+                // Not found in hierarchy, fall-back to LayoutsLocationFormats
+
+                foreach (var location in _fluidViewEngineOptions.LayoutsLocationFormats)
+                {
+                    var layoutPathPath = String.Format(location, Path.GetFileName(layoutPath));
+
+                    var layoutPathInfo = fileProvider.GetFileInfo(layoutPathPath);
+
+                    if (layoutPathInfo.Exists)
+                    {
+                        return layoutPathPath;
+                    }
+                }
+
+                return layoutPath;
+            });
         }
 
         protected virtual async ValueTask<IFluidTemplate> GetFluidTemplateAsync(string path, IFileProvider fileProvider, bool includeViewStarts)

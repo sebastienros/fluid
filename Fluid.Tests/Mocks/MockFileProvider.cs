@@ -53,6 +53,7 @@ namespace Fluid.Tests.Mocks
         {
             path = path.Replace('\\', '/');
             path = path.Replace('/', Path.DirectorySeparatorChar);
+            path = String.Join(Path.DirectorySeparatorChar, path.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries));
 
             if (!_caseSensitive)
             {
