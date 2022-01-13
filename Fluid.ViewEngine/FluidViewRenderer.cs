@@ -106,6 +106,8 @@ namespace Fluid.ViewEngine
                 index = index - 1;
             }
 
+            viewStarts.Reverse();
+
             return viewStarts;
         }
 
