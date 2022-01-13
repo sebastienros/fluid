@@ -65,7 +65,12 @@ namespace Fluid
         protected static readonly Parser<TagResult> TagStart = TagParsers.TagStart();
         protected static readonly Parser<TagResult> TagStartSpaced = TagParsers.TagStart(true);
         protected static readonly Parser<TagResult> TagEnd = TagParsers.TagEnd(true);
-        
+
+        protected static readonly LiteralExpression EmptyKeyword = new LiteralExpression(EmptyValue.Instance);
+        protected static readonly LiteralExpression BlankKeyword = new LiteralExpression(BlankValue.Instance);
+        protected static readonly LiteralExpression TrueKeyword = new LiteralExpression(BooleanValue.True);
+        protected static readonly LiteralExpression FalseKeyword = new LiteralExpression(BooleanValue.False);
+
         public FluidParser() : this (new())
         {
         }
@@ -120,10 +125,10 @@ namespace Fluid
                     {
                         switch ((x.Segments[0] as IdentifierSegment).Identifier)
                         {
-                            case "empty": return new LiteralExpression(EmptyValue.Instance);
-                            case "blank": return new LiteralExpression(BlankValue.Instance);
-                            case "true": return new LiteralExpression(BooleanValue.True);
-                            case "false": return new LiteralExpression(BooleanValue.False);
+                            case "empty": return EmptyKeyword;
+                            case "blank": return BlankKeyword;
+                            case "true": return TrueKeyword;
+                            case "false": return FalseKeyword;
                         }
                     }
 
