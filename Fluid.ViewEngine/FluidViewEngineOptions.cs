@@ -53,6 +53,14 @@ namespace Fluid.ViewEngine
         public List<string> PartialsLocationFormats { get; } = new();
 
         /// <summary>
+        /// Gets the list of layout location format strings. The formatting arguments can differ for each implementation of <see cref="IFluidViewRenderer"/>.
+        /// </summary>
+        /// <example>
+        /// /Views/Shared/{0}.liquid
+        /// </example>
+        public List<string> LayoutsLocationFormats { get; } = new();
+
+        /// <summary>
         /// Gets or sets whether files should be reloaded automatically when changed. Default is <code>true</code>;
         /// </summary>
         public bool TrackFileChanges { get; set; } = true;

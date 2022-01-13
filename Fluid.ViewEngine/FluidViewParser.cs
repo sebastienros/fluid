@@ -72,23 +72,14 @@ namespace Fluid.ViewEngine
 
             RegisterExpressionTag("layout", static async (pathExpression, writer, encoder, context) =>
             {
-                var relativeLayoutPath = (await pathExpression.EvaluateAsync(context)).ToStringValue();
+                var layoutPath = (await pathExpression.EvaluateAsync(context)).ToStringValue();
 
                 // If '' is assigned, remove any Layout, for instance to override one defined in a _viewstart
-                if (string.IsNullOrEmpty(relativeLayoutPath))
+                if (string.IsNullOrEmpty(layoutPath))
                 {
                     context.AmbientValues[Constants.LayoutIndex] = null;
                     return Completion.Normal;
                 }
-
-                if (!relativeLayoutPath.EndsWith(Constants.ViewExtension, StringComparison.OrdinalIgnoreCase))
-                {
-                    relativeLayoutPath += Constants.ViewExtension;
-                }
-
-                var currentViewPath = context.AmbientValues[Constants.ViewPathIndex] as string;
-                var currentDirectory = Path.GetDirectoryName(currentViewPath);
-                var layoutPath = Path.Combine(currentDirectory, relativeLayoutPath);
 
                 context.AmbientValues[Constants.LayoutIndex] = layoutPath;
 
