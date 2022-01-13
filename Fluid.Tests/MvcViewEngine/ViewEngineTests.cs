@@ -234,6 +234,11 @@ namespace Fluid.Tests.MvcViewEngine
             _options.RenderingViewAsync = (view, context) => { context.SetValue("custom", "hello"); return default; };
 
             _mockFileProvider.Add("Views/Index.liquid", "{{ custom }}");
+
+            var sw = new StringWriter();
+            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await sw.FlushAsync();
+
             _options.RenderingViewAsync = null;
 
             Assert.Equal("hello", sw.ToString());
