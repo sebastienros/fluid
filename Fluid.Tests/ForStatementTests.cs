@@ -345,7 +345,7 @@ namespace Fluid.Tests
 
             Assert.Equal("54", sw.ToString());
         }
-        
+
         [Fact]
         public async Task NegativeTargetShouldNotRenderLoop()
         {

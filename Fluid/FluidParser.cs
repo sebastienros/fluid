@@ -115,7 +115,7 @@ namespace Fluid
                 .AndSkip(Terms.Text(".."))
                 .And(OneOf(Integer, Member.Then<Expression>(x => x)))
                 .AndSkip(RParen)
-                .Then(x => new RangeExpression(x.Item1, x.Item2));
+                .Then<Expression>(x => new RangeExpression(x.Item1, x.Item2));
 
             // primary => NUMBER | STRING | property
             Primary.Parser =
@@ -135,6 +135,7 @@ namespace Fluid
                     return x;
                 }))
                 .Or(Number.Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))))
+                .Or(Range)
                 ;
 
             RegisteredOperators["contains"] = (a, b) => new ContainsBinaryExpression(a, b);
