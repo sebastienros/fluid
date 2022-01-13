@@ -30,20 +30,25 @@ namespace Fluid.Ast
                 start = Convert.ToInt32(startTask.Result.ToNumberValue());
                 end = Convert.ToInt32(endTask.Result.ToNumberValue());
 
-                // If end < start, we create an empty array
-                var list = new FluidValue[Math.Max(0, end - start + 1)];
-
-                for (var i = 0; i < list.Length; i++)
-                {
-                    list[i] = NumberValue.Create(start + i);
-                }
-
-                return new ArrayValue(list);
+                return BuildArray(start, end);
             }
             else
             {
                 return Awaited(startTask, endTask);
             }            
+        }
+
+        private static FluidValue BuildArray(int start, int end)
+        {
+            // If end < start, we create an empty array
+            var list = new FluidValue[Math.Max(0, end - start + 1)];
+
+            for (var i = 0; i < list.Length; i++)
+            {
+                list[i] = NumberValue.Create(start + i);
+            }
+
+            return new ArrayValue(list);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -54,14 +59,7 @@ namespace Fluid.Ast
             var start = Convert.ToInt32((await leftTask).ToNumberValue());
             var end = Convert.ToInt32((await rightTask).ToNumberValue());
 
-            var list = new FluidValue[Math.Max(1, end - start)];
-
-            for (var i = start; i <= end; i++)
-            {
-                list[i] = NumberValue.Create(i);
-            }
-
-            return new ArrayValue(list);
+            return BuildArray(start, end);
         }
     }
 }
