@@ -68,7 +68,7 @@ namespace Fluid.Tests.MvcViewEngine
             await _renderer.RenderViewAsync(sw, "Home/Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
-            Assert.Equal("ViewStart1ViewStart2Hello World", sw.ToString());
+            Assert.Equal("ViewStart2ViewStart1Hello World", sw.ToString());
         }
 
         [Fact]
