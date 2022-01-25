@@ -10,28 +10,13 @@ namespace Fluid.Ast
 {
     public class ForStatement : TagStatement
     {
-        public ForStatement(
-            List<Statement> statements,
-            string identifier,
-            MemberExpression member,
-            Expression limit,
-            Expression offset,
-            bool reversed,
-            ElseStatement elseStatement = null
-        ) : base(statements)
-        {
-            Identifier = identifier;
-            Member = member;
-            Limit = limit;
-            Offset = offset;
-            Reversed = reversed;
-            Else = elseStatement;
-        }
+        private bool _isContinueOffset;
+        private string _continueOffsetLiteral;
 
         public ForStatement(
             List<Statement> statements,
             string identifier,
-            RangeExpression range,
+            Expression source,
             Expression limit,
             Expression offset,
             bool reversed,
@@ -39,16 +24,19 @@ namespace Fluid.Ast
         ) : base(statements)
         {
             Identifier = identifier;
-            Range = range;
+            Source = source;
             Limit = limit;
             Offset = offset;
             Reversed = reversed;
             Else = elseStatement;
+
+            _isContinueOffset = Offset is MemberExpression l && l.Segments.Count == 1 && ((IdentifierSegment)l.Segments[0]).Identifier == "continue";
+            _continueOffsetLiteral = source is MemberExpression m ? "for_continue_" + ((IdentifierSegment)m.Segments[0]).Identifier : null;
         }
 
         public string Identifier { get; }
         public RangeExpression Range { get; }
-        public MemberExpression Member { get; }
+        public Expression Source { get; }
         public Expression Limit { get; }
         public Expression Offset { get; }
         public bool Reversed { get; }
@@ -56,27 +44,9 @@ namespace Fluid.Ast
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            List<FluidValue> list = null;
+            var source = (await Source.EvaluateAsync(context)).Enumerate(context).ToList();
 
-            if (Member != null)
-            {
-                var member = await Member.EvaluateAsync(context);
-                list = member.Enumerate(context).ToList();
-            }
-            else if (Range != null)
-            {
-                var start = Convert.ToInt32((await Range.From.EvaluateAsync(context)).ToNumberValue());
-                var end = Convert.ToInt32((await Range.To.EvaluateAsync(context)).ToNumberValue());
-
-                list = new List<FluidValue>(Math.Max(1, end - start));
-
-                for (var i = start; i <= end; i++)
-                {
-                    list.Add(NumberValue.Create(i));
-                }
-            }
-
-            if (list is null || list.Count == 0)
+            if (source.Count == 0)
             {
                 if (Else != null)
                 {
@@ -90,11 +60,19 @@ namespace Fluid.Ast
             var startIndex = 0;
             if (Offset is not null)
             {
-                var offset = (int) (await Offset.EvaluateAsync(context)).ToNumberValue();
-                startIndex = offset;
+                if (_isContinueOffset)
+                {
+                    startIndex = (int) context.GetValue(_continueOffsetLiteral).ToNumberValue();
+                }
+                else
+                {
+                    var offset = (int)(await Offset.EvaluateAsync(context)).ToNumberValue();
+                    startIndex = offset;
+                }
             }
 
-            var count = Math.Max(0, list.Count - startIndex);
+            var count = Math.Max(0, source.Count - startIndex);
+
             if (Limit is not null)
             {
                 var limit = (int) (await Limit.EvaluateAsync(context)).ToNumberValue();
@@ -122,7 +100,7 @@ namespace Fluid.Ast
 
             if (Reversed)
             {
-                list.Reverse(startIndex, count);
+                source.Reverse(startIndex, count);
             }
 
             context.EnterForLoopScope();
@@ -139,7 +117,7 @@ namespace Fluid.Ast
                 {
                     context.IncrementSteps();
 
-                    var item = list[i];
+                    var item = source[i];
 
                     context.LocalScope._properties[Identifier] = item;
 
@@ -150,6 +128,11 @@ namespace Fluid.Ast
                     forloop.RIndex0 = length - i;
                     forloop.First = i == 0;
                     forloop.Last = i == length - 1;
+
+                    if (_continueOffsetLiteral != null)
+                    {
+                        context.SetValue(_continueOffsetLiteral, forloop.Index);
+                    }
 
                     Completion completion = Completion.Normal;
 

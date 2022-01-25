@@ -1041,5 +1041,22 @@ class  {
             var template = _parser.Parse(source);
             Assert.Equal("this is not empty4", template.Render(context));
         }
+
+        [Fact]
+        public void ShouldContinueForLoop()
+        {
+
+            var source = @"
+                {%- assign array = (1..6) %}
+                {%- for item in array limit: 3 %}
+                {{- item}}
+                {%- endfor %}
+                {%- for item in array offset: continue limit: 2 %}
+                {{- item}}
+                {%- endfor %}";
+
+            var template = _parser.Parse(source);
+            Assert.Equal("12345", template.Render());
+        }
     }
 }
