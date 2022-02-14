@@ -47,7 +47,7 @@ namespace MinimalApis.LiquidViews
             httpContext.Response.StatusCode = 200;
             httpContext.Response.ContentType = ContentType;
 
-            var context = new TemplateContext(_model);
+            var context = new TemplateContext(_model, options.TemplateOptions);
             context.Options.FileProvider = options.PartialsFileProvider;
 
             await using var sw = new StreamWriter(httpContext.Response.Body);
