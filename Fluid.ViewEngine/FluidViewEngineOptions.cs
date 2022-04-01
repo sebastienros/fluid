@@ -65,6 +65,9 @@ namespace Fluid.ViewEngine
         /// </summary>
         public bool TrackFileChanges { get; set; } = true;
 
+        /// <summary>
+        /// <para>Represents the method that will handle the view rendering event.</para>
+        /// </summary>
         public delegate ValueTask RenderingViewDelegate(string path, TemplateContext context);
 
         /// <summary>
