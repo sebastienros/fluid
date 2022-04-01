@@ -65,8 +65,7 @@ namespace Fluid.Ast
                         var elseIfConditionTask = elseIf.Condition.EvaluateAsync(context);
                         if (!elseIfConditionTask.IsCompletedSuccessfully)
                         {
-                            var writeTask = elseIf.WriteToAsync(writer, encoder, context);
-                            return AwaitedElseBranch(elseIfConditionTask, writeTask, writer, encoder, context, i + 1);
+                            return AwaitedElseBranch(elseIf, elseIfConditionTask, elseIfTask: null, writer, encoder, context, i + 1);
                         }
 
                         if (elseIfConditionTask.Result.ToBooleanValue())
@@ -74,7 +73,7 @@ namespace Fluid.Ast
                             var writeTask = elseIf.WriteToAsync(writer, encoder, context);
                             if (!writeTask.IsCompletedSuccessfully)
                             {
-                                return AwaitedElseBranch(elseIfConditionTask, writeTask, writer, encoder, context, i + 1);
+                                return AwaitedElseBranch(elseIf, elseIfConditionTask, writeTask, writer, encoder, context, i + 1);
                             }
 
                             return new ValueTask<Completion>(writeTask.Result);
@@ -139,15 +138,16 @@ namespace Fluid.Ast
             }
             else
             {
-                await AwaitedElseBranch(new ValueTask<FluidValue>(BooleanValue.False), new ValueTask<Completion>(), writer, encoder, context, startIndex: 0);
+                await AwaitedElseBranch(null, new ValueTask<FluidValue>(BooleanValue.False), new ValueTask<Completion>(), writer, encoder, context, startIndex: 0);
             }
 
             return Completion.Normal;
         }
 
         private async ValueTask<Completion> AwaitedElseBranch(
+            ElseIfStatement elseIf,
             ValueTask<FluidValue> conditionTask,
-            ValueTask<Completion> elseIfTask,
+            ValueTask<Completion>? elseIfTask,
             TextWriter writer,
             TextEncoder encoder,
             TemplateContext context,
@@ -156,12 +156,12 @@ namespace Fluid.Ast
             bool condition = (await conditionTask).ToBooleanValue();
             if (condition)
             {
-                await elseIfTask;
+                return await (elseIfTask ?? elseIf.WriteToAsync(writer, encoder, context));
             }
 
             for (var i = startIndex; i < _elseIfStatements.Count; i++)
             {
-                var elseIf = _elseIfStatements[i];
+                elseIf = _elseIfStatements[i];
                 if ((await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue())
                 {
                     return await elseIf.WriteToAsync(writer, encoder, context);
