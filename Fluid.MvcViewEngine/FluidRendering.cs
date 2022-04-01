@@ -34,7 +34,7 @@ namespace Fluid.MvcViewEngine
 
         private readonly IWebHostEnvironment _hostingEnvironment;
         private readonly FluidMvcViewOptions _options;
-        
+
         public async Task RenderAsync(TextWriter writer, string path, ViewContext viewContext)
         {
             var context = new TemplateContext(_options.TemplateOptions);
