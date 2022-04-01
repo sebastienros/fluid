@@ -4,26 +4,30 @@ using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Values;
-using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Fluid.Tests
 {
     public class IfStatementTests
     {
-        private Expression TRUE = new LiteralExpression(BooleanValue.True);
-        private Expression FALSE = new LiteralExpression(BooleanValue.False);
-
-        private List<Statement> TEXT(string text)
+        private static List<Statement> TEXT(string text)
         {
             return new List<Statement> { new TextSpanStatement(text) };
         }
 
-        [Fact]
-        public async Task IfCanProcessWhenTrue()
+        private static Expression BooleanExpression(bool value, bool async)
+        {
+            var boolean = BooleanValue.Create(value);
+            return async ? new AwaitedExpression(boolean) : new LiteralExpression(boolean);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task IfCanProcessWhenTrue(bool async)
         {
             var e = new IfStatement(
-                TRUE,
+                BooleanExpression(true, async),
                 new List<Statement> { new TextSpanStatement("x") }
                 );
 
@@ -33,11 +37,13 @@ namespace Fluid.Tests
             Assert.Equal("x", sw.ToString());
         }
 
-        [Fact]
-        public async Task IfDoesntProcessWhenFalse()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task IfDoesntProcessWhenFalse(bool async)
         {
             var e = new IfStatement(
-                FALSE,
+                BooleanExpression(false, async),
                 new List<Statement> { new TextSpanStatement("x") }
                 );
 
@@ -47,11 +53,13 @@ namespace Fluid.Tests
             Assert.Equal("", sw.ToString());
         }
 
-        [Fact]
-        public async Task IfDoesntProcessElseWhenTrue()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task IfDoesntProcessElseWhenTrue(bool async)
         {
             var e = new IfStatement(
-                TRUE,
+                BooleanExpression(true, async),
                 new List<Statement> {
                     new TextSpanStatement("x")
                 },
@@ -65,11 +73,13 @@ namespace Fluid.Tests
             Assert.Equal("x", sw.ToString());
         }
 
-        [Fact]
-        public async Task IfProcessElseWhenFalse()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task IfProcessElseWhenFalse(bool async)
         {
             var e = new IfStatement(
-                FALSE,
+                BooleanExpression(false, async),
                 new List<Statement> {
                     new TextSpanStatement("x")
                 },
@@ -84,14 +94,16 @@ namespace Fluid.Tests
             Assert.Equal("y", sw.ToString());
         }
 
-        [Fact]
-        public async Task IfProcessElseWhenNoOther()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task IfProcessElseWhenNoOther(bool async)
         {
             var e = new IfStatement(
-                FALSE,
+                BooleanExpression(false, async),
                 TEXT("a"),
                 new ElseStatement(TEXT("b")),
-                new List<ElseIfStatement> { new ElseIfStatement(FALSE, TEXT("c")) }
+                new List<ElseIfStatement> { new ElseIfStatement(BooleanExpression(false, async), TEXT("c")) }
                 );
 
             var sw = new StringWriter();
@@ -100,14 +112,16 @@ namespace Fluid.Tests
             Assert.Equal("b", sw.ToString());
         }
 
-        [Fact]
-        public async Task IfProcessElseIf()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task IfProcessElseIf(bool async)
         {
             var e = new IfStatement(
-                FALSE,
+                BooleanExpression(false, async),
                 TEXT("a"),
                 new ElseStatement(TEXT("b")),
-                new List<ElseIfStatement> { new ElseIfStatement(TRUE, TEXT("c")) }
+                new List<ElseIfStatement> { new ElseIfStatement(BooleanExpression(true, async), TEXT("c")) }
                 );
 
             var sw = new StringWriter();
@@ -116,16 +130,18 @@ namespace Fluid.Tests
             Assert.Equal("c", sw.ToString());
         }
 
-        [Fact]
-        public async Task IfProcessMultipleElseIf()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task IfProcessMultipleElseIf(bool async)
         {
             var e = new IfStatement(
-                FALSE,
+                BooleanExpression(false, async),
                 TEXT("a"),
                 new ElseStatement(TEXT("b")),
                 new List<ElseIfStatement> {
-                    new ElseIfStatement(FALSE, TEXT("c")),
-                    new ElseIfStatement(TRUE, TEXT("d"))}
+                    new ElseIfStatement(BooleanExpression(false, async), TEXT("c")),
+                    new ElseIfStatement(BooleanExpression(true, async), TEXT("d"))}
                 );
 
             var sw = new StringWriter();
@@ -134,16 +150,18 @@ namespace Fluid.Tests
             Assert.Equal("d", sw.ToString());
         }
 
-        [Fact]
-        public async Task IfProcessFirstElseIf()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task IfProcessFirstElseIf(bool async)
         {
             var e = new IfStatement(
-                FALSE,
+                BooleanExpression(false, async),
                 TEXT("a"),
                 new ElseStatement(TEXT("b")),
                 new List<ElseIfStatement> {
-                    new ElseIfStatement(TRUE, TEXT("c")),
-                    new ElseIfStatement(TRUE, TEXT("d"))}
+                    new ElseIfStatement(BooleanExpression(true, async), TEXT("c")),
+                    new ElseIfStatement(BooleanExpression(true, async), TEXT("d"))}
                 );
 
             var sw = new StringWriter();
@@ -152,22 +170,61 @@ namespace Fluid.Tests
             Assert.Equal("c", sw.ToString());
         }
 
-        [Fact]
-        public async Task IfProcessNoMatchElseIf()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task IfProcessNoMatchElseIf(bool async)
         {
             var e = new IfStatement(
-                FALSE,
+                BooleanExpression(false, async: false),
                 TEXT("a"),
                 null,
                 new List<ElseIfStatement> {
-                    new ElseIfStatement(FALSE, TEXT("c")),
-                    new ElseIfStatement(FALSE, TEXT("d"))}
+                    new ElseIfStatement(BooleanExpression(false, async), TEXT("c")),
+                    new ElseIfStatement(BooleanExpression(false, async), TEXT("d"))}
                 );
 
             var sw = new StringWriter();
             await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
             Assert.Equal("", sw.ToString());
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task IfProcessAwaitedAndElse(bool async)
+        {
+            var e = new IfStatement(
+                BooleanExpression(false, async: false),
+                TEXT("a"),
+                new ElseStatement(TEXT("c")),
+                new List<ElseIfStatement>
+                {
+                    new ElseIfStatement(BooleanExpression(false, async), TEXT("b"))
+                }
+            );
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+
+            Assert.Equal("c", sw.ToString());
+        }
+    }
+
+    sealed class AwaitedExpression : Expression
+    {
+        private readonly FluidValue _result;
+
+        public AwaitedExpression(FluidValue result)
+        {
+            _result = result;
+        }
+
+        public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
+        {
+            await Task.Delay(10);
+            return _result;
         }
     }
 }
