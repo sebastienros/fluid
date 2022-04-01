@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.FileProviders;
+using System;
 using System.Collections.Generic;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.ViewEngine
 {
@@ -62,5 +64,15 @@ namespace Fluid.ViewEngine
         /// Gets or sets whether files should be reloaded automatically when changed. Default is <code>true</code>;
         /// </summary>
         public bool TrackFileChanges { get; set; } = true;
+
+        /// <summary>
+        /// <para>Represents the method that will handle the view rendering event.</para>
+        /// </summary>
+        public delegate ValueTask RenderingViewDelegate(string path, TemplateContext context);
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when a view is rendered.
+        /// </summary>
+        public RenderingViewDelegate RenderingViewAsync { get; set; }
     }
 }

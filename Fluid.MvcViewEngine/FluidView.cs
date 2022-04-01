@@ -25,7 +25,7 @@ namespace Fluid.MvcViewEngine
 
         public async Task RenderAsync(ViewContext context)
         {
-            await _fluidRendering.RenderAsync(context.Writer, Path, context.ViewData.Model, context.ViewData, context.ModelState);
+            await _fluidRendering.RenderAsync(context.Writer, Path, context);
         }
     }
 }

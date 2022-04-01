@@ -1,6 +1,7 @@
 ﻿using Fluid.ViewEngine;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Options;
 using System.IO;
@@ -32,14 +33,19 @@ namespace Fluid.MvcViewEngine
         }
 
         private readonly IWebHostEnvironment _hostingEnvironment;
-        private readonly FluidViewEngineOptions _options;
+        private readonly FluidMvcViewOptions _options;
 
-        public async Task RenderAsync(TextWriter writer, string path, object model, ViewDataDictionary viewData, ModelStateDictionary modelState)
+        public async Task RenderAsync(TextWriter writer, string path, ViewContext viewContext)
         {
             var context = new TemplateContext(_options.TemplateOptions);
-            context.SetValue("ViewData", viewData);
-            context.SetValue("ModelState", modelState);
-            context.SetValue("Model", model);
+            context.SetValue("ViewData", viewContext.ViewData);
+            context.SetValue("ModelState", viewContext.ModelState);
+            context.SetValue("Model", viewContext.ViewData.Model);
+
+            if (_options.RenderingViewAsync != null)
+            {
+                await _options.RenderingViewAsync.Invoke(path, viewContext, context);
+            }
 
             await _fluidViewRenderer.RenderViewAsync(writer, path, context);
         }

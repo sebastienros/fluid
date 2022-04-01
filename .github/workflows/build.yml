@@ -23,23 +23,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Setup .NET 2.1
+
+    - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 2.1.*
-    - name: Setup .NET 3.1
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 3.1.*
-    - name: Setup .NET 5.0
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 5.0.*
-    - name: Setup .NET 6.0
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 6.0.*
+        dotnet-version: | 
+          3.1.x
+          5.0.x
+          6.0.x
+          
     - name: Test
       run: dotnet test --configuration Release
+    
     - name: Test - Compiled
       run: dotnet test --configuration Release /p:Compiled=true
