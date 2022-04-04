@@ -14,7 +14,7 @@ namespace Fluid.ViewEngine
     /// </summary>
     public class FluidViewRenderer : IFluidViewRenderer
     {
-        private record struct LayoutKey (string ViewPath, string LayoutPath);
+        private record struct LayoutKey(string ViewPath, string LayoutPath);
 
         private class CacheEntry
         {
@@ -92,7 +92,7 @@ namespace Fluid.ViewEngine
         {
             var viewStarts = new List<string>();
             int index = viewPath.Length - 1;
-            
+
             while (!String.IsNullOrEmpty(viewPath))
             {
                 if (index == -1)
@@ -214,7 +214,14 @@ namespace Fluid.ViewEngine
                 return cacheEntry;
             });
 
-            if (cache.TemplateCache.TryGetValue(path, out var template))
+            // Allow templates to be cached by external factors
+            string cacheKey = path;
+            if (_fluidViewEngineOptions.TemplateCacheKeyProvider != null)
+            {
+                cacheKey = _fluidViewEngineOptions.TemplateCacheKeyProvider.Invoke(path);
+            }
+
+            if (cache.TemplateCache.TryGetValue(cacheKey, out var template))
             {
                 return template;
             }
@@ -236,7 +243,7 @@ namespace Fluid.ViewEngine
             }
 
             var subTemplates = new List<IFluidTemplate>();
-                
+
             if (includeViewStarts)
             {
                 // Add ViewStart files
