@@ -228,7 +228,7 @@ namespace Fluid.ViewEngine
 
             template = await ParseLiquidFileAsync(path, fileProvider, includeViewStarts);
 
-            cache.TemplateCache[path] = template;
+            cache.TemplateCache[cacheKey] = template;
 
             return template;
         }
