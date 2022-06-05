@@ -804,7 +804,7 @@ namespace Fluid.Filters
                     );
             }
 
-            public override string ToString() => (A == DefaultTransperency)
+            public override string ToString() => A == DefaultTransperency
                 ? FormattableString.Invariant($"rgb({R}, {G}, {B})")
                 : FormattableString.Invariant($"rgba({R}, {G}, {B}, {Math.Round(A, 1)})");
 
@@ -947,7 +947,7 @@ namespace Fluid.Filters
                 return new HslColor(Convert.ToInt32(h), Math.Round(s, 2), Math.Round(l, 2), rgbColor.A);
             }
 
-            public override string ToString() => (A == DefaultTransparency)
+            public override string ToString() => A == DefaultTransparency
                 ? FormattableString.Invariant($"hsl({H}, {S * 100.0}%, {L * 100.0}%)")
                 : FormattableString.Invariant($"hsla({H}, {S * 100.0}%, {L * 100.0}%, {Math.Round(A, 1)})");
         }
