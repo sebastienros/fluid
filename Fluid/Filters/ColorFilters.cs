@@ -687,13 +687,6 @@ namespace Fluid.Filters
                 {
                     var rgbColor = value.Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
 
-                    // We will parse these values with NumberStyles.Float, because it gets "close enough" to the actual CSS Standard.
-                    // In reality, we would need to also parse number like '.2' to 0.2.
-                    // See: https://developer.mozilla.org/en-US/docs/Web/CSS/number
-
-                    // Every value of rbg or rgba could also be a percentage in the CSS standard.
-                    // This is currently not supported by this function.
-                    // See: https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/rgb
                     if (rgbColor.Length == 4 &&
                         Int32.TryParse(rgbColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out int red) &&
                         Int32.TryParse(rgbColor[2], NumberStyles.Float, CultureInfo.InvariantCulture, out int green) &&
@@ -868,14 +861,6 @@ namespace Fluid.Filters
                 {
                     var hslColor = value.Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
 
-                    // We will parse these values with NumberStyles.Float, because it gets "close enough" to the actual CSS Standard.
-                    // In reality, we would need to also parse number like '.2' to 0.2.
-                    // See: https://developer.mozilla.org/en-US/docs/Web/CSS/number
-
-                    // The hue is always represented in the CSS unit <number> and never in the CSS unit <angle>.
-                    // This means the hue is always in degrees, other units defined by the CSS standard are not
-                    // supported by this function.
-                    // See: https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/hsl
                     if (hslColor.Length == 4 && hslColor[2].EndsWith("%") && hslColor[3].EndsWith("%") &&
                         Double.TryParse(hslColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double hue) &&
                         Double.TryParse(hslColor[2].TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double saturation) &&
@@ -886,8 +871,6 @@ namespace Fluid.Filters
                         return true;
                     }
 
-                    // Alpha could also be a percentage in the CSS standard. This is currently not supported by this function.
-                    // See: https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/hsl
                     if (hslColor.Length == 5 && hslColor[2].EndsWith("%") && hslColor[3].EndsWith("%") &&
                         Double.TryParse(hslColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out hue) &&
                         Double.TryParse(hslColor[2].TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out saturation) &&
