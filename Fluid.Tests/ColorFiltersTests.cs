@@ -45,8 +45,7 @@ namespace Fluid.Tests
         public void ToRgbShouldNotBeAffectedByCurrentCulture(string culture)
         {
             // Arrange
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
-            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            SetCurrentCulture(culture);
 
             var input = new StringValue("hsla(0.5, 77.3%, 49.1%, 0.5)");
             var context = new TemplateContext();
@@ -99,8 +98,7 @@ namespace Fluid.Tests
         public void ToHexShouldNotBeAffectedByCurrentCulture(string culture)
         {
             // Arrange
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
-            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            SetCurrentCulture(culture);
 
             var input = new StringValue("hsla(0.5, 77.3%, 49.1%, 0.5)");
             var context = new TemplateContext();
@@ -147,8 +145,7 @@ namespace Fluid.Tests
         public void ToHslShouldNotBeAffectedByCurrentCulture(string culture)
         {
             // Arrange
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
-            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            SetCurrentCulture(culture);
 
             var input = new StringValue("rgba(124, 26, 1, 0.5)");
             var context = new TemplateContext();
@@ -205,8 +202,7 @@ namespace Fluid.Tests
         public void ColorExtractShouldNotBeAffectedByCurrentCulture(string culture)
         {
             // Arrange
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
-            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            SetCurrentCulture(culture);
 
             var input = new StringValue("hsl(100, 38%, 54%, 0.5)");
             var context = new TemplateContext();
@@ -264,8 +260,7 @@ namespace Fluid.Tests
         public void ColorModifyShouldNotBeAffectedByCurrentCulture(string culture)
         {
             // Arrange
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
-            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            SetCurrentCulture(culture);
 
             var input = new StringValue("hsla(100, 38%, 54%, 0.5)");
             var context = new TemplateContext();
@@ -415,6 +410,12 @@ namespace Fluid.Tests
 
             // Assert
             Assert.Equal(expected, result.Result.ToNumberValue());
+        }
+
+        private static void SetCurrentCulture(string culture)
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
         }
     }
 }
