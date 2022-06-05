@@ -811,19 +811,9 @@ namespace Fluid.Filters
                     );
             }
 
-            public override string ToString()
-            {
-                if (A == DefaultTransperency)
-                {
-                    FormattableString format = $"rgb({R}, {G}, {B})";
-                    return format.ToString(CultureInfo.InvariantCulture);
-                }
-                else
-                {
-                    FormattableString format = $"rgba({R}, {G}, {B}, {Math.Round(A, 1)})";
-                    return format.ToString(CultureInfo.InvariantCulture);
-                }
-            }
+            public override string ToString() => (A == DefaultTransperency)
+                ? $"rgb({R}, {G}, {B})".ToString(CultureInfo.InvariantCulture)
+                : $"rgba({R}, {G}, {B}, {Math.Round(A, 1)})".ToString(CultureInfo.InvariantCulture);
 
             public bool Equals(RgbColor other) => R == other.R && G == other.G && B == other.B;
         }
@@ -974,20 +964,9 @@ namespace Fluid.Filters
                 return new HslColor(Convert.ToInt32(h), Math.Round(s, 2), Math.Round(l, 2), rgbColor.A);
             }
 
-            public override string ToString()
-            {
-                if (A == DefaultTransparency)
-                {
-                    FormattableString format = $"hsl({H}, {S * 100.0}%, {L * 100.0}%)";
-                    return format.ToString(CultureInfo.InvariantCulture);
-                }
-                else
-                {
-                    FormattableString format = $"hsla({H}, {S * 100.0}%, {L * 100.0}%, {Math.Round(A, 1)})";
-                    return format.ToString(CultureInfo.InvariantCulture);
-                }
-            }
-
+            public override string ToString() => (A == DefaultTransparency)
+                ? $"hsl({H}, {S * 100.0}%, {L * 100.0}%)".ToString(CultureInfo.InvariantCulture)
+                : $"hsla({H}, {S * 100.0}%, {L * 100.0}%, {Math.Round(A, 1)})".ToString(CultureInfo.InvariantCulture);
         }
     }
 }
