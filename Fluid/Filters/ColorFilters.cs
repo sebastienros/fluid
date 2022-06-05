@@ -805,8 +805,8 @@ namespace Fluid.Filters
             }
 
             public override string ToString() => (A == DefaultTransperency)
-                ? $"rgb({R}, {G}, {B})".ToString(CultureInfo.InvariantCulture)
-                : $"rgba({R}, {G}, {B}, {Math.Round(A, 1)})".ToString(CultureInfo.InvariantCulture);
+                ? FormattableString.Invariant($"rgb({R}, {G}, {B})")
+                : FormattableString.Invariant($"rgba({R}, {G}, {B}, {Math.Round(A, 1)})");
 
             public bool Equals(RgbColor other) => R == other.R && G == other.G && B == other.B;
         }
@@ -948,8 +948,8 @@ namespace Fluid.Filters
             }
 
             public override string ToString() => (A == DefaultTransparency)
-                ? $"hsl({H}, {S * 100.0}%, {L * 100.0}%)".ToString(CultureInfo.InvariantCulture)
-                : $"hsla({H}, {S * 100.0}%, {L * 100.0}%, {Math.Round(A, 1)})".ToString(CultureInfo.InvariantCulture);
+                ? FormattableString.Invariant($"hsl({H}, {S * 100.0}%, {L * 100.0}%)")
+                : FormattableString.Invariant($"hsla({H}, {S * 100.0}%, {L * 100.0}%, {Math.Round(A, 1)})");
         }
     }
 }
