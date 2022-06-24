@@ -368,6 +368,48 @@ Tuesday, August 1, 2017
 
 <br>
 
+### Using Resource Files
+
+`TemplateOptions` and `TemplateContext` provides a property to define an `IResourcesProvider` to load resources (translations)
+for use by the `translate` (or `t` shorthand) filter.
+
+> For performance reasons, it is best practice to use a single instance of `ResxResourcesProvider` for a given resource bundle.
+
+#### Source
+```charp
+var rp = new ResxResourcesProvider("MyApp.Resources", GetType().Assembly);
+var context = new TemplateContext { ResourcesProvider = rp } ;
+var result = template.Render(context);
+```
+
+```resx
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MyApp.Resources.resx -->
+<root>
+    <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    </xsd:schema>
+
+    <data name="Welcome" xml:space="preserve">
+        <value>Hello there!</value>
+    </data>
+    <data name="Footer" xml:space="preserve">
+        <value>Goodbye, {0}.</value>
+    </data>    
+</root>
+```
+
+```liquid
+<p>{{ "Welcome" | t }}</p>
+<p>{{ "Goodbye" | t: "Bob"}}</p>
+```
+
+#### Result
+```html
+<p>Hello there!</p>
+<p>Goodbye Bob.</p>
+```
+<br>
+
 ## Time zones
 
 ### System time zone

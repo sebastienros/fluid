@@ -52,6 +52,7 @@ namespace Fluid
             LocalScope = new Scope(options.Scope);
             RootScope = LocalScope;
             CultureInfo = options.CultureInfo;
+            ResourcesProvider = options.ResourcesProvider;
             TimeZone = options.TimeZone;
             Captured = options.Captured;
             Now = options.Now;
@@ -90,6 +91,12 @@ namespace Fluid
         /// </summary>
         public CultureInfo CultureInfo { get; set; } = TemplateOptions.Default.CultureInfo;
 
+        /// <summary>
+        /// Gets or sets the <see cref="IResourcesProvider"/> used to lookup resource strings (translations) for the
+        /// 'translate' filter.
+        /// </summary>
+        public IResourcesProvider ResourcesProvider { get; set; } = TemplateOptions.Default.ResourcesProvider;        
+        
         /// <summary>
         /// Gets or sets the value to returned by the "now" keyword.
         /// </summary>

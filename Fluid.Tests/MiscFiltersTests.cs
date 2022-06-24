@@ -738,6 +738,36 @@ namespace Fluid.Tests
             Assert.Equal("c7ac4687585ab5d3d5030db5a5cfc959fdf4e608cc396f1f615db345e35adb9e", result.ToStringValue());
         }
 
+        /// <summary>
+        /// <see cref="MiscFilters.Translate"/> filter tests.
+        /// </summary>
+        /// <remarks>
+        /// The default <see cref="NullResourcesProvider"/> is used for these tests. This provider just returns the
+        /// requested resource key as-is.
+        /// </remarks>
+        [Theory]
+        [InlineData("Hello", new object[] {}, null, "Hello")]
+        [InlineData("Hello {0}", new object[] {"there!"}, null, "Hello there!")]
+        [InlineData("Price: {0:C}", new object[] {123.45}, "en-US", "Price: $123.45")]
+        [InlineData("Price: {0:C}", new object[] {123.45}, "fr-FR", "Price: 123,45 €")]
+        public async Task Translate(object input, object[] args, string culture, string expected)
+        {
+            // Arrange
+            var cultureInfo = String.IsNullOrEmpty(culture)
+                    ? CultureInfo.InvariantCulture
+                    : CultureInfo.CreateSpecificCulture(culture)
+                    ;
+            
+            var context = new TemplateContext(new TemplateOptions { CultureInfo = cultureInfo });
+            var arguments = new FilterArguments(args.Select(x => FluidValue.Create(x, context.Options)).ToArray());
+            
+            // Act
+            var result = await MiscFilters.Translate(FluidValue.Create(input, context.Options), arguments, context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
+        }
+        
         public static class TestObjects
         {
             public class Node

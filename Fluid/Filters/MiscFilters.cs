@@ -39,6 +39,9 @@ namespace Fluid.Filters
             filters.AddFilter("format_number", FormatNumber);
             filters.AddFilter("format_string", FormatString);
             filters.AddFilter("format_date", FormatDate);
+            
+            filters.AddFilter("translate", Translate);
+            filters.AddFilter("t", Translate); // Shorthand as per Shopify 'translate'
 
             filters.AddFilter("md5", MD5);
             filters.AddFilter("sha1", Sha1);
@@ -725,7 +728,7 @@ namespace Fluid.Filters
 
             return new StringValue(string.Format(culture, format, parameters));
         }
-
+        
         public static ValueTask<FluidValue> MD5(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var value = input.ToStringValue();
@@ -784,6 +787,37 @@ namespace Fluid.Filters
 
                 return new StringValue(builder.ToString());
             }
+        }
+        
+        public static async ValueTask<FluidValue> Translate(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (input.IsNil())
+            {
+                return NilValue.Instance;
+            }
+
+            var resourceKey = input.ToStringValue();
+            var culture = context.CultureInfo;
+            
+            if (arguments.HasNamed("culture"))
+            {
+                culture = CultureInfo.CreateSpecificCulture(arguments["culture"].ToStringValue()) ?? context.CultureInfo;
+            }
+
+            var resourceString = await context.ResourcesProvider.GetString(resourceKey, culture);
+
+            if (resourceString is null)
+            {
+                return NilValue.Instance;
+            }
+
+            if (arguments.Count == 0)
+            {
+                return new StringValue(resourceString);            
+            }
+            
+            var parameters = arguments.ValuesToObjectArray();
+            return new StringValue(string.Format(culture, resourceString, parameters));
         }
     }
 }
