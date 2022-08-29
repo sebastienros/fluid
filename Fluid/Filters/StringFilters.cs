@@ -299,7 +299,10 @@ namespace Fluid.Filters
                 source = "";
             }
 
-            source += ellipsis;
+            if (size <= words)
+            {
+                source += ellipsis;
+            }
 
             return new StringValue(source);
         }

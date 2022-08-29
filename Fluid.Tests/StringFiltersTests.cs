@@ -300,7 +300,9 @@ world
         [InlineData("The cat came back the very next day", 4, "The cat came back...")]
         [InlineData("The cat came back the very next day", 1, "The...")]
         [InlineData("The cat came back the very next day", 0, "...")]
-        [InlineData("The    cat came  back", 10, "The    cat came  back...")]
+        [InlineData("The cat came back the very next day", 8, "The cat came back the very next day...")]
+        [InlineData("The cat came back the very next day", 12, "The cat came back the very next day")]
+        [InlineData("The    cat came  back", 10, "The    cat came  back")]
         public void TruncateWords(string input, int size, string output)
         {
             var source = new StringValue(input);
