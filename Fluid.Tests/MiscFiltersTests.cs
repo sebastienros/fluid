@@ -739,14 +739,6 @@ namespace Fluid.Tests
             Assert.Equal("c7ac4687585ab5d3d5030db5a5cfc959fdf4e608cc396f1f615db345e35adb9e", result.ToStringValue());
         }
 
-        [Fact]
-        public Task ShouldRegisterDateTimeOffset()
-        {
-            var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<DateTimeOffset>();
-            return Task.CompletedTask;
-        }
-
         public static class TestObjects
         {
             public class Node

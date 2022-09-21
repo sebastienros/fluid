@@ -1,8 +1,9 @@
-﻿using System;
+﻿using Fluid.Values;
+using System;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
-using Fluid.Values;
 
 namespace Fluid.Filters
 {
@@ -115,13 +116,13 @@ namespace Fluid.Filters
 
             return arguments.At(0).ToStringValue() switch
             {
-                "alpha" => new StringValue(rgbColor.A.ToString()),
-                "red" => new StringValue(rgbColor.R.ToString()),
-                "green" => new StringValue(rgbColor.G.ToString()),
-                "blue" => new StringValue(rgbColor.B.ToString()),
-                "hue" => new StringValue(hslColor.H.ToString()),
-                "saturation" => new StringValue(Convert.ToInt32(hslColor.S * 100.0).ToString()),
-                "lightness" => new StringValue(Convert.ToInt32(hslColor.L * 100.0).ToString()),
+                "alpha" => new StringValue(rgbColor.A.ToString(CultureInfo.InvariantCulture)),
+                "red" => new StringValue(rgbColor.R.ToString(CultureInfo.InvariantCulture)),
+                "green" => new StringValue(rgbColor.G.ToString(CultureInfo.InvariantCulture)),
+                "blue" => new StringValue(rgbColor.B.ToString(CultureInfo.InvariantCulture)),
+                "hue" => new StringValue(hslColor.H.ToString(CultureInfo.InvariantCulture)),
+                "saturation" => new StringValue(Convert.ToInt32(hslColor.S * 100.0).ToString(CultureInfo.InvariantCulture)),
+                "lightness" => new StringValue(Convert.ToInt32(hslColor.L * 100.0).ToString(CultureInfo.InvariantCulture)),
                 _ => NilValue.Empty,
             };
         }
@@ -685,10 +686,11 @@ namespace Fluid.Filters
                 if ((value.StartsWith("rgb(") || value.StartsWith("rgba(")) && value.EndsWith(")"))
                 {
                     var rgbColor = value.Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
+
                     if (rgbColor.Length == 4 &&
-                        Int32.TryParse(rgbColor[1], out int red) &&
-                        Int32.TryParse(rgbColor[2], out int green) &&
-                        Int32.TryParse(rgbColor[3], out int blue))
+                        Int32.TryParse(rgbColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out int red) &&
+                        Int32.TryParse(rgbColor[2], NumberStyles.Float, CultureInfo.InvariantCulture, out int green) &&
+                        Int32.TryParse(rgbColor[3], NumberStyles.Float, CultureInfo.InvariantCulture, out int blue))
                     {
                         color = new RgbColor(red, green, blue);
 
@@ -696,10 +698,10 @@ namespace Fluid.Filters
                     }
 
                     if (rgbColor.Length == 5 &&
-                        Int32.TryParse(rgbColor[1], out red) &&
-                        Int32.TryParse(rgbColor[2], out green) &&
-                        Int32.TryParse(rgbColor[3], out blue) &&
-                        Single.TryParse(rgbColor[4], out float alpha))
+                        Int32.TryParse(rgbColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out red) &&
+                        Int32.TryParse(rgbColor[2], NumberStyles.Float, CultureInfo.InvariantCulture, out green) &&
+                        Int32.TryParse(rgbColor[3], NumberStyles.Float, CultureInfo.InvariantCulture, out blue) &&
+                        Single.TryParse(rgbColor[4], NumberStyles.Float, CultureInfo.InvariantCulture, out float alpha))
                     {
                         color = new RgbColor(red, green, blue, alpha);
 
@@ -803,8 +805,8 @@ namespace Fluid.Filters
             }
 
             public override string ToString() => A == DefaultTransperency
-                ? $"rgb({R}, {G}, {B})"
-                : $"rgba({R}, {G}, {B}, {Math.Round(A, 1)})";
+                ? FormattableString.Invariant($"rgb({R}, {G}, {B})")
+                : FormattableString.Invariant($"rgba({R}, {G}, {B}, {Math.Round(A, 1)})");
 
             public bool Equals(RgbColor other) => R == other.R && G == other.G && B == other.B;
         }
@@ -858,10 +860,11 @@ namespace Fluid.Filters
                 if ((value.StartsWith("hsl(") || value.StartsWith("hsla(")) && value.EndsWith(")"))
                 {
                     var hslColor = value.Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
+
                     if (hslColor.Length == 4 && hslColor[2].EndsWith("%") && hslColor[3].EndsWith("%") &&
-                        Double.TryParse(hslColor[1], out double hue) &&
-                        Double.TryParse(hslColor[2].TrimEnd('%'), out double saturation) &&
-                        Double.TryParse(hslColor[3].TrimEnd('%'), out double lightness))
+                        Double.TryParse(hslColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double hue) &&
+                        Double.TryParse(hslColor[2].TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double saturation) &&
+                        Double.TryParse(hslColor[3].TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double lightness))
                     {
                         color = new HslColor(hue, saturation / 100.0, lightness / 100.0);
 
@@ -869,10 +872,10 @@ namespace Fluid.Filters
                     }
 
                     if (hslColor.Length == 5 && hslColor[2].EndsWith("%") && hslColor[3].EndsWith("%") &&
-                        Double.TryParse(hslColor[1], out hue) &&
-                        Double.TryParse(hslColor[2].TrimEnd('%'), out saturation) &&
-                        Double.TryParse(hslColor[3].TrimEnd('%'), out lightness) &&
-                        Double.TryParse(hslColor[4], out double alpha))
+                        Double.TryParse(hslColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out hue) &&
+                        Double.TryParse(hslColor[2].TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out saturation) &&
+                        Double.TryParse(hslColor[3].TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out lightness) &&
+                        Double.TryParse(hslColor[4], NumberStyles.Float, CultureInfo.InvariantCulture, out double alpha))
                     {
                         color = new HslColor(hue, saturation / 100.0, lightness / 100.0, alpha);
 
@@ -945,8 +948,8 @@ namespace Fluid.Filters
             }
 
             public override string ToString() => A == DefaultTransparency
-                ? $"hsl({H}, {S * 100.0}%, {L * 100.0}%)"
-                : $"hsla({H}, {S * 100.0}%, {L * 100.0}%, {Math.Round(A, 1)})";
+                ? FormattableString.Invariant($"hsl({H}, {S * 100.0}%, {L * 100.0}%)")
+                : FormattableString.Invariant($"hsla({H}, {S * 100.0}%, {L * 100.0}%, {Math.Round(A, 1)})");
         }
     }
 }
