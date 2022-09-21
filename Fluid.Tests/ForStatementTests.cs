@@ -176,6 +176,16 @@ namespace Fluid.Tests
         [Fact]
         public async Task ForShouldBeNestable()
         {
+            /*
+             * {% for i in items %}
+             *   {{ forloop.index }}
+             *   {% for j in items %}
+             *     {{ forloop.index }}
+             *   {% endfor %}
+             * {% endfor %}
+             * 
+             */
+
             var nested = new ForStatement(
                 new List<Statement> {
                     CreateMemberStatement("forloop.index")
@@ -205,6 +215,50 @@ namespace Fluid.Tests
             await outer.WriteToAsync(sw, HtmlEncoder.Default, context);
 
             Assert.Equal("112321233123", sw.ToString());
+        }
+
+        [Fact]
+        public async Task NestedForShouldProvideParentLoop()
+        {
+            /*
+             * {% for i in items %}
+             *   {{ forloop.index }}
+             *   {% for j in items %}
+             *     {{ parentloop.index }}
+             *   {% endfor %}
+             * {% endfor %}
+             * 
+             */
+
+            var nested = new ForStatement(
+                new List<Statement> {
+                    CreateMemberStatement("parentloop.index")
+                },
+                "j",
+                new MemberExpression(
+                    new IdentifierSegment("items")
+                ),
+                null, null, false
+            );
+
+            var outer = new ForStatement(
+                new List<Statement> {
+                    CreateMemberStatement("forloop.index"),
+                    nested
+                },
+                "i",
+                new MemberExpression(
+                    new IdentifierSegment("items")
+                ),
+                null, null, false
+            );
+
+            var sw = new StringWriter();
+            var context = new TemplateContext();
+            context.SetValue("items", new[] { 1, 2, 3 });
+            await outer.WriteToAsync(sw, HtmlEncoder.Default, context);
+
+            Assert.Equal("111122223333", sw.ToString());
         }
 
         [Fact]
