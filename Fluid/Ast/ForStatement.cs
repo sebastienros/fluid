@@ -103,6 +103,8 @@ namespace Fluid.Ast
                 source.Reverse(startIndex, count);
             }
 
+            var parentLoop = context.LocalScope.GetValue("forloop");
+
             context.EnterForLoopScope();
 
             try
@@ -112,6 +114,11 @@ namespace Fluid.Ast
                 var length = forloop.Length = startIndex + count;
 
                 context.LocalScope._properties["forloop"] = forloop;
+
+                if (!parentLoop.IsNil())
+                {
+                    context.LocalScope._properties["parentloop"] = parentLoop;
+                }
 
                 for (var i = startIndex; i < length; i++)
                 {
