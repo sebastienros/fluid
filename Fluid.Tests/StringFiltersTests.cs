@@ -304,6 +304,7 @@ world
         [InlineData("测试测试测试测试", 5, "测试测试测试测试")]
         [InlineData("one  two\tthree\nfour", 3, "one two three...")]
         [InlineData("one two three four", 2, "one two...")]
+        [InlineData("  one two three four", 2, "one two...")]
         [InlineData("one two three four", 0, "one...")]
         public void TruncateWords(string input, object size, string output)
         {
