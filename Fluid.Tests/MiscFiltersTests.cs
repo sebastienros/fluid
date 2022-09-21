@@ -249,6 +249,7 @@ namespace Fluid.Tests
         [InlineData("%%", "%")]
         [InlineData("It is %r", "It is 05:04:36 PM")]
         [InlineData("Chained %z%:z%a%a%^a", "Chained +0800+08:00TueTueTUE")]
+        [InlineData("%Y-%m-%dT%H:%M:%S.%L", "2017-08-01T17:04:36.123")]
         public async Task Date(string format, string expected)
         {
             var input = new DateTimeValue(new DateTimeOffset(
@@ -736,6 +737,14 @@ namespace Fluid.Tests
 
             // Assert
             Assert.Equal("c7ac4687585ab5d3d5030db5a5cfc959fdf4e608cc396f1f615db345e35adb9e", result.ToStringValue());
+        }
+
+        [Fact]
+        public Task ShouldRegisterDateTimeOffset()
+        {
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<DateTimeOffset>();
+            return Task.CompletedTask;
         }
 
         public static class TestObjects
