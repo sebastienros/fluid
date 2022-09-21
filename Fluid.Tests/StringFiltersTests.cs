@@ -297,17 +297,20 @@ world
         }
 
         [Theory]
-        [InlineData("The cat came back the very next day", 4, "The cat came back...")]
-        [InlineData("The cat came back the very next day", 1, "The...")]
-        [InlineData("The cat came back the very next day", 0, "...")]
-        [InlineData("The cat came back the very next day", 8, "The cat came back the very next day...")]
-        [InlineData("The cat came back the very next day", 12, "The cat came back the very next day")]
-        [InlineData("The    cat came  back", 10, "The    cat came  back")]
-        public void TruncateWords(string input, int size, string output)
+        [InlineData("one two three", 4, "one two three")]
+        [InlineData("one two three", 2, "one two...")]
+        [InlineData("one two three", null, "one two three")]
+        [InlineData("Two small (13&#8221; x 5.5&#8221; x 10&#8221; high) baskets fit inside one large basket (13&#8221; x 16&#8221; x 10.5&#8221; high) with cover.", 15, "Two small (13&#8221; x 5.5&#8221; x 10&#8221; high) baskets fit inside one large basket (13&#8221;...")]
+        [InlineData("测试测试测试测试", 5, "测试测试测试测试")]
+        [InlineData("one  two\tthree\nfour", 3, "one two three...")]
+        [InlineData("one two three four", 2, "one two...")]
+        [InlineData("one two three four", 0, "one...")]
+        public void TruncateWords(string input, object size, string output)
         {
+            var options = new TemplateOptions();
             var source = new StringValue(input);
             var arguments = new FilterArguments()
-                .Add(NumberValue.Create(size));
+                .Add(FluidValue.Create(size, options));
             var context = new TemplateContext();
 
             var result = StringFilters.TruncateWords(source, arguments, context);
