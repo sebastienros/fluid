@@ -249,6 +249,7 @@ namespace Fluid.Tests
         [InlineData("%%", "%")]
         [InlineData("It is %r", "It is 05:04:36 PM")]
         [InlineData("Chained %z%:z%a%a%^a", "Chained +0800+08:00TueTueTUE")]
+        [InlineData("%Y-%m-%dT%H:%M:%S.%L", "2017-08-01T17:04:36.123")]
         public async Task Date(string format, string expected)
         {
             var input = new DateTimeValue(new DateTimeOffset(
