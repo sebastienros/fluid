@@ -1,7 +1,8 @@
-﻿using Fluid.Values;
-using Fluid.Filters;
-using Xunit;
+﻿using Fluid.Filters;
+using Fluid.Values;
+using System.Globalization;
 using System.Linq;
+using Xunit;
 
 namespace Fluid.Tests
 {
@@ -34,6 +35,26 @@ namespace Fluid.Tests
 
             // Assert
             Assert.Equal(expected, result.Result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("en-US")]
+        [InlineData("de")]
+        [InlineData("fr-FR")]
+        [InlineData("zh-Hans")]
+        public void ToRgbShouldNotBeAffectedByCurrentCulture(string culture)
+        {
+            // Arrange
+            SetCurrentCulture(culture);
+
+            var input = new StringValue("hsla(0.5, 77.3%, 49.1%, 0.5)");
+            var context = new TemplateContext();
+
+            // Act
+            var result = ColorFilters.ToRgb(input, FilterArguments.Empty, context);
+
+            // Assert
+            Assert.Equal("rgba(222, 30, 28, 0.5)", result.Result.ToStringValue());
         }
 
         [Theory]
@@ -70,6 +91,26 @@ namespace Fluid.Tests
         }
 
         [Theory]
+        [InlineData("en-US")]
+        [InlineData("de")]
+        [InlineData("fr-FR")]
+        [InlineData("zh-Hans")]
+        public void ToHexShouldNotBeAffectedByCurrentCulture(string culture)
+        {
+            // Arrange
+            SetCurrentCulture(culture);
+
+            var input = new StringValue("hsla(0.5, 77.3%, 49.1%, 0.5)");
+            var context = new TemplateContext();
+
+            // Act
+            var result = ColorFilters.ToHex(input, FilterArguments.Empty, context);
+
+            // Assert
+            Assert.Equal("#de1e1c", result.Result.ToStringValue());
+        }
+
+        [Theory]
         [InlineData("#fff", "hsl(0, 0%, 100%)")]
         [InlineData("#000", "hsl(0, 0%, 0%)")]
         [InlineData("#f00", "hsl(0, 100%, 50%)")]
@@ -94,6 +135,26 @@ namespace Fluid.Tests
 
             // Assert
             Assert.Equal(expected, result.Result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("en-US")]
+        [InlineData("de")]
+        [InlineData("fr-FR")]
+        [InlineData("zh-Hans")]
+        public void ToHslShouldNotBeAffectedByCurrentCulture(string culture)
+        {
+            // Arrange
+            SetCurrentCulture(culture);
+
+            var input = new StringValue("rgba(124, 26, 1, 0.5)");
+            var context = new TemplateContext();
+
+            // Act
+            var result = ColorFilters.ToHsl(input, FilterArguments.Empty, context);
+
+            // Assert
+            Assert.Equal("hsla(12, 98%, 25%, 0.5)", result.Result.ToStringValue());
         }
 
         [Theory]
@@ -134,6 +195,29 @@ namespace Fluid.Tests
         }
 
         [Theory]
+        [InlineData("en-US")]
+        [InlineData("de")]
+        [InlineData("fr-FR")]
+        [InlineData("zh-Hans")]
+        public void ColorExtractShouldNotBeAffectedByCurrentCulture(string culture)
+        {
+            // Arrange
+            SetCurrentCulture(culture);
+
+            var input = new StringValue("hsl(100, 38%, 54%, 0.5)");
+            var context = new TemplateContext();
+            var arguments = new FluidValue[] {
+                FluidValue.Create("alpha", TemplateOptions.Default),
+            };
+
+            // Act
+            var result = ColorFilters.ColorExtract(input, new FilterArguments(arguments), context);
+
+            // Assert
+            Assert.Equal("0.5", result.Result.ToStringValue());
+        }
+
+        [Theory]
         [InlineData("#7bb65d", new object[] { "red", 255 }, "#ffb65d")]
         [InlineData("#7bb65d", new object[] { "green", 255 }, "#7bff5d")]
         [InlineData("#7bb65d", new object[] { "blue", 255 }, "#7bb6ff")]
@@ -162,10 +246,34 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-              var result = ColorFilters.ColorModify(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
+            var result = ColorFilters.ColorModify(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
 
             // Assert
             Assert.Equal(expected, result.Result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("en-US")]
+        [InlineData("de")]
+        [InlineData("fr-FR")]
+        [InlineData("zh-Hans")]
+        public void ColorModifyShouldNotBeAffectedByCurrentCulture(string culture)
+        {
+            // Arrange
+            SetCurrentCulture(culture);
+
+            var input = new StringValue("hsla(100, 38%, 54%, 0.5)");
+            var context = new TemplateContext();
+            var arguments = new FluidValue[] {
+                FluidValue.Create("alpha", TemplateOptions.Default),
+                FluidValue.Create("0.8", TemplateOptions.Default),
+            };
+
+            // Act
+            var result = ColorFilters.ColorModify(input, new FilterArguments(arguments), context);
+
+            // Assert
+            Assert.Equal("hsla(100, 38%, 54%, 0.8)", result.Result.ToStringValue());
         }
 
         [Theory]
@@ -218,7 +326,7 @@ namespace Fluid.Tests
             // Assert
             Assert.Equal(expected, result.Result.ToStringValue());
         }
-        
+
         [Theory]
         [InlineData("#7bb65d", new object[] { 30 }, "#d1e6c7")]
         [InlineData("rgb(123, 182, 93)", new object[] { 30 }, "rgb(209, 230, 199)")]
@@ -302,6 +410,12 @@ namespace Fluid.Tests
 
             // Assert
             Assert.Equal(expected, result.Result.ToNumberValue());
+        }
+
+        private static void SetCurrentCulture(string culture)
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
         }
     }
 }
