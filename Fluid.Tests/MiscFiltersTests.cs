@@ -409,6 +409,23 @@ namespace Fluid.Tests
             Assert.Equal(expected, result.ToStringValue());
         }
 
+        [Theory]
+        [InlineData("0", "00:00:00.000")]
+        [InlineData("1:2", "01:02:00.000")]
+        [InlineData("1:2:3.1", "01:02:03.100")]
+        public async Task DateTimeSpan(string timespan, string expected)
+        {
+            // Converting to Unix time should not vary by TimeSone
+
+            var input = FluidValue.Create(TimeSpan.Parse(timespan), new TemplateOptions());
+            var format = new FilterArguments(new StringValue("%H:%M:%S.%L"));
+            var context = new TemplateContext { TimeZone = Eastern };
+
+            var result = await MiscFilters.Date(input, format, context);
+
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
         [Fact]
         public async Task NoTimeZoneIsParsedAsLocal()
         {

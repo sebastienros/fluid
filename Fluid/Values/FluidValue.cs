@@ -166,6 +166,9 @@ namespace Fluid.Values
                         case DateTimeOffset dateTimeOffset:
                             return new DateTimeValue(dateTimeOffset);
 
+                        case TimeSpan timeSpan:
+                            return new DateTimeValue(new DateTime(timeSpan.Ticks));
+
                         case IFormattable formattable:
                             return new StringValue(formattable.ToString(null, options.CultureInfo));
 

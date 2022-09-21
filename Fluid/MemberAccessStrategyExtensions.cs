@@ -80,7 +80,7 @@ namespace Fluid
         /// </summary>
         /// <typeparam name="T">The type to register.</typeparam>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
-        public static void Register<T>(this MemberAccessStrategy strategy)
+        public static void Register<T>(this MemberAccessStrategy strategy) where T : class
         {
             Register(strategy, typeof(T));
         }
@@ -101,7 +101,7 @@ namespace Fluid
         /// <typeparam name="T">The type to register.</typeparam>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="names">The names of the properties in the type to register.</param>
-        public static void Register<T>(this MemberAccessStrategy strategy, params string[] names)
+        public static void Register<T>(this MemberAccessStrategy strategy, params string[] names) where T : class
         {
             strategy.Register(typeof(T), names);
         }
@@ -112,7 +112,7 @@ namespace Fluid
         /// <typeparam name="T">The type to register.</typeparam>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="names">The property's expressions in the type to register.</param>
-        public static void Register<T>(this MemberAccessStrategy strategy, params Expression<Func<T, object>>[] names)
+        public static void Register<T>(this MemberAccessStrategy strategy, params Expression<Func<T, object>>[] names) where T : class
         {
             strategy.Register<T>(names.Select(ExpressionHelper.GetPropertyName).ToArray());
         }
