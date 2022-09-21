@@ -321,7 +321,7 @@ world
         [Theory]
         [InlineData("The cat came back the very next day", 4, "--", "The cat came back--")]
         [InlineData("The cat came back the very next day", 4, "", "The cat came back")]
-        [InlineData("The cat came back the very next day", 0, "", "")]
+        [InlineData("The cat came back the very next day", 0, "", "The")]
         public void TruncateWordsWithCustomEllipsis(string input, int size, string ellispsis, string output)
         {
             var source = new StringValue(input);

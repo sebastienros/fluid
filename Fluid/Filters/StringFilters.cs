@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Fluid.Values;
 
@@ -274,37 +275,35 @@ namespace Fluid.Filters
         public static ValueTask<FluidValue> TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var source = input.ToStringValue();
-            var size = Math.Max(0, Convert.ToInt32(arguments.At(0).ToNumberValue()));
+            
+            // Default value is 15
+            // c.f. https://github.com/Shopify/liquid/blob/81f44e36be5f2110c26b6532fd4ccd22edaf59f2/lib/liquid/standardfilters.rb#L233
+            var size = Convert.ToInt32(arguments.At(0).Or(NumberValue.Create(15)).ToNumberValue());
+            
+            if (size <= 0)
+            {
+                size = 1;
+            }
+
             var ellipsis = arguments.At(1).Or(Ellipsis).ToStringValue();
 
-            var words = 0;
+            var chunks = new List<string>();
 
-            if (size > 0)
+            var length = source.Length;
+            for (var i = 0; i < length && chunks.Count < size;)
             {
-                for (var i = 0; i < source.Length;)
-                {
-                    while (i < source.Length && char.IsWhiteSpace(source[i])) i++;
-                    while (i < source.Length && !char.IsWhiteSpace(source[i])) i++;
-                    words++;
-
-                    if (words >= size)
-                    {
-                        source = source.Substring(0, i);
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                source = "";
+                while (i < length && char.IsWhiteSpace(source[i++])) ;
+                var start = i - 1;
+                while (i < length && !char.IsWhiteSpace(source[i++])) ;
+                chunks.Add(source.Substring(start, i - start - (i < length ? 1 : 0)));
             }
 
-            if (size <= words)
+            if (chunks.Count >= size)
             {
-                source += ellipsis;
+                chunks[chunks.Count - 1] += ellipsis;
             }
 
-            return new StringValue(source);
+            return new StringValue(string.Join(" ", chunks));
         }
 
         public static ValueTask<FluidValue> Upcase(FluidValue input, FilterArguments arguments, TemplateContext context)
