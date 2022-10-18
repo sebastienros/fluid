@@ -187,6 +187,7 @@ world
         [InlineData("1 1 1 1", new object[] { 1, 2 }, "2 1 1 1")]
         [InlineData("1 1 1 1", new object[] { 2, 3 }, "1 1 1 1")]
         [InlineData("1 1 1 1", new object[] { "1", 2 }, "2 1 1 1")]
+        [InlineData("aa bb cc aa bb cc", new object[] { "cc", "dd" }, "aa bb dd aa bb cc")]
         public void ReplaceFirst(string input, object[] arguments, string expected)
         {
             var filterInput = new StringValue(input);
@@ -203,6 +204,7 @@ world
         [InlineData("1 1 1 1", new object[] { 1, 2 }, "2 2 2 2")]
         [InlineData("1 1 1 1", new object[] { 2, 3 }, "1 1 1 1")]
         [InlineData("1 1 1 1", new object[] { "1", 2 }, "2 2 2 2")]
+        [InlineData("aa bb cc aa bb cc", new object[] { "cc", "dd" }, "aa bb dd aa bb dd")]
         public void Replace(string input, object[] arguments, string expected)
         {
             var filterInput = new StringValue(input);
@@ -219,6 +221,7 @@ world
         [InlineData("1 1 1 1", new object[] { 1, 2 }, "1 1 1 2")]
         [InlineData("1 1 1 1", new object[] { 2, 3 }, "1 1 1 1")]
         [InlineData("1 1 1 1", new object[] { "1", 2 }, "1 1 1 2")]
+        [InlineData("aa bb cc aa bb cc", new object[] { "cc", "dd" }, "aa bb cc aa bb dd")]
         public void ReplaceLast(string input, object[] arguments, string expected)
         {
             var filterInput = new StringValue(input);
