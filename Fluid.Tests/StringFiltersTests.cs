@@ -161,6 +161,21 @@ world
             var context = new TemplateContext();
 
             var result = StringFilters.Remove(input, arguments, context);
+
+            Assert.Equal("abcabc", result.Result.ToStringValue());
+        }
+
+        [Fact]
+        public void RemoveLast()
+        {
+            var input = new StringValue("abcabc");
+
+            var arguments = new FilterArguments().Add(new StringValue("b"));
+            var context = new TemplateContext();
+
+            var result = StringFilters.RemoveLast(input, arguments, context);
+
+            Assert.Equal("abcac", result.Result.ToStringValue());
         }
 
         [Fact]
@@ -189,8 +204,20 @@ world
             Assert.Equal("aBcaBc", result.Result.ToStringValue());
         }
 
-        [Theory]
+        [Fact]
+        public void ReplaceLast()
+        {
+            var input = new StringValue("abcabc");
 
+            var arguments = new FilterArguments().Add(new StringValue("b")).Add(new StringValue("B"));
+            var context = new TemplateContext();
+
+            var result = StringFilters.ReplaceLast(input, arguments, context);
+
+            Assert.Equal("abcaBc", result.Result.ToStringValue());
+        }
+
+        [Theory]
         [InlineData("hello", new object[] { 0 }, "h")]
         [InlineData("hello", new object[] { 1 }, "e")]
         [InlineData("hello", new object[] { 1, 3 }, "ell")]
