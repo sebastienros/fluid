@@ -178,43 +178,52 @@ world
             Assert.Equal("abcac", result.Result.ToStringValue());
         }
 
-        [Fact]
-        public void ReplaceFirst()
+        [Theory]
+        [InlineData("a a a a", new object[] { "a", "b" }, "b a a a")]
+        [InlineData("1 1 1 1", new object[] { 1, 2 }, "2 1 1 1")]
+        [InlineData("1 1 1 1", new object[] { 2, 3 }, "1 1 1 1")]
+        [InlineData("1 1 1 1", new object[] { "1", 2 }, "2 1 1 1")]
+        public void ReplaceFirst(string input, object[] arguments, string expected)
         {
-            var input = new StringValue("abcabc");
-
-            var arguments = new FilterArguments().Add(new StringValue("b")).Add(new StringValue("B"));
+            var filterInput = new StringValue(input);
+            var filterArguments = new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray());
             var context = new TemplateContext();
 
-            var result = StringFilters.ReplaceFirst(input, arguments, context);
+            var result = StringFilters.ReplaceFirst(filterInput, filterArguments, context);
 
-            Assert.Equal("aBcabc", result.Result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
-        [Fact]
-        public void Replace()
+        [Theory]
+        [InlineData("a a a a", new object[] { "a", "b" }, "b b b b")]
+        [InlineData("1 1 1 1", new object[] { 1, 2 }, "2 2 2 2")]
+        [InlineData("1 1 1 1", new object[] { 2, 3 }, "1 1 1 1")]
+        [InlineData("1 1 1 1", new object[] { "1", 2 }, "2 2 2 2")]
+        public void Replace(string input, object[] arguments, string expected)
         {
-            var input = new StringValue("abcabc");
-
-            var arguments = new FilterArguments().Add(new StringValue("b")).Add(new StringValue("B"));
+            var filterInput = new StringValue(input);
+            var filterArguments = new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray());
             var context = new TemplateContext();
 
-            var result = StringFilters.Replace(input, arguments, context);
+            var result = StringFilters.Replace(filterInput, filterArguments, context);
 
-            Assert.Equal("aBcaBc", result.Result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
-        [Fact]
-        public void ReplaceLast()
+        [Theory]
+        [InlineData("a a a a", new object[] { "a", "b" }, "a a a b")]
+        [InlineData("1 1 1 1", new object[] { 1, 2 }, "1 1 1 2")]
+        [InlineData("1 1 1 1", new object[] { 2, 3 }, "1 1 1 1")]
+        [InlineData("1 1 1 1", new object[] { "1", 2 }, "1 1 1 2")]
+        public void ReplaceLast(string input, object[] arguments, string expected)
         {
-            var input = new StringValue("abcabc");
-
-            var arguments = new FilterArguments().Add(new StringValue("b")).Add(new StringValue("B"));
+            var filterInput = new StringValue(input);
+            var filterArguments = new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray());
             var context = new TemplateContext();
 
-            var result = StringFilters.ReplaceLast(input, arguments, context);
+            var result = StringFilters.ReplaceLast(filterInput, filterArguments, context);
 
-            Assert.Equal("abcaBc", result.Result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
