@@ -1,7 +1,7 @@
 ﻿using Fluid.Filters;
+using Fluid.Tests.Extensions;
 using Fluid.Values;
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -50,7 +50,7 @@ namespace Fluid.Tests.Integration
         [InlineData("oob", "foobar", "1", "3")]
         public void TestSlice(string expected, object input, params object[] arguments)
         {
-            Assert.Equal(expected, StringFilters.Slice(FluidValue.Create(input, TemplateOptions.Default), new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), new TemplateContext()).Result.ToObjectValue());
+            Assert.Equal(expected, StringFilters.Slice(FluidValue.Create(input, TemplateOptions.Default), arguments.ToFilterArguments(), new TemplateContext()).Result.ToObjectValue());
         }
 
         [Theory]
@@ -58,7 +58,7 @@ namespace Fluid.Tests.Integration
         [InlineData("foobar", 0, "")]
         public void TestSliceArgument(object input, params object[] arguments)
         {
-            Assert.Throws<ArgumentException>(() => StringFilters.Slice(FluidValue.Create(input, TemplateOptions.Default), new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), new TemplateContext()).Result.ToObjectValue());
+            Assert.Throws<ArgumentException>(() => StringFilters.Slice(FluidValue.Create(input, TemplateOptions.Default), arguments.ToFilterArguments(), new TemplateContext()).Result.ToObjectValue());
         }
         
         [Theory]
@@ -76,7 +76,7 @@ namespace Fluid.Tests.Integration
         {
             var foobar = new object [] { 'f', 'o', 'o', 'b', 'a', 'r' };
             
-            var result = StringFilters.Slice(FluidValue.Create(foobar, TemplateOptions.Default), new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), new TemplateContext());
+            var result = StringFilters.Slice(FluidValue.Create(foobar, TemplateOptions.Default), arguments.ToFilterArguments(), new TemplateContext());
             Assert.IsType<ArrayValue>(result.Result);
 
             string resultString = "";

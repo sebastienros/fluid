@@ -2,6 +2,7 @@
 using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
+using Fluid.Tests.Extensions;
 
 namespace Fluid.Tests
 {
@@ -126,30 +127,32 @@ world
             Assert.Equal("Hello World", result.Result.ToStringValue());
         }
 
-        [Fact]
-        public void RemoveFirst()
+        [Theory]
+        [InlineData("a b a a", new object[] { "a " }, "b a a")]
+        [InlineData("1 1 1 1", new object[] { 1 }, " 1 1 1")]
+        public void RemoveFirst(string input, object[] arguments, string expected)
         {
-            var input = new StringValue("abcabc");
-
-            var arguments = new FilterArguments().Add(new StringValue("b"));
+            var filterInput = new StringValue(input);
+            var filterArguments = arguments.ToFilterArguments();
             var context = new TemplateContext();
 
-            var result = StringFilters.RemoveFirst(input, arguments, context);
+            var result = StringFilters.RemoveFirst(filterInput, filterArguments, context);
 
-            Assert.Equal("acabc", result.Result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
-        [Fact]
-        public void Remove()
+        [Theory]
+        [InlineData("a a a a", new object[] { "a" }, "   ")]
+        [InlineData("1 1 1 1", new object[] { 1 }, "   ")]
+        public void Remove(string input, object[] arguments, string expected)
         {
-            var input = new StringValue("abcabc");
-
-            var arguments = new FilterArguments().Add(new StringValue("b"));
+            var filterInput = new StringValue(input);
+            var filterArguments = arguments.ToFilterArguments();
             var context = new TemplateContext();
 
-            var result = StringFilters.Remove(input, arguments, context);
+            var result = StringFilters.Remove(filterInput, filterArguments, context);
 
-            Assert.Equal("acac", result.Result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Fact]
@@ -161,36 +164,76 @@ world
             var context = new TemplateContext();
 
             var result = StringFilters.Remove(input, arguments, context);
-        }
 
-        [Fact]
-        public void ReplaceFirst()
-        {
-            var input = new StringValue("abcabc");
-
-            var arguments = new FilterArguments().Add(new StringValue("b")).Add(new StringValue("B"));
-            var context = new TemplateContext();
-
-            var result = StringFilters.ReplaceFirst(input, arguments, context);
-
-            Assert.Equal("aBcabc", result.Result.ToStringValue());
-        }
-
-        [Fact]
-        public void Replace()
-        {
-            var input = new StringValue("abcabc");
-
-            var arguments = new FilterArguments().Add(new StringValue("b")).Add(new StringValue("B"));
-            var context = new TemplateContext();
-
-            var result = StringFilters.Replace(input, arguments, context);
-
-            Assert.Equal("aBcaBc", result.Result.ToStringValue());
+            Assert.Equal("abcabc", result.Result.ToStringValue());
         }
 
         [Theory]
+        [InlineData("a a b a", new object[] { " a" }, "a a b")]
+        [InlineData("1 1 1 1", new object[] { 1 }, "1 1 1 ")]
+        public void RemoveLast(string input, object[] arguments, string expected)
+        {
+            var filterInput = new StringValue(input);
+            var filterArguments = arguments.ToFilterArguments();
+            var context = new TemplateContext();
 
+            var result = StringFilters.RemoveLast(filterInput, filterArguments, context);
+
+            Assert.Equal(expected, result.Result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("a a a a", new object[] { "a", "b" }, "b a a a")]
+        [InlineData("1 1 1 1", new object[] { 1, 2 }, "2 1 1 1")]
+        [InlineData("1 1 1 1", new object[] { 2, 3 }, "1 1 1 1")]
+        [InlineData("1 1 1 1", new object[] { "1", 2 }, "2 1 1 1")]
+        [InlineData("aa bb cc aa bb cc", new object[] { "cc", "dd" }, "aa bb dd aa bb cc")]
+        public void ReplaceFirst(string input, object[] arguments, string expected)
+        {
+            var filterInput = new StringValue(input);
+            var filterArguments = arguments.ToFilterArguments();
+            var context = new TemplateContext();
+
+            var result = StringFilters.ReplaceFirst(filterInput, filterArguments, context);
+
+            Assert.Equal(expected, result.Result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("a a a a", new object[] { "a", "b" }, "b b b b")]
+        [InlineData("1 1 1 1", new object[] { 1, 2 }, "2 2 2 2")]
+        [InlineData("1 1 1 1", new object[] { 2, 3 }, "1 1 1 1")]
+        [InlineData("1 1 1 1", new object[] { "1", 2 }, "2 2 2 2")]
+        [InlineData("aa bb cc aa bb cc", new object[] { "cc", "dd" }, "aa bb dd aa bb dd")]
+        public void Replace(string input, object[] arguments, string expected)
+        {
+            var filterInput = new StringValue(input);
+            var filterArguments = arguments.ToFilterArguments();
+            var context = new TemplateContext();
+
+            var result = StringFilters.Replace(filterInput, filterArguments, context);
+
+            Assert.Equal(expected, result.Result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("a a a a", new object[] { "a", "b" }, "a a a b")]
+        [InlineData("1 1 1 1", new object[] { 1, 2 }, "1 1 1 2")]
+        [InlineData("1 1 1 1", new object[] { 2, 3 }, "1 1 1 1")]
+        [InlineData("1 1 1 1", new object[] { "1", 2 }, "1 1 1 2")]
+        [InlineData("aa bb cc aa bb cc", new object[] { "cc", "dd" }, "aa bb cc aa bb dd")]
+        public void ReplaceLast(string input, object[] arguments, string expected)
+        {
+            var filterInput = new StringValue(input);
+            var filterArguments = arguments.ToFilterArguments();
+            var context = new TemplateContext();
+
+            var result = StringFilters.ReplaceLast(filterInput, filterArguments, context);
+
+            Assert.Equal(expected, result.Result.ToStringValue());
+        }
+
+        [Theory]
         [InlineData("hello", new object[] { 0 }, "h")]
         [InlineData("hello", new object[] { 1 }, "e")]
         [InlineData("hello", new object[] { 1, 3 }, "ell")]
@@ -200,7 +243,7 @@ world
         public void Slice(object input, object[] arguments, string expected)
         {
             var filterInput = FluidValue.Create(input, TemplateOptions.Default);
-            var filterArguments = new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray());
+            var filterArguments = arguments.ToFilterArguments();
             var context = new TemplateContext();
 
             var result = StringFilters.Slice(filterInput, filterArguments, context);
@@ -222,7 +265,7 @@ world
         public void SliceOutsideBounds(object input, object[] arguments, string expected)
         {
             var filterInput = FluidValue.Create(input, TemplateOptions.Default);
-            var filterArguments = new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray());
+            var filterArguments = arguments.ToFilterArguments();
             var context = new TemplateContext();
 
             var result = StringFilters.Slice(filterInput, filterArguments, context);

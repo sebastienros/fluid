@@ -22,8 +22,10 @@ namespace Fluid.Filters
             filters.AddFilter("prepend", Prepend);
             filters.AddFilter("remove_first", RemoveFirst);
             filters.AddFilter("remove", Remove);
+            filters.AddFilter("remove_last", RemoveLast);
             filters.AddFilter("replace_first", ReplaceFirst);
             filters.AddFilter("replace", Replace);
+            filters.AddFilter("replace_last", ReplaceLast);
             filters.AddFilter("slice", Slice);
             filters.AddFilter("split", Split);
             filters.AddFilter("strip", Strip);
@@ -108,6 +110,21 @@ namespace Fluid.Filters
             return new StringValue(input.ToStringValue().Replace(argument, ""));
         }
 
+        public static ValueTask<FluidValue> RemoveLast(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var remove = arguments.At(0).ToStringValue();
+            var value = input.ToStringValue();
+
+            var index = value.LastIndexOf(remove);
+
+            if (index != -1)
+            {
+                return new StringValue(value.Remove(index, remove.Length));
+            }
+
+            return input;
+        }
+
         public static ValueTask<FluidValue> ReplaceFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             string remove = arguments.At(0).ToStringValue();
@@ -126,6 +143,21 @@ namespace Fluid.Filters
         public static ValueTask<FluidValue> Replace(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().Replace(arguments.At(0).ToStringValue(), arguments.At(1).ToStringValue()));
+        }
+
+        public static ValueTask<FluidValue> ReplaceLast(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var remove = arguments.At(0).ToStringValue();
+            var value = input.ToStringValue();
+
+            var index = value.LastIndexOf(remove);
+
+            if (index != -1)
+            {
+                return new StringValue(value.Substring(0, index) + arguments.At(1).ToStringValue() + value.Substring(index + remove.Length));
+            }
+
+            return input;
         }
 
         public static ValueTask<FluidValue> Slice(FluidValue input, FilterArguments arguments, TemplateContext context)

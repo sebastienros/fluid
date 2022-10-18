@@ -1,7 +1,7 @@
 ﻿using Fluid.Filters;
+using Fluid.Tests.Extensions;
 using Fluid.Values;
 using System.Globalization;
-using System.Linq;
 using Xunit;
 
 namespace Fluid.Tests
@@ -188,7 +188,7 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.ColorExtract(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
+            var result = ColorFilters.ColorExtract(input, arguments.ToFilterArguments(), context);
 
             // Assert
             Assert.Equal(expected, result.Result.ToStringValue());
@@ -246,7 +246,7 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.ColorModify(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
+            var result = ColorFilters.ColorModify(input, arguments.ToFilterArguments(), context);
 
             // Assert
             Assert.Equal(expected, result.Result.ToStringValue());
@@ -304,7 +304,7 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.ColorSaturate(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
+            var result = ColorFilters.ColorSaturate(input, arguments.ToFilterArguments(), context);
 
             // Assert
             Assert.Equal(expected, result.Result.ToStringValue());
@@ -321,7 +321,7 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.ColorDesaturate(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
+            var result = ColorFilters.ColorDesaturate(input, arguments.ToFilterArguments(), context);
 
             // Assert
             Assert.Equal(expected, result.Result.ToStringValue());
@@ -338,7 +338,7 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.ColorLighten(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
+            var result = ColorFilters.ColorLighten(input, arguments.ToFilterArguments(), context);
 
             // Assert
             Assert.Equal(expected, result.Result.ToStringValue());
@@ -355,7 +355,7 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.ColorDarken(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
+            var result = ColorFilters.ColorDarken(input, arguments.ToFilterArguments(), context);
 
             // Assert
             Assert.Equal(expected, result.Result.ToStringValue());
@@ -372,7 +372,7 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.GetColorDifference(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
+            var result = ColorFilters.GetColorDifference(input, arguments.ToFilterArguments(), context);
 
             // Assert
             Assert.Equal(expected, result.Result.ToNumberValue());
@@ -389,7 +389,7 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.GetColorBrightnessDifference(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
+            var result = ColorFilters.GetColorBrightnessDifference(input, arguments.ToFilterArguments(), context);
 
             // Assert
             Assert.Equal(expected, result.Result.ToNumberValue());
@@ -406,7 +406,7 @@ namespace Fluid.Tests
             var context = new TemplateContext();
 
             // Act
-            var result = ColorFilters.GetColorContrast(input, new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray()), context);
+            var result = ColorFilters.GetColorContrast(input, arguments.ToFilterArguments(), context);
 
             // Assert
             Assert.Equal(expected, result.Result.ToNumberValue());
