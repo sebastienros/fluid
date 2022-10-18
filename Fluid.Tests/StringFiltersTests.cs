@@ -2,6 +2,7 @@
 using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
+using Fluid.Tests.Extensions;
 
 namespace Fluid.Tests
 {
@@ -126,30 +127,32 @@ world
             Assert.Equal("Hello World", result.Result.ToStringValue());
         }
 
-        [Fact]
-        public void RemoveFirst()
+        [Theory]
+        [InlineData("a b a a", new object[] { "a " }, "b a a")]
+        [InlineData("1 1 1 1", new object[] { 1 }, " 1 1 1")]
+        public void RemoveFirst(string input, object[] arguments, string expected)
         {
-            var input = new StringValue("abcabc");
-
-            var arguments = new FilterArguments().Add(new StringValue("b"));
+            var filterInput = new StringValue(input);
+            var filterArguments = arguments.ToFilterArguments();
             var context = new TemplateContext();
 
-            var result = StringFilters.RemoveFirst(input, arguments, context);
+            var result = StringFilters.RemoveFirst(filterInput, filterArguments, context);
 
-            Assert.Equal("acabc", result.Result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
-        [Fact]
-        public void Remove()
+        [Theory]
+        [InlineData("a a a a", new object[] { "a" }, "   ")]
+        [InlineData("1 1 1 1", new object[] { 1 }, "   ")]
+        public void Remove(string input, object[] arguments, string expected)
         {
-            var input = new StringValue("abcabc");
-
-            var arguments = new FilterArguments().Add(new StringValue("b"));
+            var filterInput = new StringValue(input);
+            var filterArguments = arguments.ToFilterArguments();
             var context = new TemplateContext();
 
-            var result = StringFilters.Remove(input, arguments, context);
+            var result = StringFilters.Remove(filterInput, filterArguments, context);
 
-            Assert.Equal("acac", result.Result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Fact]
@@ -165,17 +168,18 @@ world
             Assert.Equal("abcabc", result.Result.ToStringValue());
         }
 
-        [Fact]
-        public void RemoveLast()
+        [Theory]
+        [InlineData("a a b a", new object[] { " a" }, "a a b")]
+        [InlineData("1 1 1 1", new object[] { 1 }, "1 1 1 ")]
+        public void RemoveLast(string input, object[] arguments, string expected)
         {
-            var input = new StringValue("abcabc");
-
-            var arguments = new FilterArguments().Add(new StringValue("b"));
+            var filterInput = new StringValue(input);
+            var filterArguments = arguments.ToFilterArguments();
             var context = new TemplateContext();
 
-            var result = StringFilters.RemoveLast(input, arguments, context);
+            var result = StringFilters.RemoveLast(filterInput, filterArguments, context);
 
-            Assert.Equal("abcac", result.Result.ToStringValue());
+            Assert.Equal(expected, result.Result.ToStringValue());
         }
 
         [Theory]
@@ -186,7 +190,7 @@ world
         public void ReplaceFirst(string input, object[] arguments, string expected)
         {
             var filterInput = new StringValue(input);
-            var filterArguments = new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray());
+            var filterArguments = arguments.ToFilterArguments();
             var context = new TemplateContext();
 
             var result = StringFilters.ReplaceFirst(filterInput, filterArguments, context);
@@ -202,7 +206,7 @@ world
         public void Replace(string input, object[] arguments, string expected)
         {
             var filterInput = new StringValue(input);
-            var filterArguments = new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray());
+            var filterArguments = arguments.ToFilterArguments();
             var context = new TemplateContext();
 
             var result = StringFilters.Replace(filterInput, filterArguments, context);
@@ -218,7 +222,7 @@ world
         public void ReplaceLast(string input, object[] arguments, string expected)
         {
             var filterInput = new StringValue(input);
-            var filterArguments = new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray());
+            var filterArguments = arguments.ToFilterArguments();
             var context = new TemplateContext();
 
             var result = StringFilters.ReplaceLast(filterInput, filterArguments, context);
