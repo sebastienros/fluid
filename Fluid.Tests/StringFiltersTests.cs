@@ -240,7 +240,7 @@ world
         public void Slice(object input, object[] arguments, string expected)
         {
             var filterInput = FluidValue.Create(input, TemplateOptions.Default);
-            var filterArguments = new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray());
+            var filterArguments = arguments.ToFilterArguments();
             var context = new TemplateContext();
 
             var result = StringFilters.Slice(filterInput, filterArguments, context);
@@ -262,7 +262,7 @@ world
         public void SliceOutsideBounds(object input, object[] arguments, string expected)
         {
             var filterInput = FluidValue.Create(input, TemplateOptions.Default);
-            var filterArguments = new FilterArguments(arguments.Select(x => FluidValue.Create(x, TemplateOptions.Default)).ToArray());
+            var filterArguments = arguments.ToFilterArguments();
             var context = new TemplateContext();
 
             var result = StringFilters.Slice(filterInput, filterArguments, context);
