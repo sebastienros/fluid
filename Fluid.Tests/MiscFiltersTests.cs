@@ -256,7 +256,7 @@ namespace Fluid.Tests
                 new DateTime(2017, 8, 1, 17, 4, 36, 123), TimeSpan.FromHours(8)));
 
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions() { CultureInfo = new CultureInfo("en-US"), TimeZone = TimeZoneInfo.Utc };
+            var options = new TemplateOptions() { CultureInfo = new CultureInfo("en-US", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
             var context = new TemplateContext(options);
 
             var result = await MiscFilters.Date(input, arguments, context);
@@ -510,10 +510,10 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments(new StringValue(format));
 
-            var context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("fr-FR"), TimeZone = TimeZoneInfo.Utc });
+            var context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("fr-FR", useUserOverride: false), TimeZone = TimeZoneInfo.Utc });
             var resultFR = await MiscFilters.Date(input, arguments, context);
 
-            context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("en-US"), TimeZone = TimeZoneInfo.Utc });
+            context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("en-US", useUserOverride: false), TimeZone = TimeZoneInfo.Utc });
             var resultUS = await MiscFilters.Date(input, arguments, context);
 
             Assert.Equal("08/01/2017", resultFR.ToStringValue());
@@ -528,10 +528,10 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments(new StringValue(format));
 
-            var context = new TemplateContext { CultureInfo = new CultureInfo("fr-FR"), TimeZone = TimeZoneInfo.Utc };
+            var context = new TemplateContext { CultureInfo = new CultureInfo("fr-FR", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
             var resultFR = await MiscFilters.Date(input, arguments, context);
 
-            context = new TemplateContext { CultureInfo = new CultureInfo("en-US"), TimeZone = TimeZoneInfo.Utc };
+            context = new TemplateContext { CultureInfo = new CultureInfo("en-US", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
             var resultUS = await MiscFilters.Date(input, arguments, context);
 
             Assert.Equal("dimanche 8 janvier 2017 00:00:00", resultFR.ToStringValue());
