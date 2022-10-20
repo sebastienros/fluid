@@ -95,7 +95,8 @@ namespace Fluid.Values
             }
             else if (input.Type == FluidValues.Number)
             {
-                var dateTime = DateTimeOffset.FromUnixTimeSeconds((long)input.ToNumberValue());
+                var milliseconds = input.ToNumberValue() * 1000;
+                var dateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)milliseconds);
                 result = dateTime.ToOffset(context.TimeZone.GetUtcOffset(dateTime));
             }
             else if (input.Type == FluidValues.DateTime)

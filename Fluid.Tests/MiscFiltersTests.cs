@@ -412,7 +412,7 @@ namespace Fluid.Tests
         [Theory]
         [InlineData("0", "Wed Dec 31 19:00:00.000 1969 -0500 0")]
         [InlineData("1:2", "Wed Dec 31 20:02:00.000 1969 -0500 3720")]
-        [InlineData("1:2:3.1", "Wed Dec 31 20:02:03.000 1969 -0500 3723")]
+        [InlineData("1:2:3.1", "Wed Dec 31 20:02:03.100 1969 -0500 3723")]
         public async Task DateTimeSpanIsParsedAsSeconds(string timespan, string expected)
         {
             // Converting to Unix time should not vary by TimeZone
