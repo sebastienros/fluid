@@ -167,7 +167,10 @@ namespace Fluid.Values
                             return new DateTimeValue(dateTimeOffset);
 
                         case TimeSpan timeSpan:
-                            return new DateTimeValue(new DateTime(timeSpan.Ticks));
+                            // DateTimeOffset constructor throws ArgumentOutOfRangeException on locations with a positive offset
+                            // so we're resetting the offset to 0 by creating a DateTime of type UTC (Unspecified by default)
+                            var dateTime = new DateTime(timeSpan.Ticks, DateTimeKind.Utc);
+                            return new DateTimeValue(dateTime);
 
                         case IFormattable formattable:
                             return new StringValue(formattable.ToString(null, options.CultureInfo));
