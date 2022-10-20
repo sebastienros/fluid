@@ -393,15 +393,15 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData(0, "0")]
-        [InlineData(10, "10")]
-        [InlineData(-10, "-10")]
+        [InlineData(0, "0 -0500")]
+        [InlineData(10, "10 -0500")]
+        [InlineData(-10, "-10 -0500")]
         public async Task DateNumberIsParsedAsSeconds(long number, string expected)
         {
-            // Converting to Unix time should not vary by TimeSone
+            // Converting to Unix time should not vary by TimeZone
 
             var input = NumberValue.Create(number);
-            var format = new FilterArguments(new StringValue("%s"));
+            var format = new FilterArguments(new StringValue("%s %z"));
             var context = new TemplateContext { TimeZone = Eastern };
 
             var result = await MiscFilters.Date(input, format, context);
@@ -410,19 +410,18 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData("0", "%H:%M:%S.%L", "00:00:00.000")]
-        [InlineData("1", "%z", "+0000")]
-        [InlineData("1:2", "%H:%M:%S.%L", "01:02:00.000")]
-        [InlineData("1:2:3.1", "%H:%M:%S.%L", "01:02:03.100")]
-        public async Task DateTimeSpan(string timespan, string format, string expected)
+        [InlineData("0", "00:00:00.000 +0000")]
+        [InlineData("1:2", "01:02:00.000 +0000")]
+        [InlineData("1:2:3.1", "01:02:03.100 +0000")]
+        public async Task DateTimeSpan(string timespan, string expected)
         {
             // Converting to Unix time should not vary by TimeZone
 
             var input = FluidValue.Create(TimeSpan.Parse(timespan), new TemplateOptions());
-            var filterFormat = new FilterArguments(new StringValue(format));
+            var format = new FilterArguments(new StringValue("%H:%M:%S.%L %z"));
             var context = new TemplateContext { TimeZone = Eastern };
 
-            var result = await MiscFilters.Date(input, filterFormat, context);
+            var result = await MiscFilters.Date(input, format, context);
 
             Assert.Equal(expected, result.ToStringValue());
         }
