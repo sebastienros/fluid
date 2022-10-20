@@ -215,6 +215,29 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task ShouldEvaluateDateTimeValue()
+        {
+            _parser.TryParse("{{ x }}", out var template, out var error);
+            var context = new TemplateContext();
+            context.SetValue("x", new DateTime(2022, 10, 20, 17, 00, 00, 000));
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("2022-10-20 15:00:00Z", result);
+        }
+
+        [Fact]
+        public async Task ShouldEvaluateTimeSpanValue()
+        {
+            _parser.TryParse("{{ x }}", out var template, out var error);
+            var context = new TemplateContext();
+            var oneHour = new TimeSpan(0, 1, 00, 00, 000);
+            context.SetValue("x", oneHour);
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("3600", result);
+        }
+
+        [Fact]
         public async Task ShouldEvaluateObjectProperty()
         {
             _parser.TryParse("{{ p.Firstname }}", out var template, out var error);
