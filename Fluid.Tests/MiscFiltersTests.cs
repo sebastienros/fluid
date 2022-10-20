@@ -393,15 +393,15 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData(0, "0 -0500")]
-        [InlineData(10, "10 -0500")]
-        [InlineData(-10, "-10 -0500")]
+        [InlineData(0, "Wed Dec 31 19:00:00.000 1969 -0500")]
+        [InlineData(10, "Wed Dec 31 19:00:10.000 1969 -0500")]
+        [InlineData(-10, "Wed Dec 31 18:59:50.000 1969 -0500")]
         public async Task DateNumberIsParsedAsSeconds(long number, string expected)
         {
             // Converting to Unix time should not vary by TimeZone
 
             var input = NumberValue.Create(number);
-            var format = new FilterArguments(new StringValue("%s %z"));
+            var format = new FilterArguments(new StringValue("%a %b %e %H:%M:%S.%L %Y %z"));
             var context = new TemplateContext { TimeZone = Eastern };
 
             var result = await MiscFilters.Date(input, format, context);
@@ -413,7 +413,7 @@ namespace Fluid.Tests
         [InlineData("0", "Wed Dec 31 19:00:00.000 1969 -0500")]
         [InlineData("1:2", "Wed Dec 31 20:02:00.000 1969 -0500")]
         [InlineData("1:2:3.1", "Wed Dec 31 20:02:03.000 1969 -0500")]
-        public async Task DateTimeSpan(string timespan, string expected)
+        public async Task DateTimeSpanIsParsedAsSeconds(string timespan, string expected)
         {
             // Converting to Unix time should not vary by TimeZone
 
