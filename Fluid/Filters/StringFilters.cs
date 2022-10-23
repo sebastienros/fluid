@@ -142,7 +142,7 @@ namespace Fluid.Filters
             }
 
 #if NETCOREAPP3_0_OR_GREATER
-            var concat = string.Concat(value.Slice(0, index), arguments.At(1).ToStringValue().AsSpan(), value.Slice(index + remove.Length));
+            var concat = string.Concat(value.Slice(0, index), arguments.At(1).ToStringValue(), value.Slice(index + remove.Length));
 #else
             var concat = string.Concat(value.Substring(0, index), arguments.At(1).ToStringValue(), value.Substring(index + remove.Length));
 #endif
