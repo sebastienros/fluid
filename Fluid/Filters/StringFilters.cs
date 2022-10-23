@@ -127,17 +127,26 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> ReplaceFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            string remove = arguments.At(0).ToStringValue();
+#if NETCOREAPP3_0_OR_GREATER
+            var value = input.ToStringValue().AsSpan();
+            var remove = arguments.At(0).ToStringValue().AsSpan();
+#else
             var value = input.ToStringValue();
-
+            var remove = arguments.At(0).ToStringValue();
+#endif
             var index = value.IndexOf(remove);
 
-            if (index != -1)
+            if (index == -1)
             {
-                return new StringValue(value.Substring(0, index) + arguments.At(1).ToStringValue() + value.Substring(index + remove.Length));
+                return input;
             }
 
-            return input;
+#if NETCOREAPP3_0_OR_GREATER
+            var concat = string.Concat(value.Slice(0, index), arguments.At(1).ToStringValue().AsSpan(), value.Slice(index + remove.Length));
+#else
+            var concat = string.Concat(value.Substring(0, index), arguments.At(1).ToStringValue(), value.Substring(index + remove.Length));
+#endif
+            return new StringValue(concat);
         }
 
         public static ValueTask<FluidValue> Replace(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -147,17 +156,26 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> ReplaceLast(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var remove = arguments.At(0).ToStringValue();
+#if NETCOREAPP3_0_OR_GREATER
+            var value = input.ToStringValue().AsSpan();
+            var remove = arguments.At(0).ToStringValue().AsSpan();
+#else
             var value = input.ToStringValue();
-
+            var remove = arguments.At(0).ToStringValue();
+#endif
             var index = value.LastIndexOf(remove);
 
-            if (index != -1)
+            if (index == -1)
             {
-                return new StringValue(value.Substring(0, index) + arguments.At(1).ToStringValue() + value.Substring(index + remove.Length));
+                return input;
             }
 
-            return input;
+#if NETCOREAPP3_0_OR_GREATER
+            var concat = string.Concat(value.Slice(0, index), arguments.At(1).ToStringValue(), value.Slice(index + remove.Length));
+#else
+            var concat = string.Concat(value.Substring(0, index), arguments.At(1).ToStringValue(), value.Substring(index + remove.Length));
+#endif
+            return new StringValue(concat);
         }
 
         public static ValueTask<FluidValue> Slice(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -185,7 +203,7 @@ namespace Fluid.Filters
                     return ArrayValue.Empty;
                 }
 
-                var sourceArray = ((ArrayValue) input).Values;
+                var sourceArray = ((ArrayValue)input).Values;
 
                 var sourceLength = sourceArray.Length;
 
@@ -293,25 +311,33 @@ namespace Fluid.Filters
                 return StringValue.Empty;
             }
 
-            var ellipsisStr = arguments.At(1).Or(Ellipsis).ToStringValue();
-
             var length = Convert.ToInt32(arguments.At(0).Or(DefaultTruncateLength).ToNumberValue());
+
+            if (inputStr.Length <= length)
+            {
+                return input;
+            }
+
+            var ellipsisStr = arguments.At(1).Or(Ellipsis).ToStringValue();
 
             var l = Math.Max(0, length - ellipsisStr.Length);
 
-            return inputStr.Length > length
-                ? new StringValue(inputStr.Substring(0, l) + ellipsisStr)
-                : input;
+#if NETCOREAPP3_0_OR_GREATER
+            var concat = string.Concat(inputStr.AsSpan().Slice(0, l), ellipsisStr);
+#else
+            var concat = string.Concat(inputStr.Substring(0, l), ellipsisStr);
+#endif
+            return new StringValue(concat);
         }
 
         public static ValueTask<FluidValue> TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var source = input.ToStringValue();
-            
+
             // Default value is 15
             // c.f. https://github.com/Shopify/liquid/blob/81f44e36be5f2110c26b6532fd4ccd22edaf59f2/lib/liquid/standardfilters.rb#L233
             var size = Convert.ToInt32(arguments.At(0).Or(NumberValue.Create(15)).ToNumberValue());
-            
+
             if (size <= 0)
             {
                 size = 1;
