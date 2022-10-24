@@ -957,16 +957,13 @@ For parsing, Fluid is 60% faster than Scriban, allocating nearly 3 times less me
 For rendering, Fluid is slightly faster than Handlebars, 4 times faster than Scriban, but allocates at least half the memory.
 Compared to DotLiquid, Fluid renders 9 times faster, and allocates 35 times less memory.
 
-``` ini
-
+``` text
 BenchmarkDotNet=v0.13.2, OS=Windows 10 (10.0.19044.2130/21H2/November2021Update)
 AMD Ryzen 5 2600X, 1 CPU, 12 logical and 6 physical cores
 .NET SDK=6.0.402
   [Host]     : .NET 6.0.10 (6.0.1022.47605), X64 RyuJIT AVX2
   DefaultJob : .NET 6.0.10 (6.0.1022.47605), X64 RyuJIT AVX2
 
-
-```
 |             Method |          Mean |       Error |     StdDev |  Ratio | RatioSD |      Gen0 |     Gen1 |    Gen2 |   Allocated | Alloc Ratio |
 |------------------- |--------------:|------------:|-----------:|-------:|--------:|----------:|---------:|--------:|------------:|------------:|
 |        Fluid_Parse |      7.905 μs |   0.0224 μs |  0.0187 μs |   1.00 |    0.00 |    0.6561 |        - |       - |     2.68 KB |        1.00 |
@@ -985,6 +982,7 @@ AMD Ryzen 5 2600X, 1 CPU, 12 logical and 6 physical cores
 |   DotLiquid_Render |  3,880.530 μs |  39.2370 μs | 36.7023 μs |   8.60 |    0.08 |  726.5625 | 132.8125 | 27.3438 |  3371.05 KB |       35.16 |
 |   LiquidNet_Render |  2,504.866 μs |  20.9792 μs | 16.3792 μs |   5.55 |    0.05 |  515.6250 | 257.8125 |       - |  3144.39 KB |       32.80 |
 |  Handlebars_Render |    529.763 μs |   2.8223 μs |  2.6399 μs |   1.17 |    0.01 |   46.8750 |  11.7188 |       - |   194.92 KB |        2.03 |
+```
 
 Tested on October 24, 2022 with
 - Scriban 5.5.0
