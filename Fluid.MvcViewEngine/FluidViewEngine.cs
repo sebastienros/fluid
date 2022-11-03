@@ -76,7 +76,7 @@ namespace Fluid.MvcViewEngine
                 // Not a path this method can handle.
                 return ViewEngineResult.NotFound(applicationRelativePath, Enumerable.Empty<string>());
             }
-
+            // ReSharper disable once Mvc.ViewNotResolved
             return ViewEngineResult.Found("Default", new FluidView(applicationRelativePath, _fluidRendering));
         }
 

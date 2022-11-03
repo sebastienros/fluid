@@ -14,6 +14,7 @@ namespace Fluid.MvcSample.Controllers
             
             ViewData["Title"] = "This is a title";
 
+            // ReSharper disable once Mvc.ViewNotResolved
             return View(model);
         }    
     }    
