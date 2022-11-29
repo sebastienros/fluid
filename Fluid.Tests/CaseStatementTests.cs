@@ -96,6 +96,25 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task CaseProcessAllsWhensMatchMultiple()
+        {
+            var e = new CaseStatement(
+                A,
+                null,
+                new[] {
+                    new WhenStatement(new List<Expression> { A, B, C }, TEXT("x")),
+                    new WhenStatement(new List<Expression> { D }, TEXT("y")),
+                    new WhenStatement(new List<Expression> { A }, TEXT("z"))
+                }
+            );
+
+            var sw = new StringWriter();
+            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+
+            Assert.Equal("xz", sw.ToString());
+        }
+
+        [Fact]
         public async Task CaseDoesntProcessWhenNoMatch()
         {
             var e = new CaseStatement(

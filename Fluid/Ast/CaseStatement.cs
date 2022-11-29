@@ -33,18 +33,21 @@ namespace Fluid.Ast
 
             var value = await Expression.EvaluateAsync(context);
 
+            var elseShouldBeEvaluated = true;
+
             foreach (var when in _whenStatements)
             {
                 foreach (var option in when.Options)
                 {
                     if (value.Equals(await option.EvaluateAsync(context)))
                     {
-                        return await when.WriteToAsync(writer, encoder, context);
+                        elseShouldBeEvaluated = false;
+                        await when.WriteToAsync(writer, encoder, context);
                     }
                 }
             }
 
-            if (Else != null)
+            if (elseShouldBeEvaluated && Else != null)
             {
                 await Else.WriteToAsync(writer, encoder, context);
             }

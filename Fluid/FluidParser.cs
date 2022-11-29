@@ -149,7 +149,7 @@ namespace Fluid
             RegisteredOperators[">="] = (a, b) => new GreaterThanBinaryExpression(a, b, false);
             RegisteredOperators["<="] = (a, b) => new LowerThanExpression(a, b, false);
 
-            var CaseValueList = Separated(BinaryOr, Primary);
+            var CaseValueList = Separated(Terms.Text("or").Or(Terms.Text(",")), Primary);
 
             CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.Pattern(x => x == '=' || x == '!' || x == '<' || x == '>', maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString()).When(x => RegisteredOperators.ContainsKey(x)).And(Primary)))
                 .Then(x =>
