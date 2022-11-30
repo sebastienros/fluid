@@ -14,6 +14,8 @@ namespace Fluid.ViewEngine
     /// </summary>
     public class FluidViewRenderer : IFluidViewRenderer
     {
+        private static readonly char[] PathSeparators = { '/', '\\' };
+
         private record struct LayoutKey (string ViewPath, string LayoutPath);
 
         private class CacheEntry
@@ -101,7 +103,7 @@ namespace Fluid.ViewEngine
                     return viewStarts;
                 }
 
-                index = viewPath.LastIndexOf('/', index);
+                index = viewPath.LastIndexOfAny(PathSeparators, index);
 
                 viewPath = viewPath.Substring(0, index + 1);
 
@@ -150,7 +152,7 @@ namespace Fluid.ViewEngine
                         return layoutPath;
                     }
 
-                    index = viewPath.LastIndexOf('/', index);
+                    index = viewPath.LastIndexOfAny(PathSeparators, index);
 
                     viewPath = viewPath.Substring(0, index + 1);
 
