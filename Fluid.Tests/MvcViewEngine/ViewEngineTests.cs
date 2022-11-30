@@ -262,5 +262,19 @@ namespace Fluid.Tests.MvcViewEngine
 
             Assert.Equal("Layout 2: Viewstart 1 ViewStart 2 Home Hello World", sw.ToString());
         }
+
+        [Fact]
+        public async Task LayoutShouldBeAbleToIncludeVarsFromViewStart()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Layout' %}[View]{%- assign subtitle = '[SUBTITLE]' -%}");
+            _mockFileProvider.Add("Views/_Layout.liquid", "{{title}}{{subtitle}}{% renderbody %}");
+            _mockFileProvider.Add("Views/_ViewStart.liquid", "[ViewStart]{%- assign title = '[TITLE]' -%}");
+
+            var sw = new StringWriter();
+            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await sw.FlushAsync();
+
+            Assert.Equal("[TITLE][SUBTITLE][ViewStart][View]", sw.ToString());
+        }
     }
 }
