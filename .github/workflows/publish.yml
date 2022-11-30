@@ -14,15 +14,15 @@ jobs:
         DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Setup dotnet 6.0
-      uses: actions/setup-dotnet@v1
+    - uses: actions/checkout@v3
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.*
+        dotnet-version: 7.0.*
     - name: Install dependencies
       run: dotnet restore
     - name: Test
-      run: dotnet test -c Release --framework net6.0
+      run: dotnet test -c Release --framework net7.0
     - name: Pack with dotnet
       run: |
         arrTag=(${GITHUB_REF//\// })
