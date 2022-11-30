@@ -4,6 +4,8 @@
     <TargetFrameworks>netcoreapp3.1;net5.0;net6.0;net7.0</TargetFrameworks>
     <LangVersion>9</LangVersion>
     <DefineConstants Condition="'$(Compiled)' == 'true'">$(DefineConstants);COMPILED</DefineConstants>
+    <!-- Ignore: The target framework '...' is out of support and will not receive security updates in the future -->
+    <NoWarn>NETSDK1138</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

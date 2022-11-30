@@ -6,7 +6,7 @@
     <LangVersion>latest</LangVersion>
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>    
+    <NoWarn>$(NoWarn);1591;NETSDK1138</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
