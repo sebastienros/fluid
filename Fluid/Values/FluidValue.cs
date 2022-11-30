@@ -167,7 +167,8 @@ namespace Fluid.Values
                             return new DateTimeValue(dateTimeOffset);
 
                         case TimeSpan timeSpan:
-                            return NumberValue.Create((decimal)timeSpan.TotalSeconds);
+                            var baseDateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)timeSpan.TotalMilliseconds).ToOffset(options.TimeZone.BaseUtcOffset);
+                            return new DateTimeValue(baseDateTime);
 
                         case IFormattable formattable:
                             return new StringValue(formattable.ToString(null, options.CultureInfo));

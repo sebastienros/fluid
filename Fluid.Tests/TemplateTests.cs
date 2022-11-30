@@ -20,6 +20,8 @@ namespace Fluid.Tests
         private static FluidParser _parser = new FluidParser();
 #endif
 
+        private static readonly TimeZoneInfo Eastern = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/New_York");
+
         private object _products = new[]
         {
             new { name = "product 1", price = 1 },
@@ -217,8 +219,9 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateDateTimeValue()
         {
+            // DateTimeValue is rendered as Universal Sortable Date/Time (u)
             _parser.TryParse("{{ x }}", out var template, out var error);
-            var context = new TemplateContext();
+            var context = new TemplateContext { TimeZone = Eastern };
             context.SetValue("x", new DateTime(2022, 10, 20, 17, 00, 00, 000, DateTimeKind.Utc));
 
             var result = await template.RenderAsync(context);
@@ -228,13 +231,16 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateTimeSpanValue()
         {
-            _parser.TryParse("{{ x }}", out var template, out var error);
-            var context = new TemplateContext();
+            // TimeSpan should be converted to DateTimeValue
+            // Then a DateTimeValue is rendered as Universal Sortable Date/Time (u)
+
+            _parser.TryParse("{{ x }}", out var template, out var _);
+            var context = new TemplateContext { TimeZone = Eastern };
             var oneHour = new TimeSpan(0, 1, 00, 00, 000);
             context.SetValue("x", oneHour);
 
             var result = await template.RenderAsync(context);
-            Assert.Equal("3600", result);
+            Assert.Equal("1970-01-01 01:00:00Z", result);
         }
 
         [Fact]

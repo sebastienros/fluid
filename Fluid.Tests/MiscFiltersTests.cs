@@ -398,11 +398,12 @@ namespace Fluid.Tests
         [InlineData(-10, "Wed Dec 31 18:59:50.000 1969 -0500 -10")]
         public async Task DateNumberIsParsedAsSeconds(long number, string expected)
         {
-            // Converting to Unix time should not vary by TimeZone
+            // The resulting DateTimeValue should use the default TimeZone
 
+            var options = new TemplateOptions { TimeZone = Eastern };
             var input = NumberValue.Create(number);
             var format = new FilterArguments(new StringValue("%a %b %e %H:%M:%S.%L %Y %z %s"));
-            var context = new TemplateContext { TimeZone = Eastern };
+            var context = new TemplateContext(options);
 
             var result = await MiscFilters.Date(input, format, context);
 
@@ -413,13 +414,12 @@ namespace Fluid.Tests
         [InlineData("0", "Wed Dec 31 19:00:00.000 1969 -0500 0")]
         [InlineData("1:2", "Wed Dec 31 20:02:00.000 1969 -0500 3720")]
         [InlineData("1:2:3.1", "Wed Dec 31 20:02:03.100 1969 -0500 3723")]
-        public async Task DateTimeSpanIsParsedAsSeconds(string timespan, string expected)
+        public async Task DateTimeSpanIsParsedWithLocalTimeZone(string timespan, string expected)
         {
-            // Converting to Unix time should not vary by TimeZone
-
-            var input = FluidValue.Create(TimeSpan.Parse(timespan), new TemplateOptions());
+            var options = new TemplateOptions { TimeZone = Eastern };
+            var input = FluidValue.Create(TimeSpan.Parse(timespan), options);
             var format = new FilterArguments(new StringValue("%a %b %e %H:%M:%S.%L %Y %z %s"));
-            var context = new TemplateContext { TimeZone = Eastern };
+            var context = new TemplateContext(options);
 
             var result = await MiscFilters.Date(input, format, context);
 
