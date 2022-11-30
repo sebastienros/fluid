@@ -32,7 +32,7 @@ namespace Fluid
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async ValueTask<string> RenderAsync(this IFluidTemplate template, TemplateContext context, TextEncoder encoder)
+        public static async ValueTask<string> RenderAsync(this IFluidTemplate template, TemplateContext context, TextEncoder encoder, bool isolateContext = true)
         {
             if (context == null)
             {
@@ -48,7 +48,10 @@ namespace Fluid
             var writer = new StringWriter(sb.Builder);
 
             // A template is evaluated in a child scope such that the provided TemplateContext is immutable
-            context.EnterChildScope();
+            if (isolateContext)
+            {
+                context.EnterChildScope();
+            }
 
             try
             {
@@ -61,7 +64,11 @@ namespace Fluid
             {
                 sb.Dispose();
                 writer.Dispose();
-                context.ReleaseScope();
+
+                if (isolateContext)
+                {
+                    context.ReleaseScope();
+                }
             }
         }
 
