@@ -57,15 +57,17 @@ namespace Fluid.Tests.MvcViewEngine
             Assert.Equal("ViewStartHello World", sw.ToString());
         }
 
-        [Fact]
-        public async Task ShouldImportViewStartRecursively()
+        [Theory]
+        [InlineData("Home/Index.liquid")]
+        [InlineData("Home\\Index.liquid")]
+        public async Task ShouldImportViewStartRecursively(string path)
         {
             _mockFileProvider.Add("Views/Home/Index.liquid", "Hello World");
             _mockFileProvider.Add("Views/Home/_ViewStart.liquid", "ViewStart1");
             _mockFileProvider.Add("Views/_ViewStart.liquid", "ViewStart2");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Home/Index.liquid", new TemplateContext());
+            await _renderer.RenderViewAsync(sw, path, new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("ViewStart2ViewStart1Hello World", sw.ToString());
