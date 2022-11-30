@@ -6,7 +6,7 @@
     <IsPackable>true</IsPackable>
     <PackageIcon>logo_64x64.png</PackageIcon>
     <!-- Ignore: The target framework '...' is out of support and will not receive security updates in the future -->
-    <NoWarn>NETSDK1138</NoWarn>
+    <NoWarn>$(NoWarn);NETSDK1138</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
