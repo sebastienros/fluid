@@ -958,33 +958,34 @@ For rendering, Fluid is slightly faster than Handlebars, 4 times faster than Scr
 Compared to DotLiquid, Fluid renders 9 times faster, and allocates 35 times less memory.
 
 ``` text
-BenchmarkDotNet=v0.13.2, OS=Windows 10 (10.0.19044.2130/21H2/November2021Update)
-AMD Ryzen 5 2600X, 1 CPU, 12 logical and 6 physical cores
-.NET SDK=6.0.402
-  [Host]     : .NET 6.0.10 (6.0.1022.47605), X64 RyuJIT AVX2
-  DefaultJob : .NET 6.0.10 (6.0.1022.47605), X64 RyuJIT AVX2
+BenchmarkDotNet=v0.13.2, OS=Windows 11 (10.0.22621.819)
+Intel Core i7-1065G7 CPU 1.30GHz, 1 CPU, 8 logical and 4 physical cores
+.NET SDK=7.0.100
+  [Host]     : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
+  DefaultJob : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
 
-|             Method |          Mean |       Error |     StdDev |  Ratio | RatioSD |      Gen0 |     Gen1 |    Gen2 |   Allocated | Alloc Ratio |
-|------------------- |--------------:|------------:|-----------:|-------:|--------:|----------:|---------:|--------:|------------:|------------:|
-|        Fluid_Parse |      7.905 μs |   0.0224 μs |  0.0187 μs |   1.00 |    0.00 |    0.6561 |        - |       - |     2.68 KB |        1.00 |
-|      Scriban_Parse |     12.637 μs |   0.0962 μs |  0.0900 μs |   1.60 |    0.01 |    1.8311 |        - |       - |     7.51 KB |        2.80 |
-|    DotLiquid_Parse |     24.152 μs |   0.1058 μs |  0.0990 μs |   3.06 |    0.01 |    3.9673 |        - |       - |    16.21 KB |        6.05 |
-|    LiquidNet_Parse |    106.988 μs |   0.6484 μs |  0.6066 μs |  13.53 |    0.08 |   15.1367 |   0.1221 |       - |    62.08 KB |       23.17 |
-|   Handlebars_Parse |  3,629.126 μs |  24.7234 μs | 23.1263 μs | 459.05 |    3.20 |   39.0625 |  11.7188 |       - |   163.07 KB |       60.85 |
-|                    |               |             |            |        |         |           |          |         |             |             |
-|     Fluid_ParseBig |     41.326 μs |   0.3579 μs |  0.3348 μs |   1.00 |    0.00 |    2.8076 |        - |       - |    11.61 KB |        1.00 |
-|   Scriban_ParseBig |     66.247 μs |   0.2935 μs |  0.2602 μs |   1.60 |    0.02 |    8.3008 |        - |       - |    34.17 KB |        2.94 |
-| DotLiquid_ParseBig |     90.516 μs |   0.3960 μs |  0.3704 μs |   2.19 |    0.02 |   23.0713 |        - |       - |    94.37 KB |        8.13 |
-| LiquidNet_ParseBig | 30,100.014 μs | 107.4620 μs | 95.2622 μs | 728.51 |    6.63 | 6875.0000 | 312.5000 |       - | 28543.66 KB |    2,458.67 |
-|                    |               |             |            |        |         |           |          |         |             |             |
-|       Fluid_Render |    451.275 μs |   2.1090 μs |  1.9728 μs |   1.00 |    0.00 |   22.9492 |   5.3711 |       - |    95.87 KB |        1.00 |
-|     Scriban_Render |  1,884.248 μs |  24.1026 μs | 21.3664 μs |   4.18 |    0.05 |  103.5156 |  68.3594 | 68.3594 |   498.42 KB |        5.20 |
-|   DotLiquid_Render |  3,880.530 μs |  39.2370 μs | 36.7023 μs |   8.60 |    0.08 |  726.5625 | 132.8125 | 27.3438 |  3371.05 KB |       35.16 |
-|   LiquidNet_Render |  2,504.866 μs |  20.9792 μs | 16.3792 μs |   5.55 |    0.05 |  515.6250 | 257.8125 |       - |  3144.39 KB |       32.80 |
-|  Handlebars_Render |    529.763 μs |   2.8223 μs |  2.6399 μs |   1.17 |    0.01 |   46.8750 |  11.7188 |       - |   194.92 KB |        2.03 |
+
+|             Method |          Mean |         Error |        StdDev |        Median |  Ratio | RatioSD |      Gen0 |     Gen1 |    Gen2 |   Allocated | Alloc Ratio |
+|------------------- |--------------:|--------------:|--------------:|--------------:|-------:|--------:|----------:|---------:|--------:|------------:|------------:|
+|        Fluid_Parse |      5.956 us |     0.0932 us |     0.0872 us |      5.961 us |   1.00 |    0.00 |    0.6561 |        - |       - |     2.68 KB |        1.00 |
+|      Scriban_Parse |      9.179 us |     0.3109 us |     0.8919 us |      9.333 us |   1.29 |    0.04 |    1.7242 |        - |       - |     7.07 KB |        2.64 |
+|    DotLiquid_Parse |     14.230 us |     0.2821 us |     0.5502 us |     14.117 us |   2.44 |    0.10 |    3.9673 |        - |       - |    16.21 KB |        6.05 |
+|    LiquidNet_Parse |     92.625 us |     1.8196 us |     2.4290 us |     92.299 us |  15.55 |    0.47 |   15.1367 |        - |       - |    62.08 KB |       23.17 |
+|   Handlebars_Parse |  4,396.658 us |    86.4525 us |   146.8029 us |  4,376.402 us | 738.89 |   29.11 |   39.0625 |   7.8125 |       - |   160.68 KB |       59.96 |
+|                    |               |               |               |               |        |         |           |          |         |             |             |
+|     Fluid_ParseBig |     39.423 us |     0.7568 us |     0.9841 us |     39.590 us |   1.00 |    0.00 |    2.8076 |        - |       - |    11.61 KB |        1.00 |
+|   Scriban_ParseBig |     52.415 us |     0.9024 us |     0.8441 us |     52.598 us |   1.32 |    0.04 |    7.8125 |        - |       - |       32 KB |        2.76 |
+| DotLiquid_ParseBig |     65.549 us |     2.2007 us |     6.1348 us |     63.689 us |   1.67 |    0.15 |   23.0713 |        - |       - |    94.37 KB |        8.13 |
+| LiquidNet_ParseBig | 34,256.609 us | 1,473.1558 us | 4,179.0978 us | 33,082.588 us | 941.47 |  106.43 | 6718.7500 | 406.2500 |       - | 28543.66 KB |    2,458.67 |
+|                    |               |               |               |               |        |         |           |          |         |             |             |
+|       Fluid_Render |    467.469 us |    24.3842 us |    67.9734 us |    442.731 us |   1.00 |    0.00 |   22.9492 |        - |       - |    95.87 KB |        1.00 |
+|     Scriban_Render |  1,530.949 us |    70.8292 us |   198.6128 us |  1,467.999 us |   3.33 |    0.60 |  103.5156 |  68.3594 | 68.3594 |   498.46 KB |        5.20 |
+|   DotLiquid_Render |  3,263.084 us |    64.9926 us |   126.7631 us |  3,226.557 us |   7.01 |    1.26 |  746.0938 | 175.7813 | 27.3438 |  3371.13 KB |       35.16 |
+|   LiquidNet_Render |  2,182.528 us |    76.8237 us |   220.4217 us |  2,130.184 us |   4.76 |    0.87 |  527.3438 | 492.1875 |       - |  3143.17 KB |       32.79 |
+|  Handlebars_Render |    470.900 us |     9.3233 us |    16.8118 us |    465.707 us |   1.02 |    0.19 |   46.8750 |  10.7422 |       - |   194.92 KB |        2.03 |
 ```
 
-Tested on October 24, 2022 with
+Tested on November 30, 2022 with
 - Scriban 5.5.0
 - DotLiquid 2.2.656
 - Liquid.NET 0.10.0
