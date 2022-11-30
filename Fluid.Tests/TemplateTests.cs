@@ -20,7 +20,9 @@ namespace Fluid.Tests
         private static FluidParser _parser = new FluidParser();
 #endif
 
-        private object _products = new []
+        private static readonly TimeZoneInfo Eastern = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/New_York");
+
+        private object _products = new[]
         {
             new { name = "product 1", price = 1 },
             new { name = "product 2", price = 2 },
@@ -73,12 +75,12 @@ namespace Fluid.Tests
         {
             var context = new TemplateContext();
             TextEncoder encoder = null;
-            
+
             switch (encoderType)
             {
-                case "html" : encoder = HtmlEncoder.Default; break;
-                case "url" : encoder = UrlEncoder.Default; break;
-                case "null" : encoder = NullEncoder.Default; break;
+                case "html": encoder = HtmlEncoder.Default; break;
+                case "url": encoder = UrlEncoder.Default; break;
+                case "null": encoder = NullEncoder.Default; break;
             }
 
             return CheckAsync(source, expected, context, encoder);
@@ -153,7 +155,7 @@ namespace Fluid.Tests
 
             var context = new TemplateContext(options);
 
-            options.Filters.AddFilter("inc", (i, args, ctx) => 
+            options.Filters.AddFilter("inc", (i, args, ctx) =>
             {
                 var increment = 1;
                 if (args.Count > 0)
@@ -215,6 +217,33 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task ShouldEvaluateDateTimeValue()
+        {
+            // DateTimeValue is rendered as Universal Sortable Date/Time (u)
+            _parser.TryParse("{{ x }}", out var template, out var error);
+            var context = new TemplateContext { TimeZone = Eastern };
+            context.SetValue("x", new DateTime(2022, 10, 20, 17, 00, 00, 000, DateTimeKind.Utc));
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("2022-10-20 17:00:00Z", result);
+        }
+
+        [Fact]
+        public async Task ShouldEvaluateTimeSpanValue()
+        {
+            // TimeSpan should be converted to DateTimeValue
+            // Then a DateTimeValue is rendered as Universal Sortable Date/Time (u)
+
+            _parser.TryParse("{{ x }}", out var template, out var _);
+            var context = new TemplateContext { TimeZone = Eastern };
+            var oneHour = new TimeSpan(0, 1, 00, 00, 000);
+            context.SetValue("x", oneHour);
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("1970-01-01 01:00:00Z", result);
+        }
+
+        [Fact]
         public async Task ShouldEvaluateObjectProperty()
         {
             _parser.TryParse("{{ p.Firstname }}", out var template, out var error);
@@ -224,7 +253,7 @@ namespace Fluid.Tests
 
             var context = new TemplateContext(options);
             context.SetValue("p", new Person { Firstname = "John" });
-            
+
 
             var result = await template.RenderAsync(context);
             Assert.Equal("John", result);
@@ -352,7 +381,7 @@ namespace Fluid.Tests
             options.ValueConverters.Add(o => o is Person p ? new PersonValue(p) : null);
 
             var context = new TemplateContext(options);
-            context.SetValue("p", new Person { Firstname = "Bill" } );
+            context.SetValue("p", new Person { Firstname = "Bill" });
 
             _parser.TryParse("{{ p[1] }} {{ p['blah'] }}", out var template, out var error);
             var result = await template.RenderAsync(context);
@@ -809,7 +838,7 @@ shape: '{{ shape }}'");
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => template.RenderAsync(context).AsTask());
         }
-        
+
         [Fact]
         public Task ForLoopLimitAndOffset()
         {

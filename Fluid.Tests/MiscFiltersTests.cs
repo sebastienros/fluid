@@ -12,6 +12,7 @@ namespace Fluid.Tests
     {
         private static readonly TimeZoneInfo Pacific = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/Los_Angeles");
         private static readonly TimeZoneInfo Eastern = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/New_York");
+        private static readonly string RoundTripDateTimePattern = "%Y-%m-%dT%H:%M:%S.%L%Z"; // Equivalent to "o" format
 
         [Fact]
         public async Task DefaultReturnsValueIfDefined()
@@ -393,16 +394,17 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData(0, "0")]
-        [InlineData(10, "10")]
-        [InlineData(-10, "-10")]
+        [InlineData(0, "1969-12-31T19:00:00.000-05:00")]
+        [InlineData(10, "1969-12-31T19:00:10.000-05:00")]
+        [InlineData(-10, "1969-12-31T18:59:50.000-05:00")]
         public async Task DateNumberIsParsedAsSeconds(long number, string expected)
         {
-            // Converting to Unix time should not vary by TimeSone
+            // The resulting DateTimeValue should use the default TimeZone
 
+            var options = new TemplateOptions { TimeZone = Eastern };
             var input = NumberValue.Create(number);
-            var format = new FilterArguments(new StringValue("%s"));
-            var context = new TemplateContext { TimeZone = Eastern };
+            var format = new FilterArguments(new StringValue(RoundTripDateTimePattern));
+            var context = new TemplateContext(options);
 
             var result = await MiscFilters.Date(input, format, context);
 
@@ -410,16 +412,15 @@ namespace Fluid.Tests
         }
 
         [Theory]
-        [InlineData("0", "00:00:00.000")]
-        [InlineData("1:2", "01:02:00.000")]
-        [InlineData("1:2:3.1", "01:02:03.100")]
-        public async Task DateTimeSpan(string timespan, string expected)
+        [InlineData("0", "1969-12-31T19:00:00.000-05:00")]
+        [InlineData("1:2", "1969-12-31T20:02:00.000-05:00")]
+        [InlineData("1:2:3.1", "1969-12-31T20:02:03.100-05:00")]
+        public async Task DateTimeSpanIsParsedWithLocalTimeZone(string timespan, string expected)
         {
-            // Converting to Unix time should not vary by TimeSone
-
-            var input = FluidValue.Create(TimeSpan.Parse(timespan), new TemplateOptions());
-            var format = new FilterArguments(new StringValue("%H:%M:%S.%L"));
-            var context = new TemplateContext { TimeZone = Eastern };
+            var options = new TemplateOptions { TimeZone = Eastern };
+            var input = FluidValue.Create(TimeSpan.Parse(timespan), options);
+            var format = new FilterArguments(new StringValue(RoundTripDateTimePattern));
+            var context = new TemplateContext(options);
 
             var result = await MiscFilters.Date(input, format, context);
 
@@ -430,12 +431,12 @@ namespace Fluid.Tests
         public async Task NoTimeZoneIsParsedAsLocal()
         {
             var input = StringValue.Create("1970-01-01 00:00:00");
-            var format = new FilterArguments(new StringValue("%a %b %e %H:%M:%S %Y %z"));
+            var format = new FilterArguments(new StringValue(RoundTripDateTimePattern));
             var context = new TemplateContext { TimeZone = Pacific };
 
             var result = await MiscFilters.Date(input, format, context);
 
-            Assert.Equal("Thu Jan  1 00:00:00 1970 -0800", result.ToStringValue());
+            Assert.Equal("1970-01-01T00:00:00.000-08:00", result.ToStringValue());
         }
 
         [Fact]
