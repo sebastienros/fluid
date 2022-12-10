@@ -1,6 +1,5 @@
 ﻿using Fluid.Ast;
 using Fluid.Parser;
-using Parlot.Fluent;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Fluid
 {
-    public static class FluidParserExtensions
+    public static partial class FluidParserExtensions
     {
         public static IFluidTemplate Parse(this FluidParser parser, string template)
         {

@@ -1,15 +1,12 @@
 ﻿using Fluid.Ast;
-using System;
-using System.Collections.Generic;
-using System.IO;
+using Fluid.Compilation;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Fluid.Parser
 {
-    public class FluidTemplate : IFluidTemplate
+    public class FluidTemplate : IFluidTemplate, ICompilable, IStatementList
     {
-        private readonly List<Statement> _statements;
+        internal readonly List<Statement> _statements;
 
         public FluidTemplate(params Statement[] statements)
         {
@@ -56,10 +53,14 @@ namespace Fluid.Parser
                 }
             }
 
+#if NET5_0_OR_GREATER
+            return ValueTask.CompletedTask;
+#else
             return new ValueTask();
+#endif
         }
 
-        private static async ValueTask Awaited(
+        internal static async ValueTask Awaited(
             ValueTask<Completion> task,
             TextWriter writer,
             TextEncoder encoder,
@@ -72,6 +73,24 @@ namespace Fluid.Parser
             {
                 await statements[i].WriteToAsync(writer, encoder, context);
             }
+        }
+
+        public CompilationResult Compile(CompilationContext context)
+        {
+            var result = new CompilationResult();
+            
+            var caller = context.Caller;
+
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                var statementAccessor = $"{caller}.Statements[{i}]";
+
+                var statementResult = CompilationHelpers.CompileStatement(Statements[i], statementAccessor, context);
+                result.StringBuilder.AppendLine(statementResult.StringBuilder.ToString());
+                result.StringBuilder.Append(result.IsAsync ? "await " : "").Append(statementResult.Result);
+            }
+
+            return result;
         }
     }
 }

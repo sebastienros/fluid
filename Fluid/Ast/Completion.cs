@@ -2,7 +2,7 @@
 {
     public enum Completion
     {
-        Normal,
+        Normal, // This should be kept first to be the default value
         Break,
         Continue
     }
