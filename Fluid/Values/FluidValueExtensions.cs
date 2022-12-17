@@ -8,7 +8,6 @@ namespace Fluid.Values
     {
         private const string Now = "now";
         private const string Today = "today";
-        private static char[] TZMarkers = new[] { '+', 'Z' };
 
         // The K specifier is optional when used in TryParseExact, so
         // if a TZ is not specified, it will still match
