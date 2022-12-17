@@ -38,8 +38,8 @@ public static class CompilationHelpers
             }
         }
 
-        result = new CompilationResult();
-        result.StringBuilder.Append($@"await {caller}.WriteToAsync({context.TextWriter}, {context.TextEncoder}, {context.TemplateContext});");
+        result = context.CreateCompilationResult();
+        result.Append($@"await {caller}.WriteToAsync({context.TextWriter}, {context.TextEncoder}, {context.TemplateContext});");
 
         return result;
     }
@@ -49,7 +49,7 @@ public static class CompilationHelpers
     /// </summary>
     public static CompilationResult CompileExpression(Expression expression, string caller, CompilationContext context)
     {
-        CompilationResult result;
+        CompilationResult result = null;
 
         if (expression is ICompilable compilableExpression)
         {
@@ -59,16 +59,41 @@ public static class CompilationHelpers
             result = compilableExpression.Compile(context);
 
             context.Caller = previousCaller;
+        }
+        
+        // The result can be null if the expression doesn't implement ICompilable
+        // or of the result of the compilation is null;
 
-            if (result != null)
-            {
-                return result;
-            }
+        // Constant expression don't need to implement ICompilable since the expression
+        // can be cached and the interpreted evaluation will only be executed once
+
+        if (result == null)
+        {
+            result = context.CreateCompilationResult();
+            context.DeclareExpressionResult(result);
+            result.Append($@"{result.Result} = await {caller}.EvaluateAsync({context.TemplateContext});");
         }
 
-        result = new CompilationResult();
-        context.DeclareExpressionResult(result);
-        result.StringBuilder.Append($@"{result.Result} = await {caller}.EvaluateAsync({context.TemplateContext});");
+        // If the expression is constant, we can execute the code only once
+        // The expressions might still be executed from than once (thrundering herd)
+        // since there is no locking on the _initialized member but this is totally acceptable.
+
+        if (expression.IsConstantExpression())
+        {
+            var member = $"_value{context.NextNumber}";
+
+            context.GlobalMembers.Add($"private FluidValue {member} = NilValue.Instance;");
+            var newResult = context.CreateCompilationResult();
+            newResult
+                .AppendLine("if (!_initialized)")
+                .AppendLine("{")
+                .Indent().AppendLine(result.ToString())
+                .AppendLine($"{member} = {result.Result};")
+                .AppendLine("}");
+
+            newResult.Result = member;
+            result = newResult;
+        }
 
         return result;
     }
@@ -76,35 +101,35 @@ public static class CompilationHelpers
     public static string DeclareCompletionVariable(this CompilationContext context, CompilationResult result)
     {
         result.Result = $"completion_{context.NextNumber}";
-        result.StringBuilder.AppendLine($"ValueTask<Completion> {result.Result};");
+        result.AppendLine($"ValueTask<Completion> {result.Result};");
         return result.Result;
     }
 
     public static string DeclareExpressionResult(this CompilationContext context, CompilationResult result)
     {
         result.Result = $"eval_{context.NextNumber}";
-        result.StringBuilder.AppendLine($"FluidValue {result.Result};");
+        result.AppendLine($"FluidValue {result.Result};");
         return result.Result;
     }
 
     public static string DeclareFluidValueResult(this CompilationContext context, CompilationResult result)
     {
         result.Result = $"value_{context.NextNumber}";
-        result.StringBuilder.AppendLine($"FluidValue {result.Result};");
+        result.AppendLine($"FluidValue {result.Result};");
         return result.Result;
     }
 
     public static string DeclareTaskVariable(this CompilationContext context, CompilationResult result)
     {
         result.Result = $"completion_{context.NextNumber}";
-        result.StringBuilder.AppendLine($"Task {result.Result};");
+        result.AppendLine($"Task {result.Result};");
         return result.Result;
     }
 
     public static string DeclareCaller(this CompilationContext context, CompilationResult result, string accessor)
     {
         result.Caller = $"caller_{context.NextNumber}";
-        result.StringBuilder.AppendLine($"var {result.Result} = accessor;");
+        result.AppendLine($"var {result.Result} = accessor;");
         return result.Caller;
     }
 

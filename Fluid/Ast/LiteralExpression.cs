@@ -17,20 +17,23 @@ namespace Fluid.Ast
             return new ValueTask<FluidValue>(Value);
         }
 
+        public override bool IsConstantExpression() => true;
+        
         public CompilationResult Compile(CompilationContext context)
         {
-            var result = new CompilationResult();
+            return null;
+            //var result = context.CreateCompilationResult();
 
-            context.DeclareFluidValueResult(result);
-            var literal = $"literal_{context.NextNumber}";
-            result.StringBuilder.AppendLine($"var {literal} = (LiteralExpression){context.Caller};");
-            result.StringBuilder.AppendLine($"{result.Result} = {literal}.Value;");
+            //context.DeclareFluidValueResult(result);
+            //var literal = $"literal_{context.NextNumber}";
+            //result.AppendLine($"var {literal} = (LiteralExpression){context.Caller};");
+            //result.AppendLine($"{result.Result} = {literal}.Value;");
 
-            // Instead of using an intermediate variable to store the result we
-            // can assign it directly but it's less readable
-            // result.Result = $"((LiteralExpression){context.Caller}).Value";
+            //// Instead of using an intermediate variable to store the result we
+            //// could assign it directly but it's less readable
+            //// result.Result = $"((LiteralExpression){context.Caller}).Value";
 
-            return result;
+            //return result;
         }
     }
 }

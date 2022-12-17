@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System;
+using System.Linq.Expressions;
 using System.Text;
 using Expression = System.Linq.Expressions.Expression;
 
@@ -14,6 +15,16 @@ namespace Fluid.Compilation;
 /// </summary>
 public class CompilationResult
 {
+    private int _indentSize = 4;
+    private string _indent;
+    private StringBuilder _builder = new StringBuilder();
+    private bool _newLine = true;
+
+    public CompilationResult(int indentLevel = 0)
+    {
+        _indent = new string(' ', indentLevel * _indentSize);
+    }
+
     /// <summary>
     /// Gets the list of <see cref="ParameterExpression"/> representing the variables used by the compiled result.
     /// </summary>
@@ -28,7 +39,6 @@ public class CompilationResult
     /// Gets or sets the <see cref="ParameterExpression"/> of the <see cref="ValueTask{Completion}"/> variable representing the value of the statement.
     /// </summary>
     public ParameterExpression Completion { get; set; }
-
     
     /// <summary>
     /// Gets or sets the <see cref="ParameterExpression"/> of the <see cref="ValueTask"/> variable representing the value of the template.
@@ -37,8 +47,63 @@ public class CompilationResult
 
     public string Caller { get; set; }
 
-    public StringBuilder StringBuilder { get; private set; } = new StringBuilder(4096);
-
     public bool IsAsync { get; set; }
 
+    public CompilationResult Indent()
+    {
+        _builder.Append(_indent);
+        
+        return this;
+    }
+    public CompilationResult Append(string text)
+    {
+        if (_newLine)
+        {
+            Indent();
+        }
+
+        WriteIndentedLines(text);
+
+        return this;
+    }
+
+    public CompilationResult AppendLine()
+    {
+        _builder.AppendLine();
+        _newLine = true;
+
+        return this;
+    }
+
+    public CompilationResult AppendLine(string text)
+    {
+        if (_newLine)
+        {
+            Indent();
+        }
+
+        WriteIndentedLines(text);
+        AppendLine();
+        _newLine = true;
+
+        return this;
+    }
+
+    public override string ToString()
+    {
+        return _builder.ToString();
+    }
+
+    private void WriteIndentedLines(string text)
+    {
+        foreach (var c in text)
+        {
+            _builder.Append(c);
+
+            if (c == '\n')
+            {
+                Indent();
+            }
+        }
+    }
 }

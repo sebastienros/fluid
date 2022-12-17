@@ -1,13 +1,13 @@
-﻿using Fluid.Ast.BinaryExpressions;
+﻿using Fluid.Compilation;
 using Fluid.Values;
-using System;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
     public class RangeExpression : Expression
     {
+        private FluidValue _cached = NilValue.Instance;
+
         public RangeExpression(Expression from, Expression to)
         {
             From = from;
@@ -20,6 +20,11 @@ namespace Fluid.Ast
 
         public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
+            if (_cached != NilValue.Instance)
+            {
+                return _cached;
+            }
+
             int start, end;
 
             var startTask = From.EvaluateAsync(context);
@@ -30,7 +35,16 @@ namespace Fluid.Ast
                 start = Convert.ToInt32(startTask.Result.ToNumberValue());
                 end = Convert.ToInt32(endTask.Result.ToNumberValue());
 
-                return BuildArray(start, end);
+                var result = BuildArray(start, end);
+
+                // If both expressions are constant the range can be cached
+                
+                if (From.IsConstantExpression() && To.IsConstantExpression()) 
+                {
+                    _cached = result;
+                }
+
+                return result;
             }
             else
             {

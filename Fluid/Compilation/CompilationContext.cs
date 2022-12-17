@@ -21,6 +21,7 @@ public class CompilationContext
     {
         Options = options;
     }
+    public int IndentLevel { get; set; } = 0;
 
     /// <summary>
     /// Gets or sets whether the compiled code should generate the forloop helpers.
@@ -52,14 +53,19 @@ public class CompilationContext
     public int NextNumber => _number++;
 
     /// <summary>
-    /// Gets the list of global variables to add the the final list of statements.
+    /// Gets the list of global members to add to the static constructor of the template class.
     /// </summary>
-    public List<ParameterExpression> GlobalVariables { get; } = new();
+    public List<string> GlobalMembers { get; } = new();
 
     /// <summary>
-    /// Gets the list of global expressions to add the the final list of statements.
+    /// Gets the list of static statements to add to the static constructor of the template class.
     /// </summary>
-    public List<Expression> GlobalExpressions { get; } = new();
+    public List<string> StaticStatements { get; } = new();
+
+    /// <summary>
+    /// Gets the list of global statements to add to the initializing phase of the template class.
+    /// </summary>
+    public List<string> GlobalStatements { get; } = new();
 
     /// <summary>
     /// Gets the list of shared lambda expressions representing intermediate statements or expressions.
@@ -72,4 +78,19 @@ public class CompilationContext
     public TemplateOptions Options { get; private set; }
 
     public string Caller { get; set; }
+
+    public CompilationResult CreateCompilationResult()
+    {
+        return new CompilationResult(this.IndentLevel);
+    }
+    
+    public void EnterLevel()
+    {
+        IndentLevel++;
+    }
+
+    public void ExitLevel()
+    {
+        IndentLevel--;
+    }
 }

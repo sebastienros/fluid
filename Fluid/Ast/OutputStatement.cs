@@ -45,17 +45,16 @@ namespace Fluid.Ast
 
         public CompilationResult Compile(CompilationContext context)
         {
-            var result = new CompilationResult();
-            result.IsAsync = true;
+            var result = context.CreateCompilationResult();
 
             var outputStatement = $"outputStatement_{context.NextNumber}";
             
-            result.StringBuilder.AppendLine($"var {outputStatement} = (OutputStatement){context.Caller};");
+            result.AppendLine($"var {outputStatement} = (OutputStatement){context.Caller};");
             var expressionAccessor = $"{outputStatement}.Expression";
             var expressionResult = CompilationHelpers.CompileExpression(Expression, expressionAccessor, context);
 
-            result.StringBuilder.AppendLine(expressionResult.StringBuilder.ToString());
-            result.StringBuilder.AppendLine($"{expressionResult.Result}.WriteTo({context.TextWriter}, {context.TextEncoder}, {context.TemplateContext}.CultureInfo);");
+            result.AppendLine(expressionResult.ToString());
+            result.AppendLine($"{expressionResult.Result}.WriteTo({context.TextWriter}, {context.TextEncoder}, {context.TemplateContext}.CultureInfo);");
 
             return result;
         }

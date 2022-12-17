@@ -178,9 +178,9 @@ namespace Fluid.Ast
 
         public CompilationResult Compile(CompilationContext context)
         {
-            var result = new CompilationResult();
+            var result = context.CreateCompilationResult();
 
-            var builder = result.StringBuilder;
+            var builder = result;
 
             var forStatement = $"forStatement_{context.NextNumber}";
             var source = $"source_{context.NextNumber}";
@@ -197,7 +197,7 @@ namespace Fluid.Ast
             for (var i = 0; i < Statements.Count; i++)
             {
                 var statementResult = CompilationHelpers.CompileStatement(Statements[i], $"{forStatement}.Statements[{i}]", context);
-                builder.Append("    ").AppendLine(statementResult.StringBuilder.ToString());
+                builder.Append("    ").AppendLine(statementResult.ToString());
             }
 
             builder.AppendLine("}");

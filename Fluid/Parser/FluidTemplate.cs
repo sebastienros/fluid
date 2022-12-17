@@ -77,7 +77,7 @@ namespace Fluid.Parser
 
         public CompilationResult Compile(CompilationContext context)
         {
-            var result = new CompilationResult();
+            var result = context.CreateCompilationResult();
             
             var caller = context.Caller;
 
@@ -86,8 +86,7 @@ namespace Fluid.Parser
                 var statementAccessor = $"{caller}.Statements[{i}]";
 
                 var statementResult = CompilationHelpers.CompileStatement(Statements[i], statementAccessor, context);
-                result.StringBuilder.AppendLine(statementResult.StringBuilder.ToString());
-                result.StringBuilder.Append(result.IsAsync ? "await " : "").Append(statementResult.Result);
+                result.AppendLine(statementResult.ToString());
             }
 
             return result;

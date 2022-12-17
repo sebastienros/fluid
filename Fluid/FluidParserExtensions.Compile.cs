@@ -13,12 +13,14 @@ namespace Fluid;
 
 public static partial class FluidParserExtensions
 {
-    public static string GenerateCode(this FluidParser parser, string template)
+    public static (string Body, string StaticStatements, string GlobalStatements, string Variables) GenerateCode(this FluidParser parser, string template)
     {
-        return GenerateCodeInternal(parser, template).Code;
+        var result = GenerateCodeInternal(parser, template);
+
+        return (result.Body, result.StaticStatements, result.GlobalStatements, result.Variables);
     }
 
-    public static (string Code, IStatementList FluidTemplate) GenerateCodeInternal(this FluidParser parser, string template)
+    public static (string Body, string StaticStatements, string GlobalStatements, string Variables, IStatementList FluidTemplate) GenerateCodeInternal(this FluidParser parser, string template)
     {
         var fluidTemplate = parser.Parse(template);
 
@@ -34,7 +36,10 @@ public static partial class FluidParserExtensions
 
         var compilationResult = compilable.Compile(compilationContext);
 
-        return (compilationResult.StringBuilder.ToString(), compilable);
+        return (compilationResult.ToString(), 
+            String.Join(Environment.NewLine, compilationContext.StaticStatements),
+            String.Join(Environment.NewLine, compilationContext.GlobalStatements),
+            String.Join(Environment.NewLine, compilationContext.GlobalMembers), compilable);
     }
 
     public static IFluidTemplate Compile(this FluidParser parser, string template)
@@ -53,6 +58,14 @@ using System.Threading.Tasks;
 public class MyTemplate : IFluidTemplate
 {
     private IStatementList _template;
+    private volatile bool _initialized = false;
+
+    $VARIABLES$
+
+    static MyTemplate()
+    {
+        $STATICSTATEMENTS$
+    }
 
     public MyTemplate(IStatementList template)
     {
@@ -61,20 +74,30 @@ public class MyTemplate : IFluidTemplate
 
     public async ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
     {
+        if (!_initialized)
+        {
+            $INITSTATEMENTS$
+        }
+        
         $SOURCE$
 
+        _initialized = true;
+        
         await Task.CompletedTask;
     }
 }
 """;
 
-        var (code, fluidTemplate) = GenerateCodeInternal(parser, template);
+        var (body, staticStatements, globalStatements, variables, fluidTemplate) = GenerateCodeInternal(parser, template);
 
-        var sourceCode = source.Replace("$SOURCE$", code);
+        source = source.Replace("$SOURCE$", body);
+        source = source.Replace("$STATICSTATEMENTS$", staticStatements);
+        source = source.Replace("$INITSTATEMENTS$", globalStatements);
+        source = source.Replace("$VARIABLES$", variables);
 
-        var codeString = SourceText.From(sourceCode);
+        var codeString = SourceText.From(source);
 
-        File.WriteAllText("c:\\temp\\fluid.cs", sourceCode);
+        File.WriteAllText("c:\\temp\\fluid.cs", source);
 
         var options = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp11);
 

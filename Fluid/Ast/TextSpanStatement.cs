@@ -180,7 +180,7 @@ namespace Fluid.Ast
         {
             PrepareBuffer(context.Options);
 
-            var result = new CompilationResult();
+            var result = context.CreateCompilationResult();
 
             //context.IncrementSteps();
 
@@ -188,8 +188,22 @@ namespace Fluid.Ast
 
             if (!_isEmpty)
             {
-                result.StringBuilder.AppendLine($@"await {context.TextWriter}.WriteAsync(@""{_buffer}"");");
+                using (var reader = new StringReader(_buffer))
+                {
+                    while (true)
+                    {
+                        var line = reader.ReadLine();
+
+                        if (line == null)
+                        {
+                            break;
+                        }
+
+                        result.AppendLine($@"await {context.TextWriter}.WriteAsync(@""{line}"");");
+                    }
+                }
             }
+
             return result;
         }
     }
