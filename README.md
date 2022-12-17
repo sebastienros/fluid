@@ -372,9 +372,11 @@ Tuesday, August 1, 2017
 
 ### System time zone
 
-`TemplateOptions` and `TemplateContext` provides a property to define a default time zone to use when parsing date and times. The default value is the current system's time zone.
-When dates and times are parsed and don't specify a time zone, the default one is assumed. Setting a custom one can also prevent different environments (data centers) from
+`TemplateOptions` and `TemplateContext` provides a property to define a default time zone to use when parsing date and times. The default value is the current system's time zone. Setting a custom one can also prevent different environments (data centers) from
 generating different results.
+
+- When dates and times are parsed and don't specify a time zone, the configured one is assumed. 
+- When a time zone is provided in the source string, the resulting date time uses it.
 
 > Note: The `date` filter conforms to the Ruby date and time formats https://ruby-doc.org/core-3.0.0/Time.html#method-i-strftime. To use the .NET standard date formats, use the `format_date` filter.
 

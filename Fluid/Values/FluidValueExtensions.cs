@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using TimeZoneConverter;
 
 namespace Fluid.Values
 {
@@ -8,10 +9,13 @@ namespace Fluid.Values
         private const string Now = "now";
         private const string Today = "today";
 
+        // The K specifier is optional when used in TryParseExact, so
+        // if a TZ is not specified, it will still match
+
         private static readonly string[] DefaultFormats = {
-            "yyyy-MM-ddTHH:mm:ss.FFF",
-            "yyyy-MM-ddTHH:mm:ss",
-            "yyyy-MM-ddTHH:mm",
+            "yyyy-MM-ddTHH:mm:ss.FFFK",
+            "yyyy-MM-ddTHH:mm:ssK",
+            "yyyy-MM-ddTHH:mmK",
             "yyyy-MM-dd",
             "yyyy-MM",
             "yyyy"
@@ -53,6 +57,8 @@ namespace Fluid.Values
 
             if (input.Type == FluidValues.String)
             {
+                var timeZoneProvided = false;
+
                 var stringValue = input.ToStringValue();
 
                 if (stringValue == Now || stringValue == Today)
@@ -63,30 +69,52 @@ namespace Fluid.Values
                 {
                     var success = true;
 
-                    if (!DateTime.TryParseExact(stringValue, DefaultFormats, context.CultureInfo, DateTimeStyles.None, out var dateTime))
+                    // Use DateTimeOffset.Parse to extract the TZ if it's specified.
+                    // We then verify if a TZ was set in the source string by using DateTime.Parse's Kind which will return Unspecified if not set.
+
+                    if (!DateTimeOffset.TryParseExact(stringValue, DefaultFormats, context.CultureInfo, DateTimeStyles.AssumeUniversal, out result))
                     {
-                        if (!DateTime.TryParseExact(stringValue, SecondaryFormats, context.CultureInfo, DateTimeStyles.None, out dateTime))
+                        if (!DateTimeOffset.TryParseExact(stringValue, SecondaryFormats, context.CultureInfo, DateTimeStyles.AssumeUniversal, out result))
                         {
-                            if (!DateTime.TryParse(stringValue, context.CultureInfo, DateTimeStyles.None, out dateTime))
+                            if (!DateTimeOffset.TryParse(stringValue, context.CultureInfo, DateTimeStyles.AssumeUniversal, out result))
                             {
-                                if (!DateTime.TryParse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out dateTime))
+                                if (!DateTimeOffset.TryParse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out result))
                                 {
                                     success = false;
                                 }
+                                else
+                                {
+                                    timeZoneProvided = DateTime.TryParse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out var timeZoneDateTime) && timeZoneDateTime.Kind != DateTimeKind.Unspecified;
+                                }
                             }
-                        }
-                    }
-
-                    // If no timezone is specified, assume local using the configured timezone
-                    if (success)
-                    {
-                        if (dateTime.Kind == DateTimeKind.Unspecified)
-                        {
-                            result = new DateTimeOffset(dateTime, context.TimeZone.GetUtcOffset(dateTime));
+                            else
+                            {
+                                timeZoneProvided = DateTime.TryParse(stringValue, context.CultureInfo, DateTimeStyles.None, out var timeZoneDateTime) && timeZoneDateTime.Kind != DateTimeKind.Unspecified;
+                            }
                         }
                         else
                         {
-                            result = new DateTimeOffset(dateTime);
+                            timeZoneProvided = DateTime.TryParseExact(stringValue, SecondaryFormats, context.CultureInfo, DateTimeStyles.None, out var timeZoneDateTime) && timeZoneDateTime.Kind != DateTimeKind.Unspecified;
+                        }
+                    }
+                    else
+                    {
+                        timeZoneProvided = DateTime.TryParseExact(stringValue, DefaultFormats, context.CultureInfo, DateTimeStyles.None, out var timeZoneDateTime) && timeZoneDateTime.Kind != DateTimeKind.Unspecified;
+                    }
+
+                    if (success)
+                    {
+                        // If no timezone is specified in the source string, only use the date time part of the result
+                        if (!timeZoneProvided)
+                        {
+                            // A timezone is represented as a UTC offset, but this can vary based on daylight saving times.
+                            // Hence we don't use context.TimeZone.BaseUtcOffset which is fixed, but TimeZone.GetUtcOffset
+                            // to get the actual timezone offset at the moment of the parsed date and time
+
+                            var dateTime = result.DateTime;
+                            var offset = context.TimeZone.GetUtcOffset(dateTime);
+
+                            result = new DateTimeOffset(dateTime, offset);
                         }
                     }
 

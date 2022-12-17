@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Fluid.Filters;
+using Fluid.Values;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
-using Fluid.Filters;
-using Fluid.Values;
+using TimeZoneConverter;
 using Xunit;
 
 namespace Fluid.Tests
@@ -300,6 +301,27 @@ namespace Fluid.Tests
             var result = await MiscFilters.ChangeTimeZone(input, arguments, context);
 
             Assert.Equal(expected, ((DateTimeOffset)result.ToObjectValue()).ToString("yyyy-MM-ddTHH:mm:ssK"));
+        }
+
+        [Theory]
+        [InlineData("2022-12-13T21:02:18.399+00:00", "utc", "2022-12-13T21:02:18.399+00:00")]
+        [InlineData("2022-12-13T21:02:18.399+00:00", "America/New_York", "2022-12-13T21:02:18.399+00:00")]
+        [InlineData("2022-12-13T21:02:18.399+00:00", "Australia/Adelaide", "2022-12-13T21:02:18.399+00:00")]
+        [InlineData("2022-12-13T21:02:18.399", "utc", "2022-12-13T21:02:18.399+00:00")]
+        [InlineData("2022-12-13T21:02:18.399", "America/New_York", "2022-12-13T21:02:18.399-05:00")]
+        [InlineData("2022-12-13T21:02:18.399", "Australia/Adelaide", "2022-12-13T21:02:18.399+10:30")]
+        [InlineData("2022-12-13T21:02:18.399+01:00", "utc", "2022-12-13T21:02:18.399+01:00")] // Parsed as UTC+1, converted to UTC
+        public async Task DateFilterUsesContextTimezone(string initialDateTime, string timeZone, string expected)
+        {
+            // - When a TZ is provided in the source string, the resulting DateTimeOffset uses it
+            // - When no TZ is provided, we assume the local offset (context.TimeZone)
+
+            var input = new StringValue(initialDateTime);
+            var context = new TemplateContext { TimeZone = TZConvert.GetTimeZoneInfo(timeZone) };
+
+            var date = await MiscFilters.Date(input, new FilterArguments(new StringValue(RoundTripDateTimePattern)), context);
+
+            Assert.Equal(expected, date.ToStringValue());
         }
 
         [Theory]
