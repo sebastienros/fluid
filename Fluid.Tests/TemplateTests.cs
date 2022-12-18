@@ -364,14 +364,14 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task ShouldEvaluateStringIndex()
+        public async Task StringIndexerReturnsNil()
         {
-            _parser.TryParse("{{ x[1] }}", out var template, out var error);
+            _parser.TryParse("{% if x[0] == blank %}true{% else %}false{% endif %}", out var template, out var error);
             var context = new TemplateContext();
             context.SetValue("x", "abc");
 
             var result = await template.RenderAsync(context);
-            Assert.Equal("b", result);
+            Assert.Equal("true", result);
         }
 
         [Fact]
