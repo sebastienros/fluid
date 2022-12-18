@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFrameworks>net7.0</TargetFrameworks>
     <LangVersion>9</LangVersion>
     <IsPackable>true</IsPackable>
     <PackageIcon>logo_64x64.png</PackageIcon>
