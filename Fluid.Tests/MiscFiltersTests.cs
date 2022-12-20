@@ -455,6 +455,20 @@ namespace Fluid.Tests
             Assert.Equal("08/01/17", result.ToStringValue());
         }
 
+        [Fact]
+        public async Task DateWithoutFormatShouldReturnInput()
+        {
+            var input = new StringValue("08/01/2017");
+
+            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture, TimeZone = TimeZoneInfo.Utc };
+            var context = new TemplateContext(options);
+
+            var result = await MiscFilters.Date(input, FilterArguments.Empty, context);
+
+            Assert.IsType<DateTimeValue>(result);
+            Assert.Equal("2017-08-01 00:00:00Z", result.ToStringValue());
+        }
+
         [Theory]
         [InlineData(0, "1969-12-31T19:00:00.000-05:00")]
         [InlineData(10, "1969-12-31T19:00:10.000-05:00")]
