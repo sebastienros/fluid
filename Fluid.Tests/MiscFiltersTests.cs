@@ -236,7 +236,7 @@ namespace Fluid.Tests
         [InlineData("%-m", "8")]
         [InlineData("%M", "04")]
         [InlineData("%n", "\n")]
-        [InlineData("%N", "123000000")]
+        [InlineData("%N", "123456800")] // nanoseconds are parsed to the 7th digit
         [InlineData("%3N", "123")]
         [InlineData("%1N", "1")]
         [InlineData("%p", "PM")]
@@ -275,7 +275,7 @@ namespace Fluid.Tests
         [InlineData("It is %r", "It is 05:04:36 PM")]
         [InlineData("Chained %z%:z%a%a%^a", "Chained +0800+08:00TueTueTUE")]
         [InlineData("%Y-%m-%dT%H:%M:%S.%L", "2017-08-01T17:04:36.123")]
-        public async Task Date(string format, string expected, string dateTime = "2017-08-01T17:04:36.123+08:00")
+        public async Task Date(string format, string expected, string dateTime = "2017-08-01T17:04:36.123456789+08:00")
         {
             var arguments = new FilterArguments(new StringValue(format));
             var options = new TemplateOptions() { CultureInfo = new CultureInfo("en-US", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };

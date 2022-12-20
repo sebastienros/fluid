@@ -467,7 +467,11 @@ namespace Fluid.Filters
                                 result.Append(Format(value.Minute, 2));
                                 break;
                             case 'n': result.Append(new String('\n', width ?? 1)); break;
-                            case 'N': var v = value.Millisecond.ToString(context.CultureInfo); width ??= 9;  result.Append(v.Length >= width ? v.Substring(0, width.Value) : v.PadRight(width.Value, '0')); break;
+                            case 'N':
+                                width ??= 9;
+                                var v = (value.Ticks % 10000000).ToString(context.CultureInfo);
+                                result.Append(v.Length >= width ? v.Substring(0, width.Value) : v.PadRight(width.Value, '0')); 
+                                break;
                             case 'p': result.Append(value.ToString("tt", context.CultureInfo).ToUpper()); break;
                             case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLower()); break;
                             case 'r':
