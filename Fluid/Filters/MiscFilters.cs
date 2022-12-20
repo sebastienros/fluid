@@ -288,7 +288,7 @@ namespace Fluid.Filters
 
             if (arguments.At(0).IsNil())
             {
-                return new DateTimeValue(value);
+                return NilValue.Instance;
             }
 
             var timeZone = arguments.At(0).ToStringValue();
