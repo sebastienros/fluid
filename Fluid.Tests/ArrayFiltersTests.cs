@@ -110,6 +110,27 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void ConcatSingleValue()
+        {
+            var input = new StringValue("a");
+
+            var arguments = new FilterArguments().Add(
+                new ArrayValue(new[] {
+                    new StringValue("1"),
+                    new StringValue("2"),
+                    new StringValue("3")
+                    })
+            );
+
+            var context = new TemplateContext();
+
+            var result = ArrayFilters.Concat(input, arguments, context);
+
+            Assert.Equal("a", result.Result.Enumerate(context).First().ToStringValue());
+            Assert.Equal(4, result.Result.Enumerate(context).Count());
+        }
+
+        [Fact]
         public async Task Map()
         {
             var input = new ArrayValue(new[] {

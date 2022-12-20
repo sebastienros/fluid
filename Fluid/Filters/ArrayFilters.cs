@@ -49,26 +49,37 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Concat(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (input.Type != FluidValues.Array)
+            var arg = arguments.At(0);
+
+            if (input.Type != FluidValues.Array && arg.Type != FluidValues.Array)
             {
                 return input;
             }
-
-            if (arguments.At(0).Type != FluidValues.Array)
-            {
-                return input;
-            }
-
+            
             var concat = new List<FluidValue>();
 
-            foreach(var item in input.Enumerate(context))
+            if (input.Type == FluidValues.Array)
             {
-                concat.Add(item);
+                foreach (var item in input.Enumerate(context))
+                {
+                    concat.Add(item);
+                }
+            }
+            else
+            {
+                concat.Add(input);
             }
 
-            foreach (var item in arguments.At(0).Enumerate(context))
+            if (arg.Type == FluidValues.Array)
             {
-                concat.Add(item);
+                foreach (var item in arg.Enumerate(context))
+                {
+                    concat.Add(item);
+                }
+            }
+            else
+            {
+                concat.Add(arg);
             }
 
             return new ArrayValue(concat);
