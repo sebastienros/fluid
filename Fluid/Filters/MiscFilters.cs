@@ -309,7 +309,7 @@ namespace Fluid.Filters
 
             if (arguments.At(0).IsNil())
             {
-                return NilValue.Instance;
+                return new DateTimeValue(value);
             }
 
             var format = arguments.At(0).ToStringValue();
