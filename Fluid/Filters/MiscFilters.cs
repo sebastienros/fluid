@@ -288,12 +288,21 @@ namespace Fluid.Filters
 
             if (arguments.At(0).IsNil())
             {
-                return NilValue.Instance;
+                return new DateTimeValue(value);
             }
 
             var timeZone = arguments.At(0).ToStringValue();
 
-            if (!TZConvert.TryGetTimeZoneInfo(timeZone, out var timeZoneInfo)) return new DateTimeValue(value);
+            TimeZoneInfo timeZoneInfo;
+
+            if (String.Equals(timeZone, "local", StringComparison.OrdinalIgnoreCase))
+            {
+                timeZoneInfo = context.TimeZone;
+            }
+            else if (!TZConvert.TryGetTimeZoneInfo(timeZone, out timeZoneInfo))
+            {
+                return new DateTimeValue(value);
+            }
 
             var result = TimeZoneInfo.ConvertTime(value, timeZoneInfo);
             return new DateTimeValue(result);

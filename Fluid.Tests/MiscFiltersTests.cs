@@ -11,8 +11,8 @@ namespace Fluid.Tests
 {
     public class MiscFiltersTests
     {
-        private static readonly TimeZoneInfo Pacific = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/Los_Angeles");
-        private static readonly TimeZoneInfo Eastern = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/New_York");
+        private static readonly TimeZoneInfo Pacific = TZConvert.GetTimeZoneInfo("America/Los_Angeles");
+        private static readonly TimeZoneInfo Eastern = TZConvert.GetTimeZoneInfo("America/New_York");
         private static readonly string RoundTripDateTimePattern = "%Y-%m-%dT%H:%M:%S.%L%Z"; // Equivalent to "o" format
 
         [Fact]
@@ -366,6 +366,21 @@ namespace Fluid.Tests
             result = await MiscFilters.Date(result, formatArgument, context);
 
             Assert.Equal(expected, result.ToStringValue().Trim());
+        }
+
+        [Fact]
+        public async Task ShouldChangeToLocalTimeZone()
+        {
+            // - When a TZ is provided in the source string, the resulting DateTimeOffset uses it
+            // - When no TZ is provided, we assume the local offset (context.TimeZone)
+
+            var input = new StringValue("2022-12-13T21:02:18.399+01:00");
+            var context = new TemplateContext { TimeZone = Pacific };
+
+            var date = await MiscFilters.ChangeTimeZone(input, new FilterArguments(new StringValue("local")), context);
+            var formatted = await MiscFilters.Date(date, new FilterArguments(new StringValue(RoundTripDateTimePattern)), context);
+
+            Assert.Equal("2022-12-13T12:02:18.399-08:00", formatted.ToStringValue());
         }
 
         [Fact]
