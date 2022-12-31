@@ -8,6 +8,8 @@ namespace Fluid.Ast.BinaryExpressions
         {
         }
 
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitNotEqualBinaryExpression(this);
+
         internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
             return leftValue.Equals(rightValue)

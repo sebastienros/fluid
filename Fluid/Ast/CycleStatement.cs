@@ -9,22 +9,23 @@ namespace Fluid.Ast
 {
     public sealed class CycleStatement : Statement
     {
-        private readonly Expression[] _values;
+        public IReadOnlyList<Expression> Values;
+
+        public Expression Group { get; }
 
         public CycleStatement(Expression group, Expression[] values)
         {
             Group = group;
-            _values = values;
+            Values = values;
         }
 
         public CycleStatement(Expression group, IList<Expression> values)
         {
             Group = group;
-            _values = values.ToArray();
+            Values = values.ToArray();
         }
 
-        public Expression Group { get; }
-        public IList<Expression> Values2 { get; }
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitCycleStatement(this);
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -39,8 +40,8 @@ namespace Fluid.Ast
                 currentValue = NumberValue.Zero;
             }
 
-            var index = (uint) currentValue.ToNumberValue() % _values.Length;
-            var value = await _values[index].EvaluateAsync(context);
+            var index = (uint) currentValue.ToNumberValue() % Values.Count;
+            var value = await Values[(int)index].EvaluateAsync(context);
             context.SetValue(groupValue, NumberValue.Create(index + 1));
 
             value.WriteTo(writer, encoder, context.CultureInfo);

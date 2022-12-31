@@ -6,6 +6,8 @@ namespace Fluid.Ast
 {
     public class ContinueStatement : Statement
     {
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitContinueStatement(this);
+
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             return Continue();

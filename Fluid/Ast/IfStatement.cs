@@ -27,6 +27,8 @@ namespace Fluid.Ast
 
         public IReadOnlyList<ElseIfStatement> ElseIfs => _elseIfStatements;
 
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIfStatement(this);
+
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var conditionTask = Condition.EvaluateAsync(context);

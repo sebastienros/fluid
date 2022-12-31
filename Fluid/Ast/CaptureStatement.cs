@@ -16,6 +16,8 @@ namespace Fluid.Ast
 
         public string Identifier { get; }
 
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitCaptureStatement(this);
+
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var completion = Completion.Normal;

@@ -9,6 +9,8 @@ namespace Fluid.Ast.BinaryExpressions
         {
         }
 
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitEndsWithBinaryExpression(this);
+
         public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
             var leftValue = await Left.EvaluateAsync(context);

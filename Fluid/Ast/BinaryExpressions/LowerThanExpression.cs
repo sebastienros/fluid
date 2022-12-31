@@ -11,6 +11,8 @@ namespace Fluid.Ast.BinaryExpressions
 
         public bool Strict { get; }
 
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitLowerThanBinaryExpression(this);
+
         internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
             if (leftValue.IsNil() || rightValue.IsNil())

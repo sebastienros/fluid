@@ -17,6 +17,8 @@ namespace Fluid.Ast
 
         public IReadOnlyList<Expression> Options => _options;
 
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitWhenStatement(this);
+
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             // Process statements until next block or end of statements

@@ -20,6 +20,8 @@ namespace Fluid.Ast
         private volatile bool _canBeCached = true;
         private volatile FilterArguments _cachedArguments;
 
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitFilterExpression(this);
+
         public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
             FilterArguments arguments;

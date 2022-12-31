@@ -16,7 +16,7 @@ namespace Fluid.Ast
 
         public Expression Expression { get; }
 
-        public IList<FilterExpression> Filters { get ; }
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitOutputStatement(this);
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {

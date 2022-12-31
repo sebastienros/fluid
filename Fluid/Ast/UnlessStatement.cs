@@ -19,6 +19,8 @@ namespace Fluid.Ast
         public Expression Condition { get; }
         public ElseStatement Else { get; }
 
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitUnlessStatement(this);
+
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             var result = (await Condition.EvaluateAsync(context)).ToBooleanValue();

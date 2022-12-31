@@ -37,5 +37,7 @@ namespace Fluid.Ast
             context.SetValue(Identifier, task.Result);
             return new ValueTask<Completion>(Completion.Normal);
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitAssignStatement(this);
     }
 }

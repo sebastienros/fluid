@@ -19,6 +19,8 @@ namespace Fluid.Ast
 
         public List<MemberSegment> Segments { get; }
 
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitMemberExpression(this);
+
         public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
             // The first segment can only be an IdentifierSegment

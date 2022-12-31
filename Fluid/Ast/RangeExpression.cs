@@ -18,6 +18,8 @@ namespace Fluid.Ast
 
         public Expression To { get; }
 
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitRangeExpression(this);
+
         public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
             if (_cached != NilValue.Instance)

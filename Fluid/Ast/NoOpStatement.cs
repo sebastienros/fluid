@@ -2,13 +2,13 @@
 
 namespace Fluid.Ast
 {
-    public class BreakStatement : Statement
+    public class NoOpStatement : Statement
     {
-        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitBreakStatement(this);
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitNoOpStatement(this);
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            return Break();
+            return Normal();
         }
     }
 }

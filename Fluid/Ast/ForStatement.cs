@@ -31,12 +31,13 @@ namespace Fluid.Ast
         }
 
         public string Identifier { get; }
-        public RangeExpression Range { get; }
         public Expression Source { get; }
         public Expression Limit { get; }
         public Expression Offset { get; }
         public bool Reversed { get; }
-        public Statement Else { get; }
+        public ElseStatement Else { get; }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitForStatement(this);
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {

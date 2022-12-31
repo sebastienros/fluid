@@ -11,6 +11,8 @@ namespace Fluid.Ast
         {
         }
 
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitElseStatement(this);
+
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             for (var i = 0; i < _statements.Count; i++)

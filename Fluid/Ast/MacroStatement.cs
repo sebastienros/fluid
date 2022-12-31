@@ -18,6 +18,8 @@ namespace Fluid.Ast
         public string Identifier { get; }
         public IReadOnlyList<FunctionCallArgument> Arguments { get; }
 
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitMacroStatement(this);
+
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             // Evaluate all default values only once

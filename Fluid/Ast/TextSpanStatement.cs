@@ -143,6 +143,8 @@ namespace Fluid.Ast
             }
         }
 
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitTextSpanStatement(this);
+
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             if (!_isBufferPrepared)

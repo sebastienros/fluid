@@ -131,12 +131,12 @@ sealed class CustomMemberAccessStrategy : MemberAccessStrategy
 {
     public override IMemberAccessor GetAccessor(Type type, string name)
     {
-        switch (name)
+        return name switch
         {
-            case "Id": return IdAccessor.Instance;
-            case "Message": return MessageAccessor.Instance;
-            default: throw new ArgumentException($"Unknown property {name}");
-        }
+            "Id" => IdAccessor.Instance,
+            "Message" => MessageAccessor.Instance,
+            _ => throw new ArgumentException($"Unknown property {name}"),
+        };
     }
 
     public override void Register(Type type, IEnumerable<KeyValuePair<string, IMemberAccessor>> accessors)
@@ -145,7 +145,7 @@ sealed class CustomMemberAccessStrategy : MemberAccessStrategy
 
     sealed class IdAccessor : IMemberAccessor
     {
-        public static IdAccessor Instance = new IdAccessor();
+        public static IdAccessor Instance = new();
 
         public object Get(object obj, string name, TemplateContext ctx)
         {
@@ -155,7 +155,7 @@ sealed class CustomMemberAccessStrategy : MemberAccessStrategy
 
     sealed class MessageAccessor : IMemberAccessor
     {
-        public static MessageAccessor Instance = new MessageAccessor();
+        public static MessageAccessor Instance = new();
 
         public object Get(object obj, string name, TemplateContext ctx)
         {

@@ -17,6 +17,8 @@ namespace Fluid.Ast
 
         public ref readonly TextSpan Text => ref _text;
 
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitRawStatement(this);
+
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             static async ValueTask<Completion> Awaited(Task task)

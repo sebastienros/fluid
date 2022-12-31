@@ -14,6 +14,8 @@ namespace Fluid.Ast
 
         public Expression Condition { get; }
 
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitElseIfStatement(this);
+
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             // Process statements until next block or end of statements

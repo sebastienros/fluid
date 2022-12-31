@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using Fluid.Values;
+﻿using Fluid.Values;
 
 namespace Fluid.Ast
 {
@@ -14,5 +13,7 @@ namespace Fluid.Ast
         /// Use it to cache the value of the expression instead of re-evaluating it.
         /// </remarks>
         public virtual bool IsConstantExpression() => false;
+
+        protected internal virtual Expression Accept(AstVisitor visitor) => visitor.VisitOtherExpression(this);
     }
 }

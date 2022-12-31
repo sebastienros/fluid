@@ -16,6 +16,8 @@ namespace Fluid.Ast
 
         public ref readonly TextSpan Text => ref _text;
 
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitCommentStatement(this);
+
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();

@@ -6,14 +6,14 @@ namespace Fluid.Parser
 {
     public class FluidTemplate : IFluidTemplate, ICompilable, IStatementList
     {
-        internal readonly List<Statement> _statements;
+        internal readonly IReadOnlyList<Statement> _statements;
 
         public FluidTemplate(params Statement[] statements)
         {
             _statements = new List<Statement>(statements ?? Array.Empty<Statement>());
         }
 
-        public FluidTemplate(List<Statement> statements)
+        public FluidTemplate(IReadOnlyList<Statement> statements)
         {
             _statements = statements ?? throw new ArgumentNullException(nameof(statements));
         }

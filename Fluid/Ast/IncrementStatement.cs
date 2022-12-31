@@ -15,6 +15,8 @@ namespace Fluid.Ast
 
         public string Identifier { get; }
 
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIncrementStatement(this);
+
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
