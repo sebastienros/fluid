@@ -16,10 +16,6 @@ var sw = Stopwatch.StartNew();
 
 var parser = new FluidParser();
 sw.Restart();
-var compiledTemplate = parser.Compile(source);
-Console.WriteLine($"Compiled in {sw.Elapsed}");
-
-templates["Compiled"] = compiledTemplate;
 
 var interpreted = parser.Parse(source);
 templates["Interpreted"] = interpreted;
@@ -44,6 +40,7 @@ var fortunes = new Fortune[] {
 };
 
 templates["Custom"] = new CustomTemplate(fortunes);
+templates["Generated"] = new GeneratedTemplate(fortunes);
 
 var options = new TemplateOptions();
 options.MemberAccessStrategy = new CustomMemberAccessStrategy();
@@ -90,7 +87,7 @@ foreach (var (name, template) in templates)
     Console.WriteLine($"{name}: {sw.ElapsedMilliseconds} ms {Math.Round(iterations/ (decimal)sw.ElapsedMilliseconds * 1000, 2)}/s");
 }
 
-record Fortune
+public record Fortune
 {
     public Fortune(int id, string message)
     {
@@ -124,6 +121,23 @@ class CustomTemplate : IFluidTemplate
         }
 
         await writer.WriteAsync(@"</table>");
+    }
+}
+
+class GeneratedTemplate : IFluidTemplate
+{
+    private readonly Fortune[] _fortunes;
+
+    public GeneratedTemplate(Fortune[] fortunes)
+    {
+        _fortunes = fortunes;
+    }
+
+    public ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+    {
+        LiquidTemplates.RenderFortunes(_fortunes, writer);
+        
+        return ValueTask.CompletedTask;
     }
 }
 
