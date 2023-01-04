@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <!--<IncludeBuildOutput>false</IncludeBuildOutput>-->
     <!--<AllowUnsafeBlocks>true</AllowUnsafeBlocks>-->
   </PropertyGroup>
@@ -12,9 +13,19 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.4.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3" PrivateAssets="all" />
+    <PackageReference Include="Parlot" Version="0.0.24" GeneratePathProperty="true" />
+    <PackageReference Include="TimeZoneConverter" Version="6.0.1" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="1.1.1" GeneratePathProperty="true"/>
+
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Fluid\Fluid.csproj" />
+
+    <!-- Package the generator and its dependencies in the analyzer directory of the nuget package -->
+    <None Include="$(OutputPath)\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="$(PkgParlot)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="$(PkgTimeZoneConverter)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="$(PkgMicrosoft_Extensions_FileProviders_Abstractions)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
 </Project>

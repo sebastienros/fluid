@@ -33,7 +33,9 @@ namespace Fluid.Ast
 
         public ref readonly TextSpan Text => ref _text;
 
-        private void PrepareBuffer(TemplateOptions options)
+        public string Buffer => _buffer;
+
+        public void PrepareBuffer(TemplateOptions options)
         {
             if (_isBufferPrepared)
             {

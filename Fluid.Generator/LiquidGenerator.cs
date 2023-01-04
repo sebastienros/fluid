@@ -68,7 +68,6 @@ public class LiquidTemplates
         context.AddSource("LiquidTemplates", sb.ToString());
     }
 
-    const int SpacesPerIndent = 4;
     private static void ProcessFile(in GeneratorExecutionContext context, string filePath, string content, LiquidRenderReceiver? receiver, StringBuilder builder)
     {
         // Generate class name from file name
@@ -97,11 +96,13 @@ public class LiquidTemplates
                 var semanticModel = context.Compilation.GetSemanticModel(invocation.SyntaxTree);
                 var modelType = semanticModel.GetTypeInfo(arguments[0].Expression).Type;
 
-                // var template = new FluidParser().Parse(content) as FluidTemplate;
+                var parser = new FluidParser();
 
-                // var compiler = new AstCompiler();
+                //var template = parser.Parse(content) as FluidTemplate;
 
-                // compiler.RenderTemplate(modelType!, templateName, template!, builder);
+                //var compiler = new AstCompiler();
+
+                //compiler.RenderTemplate(modelType!, templateName, template!, builder);
             }
         }
     }

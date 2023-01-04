@@ -8,18 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Fluid.Generator\Fluid.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\Fluid\Fluid.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="IsLiquidTemplate" Visible="false" />
-  </ItemGroup>
-  <ItemGroup>
-    <AdditionalFiles Include="Templates/fortunes.liquid" IsLiquidTemplate="true" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Templates\" />
-  </ItemGroup>
-  
 </Project>

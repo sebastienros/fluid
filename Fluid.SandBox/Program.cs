@@ -7,8 +7,9 @@ var source = @"<table>
 {%- for f in fortunes -%}
     <tr><td>{{ f.Id }}</td><td>{{ f.Message }}</td></tr>
 {%- endfor -%}
-</table>
-";
+</table>";
+
+//var source = @"{% for i in (1..3) %} Hello {{ i }} World {% endfor %}";
 
 var templates = new Dictionary<string, IFluidTemplate>();
 
@@ -39,24 +40,31 @@ var fortunes = new Fortune[] {
     new (12, "フレームワークのベンチマーク"),
 };
 
-templates["Custom"] = new CustomTemplate(fortunes);
-templates["Generated"] = new GeneratedTemplate(fortunes);
+var compiledTemplate = parser.Compile<ViewModel>(source);
+Console.WriteLine($"Compiled in {sw.Elapsed}");
+templates["Compiled"] = compiledTemplate;
+
+
+//templates["Custom"] = new CustomTemplate(fortunes);
+//templates["Generated"] = new GeneratedTemplate(fortunes);
 
 var options = new TemplateOptions();
-options.MemberAccessStrategy = new CustomMemberAccessStrategy();
+options.MemberAccessStrategy.Register<ViewModel>();
 options.MemberAccessStrategy.Register<Fortune>();
 
-var templateContext = new TemplateContext(options);
+var templateContext = new TemplateContext(new ViewModel { Fortunes = fortunes }, options);
 templateContext.SetValue("fortunes", fortunes);
 
 var iterations = 100000;
 
 // Test
 
-foreach (var template in templates.Values)
+foreach (var template in templates)
 {
     sb.Clear();
-    await template.RenderAsync(Console.Out, NullEncoder.Default, templateContext);
+    Console.WriteLine(template.Key);
+    await template.Value.RenderAsync(Console.Out, NullEncoder.Default, templateContext);
+    Console.WriteLine();
 }
 
 
@@ -99,6 +107,11 @@ public record Fortune
     public string Message;
 }
 
+public record ViewModel
+{
+    public Fortune[] Fortunes = Array.Empty<Fortune>();
+}
+
 class CustomTemplate : IFluidTemplate
 {
     private readonly Fortune[] _fortunes;
@@ -135,45 +148,8 @@ class GeneratedTemplate : IFluidTemplate
 
     public ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
     {
-        LiquidTemplates.RenderFortunes(_fortunes, writer);
+        //LiquidTemplates.RenderFortunes(_fortunes, writer);
         
         return ValueTask.CompletedTask;
-    }
-}
-
-sealed class CustomMemberAccessStrategy : MemberAccessStrategy
-{
-    public override IMemberAccessor GetAccessor(Type type, string name)
-    {
-        return name switch
-        {
-            "Id" => IdAccessor.Instance,
-            "Message" => MessageAccessor.Instance,
-            _ => throw new ArgumentException($"Unknown property {name}"),
-        };
-    }
-
-    public override void Register(Type type, IEnumerable<KeyValuePair<string, IMemberAccessor>> accessors)
-    {
-    }
-
-    sealed class IdAccessor : IMemberAccessor
-    {
-        public static IdAccessor Instance = new();
-
-        public object Get(object obj, string name, TemplateContext ctx)
-        {
-            return ((Fortune)obj).Id.ToString();
-        }
-    }
-
-    sealed class MessageAccessor : IMemberAccessor
-    {
-        public static MessageAccessor Instance = new();
-
-        public object Get(object obj, string name, TemplateContext ctx)
-        {
-            return ((Fortune)obj).Message;
-        }
     }
 }

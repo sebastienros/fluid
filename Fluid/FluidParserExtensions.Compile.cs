@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text;
 using System.Text.Encodings.Web;
 
 namespace Fluid;
@@ -32,6 +33,7 @@ public static partial class FluidParserExtensions
         }
 
         var compilationContext = new CompilationContext();
+
         compilationContext.Caller = "_template";
 
         var compilationResult = compilable.Compile(compilationContext);
@@ -42,61 +44,42 @@ public static partial class FluidParserExtensions
             String.Join(Environment.NewLine, compilationContext.GlobalMembers), compilable);
     }
 
-    public static IFluidTemplate Compile(this FluidParser parser, string template)
-    { 
-        var source = """
+    public static IFluidTemplate Compile<T>(this FluidParser parser, string template)
+    {
+        var fluidTemplate = parser.Parse(template) as FluidTemplate;
+
+        var compiler = new AstCompiler(TemplateOptions.Default);
+
+        var builder = new StringBuilder();
+
+        builder.AppendLine($@"
 using Fluid;
 using Fluid.Ast;
+using Fluid.Compilation;
 using Fluid.Values;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
-public class MyTemplate : IFluidTemplate
-{
-    private IStatementList _template;
-    private volatile bool _initialized = false;
+public class MyTemplate : CompiledTemplateBase, IFluidTemplate
+{{
+");
 
-    $VARIABLES$
+        compiler.RenderTemplate(typeof(T), "", fluidTemplate, builder);
 
-    static MyTemplate()
-    {
-        $STATICSTATEMENTS$
-    }
+        builder.AppendLine($@"
+}}
+");
 
-    public MyTemplate(IStatementList template)
-    {
-        _template = template;
-    }
-
-    public async ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
-    {
-        if (!_initialized)
-        {
-            $INITSTATEMENTS$
-        }
-        
-        $SOURCE$
-
-        _initialized = true;
-        
-        await Task.CompletedTask;
-    }
-}
-""";
-
-        var (body, staticStatements, globalStatements, variables, fluidTemplate) = GenerateCodeInternal(parser, template);
-
-        source = source.Replace("$SOURCE$", body);
-        source = source.Replace("$STATICSTATEMENTS$", staticStatements);
-        source = source.Replace("$INITSTATEMENTS$", globalStatements);
-        source = source.Replace("$VARIABLES$", variables);
+        var source = builder.ToString();
 
         var codeString = SourceText.From(source);
 
+        // Debug generated code
         File.WriteAllText("c:\\temp\\fluid.cs", source);
 
         var options = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp11);
@@ -112,10 +95,12 @@ public class MyTemplate : IFluidTemplate
             MetadataReference.CreateFromFile(Path.Combine(runtimePath, "System.dll")),
             MetadataReference.CreateFromFile(Path.Combine(runtimePath, "System.Core.dll")),
             MetadataReference.CreateFromFile(Path.Combine(runtimePath, "System.Runtime.dll")),
+            MetadataReference.CreateFromFile(Path.Combine(runtimePath, "System.Linq.dll")),
 
             MetadataReference.CreateFromFile(typeof(FluidTemplate).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(TextEncoder).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(ValueTask<>).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(T).Assembly.Location),
         };
 
         var compilation = CSharpCompilation.Create("Hello.dll",
@@ -133,14 +118,18 @@ public class MyTemplate : IFluidTemplate
 
             if (!compiled.Success)
             {
-                throw new ApplicationException("Errors in template compilation.");
+                var failures = compiled.Diagnostics.Where(diagnostic => diagnostic.IsWarningAsError || diagnostic.Severity == DiagnosticSeverity.Error);
 
-                //var failures = compiled.Diagnostics.Where(diagnostic => diagnostic.IsWarningAsError || diagnostic.Severity == DiagnosticSeverity.Error);
+                var errors = new StringBuilder();
 
-                //foreach (var diagnostic in failures)
-                //{
-                //    Console.Error.WriteLine("{0}: {1}", diagnostic.Id, diagnostic.GetMessage());
-                //}
+                foreach (var diagnostic in failures)
+                {
+                    errors.AppendFormat("{0}: {1}\n", diagnostic.Id, diagnostic.GetMessage());
+                }
+
+                Console.Error.WriteLine(errors.ToString());
+
+                throw new ApplicationException("Errors in template compilation: \n" + errors.ToString());
             }
 
             stream.Seek(0, SeekOrigin.Begin);
@@ -151,7 +140,7 @@ public class MyTemplate : IFluidTemplate
         }
 
         var myTemplateType = assembly.GetType("MyTemplate");
-        var myTemplateInstance = Activator.CreateInstance(myTemplateType, fluidTemplate);
+        var myTemplateInstance = Activator.CreateInstance(myTemplateType);
         var myFluidTemplate = myTemplateInstance as IFluidTemplate;
 
         var compiledTemplate = new CompiledTemplate(myFluidTemplate);
