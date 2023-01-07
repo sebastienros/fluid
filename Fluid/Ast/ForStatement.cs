@@ -1,10 +1,9 @@
-﻿using Fluid.Compilation;
-using Fluid.Values;
+﻿using Fluid.Values;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
 {
-    public partial class ForStatement : TagStatement, ICompilable
+    public partial class ForStatement : TagStatement
     {
         private bool _isContinueOffset;
         private string _continueOffsetLiteral;
@@ -175,35 +174,6 @@ namespace Fluid.Ast
             }
 
             return Completion.Normal;
-        }
-
-        public CompilationResult Compile(CompilationContext context)
-        {
-            var result = context.CreateCompilationResult();
-
-            var builder = result;
-
-            var forStatement = $"forStatement_{context.NextNumber}";
-            var source = $"source_{context.NextNumber}";
-            var item = $"item_{context.NextNumber}";
-
-            builder.AppendLine($@"
-    var {forStatement} = (ForStatement){context.Caller};
-    var {source} = (await {forStatement}.Source.EvaluateAsync(context)).Enumerate(context);
-    foreach (var {item} in {source})
-    {{
-        {context.TemplateContext}.SetValue(""{Identifier}"", {item});
-            ");
-
-            for (var i = 0; i < Statements.Count; i++)
-            {
-                var statementResult = CompilationHelpers.CompileStatement(Statements[i], $"{forStatement}.Statements[{i}]", context);
-                builder.Append("    ").AppendLine(statementResult.ToString());
-            }
-
-            builder.AppendLine("}");
-
-            return result;
         }
     }
 }

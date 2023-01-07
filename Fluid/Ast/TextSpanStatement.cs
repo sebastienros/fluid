@@ -1,11 +1,10 @@
-﻿using Fluid.Compilation;
-using Fluid.Utils;
+﻿using Fluid.Utils;
 using Parlot;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
 {
-    public sealed partial class TextSpanStatement : Statement, ICompilable
+    public sealed class TextSpanStatement : Statement
     {
         private bool _isBufferPrepared;
         private bool _isEmpty;
@@ -178,37 +177,6 @@ namespace Fluid.Ast
             }
 
             return new ValueTask<Completion>(Completion.Normal);
-        }
-
-        public CompilationResult Compile(CompilationContext context)
-        {
-            PrepareBuffer(context.Options);
-
-            var result = context.CreateCompilationResult();
-
-            //context.IncrementSteps();
-
-            // IncrementSteps();
-
-            if (!_isEmpty)
-            {
-                using (var reader = new StringReader(_buffer))
-                {
-                    while (true)
-                    {
-                        var line = reader.ReadLine();
-
-                        if (line == null)
-                        {
-                            break;
-                        }
-
-                        result.AppendLine($@"await {context.TextWriter}.WriteAsync(@""{line}"");");
-                    }
-                }
-            }
-
-            return result;
         }
     }
 }

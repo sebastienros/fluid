@@ -52,6 +52,7 @@ namespace Fluid
             TimeZone = options.TimeZone;
             Captured = options.Captured;
             Now = options.Now;
+            TemplateCompilationThreshold = options.TemplateCompilationThreshold;
         }
 
         /// <summary>
@@ -96,6 +97,11 @@ namespace Fluid
         /// Gets or sets the local time zone used when parsing or creating dates without specific ones.
         /// </summary>
         public TimeZoneInfo TimeZone { get; set; } = TemplateOptions.Default.TimeZone;
+
+        /// <summary>
+        /// Gets or sets the number of times the template needs to be rendered before it is compiled automatically. Default is 100. 0 disables compilation.
+        /// </summary>
+        public int TemplateCompilationThreshold { get; set; } = TemplateOptions.Default.TemplateCompilationThreshold;
 
         /// <summary>
         /// Increments the number of statements the current template is processing.

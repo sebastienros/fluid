@@ -1,5 +1,4 @@
 ﻿#if NETCOREAPP3_1_OR_GREATER
-using Fluid.Ast;
 using Fluid.Compilation;
 using Fluid.Parser;
 using Microsoft.CodeAnalysis;
@@ -14,40 +13,19 @@ namespace Fluid;
 
 public static partial class FluidParserExtensions
 {
-    public static (string Body, string StaticStatements, string GlobalStatements, string Variables) GenerateCode(this FluidParser parser, string template)
-    {
-        var result = GenerateCodeInternal(parser, template);
+    private static readonly object _synLock = new();
 
-        return (result.Body, result.StaticStatements, result.GlobalStatements, result.Variables);
-    }
+    public static IFluidTemplate Compile<T>(this FluidParser parser, string template) => parser.Compile(template, typeof(T));
+    public static IFluidTemplate Compile<T>(this FluidTemplate fluidTemplate) => fluidTemplate.Compile(typeof(T));
 
-    public static (string Body, string StaticStatements, string GlobalStatements, string Variables, IStatementList FluidTemplate) GenerateCodeInternal(this FluidParser parser, string template)
-    {
-        var fluidTemplate = parser.Parse(template);
-
-        var compilable = fluidTemplate as FluidTemplate;
-
-        if (compilable == null)
-        {
-            throw new NotSupportedException("The template could not be compiled");
-        }
-
-        var compilationContext = new CompilationContext();
-
-        compilationContext.Caller = "_template";
-
-        var compilationResult = compilable.Compile(compilationContext);
-
-        return (compilationResult.ToString(), 
-            String.Join(Environment.NewLine, compilationContext.StaticStatements),
-            String.Join(Environment.NewLine, compilationContext.GlobalStatements),
-            String.Join(Environment.NewLine, compilationContext.GlobalMembers), compilable);
-    }
-
-    public static IFluidTemplate Compile<T>(this FluidParser parser, string template)
+    public static IFluidTemplate Compile(this FluidParser parser, string template, Type modelType)
     {
         var fluidTemplate = parser.Parse(template) as FluidTemplate;
+        return fluidTemplate.Compile(modelType);
+    }
 
+    public static IFluidTemplate Compile(this FluidTemplate fluidTemplate, Type modelType)
+    {
         var compiler = new AstCompiler(TemplateOptions.Default);
 
         var builder = new StringBuilder();
@@ -65,11 +43,11 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
-public class MyTemplate : CompiledTemplateBase, IFluidTemplate
+public sealed class MyTemplate : CompiledTemplateBase, IFluidTemplate
 {{
 ");
 
-        compiler.RenderTemplate(typeof(T), "", fluidTemplate, builder);
+        compiler.RenderTemplate(modelType, "", fluidTemplate, builder);
 
         builder.AppendLine($@"
 }}
@@ -80,7 +58,13 @@ public class MyTemplate : CompiledTemplateBase, IFluidTemplate
         var codeString = SourceText.From(source);
 
         // Debug generated code
-        File.WriteAllText("c:\\temp\\fluid.cs", source);
+        lock (_synLock)
+        {
+            var filename = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "fluid.cs"));
+            Console.WriteLine(filename);
+            Console.WriteLine(source);
+            File.WriteAllText(filename, source);
+        }
 
         var options = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp11);
 
@@ -96,11 +80,12 @@ public class MyTemplate : CompiledTemplateBase, IFluidTemplate
             MetadataReference.CreateFromFile(Path.Combine(runtimePath, "System.Core.dll")),
             MetadataReference.CreateFromFile(Path.Combine(runtimePath, "System.Runtime.dll")),
             MetadataReference.CreateFromFile(Path.Combine(runtimePath, "System.Linq.dll")),
+            MetadataReference.CreateFromFile(Path.Combine(runtimePath, "System.Collections.dll")),
 
             MetadataReference.CreateFromFile(typeof(FluidTemplate).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(TextEncoder).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(ValueTask<>).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(T).Assembly.Location),
+            MetadataReference.CreateFromFile(modelType.Assembly.Location),
         };
 
         var compilation = CSharpCompilation.Create("Hello.dll",

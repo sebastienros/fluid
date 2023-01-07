@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Fluid.Values;
 using TimeZoneConverter;
-using System.Threading.Tasks;
 using System.Text;
-using System.IO;
 using System.Reflection;
 
 namespace Fluid.Filters

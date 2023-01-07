@@ -1,12 +1,15 @@
 ﻿using Fluid.Ast;
-using Fluid.Compilation;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Parser
 {
-    public class FluidTemplate : IFluidTemplate, ICompilable, IStatementList
+    public class FluidTemplate : IFluidTemplate, IStatementList
     {
         internal readonly IReadOnlyList<Statement> _statements;
+        internal volatile int _count;
+        internal bool _compilationStarted;
+        internal IFluidTemplate _compiledTemplate;
+        private object _synLock = new();
 
         public FluidTemplate(params Statement[] statements)
         {
@@ -37,6 +40,44 @@ namespace Fluid.Parser
                 ExceptionHelper.ThrowArgumentNullException(nameof(context));
             }
 
+#if NETCOREAPP3_1_OR_GREATER
+
+            if (context.TemplateCompilationThreshold > 0 && !_compilationStarted)
+            {
+                if (++_count >= context.TemplateCompilationThreshold)
+                {
+                    // For now we compile only if a model is used
+
+                    lock (_synLock)
+                    {
+                        var modelType = context.Model?.ToObjectValue()?.GetType();
+
+                        if (!_compilationStarted && modelType != null)
+                        {
+                            // Compile the template asynchronously
+                            // Queue the compilation on the thread pool
+                            ThreadPool.QueueUserWorkItem((state) =>
+                            {
+                                _compiledTemplate = this.Compile(modelType);
+                            }, (object)null, false);
+                        }
+
+                        _compilationStarted = true;
+                    }
+                }
+            }
+
+            if (_compiledTemplate != null)
+            {
+                return _compiledTemplate.RenderAsync(writer, encoder, context);
+            }
+#endif
+
+            return RenderAsyncInternal(writer, encoder, context);
+        }
+
+        private ValueTask RenderAsyncInternal(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        {
             var count = Statements.Count;
             for (var i = 0; i < count; i++)
             {
@@ -73,23 +114,6 @@ namespace Fluid.Parser
             {
                 await statements[i].WriteToAsync(writer, encoder, context);
             }
-        }
-
-        public CompilationResult Compile(CompilationContext context)
-        {
-            var result = context.CreateCompilationResult();
-            
-            var caller = context.Caller;
-
-            for (var i = 0; i < Statements.Count; i++)
-            {
-                var statementAccessor = $"{caller}.Statements[{i}]";
-
-                var statementResult = CompilationHelpers.CompileStatement(Statements[i], statementAccessor, context);
-                result.AppendLine(statementResult.ToString());
-            }
-
-            return result;
         }
     }
 }

@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Fluid.Ast
+﻿namespace Fluid.Ast
 {
     public class NamedExpressionList
     {

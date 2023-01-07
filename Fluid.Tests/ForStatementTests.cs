@@ -6,7 +6,6 @@ using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Values;
-using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Fluid.Tests

@@ -1,9 +1,6 @@
 ﻿using Fluid.Values;
-using System;
 using System.Drawing;
 using System.Globalization;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Fluid.Filters
 {

@@ -1,8 +1,6 @@
 ﻿using Fluid.Ast;
 using Fluid.Parser;
-using Fluid.Values;
 using System.Globalization;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -26,7 +24,7 @@ namespace Fluid.Compilation
 
             _defaultIndent = _indent;
 
-            builder.AppendLine(@$"{_indent}var model = context.Model?.ToObjectValue() as {modelType.FullName};");
+            builder.AppendLine(@$"{_indent}var model = context.Model.ToObjectValue() as {modelType.FullName};");
 
             //builder.AppendLine($@"{_indent}TextEncoder encoder = NullEncoder.Default;");
 
@@ -35,8 +33,7 @@ namespace Fluid.Compilation
             builder.Append(_localsb);
             builder.Append(_sb);
 
-            builder.AppendLine(@$"{_indent}writer.Flush();");
-            builder.AppendLine(@$"{_indent}await new ValueTask<int>(0);");
+            builder.AppendLine(@$"{_indent}await writer.FlushAsync();");
 
             DecreaseIndent();
             builder.AppendLine(@$"{_indent}}}");
@@ -54,27 +51,44 @@ namespace Fluid.Compilation
         private Type _modelType;
         private int _locals = 0;
 
-
-        // TODO: 
-        // in forstatement, enumerate the dotnet property directly, and the iterator is a dotnet property too.
-        // Only wrap the properties in a FluidValue when an operation needs to be done on it, like WriteTo, or a filter.
-
         protected internal override Statement VisitForStatement(ForStatement forStatement)
         {
             Visit(forStatement.Source);
             var source = _lastExpressionVariable;
 
-            _modelVariables.Add(forStatement.Identifier);
-            _sb.AppendLine($@"{_indent}foreach (var {forStatement.Identifier} in {source})");
-            _sb.AppendLine($@"{_indent}{{");
-            IncreaseIndent();
-            foreach (var statement in forStatement.Statements)
+            if (_lastExpressionIsModel)
             {
-                Visit(statement);
+                _modelVariables.Add(forStatement.Identifier);
+                _sb.AppendLine($@"{_indent}foreach (var {forStatement.Identifier} in {source})");
+                _sb.AppendLine($@"{_indent}{{");
+                IncreaseIndent();
+                foreach (var statement in forStatement.Statements)
+                {
+                    Visit(statement);
+                }
+                DecreaseIndent();
+                _sb.AppendLine($@"{_indent}}}");
+                _modelVariables.Remove(forStatement.Identifier);
             }
-            DecreaseIndent();
-            _sb.AppendLine($@"{_indent}}}");
-            _modelVariables.Remove(forStatement.Identifier);
+            else
+            {
+                _localVariables.Add(forStatement.Identifier);
+                _sb.AppendLine($@"{_indent}context.EnterForLoopScope();");
+                _sb.AppendLine($@"{_indent}foreach (var {forStatement.Identifier} in {source}.Enumerate(context))");
+                _sb.AppendLine($@"{_indent}{{");
+                IncreaseIndent();
+                _sb.AppendLine($@"{_indent}context.SetValue(""{forStatement.Identifier}"", {forStatement.Identifier});");
+
+                foreach (var statement in forStatement.Statements)
+                {
+                    Visit(statement);
+                }
+                DecreaseIndent();
+                _sb.AppendLine($@"{_indent}}}");
+                _sb.AppendLine($@"{_indent}context.ReleaseScope();");
+                _localVariables.Remove(forStatement.Identifier);
+            }
+            
             return forStatement;
         }
 
@@ -82,12 +96,17 @@ namespace Fluid.Compilation
         {
             var identifierSegment = memberExpression.Segments.FirstOrDefault() as IdentifierSegment;
             var identifier = identifierSegment.Identifier;
+            _lastExpressionIsModel = false;
 
             var property = _modelType.GetProperty(identifier, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
             var field = _modelType.GetField(identifier, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
 
             if (_modelVariables.Contains(identifier))
             {
+                // TODO: Resolve each sub-property from the previous type
+                // if the MethodInfo's case doesn't match the identifier, create a local variable that will be assigned and behave as an alias
+                // e.g., fortune.id => var local = fortune.Id
+
                 var accessor = identifier;
                 foreach (var segment in memberExpression.Segments.Skip(1))
                 {
@@ -102,6 +121,14 @@ namespace Fluid.Compilation
             else if (_localVariables.Contains(identifier))
             {
                 _lastExpressionVariable = identifier;
+                _lastExpressionIsModel = true;
+
+                var accessor = identifier;
+                foreach (var segment in memberExpression.Segments.Skip(1).Reverse())
+                {
+                    accessor = $@"await ({accessor}).GetValueAsync(""{(segment as IdentifierSegment).Identifier}"", context)";
+                    _lastExpressionVariable = accessor;
+                }
             }
             else if (property != null)
             {
@@ -117,7 +144,13 @@ namespace Fluid.Compilation
             }
             else
             {
-                DeclareLocalVariable($@"context.GetValue(""{identifier}"")");
+                var accessor = $@"context.GetValue(""{identifier}"")";
+                foreach (var segment in memberExpression.Segments.Skip(1).Reverse())
+                {
+                    accessor = $@"await ({accessor}).GetValueAsync(""{(segment as IdentifierSegment).Identifier}"", context)";
+                }
+
+                DeclareLocalVariable(accessor);
             }
 
             return memberExpression;
@@ -127,14 +160,20 @@ namespace Fluid.Compilation
         {
             Visit(outputStatement.Expression);
 
-            var target = _lastExpressionVariable;
-
-            if (_modelVariables.Contains(target))
+            if (_lastExpressionIsModel)
             {
-                target = $"FluidValue.Create({target}, context.Options)";
-            }
+                // Dispatching a FluidValue.WriteTo call is expensive
+                // Use this to wrap dotnet objects in FluidValue.
+                // var wrapped = $"FluidValue.Create({_lastExpressionVariable}, context.Options)";
+                // _sb.AppendLine($"{_indent}{wrapped}.WriteTo(writer, encoder, context.CultureInfo);");
 
-            _sb.AppendLine($"{_indent}{target}.WriteTo(writer, encoder, context.CultureInfo);");
+                // Invokes CompiledTemplateBase.Write overloads
+                _sb.AppendLine($"{_indent}await WriteAsync({_lastExpressionVariable}, writer, encoder, context);");
+            }
+            else
+            {
+                _sb.AppendLine($"{_indent}{_lastExpressionVariable}.WriteTo(writer, encoder, context.CultureInfo);");
+            }
 
             return outputStatement;
         }
@@ -181,8 +220,23 @@ namespace Fluid.Compilation
         protected internal override Statement VisitTextSpanStatement(TextSpanStatement textSpanStatement)
         {
             textSpanStatement.PrepareBuffer(_templateOptions);
-            _sb.AppendLine($@"{_indent}writer.Write(""{textSpanStatement.Buffer.Replace("\"", "\"\"").Replace("\\", "\\\\")}"");");
+            using (var sr = new StringReader(textSpanStatement.Buffer))
+            {
+                string line = null;
 
+                if (line != null)
+                {
+                    _sb.AppendLine($@"{_indent}await writer.WriteLineAsync();");
+                }
+
+                while (null != (line = sr.ReadLine()))
+                {
+                    if (!String.IsNullOrEmpty(line))
+                    {
+                        _sb.AppendLine($@"{_indent}await writer.WriteAsync(""{line.Replace("\"", "\"\"").Replace("\\", "\\\\")}"");");
+                    }
+                }
+            }
             return textSpanStatement;
         }
 

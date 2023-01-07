@@ -1,10 +1,6 @@
 ﻿using Fluid.Filters;
-using Fluid.Values;
 using Microsoft.Extensions.FileProviders;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Threading.Tasks;
 
 namespace Fluid
 {
@@ -77,6 +73,10 @@ namespace Fluid
         /// </summary>
         public bool Greedy { get; set; } = true;
 
+        /// <summary>
+        /// Gets or sets the number of times the template needs to be rendered before it is compiled automatically. Default is 100. 0 disables compilation.
+        /// </summary>
+        public int TemplateCompilationThreshold { get; set; } = 5;
 
         public TemplateOptions()
         {

@@ -9,17 +9,11 @@ var source = @"<table>
 {%- endfor -%}
 </table>";
 
-//var source = @"{% for i in (1..3) %} Hello {{ i }} World {% endfor %}";
-
 var templates = new Dictionary<string, IFluidTemplate>();
 
 var sw = Stopwatch.StartNew();
 
 var parser = new FluidParser();
-sw.Restart();
-
-var interpreted = parser.Parse(source);
-templates["Interpreted"] = interpreted;
 
 var sb = new StringBuilder(2048);
 var writer = new StringWriter(sb);
@@ -40,17 +34,20 @@ var fortunes = new Fortune[] {
     new (12, "フレームワークのベンチマーク"),
 };
 
-var compiledTemplate = parser.Compile<ViewModel>(source);
+
+templates["Interpreted"] = parser.Parse(source);
+templates["Custom"] = new CustomTemplate(fortunes);
+templates["CustomAsync"] = new CustomTemplateAsync(fortunes);
+
+sw.Restart();
+templates["Compiled"] = parser.Compile<ViewModel>(source);
 Console.WriteLine($"Compiled in {sw.Elapsed}");
-templates["Compiled"] = compiledTemplate;
-
-
-//templates["Custom"] = new CustomTemplate(fortunes);
-//templates["Generated"] = new GeneratedTemplate(fortunes);
+templates["CompiledObject"] = parser.Compile<object>(source);
 
 var options = new TemplateOptions();
 options.MemberAccessStrategy.Register<ViewModel>();
 options.MemberAccessStrategy.Register<Fortune>();
+// options.TemplateCompilationThreshold = 0;
 
 var templateContext = new TemplateContext(new ViewModel { Fortunes = fortunes }, options);
 templateContext.SetValue("fortunes", fortunes);
@@ -63,10 +60,9 @@ foreach (var template in templates)
 {
     sb.Clear();
     Console.WriteLine(template.Key);
-    await template.Value.RenderAsync(Console.Out, NullEncoder.Default, templateContext);
+    await template.Value.RenderAsync(Console.Out, HtmlEncoder.Default, templateContext);
     Console.WriteLine();
 }
-
 
 // Warmup
 
@@ -75,7 +71,7 @@ foreach (var template in templates.Values)
     for (var k = 1; k < 1000; k++)
     {
         sb.Clear();
-        await template.RenderAsync(writer, NullEncoder.Default, templateContext);
+        await template.RenderAsync(writer, HtmlEncoder.Default, templateContext);
     }
 }
 
@@ -88,14 +84,14 @@ foreach (var (name, template) in templates)
     for (var k = 1; k < iterations; k++)
     {
         sb.Clear();
-        await template.RenderAsync(writer, NullEncoder.Default, templateContext);
+        await template.RenderAsync(writer, HtmlEncoder.Default, templateContext);
     }
 
     Console.WriteLine();
     Console.WriteLine($"{name}: {sw.ElapsedMilliseconds} ms {Math.Round(iterations/ (decimal)sw.ElapsedMilliseconds * 1000, 2)}/s");
 }
 
-public record Fortune
+public class Fortune
 {
     public Fortune(int id, string message)
     {
@@ -103,11 +99,11 @@ public record Fortune
         Message = message;
     }
 
-    public int Id;
-    public string Message;
+    public int Id { get; set; }
+    public string Message { get; init; }
 }
 
-public record ViewModel
+public class ViewModel
 {
     public Fortune[] Fortunes = Array.Empty<Fortune>();
 }
@@ -120,6 +116,33 @@ class CustomTemplate : IFluidTemplate
     {
         _fortunes = fortunes;
     }
+    public ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+    {
+        writer.Write(@"<table>");
+
+        foreach (var f in _fortunes)
+        {
+            writer.Write(@"<tr><td>");
+            writer.Write(encoder.Encode(f.Id.ToString()));
+            writer.Write(@"</td><td>");
+            writer.Write(encoder.Encode(f.Message));
+            writer.Write(@"</td></tr>");
+        }
+
+        writer.Write(@"</table>");
+
+        return ValueTask.CompletedTask;
+    }
+}
+
+class CustomTemplateAsync : IFluidTemplate
+{
+    private readonly Fortune[] _fortunes;
+
+    public CustomTemplateAsync(Fortune[] fortunes)
+    {
+        _fortunes = fortunes;
+    }
     public async ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
     {
         await writer.WriteAsync(@"<table>");
@@ -127,9 +150,9 @@ class CustomTemplate : IFluidTemplate
         foreach (var f in _fortunes)
         {
             await writer.WriteAsync(@"<tr><td>");
-            await writer.WriteAsync(f.Id.ToString());
+            await writer.WriteAsync(encoder.Encode(f.Id.ToString()));
             await writer.WriteAsync(@"</td><td>");
-            await writer.WriteAsync(f.Message);
+            await writer.WriteAsync(encoder.Encode(f.Message));
             await writer.WriteAsync(@"</td></tr>");
         }
 

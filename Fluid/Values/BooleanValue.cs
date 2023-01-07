@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.IO;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -52,7 +51,7 @@ namespace Fluid.Values
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
-            writer.Write(encoder.Encode(ToStringValue()));
+            writer.Write(ToStringValue());
         }
 
         public override object ToObjectValue()

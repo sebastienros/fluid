@@ -1,13 +1,9 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using Fluid.Values;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
-using Fluid.Compilation;
-using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class OutputStatement : Statement, ICompilable
+    public class OutputStatement : Statement
     {
         public OutputStatement(Expression expression)
         {
@@ -42,22 +38,5 @@ namespace Fluid.Ast
 
             return Awaited(task, writer, encoder, context);
         }
-
-        public CompilationResult Compile(CompilationContext context)
-        {
-            var result = context.CreateCompilationResult();
-
-            var outputStatement = $"outputStatement_{context.NextNumber}";
-            
-            result.AppendLine($"var {outputStatement} = (OutputStatement){context.Caller};");
-            var expressionAccessor = $"{outputStatement}.Expression";
-            var expressionResult = CompilationHelpers.CompileExpression(Expression, expressionAccessor, context);
-
-            result.AppendLine(expressionResult.ToString());
-            result.AppendLine($"{expressionResult.Result}.WriteTo({context.TextWriter}, {context.TextEncoder}, {context.TemplateContext}.CultureInfo);");
-
-            return result;
-        }
-
     }
 }

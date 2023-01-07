@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Fluid.Accessors
+﻿namespace Fluid.Accessors
 {
     public class DelegateAccessor : DelegateAccessor<object, object>
     {

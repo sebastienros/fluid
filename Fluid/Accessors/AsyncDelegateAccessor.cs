@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-
-namespace Fluid.Accessors
+﻿namespace Fluid.Accessors
 {
     public class AsyncDelegateAccessor : AsyncDelegateAccessor<object, object>
     {

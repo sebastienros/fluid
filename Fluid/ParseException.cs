@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Fluid
+﻿namespace Fluid
 {
     public class ParseException : Exception
     {

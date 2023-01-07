@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 namespace Fluid.Utils
 {
     internal static class TaskExtensions
