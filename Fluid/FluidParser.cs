@@ -140,9 +140,9 @@ namespace Fluid
             RegisteredOperators["!="] = (a, b) => new NotEqualBinaryExpression(a, b);
             RegisteredOperators["<>"] = (a, b) => new NotEqualBinaryExpression(a, b);
             RegisteredOperators[">"] = (a, b) => new GreaterThanBinaryExpression(a, b, true);
-            RegisteredOperators["<"] = (a, b) => new LowerThanExpression(a, b, true);
+            RegisteredOperators["<"] = (a, b) => new LowerThanBinaryExpression(a, b, true);
             RegisteredOperators[">="] = (a, b) => new GreaterThanBinaryExpression(a, b, false);
-            RegisteredOperators["<="] = (a, b) => new LowerThanExpression(a, b, false);
+            RegisteredOperators["<="] = (a, b) => new LowerThanBinaryExpression(a, b, false);
 
             var CaseValueList = Separated(Terms.Text("or").Or(Terms.Text(",")), Primary);
 

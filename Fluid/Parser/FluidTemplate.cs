@@ -40,7 +40,7 @@ namespace Fluid.Parser
                 ExceptionHelper.ThrowArgumentNullException(nameof(context));
             }
 
-#if NETCOREAPP3_1_OR_GREATER
+#if COMPILATION_SUPPORTED
 
             if (context.TemplateCompilationThreshold > 0 && !_compilationStarted)
             {
@@ -50,16 +50,28 @@ namespace Fluid.Parser
 
                     lock (_synLock)
                     {
-                        var modelType = context.Model?.ToObjectValue()?.GetType();
+                        var modelType = context.Model?.ToObjectValue()?.GetType() ?? typeof(object);
 
                         if (!_compilationStarted && modelType != null)
                         {
-                            // Compile the template asynchronously
-                            // Queue the compilation on the thread pool
-                            ThreadPool.QueueUserWorkItem((state) =>
+                            // THIS IS ONLY FOR HAVING ALL TESTS RUN WITH COMPILED TEMPLATES
+                            // BEGIN
+                            if (context.TemplateCompilationThreshold == 1)
                             {
+                                // Compile synchronously
+
                                 _compiledTemplate = this.Compile(modelType);
-                            }, (object)null, false);
+                            }
+                            // END
+                            else
+                            {
+                                // Compile the template asynchronously
+                                // Queue the compilation on the thread pool
+                                ThreadPool.QueueUserWorkItem((state) =>
+                                {
+                                    _compiledTemplate = this.Compile(modelType);
+                                }, (object)null, false);
+                            }
                         }
 
                         _compilationStarted = true;

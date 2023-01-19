@@ -97,7 +97,7 @@ namespace Fluid.Ast
             return greaterThanBinaryExpression;
         }
 
-        protected internal virtual Expression VisitLowerThanBinaryExpression(LowerThanExpression lowerThanExpression)
+        protected internal virtual Expression VisitLowerThanBinaryExpression(LowerThanBinaryExpression lowerThanExpression)
         {
             Visit(lowerThanExpression.Left);
 

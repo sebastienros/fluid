@@ -1,4 +1,4 @@
-﻿#if NETCOREAPP3_1_OR_GREATER
+﻿#if COMPILATION_SUPPORTED
 using Fluid.Compilation;
 using Fluid.Parser;
 using Microsoft.CodeAnalysis;
@@ -33,6 +33,7 @@ public static partial class FluidParserExtensions
         builder.AppendLine($@"
 using Fluid;
 using Fluid.Ast;
+using Fluid.Ast.BinaryExpressions;
 using Fluid.Compilation;
 using Fluid.Values;
 using System;
@@ -84,6 +85,7 @@ public sealed class MyTemplate : CompiledTemplateBase, IFluidTemplate
 
             MetadataReference.CreateFromFile(typeof(FluidTemplate).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(TextEncoder).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(TextWriter).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(ValueTask<>).Assembly.Location),
             MetadataReference.CreateFromFile(modelType.Assembly.Location),
         };
@@ -93,7 +95,9 @@ public sealed class MyTemplate : CompiledTemplateBase, IFluidTemplate
             references: references,
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
                 optimizationLevel: OptimizationLevel.Release,
-                assemblyIdentityComparer: DesktopAssemblyIdentityComparer.Default));
+                assemblyIdentityComparer: DesktopAssemblyIdentityComparer.Default
+                )
+        );
 
         Assembly assembly;
 

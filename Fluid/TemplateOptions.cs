@@ -76,7 +76,7 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the number of times the template needs to be rendered before it is compiled automatically. Default is 100. 0 disables compilation.
         /// </summary>
-        public int TemplateCompilationThreshold { get; set; } = 5;
+        public int TemplateCompilationThreshold { get; set; } = 1;
 
         public TemplateOptions()
         {

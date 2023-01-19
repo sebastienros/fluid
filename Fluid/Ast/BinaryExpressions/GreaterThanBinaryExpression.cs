@@ -15,9 +15,14 @@ namespace Fluid.Ast.BinaryExpressions
 
         internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
+            return IsGreater(leftValue, rightValue, Strict);
+        }
+
+        public static BooleanValue IsGreater(FluidValue leftValue, FluidValue rightValue, bool strict)
+        {
             if (leftValue.IsNil() || rightValue.IsNil())
             {
-                if (Strict)
+                if (strict)
                 {
                     return BooleanValue.False;
                 }
@@ -29,7 +34,7 @@ namespace Fluid.Ast.BinaryExpressions
 
             if (leftValue is NumberValue)
             {
-                if (Strict)
+                if (strict)
                 {
                     return leftValue.ToNumberValue() > rightValue.ToNumberValue()
                         ? BooleanValue.True
@@ -41,7 +46,7 @@ namespace Fluid.Ast.BinaryExpressions
                     : BooleanValue.False;
             }
 
-            return NilValue.Instance;
+            return BooleanValue.False;
         }
     }
 }

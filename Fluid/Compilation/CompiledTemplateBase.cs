@@ -6,7 +6,8 @@ namespace Fluid.Compilation
 {
     public class CompiledTemplateBase
     {
-        public static FluidValue BuildArray(int start, int end)
+        // Used by a compiled RangeExpression to create a FluidValueArray
+        protected static FluidValue BuildRangeArray(int start, int end)
         {
             // If end < start, we create an empty array
             var list = new FluidValue[Math.Max(0, end - start + 1)];
@@ -67,7 +68,7 @@ namespace Fluid.Compilation
             return writer.WriteAsync(value.ToString("u", context.CultureInfo));
         }
 
-        // TODO: Add other overload for Write()
+        // TODO: Add other overloads for Write()
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Task WriteAsync(object value, TextWriter writer, TextEncoder encoder, TemplateContext context)

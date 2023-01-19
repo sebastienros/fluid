@@ -15,18 +15,21 @@ namespace Fluid.Ast.BinaryExpressions
             var leftValue = await Left.EvaluateAsync(context);
             var rightValue = await Right.EvaluateAsync(context);
 
+           return await EndsWithAsync(leftValue, rightValue, context)
+                        ? BooleanValue.True
+                        : BooleanValue.False;
+        }
+
+        public static async ValueTask<bool> EndsWithAsync(FluidValue leftValue, FluidValue rightValue, TemplateContext context)
+        {
             if (leftValue is ArrayValue)
             {
                 var first = await leftValue.GetValueAsync("last", context);
-                return first.Equals(rightValue)
-                        ? BooleanValue.True
-                        : BooleanValue.False;
+                return first.Equals(rightValue);
             }
             else
             {
-                return leftValue.ToStringValue().EndsWith(rightValue.ToStringValue())
-                        ? BooleanValue.True
-                        : BooleanValue.False;
+                return leftValue.ToStringValue().EndsWith(rightValue.ToStringValue());
             }
         }
     }

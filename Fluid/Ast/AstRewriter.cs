@@ -164,11 +164,11 @@ namespace Fluid.Ast
             return greaterThanBinaryExpression;
         }
 
-        protected internal override Expression VisitLowerThanBinaryExpression(LowerThanExpression lowerThanExpression)
+        protected internal override Expression VisitLowerThanBinaryExpression(LowerThanBinaryExpression lowerThanExpression)
         {
             if (TryRewriteExpression(lowerThanExpression.Left, out var newLeft) | TryRewriteExpression(lowerThanExpression.Right, out var newRight))
             {
-                return new LowerThanExpression(newLeft, newRight, lowerThanExpression.Strict);
+                return new LowerThanBinaryExpression(newLeft, newRight, lowerThanExpression.Strict);
             }
 
             return lowerThanExpression;

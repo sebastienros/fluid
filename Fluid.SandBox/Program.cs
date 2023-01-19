@@ -100,7 +100,7 @@ public class Fortune
     }
 
     public int Id { get; set; }
-    public string Message { get; init; }
+    public string Message { get; }
 }
 
 public class ViewModel
@@ -131,7 +131,7 @@ class CustomTemplate : IFluidTemplate
 
         writer.Write(@"</table>");
 
-        return ValueTask.CompletedTask;
+        return new ValueTask();
     }
 }
 
@@ -157,22 +157,5 @@ class CustomTemplateAsync : IFluidTemplate
         }
 
         await writer.WriteAsync(@"</table>");
-    }
-}
-
-class GeneratedTemplate : IFluidTemplate
-{
-    private readonly Fortune[] _fortunes;
-
-    public GeneratedTemplate(Fortune[] fortunes)
-    {
-        _fortunes = fortunes;
-    }
-
-    public ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
-    {
-        //LiquidTemplates.RenderFortunes(_fortunes, writer);
-        
-        return ValueTask.CompletedTask;
     }
 }
