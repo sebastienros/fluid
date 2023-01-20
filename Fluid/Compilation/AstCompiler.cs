@@ -1,6 +1,7 @@
 ﻿using Fluid.Ast;
 using Fluid.Ast.BinaryExpressions;
 using Fluid.Parser;
+using Fluid.Values;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
@@ -148,7 +149,12 @@ namespace Fluid.Compilation
                 var accessor = $@"context.GetValue(""{identifier}"")";
                 foreach (var segment in memberExpression.Segments.Skip(1).Reverse())
                 {
-                    accessor = $@"await ({accessor}).GetValueAsync(""{(segment as IdentifierSegment).Identifier}"", context)";
+                    accessor = segment switch
+                    {
+                        IdentifierSegment i => $@"await ({accessor}).GetValueAsync(""{i.Identifier}"", context)",
+                        FunctionCallSegment f => $@"await ({accessor}).InvokeAsync(FunctionArguments.Empty, context)",
+                        _ => throw new NotSupportedException("Invalid segment type")
+                    };
                 }
 
                 DeclareLocalValue(accessor);
@@ -181,6 +187,7 @@ namespace Fluid.Compilation
 
         protected string _lastExpressionVariable = "";
         protected bool _lastExpressionIsModel = false;
+        protected FluidValues _lastExpressionType = FluidValues.Nil;
 
         protected internal override Expression VisitLiteralExpression(LiteralExpression literalExpression)
         {
@@ -188,23 +195,23 @@ namespace Fluid.Compilation
 
             switch (literalExpression.Value.Type)
             {
-                case Values.FluidValues.Number:
+                case FluidValues.Number:
                     var number = DeclareLocalValue($@"NumberValue.Create({literalExpression.Value.ToNumberValue().ToString(CultureInfo.InvariantCulture)})");
                     _lastExpressionVariable = number;
                     break;
-                case Values.FluidValues.String: 
+                case FluidValues.String: 
                     var s = DeclareLocalValue($@"StringValue.Create(""{literalExpression.Value.ToStringValue().Replace("\"", "\"\"")}"")");
                     _lastExpressionVariable = s;
                     break;
-                case Values.FluidValues.Boolean:
+                case FluidValues.Boolean:
                     var b = DeclareLocalValue(literalExpression.Value.ToBooleanValue() ? "BooleanValue.True" : "BooleanValue.False");
                     _lastExpressionVariable = b;
                     break;
-                case Values.FluidValues.Blank:
+                case FluidValues.Blank:
                     var blank = DeclareLocalValue("BlankValue.Instance");
                     _lastExpressionVariable = blank;
                     break;
-                case Values.FluidValues.Empty:
+                case FluidValues.Empty:
                     var empty = DeclareLocalValue("EmptyValue.Instance");
                     _lastExpressionVariable = empty;
                     break;
@@ -216,12 +223,12 @@ namespace Fluid.Compilation
         protected internal override Expression VisitRangeExpression(RangeExpression rangeExpression)
         {
             Visit(rangeExpression.From);
-            var from = _lastExpressionVariable;
+            var from = GetLocalObject(FluidValues.Number);
 
             Visit(rangeExpression.To);
-            var to = _lastExpressionVariable;
+            var to = GetLocalObject(FluidValues.Number);
 
-            DeclareLocalValue($@"BuildRangeArray((int){from}.ToNumberValue(), (int){to}.ToNumberValue())");
+            DeclareLocalValue($@"BuildRangeArray((int){from}, (int){to})", FluidValues.Array, false);
 
             return rangeExpression;
         }
@@ -231,6 +238,11 @@ namespace Fluid.Compilation
             // Apply all trim options to the string
 
             textSpanStatement.PrepareBuffer(_templateOptions);
+
+            if (String.IsNullOrEmpty(textSpanStatement._preparedBuffer))
+            {
+                return textSpanStatement;
+            }
 
             // Split the string into separate lines such that each generated
             // string constant fits on a single line in C#
@@ -248,7 +260,7 @@ namespace Fluid.Compilation
                 {
                     if (!String.IsNullOrEmpty(line))
                     {
-                        _sb.AppendLine($@"{_indent}await writer.WriteAsync(""{line.Replace("\"", "\"\"").Replace("\\", "\\\\")}"");");
+                        _sb.AppendLine($@"{_indent}await writer.WriteAsync(""{line.Replace("\\", "\\\\").Replace("\"", "\\\"")}"");");
                     }
                 }
             }
@@ -258,29 +270,25 @@ namespace Fluid.Compilation
         protected internal override Expression VisitEqualBinaryExpression(EqualBinaryExpression equalBinaryExpression)
         {
             Visit(equalBinaryExpression.Left);
-            var left = _lastExpressionVariable;
+            var left = GetLocalValue();
 
             Visit(equalBinaryExpression.Right);
-            var right = _lastExpressionVariable;
+            var right = GetLocalValue();
 
-            DeclareLocalValue($@"{left}.Equals({right}) ? BooleanValue.True : BooleanValue.False");
+            DeclareLocalValue($@"{left}.Equals({right})", FluidValues.Boolean, true);
             
-            _lastExpressionIsModel = false;
-
             return equalBinaryExpression;
         }
 
         protected internal override Expression VisitNotEqualBinaryExpression(NotEqualBinaryExpression notEqualBinaryExpression)
         {
             Visit(notEqualBinaryExpression.Left);
-            var left = _lastExpressionVariable;
+            var left = GetLocalValue();
 
             Visit(notEqualBinaryExpression.Right);
-            var right = _lastExpressionVariable;
+            var right = GetLocalValue();
 
-            DeclareLocalValue($@"!{left}.Equals({right})? BooleanValue.True : BooleanValue.False");
-
-            _lastExpressionIsModel = false;
+            DeclareLocalValue($@"!{left}.Equals({right})", FluidValues.Boolean, true);
 
             return notEqualBinaryExpression;
         }
@@ -288,14 +296,12 @@ namespace Fluid.Compilation
         protected internal override Expression VisitAndBinaryExpression(AndBinaryExpression andBinaryExpression)
         {
             Visit(andBinaryExpression.Left);
-            var left = _lastExpressionVariable;
+            var left = GetLocalObject(FluidValues.Boolean);
 
             Visit(andBinaryExpression.Right);
-            var right = _lastExpressionVariable;
+            var right = GetLocalObject(FluidValues.Boolean);
 
-            DeclareLocalValue($@"({left}.ToBooleanValue() && {right}.ToBooleanValue()) ? BooleanValue.True : BooleanValue.False");
-
-            _lastExpressionIsModel = false;
+            DeclareLocalValue($@"({left} && {right})", FluidValues.Boolean, true);
 
             return andBinaryExpression;
         }
@@ -303,14 +309,12 @@ namespace Fluid.Compilation
         protected internal override Expression VisitOrBinaryExpression(OrBinaryExpression orBinaryExpression)
         {
             Visit(orBinaryExpression.Left);
-            var left = _lastExpressionVariable;
+            var left = GetLocalObject(FluidValues.Boolean);
 
             Visit(orBinaryExpression.Right);
-            var right = _lastExpressionVariable;
+            var right = GetLocalObject(FluidValues.Boolean);
 
-            DeclareLocalValue($@"({left}.ToBooleanValue() || {right}.ToBooleanValue()) ? BooleanValue.True : BooleanValue.False");
-
-            _lastExpressionIsModel = false;
+            DeclareLocalValue($@"({left} || {right})", FluidValues.Boolean, true);
 
             return orBinaryExpression;
         }
@@ -318,14 +322,12 @@ namespace Fluid.Compilation
         protected internal override Expression VisitContainsBinaryExpression(ContainsBinaryExpression containsBinaryExpression)
         {
             Visit(containsBinaryExpression.Left);
-            var left = _lastExpressionVariable;
+            var left = GetLocalValue();
 
             Visit(containsBinaryExpression.Right);
-            var right = _lastExpressionVariable;
+            var right = GetLocalValue();
 
-            DeclareLocalValue($@"{left}.Contains({right}) ? BooleanValue.True : BooleanValue.False");
-
-            _lastExpressionIsModel = false;
+            DeclareLocalValue($@"{left}.Contains({right})", FluidValues.Boolean, true);
 
             return containsBinaryExpression;
         }
@@ -333,14 +335,12 @@ namespace Fluid.Compilation
         protected internal override Expression VisitLowerThanBinaryExpression(LowerThanBinaryExpression lowerThanExpression)
         {
             Visit(lowerThanExpression.Left);
-            var left = _lastExpressionVariable;
+            var left = GetLocalValue();
 
             Visit(lowerThanExpression.Right);
-            var right = _lastExpressionVariable;
+            var right = GetLocalValue();
 
-            DeclareLocalValue($@"LowerThanBinaryExpression.IsLower({left}, {right}, {lowerThanExpression.Strict.ToString().ToLowerInvariant()})");
-            
-            _lastExpressionIsModel = false;
+            DeclareLocalValue($@"LowerThanBinaryExpression.IsLower({left}, {right}, {lowerThanExpression.Strict.ToString().ToLowerInvariant()})", FluidValues.Boolean, true);
 
             return lowerThanExpression;
         }
@@ -348,14 +348,12 @@ namespace Fluid.Compilation
         protected internal override Expression VisitGreaterThanBinaryExpression(GreaterThanBinaryExpression greaterThanExpression)
         {
             Visit(greaterThanExpression.Left);
-            var left = _lastExpressionVariable;
+            var left = GetLocalValue();
 
             Visit(greaterThanExpression.Right);
-            var right = _lastExpressionVariable;
+            var right = GetLocalValue();
 
-            DeclareLocalValue($@"GreaterThanBinaryExpression.IsGreater({left}, {right}, {greaterThanExpression.Strict.ToString().ToLowerInvariant()})");
-
-            _lastExpressionIsModel = false;
+            DeclareLocalValue($@"GreaterThanBinaryExpression.IsGreater({left}, {right}, {greaterThanExpression.Strict.ToString().ToLowerInvariant()})", FluidValues.Boolean, true);
 
             return greaterThanExpression;
         }
@@ -363,14 +361,12 @@ namespace Fluid.Compilation
         protected internal override Expression VisitStartsWithBinaryExpression(StartsWithBinaryExpression startsWithBinaryExpression)
         {
             Visit(startsWithBinaryExpression.Left);
-            var left = _lastExpressionVariable;
+            var left = GetLocalValue();
 
             Visit(startsWithBinaryExpression.Right);
-            var right = _lastExpressionVariable;
+            var right = GetLocalValue();
 
-            DeclareLocalValue($@"await StartsWithBinaryExpression.StartsWithAsync({left}, {right}, context) ? BooleanValue.True : BooleanValue.False");
-
-            _lastExpressionIsModel = false;
+            DeclareLocalValue($@"await StartsWithBinaryExpression.StartsWithAsync({left}, {right}, context)", FluidValues.Boolean, true);
 
             return startsWithBinaryExpression;
         }
@@ -378,14 +374,12 @@ namespace Fluid.Compilation
         protected internal override Expression VisitEndsWithBinaryExpression(EndsWithBinaryExpression endsWithBinaryExpression)
         {
             Visit(endsWithBinaryExpression.Left);
-            var left = _lastExpressionVariable;
+            var left = GetLocalValue();
 
             Visit(endsWithBinaryExpression.Right);
-            var right = _lastExpressionVariable;
+            var right = GetLocalValue();
 
-            DeclareLocalValue($@"await EndsWithBinaryExpression.EndsWithAsync({left}, {right}, context) ? BooleanValue.True : BooleanValue.False");
-
-            _lastExpressionIsModel = false;
+            DeclareLocalValue($@"await EndsWithBinaryExpression.EndsWithAsync({left}, {right}, context)", FluidValues.Boolean, true);
 
             return endsWithBinaryExpression;
         }
@@ -447,27 +441,79 @@ namespace Fluid.Compilation
             _sb.AppendLine($@"{_indent}}}");
         }
 
-        private string DeclareGlobalVariable(string value)
+        private string DeclareGlobalVariable(string value, bool isModel = false)
         {
             _locals++;
             var name = $"local_{_locals}";
             _localsb.AppendLine($@"{_defaultIndent}var {name} = {value};");
             _lastExpressionVariable = name;
+            _lastExpressionIsModel = isModel;
             return name;
+        }
+
+        /// <summary>
+        /// Return the _lastExpressionVariable value as a FluidValue
+        /// </summary>
+        /// <returns></returns>
+        private string GetLocalValue()
+        {
+            var value = _lastExpressionVariable;
+
+            if (!_lastExpressionIsModel)
+            {
+                return value;
+            }
+
+            return _lastExpressionType switch
+            {
+                FluidValues.Boolean => $"{value} ? BooleanValue.True : BooleanValue.False",
+                FluidValues.String => $"StringValue.Create({value})",
+                FluidValues.Number => $"NumberValue.Create({value})",
+                _ => $"FluidValue.Create({_lastExpressionVariable}, context.Options)"
+            };
+        }
+
+        private string GetLocalObject(FluidValues typeHint)
+        {
+            var value = _lastExpressionVariable;
+
+            if (_lastExpressionIsModel)
+            {
+                if (_lastExpressionType == typeHint)
+                {
+                    return value;
+                }
+                else
+                {
+                    value = $"FluidValue.Create({_lastExpressionVariable}, context.Options)";
+                }
+            }
+
+            return typeHint switch
+            {
+                FluidValues.Boolean => $"{value}.ToBooleanValue()",
+                FluidValues.String => $"{value}.ToStringValue()",
+                FluidValues.Number => $"{value}.ToNumberValue()",
+                FluidValues.Array => $"await {value}.Enumerate(context)",
+                _ => throw new NotSupportedException("Invalid type conversion for local value")
+            };
         }
 
         /// <summary>
         /// Defines a new local FluidValue variable
         /// </summary>
         /// <param name="value"></param>
+        /// <param name="type"></param>
+        /// <param name="isModel"></param>
         /// <returns></returns>
-        private string DeclareLocalValue(string value)
+        private string DeclareLocalValue(string value, FluidValues type = FluidValues.Nil, bool isModel = false)
         {
             _locals++;
             var name = $"local_{_locals}";
             _sb.AppendLine($@"{_indent}var {name} = {value};");
             _lastExpressionVariable = name;
-            _lastExpressionIsModel = false;
+            _lastExpressionIsModel = isModel;
+            _lastExpressionType = type;
             return name;
         }
 

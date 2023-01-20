@@ -7,10 +7,9 @@ namespace Fluid.Ast
     public sealed class TextSpanStatement : Statement
     {
         private bool _isBufferPrepared;
-        private bool _isEmpty;
         private readonly object _synLock = new();
         private TextSpan _text;
-        private string _buffer;
+        internal string _preparedBuffer;
 
         public TextSpanStatement(in TextSpan text)
         {
@@ -32,7 +31,7 @@ namespace Fluid.Ast
 
         public ref readonly TextSpan Text => ref _text;
 
-        public string Buffer => _buffer;
+        public string Buffer => _preparedBuffer;
 
         public void PrepareBuffer(TemplateOptions options)
         {
@@ -128,7 +127,7 @@ namespace Fluid.Ast
                     }
                     if (end - start + 1 == 0)
                     {
-                        _isEmpty = true;
+                        _text = "";
                     }
                     else if (start != 0 || end != _text.Length - 1)
                     {
@@ -138,7 +137,7 @@ namespace Fluid.Ast
                         _text = new TextSpan(buffer, offset + start, end - start + 1);
                     }
 
-                    _buffer = _text.ToString();
+                    _preparedBuffer = _text.ToString();
                     _isBufferPrepared = true;
                 }
             }
@@ -153,7 +152,7 @@ namespace Fluid.Ast
                 PrepareBuffer(context.Options);
             }
 
-            if (_isEmpty)
+            if (_preparedBuffer == "")
             {
                 return new ValueTask<Completion>(Completion.Normal);
             }
@@ -170,7 +169,7 @@ namespace Fluid.Ast
                 return Completion.Normal;
             }
 
-            var task = writer.WriteAsync(_buffer);
+            var task = writer.WriteAsync(_preparedBuffer);
             if (!task.IsCompletedSuccessfully())
             {
                 return Awaited(task);
