@@ -13,6 +13,12 @@ To see the corresponding content for v1.0 use [this version](https://github.com/
 
 <br>
 
+## Tutorials
+
+[Deane Barker](https://twitter.com/deane_barker) wrote a [very comprehensive tutorial](https://deanebarker.net/tech/fluid/) on how to write Liquid templates with Fluid.
+
+<br>
+
 ## Features
 
 - Very fast Liquid parser and renderer (no-regexp), with few allocations. See [benchmarks](#performance).
@@ -1003,11 +1009,13 @@ Tested on November 30, 2022 with
 ## Used by
 
 Fluid is known to be used in the following projects:
-- [Orchard Core CMS](https://github.com/OrchardCMS/Orchard2)
+- [Orchard Core CMS](https://github.com/OrchardCMS/Orchard2) Open Source .NET modular framework and CMS
 - [MaltReport](https://github.com/oldrev/maltreport) OpenDocument/OfficeOpenXML powered reporting engine for .NET and Mono
 - [Elsa Workflows](https://github.com/elsa-workflows/elsa-core) .NET Workflows Library
 - [FluentEmail](https://github.com/lukencode/FluentEmail) All in one email sender for .NET
-- [NJsonSchema](https://github.com/RicoSuter/NJsonSchema) Library to read, generate and validate JSON Schema draft v4+ schemas.
+- [NJsonSchema](https://github.com/RicoSuter/NJsonSchema) Library to read, generate and validate JSON Schema draft v4+ schemas
 - [NSwag](https://github.com/RicoSuter/NSwag) Swagger/OpenAPI 2.0 and 3.0 toolchain for .NET
+- [Optimizely](https://world.optimizely.com/blogs/deane-barker/dates/2023/1/introducing-liquid-templating/) An enterprise .NET CMS
+- [Rock](https://github.com/SparkDevNetwork/Rock) Relationship Management System
 
 _Please file an issue to be listed here._
