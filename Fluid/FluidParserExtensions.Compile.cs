@@ -28,9 +28,17 @@ public static partial class FluidParserExtensions
     {
         var compiler = new AstCompiler(TemplateOptions.Default);
 
-        var builder = new StringBuilder();
+        var mainBuilder = new StringBuilder();
 
-        builder.AppendLine($@"
+        var builder = new StringBuilder();
+        var staticsBuilder = new StringBuilder();
+        var staticConstructorBuilder = new StringBuilder();
+
+        compiler.RenderTemplate(modelType, "", fluidTemplate, builder, staticsBuilder, staticConstructorBuilder);
+
+        var className = "MyTemplate";
+
+        mainBuilder.AppendLine($@"
 using Fluid;
 using Fluid.Ast;
 using Fluid.Ast.BinaryExpressions;
@@ -44,17 +52,28 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
-public sealed class MyTemplate : CompiledTemplateBase, IFluidTemplate
+public sealed class {className} : CompiledTemplateBase, IFluidTemplate
 {{
 ");
+        mainBuilder.Append(staticsBuilder);
 
-        compiler.RenderTemplate(modelType, "", fluidTemplate, builder);
+        if (staticConstructorBuilder.Length > 0)
+        {
+            mainBuilder.AppendLine($@"
+    static {className}()
+    {{
+");
+            mainBuilder.Append(staticConstructorBuilder);
+            mainBuilder.AppendLine($@"    }}
+");
 
-        builder.AppendLine($@"
+        }
+        mainBuilder.Append(builder);
+        mainBuilder.AppendLine($@"
 }}
 ");
 
-        var source = builder.ToString();
+        var source = mainBuilder.ToString();
 
         var codeString = SourceText.From(source);
 

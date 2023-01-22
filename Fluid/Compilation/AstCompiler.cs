@@ -2,12 +2,17 @@
 using Fluid.Ast.BinaryExpressions;
 using Fluid.Parser;
 using Fluid.Values;
-using System.Globalization;
+using Microsoft.CodeAnalysis.CSharp;
 using System.Reflection;
 using System.Text;
+using System.Xml.Linq;
 
 namespace Fluid.Compilation
 {
+    /// <remarks>
+    /// Security considerations:
+    /// - String literals should not be able to be escaped (like SQL injection but for C#) and are encoded using SymbolDisplay.FormatLiteral
+    /// </remarks>
     public class AstCompiler : AstVisitor
     {
         public AstCompiler(TemplateOptions templateOptions) 
@@ -15,7 +20,7 @@ namespace Fluid.Compilation
             _templateOptions = templateOptions;
         }
 
-        public void RenderTemplate(Type modelType, string templateName, FluidTemplate template, StringBuilder builder)
+        public void RenderTemplate(Type modelType, string templateName, FluidTemplate template, StringBuilder builder, StringBuilder global, StringBuilder staticConstructor)
         {
             _modelType = modelType;
 
@@ -28,12 +33,12 @@ namespace Fluid.Compilation
 
             builder.AppendLine(@$"{_indent}var model = context.Model?.ToObjectValue() as {modelType.FullName};");
 
-            //builder.AppendLine($@"{_indent}TextEncoder encoder = NullEncoder.Default;");
-
             VisitTemplate(template);
 
-            builder.Append(_localsb);
+            builder.Append(_localSb);
             builder.Append(_sb);
+            global.Append(_staticsSb);
+            staticConstructor.Append(_staticConstructorSb);
 
             builder.AppendLine(@$"{_indent}await writer.FlushAsync();");
 
@@ -43,7 +48,9 @@ namespace Fluid.Compilation
         }
 
         private readonly StringBuilder _sb = new();
-        private readonly StringBuilder _localsb = new();
+        private readonly StringBuilder _localSb = new();
+        private readonly StringBuilder _staticsSb = new();
+        private readonly StringBuilder _staticConstructorSb = new();
         private readonly TemplateOptions _templateOptions;
         private readonly HashSet<string> _localVariables = new();
         private readonly HashSet<string> _modelVariables = new();
@@ -74,6 +81,8 @@ namespace Fluid.Compilation
             }
             else
             {
+                // TODO: Potential optimizations by not defining the iterator in local scope and EnterForLoopScope if it's not used
+
                 _localVariables.Add(forStatement.Identifier);
                 _sb.AppendLine($@"{_indent}context.EnterForLoopScope();");
                 _sb.AppendLine($@"{_indent}foreach (var {forStatement.Identifier} in {source}.Enumerate(context))");
@@ -149,12 +158,25 @@ namespace Fluid.Compilation
                 var accessor = $@"context.GetValue(""{identifier}"")";
                 foreach (var segment in memberExpression.Segments.Skip(1).Reverse())
                 {
-                    accessor = segment switch
+                    if (segment is IdentifierSegment i)
                     {
-                        IdentifierSegment i => $@"await ({accessor}).GetValueAsync(""{i.Identifier}"", context)",
-                        FunctionCallSegment f => $@"await ({accessor}).InvokeAsync(FunctionArguments.Empty, context)",
-                        _ => throw new NotSupportedException("Invalid segment type")
-                    };
+                        accessor = $@"await ({accessor}).GetValueAsync(""{i.Identifier}"", context)";
+                    }
+                    else if (segment is FunctionCallSegment f)
+                    {
+                        // TODO: Evaluate arguments
+                        accessor = $@"await ({accessor}).InvokeAsync(FunctionArguments.Empty, context)";
+                    }
+                    else if (segment is IndexerSegment d)
+                    {
+                        Visit(d.Expression);
+
+                        accessor = $@"await ({accessor}).GetIndexAsync({GetLocalValue()}, context)";
+                    }
+                    else
+                    {
+                        throw new NotSupportedException("Invalid segment");
+                    }
                 }
 
                 DeclareLocalValue(accessor);
@@ -196,24 +218,27 @@ namespace Fluid.Compilation
             switch (literalExpression.Value.Type)
             {
                 case FluidValues.Number:
-                    var number = DeclareLocalValue($@"NumberValue.Create({literalExpression.Value.ToNumberValue().ToString(CultureInfo.InvariantCulture)})");
+                    var number = DeclareStaticVariable($@"NumberValue.Create({SymbolDisplay.FormatPrimitive(literalExpression.Value.ToNumberValue(), false, false)}M)", FluidValues.Number, null, false);
                     _lastExpressionVariable = number;
                     break;
                 case FluidValues.String: 
-                    var s = DeclareLocalValue($@"StringValue.Create(""{literalExpression.Value.ToStringValue().Replace("\"", "\"\"")}"")");
+                    var s = DeclareStaticVariable($@"StringValue.Create({SymbolDisplay.FormatLiteral(literalExpression.Value.ToStringValue(), true)})", FluidValues.String, null, false);
                     _lastExpressionVariable = s;
                     break;
                 case FluidValues.Boolean:
-                    var b = DeclareLocalValue(literalExpression.Value.ToBooleanValue() ? "BooleanValue.True" : "BooleanValue.False");
-                    _lastExpressionVariable = b;
+                    _lastExpressionVariable = literalExpression.Value.ToBooleanValue() ? "BooleanValue.True" : "BooleanValue.False";
+                    _lastExpressionIsModel = false;
+                    _lastExpressionType = FluidValues.Boolean;
                     break;
                 case FluidValues.Blank:
-                    var blank = DeclareLocalValue("BlankValue.Instance");
-                    _lastExpressionVariable = blank;
+                    _lastExpressionVariable = "BlankValue.Instance";
+                    _lastExpressionIsModel = false;
+                    _lastExpressionType = FluidValues.Empty;
                     break;
                 case FluidValues.Empty:
-                    var empty = DeclareLocalValue("EmptyValue.Instance");
-                    _lastExpressionVariable = empty;
+                    _lastExpressionVariable = "EmptyValue.Instance";
+                    _lastExpressionIsModel = false;
+                    _lastExpressionType = FluidValues.Empty;
                     break;
             }
 
@@ -244,26 +269,8 @@ namespace Fluid.Compilation
                 return textSpanStatement;
             }
 
-            // Split the string into separate lines such that each generated
-            // string constant fits on a single line in C#
+            _sb.AppendLine($@"{_indent}await writer.WriteAsync({SymbolDisplay.FormatLiteral(textSpanStatement.Buffer, true)});");
 
-            using (var sr = new StringReader(textSpanStatement.Buffer))
-            {
-                string line = null;
-
-                if (line != null)
-                {
-                    _sb.AppendLine($@"{_indent}await writer.WriteLineAsync();");
-                }
-
-                while (null != (line = sr.ReadLine()))
-                {
-                    if (!String.IsNullOrEmpty(line))
-                    {
-                        _sb.AppendLine($@"{_indent}await writer.WriteAsync(""{line.Replace("\\", "\\\\").Replace("\"", "\\\"")}"");");
-                    }
-                }
-            }
             return textSpanStatement;
         }
 
@@ -401,32 +408,119 @@ namespace Fluid.Compilation
             }
 
             WriteBlock(ifStatement.Statements);
-            
+
+            _sb.AppendLine($@"{_indent}else");
+
             foreach (var elseIf in ifStatement.ElseIfs)
             {
+                _sb.AppendLine($@"{_indent}{{");
+
+                IncreaseIndent();
+
                 Visit(elseIf.Condition);
                 condition = _lastExpressionVariable;
 
                 if (_lastExpressionIsModel)
                 {
-                    _sb.AppendLine($@"{_indent}elseif ({condition})");
+                    _sb.AppendLine($@"{_indent}if ({condition})");
                 }
                 else
                 {
-                    _sb.AppendLine($@"{_indent}elseif ({condition}.ToBooleanValue())");
+                    _sb.AppendLine($@"{_indent}if({condition}.ToBooleanValue())");
                 }
 
                 WriteBlock(elseIf.Statements);
+
+                if (ifStatement.Else != null && elseIf == ifStatement.ElseIfs.LastOrDefault())
+                {
+                    _sb.AppendLine($@"{_indent}else");
+                    WriteBlock(ifStatement.Else.Statements);
+                }
+                else
+                {
+                    _sb.AppendLine($@"{_indent}else");
+                }
             }
 
-            if (ifStatement.Else != null)
+            foreach (var _ in ifStatement.ElseIfs)
             {
-                _sb.AppendLine($@"{_indent}else");
+                DecreaseIndent();
+                _sb.AppendLine($@"{_indent}}}");
+            }
 
+            if (!ifStatement.ElseIfs.Any() && ifStatement.Else != null)
+            {
                 WriteBlock(ifStatement.Else.Statements);
             }
 
             return ifStatement;
+        }
+
+        protected internal override Expression VisitFilterExpression(FilterExpression filterExpression)
+        {
+            if (filterExpression.Parameters.Any())
+            {
+                // If all the arguments are literal expressions, define the FilterArguments statically
+                bool _canBeCached = true;
+
+                var initArguments = new List<string>();
+
+                foreach (var parameter in filterExpression.Parameters)
+                {
+                    Visit(parameter.Expression);
+
+                    _canBeCached = _canBeCached && parameter.Expression is LiteralExpression;
+                    if (String.IsNullOrEmpty(parameter.Name))
+                    {
+                        initArguments.Add($@".Add({_lastExpressionVariable})");
+                    }
+                    else
+                    {
+                        initArguments.Add($@".Add(""{parameter.Name}"", {_lastExpressionVariable})");
+                    }
+                }
+
+                if (_canBeCached)
+                {
+                    DeclareStaticVariable($@"new FilterArguments(){String.Concat(initArguments)}", cSharpType: "FilterArguments", isModel: true);
+                }
+                else
+                {
+                    DeclareLocalValue($@"new FilterArguments(){String.Concat(initArguments)}", isModel: true);
+                }
+            }
+            else
+            {
+                _lastExpressionVariable = "FilterArguments.Empty";
+                _lastExpressionIsModel = true;
+            }
+
+            var arguments = _lastExpressionVariable;
+
+            Visit(filterExpression.Input);
+
+            var input = _lastExpressionVariable;
+
+            // TODO: Filters could be resolved at the beginning on the template and referenced directly
+
+            DeclareLocalValue($@"default(FilterDelegate)", isModel: true);
+
+            //_sb.AppendLine($@"{_indent}if (context.Options.Filters.TryGetValue(""{filterExpression.Name}"", out {_lastExpressionVariable}))");
+            //_sb.AppendLine($@"{_indent}{{");
+            //IncreaseIndent();
+            //DeclareLocalValue($@"await {_lastExpressionVariable}({input}, {arguments}, context)");
+            //DecreaseIndent();
+            //_sb.AppendLine($@"{_indent}}}");
+            //_sb.AppendLine($@"{_indent}else");
+            //_sb.AppendLine($@"{_indent}{{");
+            //// When a filter is not defined, return the input
+            //IncreaseIndent();
+            //DeclareLocalValue($@"{input}");
+            //DecreaseIndent();
+            //_sb.AppendLine($@"{_indent}}}");
+
+            DeclareLocalValue($@"context.Options.Filters.TryGetValue(""{filterExpression.Name}"", out {_lastExpressionVariable}) ? await {_lastExpressionVariable}({input}, {arguments}, context) : {input}");
+            return filterExpression;
         }
 
         private void WriteBlock(IEnumerable<Statement> statements)
@@ -445,10 +539,41 @@ namespace Fluid.Compilation
         {
             _locals++;
             var name = $"local_{_locals}";
-            _localsb.AppendLine($@"{_defaultIndent}var {name} = {value};");
+            _localSb.AppendLine($@"{_defaultIndent}var {name} = {value};");
             _lastExpressionVariable = name;
             _lastExpressionIsModel = isModel;
             return name;
+        }
+
+        private string DeclareStaticVariable(string value, FluidValues type = FluidValues.Nil, string cSharpType = null, bool isModel = false)
+        {
+            _locals++;
+            var name = $"local_{_locals}";
+            _staticsSb.AppendLine($@"    private static readonly {cSharpType ?? GetFluidTypeName(type)} {name};");
+            _lastExpressionVariable = name;
+            _lastExpressionIsModel = isModel;
+            _lastExpressionType = type;
+
+            _staticConstructorSb.AppendLine($@"        {name} = {value};");
+
+            return name;
+        }
+
+        private string GetFluidTypeName(FluidValues type)
+        {
+            return type switch {
+                FluidValues.Boolean => nameof(BooleanValue),
+                FluidValues.Array => nameof(ArrayValue),
+                FluidValues.Blank => nameof(BlankValue),
+                FluidValues.String => nameof(StringValue),
+                FluidValues.Number => nameof(NumberValue),
+                FluidValues.Object => nameof(ObjectValue),
+                FluidValues.Nil => nameof(FluidValue),
+                FluidValues.Empty => nameof(EmptyValue),
+                FluidValues.DateTime => nameof(DateTimeValue),
+                FluidValues.Function => nameof(FunctionValue),
+                _ => throw new NotSupportedException("Invalid FluidValue type")
+            };
         }
 
         /// <summary>
