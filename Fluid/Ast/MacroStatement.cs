@@ -33,14 +33,14 @@ namespace Fluid.Ast
                 using var sb = StringBuilderPool.GetInstance();
                 using var sw = new StringWriter(sb.Builder);
 
-                context.EnterChildScope();
+                c.EnterChildScope();
 
                 try
                 {
                     // Initialize the local context with the default values
                     foreach (var a in defaultValues)
                     {
-                        context.SetValue(a.Key, a.Value);
+                        c.SetValue(a.Key, a.Value);
                     }
 
                     var namedArguments = false;
@@ -56,11 +56,11 @@ namespace Fluid.Ast
 
                         if (!namedArguments)
                         {
-                            context.SetValue(positionalName, args.At(i));
+                            c.SetValue(positionalName, args.At(i));
                         }
                         else
                         {
-                            context.SetValue(positionalName, args[positionalName]);
+                            c.SetValue(positionalName, args[positionalName]);
                         }
                     }
 

@@ -5,7 +5,6 @@ using Fluid.Values;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Reflection;
 using System.Text;
-using System.Xml.Linq;
 
 namespace Fluid.Compilation
 {
@@ -36,7 +35,7 @@ namespace Fluid.Compilation
             VisitTemplate(template);
 
             builder.Append(_localSb);
-            builder.Append(_sb);
+            builder.Append(_currentBuilder);
             global.Append(_staticsSb);
             staticConstructor.Append(_staticConstructorSb);
 
@@ -47,7 +46,7 @@ namespace Fluid.Compilation
             DecreaseIndent();
         }
 
-        private readonly StringBuilder _sb = new();
+        private StringBuilder _currentBuilder = new();
         private readonly StringBuilder _localSb = new();
         private readonly StringBuilder _staticsSb = new();
         private readonly StringBuilder _staticConstructorSb = new();
@@ -59,6 +58,21 @@ namespace Fluid.Compilation
         private int _indentLevel = 0;
         private Type _modelType;
         private int _locals = 0;
+        private Dictionary<string, string> _macroValues = new();
+        private Stack<int> _indentLevelsStack = new();
+        private Stack<StringBuilder> _stringBuildersStack = new();
+
+        public override Expression Visit(Expression expression)
+        {
+            // Handle case when Expression is null
+
+            if (expression == null)
+            {
+                return base.Visit(new LiteralExpression(NilValue.Instance));
+            }
+
+            return base.Visit(expression);
+        }
 
         protected internal override Statement VisitForStatement(ForStatement forStatement)
         {
@@ -68,15 +82,15 @@ namespace Fluid.Compilation
             if (_lastExpressionIsModel)
             {
                 _modelVariables.Add(forStatement.Identifier);
-                _sb.AppendLine($@"{_indent}foreach (var {forStatement.Identifier} in {source})");
-                _sb.AppendLine($@"{_indent}{{");
+                WriteLine($@"foreach (var {forStatement.Identifier} in {source})");
+                WriteLine($@"{{");
                 IncreaseIndent();
                 foreach (var statement in forStatement.Statements)
                 {
                     Visit(statement);
                 }
                 DecreaseIndent();
-                _sb.AppendLine($@"{_indent}}}");
+                WriteLine($@"}}");
                 _modelVariables.Remove(forStatement.Identifier);
             }
             else
@@ -84,19 +98,19 @@ namespace Fluid.Compilation
                 // TODO: Potential optimizations by not defining the iterator in local scope and EnterForLoopScope if it's not used
 
                 _localVariables.Add(forStatement.Identifier);
-                _sb.AppendLine($@"{_indent}context.EnterForLoopScope();");
-                _sb.AppendLine($@"{_indent}foreach (var {forStatement.Identifier} in {source}.Enumerate(context))");
-                _sb.AppendLine($@"{_indent}{{");
+                WriteLine($@"context.EnterForLoopScope();");
+                WriteLine($@"foreach (var {forStatement.Identifier} in {source}.Enumerate(context))");
+                WriteLine($@"{{");
                 IncreaseIndent();
-                _sb.AppendLine($@"{_indent}context.SetValue(""{forStatement.Identifier}"", {forStatement.Identifier});");
+                WriteLine($@"context.SetValue(""{forStatement.Identifier}"", {forStatement.Identifier});");
 
                 foreach (var statement in forStatement.Statements)
                 {
                     Visit(statement);
                 }
                 DecreaseIndent();
-                _sb.AppendLine($@"{_indent}}}");
-                _sb.AppendLine($@"{_indent}context.ReleaseScope();");
+                WriteLine($@"}}");
+                WriteLine($@"context.ReleaseScope();");
                 _localVariables.Remove(forStatement.Identifier);
             }
             
@@ -156,6 +170,12 @@ namespace Fluid.Compilation
             else
             {
                 var accessor = $@"context.GetValue(""{identifier}"")";
+
+                if (_macroValues.TryGetValue(identifier, out var macro))
+                {
+                    accessor = macro;
+                }
+
                 foreach (var segment in memberExpression.Segments.Skip(1).Reverse())
                 {
                     if (segment is IdentifierSegment i)
@@ -164,8 +184,44 @@ namespace Fluid.Compilation
                     }
                     else if (segment is FunctionCallSegment f)
                     {
-                        // TODO: Evaluate arguments
-                        accessor = $@"await ({accessor}).InvokeAsync(FunctionArguments.Empty, context)";
+                        if (f.Arguments.Any())
+                        {
+                            // If all the arguments are literal expressions, define the FunctionArguments statically
+                            bool _canBeCached = true;
+
+                            var initArguments = new List<string>();
+
+                            foreach (var parameter in f.Arguments)
+                            {
+                                Visit(parameter.Expression);
+
+                                _canBeCached = _canBeCached && parameter.Expression is LiteralExpression;
+                                if (String.IsNullOrEmpty(parameter.Name))
+                                {
+                                    initArguments.Add($@".Add({_lastExpressionVariable})");
+                                }
+                                else
+                                {
+                                    initArguments.Add($@".Add(""{parameter.Name}"", {_lastExpressionVariable})");
+                                }
+                            }
+
+                            if (_canBeCached)
+                            {
+                                DeclareStaticVariable($@"new FunctionArguments(){String.Concat(initArguments)}", cSharpType: "FunctionArguments", isModel: true);
+                            }
+                            else
+                            {
+                                DeclareLocalValue($@"new FunctionArguments(){String.Concat(initArguments)}", isModel: true);
+                            }
+                        }
+                        else
+                        {
+                            _lastExpressionVariable = "FunctionArguments.Empty";
+                            _lastExpressionIsModel = true;
+                        }
+
+                        accessor = $@"await ({accessor}).InvokeAsync({_lastExpressionVariable}, context)";
                     }
                     else if (segment is IndexerSegment d)
                     {
@@ -197,11 +253,11 @@ namespace Fluid.Compilation
                 // _sb.AppendLine($"{_indent}{wrapped}.WriteTo(writer, encoder, context.CultureInfo);");
 
                 // Invokes CompiledTemplateBase.Write overloads to prevent dynamic dispatch
-                _sb.AppendLine($"{_indent}await WriteAsync({_lastExpressionVariable}, writer, encoder, context);");
+                WriteLine($"await WriteAsync({_lastExpressionVariable}, writer, encoder, context);");
             }
             else
             {
-                _sb.AppendLine($"{_indent}{_lastExpressionVariable}.WriteTo(writer, encoder, context.CultureInfo);");
+                WriteLine($"{_lastExpressionVariable}.WriteTo(writer, encoder, context.CultureInfo);");
             }
 
             return outputStatement;
@@ -233,13 +289,20 @@ namespace Fluid.Compilation
                 case FluidValues.Blank:
                     _lastExpressionVariable = "BlankValue.Instance";
                     _lastExpressionIsModel = false;
-                    _lastExpressionType = FluidValues.Empty;
+                    _lastExpressionType = FluidValues.Blank;
                     break;
                 case FluidValues.Empty:
                     _lastExpressionVariable = "EmptyValue.Instance";
                     _lastExpressionIsModel = false;
                     _lastExpressionType = FluidValues.Empty;
                     break;
+                case FluidValues.Nil:
+                    _lastExpressionVariable = "NilValue.Instance";
+                    _lastExpressionIsModel = false;
+                    _lastExpressionType = FluidValues.Nil;
+                    break;
+                default:
+                    throw new NotSupportedException("Invalid literal expression");
             }
 
             return literalExpression;
@@ -269,7 +332,7 @@ namespace Fluid.Compilation
                 return textSpanStatement;
             }
 
-            _sb.AppendLine($@"{_indent}await writer.WriteAsync({SymbolDisplay.FormatLiteral(textSpanStatement.Buffer, true)});");
+            WriteLine($@"await writer.WriteAsync({SymbolDisplay.FormatLiteral(textSpanStatement.Buffer, true)});");
 
             return textSpanStatement;
         }
@@ -394,58 +457,41 @@ namespace Fluid.Compilation
         protected internal override Statement VisitIfStatement(IfStatement ifStatement)
         {
             Visit(ifStatement.Condition);
-            var condition = _lastExpressionVariable;
 
             // TODO: handle completions of each statement
 
-            if (_lastExpressionIsModel)
-            {
-                _sb.AppendLine($@"{_indent}if ({condition})");
-            }
-            else
-            {
-                _sb.AppendLine($@"{_indent}if ({condition}.ToBooleanValue())");
-            }
+            WriteLine($@"if ({GetLocalObject(FluidValues.Boolean)})");
 
             WriteBlock(ifStatement.Statements);
 
-            _sb.AppendLine($@"{_indent}else");
+            WriteLine($@"else");
 
             foreach (var elseIf in ifStatement.ElseIfs)
             {
-                _sb.AppendLine($@"{_indent}{{");
+                WriteLine($@"{{");
 
                 IncreaseIndent();
 
                 Visit(elseIf.Condition);
-                condition = _lastExpressionVariable;
-
-                if (_lastExpressionIsModel)
-                {
-                    _sb.AppendLine($@"{_indent}if ({condition})");
-                }
-                else
-                {
-                    _sb.AppendLine($@"{_indent}if({condition}.ToBooleanValue())");
-                }
+                WriteLine($@"if ({GetLocalObject(FluidValues.Boolean)})");
 
                 WriteBlock(elseIf.Statements);
 
                 if (ifStatement.Else != null && elseIf == ifStatement.ElseIfs.LastOrDefault())
                 {
-                    _sb.AppendLine($@"{_indent}else");
+                    WriteLine($@"else");
                     WriteBlock(ifStatement.Else.Statements);
                 }
                 else
                 {
-                    _sb.AppendLine($@"{_indent}else");
+                    WriteLine($@"else");
                 }
             }
 
             foreach (var _ in ifStatement.ElseIfs)
             {
                 DecreaseIndent();
-                _sb.AppendLine($@"{_indent}}}");
+                WriteLine($@"}}");
             }
 
             if (!ifStatement.ElseIfs.Any() && ifStatement.Else != null)
@@ -505,34 +551,107 @@ namespace Fluid.Compilation
 
             DeclareLocalValue($@"default(FilterDelegate)", isModel: true);
 
-            //_sb.AppendLine($@"{_indent}if (context.Options.Filters.TryGetValue(""{filterExpression.Name}"", out {_lastExpressionVariable}))");
-            //_sb.AppendLine($@"{_indent}{{");
-            //IncreaseIndent();
-            //DeclareLocalValue($@"await {_lastExpressionVariable}({input}, {arguments}, context)");
-            //DecreaseIndent();
-            //_sb.AppendLine($@"{_indent}}}");
-            //_sb.AppendLine($@"{_indent}else");
-            //_sb.AppendLine($@"{_indent}{{");
-            //// When a filter is not defined, return the input
-            //IncreaseIndent();
-            //DeclareLocalValue($@"{input}");
-            //DecreaseIndent();
-            //_sb.AppendLine($@"{_indent}}}");
-
             DeclareLocalValue($@"context.Options.Filters.TryGetValue(""{filterExpression.Name}"", out {_lastExpressionVariable}) ? await {_lastExpressionVariable}({input}, {arguments}, context) : {input}");
             return filterExpression;
         }
 
-        private void WriteBlock(IEnumerable<Statement> statements)
+        protected internal override Statement VisitMacroStatement(MacroStatement macroStatement)
         {
-            _sb.AppendLine($@"{_indent}{{");
+            EnterIsolatedBuilder(new StringBuilder());
+
             IncreaseIndent();
+
+            WriteLine($@"private static async ValueTask<FluidValue> Macro_{macroStatement.Identifier}(FunctionArguments arguments, TemplateContext context, TextEncoder encoder)");
+            WriteLine($@"{{");
+            IncreaseIndent();
+
+            var initArguments = new List<string>();
+
+            // Create default arguments as a static FunctionArguments instance
+            foreach (var parameter in macroStatement.Arguments)
+            {
+                Visit(parameter.Expression);
+
+                if (String.IsNullOrEmpty(parameter.Name))
+                {
+                    initArguments.Add($@".Add({_lastExpressionVariable})");
+                }
+                else
+                {
+                    initArguments.Add($@".Add(""{parameter.Name}"", {_lastExpressionVariable})");
+                }
+            }
+            
+            var functionArguments = DeclareStaticVariable($@"new FunctionArguments(){String.Concat(initArguments)}", cSharpType: "FunctionArguments", isModel: true);
+
+            WriteLine($@"using var writer = new StringWriter();");
+
+            WriteLine($@"try");
+            WriteLine($@"{{");
+            IncreaseIndent();
+            WriteLine($@"context.EnterChildScope();");
+            WriteLine($@"InitializeFunctionArguments(context, {functionArguments}, arguments);");
+
+            WriteBlock(macroStatement.Statements, false);
+
+            WriteLine($@"var result = writer.ToString();");
+
+            WriteLine($@"return new StringValue(result, false);");
+            DecreaseIndent();
+            WriteLine($@"}}");
+            WriteLine($@"finally");
+            WriteLine($@"{{");
+            IncreaseIndent();
+            WriteLine($@"context.ReleaseScope();");
+            DecreaseIndent();
+            WriteLine($@"}}");
+            DecreaseIndent();
+            WriteLine($@"}}");
+            _currentBuilder.AppendLine($@"");
+
+            var function = _currentBuilder.ToString();
+
+            LeaveIsolatedBuilder();
+
+            _staticsSb.Insert(0, function);
+
+            DeclareLocalValue($@"new MacroValue(Macro_{macroStatement.Identifier}, encoder)");
+
+            _macroValues[macroStatement.Identifier] = _lastExpressionVariable;
+
+            return macroStatement;
+        }
+
+        protected internal override Statement VisitBreakStatement(BreakStatement breakStatement)
+        {
+            WriteLine($@"break;");
+            return breakStatement;
+        }
+
+        protected internal override Statement VisitContinueStatement(ContinueStatement continueStatement)
+        {
+            WriteLine($@"continue;");
+            return continueStatement;
+        }
+
+        private void WriteBlock(IEnumerable<Statement> statements, bool renderBraces = true)
+        {
+            if (renderBraces)
+            {
+                WriteLine($@"{{");
+                IncreaseIndent();
+            }
+
             foreach (var statement in statements)
             {
                 Visit(statement);
             }
-            DecreaseIndent();
-            _sb.AppendLine($@"{_indent}}}");
+
+            if (renderBraces)
+            {
+                DecreaseIndent();
+                WriteLine($@"}}");
+            }
         }
 
         private string DeclareGlobalVariable(string value, bool isModel = false)
@@ -635,13 +754,12 @@ namespace Fluid.Compilation
         {
             _locals++;
             var name = $"local_{_locals}";
-            _sb.AppendLine($@"{_indent}var {name} = {value};");
+            WriteLine($@"var {name} = {value};");
             _lastExpressionVariable = name;
             _lastExpressionIsModel = isModel;
             _lastExpressionType = type;
             return name;
         }
-
         private void IncreaseIndent()
         {
             _indentLevel++;
@@ -652,6 +770,41 @@ namespace Fluid.Compilation
         {
             _indentLevel--;
             _indent = new string(' ', 4 * _indentLevel);
+        }
+
+        private void BackupIndentLevel()
+        {
+            _indentLevelsStack.Push(_indentLevel);
+            _indentLevel = 0;
+        }
+
+        private void RestoreIndentLevel()
+        {
+            _indentLevel = _indentLevelsStack.Pop();
+            _indent = new string(' ', 4 * _indentLevel);
+        }
+
+        private void EnterIsolatedBuilder(StringBuilder sb)
+        {
+            _stringBuildersStack.Push(_currentBuilder);
+            _currentBuilder = sb;
+            BackupIndentLevel();
+        }
+
+        private void LeaveIsolatedBuilder()
+        {
+            _currentBuilder = _stringBuildersStack.Pop();
+            RestoreIndentLevel();
+        }
+
+        private void WriteLine(string value)
+        {
+            _currentBuilder.Append(_indent).AppendLine(value);
+        }
+
+        private void Write(string value)
+        {
+            _currentBuilder.Append(_indent).Append(value);
         }
     }
 }

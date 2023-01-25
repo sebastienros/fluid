@@ -1,4 +1,5 @@
-﻿using Fluid.Values;
+﻿using Fluid.Ast;
+using Fluid.Values;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 
@@ -76,6 +77,42 @@ namespace Fluid.Compilation
             var wrapped = FluidValue.Create(value, context.Options);
             wrapped.WriteTo(writer, encoder, context.CultureInfo);
             return Task.CompletedTask;
+        }
+
+        protected static void InitializeFunctionArguments(TemplateContext context, FunctionArguments defaultArguments, FunctionArguments arguments)
+        {
+            // Set default values
+
+            foreach (var name in defaultArguments.Names)
+            {
+                context.SetValue(name, defaultArguments[name]);
+            }
+
+            var namedArguments = false;
+
+            // Apply all arguments from the invocation.
+            
+            var i = 0;
+
+            foreach (var name in defaultArguments.Names)
+            {
+                // As soon as a named argument is used, all subsequent ones need a name too.
+                namedArguments |= arguments.HasNamed(name);
+
+                if (!namedArguments)
+                {
+                    if (arguments.Count > i)
+                    {
+                        context.SetValue(name, arguments.At(i));
+                    }
+                }
+                else
+                {
+                    context.SetValue(name, arguments[name]);
+                }
+
+                i++;
+            }
         }
     }
 }

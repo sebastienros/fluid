@@ -1,5 +1,5 @@
-﻿using System.Runtime.CompilerServices;
-using Fluid.Values;
+﻿using Fluid.Values;
+using System.Runtime.CompilerServices;
 
 namespace Fluid
 {
@@ -8,7 +8,7 @@ namespace Fluid
     /// </summary>
     public class FunctionArguments
     {
-        public static readonly FunctionArguments Empty = new FunctionArguments();
+        public static readonly FunctionArguments Empty = new();
 
         private List<FluidValue> _positional;
         private Dictionary<string, FluidValue> _named;
@@ -80,7 +80,7 @@ namespace Fluid
             return this;
         }
 
-        public IEnumerable<string> Names => _named?.Keys ?? System.Linq.Enumerable.Empty<string>();
+        public IEnumerable<string> Names => _named?.Keys ?? Enumerable.Empty<string>();
 
         public IEnumerable<FluidValue> Values => _positional;
 

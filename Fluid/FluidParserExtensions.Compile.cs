@@ -132,7 +132,7 @@ public sealed class {className} : CompiledTemplateBase, IFluidTemplate
 
                 foreach (var diagnostic in failures)
                 {
-                    errors.AppendFormat("{0}: {1}\n", diagnostic.Id, diagnostic.GetMessage());
+                    errors.AppendFormat("{0}: {1} at {2}\n", diagnostic.Id, diagnostic.GetMessage(), diagnostic.Location.GetLineSpan());
                 }
 
                 Console.Error.WriteLine(errors.ToString());

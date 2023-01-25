@@ -135,7 +135,7 @@ namespace Fluid
 
         /// <summary>
         /// Gets or sets a model object that is used to resolve properties in a template. This object is used if local and
-        /// global scopes are unsuccessfull.
+        /// global scopes are unsuccessful.
         /// </summary>
         public FluidValue Model { get; }
 

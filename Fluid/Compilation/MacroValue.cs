@@ -1,28 +1,28 @@
-﻿using System.Globalization;
+﻿using Fluid.Values;
+using System.Globalization;
 using System.Text.Encodings.Web;
 
-namespace Fluid.Values
+namespace Fluid.Compilation
 {
-    public sealed class FunctionValue : FluidValue
+    /// <summary>
+    /// Like <see cref="FunctionValue"/> but with a <see cref="TextEncoder"/> instance to render macros.
+    /// </summary>
+    public sealed class MacroValue : FluidValue
     {
-        public static readonly FunctionValue NoOp = new FunctionValue((_, _) => new ValueTask<FluidValue>(NilValue.Instance));
-        private readonly Func<FunctionArguments, TemplateContext, ValueTask<FluidValue>> _action;
+        private readonly Func<FunctionArguments, TemplateContext, TextEncoder, ValueTask<FluidValue>> _action;
+        private readonly TextEncoder _encoder;
 
-        public FunctionValue(Func<FunctionArguments, TemplateContext, ValueTask<FluidValue>> asyncAction)
+        public MacroValue(Func<FunctionArguments, TemplateContext, TextEncoder, ValueTask<FluidValue>> asyncAction, TextEncoder encoder)
         {
             _action = asyncAction;
-        }
-
-        public FunctionValue(Func<FunctionArguments, TemplateContext, FluidValue> action)
-        {
-            _action = (args, c) => new ValueTask<FluidValue>(action(args, c)); 
+            _encoder = encoder;
         }
 
         public override FluidValues Type => FluidValues.Object;
 
         public override ValueTask<FluidValue> InvokeAsync(FunctionArguments arguments, TemplateContext context)
         {
-            return _action == null ? NilValue.Instance : _action(arguments, context);
+            return _action == null ? NilValue.Instance : _action(arguments, context, _encoder);
         }
 
         public override bool Equals(FluidValue other)
@@ -68,7 +68,7 @@ namespace Fluid.Values
 
         public override int GetHashCode()
         {
-            return _action == null ? 0 :_action.GetHashCode();
+            return _action == null ? 0 : _action.GetHashCode();
         }
     }
 }
