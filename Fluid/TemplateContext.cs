@@ -1,5 +1,6 @@
 ﻿using Fluid.Values;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 namespace Fluid
 {
@@ -7,6 +8,7 @@ namespace Fluid
     {
         protected int _recursion = 0;
         protected int _steps = 0;
+        protected int _maxSteps = 0;
 
         /// <summary>
         /// Initializes a new instance of <see cref="TemplateContext"/>.
@@ -53,6 +55,8 @@ namespace Fluid
             Captured = options.Captured;
             Now = options.Now;
             TemplateCompilationThreshold = options.TemplateCompilationThreshold;
+
+            _maxSteps = Options.MaxSteps;
         }
 
         /// <summary>
@@ -106,10 +110,10 @@ namespace Fluid
         /// <summary>
         /// Increments the number of statements the current template is processing.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void IncrementSteps()
         {
-            var maxSteps = Options.MaxSteps;
-            if (maxSteps > 0 && _steps++ > maxSteps)
+            if (_maxSteps > 0 && _steps++ > _maxSteps)
             {
                 ExceptionHelper.ThrowMaximumRecursionException();
             }

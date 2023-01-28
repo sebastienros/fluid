@@ -832,9 +832,8 @@ shape: '{{ shape }}'");
         {
             _parser.TryParse("{% for w in (1..10000) %} FOO {% endfor %}", out var template, out var error);
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptions() { MaxSteps = 100 };
             var context = new TemplateContext(options);
-            options.MaxSteps = 100;
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => template.RenderAsync(context).AsTask());
         }

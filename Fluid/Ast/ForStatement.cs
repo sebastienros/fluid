@@ -5,7 +5,6 @@ namespace Fluid.Ast
 {
     public partial class ForStatement : TagStatement
     {
-        private bool _isContinueOffset;
         private string _continueOffsetLiteral;
 
         public ForStatement(
@@ -25,7 +24,7 @@ namespace Fluid.Ast
             Reversed = reversed;
             Else = elseStatement;
 
-            _isContinueOffset = Offset is MemberExpression l && l.Segments.Count == 1 && ((IdentifierSegment)l.Segments[0]).Identifier == "continue";
+            OffSetIsContinue = Offset is MemberExpression l && l.Segments.Count == 1 && ((IdentifierSegment)l.Segments[0]).Identifier == "continue";
             _continueOffsetLiteral = source is MemberExpression m ? "for_continue_" + ((IdentifierSegment)m.Segments[0]).Identifier : null;
         }
 
@@ -35,6 +34,7 @@ namespace Fluid.Ast
         public Expression Offset { get; }
         public bool Reversed { get; }
         public ElseStatement Else { get; }
+        public bool OffSetIsContinue { get; }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitForStatement(this);
 
@@ -56,7 +56,7 @@ namespace Fluid.Ast
             var startIndex = 0;
             if (Offset is not null)
             {
-                if (_isContinueOffset)
+                if (OffSetIsContinue)
                 {
                     startIndex = (int) context.GetValue(_continueOffsetLiteral).ToNumberValue();
                 }

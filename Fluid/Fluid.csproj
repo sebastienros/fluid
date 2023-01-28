@@ -38,7 +38,4 @@
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Compilation\Visitors\" />
-  </ItemGroup>
 </Project>

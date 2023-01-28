@@ -1,8 +1,10 @@
 ﻿using Fluid.Ast;
 using Fluid.Ast.BinaryExpressions;
 using Fluid.Parser;
+using Fluid.Tests.Visitors;
 using Fluid.Values;
 using Microsoft.CodeAnalysis.CSharp;
+using Parlot.Fluent;
 using System.Reflection;
 using System.Text;
 
@@ -11,6 +13,8 @@ namespace Fluid.Compilation
     /// <remarks>
     /// Security considerations:
     /// - String literals should not be able to be escaped (like SQL injection but for C#) and are encoded using SymbolDisplay.FormatLiteral
+    /// - Introduce compiler options to provider compile time optimizations
+    ///     - Ignore MaxSteps
     /// </remarks>
     public class AstCompiler : AstVisitor
     {
@@ -23,6 +27,17 @@ namespace Fluid.Compilation
         {
             _modelType = modelType;
 
+            // Check if the template uses 'offset: continue'
+            var continueOffsetVisitor = new ContinueOffsetVisitor();
+            continueOffsetVisitor.VisitTemplate(template);
+            _hasContinueOffset = continueOffsetVisitor.HasContinueForLoop;
+
+            // If the type is anonymous don't use strongly-typed properties
+            if (modelType.FullName.Contains("AnonymousType"))
+            {
+                _modelType = typeof(object);
+            }
+
             IncreaseIndent();
             builder.AppendLine(@$"{_indent}public async ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)");
             builder.AppendLine(@$"{_indent}{{");
@@ -30,7 +45,7 @@ namespace Fluid.Compilation
 
             _defaultIndent = _indent;
 
-            builder.AppendLine(@$"{_indent}var model = context.Model?.ToObjectValue() as {modelType.FullName};");
+            builder.AppendLine(@$"{_indent}var model = context.Model?.ToObjectValue() as {_modelType.FullName};");
 
             VisitTemplate(template);
 
@@ -46,6 +61,8 @@ namespace Fluid.Compilation
             DecreaseIndent();
         }
 
+        private Variable _lastVariable;
+
         private StringBuilder _currentBuilder = new();
         private readonly StringBuilder _localSb = new();
         private readonly StringBuilder _staticsSb = new();
@@ -53,6 +70,7 @@ namespace Fluid.Compilation
         private readonly TemplateOptions _templateOptions;
         private readonly HashSet<string> _localVariables = new();
         private readonly HashSet<string> _modelVariables = new();
+        private readonly Dictionary<string, Variable> _variableMappings = new(); // Maps a locally assigned property to its CSharp local_x member
         private string _indent = new string(' ', 4);
         private string _defaultIndent = "";
         private int _indentLevel = 0;
@@ -61,6 +79,7 @@ namespace Fluid.Compilation
         private Dictionary<string, string> _macroValues = new();
         private Stack<int> _indentLevelsStack = new();
         private Stack<StringBuilder> _stringBuildersStack = new();
+        private bool _hasContinueOffset = false;
 
         public override Expression Visit(Expression expression)
         {
@@ -77,43 +96,133 @@ namespace Fluid.Compilation
         protected internal override Statement VisitForStatement(ForStatement forStatement)
         {
             Visit(forStatement.Source);
-            var source = _lastExpressionVariable;
+            var source = _lastVariable;
+            var sourceIsModel = source.IsModel;
 
-            if (_lastExpressionIsModel)
+            // Check if this loop is using the 'forloop' variable
+            // If not then we don't have to maintain its state
+
+            var forloopVisitor = new IdentifierIsAccessedVisitor("forloop");
+            forloopVisitor.Visit(forStatement);
+            var forloopAccessed = forloopVisitor.IsAccessed;
+
+            var hasElseStatement = forStatement.Else != null;
+
+            Variable counterVariable = new(); // To track the number of times the loop was executed
+
+            if (sourceIsModel)
             {
                 _modelVariables.Add(forStatement.Identifier);
-                WriteLine($@"foreach (var {forStatement.Identifier} in {source})");
+            }
+            else
+            {
+                source = DeclareLocalValue($@"{source.Name}.Enumerate(context)");
+                _localVariables.Add(forStatement.Identifier);
+                WriteLine($@"context.EnterForLoopScope();");
+            }
+
+            var continueOffsetLiteral = forStatement.Source is MemberExpression m ? "for_continue_" + ((IdentifierSegment)m.Segments[0]).Identifier : null;
+
+            if (_hasContinueOffset && !_localVariables.Contains(continueOffsetLiteral))
+            {
+                WriteLine($@"var {continueOffsetLiteral} = 0;");
+                _localVariables.Add(continueOffsetLiteral);
+            }
+
+            Variable startIndexVariable = new();
+
+            if (forStatement.Offset != null)
+            {
+                if (_hasContinueOffset)
+                {
+                    startIndexVariable = DeclareLocalValue($@"{continueOffsetLiteral}", isModel: true);
+                }
+                else
+                {
+                    Visit(forStatement.Offset);
+                    startIndexVariable = DeclareLocalValue($@"(int){GetLocalObject(FluidValues.Number)}", isModel: true);
+                }
+
+                source = DeclareLocalValue($@"{source.Name}.Skip({startIndexVariable.Name})", isModel: true);
+            }
+            else if (forloopAccessed || hasElseStatement || forStatement.Limit != null)
+            {
+                startIndexVariable = DeclareLocalValue($@"0", isModel: true);
+            }
+
+            if (forStatement.Limit != null)
+            {
+                Visit(forStatement.Limit);
+
+                source = DeclareLocalValue($@"{source.Name}.Take((int){GetLocalObject(FluidValues.Number)})", isModel: true);
+            }
+
+            Variable forloopVariable = new();
+
+            if (_hasContinueOffset || forloopAccessed || hasElseStatement)
+            {
+                counterVariable = DeclareLocalValue($@"{startIndexVariable.Name}", isModel: true);
+
+                if (_hasContinueOffset || forloopAccessed)
+                {
+                    forloopVariable = DeclareLocalValue($@"new ForLoopValue()");
+                }
+            }
+
+            if (sourceIsModel)
+            {
+                WriteLine($@"foreach (var {forStatement.Identifier} in {source.Name})");
                 WriteLine($@"{{");
                 IncreaseIndent();
-                foreach (var statement in forStatement.Statements)
-                {
-                    Visit(statement);
-                }
+            }
+            else
+            {
+                WriteLine($@"foreach (var {forStatement.Identifier} in {source.Name})");
+                WriteLine($@"{{");
+                IncreaseIndent();
+                WriteLine($@"context.SetValue(""{forStatement.Identifier}"", {forStatement.Identifier});");
+            }
+
+            if (_hasContinueOffset || forloopAccessed)
+            {
+                WriteLine($@"{counterVariable.Name}++;");
+            }
+            
+            if (forloopAccessed)
+            {
+                WriteLine($@"{forloopVariable.Name}.Index = {counterVariable.Name} + 1;");
+                WriteLine($@"{forloopVariable.Name}.Index0 = {counterVariable.Name}; ");
+                WriteLine($@"{forloopVariable.Name}.RIndex = length - {counterVariable.Name} - 1;");
+                WriteLine($@"{forloopVariable.Name}.RIndex0 = length - {counterVariable.Name};");
+                WriteLine($@"{forloopVariable.Name}.First = {counterVariable.Name} == 0;");
+                WriteLine($@"{forloopVariable.Name}.Last = {counterVariable.Name} == length - 1;");
+            }
+
+            if (_hasContinueOffset)
+            {
+                WriteLine($@"{continueOffsetLiteral} = {counterVariable.Name};");
+                source = DeclareLocalValue($@"{source.Name}.Skip({continueOffsetLiteral})", isModel: true);
+            }
+
+            foreach (var statement in forStatement.Statements)
+            {
+                Visit(statement);
+            }
+
+            if (sourceIsModel)
+            {
                 DecreaseIndent();
                 WriteLine($@"}}");
                 _modelVariables.Remove(forStatement.Identifier);
             }
             else
             {
-                // TODO: Potential optimizations by not defining the iterator in local scope and EnterForLoopScope if it's not used
-
-                _localVariables.Add(forStatement.Identifier);
-                WriteLine($@"context.EnterForLoopScope();");
-                WriteLine($@"foreach (var {forStatement.Identifier} in {source}.Enumerate(context))");
-                WriteLine($@"{{");
-                IncreaseIndent();
-                WriteLine($@"context.SetValue(""{forStatement.Identifier}"", {forStatement.Identifier});");
-
-                foreach (var statement in forStatement.Statements)
-                {
-                    Visit(statement);
-                }
                 DecreaseIndent();
                 WriteLine($@"}}");
                 WriteLine($@"context.ReleaseScope();");
                 _localVariables.Remove(forStatement.Identifier);
             }
-            
+
             return forStatement;
         }
 
@@ -121,7 +230,6 @@ namespace Fluid.Compilation
         {
             var identifierSegment = memberExpression.Segments.FirstOrDefault() as IdentifierSegment;
             var identifier = identifierSegment.Identifier;
-            _lastExpressionIsModel = false;
 
             var property = _modelType.GetProperty(identifier, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
             var field = _modelType.GetField(identifier, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
@@ -138,34 +246,50 @@ namespace Fluid.Compilation
                     accessor += "." + (segment as IdentifierSegment).Identifier;
                 }
 
-                _lastExpressionVariable = accessor;
-                _lastExpressionIsModel = true;
-
                 _modelVariables.Add(accessor);
+
+                _lastVariable = _lastVariable with { Name = accessor, IsModel = true };
+
+                return memberExpression;
             }
             else if (_localVariables.Contains(identifier))
             {
-                _lastExpressionVariable = identifier;
-                _lastExpressionIsModel = true;
-
                 var accessor = identifier;
                 foreach (var segment in memberExpression.Segments.Skip(1).Reverse())
                 {
-                    accessor = $@"await ({accessor}).GetValueAsync(""{(segment as IdentifierSegment).Identifier}"", context)";
-                    _lastExpressionVariable = accessor;
+                    if (segment is IndexerSegment indexerSegment)
+                    {
+                        Visit(indexerSegment.Expression);
+                        accessor = $@"await ({accessor}).GetIndexAsync({GetLocalValue()}, context)";
+                    }
+                    else if (segment is IdentifierSegment ifs)
+                    {
+                        accessor = $@"await ({accessor}).GetValueAsync(""{ifs.Identifier}"", context)";
+                    }
                 }
+
+                _lastVariable = _lastVariable with { Name = accessor, IsModel = true };
+
+                return memberExpression;
             }
             else if (property != null)
             {
-                DeclareLocalValue($@"model.{property.Name}");
-                _lastExpressionIsModel = true;
-                _modelVariables.Add(_lastExpressionVariable);
+                DeclareLocalValue($@"model.{property.Name}", isModel: true);
+                _modelVariables.Add(_lastVariable.Name);
+                return memberExpression;
+
             }
             else if (field != null)
             {
-                DeclareLocalValue($@"model.{field.Name}");
-                _lastExpressionIsModel = true;
-                _modelVariables.Add(_lastExpressionVariable);
+                DeclareLocalValue($@"model.{field.Name}", isModel: true);
+                _modelVariables.Add(_lastVariable.Name);
+                return memberExpression;
+
+            }
+            else if (_variableMappings.TryGetValue(identifier, out var mapped))
+            {
+                _lastVariable = mapped;
+                return memberExpression;
             }
             else
             {
@@ -176,7 +300,7 @@ namespace Fluid.Compilation
                     accessor = macro;
                 }
 
-                foreach (var segment in memberExpression.Segments.Skip(1).Reverse())
+                foreach (var segment in memberExpression.Segments.Skip(1))
                 {
                     if (segment is IdentifierSegment i)
                     {
@@ -198,11 +322,11 @@ namespace Fluid.Compilation
                                 _canBeCached = _canBeCached && parameter.Expression is LiteralExpression;
                                 if (String.IsNullOrEmpty(parameter.Name))
                                 {
-                                    initArguments.Add($@".Add({_lastExpressionVariable})");
+                                    initArguments.Add($@".Add({_lastVariable.Name})");
                                 }
                                 else
                                 {
-                                    initArguments.Add($@".Add(""{parameter.Name}"", {_lastExpressionVariable})");
+                                    initArguments.Add($@".Add(""{parameter.Name}"", {_lastVariable.Name})");
                                 }
                             }
 
@@ -217,11 +341,10 @@ namespace Fluid.Compilation
                         }
                         else
                         {
-                            _lastExpressionVariable = "FunctionArguments.Empty";
-                            _lastExpressionIsModel = true;
+                            _lastVariable = new("FunctionArguments.Empty", true);
                         }
 
-                        accessor = $@"await ({accessor}).InvokeAsync({_lastExpressionVariable}, context)";
+                        accessor = $@"await ({accessor}).InvokeAsync({_lastVariable.Name}, context)";
                     }
                     else if (segment is IndexerSegment d)
                     {
@@ -241,11 +364,26 @@ namespace Fluid.Compilation
             return memberExpression;
         }
 
+        protected internal override Statement VisitAssignStatement(AssignStatement assignStatement)
+        {
+            Visit(assignStatement.Value);
+
+            // TODO: Maybe it should actually force a call to context.SetValue() ?
+
+            WriteLine("context.IncrementSteps();");
+
+            _variableMappings[assignStatement.Identifier] = _lastVariable;
+
+            return assignStatement;
+        }
+
         protected internal override Statement VisitOutputStatement(OutputStatement outputStatement)
         {
             Visit(outputStatement.Expression);
 
-            if (_lastExpressionIsModel)
+            WriteLine("context.IncrementSteps();");
+
+            if (_lastVariable.IsModel)
             {
                 // Dispatching a FluidValue.WriteTo call is expensive
                 // Use this to wrap dotnet objects in FluidValue.
@@ -253,19 +391,15 @@ namespace Fluid.Compilation
                 // _sb.AppendLine($"{_indent}{wrapped}.WriteTo(writer, encoder, context.CultureInfo);");
 
                 // Invokes CompiledTemplateBase.Write overloads to prevent dynamic dispatch
-                WriteLine($"await WriteAsync({_lastExpressionVariable}, writer, encoder, context);");
+                WriteLine($"await WriteAsync({_lastVariable.Name}, writer, encoder, context);");
             }
             else
             {
-                WriteLine($"{_lastExpressionVariable}.WriteTo(writer, encoder, context.CultureInfo);");
+                WriteLine($"{_lastVariable.Name}.WriteTo(writer, encoder, context.CultureInfo);");
             }
 
             return outputStatement;
         }
-
-        protected string _lastExpressionVariable = "";
-        protected bool _lastExpressionIsModel = false;
-        protected FluidValues _lastExpressionType = FluidValues.Nil;
 
         protected internal override Expression VisitLiteralExpression(LiteralExpression literalExpression)
         {
@@ -275,31 +409,23 @@ namespace Fluid.Compilation
             {
                 case FluidValues.Number:
                     var number = DeclareStaticVariable($@"NumberValue.Create({SymbolDisplay.FormatPrimitive(literalExpression.Value.ToNumberValue(), false, false)}M)", FluidValues.Number, null, false);
-                    _lastExpressionVariable = number;
+                    _lastVariable = _lastVariable with { Name = number };
                     break;
                 case FluidValues.String: 
                     var s = DeclareStaticVariable($@"StringValue.Create({SymbolDisplay.FormatLiteral(literalExpression.Value.ToStringValue(), true)})", FluidValues.String, null, false);
-                    _lastExpressionVariable = s;
+                    _lastVariable = _lastVariable with { Name = s }; 
                     break;
                 case FluidValues.Boolean:
-                    _lastExpressionVariable = literalExpression.Value.ToBooleanValue() ? "BooleanValue.True" : "BooleanValue.False";
-                    _lastExpressionIsModel = false;
-                    _lastExpressionType = FluidValues.Boolean;
+                    _lastVariable = new(literalExpression.Value.ToBooleanValue() ? "BooleanValue.True" : "BooleanValue.False", false, FluidValues.Boolean);
                     break;
                 case FluidValues.Blank:
-                    _lastExpressionVariable = "BlankValue.Instance";
-                    _lastExpressionIsModel = false;
-                    _lastExpressionType = FluidValues.Blank;
+                    _lastVariable = new("BlankValue.Instance", false, FluidValues.Blank);
                     break;
                 case FluidValues.Empty:
-                    _lastExpressionVariable = "EmptyValue.Instance";
-                    _lastExpressionIsModel = false;
-                    _lastExpressionType = FluidValues.Empty;
+                    _lastVariable = new("EmptyValue.Instance", false, FluidValues.Empty);
                     break;
                 case FluidValues.Nil:
-                    _lastExpressionVariable = "NilValue.Instance";
-                    _lastExpressionIsModel = false;
-                    _lastExpressionType = FluidValues.Nil;
+                    _lastVariable = new("NilValue.Instance", false, FluidValues.Nil);
                     break;
                 default:
                     throw new NotSupportedException("Invalid literal expression");
@@ -331,6 +457,8 @@ namespace Fluid.Compilation
             {
                 return textSpanStatement;
             }
+
+            WriteLine("context.IncrementSteps();");
 
             WriteLine($@"await writer.WriteAsync({SymbolDisplay.FormatLiteral(textSpanStatement.Buffer, true)});");
 
@@ -371,7 +499,7 @@ namespace Fluid.Compilation
             Visit(andBinaryExpression.Right);
             var right = GetLocalObject(FluidValues.Boolean);
 
-            DeclareLocalValue($@"({left} && {right})", FluidValues.Boolean, true);
+            DeclareLocalValue($@"{left} && {right}", FluidValues.Boolean, true);
 
             return andBinaryExpression;
         }
@@ -464,10 +592,10 @@ namespace Fluid.Compilation
 
             WriteBlock(ifStatement.Statements);
 
-            WriteLine($@"else");
-
             foreach (var elseIf in ifStatement.ElseIfs)
             {
+                WriteLine($@"else");
+        
                 WriteLine($@"{{");
 
                 IncreaseIndent();
@@ -482,10 +610,6 @@ namespace Fluid.Compilation
                     WriteLine($@"else");
                     WriteBlock(ifStatement.Else.Statements);
                 }
-                else
-                {
-                    WriteLine($@"else");
-                }
             }
 
             foreach (var _ in ifStatement.ElseIfs)
@@ -496,6 +620,8 @@ namespace Fluid.Compilation
 
             if (!ifStatement.ElseIfs.Any() && ifStatement.Else != null)
             {
+                WriteLine($@"else");
+
                 WriteBlock(ifStatement.Else.Statements);
             }
 
@@ -518,11 +644,11 @@ namespace Fluid.Compilation
                     _canBeCached = _canBeCached && parameter.Expression is LiteralExpression;
                     if (String.IsNullOrEmpty(parameter.Name))
                     {
-                        initArguments.Add($@".Add({_lastExpressionVariable})");
+                        initArguments.Add($@".Add({_lastVariable.Name})");
                     }
                     else
                     {
-                        initArguments.Add($@".Add(""{parameter.Name}"", {_lastExpressionVariable})");
+                        initArguments.Add($@".Add(""{parameter.Name}"", {_lastVariable.Name})");
                     }
                 }
 
@@ -537,21 +663,22 @@ namespace Fluid.Compilation
             }
             else
             {
-                _lastExpressionVariable = "FilterArguments.Empty";
-                _lastExpressionIsModel = true;
+                _lastVariable = new("FilterArguments.Empty", true, FluidValues.Empty);
             }
 
-            var arguments = _lastExpressionVariable;
+            var arguments = _lastVariable.Name;
 
             Visit(filterExpression.Input);
 
-            var input = _lastExpressionVariable;
+            var input = _lastVariable.Name;
+
+            var inputAsFluidValue = GetLocalValue();
 
             // TODO: Filters could be resolved at the beginning on the template and referenced directly
 
             DeclareLocalValue($@"default(FilterDelegate)", isModel: true);
 
-            DeclareLocalValue($@"context.Options.Filters.TryGetValue(""{filterExpression.Name}"", out {_lastExpressionVariable}) ? await {_lastExpressionVariable}({input}, {arguments}, context) : {input}");
+            DeclareLocalValue($@"context.Options.Filters.TryGetValue(""{filterExpression.Name}"", out {_lastVariable.Name}) ? await {_lastVariable.Name}({inputAsFluidValue}, {arguments}, context) : {inputAsFluidValue}");
             return filterExpression;
         }
 
@@ -574,11 +701,11 @@ namespace Fluid.Compilation
 
                 if (String.IsNullOrEmpty(parameter.Name))
                 {
-                    initArguments.Add($@".Add({_lastExpressionVariable})");
+                    initArguments.Add($@".Add({_lastVariable.Name})");
                 }
                 else
                 {
-                    initArguments.Add($@".Add(""{parameter.Name}"", {_lastExpressionVariable})");
+                    initArguments.Add($@".Add(""{parameter.Name}"", {_lastVariable.Name})");
                 }
             }
             
@@ -617,7 +744,7 @@ namespace Fluid.Compilation
 
             DeclareLocalValue($@"new MacroValue(Macro_{macroStatement.Identifier}, encoder)");
 
-            _macroValues[macroStatement.Identifier] = _lastExpressionVariable;
+            _macroValues[macroStatement.Identifier] = _lastVariable.Name;
 
             return macroStatement;
         }
@@ -654,24 +781,12 @@ namespace Fluid.Compilation
             }
         }
 
-        private string DeclareGlobalVariable(string value, bool isModel = false)
-        {
-            _locals++;
-            var name = $"local_{_locals}";
-            _localSb.AppendLine($@"{_defaultIndent}var {name} = {value};");
-            _lastExpressionVariable = name;
-            _lastExpressionIsModel = isModel;
-            return name;
-        }
-
         private string DeclareStaticVariable(string value, FluidValues type = FluidValues.Nil, string cSharpType = null, bool isModel = false)
         {
             _locals++;
             var name = $"local_{_locals}";
             _staticsSb.AppendLine($@"    private static readonly {cSharpType ?? GetFluidTypeName(type)} {name};");
-            _lastExpressionVariable = name;
-            _lastExpressionIsModel = isModel;
-            _lastExpressionType = type;
+            _lastVariable = new(name, isModel, type);
 
             _staticConstructorSb.AppendLine($@"        {name} = {value};");
 
@@ -701,35 +816,35 @@ namespace Fluid.Compilation
         /// <returns></returns>
         private string GetLocalValue()
         {
-            var value = _lastExpressionVariable;
+            var value = _lastVariable.Name;
 
-            if (!_lastExpressionIsModel)
+            if (!_lastVariable.IsModel)
             {
                 return value;
             }
 
-            return _lastExpressionType switch
+            return _lastVariable.Type switch
             {
                 FluidValues.Boolean => $"{value} ? BooleanValue.True : BooleanValue.False",
                 FluidValues.String => $"StringValue.Create({value})",
                 FluidValues.Number => $"NumberValue.Create({value})",
-                _ => $"FluidValue.Create({_lastExpressionVariable}, context.Options)"
+                _ => $"FluidValue.Create({_lastVariable.Name}, context.Options)"
             };
         }
 
         private string GetLocalObject(FluidValues typeHint)
         {
-            var value = _lastExpressionVariable;
+            var value = _lastVariable.Name;
 
-            if (_lastExpressionIsModel)
+            if (_lastVariable.IsModel)
             {
-                if (_lastExpressionType == typeHint)
+                if (_lastVariable.Type == typeHint)
                 {
                     return value;
                 }
                 else
                 {
-                    value = $"FluidValue.Create({_lastExpressionVariable}, context.Options)";
+                    value = $"FluidValue.Create({_lastVariable.Name}, context.Options)";
                 }
             }
 
@@ -750,15 +865,13 @@ namespace Fluid.Compilation
         /// <param name="type"></param>
         /// <param name="isModel"></param>
         /// <returns></returns>
-        private string DeclareLocalValue(string value, FluidValues type = FluidValues.Nil, bool isModel = false)
+        private Variable DeclareLocalValue(string value, FluidValues type = FluidValues.Nil, bool isModel = false)
         {
             _locals++;
             var name = $"local_{_locals}";
             WriteLine($@"var {name} = {value};");
-            _lastExpressionVariable = name;
-            _lastExpressionIsModel = isModel;
-            _lastExpressionType = type;
-            return name;
+            _lastVariable = new(name, isModel, type);
+            return _lastVariable;
         }
         private void IncreaseIndent()
         {
@@ -806,5 +919,7 @@ namespace Fluid.Compilation
         {
             _currentBuilder.Append(_indent).Append(value);
         }
+
+        private record Variable(string Name = null, bool IsModel = false, FluidValues Type = FluidValues.Nil);
     }
 }
