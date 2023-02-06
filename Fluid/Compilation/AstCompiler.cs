@@ -5,6 +5,9 @@ using Fluid.Tests.Visitors;
 using Fluid.Values;
 using Microsoft.CodeAnalysis.CSharp;
 using Parlot.Fluent;
+using System.Collections;
+using System.Diagnostics;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
@@ -18,9 +21,10 @@ namespace Fluid.Compilation
     /// </remarks>
     public class AstCompiler : AstVisitor
     {
-        public AstCompiler(TemplateOptions templateOptions) 
+        public AstCompiler(TemplateOptions templateOptions, CompilerOptions compilerOptions) 
         {
             _templateOptions = templateOptions;
+            _compilerOptions = compilerOptions;
         }
 
         public void RenderTemplate(Type modelType, string templateName, FluidTemplate template, StringBuilder builder, StringBuilder global, StringBuilder staticConstructor)
@@ -47,6 +51,15 @@ namespace Fluid.Compilation
 
             builder.AppendLine(@$"{_indent}var model = context.Model?.ToObjectValue() as {_modelType.FullName};");
 
+            // Check that the compiled template is used with a model it was created for.
+
+            builder.AppendLine($@"{_indent}if (model == null)");
+            builder.AppendLine($@"{_indent}{{");
+            IncreaseIndent();
+            builder.AppendLine($@"{_indent}throw new InvalidOperationException(""The model provided is not a valid instance of '{_modelType.FullName}'.");
+            DecreaseIndent();
+            builder.AppendLine($@"{_indent}{{");
+
             VisitTemplate(template);
 
             builder.Append(_localSb);
@@ -68,6 +81,7 @@ namespace Fluid.Compilation
         private readonly StringBuilder _staticsSb = new();
         private readonly StringBuilder _staticConstructorSb = new();
         private readonly TemplateOptions _templateOptions;
+        private readonly CompilerOptions _compilerOptions;
         private readonly HashSet<string> _localVariables = new();
         private readonly HashSet<string> _modelVariables = new();
         private readonly Dictionary<string, Variable> _variableMappings = new(); // Maps a locally assigned property to its CSharp local_x member
@@ -226,8 +240,84 @@ namespace Fluid.Compilation
             return forStatement;
         }
 
+        private (string, Type) EvaluateMemberSegment(MemberSegment segment, Type modelType, TemplateContext context)
+        {
+            // TODO: Call this in a loop in VisitMemberExpression once it has evaluated the first level only
+            // The previous type is kept across each iteration 
+
+            if (segment is IdentifierSegment identifierSegment)
+            {
+                var identifier = identifierSegment.Identifier;
+
+                var property = _modelType.GetProperty(identifier, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
+
+                if (property != null)
+                {
+                    DeclareLocalValue($@"model.{property.Name}", isModel: true);
+                    _modelVariables.Add(_lastVariable.Name);
+                    return memberExpression;
+                }
+
+                var field = _modelType.GetField(identifier, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
+
+                if (field != null)
+                {
+                    DeclareLocalValue($@"model.{field.Name}", isModel: true);
+                    _modelVariables.Add(_lastVariable.Name);
+                    return memberExpression;
+                }
+
+                var property = _modelType.GetProperty(identifier, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
+                var field = _modelType.GetField(identifier, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
+
+                if (accessor == null)
+                {
+                    // Resolve the member from the Model first, then TemplateContext
+                }
+                
+            }
+            else if (segment is IndexerSegment indexerSegment)
+            {
+                // accessor can't be empty when evaluating an indexer
+                Debug.Assert(!String.IsNullOrEmpty(accessor));
+
+            }
+            else if (segment is FunctionCallSegment functionCallSegment)
+            {
+                // accessor can't be empty when evaluating a function call
+                Debug.Assert(!String.IsNullOrEmpty(accessor));
+
+            }
+            else
+            {
+                throw new NotSupportedException($"Unexpected member segment '{segment.GetType().FullName}'");
+            }
+
+            return (null, null);
+        }
+
         protected internal override Expression VisitMemberExpression(MemberExpression memberExpression)
         {
+            // TODO: Resolve each sub-property from the previous type
+            // if the MethodInfo's case doesn't match the identifier, create a local variable that will be assigned and behave as an alias
+            // e.g., fortune.id => var local = fortune.Id
+            // The recursive function should take a base accessor, a MemberSegment and a Type. If the accessor is null then it means it should resolve the property
+            // on the Model or the Context. Otherwise from the 'accessor' argument based on the Type, which can be FluidValue.
+
+            // The outcome of this statements should be a Variable instance which is initialized with the results of the expression.
+            // Examples:
+            // - FirstName => "model.FirstName"
+            // - Address.City => "model.Address.City"
+
+            // Other cases to take into account:
+            // - FunctionValue: hello('world')
+            // - Macros: hello('world')
+            // - Indexers: a.b[c]
+
+            // It the model type doesn't have the property, it is accessed from the TemplateContext
+
+            // TODO: Ensure and unit-test that a method can't be invoked when using a FunctionCallSegment
+
             var identifierSegment = memberExpression.Segments.FirstOrDefault() as IdentifierSegment;
             var identifier = identifierSegment.Identifier;
 
@@ -236,10 +326,7 @@ namespace Fluid.Compilation
 
             if (_modelVariables.Contains(identifier))
             {
-                // TODO: Resolve each sub-property from the previous type
-                // if the MethodInfo's case doesn't match the identifier, create a local variable that will be assigned and behave as an alias
-                // e.g., fortune.id => var local = fortune.Id
-
+                // _modelVariables contains the variable names that have been declared from Model properties
                 var accessor = identifier;
                 foreach (var segment in memberExpression.Segments.Skip(1))
                 {
@@ -254,6 +341,9 @@ namespace Fluid.Compilation
             }
             else if (_localVariables.Contains(identifier))
             {
+                // _localVariables contains variable names that are defined directly in code instead of using DeclareLocalValue,
+                // hence they can be used directly
+
                 var accessor = identifier;
                 foreach (var segment in memberExpression.Segments.Skip(1).Reverse())
                 {
@@ -288,8 +378,24 @@ namespace Fluid.Compilation
             }
             else if (_variableMappings.TryGetValue(identifier, out var mapped))
             {
+                // _variableMappings contains the variables defined with {% assign %}
                 _lastVariable = mapped;
                 return memberExpression;
+            }
+            else if (_modelType is IDictionary)
+            {
+                if (_modelType is IDictionary<string, object>)
+                {
+
+                }
+                else if (_modelType is IDictionary<string, FluidValue>)
+                {
+
+                }
+                else
+                {
+
+                }
             }
             else
             {
@@ -308,6 +414,8 @@ namespace Fluid.Compilation
                     }
                     else if (segment is FunctionCallSegment f)
                     {
+                        // Invoking a function requires to initialize a FunctionArguments instance
+
                         if (f.Arguments.Any())
                         {
                             // If all the arguments are literal expressions, define the FunctionArguments statically
@@ -329,6 +437,8 @@ namespace Fluid.Compilation
                                     initArguments.Add($@".Add(""{parameter.Name}"", {_lastVariable.Name})");
                                 }
                             }
+
+                            // FunctionArguments instances that contain only LiteralExpression are declared as static fields in the template class
 
                             if (_canBeCached)
                             {
@@ -370,7 +480,10 @@ namespace Fluid.Compilation
 
             // TODO: Maybe it should actually force a call to context.SetValue() ?
 
-            WriteLine("context.IncrementSteps();");
+            if (_compilerOptions.LimitMaxSteps)
+            {
+                WriteLine("context.IncrementSteps();");
+            }
 
             _variableMappings[assignStatement.Identifier] = _lastVariable;
 
@@ -381,7 +494,10 @@ namespace Fluid.Compilation
         {
             Visit(outputStatement.Expression);
 
-            WriteLine("context.IncrementSteps();");
+            if (_compilerOptions.LimitMaxSteps)
+            {
+                WriteLine("context.IncrementSteps();");
+            }
 
             if (_lastVariable.IsModel)
             {
@@ -458,7 +574,10 @@ namespace Fluid.Compilation
                 return textSpanStatement;
             }
 
-            WriteLine("context.IncrementSteps();");
+            if (_compilerOptions.LimitMaxSteps)
+            {
+                WriteLine("context.IncrementSteps();");
+            }
 
             WriteLine($@"await writer.WriteAsync({SymbolDisplay.FormatLiteral(textSpanStatement.Buffer, true)});");
 

@@ -15,18 +15,18 @@ public static partial class FluidParserExtensions
 {
     private static readonly object _synLock = new();
 
-    public static IFluidTemplate Compile<T>(this FluidParser parser, string template) => parser.Compile(template, typeof(T));
-    public static IFluidTemplate Compile<T>(this FluidTemplate fluidTemplate) => fluidTemplate.Compile(typeof(T));
+    public static IFluidTemplate Compile<T>(this FluidParser parser, string template) => parser.Compile(template, typeof(T), CompilerOptions.Default);
+    public static IFluidTemplate Compile<T>(this FluidTemplate fluidTemplate) => fluidTemplate.Compile(typeof(T), CompilerOptions.Default);
 
-    public static IFluidTemplate Compile(this FluidParser parser, string template, Type modelType)
+    public static IFluidTemplate Compile(this FluidParser parser, string template, Type modelType, CompilerOptions compilerOptions)
     {
         var fluidTemplate = parser.Parse(template) as FluidTemplate;
-        return fluidTemplate.Compile(modelType);
+        return fluidTemplate.Compile(modelType, compilerOptions);
     }
 
-    public static IFluidTemplate Compile(this FluidTemplate fluidTemplate, Type modelType)
+    public static IFluidTemplate Compile(this FluidTemplate fluidTemplate, Type modelType, CompilerOptions compilerOptions)
     {
-        var compiler = new AstCompiler(TemplateOptions.Default);
+        var compiler = new AstCompiler(TemplateOptions.Default, compilerOptions);
 
         var mainBuilder = new StringBuilder();
 
