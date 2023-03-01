@@ -25,7 +25,9 @@ jobs:
       run: dotnet test --configuration Release /p:Compiled=true
 
     - name: Pack
-      run: dotnet pack --output artifacts --configuration Release -p:PackageVersion=$GITHUB_RUN_NUMBER
+      run: |
+        PACKAGE_PATH="${GITHUB_WORKSPACE}/artifacts" 
+        dotnet pack --property:PackageOutputPath=$PACKAGE_PATH --configuration Release -p:PackageVersion=$GITHUB_RUN_NUMBER
 
     - name: Publish on MyGet
       run: dotnet nuget push "artifacts/*.nupkg" --api-key ${{ secrets.MYGET_API_KEY }} --skip-duplicate --source https://www.myget.org/F/fluid/api/v2/package
