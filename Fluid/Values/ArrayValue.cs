@@ -54,6 +54,8 @@ namespace Fluid.Values
                         return false;
                     }
                 }
+
+                return true;
             }
             else if (other.Type == FluidValues.Empty)
             {
