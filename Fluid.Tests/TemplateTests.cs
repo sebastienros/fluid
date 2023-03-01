@@ -1155,5 +1155,21 @@ after
             var result = await template.RenderAsync(context);
             Assert.Equal("123123", result);
         }
+
+        [Fact]
+        public async Task ArraysShouldCompareElements()
+        {
+            var source = """
+                {% assign people1 = "alice, bob, carol" | split: ", " %}
+                {% assign people2 = "alice, bob, carol" | split: ", " %}
+
+                {% if people1 == people2 %}true{%else%}false{% endif %} 
+            """;
+
+            _parser.TryParse(source, out var template);
+            var context = new TemplateContext();
+            var result = await template.RenderAsync(context);
+            Assert.Contains("true", result);
+        }
     }
 }

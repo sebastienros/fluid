@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Fluid.Values;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading.Tasks;
@@ -72,7 +73,7 @@ namespace Fluid.Tests
         {
             return CheckAsync(source, expected, context =>
             {
-                context.SetValue("x", new [] { "a", "b", "c" });
+                context.SetValue("x", new[] { "a", "b", "c" });
                 context.SetValue("y", new List<string> { "a", "b", "c" });
             });
         }
@@ -153,7 +154,7 @@ namespace Fluid.Tests
             return CheckAsync(source, expected, context =>
             {
                 context.SetValue("x", new string[0]);
-                context.SetValue("y", new List<string>{ "foo" });
+                context.SetValue("y", new List<string> { "foo" });
             });
         }
 
@@ -217,6 +218,39 @@ namespace Fluid.Tests
         public Task OperatorsHavePriority(string source, string expected)
         {
             return CheckAsync(source, expected);
+        }
+
+        [Fact]
+        public void DictionaryValuesShouldBeEqual()
+        {
+            var actual = new DictionaryValue(new FluidValueDictionaryFluidIndexable(new Dictionary<string, FluidValue>
+            {
+                { "stringProperty", StringValue.Create("testValue") }
+            }));
+
+            var expected = new DictionaryValue(new FluidValueDictionaryFluidIndexable(new Dictionary<string, FluidValue>
+            {
+                { "stringProperty", StringValue.Create("testValue") }
+            }));
+
+            Assert.True(actual.Equals(expected));
+        }
+
+        [Fact]
+        public void ArrayValuesShouldBeEqual()
+        {
+            var actual = new ArrayValue(new FluidValue[]
+            {
+                StringValue.Create("testValue")
+            });
+
+            var expected = new ArrayValue(new FluidValue[]
+            {
+                StringValue.Create("testValue")
+            });
+
+
+            Assert.True(actual.Equals(expected));
         }
 
     }
