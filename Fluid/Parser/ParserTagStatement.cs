@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Parser
 {
-    internal sealed class ParserTagStatement<T> : Statement, IHasTagName
+    internal sealed class ParserTagStatement<T> : Statement, IHasTagName, IHasValue<T>
     {
         private readonly Func<T, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> _render;
 
@@ -19,6 +19,7 @@ namespace Fluid.Parser
 
         public string TagName { get; init; }
         public T Value { get; }
+        object IHasValue.Value => Value;
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {

@@ -61,7 +61,8 @@ namespace Fluid.Tests.Extensibility
 
             Assert.Equal("Hello test", result);
             Assert.True(template.Statements.Count == 1);
-            Assert.True(((IHasTagName)template.Statements[0]).TagName == "hello");
+            Assert.Equal("hello", ((IHasTagName)template.Statements[0]).TagName);
+            Assert.Equal("test", ((IHasValue)template.Statements[0]).Value);
         }
 
         [Fact]
@@ -100,7 +101,8 @@ namespace Fluid.Tests.Extensibility
 
             Assert.Equal("Hello test hi", result);
             Assert.True(template.Statements.Count == 1);
-            Assert.True(((IHasTagName)template.Statements[0]).TagName == "hello");
+            Assert.Equal("hello", ((IHasTagName)template.Statements[0]).TagName);
+            Assert.Equal("test", ((IHasValue)template.Statements[0]).Value);
         }
 
         [Fact]
