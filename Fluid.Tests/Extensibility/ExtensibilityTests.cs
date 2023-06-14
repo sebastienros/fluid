@@ -1,4 +1,5 @@
 ﻿using Fluid.Ast;
+using Fluid.Parser;
 using Parlot.Fluent;
 using System;
 using Xunit;
@@ -19,10 +20,12 @@ namespace Fluid.Tests.Extensibility
                 return Statement.Normal();
             });
 
-            var template = parser.Parse("{% hello %}");
+            var template = (FluidTemplate) parser.Parse("{% hello %}");
             var result = template.Render();
 
             Assert.Equal("Hello World", result);
+            Assert.True(template.Statements.Count == 1);
+            Assert.True(((IHasTagName)template.Statements[0]).TagName == "hello");
         }
 
         [Fact]
@@ -53,10 +56,12 @@ namespace Fluid.Tests.Extensibility
                 return Statement.Normal();
             });
 
-            var template = parser.Parse("{% hello test %}");
+            var template = (FluidTemplate)parser.Parse("{% hello test %}");
             var result = template.Render();
 
             Assert.Equal("Hello test", result);
+            Assert.True(template.Statements.Count == 1);
+            Assert.True(((IHasTagName)template.Statements[0]).TagName == "hello");
         }
 
         [Fact]
@@ -70,10 +75,12 @@ namespace Fluid.Tests.Extensibility
                 return s.RenderStatementsAsync(w, e, c);
             });
 
-            var template = parser.Parse("{% hello %} hi {%- endhello %}");
+            var template = (FluidTemplate)parser.Parse("{% hello %} hi {%- endhello %}");
             var result = template.Render();
 
             Assert.Equal("Hello World hi", result);
+            Assert.True(template.Statements.Count == 1);
+            Assert.True(((IHasTagName)template.Statements[0]).TagName == "hello");
         }
 
         [Fact]
@@ -88,10 +95,12 @@ namespace Fluid.Tests.Extensibility
                 return s.RenderStatementsAsync(w, e, c);
             });
 
-            var template = parser.Parse("{% hello test %} hi {%- endhello %}");
+            var template = (FluidTemplate)parser.Parse("{% hello test %} hi {%- endhello %}");
             var result = template.Render();
 
             Assert.Equal("Hello test hi", result);
+            Assert.True(template.Statements.Count == 1);
+            Assert.True(((IHasTagName)template.Statements[0]).TagName == "hello");
         }
 
         [Fact]
