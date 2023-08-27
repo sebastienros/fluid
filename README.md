@@ -1009,7 +1009,7 @@ Tested on November 30, 2022 with
 ## Used by
 
 Fluid is known to be used in the following projects:
-- [Orchard Core CMS](https://github.com/OrchardCMS/Orchard2) Open Source .NET modular framework and CMS
+- [Orchard Core CMS](https://github.com/OrchardCMS/OrchardCore) Open Source .NET modular framework and CMS
 - [MaltReport](https://github.com/oldrev/maltreport) OpenDocument/OfficeOpenXML powered reporting engine for .NET and Mono
 - [Elsa Workflows](https://github.com/elsa-workflows/elsa-core) .NET Workflows Library
 - [FluentEmail](https://github.com/lukencode/FluentEmail) All in one email sender for .NET
