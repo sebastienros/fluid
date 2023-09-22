@@ -16,6 +16,7 @@ To see the corresponding content for v1.0 use [this version](https://github.com/
 ## Tutorials
 
 [Deane Barker](https://twitter.com/deane_barker) wrote a [very comprehensive tutorial](https://deanebarker.net/tech/fluid/) on how to write Liquid templates with Fluid.
+[Deane Barker](https://twitter.com/deane_barker) wrote [Introduction: The Four Levels of Fluid Development]([https://deanebarker.net/tech/fluid/](https://deanebarker.net/tech/fluid/intro/)) describing different stages of usages of Fluid.
 
 <br>
 
