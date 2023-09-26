@@ -166,6 +166,26 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void ShouldParseEmptyRawTags()
+        {
+          var statements = Parse(@"{% raw %}{% endraw %}");
+
+          Assert.Single(statements);
+          Assert.IsType<RawStatement>(statements.ElementAt(0));
+          Assert.Equal("", (statements.ElementAt(0) as RawStatement).Text.ToString());
+        }
+
+        [Fact]
+        public void ShouldParseEmptyCommentTags()
+        {
+          var statements = Parse(@"{% comment %}{% endcomment %}");
+
+          Assert.Single(statements);
+          Assert.IsType<CommentStatement>(statements.ElementAt(0));
+          Assert.Equal("", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+        }
+
+        [Fact]
         public void ShouldParseComment()
         {
             var statements = Parse(@"{% comment %} on {{ this }} and {{{ that }}} {% endcomment %}");
