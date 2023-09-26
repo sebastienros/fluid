@@ -72,7 +72,7 @@ namespace Fluid.ViewEngine
             }
             else
             {
-                writer.Write(body);
+                await writer.WriteAsync(body);
             }
         }
 
