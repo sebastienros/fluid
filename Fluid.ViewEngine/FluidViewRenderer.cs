@@ -14,7 +14,8 @@ namespace Fluid.ViewEngine
     /// </summary>
     public class FluidViewRenderer : IFluidViewRenderer
     {
-        private record struct LayoutKey(string ViewPath, string LayoutPath);
+        private static readonly char[] PathSeparators = { '/', '\\' };
+        private record struct LayoutKey (string ViewPath, string LayoutPath);
 
         private class CacheEntry
         {
@@ -51,8 +52,9 @@ namespace Fluid.ViewEngine
             // The body is rendered and buffered before the Layout since it can contain fragments 
             // that need to be rendered as part of the Layout.
             // Also the body or its _ViewStarts might contain a Layout tag.
+            // The context is not isolated such that variables can be changed by views
 
-            var body = await template.RenderAsync(context, _fluidViewEngineOptions.TextEncoder);
+            var body = await template.RenderAsync(context, _fluidViewEngineOptions.TextEncoder, isolateContext: false);
 
             // If a layout is specified while rendering a view, execute it
             if (context.AmbientValues.TryGetValue(Constants.LayoutIndex, out var layoutPath) && layoutPath is string layoutPathString && !String.IsNullOrEmpty(layoutPathString))
@@ -69,7 +71,7 @@ namespace Fluid.ViewEngine
             }
             else
             {
-                writer.Write(body);
+                await writer.WriteAsync(body);
             }
         }
 
@@ -100,7 +102,7 @@ namespace Fluid.ViewEngine
                     return viewStarts;
                 }
 
-                index = viewPath.LastIndexOf('/', index);
+                index = viewPath.LastIndexOfAny(PathSeparators, index);
 
                 viewPath = viewPath.Substring(0, index + 1);
 
@@ -149,7 +151,7 @@ namespace Fluid.ViewEngine
                         return layoutPath;
                     }
 
-                    index = viewPath.LastIndexOf('/', index);
+                    index = viewPath.LastIndexOfAny(PathSeparators, index);
 
                     viewPath = viewPath.Substring(0, index + 1);
 

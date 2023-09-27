@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Fluid.Values;
 
@@ -21,8 +22,10 @@ namespace Fluid.Filters
             filters.AddFilter("prepend", Prepend);
             filters.AddFilter("remove_first", RemoveFirst);
             filters.AddFilter("remove", Remove);
+            filters.AddFilter("remove_last", RemoveLast);
             filters.AddFilter("replace_first", ReplaceFirst);
             filters.AddFilter("replace", Replace);
+            filters.AddFilter("replace_last", ReplaceLast);
             filters.AddFilter("slice", Slice);
             filters.AddFilter("split", Split);
             filters.AddFilter("strip", Strip);
@@ -107,24 +110,72 @@ namespace Fluid.Filters
             return new StringValue(input.ToStringValue().Replace(argument, ""));
         }
 
-        public static ValueTask<FluidValue> ReplaceFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static ValueTask<FluidValue> RemoveLast(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            string remove = arguments.At(0).ToStringValue();
+            var remove = arguments.At(0).ToStringValue();
             var value = input.ToStringValue();
 
-            var index = value.IndexOf(remove);
+            var index = value.LastIndexOf(remove);
 
             if (index != -1)
             {
-                return new StringValue(value.Substring(0, index) + arguments.At(1).ToStringValue() + value.Substring(index + remove.Length));
+                return new StringValue(value.Remove(index, remove.Length));
             }
 
             return input;
         }
 
+        public static ValueTask<FluidValue> ReplaceFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            var value = input.ToStringValue().AsSpan();
+            var remove = arguments.At(0).ToStringValue().AsSpan();
+#else
+            var value = input.ToStringValue();
+            var remove = arguments.At(0).ToStringValue();
+#endif
+            var index = value.IndexOf(remove);
+
+            if (index == -1)
+            {
+                return input;
+            }
+
+#if NETCOREAPP3_0_OR_GREATER
+            var concat = string.Concat(value.Slice(0, index), arguments.At(1).ToStringValue(), value.Slice(index + remove.Length));
+#else
+            var concat = string.Concat(value.Substring(0, index), arguments.At(1).ToStringValue(), value.Substring(index + remove.Length));
+#endif
+            return new StringValue(concat);
+        }
+
         public static ValueTask<FluidValue> Replace(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new StringValue(input.ToStringValue().Replace(arguments.At(0).ToStringValue(), arguments.At(1).ToStringValue()));
+        }
+
+        public static ValueTask<FluidValue> ReplaceLast(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            var value = input.ToStringValue().AsSpan();
+            var remove = arguments.At(0).ToStringValue().AsSpan();
+#else
+            var value = input.ToStringValue();
+            var remove = arguments.At(0).ToStringValue();
+#endif
+            var index = value.LastIndexOf(remove);
+
+            if (index == -1)
+            {
+                return input;
+            }
+
+#if NETCOREAPP3_0_OR_GREATER
+            var concat = string.Concat(value.Slice(0, index), arguments.At(1).ToStringValue(), value.Slice(index + remove.Length));
+#else
+            var concat = string.Concat(value.Substring(0, index), arguments.At(1).ToStringValue(), value.Substring(index + remove.Length));
+#endif
+            return new StringValue(concat);
         }
 
         public static ValueTask<FluidValue> Slice(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -152,7 +203,7 @@ namespace Fluid.Filters
                     return ArrayValue.Empty;
                 }
 
-                var sourceArray = ((ArrayValue) input).Values;
+                var sourceArray = ((ArrayValue)input).Values;
 
                 var sourceLength = sourceArray.Length;
 
@@ -260,48 +311,57 @@ namespace Fluid.Filters
                 return StringValue.Empty;
             }
 
-            var ellipsisStr = arguments.At(1).Or(Ellipsis).ToStringValue();
-
             var length = Convert.ToInt32(arguments.At(0).Or(DefaultTruncateLength).ToNumberValue());
+
+            if (inputStr.Length <= length)
+            {
+                return input;
+            }
+
+            var ellipsisStr = arguments.At(1).Or(Ellipsis).ToStringValue();
 
             var l = Math.Max(0, length - ellipsisStr.Length);
 
-            return inputStr.Length > length
-                ? new StringValue(inputStr.Substring(0, l) + ellipsisStr)
-                : input;
+#if NETCOREAPP3_0_OR_GREATER
+            var concat = string.Concat(inputStr.AsSpan().Slice(0, l), ellipsisStr);
+#else
+            var concat = string.Concat(inputStr.Substring(0, l), ellipsisStr);
+#endif
+            return new StringValue(concat);
         }
 
         public static ValueTask<FluidValue> TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var source = input.ToStringValue();
-            var size = Math.Max(0, Convert.ToInt32(arguments.At(0).ToNumberValue()));
+
+            // Default value is 15
+            // c.f. https://github.com/Shopify/liquid/blob/81f44e36be5f2110c26b6532fd4ccd22edaf59f2/lib/liquid/standardfilters.rb#L233
+            var size = Convert.ToInt32(arguments.At(0).Or(NumberValue.Create(15)).ToNumberValue());
+
+            if (size <= 0)
+            {
+                size = 1;
+            }
+
             var ellipsis = arguments.At(1).Or(Ellipsis).ToStringValue();
 
-            var words = 0;
+            var chunks = new List<string>();
 
-            if (size > 0)
+            var length = source.Length;
+            for (var i = 0; i < length && chunks.Count < size;)
             {
-                for (var i = 0; i < source.Length;)
-                {
-                    while (i < source.Length && char.IsWhiteSpace(source[i])) i++;
-                    while (i < source.Length && !char.IsWhiteSpace(source[i])) i++;
-                    words++;
-
-                    if (words >= size)
-                    {
-                        source = source.Substring(0, i);
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                source = "";
+                while (i < length && char.IsWhiteSpace(source[i++])) ;
+                var start = i - 1;
+                while (i < length && !char.IsWhiteSpace(source[i++])) ;
+                chunks.Add(source.Substring(start, i - start - (i < length ? 1 : 0)));
             }
 
-            source += ellipsis;
+            if (chunks.Count >= size)
+            {
+                chunks[chunks.Count - 1] += ellipsis;
+            }
 
-            return new StringValue(source);
+            return new StringValue(string.Join(" ", chunks));
         }
 
         public static ValueTask<FluidValue> Upcase(FluidValue input, FilterArguments arguments, TemplateContext context)

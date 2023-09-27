@@ -19,6 +19,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{BE5EF08E
 		Common.props = Common.props
 		CREDITS.md = CREDITS.md
 		NuGet.config = NuGet.config
+		.github\workflows\pr.yml = .github\workflows\pr.yml
 		.github\workflows\publish.yml = .github\workflows\publish.yml
 		README.md = README.md
 	EndProjectSection

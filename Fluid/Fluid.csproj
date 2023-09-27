@@ -1,18 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1;net5.0;net6.0;net7.0</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>    
+    <!-- Ingore missing comments errors and obsolete TFMs -->
+    <NoWarn>$(NoWarn);CS1591;NETSDK1138</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Parlot" Version="0.0.23" />
+    <PackageReference Include="Parlot" Version="0.0.24" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="1.1.1" />
-    <PackageReference Include="TimeZoneConverter" Version="3.5.0" />
+    <PackageReference Include="TimeZoneConverter" Version="6.0.1" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="all" />
   </ItemGroup>
 
@@ -26,7 +27,7 @@
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
   </ItemGroup>
 
-  <!-- Keep specific targets for netcoreapp3.1 and net5.0 since it removes some dependencies -->
+  <!-- Keep specific targets since it removes some dependencies -->
   <ItemGroup Condition="'$(TargetFramework)'=='netcoreapp3.1'">
   </ItemGroup>
 
@@ -34,6 +35,9 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'=='net7.0'">
   </ItemGroup>
 
   <PropertyGroup>

@@ -149,7 +149,7 @@ namespace Fluid
             RegisteredOperators[">="] = (a, b) => new GreaterThanBinaryExpression(a, b, false);
             RegisteredOperators["<="] = (a, b) => new LowerThanExpression(a, b, false);
 
-            var CaseValueList = Separated(BinaryOr, Primary);
+            var CaseValueList = Separated(Terms.Text("or").Or(Terms.Text(",")), Primary);
 
             CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.Pattern(x => x == '=' || x == '!' || x == '<' || x == '>', maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString()).When(x => RegisteredOperators.ContainsKey(x)).And(Primary)))
                 .Then(x =>
@@ -250,20 +250,20 @@ namespace Fluid
             var BreakTag = TagEnd.Then<Statement>(x => new BreakStatement()).ElseError("Invalid 'break' tag");
             var ContinueTag = TagEnd.Then<Statement>(x => new ContinueStatement()).ElseError("Invalid 'continue' tag");
             var CommentTag = TagEnd
-                        .SkipAnd(AnyCharBefore(CreateTag("endcomment")))
+                        .SkipAnd(AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true))
                         .AndSkip(CreateTag("endcomment").ElseError($"'{{% endcomment %}}' was expected"))
                         .Then<Statement>(x => new CommentStatement(x))
                         .ElseError("Invalid 'comment' tag")
                         ;
-            var CaptureTag = Identifier
+            var CaptureTag = Identifier.ElseError(string.Format(ErrorMessages.IdentifierAfterTag, "capture"))
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
                         .AndSkip(CreateTag("endcapture").ElseError($"'{{% endcapture %}}' was expected"))
                         .Then<Statement>(x => new CaptureStatement(x.Item1, x.Item2))
                         .ElseError("Invalid 'capture' tag")
                         ;
-            var MacroTag = Identifier.ElseError(ErrorMessages.IdentifierAfterMacro)
-                        .AndSkip(LParen).ElseError(ErrorMessages.IdentifierAfterMacro)
+            var MacroTag = Identifier.ElseError(string.Format(ErrorMessages.IdentifierAfterTag, "macro"))
+                        .AndSkip(LParen).ElseError(string.Format(ErrorMessages.IdentifierAfterTag, "macro"))
                         .And(FunctionDefinitionArgumentsList)
                         .AndSkip(RParen)
                         .AndSkip(TagEnd)
@@ -309,7 +309,7 @@ namespace Fluid
                         .ElseError("Invalid 'render' tag")
                         ;
 
-            var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
+            var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), canBeEmpty: true, consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
             var AssignTag = Identifier.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
             var IfTag = LogicalExpression
                         .AndSkip(TagEnd)

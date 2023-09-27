@@ -13,6 +13,8 @@ namespace Fluid.MvcViewEngine
 {
     public class FluidViewEngine : IFluidViewEngine
     {
+        private static readonly char[] PathSeparators = { '/', '\\' };
+
         private FluidRendering _fluidRendering;
         private readonly IWebHostEnvironment _hostingEnvironment;
         private const string ControllerKey = "controller";
@@ -110,7 +112,7 @@ namespace Fluid.MvcViewEngine
 
             // Get directory name (including final slash) but do not use Path.GetDirectoryName() to preserve path
             // normalization.
-            var index = executingFilePath.LastIndexOf('/');
+            var index = executingFilePath.LastIndexOfAny(PathSeparators);
             Debug.Assert(index >= 0);
             return executingFilePath.Substring(0, index + 1) + pagePath;
         }
@@ -119,7 +121,7 @@ namespace Fluid.MvcViewEngine
         private static bool IsApplicationRelativePath(string name)
         {
             Debug.Assert(!string.IsNullOrEmpty(name));
-            return name[0] == '~' || name[0] == '/';
+            return name[0] == '~' || name[0] == '/' || name[0] == '\\';
         }
 
         private static bool IsRelativePath(string name)

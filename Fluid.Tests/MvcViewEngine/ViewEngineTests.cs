@@ -57,15 +57,17 @@ namespace Fluid.Tests.MvcViewEngine
             Assert.Equal("ViewStartHello World", sw.ToString());
         }
 
-        [Fact]
-        public async Task ShouldImportViewStartRecursively()
+        [Theory]
+        [InlineData("Home/Index.liquid")]
+        [InlineData("Home\\Index.liquid")]
+        public async Task ShouldImportViewStartRecursively(string path)
         {
             _mockFileProvider.Add("Views/Home/Index.liquid", "Hello World");
             _mockFileProvider.Add("Views/Home/_ViewStart.liquid", "ViewStart1");
             _mockFileProvider.Add("Views/_ViewStart.liquid", "ViewStart2");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Home/Index.liquid", new TemplateContext());
+            await _renderer.RenderViewAsync(sw, path, new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("ViewStart2ViewStart1Hello World", sw.ToString());
@@ -261,6 +263,20 @@ namespace Fluid.Tests.MvcViewEngine
             await sw.FlushAsync();
 
             Assert.Equal("Layout 2: Viewstart 1 ViewStart 2 Home Hello World", sw.ToString());
+        }
+
+        [Fact]
+        public async Task LayoutShouldBeAbleToIncludeVarsFromViewStart()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Layout' %}[View]{%- assign subtitle = '[SUBTITLE]' -%}");
+            _mockFileProvider.Add("Views/_Layout.liquid", "{{title}}{{subtitle}}{% renderbody %}");
+            _mockFileProvider.Add("Views/_ViewStart.liquid", "[ViewStart]{%- assign title = '[TITLE]' -%}");
+
+            var sw = new StringWriter();
+            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await sw.FlushAsync();
+
+            Assert.Equal("[TITLE][SUBTITLE][ViewStart][View]", sw.ToString());
         }
     }
 }
