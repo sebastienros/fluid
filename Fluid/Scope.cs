@@ -86,6 +86,7 @@ namespace Fluid
         /// Deletes the value with the specified name in the current scopes.
         /// </summary>
         /// <param name="name">The name of the value to delete.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void DeleteOwn(string name)
         {
             if (_properties != null)
@@ -113,6 +114,7 @@ namespace Fluid
         /// <summary>
         /// Sets the value with the specified name in the current scope.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetOwnValue(string name, FluidValue value)
         {
             _properties ??= new Dictionary<string, FluidValue>();
