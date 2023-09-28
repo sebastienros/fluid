@@ -113,11 +113,11 @@ namespace Fluid.Ast
 
                 var length = forloop.Length = startIndex + count;
 
-                context.LocalScope._properties["forloop"] = forloop;
+                context.LocalScope.SetOwnValue("forloop", forloop);
 
                 if (!parentLoop.IsNil())
                 {
-                    context.LocalScope._properties["parentloop"] = parentLoop;
+                    context.LocalScope.SetOwnValue("parentloop", parentLoop);
                 }
 
                 for (var i = startIndex; i < length; i++)
@@ -126,7 +126,7 @@ namespace Fluid.Ast
 
                     var item = source[i];
 
-                    context.LocalScope._properties[Identifier] = item;
+                    context.LocalScope.SetOwnValue(Identifier, item);
 
                     // Set helper variables
                     forloop.Index = i + 1;
@@ -150,7 +150,7 @@ namespace Fluid.Ast
 
                         //// Restore the forloop property after every statement in case it replaced it,
                         //// for instance if it contains a nested for loop
-                        //context.LocalScope._properties["forloop"] = forloop;
+                        //context.LocalScope.SetOwnValue("forloop", forloop);
 
                         if (completion != Completion.Normal)
                         {
