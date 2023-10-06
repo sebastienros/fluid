@@ -231,7 +231,7 @@ namespace Fluid.Filters
                 return StringValue.Empty;
             }
 
-            var result = ArrayPool<char>.Shared.Rent(html.Length); ;
+            var result = ArrayPool<char>.Shared.Rent(html.Length);
 
             try
             {
