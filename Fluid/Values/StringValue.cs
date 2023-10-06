@@ -49,7 +49,7 @@ namespace Fluid.Values
         internal static StringValue Create(char c)
         {
             var temp = CharToString;
-            if ((uint) c < (uint) temp.Length)
+            if (c < (uint) temp.Length)
             {
                 return temp[c];
             }

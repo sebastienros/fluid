@@ -4,7 +4,7 @@ namespace Fluid.Ast
 {
     public class NamedExpressionList
     {
-        public static readonly NamedExpressionList Empty = new NamedExpressionList();
+        public static readonly NamedExpressionList Empty = new();
 
         private List<Expression> _positional;
         private Dictionary<string, Expression> _named;
@@ -42,13 +42,7 @@ namespace Fluid.Ast
             }
         }
 
-        public Expression this[string name, int index]
-        {
-            get
-            {
-                return this[name] ?? this[index];
-            }
-        }
+        public Expression this[string name, int index] => this[name] ?? this[index];
 
         public NamedExpressionList()
         {
@@ -71,18 +65,12 @@ namespace Fluid.Ast
         {
             if (name != null)
             {
-                if (_named == null)
-                {
-                    _named = new Dictionary<string, Expression>();
-                }
+                _named ??= new Dictionary<string, Expression>();
 
                 _named.Add(name, value);
             }
 
-            if (_positional == null)
-            {
-                _positional = new List<Expression>();
-            }
+            _positional ??= new List<Expression>();
 
             _positional.Add(value);
 

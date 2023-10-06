@@ -64,18 +64,12 @@ namespace Fluid
         {
             if (name != null)
             {
-                if (_named == null)
-                {
-                    _named = new Dictionary<string, FluidValue>();
-                }
+                _named ??= new Dictionary<string, FluidValue>();
 
                 _named.Add(name, value);
             }
 
-            if (_positional == null)
-            {
-                _positional = new List<FluidValue>();
-            }
+            _positional ??= new List<FluidValue>();
 
             _positional.Add(value);
 

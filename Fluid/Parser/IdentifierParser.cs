@@ -86,11 +86,6 @@ namespace Fluid.Parser
             return true;
         }
 
-        private static bool IsNonDigitStart(char ch)
-            =>
-               (ch >= 'a' && ch <= 'z') ||
-               (ch >= 'A' && ch <= 'Z') ||
-                (ch == '_')
-            ;
+        private static bool IsNonDigitStart(char ch) => ch is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or '_';
     }
 }

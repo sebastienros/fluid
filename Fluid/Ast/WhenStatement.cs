@@ -20,9 +20,9 @@ namespace Fluid.Ast
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             // Process statements until next block or end of statements
-            for (var index = 0; index < _statements.Count; index++)
+            foreach (var statement in _statements)
             {
-                var completion = await _statements[index].WriteToAsync(writer, encoder, context);
+                var completion = await statement.WriteToAsync(writer, encoder, context);
 
                 if (completion != Completion.Normal)
                 {

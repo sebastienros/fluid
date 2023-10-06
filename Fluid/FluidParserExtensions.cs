@@ -1,6 +1,5 @@
 ﻿using Fluid.Ast;
 using Fluid.Parser;
-using Parlot.Fluent;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,12 +28,9 @@ namespace Fluid
                 throw new ParseException($"{parlotError.Message} at {parlotError.Position}\nSource:\n{source}");
             }
 
-            if (!success)
-            {
-                return null;
-            }
-
-            return new FluidTemplate(statements);
+            return success
+                ? new FluidTemplate(statements)
+                : null;
         }
 
         public static bool TryParse(this FluidParser parser, string template, out IFluidTemplate result, out string error)
