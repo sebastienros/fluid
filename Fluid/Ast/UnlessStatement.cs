@@ -25,9 +25,8 @@ namespace Fluid.Ast
 
             if (!result)
             {
-                for (var i = 0; i < _statements.Count; i++)
+                foreach (var statement in _statements)
                 {
-                    var statement = _statements[i];
                     var completion = await statement.WriteToAsync(writer, encoder, context);
 
                     if (completion != Completion.Normal)

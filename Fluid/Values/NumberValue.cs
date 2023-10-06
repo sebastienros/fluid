@@ -139,7 +139,7 @@ namespace Fluid.Values
 
             int[] bits = decimal.GetBits(value);
 
-            return (int) ((bits[3] >> 16) & 0x7F);
+            return (bits[3] >> 16) & 0x7F;
         }
     }
 }

@@ -65,7 +65,7 @@ namespace Fluid.Ast
 
                         var content = "";
 
-                        using (var stream = fileInfo.CreateReadStream())
+                        await using (var stream = fileInfo.CreateReadStream())
                         using (var streamReader = new StreamReader(stream))
                         {
                             content = await streamReader.ReadToEndAsync();
@@ -175,7 +175,7 @@ namespace Fluid.Ast
             return Completion.Normal;
         }
 
-        private record class CachedTemplate (IFluidTemplate Template, string Name);
+        private record CachedTemplate (IFluidTemplate Template, string Name);
 
     }
 }

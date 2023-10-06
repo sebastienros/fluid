@@ -15,6 +15,6 @@ namespace Fluid.Parser
         public const string FunctionsNotAllowed = "Functions are not allowed";
         [Obsolete] public const string IdentifierAfterMacro = "An identifier was expected after the 'macro' tag";
         public const string IdentifierAfterTag = "An identifier was expected after the '{0}' tag";
-        public const string ParentesesAfterFunctionName = "Start of arguments '(' is expected after a function name";
+        public const string ParenthesesAfterFunctionName = "Start of arguments '(' is expected after a function name";
     }
 }

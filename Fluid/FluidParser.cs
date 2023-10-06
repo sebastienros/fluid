@@ -33,7 +33,7 @@ namespace Fluid
         protected static readonly Parser<char> Dot = Literals.Char('.');
         protected static readonly Parser<char> Pipe = Terms.Char('|');
 
-        protected static readonly Parser<TextSpan> String = Terms.String(StringLiteralQuotes.SingleOrDouble);
+        protected static readonly Parser<TextSpan> String = Terms.String();
         protected static readonly Parser<decimal> Number = Terms.Decimal(NumberOptions.AllowSign);
 
         protected static readonly Parser<string> DoubleEquals = Terms.Text("==");
@@ -170,7 +170,7 @@ namespace Fluid
                         return x.Item1;
                     }
 
-                    var result = x.Item2[x.Item2.Count - 1].Item2;
+                    var result = x.Item2[^1].Item2;
 
                     for (var i = x.Item2.Count - 1; i >= 0; i--)
                     {
@@ -196,13 +196,13 @@ namespace Fluid
                                 Primary.Then(static x => new FilterArgument(null, x))
                             ));
 
-            // Primary ( | identifer ( ':' ArgumentsList )! ] )*
+            // Primary ( | identifier ( ':' ArgumentsList )! ] )*
             FilterExpression.Parser = LogicalExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter)
                 .And(ZeroOrMany(
                     Pipe
                     .SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterPipe))
                     .And(ZeroOrOne(Colon.SkipAnd(ArgumentsList)))))
-                .Then((ctx, x) =>
+                .Then((_, x) =>
                     {
                         // Primary
                         var result = x.Item1;
@@ -247,8 +247,8 @@ namespace Fluid
                 });
 
 
-            var BreakTag = TagEnd.Then<Statement>(x => new BreakStatement()).ElseError("Invalid 'break' tag");
-            var ContinueTag = TagEnd.Then<Statement>(x => new ContinueStatement()).ElseError("Invalid 'continue' tag");
+            var BreakTag = TagEnd.Then<Statement>(_ => new BreakStatement()).ElseError("Invalid 'break' tag");
+            var ContinueTag = TagEnd.Then<Statement>(_ => new ContinueStatement()).ElseError("Invalid 'continue' tag");
             var CommentTag = TagEnd
                         .SkipAnd(AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true))
                         .AndSkip(CreateTag("endcomment").ElseError($"'{{% endcomment %}}' was expected"))
@@ -349,7 +349,7 @@ namespace Fluid
                             .AndSkip(Terms.Text("in"))
                             .And(Member)
                             .And(ZeroOrMany(OneOf( // Use * since each can appear in any order. Validation is done once it's parsed
-                                Terms.Text("reversed").Then(x => new ForModifier { IsReversed = true }),
+                                Terms.Text("reversed").Then(_ => new ForModifier { IsReversed = true }),
                                 Terms.Text("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsLimit = true, Value = x }),
                                 Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
                                 )))
@@ -373,7 +373,7 @@ namespace Fluid
                             .AndSkip(Terms.Text("in"))
                             .And(Range)
                             .And(ZeroOrMany(OneOf( // Use * since each can appear in any order. Validation is done once it's parsed
-                                Terms.Text("reversed").Then(x => new ForModifier { IsReversed = true }),
+                                Terms.Text("reversed").Then(_ => new ForModifier { IsReversed = true }),
                                 Terms.Text("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsLimit = true, Value = x }),
                                 Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
                                 )))
@@ -475,7 +475,7 @@ namespace Fluid
                 return ReadFromList(modifiers);
             }
 
-            var AnyTags = TagStart.SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart).Switch((context, previous) =>
+            var AnyTags = TagStart.SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart).Switch((_, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
@@ -552,7 +552,7 @@ namespace Fluid
 
         public void RegisterEmptyTag(string tagName, Func<TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
-            RegisteredTags[tagName] = TagEnd.Then<Statement>(x => new EmptyTagStatement(render)).ElseError($"Unexpected arguments in {tagName} tag");
+            RegisteredTags[tagName] = TagEnd.Then<Statement>(_ => new EmptyTagStatement(render)).ElseError($"Unexpected arguments in {tagName} tag");
         }
 
         public void RegisterEmptyBlock(string tagName, Func<IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)

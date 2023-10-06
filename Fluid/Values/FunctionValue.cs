@@ -66,7 +66,7 @@ namespace Fluid.Values
 
         public override bool Equals(object other)
         {
-            return object.ReferenceEquals(this, other);
+            return ReferenceEquals(this, other);
         }
 
         public override int GetHashCode()

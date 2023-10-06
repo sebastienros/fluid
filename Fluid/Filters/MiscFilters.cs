@@ -362,7 +362,6 @@ namespace Fluid.Filters
                             case '-': removeLeadingZerosFlag = true; continue;
                             case '_': useSpaceForPaddingFlag = true; continue;
                             case ':': useColonsForZeeDirectiveFlag = true; continue;
-                            default: break;
                         }
 
                         // An optional width specifier (an integer).
@@ -622,7 +621,7 @@ namespace Fluid.Filters
 
             if (!arguments.At(1).IsNil())
             {
-                culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue()) ?? context.CultureInfo;
+                culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue());
             }
 
             return new StringValue(value.ToString(format, culture));
@@ -774,7 +773,7 @@ namespace Fluid.Filters
 
             if (!arguments.At(1).IsNil())
             {
-                culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue()) ?? context.CultureInfo;
+                culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue());
             }
 
             return new StringValue(input.ToNumberValue().ToString(format, culture));
@@ -793,7 +792,7 @@ namespace Fluid.Filters
 
             if (arguments.HasNamed("culture"))
             {
-                culture = CultureInfo.CreateSpecificCulture(arguments["culture"].ToStringValue()) ?? context.CultureInfo;
+                culture = CultureInfo.CreateSpecificCulture(arguments["culture"].ToStringValue());
             }
 
             var parameters = arguments.ValuesToObjectArray();
