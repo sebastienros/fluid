@@ -439,7 +439,7 @@ Blocks are useful when manipulating a section of a a template as a set of statem
 Fluid provides helper method to register common tags and blocks. All tags and block always start with an __identifier__ that is
 the tag name.
 
-Each custom tag needs to provide a delegate that is evaluated when the tag is matched. Each degate will be able to use these properties:
+Each custom tag needs to provide a delegate that is evaluated when the tag is matched. Each delegate will be able to use these properties:
 
 - `writer`, a `TextWriter` instance that is used to render some text.
 - `encode`, a `TextEncoder` instance, like `HtmlEncoder`, or `NullEncoder`. It's defined by the caller of the template.
@@ -593,7 +593,7 @@ Because the Liquid language only accepts known members to be accessed, the View 
 #### View Model registration
 
 View models are automatically registered and available as the root object in liquid templates.
-Custom model regsitrations can be added when calling `AddFluid()`.
+Custom model registrations can be added when calling `AddFluid()`.
 
 ```csharp
 public class Startup
