@@ -25,7 +25,10 @@ namespace Fluid.ViewEngine
         }
 
         private readonly ConcurrentDictionary<IFileProvider, CacheEntry> _cache = new();
+        private readonly ConcurrentDictionary<string, string> _partialToPartialPathCache = new();
         private readonly ConcurrentDictionary<LayoutKey, string> _layoutsCache = new();
+
+        private readonly FluidViewEngineOptions _fluidViewEngineOptions;
 
         public FluidViewRenderer(FluidViewEngineOptions fluidViewEngineOptions)
         {
@@ -33,8 +36,6 @@ namespace Fluid.ViewEngine
 
             _fluidViewEngineOptions.TemplateOptions.FileProvider = _fluidViewEngineOptions.PartialsFileProvider ?? _fluidViewEngineOptions.ViewsFileProvider ?? new NullFileProvider();
         }
-
-        private readonly FluidViewEngineOptions _fluidViewEngineOptions;
 
         public virtual async Task RenderViewAsync(TextWriter writer, string relativePath, TemplateContext context)
         {
@@ -78,6 +79,8 @@ namespace Fluid.ViewEngine
 
         public virtual async Task RenderPartialAsync(TextWriter writer, string relativePath, TemplateContext context)
         {
+            relativePath = ResolvePartialPath(relativePath, context);
+
             // Substitute View Path
             context.AmbientValues[Constants.ViewPathIndex] = relativePath;
 
@@ -263,7 +266,7 @@ namespace Fluid.ViewEngine
             {
                 using (var sr = new StreamReader(stream))
                 {
-                    var fileContent = sr.ReadToEnd();
+                    var fileContent = await sr.ReadToEndAsync();
                     if (_fluidViewEngineOptions.Parser.TryParse(fileContent, out var template, out var errors))
                     {
                         subTemplates.Add(template);
@@ -276,6 +279,33 @@ namespace Fluid.ViewEngine
                     }
                 }
             }
+        }
+
+        protected virtual string ResolvePartialPath(string relativePartialPath, TemplateContext context)
+        {
+            return _partialToPartialPathCache.GetOrAdd(relativePartialPath, k =>
+            {
+                if (!k.EndsWith(Constants.ViewExtension, StringComparison.OrdinalIgnoreCase))
+                {
+                    k += Constants.ViewExtension;
+                }
+
+                var fileName = Path.GetFileNameWithoutExtension(k);
+
+                foreach (var location in this._fluidViewEngineOptions.PartialsLocationFormats)
+                {
+                    var partialPath = string.Format(location, fileName);
+
+                    var layoutPathInfo = context.Options.FileProvider.GetFileInfo(partialPath);
+
+                    if (layoutPathInfo.Exists)
+                    {
+                        return partialPath;
+                    }
+                }
+
+                return k;
+            });
         }
     }
 }
