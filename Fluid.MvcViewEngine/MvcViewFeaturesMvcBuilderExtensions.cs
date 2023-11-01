@@ -24,7 +24,12 @@ namespace Fluid.MvcViewEngine
                 builder.Services.Configure(setupAction);
             }
 
-            builder.Services.AddSingleton(x => new FluidViewRenderer(x.GetRequiredService<IOptions<FluidMvcViewOptions>>().Value));
+            builder.Services.AddSingleton<IFluidViewRenderer>(sp =>
+            {
+                var options = sp.GetRequiredService<IOptions<FluidViewEngineOptions>>().Value;
+                return new FluidViewRenderer(options);
+            });
+
             builder.Services.AddTransient<IConfigureOptions<MvcViewOptions>, MvcViewOptionsSetup>();
             builder.Services.AddSingleton<FluidRendering>();
             builder.Services.AddSingleton<IFluidViewEngine, FluidViewEngine>();
