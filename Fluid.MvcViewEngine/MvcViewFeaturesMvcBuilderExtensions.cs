@@ -20,6 +20,7 @@ namespace Fluid.MvcViewEngine
 
             if (setupAction != null)
             {
+                builder.Services.Configure<FluidMvcViewOptions>(setupAction);
                 builder.Services.Configure(setupAction);
             }
 

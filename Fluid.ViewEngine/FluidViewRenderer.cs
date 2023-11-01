@@ -79,7 +79,7 @@ namespace Fluid.ViewEngine
 
         public virtual async Task RenderPartialAsync(TextWriter writer, string relativePath, TemplateContext context)
         {
-            relativePath = ResolvePartialPath(relativePath, context);
+            relativePath = ResolvePartialPath(relativePath);
 
             // Substitute View Path
             context.AmbientValues[Constants.ViewPathIndex] = relativePath;
@@ -281,22 +281,20 @@ namespace Fluid.ViewEngine
             }
         }
 
-        protected virtual string ResolvePartialPath(string relativePartialPath, TemplateContext context)
+        protected virtual string ResolvePartialPath(string relativePartialPath)
         {
-            return _partialToPartialPathCache.GetOrAdd(relativePartialPath, k =>
+            return _partialToPartialPathCache.GetOrAdd(relativePartialPath, fileName =>
             {
-                if (!k.EndsWith(Constants.ViewExtension, StringComparison.OrdinalIgnoreCase))
+                if (fileName.EndsWith(Constants.ViewExtension, StringComparison.OrdinalIgnoreCase))
                 {
-                    k += Constants.ViewExtension;
+                    return relativePartialPath;
                 }
-
-                var fileName = Path.GetFileNameWithoutExtension(k);
 
                 foreach (var location in this._fluidViewEngineOptions.PartialsLocationFormats)
                 {
                     var partialPath = string.Format(location, fileName);
 
-                    var layoutPathInfo = context.Options.FileProvider.GetFileInfo(partialPath);
+                    var layoutPathInfo = this._fluidViewEngineOptions.PartialsFileProvider.GetFileInfo(partialPath);
 
                     if (layoutPathInfo.Exists)
                     {
@@ -304,7 +302,7 @@ namespace Fluid.ViewEngine
                     }
                 }
 
-                return k;
+                return fileName;
             });
         }
     }
