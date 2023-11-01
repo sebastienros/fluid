@@ -97,6 +97,11 @@ namespace Fluid.Values
         {
         }
 
+        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            return default;
+        }
+
         public override string ToStringValue()
         {
             return "";

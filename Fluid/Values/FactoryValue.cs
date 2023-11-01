@@ -88,5 +88,11 @@ namespace Fluid.Values
             AssertWriteToParameters(writer, encoder, cultureInfo);
             _factory.Value.WriteTo(writer, encoder, cultureInfo);
         }
+
+        public override async ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            AssertWriteToParameters(writer, encoder, cultureInfo);
+            await _factory.Value.WriteToAsync(writer, encoder, cultureInfo);
+        }
     }
 }

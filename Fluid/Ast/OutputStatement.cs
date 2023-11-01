@@ -15,31 +15,24 @@ namespace Fluid.Ast
 
         public Expression Expression { get; }
 
-        public IList<FilterExpression> Filters { get ; }
+        public IList<FilterExpression> Filters { get; }
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            static async ValueTask<Completion> Awaited(
-                ValueTask<FluidValue> t,
-                TextWriter w,
-                TextEncoder enc,
-                TemplateContext ctx)
-            {
-                var value = await t;
-                value.WriteTo(w, enc, ctx.CultureInfo);
-                return Completion.Normal;
-            }
-
             context.IncrementSteps();
 
             var task = Expression.EvaluateAsync(context);
             if (task.IsCompletedSuccessfully)
             {
-                task.Result.WriteTo(writer, encoder, context.CultureInfo);
-                return new ValueTask<Completion>(Completion.Normal);
+                await task.Result.WriteToAsync(writer, encoder, context.CultureInfo);
+                return Completion.Normal;
             }
 
-            return Awaited(task, writer, encoder, context);
+            var value = await task;
+
+            await value.WriteToAsync(writer, encoder, context.CultureInfo);
+
+            return Completion.Normal;
         }
     }
 }

@@ -157,6 +157,12 @@ namespace Fluid.Values
             writer.Write(encoder.Encode(ToStringValue()));
         }
 
+        public override async ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            AssertWriteToParameters(writer, encoder, cultureInfo);
+            await writer.WriteAsync(encoder.Encode(ToStringValue()));
+        }
+
         public override string ToStringValue()
         {
             return Convert.ToString(Value);

@@ -14,6 +14,7 @@ namespace Fluid.Values
     public abstract class FluidValue : IEquatable<FluidValue>
     {
         public abstract void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
+        public abstract ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
 
         private static Dictionary<Type, Type> _genericDictionaryTypeCache = new();
 
