@@ -7,7 +7,8 @@ namespace Fluid.MvcViewEngine
     /// <summary>
     /// Defines the default configuration of <see cref="FluidMvcViewOptions"/>.
     /// </summary>
-    internal class FluidViewEngineOptionsSetup : ConfigureOptions<FluidMvcViewOptions>
+    internal class FluidViewEngineOptionsSetup<T> : ConfigureOptions<T>
+        where T : FluidViewEngineOptions
     {
         public FluidViewEngineOptionsSetup(IWebHostEnvironment webHostEnvironment)
             : base(options =>
