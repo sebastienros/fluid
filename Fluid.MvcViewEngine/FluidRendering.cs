@@ -14,11 +14,11 @@ namespace Fluid.MvcViewEngine
     /// </summary>
     public class FluidRendering
     {
-        private readonly FluidViewRenderer _fluidViewRenderer;
+        private readonly IFluidViewRenderer _fluidViewRenderer;
 
         public FluidRendering(
             IOptions<FluidMvcViewOptions> optionsAccessor,
-            FluidViewRenderer fluidViewRenderer,
+            IFluidViewRenderer fluidViewRenderer,
             IWebHostEnvironment hostingEnvironment)
         {
             _hostingEnvironment = hostingEnvironment;
