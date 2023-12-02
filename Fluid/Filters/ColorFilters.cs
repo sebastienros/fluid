@@ -619,7 +619,7 @@ namespace Fluid.Filters
                 return false;
             }
 
-            public override string ToString() => $"#{R}{G}{B}".ToLower();
+            public override string ToString() => $"#{R}{G}{B}".ToLowerInvariant();
 
             public static explicit operator HexColor(HslColor hslColor) => (HexColor)(RgbColor)hslColor;
 
@@ -632,7 +632,9 @@ namespace Fluid.Filters
             private static bool IsHexadecimal(string value) => value.All(c => "0123456789abcdefABCDEF".Contains(c));
         }
 
+#pragma warning disable CA1067 // should override Equals because it implements IEquatable<T>
         private readonly struct RgbColor : IEquatable<RgbColor>
+#pragma warning restore CA1067
         {
             private const double DefaultTransperency = 1.0;
 
@@ -683,7 +685,7 @@ namespace Fluid.Filters
 
             public static bool TryParse(string value, out RgbColor color)
             {
-                if ((value.StartsWith("rgb(") || value.StartsWith("rgba(")) && value.EndsWith(")"))
+                if ((value.StartsWith("rgb(") || value.StartsWith("rgba(")) && value.EndsWith(')'))
                 {
                     var rgbColor = value.Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
 
@@ -857,11 +859,11 @@ namespace Fluid.Filters
 
             public static bool TryParse(string value, out HslColor color)
             {
-                if ((value.StartsWith("hsl(") || value.StartsWith("hsla(")) && value.EndsWith(")"))
+                if ((value.StartsWith("hsl(") || value.StartsWith("hsla(")) && value.EndsWith(')'))
                 {
                     var hslColor = value.Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
 
-                    if (hslColor.Length == 4 && hslColor[2].EndsWith("%") && hslColor[3].EndsWith("%") &&
+                    if (hslColor.Length == 4 && hslColor[2].EndsWith('%') && hslColor[3].EndsWith('%') &&
                         Double.TryParse(hslColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double hue) &&
                         Double.TryParse(hslColor[2].TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double saturation) &&
                         Double.TryParse(hslColor[3].TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double lightness))
@@ -871,7 +873,7 @@ namespace Fluid.Filters
                         return true;
                     }
 
-                    if (hslColor.Length == 5 && hslColor[2].EndsWith("%") && hslColor[3].EndsWith("%") &&
+                    if (hslColor.Length == 5 && hslColor[2].EndsWith('%') && hslColor[3].EndsWith('%') &&
                         Double.TryParse(hslColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out hue) &&
                         Double.TryParse(hslColor[2].TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out saturation) &&
                         Double.TryParse(hslColor[3].TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out lightness) &&

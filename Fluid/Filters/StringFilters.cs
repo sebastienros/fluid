@@ -60,7 +60,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().ToLower());
+            return new StringValue(input.ToStringValue().ToLowerInvariant());
         }
 
         public static ValueTask<FluidValue> LStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -285,11 +285,11 @@ namespace Fluid.Filters
         {
             var result = input.ToStringValue();
 
-            if (result.Contains("\r"))
+            if (result.Contains('\r'))
             {
                 result = result.Replace("\r", "");
             }
-            if (result.Contains("\n"))
+            if (result.Contains('\n'))
             {
                 result = result.Replace("\n", "");
             }
@@ -366,7 +366,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Upcase(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().ToUpper());
+            return new StringValue(input.ToStringValue().ToUpperInvariant());
         }
     }
 }

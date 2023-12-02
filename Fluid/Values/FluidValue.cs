@@ -11,7 +11,9 @@ using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
+#pragma warning disable CA1067 // should override Equals because it implements IEquatable<T>
     public abstract class FluidValue : IEquatable<FluidValue>
+#pragma warning restore CA1067
     {
         public abstract void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
 
