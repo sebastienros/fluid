@@ -60,10 +60,10 @@ namespace Fluid.Values
             return _value ? BoxedTrue : BoxedFalse;
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
             // The is operator will return false if null
-            if (other is BooleanValue otherValue)
+            if (obj is BooleanValue otherValue)
             {
                 return _value.Equals(otherValue._value);
             }

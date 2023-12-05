@@ -129,10 +129,10 @@ namespace Fluid.Values
             }
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
             // The is operator will return false if null
-            if (other is DictionaryValue otherValue)
+            if (obj is DictionaryValue otherValue)
             {
                 return _value.Equals(otherValue._value);
             }

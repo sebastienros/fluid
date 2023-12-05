@@ -51,7 +51,8 @@ namespace Fluid
         }
 
 #if NETSTANDARD2_0
-        private class DoesNotReturnAttribute : Attribute {}
+        [AttributeUsage(AttributeTargets.Method)]
+        private sealed class DoesNotReturnAttribute : Attribute {}
 #endif
     }
 }

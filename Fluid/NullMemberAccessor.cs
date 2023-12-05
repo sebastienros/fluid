@@ -2,7 +2,7 @@
 {
     public class NullMemberAccessor : IMemberAccessor
     {
-        public static IMemberAccessor Instance = new NullMemberAccessor();
+        public static readonly IMemberAccessor Instance = new NullMemberAccessor();
 
         private NullMemberAccessor()
         {

@@ -8,7 +8,7 @@ namespace Fluid.Ast
     public class FunctionCallSegment : MemberSegment
     {
         private static readonly FunctionArguments NonCacheableArguments = new();
-        private volatile FunctionArguments _cachedArguments = null;
+        private volatile FunctionArguments _cachedArguments;
 
         public FunctionCallSegment(IReadOnlyList<FunctionCallArgument> arguments)
         {

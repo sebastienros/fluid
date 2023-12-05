@@ -57,10 +57,10 @@ namespace Fluid.Values
             return _value;
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
             // The is operator will return false if null
-            if (other is DateTimeOffset otherValue)
+            if (obj is DateTimeOffset otherValue)
             {
                 return _value.Equals(otherValue);
             }

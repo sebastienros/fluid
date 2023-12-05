@@ -69,7 +69,7 @@ namespace Fluid
         {
             if (accessors is null)
             {
-                throw new ArgumentNullException(nameof(accessors));
+                ExceptionHelper.ThrowArgumentNullException(nameof(accessors));
             }
 
             // Create a copy of the current dictionary since types are added during the initialization of the app.
