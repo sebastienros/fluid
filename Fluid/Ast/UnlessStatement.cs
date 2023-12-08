@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class UnlessStatement : TagStatement
+    public sealed class UnlessStatement : TagStatement
     {
         public UnlessStatement(
             Expression condition,

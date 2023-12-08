@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class ElseIfStatement : TagStatement
+    public sealed class ElseIfStatement : TagStatement
     {
         public ElseIfStatement(Expression condition, List<Statement> statements) : base(statements)
         {

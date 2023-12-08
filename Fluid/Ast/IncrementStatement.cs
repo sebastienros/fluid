@@ -5,7 +5,7 @@ using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class IncrementStatement : Statement
+    public sealed class IncrementStatement : Statement
     {
         public const string Prefix = "$$incdec$$$";
         public IncrementStatement(string identifier)

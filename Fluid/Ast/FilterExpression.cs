@@ -4,7 +4,7 @@ using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class FilterExpression : Expression
+    public sealed class FilterExpression : Expression
     {
         public FilterExpression(Expression input, string name, List<FilterArgument> parameters)
         {

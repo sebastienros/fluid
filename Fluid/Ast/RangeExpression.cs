@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class RangeExpression : Expression
+    public sealed class RangeExpression : Expression
     {
         public RangeExpression(Expression from, Expression to)
         {

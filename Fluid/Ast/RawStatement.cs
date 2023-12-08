@@ -6,7 +6,7 @@ using Fluid.Utils;
 
 namespace Fluid.Ast
 {
-    public class RawStatement : Statement
+    public sealed class RawStatement : Statement
     {
         private readonly TextSpan _text;
 

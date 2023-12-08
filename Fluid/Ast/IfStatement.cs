@@ -6,7 +6,7 @@ using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class IfStatement : TagStatement
+    public sealed class IfStatement : TagStatement
     {
         private readonly List<ElseIfStatement> _elseIfStatements;
 

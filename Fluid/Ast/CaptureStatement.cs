@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class CaptureStatement : TagStatement
+    public sealed class CaptureStatement : TagStatement
     {
         public CaptureStatement(string identifier, List<Statement> statements): base(statements)
         {

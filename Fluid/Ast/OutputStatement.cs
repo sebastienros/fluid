@@ -6,7 +6,7 @@ using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class OutputStatement : Statement
+    public sealed class OutputStatement : Statement
     {
         public OutputStatement(Expression expression)
         {
