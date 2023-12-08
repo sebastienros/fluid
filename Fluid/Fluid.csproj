@@ -27,8 +27,9 @@
   <ItemGroup>
     <PackageReference Include="Parlot" Version="0.0.24" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="1.1.1" />
-    <PackageReference Include="TimeZoneConverter" Version="6.1.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
+    <PackageReference Include="PolySharp" Version="1.14.0" PrivateAssets="all" />
+    <PackageReference Include="TimeZoneConverter" Version="6.1.0" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">

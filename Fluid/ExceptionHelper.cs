@@ -49,10 +49,5 @@ namespace Fluid
         {
             throw new InvalidOperationException("The maximum number of statements has been reached. Your script took too long to run.");
         }
-
-#if NETSTANDARD2_0
-        [AttributeUsage(AttributeTargets.Method)]
-        private sealed class DoesNotReturnAttribute : Attribute {}
-#endif
     }
 }

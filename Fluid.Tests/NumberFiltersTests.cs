@@ -1,8 +1,6 @@
-﻿using System.Linq;
-using Fluid.Values;
+﻿using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
-using System;
 
 namespace Fluid.Tests
 {
