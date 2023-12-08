@@ -172,11 +172,23 @@ namespace Fluid.Values
                             var baseDateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)timeSpan.TotalMilliseconds).ToOffset(options.TimeZone.BaseUtcOffset);
                             return new DateTimeValue(baseDateTime);
 
+                        case IConvertible convertible:
+                            try
+                            {
+                                var typeCode = convertible.GetTypeCode();
+                                if (typeCode == TypeCode.Object)
+                                {
+                                    return new StringValue(convertible.ToString(options.CultureInfo));
+                                }
+                                return Create(Convert.ChangeType(convertible, typeCode), options);
+                            }
+                            catch
+                            {
+                                return NilValue.Instance;
+                            }
+
                         case IFormattable formattable:
                             return new StringValue(formattable.ToString(null, options.CultureInfo));
-
-                        case IConvertible convertible:
-                            return new StringValue(convertible.ToString(options.CultureInfo));
 
                         case IDictionary<string, object> dictionary:
                             return new DictionaryValue(new ObjectDictionaryFluidIndexable<object>(dictionary, options));
