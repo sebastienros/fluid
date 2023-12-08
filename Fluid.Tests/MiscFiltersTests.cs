@@ -1,9 +1,10 @@
-﻿using Fluid.Filters;
-using Fluid.Values;
-using System;
+﻿using System;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Fluid.Filters;
+using Fluid.Values;
+using Newtonsoft.Json.Linq;
 using TimeZoneConverter;
 using Xunit;
 
@@ -741,6 +742,33 @@ namespace Fluid.Tests
             var input = FluidValue.Create(model, options);
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             Assert.Equal("{\"Id\":1,\"WithoutIndexable\":null,\"Bool\":true}", result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task JsonShouldWriteValuesWithCorrectDataTypeForJObjectInput()
+        {
+            var model = new JObject
+            {
+                ["a"] = true,
+                ["b"] = 1,
+                ["c"] = new DateTimeOffset(2017, 6, 8, 12, 53, 10, new TimeSpan(-7, 0, 0)),
+                ["d"] = "string",
+                ["e"] = null,
+                ["f"] = new JObject
+                {
+                    ["f_a"] = 1.2,
+                    ["f_b"] = false,
+                    ["f_c"] = ""
+                },
+                ["g"] = new JArray
+                {
+                    "val1", "val2"
+                }
+            };
+            var input = FluidValue.Create(model, TemplateOptions.Default);
+            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(TemplateOptions.Default));
+            var expected = "{\"a\":true,\"b\":1,\"c\":\"06/08/2017 12:53:10 -07:00\",\"d\":\"string\",\"e\":null,\"f\":{\"f_a\":1.2,\"f_b\":false,\"f_c\":\"\"},\"g\":[\"val1\",\"val2\"]}";
+            Assert.Equal(expected, result.ToStringValue());
         }
 
         [Theory]

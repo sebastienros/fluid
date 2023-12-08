@@ -172,11 +172,33 @@ namespace Fluid.Values
                             var baseDateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)timeSpan.TotalMilliseconds).ToOffset(options.TimeZone.BaseUtcOffset);
                             return new DateTimeValue(baseDateTime);
 
+                        case IConvertible convertible:
+                            var typeCode = convertible.GetTypeCode();
+                            return typeCode switch
+                            {                      
+                                TypeCode.Boolean => BooleanValue.Create(convertible.ToBoolean(options.CultureInfo)),
+                                TypeCode.Char => new StringValue(convertible.ToString(options.CultureInfo)),
+                                TypeCode.SByte => NumberValue.Create(convertible.ToInt32(options.CultureInfo)),
+                                TypeCode.Byte => NumberValue.Create(convertible.ToUInt32(options.CultureInfo)),
+                                TypeCode.Int16 => NumberValue.Create(convertible.ToInt32(options.CultureInfo)),
+                                TypeCode.UInt16 => NumberValue.Create(convertible.ToUInt32(options.CultureInfo)),
+                                TypeCode.Int32 => NumberValue.Create(convertible.ToInt32(options.CultureInfo)),
+                                TypeCode.UInt32 => NumberValue.Create(convertible.ToUInt32(options.CultureInfo)),
+                                TypeCode.Int64 => NumberValue.Create(convertible.ToDecimal(options.CultureInfo)),
+                                TypeCode.UInt64 => NumberValue.Create(convertible.ToDecimal(options.CultureInfo)),
+                                TypeCode.Single => NumberValue.Create(convertible.ToDecimal(options.CultureInfo)),
+                                TypeCode.Double => NumberValue.Create(convertible.ToDecimal(options.CultureInfo)),
+                                TypeCode.Decimal => NumberValue.Create(convertible.ToDecimal(options.CultureInfo)),
+                                TypeCode.DateTime => new DateTimeValue(convertible.ToDateTime(options.CultureInfo)),
+                                TypeCode.String => new StringValue(convertible.ToString(options.CultureInfo)),
+                                TypeCode.Object => new StringValue(convertible.ToString(options.CultureInfo)),
+                                TypeCode.DBNull => NilValue.Instance,
+                                TypeCode.Empty => NilValue.Instance,
+                                _ => throw new InvalidOperationException(),
+                            };
+
                         case IFormattable formattable:
                             return new StringValue(formattable.ToString(null, options.CultureInfo));
-
-                        case IConvertible convertible:
-                            return new StringValue(convertible.ToString(options.CultureInfo));
 
                         case IDictionary<string, object> dictionary:
                             return new DictionaryValue(new ObjectDictionaryFluidIndexable<object>(dictionary, options));
@@ -250,7 +272,7 @@ namespace Fluid.Values
                     return new DateTimeValue((DateTime)value);
                 case TypeCode.Char:
                 case TypeCode.String:
-                    return new StringValue(Convert.ToString(value, CultureInfo.InvariantCulture));
+                    return new StringValue(Convert.ToString(value, options.CultureInfo));
                 default:
                     throw new InvalidOperationException();
             }
