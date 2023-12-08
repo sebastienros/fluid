@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class MacroStatement : TagStatement
+    public sealed class MacroStatement : TagStatement
     {
         public MacroStatement(string identifier, IReadOnlyList<FunctionCallArgument> arguments, List<Statement> statements): base(statements)
         {

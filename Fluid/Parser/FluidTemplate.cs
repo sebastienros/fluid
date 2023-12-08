@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Parser
 {
-    public class FluidTemplate : IFluidTemplate
+    public sealed class FluidTemplate : IFluidTemplate
     {
         private readonly List<Statement> _statements;
 

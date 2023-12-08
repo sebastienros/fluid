@@ -1,6 +1,6 @@
 ﻿namespace Fluid
 {
-    public class NullMemberAccessor : IMemberAccessor
+    public sealed class NullMemberAccessor : IMemberAccessor
     {
         public static readonly IMemberAccessor Instance = new NullMemberAccessor();
 

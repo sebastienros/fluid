@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class WhenStatement : TagStatement
+    public sealed class WhenStatement : TagStatement
     {
         private readonly IReadOnlyList<Expression> _options;
 

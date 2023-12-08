@@ -2,7 +2,7 @@
 
 namespace Fluid
 {
-    public class UnsafeMemberAccessStrategy : DefaultMemberAccessStrategy
+    public sealed class UnsafeMemberAccessStrategy : DefaultMemberAccessStrategy
     {
         public static readonly UnsafeMemberAccessStrategy Instance = new UnsafeMemberAccessStrategy();
 

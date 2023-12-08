@@ -13,7 +13,7 @@ namespace Fluid.Ast
     /// The render tag can only access immutable environments, which means the scope of the context that was passed to the main template, the options' scope, and the model.
     /// </summary>
 #pragma warning disable CA1001 // Types that own disposable fields should be disposable
-    public class RenderStatement : Statement
+    public sealed class RenderStatement : Statement
 #pragma warning restore CA1001
     {
         public const string ViewExtension = ".liquid";

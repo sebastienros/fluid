@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Parser
 {
-    public class CompositeFluidTemplate : IFluidTemplate
+    public sealed class CompositeFluidTemplate : IFluidTemplate
     {
         private readonly List<IFluidTemplate> _templates;
 

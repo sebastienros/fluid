@@ -5,7 +5,7 @@ using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class MemberExpression : Expression
+    public sealed class MemberExpression : Expression
     {
         public MemberExpression(params MemberSegment[] segments)
         {

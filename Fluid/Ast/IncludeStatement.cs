@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace Fluid.Ast
 {
 #pragma warning disable CA1001 // Types that own disposable fields should be disposable
-    public class IncludeStatement : Statement
+    public sealed class IncludeStatement : Statement
 #pragma warning restore CA1001
     {
         public const string ViewExtension = ".liquid";

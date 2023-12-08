@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class ForStatement : TagStatement
+    public sealed class ForStatement : TagStatement
     {
         private bool _isContinueOffset;
         private string _continueOffsetLiteral;
