@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class CommentStatement : Statement
+    public sealed class CommentStatement : Statement
     {
         private readonly TextSpan _text;
 

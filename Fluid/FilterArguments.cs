@@ -8,7 +8,7 @@ namespace Fluid
     /// Represents the list of arguments that are passed to a <see cref="FilterDelegate"/>
     /// when invoked.
     /// </summary>
-    public class FilterArguments
+    public sealed class FilterArguments
     {
         public static readonly FilterArguments Empty = new FilterArguments();
 

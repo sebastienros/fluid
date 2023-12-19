@@ -1,12 +1,11 @@
-﻿using Fluid.Ast.BinaryExpressions;
-using Fluid.Values;
+﻿using Fluid.Values;
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class RangeExpression : Expression
+    public sealed class RangeExpression : Expression
     {
         public RangeExpression(Expression from, Expression to)
         {
@@ -38,7 +37,7 @@ namespace Fluid.Ast
             }            
         }
 
-        private static FluidValue BuildArray(int start, int end)
+        private static ArrayValue BuildArray(int start, int end)
         {
             // If end < start, we create an empty array
             var list = new FluidValue[Math.Max(0, end - start + 1)];
@@ -52,7 +51,7 @@ namespace Fluid.Ast
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private async ValueTask<FluidValue> Awaited(
+        private static async ValueTask<FluidValue> Awaited(
             ValueTask<FluidValue> leftTask,
             ValueTask<FluidValue> rightTask)
         {

@@ -1,6 +1,4 @@
 ﻿using Fluid.Ast;
-using Parlot.Fluent;
-using System;
 using Xunit;
 
 namespace Fluid.Tests.Extensibility

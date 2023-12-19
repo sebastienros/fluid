@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1;net5.0;net6.0;net7.0</TargetFrameworks>
+    <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <PackageIcon>logo_64x64.png</PackageIcon>
     <IsPackable>true</IsPackable>
@@ -19,15 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="all" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)'=='netcoreapp3.1'">
-    <FrameworkReference Include="Microsoft.AspNetCore.App" Version="3.1.0" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)'=='net5.0'">
-    <FrameworkReference Include="Microsoft.AspNetCore.App" Version="5.0.0" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
+    <PackageReference Include="PolySharp" Version="1.14.0" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
@@ -36,6 +29,10 @@
 
   <ItemGroup Condition="'$(TargetFramework)'=='net7.0'">
     <FrameworkReference Include="Microsoft.AspNetCore.App" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
+    <FrameworkReference Include="Microsoft.AspNetCore.App" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>

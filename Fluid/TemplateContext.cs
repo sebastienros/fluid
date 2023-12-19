@@ -8,8 +8,8 @@ namespace Fluid
 {
     public class TemplateContext
     {
-        protected int _recursion = 0;
-        protected int _steps = 0;
+        protected int _recursion;
+        protected int _steps;
 
         /// <summary>
         /// Initializes a new instance of <see cref="TemplateContext"/>.

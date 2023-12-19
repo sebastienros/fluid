@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class ElseStatement : TagStatement
+    public sealed class ElseStatement : TagStatement
     {
         public ElseStatement(List<Statement> statements) : base(statements)
         {

@@ -5,7 +5,7 @@ using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class AssignStatement : Statement
+    public sealed class AssignStatement : Statement
     {
         public AssignStatement(string identifier, Expression value)
         {

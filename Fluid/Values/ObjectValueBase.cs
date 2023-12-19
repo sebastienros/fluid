@@ -56,7 +56,7 @@ namespace Fluid.Values
                 accessor = MemberAccessStrategyExtensions.GetNamedAccessor(Value.GetType(), name, context.Options.MemberAccessStrategy.MemberNameStrategy);
             }
 
-            if (name.IndexOf(".", StringComparison.OrdinalIgnoreCase) != -1)
+            if (name.Contains('.'))
             {
                 // Try to access the property with dots inside
                 if (accessor != null)
@@ -173,10 +173,10 @@ namespace Fluid.Values
             return Value;
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
             // The is operator will return false if null
-            if (other is ObjectValueBase otherValue)
+            if (obj is ObjectValueBase otherValue)
             {
                 return Value.Equals(otherValue.Value);
             }

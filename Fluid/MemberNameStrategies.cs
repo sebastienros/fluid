@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Fluid
 {
-    public static class MemberNameStrategies
+    public sealed class MemberNameStrategies
     {
         public static readonly MemberNameStrategy Default = RenameDefault;
         public static readonly MemberNameStrategy CamelCase = RenameCamelCase;
@@ -41,7 +41,7 @@ namespace Fluid
                 {
                     if (i > 0 && !previousUpper)
                     {
-                        builder.Append("_");
+                        builder.Append('_');
                     }
                     builder.Append(char.ToLowerInvariant(c));
                     previousUpper = true;

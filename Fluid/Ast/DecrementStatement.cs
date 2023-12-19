@@ -5,7 +5,7 @@ using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class DecrementStatement : Statement
+    public sealed class DecrementStatement : Statement
     {
         public DecrementStatement(string identifier)
         {

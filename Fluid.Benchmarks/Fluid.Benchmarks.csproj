@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <NoWarn>$(NoWarn);NU5104</NoWarn>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -26,11 +26,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.13.2" />
-    <PackageReference Include="DotLiquid" Version="2.2.656" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.11" />
+    <PackageReference Include="DotLiquid" Version="2.2.692" />
     <PackageReference Include="Liquid.NET" Version="0.10.0" />
-    <PackageReference Include="Scriban" Version="5.5.0" />
-    <PackageReference Include="Handlebars.Net" Version="2.1.2" />
+    <PackageReference Include="Scriban" Version="5.9.0" />
+    <PackageReference Include="Handlebars.Net" Version="2.1.4" />
   </ItemGroup>
 
   <ItemGroup>

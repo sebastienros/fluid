@@ -63,10 +63,10 @@ namespace Fluid.Values
             return default;
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
             // The is operator will return false if null
-            return other is NilValue;
+            return obj is NilValue;
         }
 
         public override int GetHashCode()

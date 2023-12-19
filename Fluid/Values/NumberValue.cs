@@ -78,9 +78,9 @@ namespace Fluid.Values
             return _value;
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
-            return other is NumberValue n && Equals(n);
+            return obj is NumberValue n && Equals(n);
         }
 
         public bool Equals(NumberValue other)

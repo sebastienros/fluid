@@ -209,9 +209,9 @@ namespace Fluid.Values
             yield return this;
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
-            return other is StringValue s && Equals(s);
+            return obj is StringValue s && Equals(s);
         }
 
         public bool Equals(StringValue other)

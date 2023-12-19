@@ -2,7 +2,7 @@
 
 namespace Fluid.Ast.BinaryExpressions
 {
-    public class SubstractBinaryExpression : BinaryExpression
+    public sealed class SubstractBinaryExpression : BinaryExpression
     {
         public SubstractBinaryExpression(Expression left, Expression right) : base(left, right)
         {
