@@ -21,6 +21,7 @@ namespace Fluid.Filters
             filters.AddFilter("sort_natural", SortNatural);
             filters.AddFilter("uniq", Uniq);
             filters.AddFilter("where", Where);
+            filters.AddFilter("sum", Sum);
             return filters;
         }
 
@@ -221,6 +222,26 @@ namespace Fluid.Filters
         public static ValueTask<FluidValue> Uniq(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             return new ArrayValue(input.Enumerate(context).Distinct().ToArray());
+        }
+
+        public static async ValueTask<FluidValue> Sum(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var member = arguments.At(0);
+
+            if (member.Equals(NilValue.Instance))
+            {
+                return NumberValue.Create(input.Enumerate(context).Select(x => x.ToNumberValue()).Sum());
+            }
+            
+            var sumList = new List<decimal>();
+
+            foreach(var item in input.Enumerate(context))
+            {
+                var value = await item.GetValueAsync(member.ToStringValue(), context);
+                sumList.Add(value.ToNumberValue());
+            }
+            
+            return NumberValue.Create(sumList.Sum());
         }
     }
 }
