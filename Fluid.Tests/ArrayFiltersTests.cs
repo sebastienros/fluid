@@ -389,5 +389,44 @@ namespace Fluid.Tests
 
             Assert.Empty(result1.Enumerate(context));
         }
+
+        [Fact]
+        public async Task Sum()
+        {
+            var sample = new { Value = 0 };
+
+            var input = new ArrayValue(new[] {
+                new ObjectValue(new { Value = 12  }),
+                new ObjectValue(new { Value = 34 }),
+                new ObjectValue(new { Value = 56 })
+            });
+            
+            var arguments = new FilterArguments().Add(new StringValue("Value"));
+            
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            options.MemberAccessStrategy.Register(sample.GetType(), "Value");
+
+            var result = await ArrayFilters.Sum(input, arguments, context);
+            
+            Assert.Equal(102, result.ToNumberValue());
+        }
+
+        [Fact]
+        public async Task SumWithoutArgument()
+        {
+            var input = new ArrayValue(new[] {
+                NumberValue.Create(12),
+                NumberValue.Create(34),
+                NumberValue.Create(56)
+            });
+            
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+
+            var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
+            
+            Assert.Equal(102, result.ToNumberValue());
+        }
     }
 }

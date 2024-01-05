@@ -226,12 +226,12 @@ namespace Fluid.Filters
 
         public static async ValueTask<FluidValue> Sum(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var member = arguments.At(0);
-
-            if (member.Equals(NilValue.Instance))
+            if (arguments.Count == 0)
             {
                 return NumberValue.Create(input.Enumerate(context).Select(x => x.ToNumberValue()).Sum());
             }
+            
+            var member = arguments.At(0);
             
             var sumList = new List<decimal>();
 
