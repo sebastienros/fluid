@@ -228,7 +228,14 @@ namespace Fluid.Filters
         {
             if (arguments.Count == 0)
             {
-                return NumberValue.Create(input.Enumerate(context).Select(x => x.ToNumberValue()).Sum());
+                var numbers = input.Enumerate(context).Select(x => x switch
+                {
+                    ArrayValue => Sum(x, arguments, context).Result.ToNumberValue(),
+                    NumberValue or StringValue => x.ToNumberValue(),
+                    _ => 0
+                });
+                
+                return NumberValue.Create(numbers.Sum());
             }
             
             var member = arguments.At(0);
@@ -237,8 +244,18 @@ namespace Fluid.Filters
 
             foreach(var item in input.Enumerate(context))
             {
-                var value = await item.GetValueAsync(member.ToStringValue(), context);
-                sumList.Add(value.ToNumberValue());
+                switch (item)
+                {
+                    case ArrayValue:
+                        sumList.Add(Sum(item, arguments, context).Result.ToNumberValue());
+                        break;
+                    case ObjectValue:
+                    {
+                        var value = await item.GetValueAsync(member.ToStringValue(), context);
+                        sumList.Add(value.ToNumberValue());
+                        break;
+                    }
+                }
             }
             
             return NumberValue.Create(sumList.Sum());

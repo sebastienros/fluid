@@ -3,6 +3,8 @@ using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
 using System.Threading.Tasks;
+using Fluid.Ast;
+using Fluid.Tests.Extensibility;
 
 namespace Fluid.Tests
 {
@@ -427,6 +429,180 @@ namespace Fluid.Tests
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
             
             Assert.Equal(102, result.ToNumberValue());
+        }
+
+        [Fact]
+        public async Task SumWithNumericStrings()
+        {
+            var input = new ArrayValue(new FluidValue[] {
+                NumberValue.Create(1),
+                NumberValue.Create(2),
+                StringValue.Create("3"),
+                StringValue.Create("4")
+            });
+            
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+
+            var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
+            
+            Assert.Equal(10, result.ToNumberValue());
+        }
+
+        [Fact]
+        public async Task SumWithNestedArrays()
+        {
+            var input = new ArrayValue(new FluidValue[] {
+                NumberValue.Create(1),
+                new ArrayValue(new FluidValue[]
+                {
+                    NumberValue.Create(2),
+                    new ArrayValue(new FluidValue[]
+                    {
+                        NumberValue.Create(3),
+                        NumberValue.Create(4)
+                    })
+                })
+            });
+            
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+
+            var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
+            
+            Assert.Equal(10, result.ToNumberValue());
+        }
+
+        [Fact]
+        public async Task SumWithMixedValues()
+        {
+            var input = new ArrayValue(new FluidValue[] {
+                NumberValue.Create(1),
+                BooleanValue.True,
+                NilValue.Instance,
+                new ObjectValue(new { Value = 12  })
+            });
+            
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+
+            var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
+            
+            Assert.Equal(1, result.ToNumberValue());
+        }
+
+        [Fact]
+        public void SumWithoutArgumentRender()
+        {
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+
+            context.SetValue("foo", new [] { 1m });
+            var parser = new CustomParser();
+
+            var template = parser.Parse("{{ foo | sum }}");
+            template.Render(context);
+        }
+        
+        [Fact]
+        public void SumWithArgumentRender()
+        {
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+
+            context.SetValue("foo", new [] { new { Quantity = 1 }});
+            var parser = new CustomParser();
+
+            var template = parser.Parse("{{ foo | sum: 'Quantity' }}");
+            template.Render(context);
+        }
+
+        [Fact]
+        public async Task SumWithDecimals()
+        {
+            var input = new ArrayValue(new FluidValue[] {
+                NumberValue.Create(0.1m),
+                NumberValue.Create(0.2m),
+                NumberValue.Create(-0.3m)
+            });
+            
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+
+            var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
+            
+            Assert.Equal(0.0m, result.ToNumberValue());
+        }
+
+        [Fact]
+        public async Task SumWithDecimalStrings()
+        {
+            var input = new ArrayValue(new FluidValue[] {
+                NumberValue.Create(0.1m),
+                StringValue.Create("0.2"),
+                StringValue.Create("0.3")
+            });
+            
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+
+            var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
+            
+            Assert.Equal(0.6m, result.ToNumberValue());
+        }
+
+        [Fact]
+        public async Task SumResultingInNegativeDecimal()
+        {
+            var input = new ArrayValue(new FluidValue[] {
+                NumberValue.Create(0.1m),
+                NumberValue.Create(-0.2m),
+                NumberValue.Create(-0.3m)
+            });
+            
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+
+            var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
+            
+            Assert.Equal(-0.4m, result.ToNumberValue());
+        }
+
+        [Theory]
+        [InlineData("", 0.0)]
+        [InlineData("Quantity", 0.2)]
+        [InlineData("Weight", 0.1)]
+        [InlineData("Subtotal", 0.0)]
+        public async Task SumWithDecimalsAndArguments(string filterArgument, decimal expectedValue)
+        {
+            var quantityAndWeightObjectType = new
+            {
+                Quantity = (decimal)0,
+                Weight = (decimal)0
+            };
+            
+            var weightObjectType = new
+            {
+                Weight = (decimal)0
+            };
+            
+            var input = new ArrayValue(new FluidValue[]
+            {
+                new ObjectValue(new { Quantity = 1 }),
+                new ObjectValue(new { Quantity = 0.2m, Weight = -0.3m }),
+                new ObjectValue(new { Weight = 0.4m }),
+            });
+            
+            var arguments = new FilterArguments().Add(new StringValue(filterArgument));
+            
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            options.MemberAccessStrategy.Register(weightObjectType.GetType(), filterArgument);
+            options.MemberAccessStrategy.Register(quantityAndWeightObjectType.GetType(), filterArgument);
+            
+            var result = await ArrayFilters.Sum(input, arguments, context);
+            
+            Assert.Equal(expectedValue, result.ToNumberValue());
         }
     }
 }
