@@ -570,7 +570,7 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("", 0.0)]
-        [InlineData("Quantity", 0.2)]
+        [InlineData("Quantity", 1.2)]
         [InlineData("Weight", 0.1)]
         [InlineData("Subtotal", 0.0)]
         public async Task SumWithDecimalsAndArguments(string filterArgument, decimal expectedValue)
@@ -581,6 +581,11 @@ namespace Fluid.Tests
                 Weight = (decimal)0
             };
             
+            var quantityObjectType = new
+            {
+                Quantity = (decimal)0
+            };
+            
             var weightObjectType = new
             {
                 Weight = (decimal)0
@@ -588,7 +593,7 @@ namespace Fluid.Tests
             
             var input = new ArrayValue(new FluidValue[]
             {
-                new ObjectValue(new { Quantity = 1 }),
+                new ObjectValue(new { Quantity = 1m }),
                 new ObjectValue(new { Quantity = 0.2m, Weight = -0.3m }),
                 new ObjectValue(new { Weight = 0.4m }),
             });
@@ -597,6 +602,8 @@ namespace Fluid.Tests
             
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
+            
+            options.MemberAccessStrategy.Register(quantityObjectType.GetType(), filterArgument);
             options.MemberAccessStrategy.Register(weightObjectType.GetType(), filterArgument);
             options.MemberAccessStrategy.Register(quantityAndWeightObjectType.GetType(), filterArgument);
             
