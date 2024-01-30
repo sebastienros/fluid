@@ -576,7 +576,7 @@ The package `Fluid.MvcViewEngine` provides a convenient way to use Liquid as a r
 
 #### Sample
 ```csharp
-using FluidMvcViewEngine;
+using Fluid.MvcViewEngine;
 
 public class Startup
 {
