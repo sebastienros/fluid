@@ -481,11 +481,13 @@ Blocks are created the same way as tags, and the lambda expression can then acce
 
 ```csharp
 
-parser.RegisterExpressionBlock("repeat", (value, statements, writer, encoder, context) =>
+parser.RegisterExpressionBlock("repeat", async (value, statements, writer, encoder, context) =>
 {
-    for (var i = 0; i < value.ToNumber(); i++)
+    var fluidValue = await value.EvaluateAsync(context);
+
+    for (var i = 0; i < fluidValue.ToNumberValue(); i++)
     {
-      await return statements.RenderStatementsAsync(writer, encoder, context);
+        await statements.RenderStatementsAsync(writer, encoder, context);
     }
 
     return Completion.Normal;
