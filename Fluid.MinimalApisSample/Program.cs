@@ -8,7 +8,7 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 
-app.MapGet("/", () => Results.Extensions.View("Index", new Todo(1, "Go back to work!", false)));
+app.MapGet("/", () => Results.Extensions.View("index", new Todo(1, "Go back to work!", false)));
 
 await app.RunAsync();
 
