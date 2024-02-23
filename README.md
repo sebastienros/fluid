@@ -562,6 +562,17 @@ __Usage__
 Hello
 ```
 
+## Accessing the concrete syntax tree
+
+The syntax tree is accessible by casting the template to its concrete `FluidTemplate` type and using the `Statements` property.
+
+#### Source
+
+```csharp
+var template = (FluidTemplate)iTemplate;
+var statements = template.Statements;
+```
+
 <br>
 
 ## ASP.NET MVC View Engine
