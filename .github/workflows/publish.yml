@@ -14,11 +14,11 @@ jobs:
         DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install dependencies
       run: dotnet restore
     - name: Test
-      run: dotnet test -c Release --framework net7.0
+      run: dotnet test -c Release --framework net8.0
     - name: Pack with dotnet
       run: |
         arrTag=(${GITHUB_REF//\// })
