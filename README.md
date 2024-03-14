@@ -934,7 +934,18 @@ Now `field` is available as a local property of the template and can be invoked 
 {{ field('pass', type='password') }}
 ```
 
-> Macros need to be defined before they are used as they are discovered as the template is executed. They can also be defined in external templates and imported using the `{% include %}` tag.
+> Macros need to be defined before they are used as they are discovered as the template is executed.
+
+### Importing functions from external templates
+Macros defined in an external template **must** be imported before they can be invoked.
+
+```
+{% from 'forms' import field %}
+
+{{ field('user') }}
+{{ field('pass', type='password') }}
+```
+
 
 ### Extensibility
 
