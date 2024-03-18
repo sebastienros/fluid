@@ -297,6 +297,14 @@ namespace Fluid
                         .ElseError("Invalid 'include' tag")
                         ;
 
+            var FromTag = OneOf(
+                        Primary.AndSkip(Terms.Text("import")).And(Separated(Comma, Identifier)).Then(x => new FromStatement(this, x.Item1, x.Item2)),
+                        Primary.Then(x => new FromStatement(this, x))
+                        ).AndSkip(TagEnd)
+                        .Then<Statement>(x => x)
+                        .ElseError("Invalid 'from' tag")
+                        ;
+
             var StringAfterRender = String.ElseError(ErrorMessages.ExpectedStringRender);
 
             var RenderTag = OneOf(
@@ -436,6 +444,7 @@ namespace Fluid
             if (parserOptions.AllowFunctions)
             {
                 RegisteredTags["macro"] = MacroTag;
+                RegisteredTags["from"] = FromTag;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
