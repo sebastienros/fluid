@@ -16,6 +16,7 @@ namespace Fluid.Values
 #pragma warning restore CA1067
     {
         public abstract void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
+        public abstract ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
 
         private static Dictionary<Type, Type> _genericDictionaryTypeCache = new();
 

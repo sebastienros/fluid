@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
@@ -61,7 +62,7 @@ namespace Fluid.Values
             {
                 return _value.Length == 0;
             }
-            
+
             return false;
         }
 
@@ -117,10 +118,20 @@ namespace Fluid.Values
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
-            
+
             foreach (var v in _value)
             {
                 writer.Write(v.ToStringValue());
+            }
+        }
+
+        public override async ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            AssertWriteToParameters(writer, encoder, cultureInfo);
+
+            foreach (var v in _value)
+            {
+                await writer.WriteAsync(v.ToStringValue());
             }
         }
 

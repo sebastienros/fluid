@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
@@ -165,6 +166,31 @@ namespace Fluid.Values
             else
             {
                 writer.Write(_value);
+            }
+        }
+
+        public override async ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            AssertWriteToParameters(writer, encoder, cultureInfo);
+            if (string.IsNullOrEmpty(_value))
+            {
+                return;
+            }
+
+            if (Encode)
+            {
+                // perf: Don't use this overload
+                // encoder.Encode(writer, _value);
+
+                // Use a transient string instead of calling
+                // encoder.Encode(TextWriter) since it would
+                // call writer.Write on each char if the string
+                // has even a single char to encode
+                await writer.WriteAsync(encoder.Encode(_value));
+            }
+            else
+            {
+                await writer.WriteAsync(_value);
             }
         }
 

@@ -2,14 +2,15 @@
 using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
-    /// Numbers are stored as decimal values to handle the best possible precision.
-    /// Decimals also have the capacity of retaining their precision across
-    /// operations:
-    /// 1 * 2 = 2
-    /// 1.0 * 2.0 = 2.00
+    // Numbers are stored as decimal values to handle the best possible precision.
+    // Decimals also have the capacity of retaining their precision across
+    // operations:
+    // 1 * 2 = 2
+    // 1.0 * 2.0 = 2.00
     public sealed class NumberValue : FluidValue, IEquatable<NumberValue>
     {
         public static readonly NumberValue Zero = new NumberValue(0M);
@@ -65,6 +66,13 @@ namespace Fluid.Values
             writer.Write(encoder.Encode(_value.ToString(cultureInfo)));
         }
 
+
+        public override async ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            AssertWriteToParameters(writer, encoder, cultureInfo);
+            await writer.WriteAsync(encoder.Encode(_value.ToString(cultureInfo)));
+        }
+
         public override object ToObjectValue()
         {
             return _value;
@@ -113,7 +121,7 @@ namespace Fluid.Values
         internal static NumberValue Create(uint value)
         {
             var temp = IntToString;
-            if (value < (uint) temp.Length)
+            if (value < (uint)temp.Length)
             {
                 return temp[value];
             }
@@ -139,7 +147,7 @@ namespace Fluid.Values
 
             int[] bits = decimal.GetBits(value);
 
-            return (int) ((bits[3] >> 16) & 0x7F);
+            return (int)((bits[3] >> 16) & 0x7F);
         }
     }
 }

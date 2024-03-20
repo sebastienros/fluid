@@ -64,6 +64,11 @@ namespace Fluid.Values
             // Calling write to is equivalent to renderding {{ alert }} instead of {{ alert() }}
         }
 
+        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            return default;
+        }
+
         public override bool Equals(object obj)
         {
             return object.ReferenceEquals(this, obj);
