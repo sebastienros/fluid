@@ -239,8 +239,9 @@ namespace Fluid.Filters
                 }
 
                 var startIndex = requestedStartIndex < 0 ? Math.Max(sourceStringLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceStringLength);
-                var length = requestedLength > sourceStringLength ? sourceStringLength : requestedLength;
-                length = startIndex > 0 && length + startIndex > sourceStringLength ? length - startIndex : length;
+                var length = requestedLength + startIndex > sourceStringLength
+                    ? sourceStringLength - startIndex
+                    : requestedLength;
 
                 return new StringValue(sourceString.Substring(startIndex, length));
             }

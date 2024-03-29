@@ -262,6 +262,8 @@ world
         [InlineData("hello", new object[] { -5, 100 }, "hello")]
         [InlineData("hello", new object[] { 0, -100 }, "")]
         [InlineData("hello", new object[] { -100, -100 }, "")]
+        [InlineData("hello", new object[] { 4, 2 }, "o")]
+        [InlineData("hello", new object[] { 5, 1 }, "")]
         public void SliceOutsideBounds(object input, object[] arguments, string expected)
         {
             var filterInput = FluidValue.Create(input, TemplateOptions.Default);
