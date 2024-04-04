@@ -18,11 +18,11 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net7.0'">
-    <FrameworkReference Include="Microsoft.AspNetCore.App" Version="7.0.0" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" VersionOverride="7.0.0" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
-    <FrameworkReference Include="Microsoft.AspNetCore.App" Version="8.0.0" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" VersionOverride="8.0.0" />
   </ItemGroup>
 
   <PropertyGroup>

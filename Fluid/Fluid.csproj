@@ -25,21 +25,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Parlot" Version="0.0.25" />
-    <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="1.1.1" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
-    <PackageReference Include="PolySharp" Version="1.14.0" PrivateAssets="all" />
-    <PackageReference Include="TimeZoneConverter" Version="6.1.0" />
+    <PackageReference Include="Parlot" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" />
+    <PackageReference Include="PolySharp" />
+    <PackageReference Include="TimeZoneConverter" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
-    <PackageReference Include="System.Text.Json" Version="5.0.2" />
-    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="System.Text.Json" />
+    <PackageReference Include="Microsoft.CSharp" />
   </ItemGroup>
   
   <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.1'">
-    <PackageReference Include="System.Text.Json" Version="5.0.2" />
-    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="System.Text.Json" />
+    <PackageReference Include="Microsoft.CSharp" />
   </ItemGroup>
 
   <!-- Keep specific targets since it removes some dependencies -->
