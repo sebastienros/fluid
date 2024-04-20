@@ -1,5 +1,6 @@
 ﻿using Fluid.Values;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
@@ -31,13 +32,21 @@ namespace Fluid.Filters
         public static ValueTask<FluidValue> ToRgb(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var value = input.ToStringValue();
+#if NET7_0_OR_GREATER
+            if (HexColor.TryParse(value, CultureInfo.InvariantCulture, out HexColor hexColor))
+#else
             if (HexColor.TryParse(value, out HexColor hexColor))
+#endif
             {
                 var rgbColor = (RgbColor)hexColor;
 
                 return new StringValue(rgbColor.ToString());
             }
+#if NET7_0_OR_GREATER
+            else if (HslColor.TryParse(value, CultureInfo.InvariantCulture, out HslColor hslColor))
+#else
             else if (HslColor.TryParse(value, out HslColor hslColor))
+#endif
             {
                 var rgbColor = (RgbColor)hslColor;
 
@@ -52,13 +61,21 @@ namespace Fluid.Filters
         public static ValueTask<FluidValue> ToHex(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var value = input.ToStringValue();
+#if NET7_0_OR_GREATER
+            if (RgbColor.TryParse(value, CultureInfo.InvariantCulture, out RgbColor rgbColor))
+#else
             if (RgbColor.TryParse(value, out RgbColor rgbColor))
+#endif
             {
                 var hexColor = (HexColor)rgbColor;
 
                 return new StringValue(hexColor.ToString());
             }
+#if NET7_0_OR_GREATER
+            else if (HslColor.TryParse(value, CultureInfo.InvariantCulture, out HslColor hslColor))
+#else
             else if (HslColor.TryParse(value, out HslColor hslColor))
+#endif
             {
                 var hexColor = (HexColor)hslColor;
 
@@ -73,13 +90,21 @@ namespace Fluid.Filters
         public static ValueTask<FluidValue> ToHsl(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var value = input.ToStringValue();
+#if NET7_0_OR_GREATER
+            if (HexColor.TryParse(value, CultureInfo.InvariantCulture, out HexColor hexColor))
+#else
             if (HexColor.TryParse(value, out HexColor hexColor))
+#endif
             {
                 var hslColor = (HslColor)hexColor;
 
                 return new StringValue(hslColor.ToString());
             }
+#if NET7_0_OR_GREATER
+            else if (RgbColor.TryParse(value, CultureInfo.InvariantCulture, out RgbColor rgbColor))
+#else
             else if (RgbColor.TryParse(value, out RgbColor rgbColor))
+#endif
             {
                 var hslColor = (HslColor)rgbColor;
 
@@ -96,16 +121,28 @@ namespace Fluid.Filters
             var value = input.ToStringValue();
             RgbColor rgbColor;
             HslColor hslColor;
+#if NET7_0_OR_GREATER
+            if (HexColor.TryParse(value, CultureInfo.InvariantCulture, out HexColor hexColor))
+#else
             if (HexColor.TryParse(value, out HexColor hexColor))
+#endif
             {
                 rgbColor = (RgbColor)hexColor;
                 hslColor = (HslColor)hexColor;
             }
+#if NET7_0_OR_GREATER
+            else if (RgbColor.TryParse(value, CultureInfo.InvariantCulture, out rgbColor))
+#else
             else if (RgbColor.TryParse(value, out rgbColor))
+#endif
             {
                 hslColor = (HslColor)rgbColor;
             }
+#if NET7_0_OR_GREATER
+            else if (HslColor.TryParse(value, CultureInfo.InvariantCulture, out hslColor))
+#else
             else if (HslColor.TryParse(value, out hslColor))
+#endif
             {
                 rgbColor = (RgbColor)hslColor;
             }
@@ -135,18 +172,30 @@ namespace Fluid.Filters
             bool isHex = false;
             RgbColor rgbColor;
             HslColor hslColor;
+#if NET7_0_OR_GREATER
+            if (HexColor.TryParse(value, CultureInfo.InvariantCulture, out HexColor hexColor))
+#else
             if (HexColor.TryParse(value, out HexColor hexColor))
+#endif
             {
                 isHex = true;
                 rgbColor = (RgbColor)hexColor;
                 hslColor = (HslColor)hexColor;
             }
+#if NET7_0_OR_GREATER
+            else if (RgbColor.TryParse(value, CultureInfo.InvariantCulture, out rgbColor))
+#else
             else if (RgbColor.TryParse(value, out rgbColor))
+#endif
             {
                 isRgb = true;
                 hslColor = (HslColor)rgbColor;
             }
+#if NET7_0_OR_GREATER
+            else if (HslColor.TryParse(value, CultureInfo.InvariantCulture, out hslColor))
+#else
             else if (HslColor.TryParse(value, out hslColor))
+#endif
             {
                 isHsl = true;
                 rgbColor = (RgbColor)hslColor;
@@ -217,15 +266,27 @@ namespace Fluid.Filters
         {
             var value = input.ToStringValue();
             RgbColor rgbColor;
+#if NET7_0_OR_GREATER
+            if (HexColor.TryParse(value, CultureInfo.InvariantCulture, out HexColor hexColor))
+#else
             if (HexColor.TryParse(value, out HexColor hexColor))
+#endif
             {
                 rgbColor = (RgbColor)hexColor;
             }
+#if NET7_0_OR_GREATER
+            else if (HslColor.TryParse(value, CultureInfo.InvariantCulture, out HslColor hslColor))
+#else
             else if (HslColor.TryParse(value, out HslColor hslColor))
+#endif
             {
                 rgbColor = (RgbColor)hslColor;
             }
+#if NET7_0_OR_GREATER
+            else if (RgbColor.TryParse(value, CultureInfo.InvariantCulture, out rgbColor))
+#else
             else if (RgbColor.TryParse(value, out rgbColor))
+#endif
             {
 
             }
@@ -236,7 +297,7 @@ namespace Fluid.Filters
 
             var brightness = Convert.ToDouble(rgbColor.R * 299 + rgbColor.G * 587 + rgbColor.B * 114) / 1000.0;
 
-            return NumberValue.Create((decimal) Math.Round(brightness, 2));
+            return NumberValue.Create((decimal)Math.Round(brightness, 2));
         }
 
         public static ValueTask<FluidValue> ColorSaturate(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -247,15 +308,27 @@ namespace Fluid.Filters
             bool isRgb = false;
             var hslColor = HslColor.Empty;
             var rgbColor = RgbColor.Empty;
-            if (HexColor.TryParse(value, out var hexColor))
+#if NET7_0_OR_GREATER
+            if (HexColor.TryParse(value, CultureInfo.InvariantCulture, out HexColor hexColor))
+#else
+            if (HexColor.TryParse(value, out HexColor hexColor))
+#endif
             {
                 isHex = true;
             }
+#if NET7_0_OR_GREATER
+            else if (RgbColor.TryParse(value, CultureInfo.InvariantCulture, out rgbColor))
+#else
             else if (RgbColor.TryParse(value, out rgbColor))
+#endif
             {
                 isRgb = true;
             }
+#if NET7_0_OR_GREATER
+            else if (HslColor.TryParse(value, CultureInfo.InvariantCulture, out hslColor))
+#else
             else if (HslColor.TryParse(value, out hslColor))
+#endif
             {
                 isHsl = true;
             }
@@ -301,15 +374,27 @@ namespace Fluid.Filters
             bool isRgb = false;
             var hslColor = HslColor.Empty;
             var rgbColor = RgbColor.Empty;
-            if (HexColor.TryParse(value, out var hexColor))
+#if NET7_0_OR_GREATER
+            if (HexColor.TryParse(value, CultureInfo.InvariantCulture, out HexColor hexColor))
+#else
+            if (HexColor.TryParse(value, out HexColor hexColor))
+#endif
             {
                 isHex = true;
             }
+#if NET7_0_OR_GREATER
+            else if (RgbColor.TryParse(value, CultureInfo.InvariantCulture, out rgbColor))
+#else
             else if (RgbColor.TryParse(value, out rgbColor))
+#endif
             {
                 isRgb = true;
             }
+#if NET7_0_OR_GREATER
+            else if (HslColor.TryParse(value, CultureInfo.InvariantCulture, out hslColor))
+#else
             else if (HslColor.TryParse(value, out hslColor))
+#endif
             {
                 isHsl = true;
             }
@@ -355,15 +440,27 @@ namespace Fluid.Filters
             bool isRgb = false;
             var hslColor = HslColor.Empty;
             var rgbColor = RgbColor.Empty;
-            if (HexColor.TryParse(value, out var hexColor))
+#if NET7_0_OR_GREATER
+            if (HexColor.TryParse(value, CultureInfo.InvariantCulture, out HexColor hexColor))
+#else
+            if (HexColor.TryParse(value, out HexColor hexColor))
+#endif
             {
                 isHex = true;
             }
+#if NET7_0_OR_GREATER
+            else if (RgbColor.TryParse(value, CultureInfo.InvariantCulture, out rgbColor))
+#else
             else if (RgbColor.TryParse(value, out rgbColor))
+#endif
             {
                 isRgb = true;
             }
+#if NET7_0_OR_GREATER
+            else if (HslColor.TryParse(value, CultureInfo.InvariantCulture, out hslColor))
+#else
             else if (HslColor.TryParse(value, out hslColor))
+#endif
             {
                 isHsl = true;
             }
@@ -410,15 +507,27 @@ namespace Fluid.Filters
             var hslColor = HslColor.Empty;
             var rgbColor = RgbColor.Empty;
             var hexColor = HexColor.Empty;
+#if NET7_0_OR_GREATER
+            if (HexColor.TryParse(value, CultureInfo.InvariantCulture, out hexColor))
+#else
             if (HexColor.TryParse(value, out hexColor))
+#endif
             {
                 isHex = true;
             }
+#if NET7_0_OR_GREATER
+            else if (RgbColor.TryParse(value, CultureInfo.InvariantCulture, out rgbColor))
+#else
             else if (RgbColor.TryParse(value, out rgbColor))
+#endif
             {
                 isRgb = true;
             }
+#if NET7_0_OR_GREATER
+            else if (HslColor.TryParse(value, CultureInfo.InvariantCulture, out hslColor))
+#else
             else if (HslColor.TryParse(value, out hslColor))
+#endif
             {
                 isHsl = true;
             }
@@ -506,7 +615,7 @@ namespace Fluid.Filters
                 var luminance2 = GetRelativeLuminance(rgbColor1);
                 var colorContrast = Math.Round((luminance1 + 0.05) / (luminance2 + 0.05), 1);
 
-                return NumberValue.Create((decimal) colorContrast);
+                return NumberValue.Create((decimal)colorContrast);
             }
         }
 
@@ -527,15 +636,27 @@ namespace Fluid.Filters
         private static RgbColor GetRgbColor(string value)
         {
             var rgbColor = RgbColor.Empty;
+#if NET7_0_OR_GREATER
+            if (HexColor.TryParse(value, CultureInfo.InvariantCulture, out HexColor hexColor))
+#else
             if (HexColor.TryParse(value, out HexColor hexColor))
+#endif
             {
                 rgbColor = (RgbColor)hexColor;
             }
+#if NET7_0_OR_GREATER
+            else if (RgbColor.TryParse(value, CultureInfo.InvariantCulture, out rgbColor))
+#else
             else if (RgbColor.TryParse(value, out rgbColor))
+#endif
             {
 
             }
+#if NET7_0_OR_GREATER
+            else if (HslColor.TryParse(value, CultureInfo.InvariantCulture, out HslColor hslColor))
+#else
             else if (HslColor.TryParse(value, out HslColor hslColor))
+#endif
             {
                 rgbColor = (RgbColor)hslColor;
             }
@@ -543,7 +664,11 @@ namespace Fluid.Filters
             return rgbColor;
         }
 
+#if NET7_0_OR_GREATER
+        private readonly struct HexColor : IParsable<HexColor>
+#else
         private readonly struct HexColor
+#endif
         {
             public static readonly HexColor Empty = default;
 
@@ -575,6 +700,63 @@ namespace Fluid.Filters
 
             public string B { get; }
 
+#if NET7_0_OR_GREATER
+            public static HexColor Parse(string value, IFormatProvider provider)
+            {
+                ArgumentException.ThrowIfNullOrEmpty(nameof(value));
+
+                if (value[0] == '#')
+                {
+                    string red, blue, green;
+                    switch (value.Length)
+                    {
+                        case 4:
+                            red = Char.ToString(value[1]);
+                            green = Char.ToString(value[2]);
+                            blue = Char.ToString(value[3]);
+                            if (IsHexadecimal(red) && IsHexadecimal(green) && IsHexadecimal(blue))
+                            {
+                                return new HexColor(red, green, blue);
+                            }
+
+                            break;
+                        case 7:
+                            red = value.Substring(1, 2);
+                            green = value.Substring(3, 2);
+                            blue = value.Substring(5, 2);
+                            if (IsHexadecimal(red) && IsHexadecimal(green) && IsHexadecimal(blue))
+                            {
+                                return new HexColor(red, green, blue);
+                            }
+
+                            break;
+                    }
+                }
+
+                throw new FormatException("Expected format is #RRGGBB or #RGB.");
+            }
+
+            public static bool TryParse([NotNullWhen(true)] string s, IFormatProvider provider, [MaybeNullWhen(false)] out HexColor result)
+            {
+                result = Empty;
+
+                if (s == null)
+                {
+                    return false;
+                }
+
+                try
+                {
+                    result = Parse(s, provider);
+
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+#else
             public static bool TryParse(string value, out HexColor color)
             {
                 color = HexColor.Empty;
@@ -618,6 +800,7 @@ namespace Fluid.Filters
 
                 return false;
             }
+#endif
 
             public override string ToString() => $"#{R}{G}{B}".ToLowerInvariant();
 
@@ -633,7 +816,11 @@ namespace Fluid.Filters
         }
 
 #pragma warning disable CA1067 // should override Equals because it implements IEquatable<T>
+#if NET7_0_OR_GREATER
+        private readonly struct RgbColor : IEquatable<RgbColor>, IParsable<RgbColor>
+#else
         private readonly struct RgbColor : IEquatable<RgbColor>
+#endif
 #pragma warning restore CA1067
         {
             private const double DefaultTransperency = 1.0;
@@ -649,17 +836,17 @@ namespace Fluid.Filters
 
             public RgbColor(int red, int green, int blue, double alpha = DefaultTransperency)
             {
-                if ((uint) red > 255)
+                if ((uint)red > 255)
                 {
                     ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(red), "The red value must in rage [0-255]");
                 }
 
-                if ((uint) green > 255)
+                if ((uint)green > 255)
                 {
                     ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(green), "The green value must in rage [0-255]");
                 }
 
-                if ((uint) blue > 255)
+                if ((uint)blue > 255)
                 {
                     ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(blue), "The blue value must in rage [0-255]");
                 }
@@ -683,6 +870,57 @@ namespace Fluid.Filters
 
             public int B { get; }
 
+#if NET7_0_OR_GREATER
+            public static RgbColor Parse(string value, IFormatProvider provider)
+            {
+                ArgumentException.ThrowIfNullOrEmpty(nameof(value));
+
+                if ((value.StartsWith("rgb(") || value.StartsWith("rgba(")) && value.EndsWith(')'))
+                {
+                    var rgbColor = value.Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
+
+                    if (rgbColor.Length == 4 &&
+                        Int32.TryParse(rgbColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out int red) &&
+                        Int32.TryParse(rgbColor[2], NumberStyles.Float, CultureInfo.InvariantCulture, out int green) &&
+                        Int32.TryParse(rgbColor[3], NumberStyles.Float, CultureInfo.InvariantCulture, out int blue))
+                    {
+                        return new RgbColor(red, green, blue);
+                    }
+
+                    if (rgbColor.Length == 5 &&
+                        Int32.TryParse(rgbColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out red) &&
+                        Int32.TryParse(rgbColor[2], NumberStyles.Float, CultureInfo.InvariantCulture, out green) &&
+                        Int32.TryParse(rgbColor[3], NumberStyles.Float, CultureInfo.InvariantCulture, out blue) &&
+                        Single.TryParse(rgbColor[4], NumberStyles.Float, CultureInfo.InvariantCulture, out float alpha))
+                    {
+                        return new RgbColor(red, green, blue, alpha);
+                    }
+                }
+
+                throw new FormatException("Expected format is rgb(R, G, B) or rgba(R, G, B, A).");
+            }
+
+            public static bool TryParse([NotNullWhen(true)] string s, IFormatProvider provider, [MaybeNullWhen(false)] out RgbColor result)
+            {
+                result = Empty;
+
+                if (s == null)
+                {
+                    return false;
+                }
+
+                try
+                {
+                    result = Parse(s, provider);
+
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+#else
             public static bool TryParse(string value, out RgbColor color)
             {
                 if ((value.StartsWith("rgb(") || value.StartsWith("rgba(")) && value.EndsWith(')'))
@@ -715,6 +953,7 @@ namespace Fluid.Filters
 
                 return false;
             }
+#endif
 
             private static double QqhToRgb(double q1, double q2, double hue)
             {
@@ -813,7 +1052,11 @@ namespace Fluid.Filters
             public bool Equals(RgbColor other) => R == other.R && G == other.G && B == other.B;
         }
 
+#if NET7_0_OR_GREATER
+        private readonly struct HslColor : IParsable<HslColor>
+#else
         private readonly struct HslColor
+#endif
         {
             private const double DefaultTransparency = 1.0;
 
@@ -857,6 +1100,57 @@ namespace Fluid.Filters
 
             public double A { get; }
 
+#if NET7_0_OR_GREATER
+            public static HslColor Parse(string value, IFormatProvider provider)
+            {
+                ArgumentException.ThrowIfNullOrEmpty(nameof(value));
+
+                if ((value.StartsWith("hsl(") || value.StartsWith("hsla(")) && value.EndsWith(')'))
+                {
+                    var hslColor = value.Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
+
+                    if (hslColor.Length == 4 && hslColor[2].EndsWith('%') && hslColor[3].EndsWith('%') &&
+                        Double.TryParse(hslColor[1], NumberStyles.Float, provider, out double hue) &&
+                        Double.TryParse(hslColor[2].TrimEnd('%'), NumberStyles.Float, provider, out double saturation) &&
+                        Double.TryParse(hslColor[3].TrimEnd('%'), NumberStyles.Float, provider, out double lightness))
+                    {
+                        return new HslColor(hue, saturation / 100.0, lightness / 100.0);
+                    }
+
+                    if (hslColor.Length == 5 && hslColor[2].EndsWith('%') && hslColor[3].EndsWith('%') &&
+                        Double.TryParse(hslColor[1], NumberStyles.Float, provider, out hue) &&
+                        Double.TryParse(hslColor[2].TrimEnd('%'), NumberStyles.Float, provider, out saturation) &&
+                        Double.TryParse(hslColor[3].TrimEnd('%'), NumberStyles.Float, provider, out lightness) &&
+                        Double.TryParse(hslColor[4], NumberStyles.Float, provider, out double alpha))
+                    {
+                        return new HslColor(hue, saturation / 100.0, lightness / 100.0, alpha);
+                    }
+                }
+
+                throw new FormatException("Expected format is hsl(Hue, Saturation%, Lightness%).");
+            }
+
+            public static bool TryParse([NotNullWhen(true)] string s, IFormatProvider provider, [MaybeNullWhen(false)] out HslColor result)
+            {
+                result = Empty;
+
+                if (s == null)
+                {
+                    return false;
+                }
+
+                try
+                {
+                    result = Parse(s, provider);
+
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+#else
             public static bool TryParse(string value, out HslColor color)
             {
                 if ((value.StartsWith("hsl(") || value.StartsWith("hsla(")) && value.EndsWith(')'))
@@ -889,6 +1183,7 @@ namespace Fluid.Filters
 
                 return false;
             }
+#endif
 
             public static explicit operator HslColor(HexColor hexColor) => (HslColor)(RgbColor)hexColor;
 
