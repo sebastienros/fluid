@@ -5,9 +5,7 @@
   <ItemGroup>
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Abstractions" Version="8.0.0" />
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
     <PackageVersion Include="Parlot" Version="0.0.25" />
-    <PackageVersion Include="PolySharp" Version="1.14.1" PrivateAssets="all" />
     <PackageVersion Include="System.Text.Json" Version="8.0.3" />
     <PackageVersion Include="TimeZoneConverter" Version="6.1.0" />
 
@@ -18,14 +16,12 @@
     <PackageVersion Include="Scriban" Version="5.9.1" />
     <PackageVersion Include="Handlebars.Net" Version="2.1.4" />
   
+    <!-- Global Package References -->
+    <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
+    <GlobalPackageReference Include="PolySharp" Version="1.14.1" PrivateAssets="all" />
+
     <!-- Testing -->
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageVersion Include="xunit" Version="2.7.0" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.7">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageVersion>
-    <PackageVersion Include="xunit.analyzers" Version="1.11.0" />
+
   </ItemGroup>
 </Project>
