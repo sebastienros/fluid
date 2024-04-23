@@ -27,8 +27,6 @@
   <ItemGroup>
     <PackageReference Include="Parlot" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" />
-    <PackageReference Include="PolySharp" />
     <PackageReference Include="TimeZoneConverter" />
   </ItemGroup>
 

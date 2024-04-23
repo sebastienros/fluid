@@ -18,11 +18,6 @@
       <ProjectReference Include="..\Fluid.ViewEngine\Fluid.ViewEngine.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" />
-    <PackageReference Include="PolySharp" />
-  </ItemGroup>
-
   <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
     <FrameworkReference Include="Microsoft.AspNetCore.App" Version="6.0.0" />
   </ItemGroup>
