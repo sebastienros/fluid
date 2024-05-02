@@ -1,6 +1,9 @@
-﻿using Fluid.Tests.Mocks;
+﻿using System;
+using Fluid.Tests.Mocks;
 using Fluid.ViewEngine;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -277,6 +280,50 @@ namespace Fluid.Tests.MvcViewEngine
             await sw.FlushAsync();
 
             Assert.Equal("[TITLE][SUBTITLE][ViewStart][View]", sw.ToString());
+        }
+
+        [Fact]
+        public async Task RenderViewOnlyAsyncStream_LargePropertyValue_Nested_SmallBuffer_BiggerThan128LengthString()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Layout' %}{% section bigboy %}{{BigString}}{% endsection %} ");
+            _mockFileProvider.Add("Views/_Layout.liquid", "{% rendersection bigboy %}");
+
+            await using var sw = new StreamWriter(new NoSyncStream(), bufferSize: 10);
+            var template = new TemplateContext(new {BigString = new string(Enumerable.Range(0, 129).Select(x => 'b').ToArray())});
+            await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+            await sw.FlushAsync();
+        }
+
+        [Fact]
+        public async Task RenderViewOnlyAsyncStream_LargePropertyValue_Nested()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Layout' %}{% section bigboy %}{{BigString}}{% endsection %} ");
+            _mockFileProvider.Add("Views/_Layout.liquid", "{% rendersection bigboy %}");
+
+            await using var sw = new StreamWriter(new NoSyncStream());
+            var template = new TemplateContext(new {BigString = new string(Enumerable.Range(0, 1500).Select(_ => 'b').ToArray())});
+            await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+            await sw.FlushAsync();
+        }
+
+        private sealed class NoSyncStream : Stream
+        {
+            public override Task FlushAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+            public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => Task.CompletedTask;
+            public override ValueTask WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+
+
+            public override void Flush() => throw new InvalidOperationException();
+            public override int Read(byte[] buffer, int offset, int count) => throw new System.InvalidOperationException();
+            public override long Seek(long offset, SeekOrigin origin) => throw new System.InvalidOperationException();
+            public override void SetLength(long value) => throw new System.InvalidOperationException();
+            public override void Write(byte[] buffer, int offset, int count) => throw new System.InvalidOperationException();
+
+            public override bool CanRead { get; } = false;
+            public override bool CanSeek { get; } = false;
+            public override bool CanWrite { get; } = true;
+            public override long Length { get; }
+            public override long Position { get; set; }
         }
     }
 }
