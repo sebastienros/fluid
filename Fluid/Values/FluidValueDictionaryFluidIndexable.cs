@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Fluid.Values
+﻿namespace Fluid.Values
 {
     public sealed class FluidValueDictionaryFluidIndexable : IFluidIndexable
     {

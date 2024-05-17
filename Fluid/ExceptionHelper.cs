@@ -41,7 +41,7 @@ namespace Fluid
         public static void ThrowMaximumRecursionException()
         {
             throw new InvalidOperationException("The maximum level of recursion has been reached. Your script must have a cyclic include statement.");
-        }        
+        }
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]

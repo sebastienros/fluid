@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Fluid
+﻿namespace Fluid
 {
     public sealed class UnsafeMemberAccessStrategy : DefaultMemberAccessStrategy
     {
@@ -9,7 +7,7 @@ namespace Fluid
         public override IMemberAccessor GetAccessor(Type type, string name)
         {
             var accessor = base.GetAccessor(type, name);
-            
+
             if (accessor != null)
             {
                 return accessor;

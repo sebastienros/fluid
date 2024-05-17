@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
+﻿using System.Text.Encodings.Web;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -15,7 +12,7 @@ namespace Fluid.Ast
 
         public Expression Expression { get; }
 
-        public IList<FilterExpression> Filters { get ; }
+        public IList<FilterExpression> Filters { get; }
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -41,5 +38,7 @@ namespace Fluid.Ast
 
             return Awaited(task, writer, encoder, context);
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitOutputStatement(this);
     }
 }

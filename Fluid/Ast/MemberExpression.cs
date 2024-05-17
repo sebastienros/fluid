@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Fluid.Values;
+﻿using Fluid.Values;
 
 namespace Fluid.Ast
 {
@@ -27,11 +24,11 @@ namespace Fluid.Ast
 
             // Search the initial segment in the local scope first
 
-            FluidValue value = context.LocalScope.GetValue(initial.Identifier);
+            var value = context.LocalScope.GetValue(initial.Identifier);
 
             // If it was not successful, try again with a member of the model
 
-            int start = 1;
+            var start = 1;
 
             if (value.IsNil())
             {
@@ -87,5 +84,7 @@ namespace Fluid.Ast
 
             return value;
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitMemberExpression(this);
     }
 }

@@ -1,7 +1,5 @@
 ﻿using Parlot;
-using System.IO;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 using Fluid.Utils;
 
 namespace Fluid.Ast
@@ -167,5 +165,7 @@ namespace Fluid.Ast
 
             return new ValueTask<Completion>(Completion.Normal);
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitTextSpanStatement(this);
     }
 }

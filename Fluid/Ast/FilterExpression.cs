@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Fluid.Values;
+﻿using Fluid.Values;
 
 namespace Fluid.Ast
 {
@@ -48,7 +46,7 @@ namespace Fluid.Ast
 
             var input = await Input.EvaluateAsync(context);
 
-            if (!context.Options.Filters.TryGetValue(Name, out FilterDelegate filter))
+            if (!context.Options.Filters.TryGetValue(Name, out var filter))
             {
                 // When a filter is not defined, return the input
                 return input;
@@ -56,5 +54,7 @@ namespace Fluid.Ast
 
             return await filter(input, arguments, context);
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitFilterExpression(this);
     }
 }

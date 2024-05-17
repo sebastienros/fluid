@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
+﻿using System.Globalization;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
 {
     public sealed class ArrayValue : FluidValue
     {
-        public static readonly ArrayValue Empty = new ArrayValue(Array.Empty<FluidValue>());
+        public static readonly ArrayValue Empty = new ArrayValue([]);
 
         private readonly FluidValue[] _value;
 
@@ -61,7 +57,7 @@ namespace Fluid.Values
             {
                 return _value.Length == 0;
             }
-            
+
             return false;
         }
 
@@ -117,7 +113,7 @@ namespace Fluid.Values
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
-            
+
             foreach (var v in _value)
             {
                 writer.Write(v.ToStringValue());

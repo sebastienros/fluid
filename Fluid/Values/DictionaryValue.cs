@@ -1,8 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
+﻿using System.Globalization;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
@@ -125,7 +122,7 @@ namespace Fluid.Values
             foreach (var key in _value.Keys)
             {
                 _value.TryGetValue(key, out var value);
-                yield return new ArrayValue(new[] { new StringValue(key),  value });
+                yield return new ArrayValue(new[] { new StringValue(key), value });
             }
         }
 

@@ -1,6 +1,5 @@
 ﻿using Fluid.Values;
 using System.Diagnostics;
-using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {

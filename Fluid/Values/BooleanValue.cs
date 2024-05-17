@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.IO;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -30,7 +29,7 @@ namespace Fluid.Values
         {
             // blank == false -> true
             if (other.Type == FluidValues.Blank) return _value == false;
-            
+
             return _value == other.ToBooleanValue();
         }
 

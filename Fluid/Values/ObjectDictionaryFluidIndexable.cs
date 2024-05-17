@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Fluid.Values
+﻿namespace Fluid.Values
 {
     public sealed class ObjectDictionaryFluidIndexable<T> : IFluidIndexable
     {
@@ -19,7 +17,7 @@ namespace Fluid.Values
 
         public bool TryGetValue(string name, out FluidValue value)
         {
-            if(_dictionary.TryGetValue(name, out var obj))
+            if (_dictionary.TryGetValue(name, out var obj))
             {
                 value = FluidValue.Create(obj, _options);
                 return true;

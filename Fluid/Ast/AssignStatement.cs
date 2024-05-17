@@ -1,6 +1,4 @@
-﻿using System.IO;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
+﻿using System.Text.Encodings.Web;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -37,5 +35,7 @@ namespace Fluid.Ast
             context.SetValue(Identifier, task.Result);
             return new ValueTask<Completion>(Completion.Normal);
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitAssignStatement(this);
     }
 }

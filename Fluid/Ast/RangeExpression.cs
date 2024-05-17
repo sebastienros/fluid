@@ -1,7 +1,5 @@
 ﻿using Fluid.Values;
-using System;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
@@ -34,7 +32,7 @@ namespace Fluid.Ast
             else
             {
                 return Awaited(startTask, endTask);
-            }            
+            }
         }
 
         private static ArrayValue BuildArray(int start, int end)
@@ -60,5 +58,7 @@ namespace Fluid.Ast
 
             return BuildArray(start, end);
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitRangeExpression(this);
     }
 }

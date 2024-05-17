@@ -1,11 +1,7 @@
 ﻿using Fluid.Accessors;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Threading.Tasks;
 
 namespace Fluid
 {
@@ -37,7 +33,7 @@ namespace Fluid
                     if (propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Task<>))
                         list[memberNameStrategy(propertyInfo)] = new AsyncDelegateAccessor(async (o, n) =>
                         {
-                            var asyncValue = (Task) propertyInfo.GetValue(o);
+                            var asyncValue = (Task)propertyInfo.GetValue(o);
                             await asyncValue.ConfigureAwait(false);
                             return (object)((dynamic)asyncValue).Result;
                         });
@@ -50,7 +46,7 @@ namespace Fluid
                     if (fieldInfo.FieldType.IsGenericType && fieldInfo.FieldType.GetGenericTypeDefinition() == typeof(Task<>))
                         list[memberNameStrategy(fieldInfo)] = new AsyncDelegateAccessor(async (o, n) =>
                         {
-                            var asyncValue = (Task) fieldInfo.GetValue(o);
+                            var asyncValue = (Task)fieldInfo.GetValue(o);
                             await asyncValue.ConfigureAwait(false);
                             return (object)((dynamic)asyncValue).Result;
                         });
@@ -261,7 +257,7 @@ namespace Fluid
         /// <param name="accessor">The <see cref="Func{T, TemplateContext, TResult}"/> instance used to retrieve the value.</param>
         public static void Register<T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, TemplateContext, TResult> accessor)
         {
-            strategy.Register(typeof(T), new[] { new KeyValuePair<string, IMemberAccessor>(name, new DelegateAccessor<T, TResult>((obj, propertyName, ctx) => accessor(obj, ctx)))});
+            strategy.Register(typeof(T), new[] { new KeyValuePair<string, IMemberAccessor>(name, new DelegateAccessor<T, TResult>((obj, propertyName, ctx) => accessor(obj, ctx))) });
         }
     }
 }

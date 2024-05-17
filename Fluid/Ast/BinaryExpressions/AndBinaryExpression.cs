@@ -12,5 +12,7 @@ namespace Fluid.Ast.BinaryExpressions
         {
             return BooleanValue.Create(leftValue.ToBooleanValue() && rightValue.ToBooleanValue());
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitAndBinaryExpression(this);
     }
 }

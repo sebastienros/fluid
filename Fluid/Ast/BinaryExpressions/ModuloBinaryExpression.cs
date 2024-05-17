@@ -14,5 +14,7 @@ namespace Fluid.Ast.BinaryExpressions
                 ? NumberValue.Create(leftValue.ToNumberValue() % rightValue.ToNumberValue())
                 : NilValue.Instance;
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitModuloBinaryExpression(this);
     }
 }

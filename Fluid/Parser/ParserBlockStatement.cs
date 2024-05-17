@@ -1,9 +1,5 @@
 ﻿using Fluid.Ast;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Fluid.Parser
 {

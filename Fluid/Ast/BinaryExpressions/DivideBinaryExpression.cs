@@ -14,7 +14,7 @@ namespace Fluid.Ast.BinaryExpressions
             {
                 var rightNumber = rightValue.ToNumberValue();
 
-                if(rightNumber == 0)
+                if (rightNumber == 0)
                 {
                     return NilValue.Instance;
                 }
@@ -24,5 +24,7 @@ namespace Fluid.Ast.BinaryExpressions
 
             return NilValue.Instance;
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitDivideBinaryExpression(this);
     }
 }

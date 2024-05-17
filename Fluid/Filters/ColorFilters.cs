@@ -1,9 +1,6 @@
 ﻿using Fluid.Values;
-using System;
 using System.Drawing;
 using System.Globalization;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Fluid.Filters
 {
@@ -236,7 +233,7 @@ namespace Fluid.Filters
 
             var brightness = Convert.ToDouble(rgbColor.R * 299 + rgbColor.G * 587 + rgbColor.B * 114) / 1000.0;
 
-            return NumberValue.Create((decimal) Math.Round(brightness, 2));
+            return NumberValue.Create((decimal)Math.Round(brightness, 2));
         }
 
         public static ValueTask<FluidValue> ColorSaturate(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -506,7 +503,7 @@ namespace Fluid.Filters
                 var luminance2 = GetRelativeLuminance(rgbColor1);
                 var colorContrast = Math.Round((luminance1 + 0.05) / (luminance2 + 0.05), 1);
 
-                return NumberValue.Create((decimal) colorContrast);
+                return NumberValue.Create((decimal)colorContrast);
             }
         }
 
@@ -649,17 +646,17 @@ namespace Fluid.Filters
 
             public RgbColor(int red, int green, int blue, double alpha = DefaultTransperency)
             {
-                if ((uint) red > 255)
+                if ((uint)red > 255)
                 {
                     ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(red), "The red value must in rage [0-255]");
                 }
 
-                if ((uint) green > 255)
+                if ((uint)green > 255)
                 {
                     ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(green), "The green value must in rage [0-255]");
                 }
 
-                if ((uint) blue > 255)
+                if ((uint)blue > 255)
                 {
                     ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(blue), "The blue value must in rage [0-255]");
                 }

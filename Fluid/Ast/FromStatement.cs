@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Encodings.Web;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Text.Encodings.Web;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -14,19 +9,19 @@ namespace Fluid.Ast
     {
         public const string ViewExtension = ".liquid";
 
-        private readonly FluidParser _parser;
         private volatile CachedTemplate _cachedTemplate;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
-    
+
         public FromStatement(FluidParser parser, Expression path, List<string> functions = null)
         {
-            _parser = parser;
+            Parser = parser;
             Path = path;
             Functions = functions;
         }
 
+        public FluidParser Parser { get; }
         public Expression Path { get; }
-        public List<String> Functions { get; }
+        public List<string> Functions { get; }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -56,7 +51,7 @@ namespace Fluid.Ast
                         content = await streamReader.ReadToEndAsync();
                     }
 
-                    if (!_parser.TryParse(content, out var template, out var errors))
+                    if (!Parser.TryParse(content, out var template, out var errors))
                     {
                         throw new ParseException(errors);
                     }
@@ -105,10 +100,11 @@ namespace Fluid.Ast
             {
                 context.ReleaseScope();
             }
-        
 
             return Completion.Normal;
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitFromStatement(this);
 
         private sealed record CachedTemplate(IFluidTemplate Template, string Name);
     }

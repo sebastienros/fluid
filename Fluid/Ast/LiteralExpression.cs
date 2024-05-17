@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using Fluid.Values;
+﻿using Fluid.Values;
 
 namespace Fluid.Ast
 {
@@ -16,5 +15,7 @@ namespace Fluid.Ast
         {
             return new ValueTask<FluidValue>(Value);
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitLiteralExpression(this);
     }
 }

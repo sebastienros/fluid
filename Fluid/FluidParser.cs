@@ -4,13 +4,8 @@ using Fluid.Parser;
 using Fluid.Values;
 using Parlot;
 using Parlot.Fluent;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 using static Parlot.Fluent.Parsers;
 
 namespace Fluid
@@ -71,11 +66,11 @@ namespace Fluid
         protected static readonly LiteralExpression TrueKeyword = new LiteralExpression(BooleanValue.True);
         protected static readonly LiteralExpression FalseKeyword = new LiteralExpression(BooleanValue.False);
 
-        public FluidParser() : this (new())
+        public FluidParser() : this(new())
         {
         }
-        
-        public FluidParser(FluidParserOptions parserOptions) 
+
+        public FluidParser(FluidParserOptions parserOptions)
         {
             var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)));
 
@@ -120,7 +115,8 @@ namespace Fluid
             // primary => NUMBER | STRING | property
             Primary.Parser =
                 String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x)))
-                .Or(Member.Then<Expression>(static x => {
+                .Or(Member.Then<Expression>(static x =>
+                {
                     if (x.Segments.Count == 1)
                     {
                         switch ((x.Segments[0] as IdentifierSegment).Identifier)
@@ -145,13 +141,13 @@ namespace Fluid
             RegisteredOperators["!="] = (a, b) => new NotEqualBinaryExpression(a, b);
             RegisteredOperators["<>"] = (a, b) => new NotEqualBinaryExpression(a, b);
             RegisteredOperators[">"] = (a, b) => new GreaterThanBinaryExpression(a, b, true);
-            RegisteredOperators["<"] = (a, b) => new LowerThanExpression(a, b, true);
+            RegisteredOperators["<"] = (a, b) => new LowerThanBinaryExpression(a, b, true);
             RegisteredOperators[">="] = (a, b) => new GreaterThanBinaryExpression(a, b, false);
-            RegisteredOperators["<="] = (a, b) => new LowerThanExpression(a, b, false);
+            RegisteredOperators["<="] = (a, b) => new LowerThanBinaryExpression(a, b, false);
 
             var CaseValueList = Separated(Terms.Text("or").Or(Terms.Text(",")), Primary);
 
-            CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.Pattern(x => x == '=' || x == '!' || x == '<' || x == '>', maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString()).When(x => RegisteredOperators.ContainsKey(x)).And(Primary)))
+            CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.Pattern(x => x is '=' or '!' or '<' or '>', maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString()).When(RegisteredOperators.ContainsKey).And(Primary)))
                 .Then(x =>
                  {
                      if (x.Item2.Item1 == null)
@@ -170,7 +166,7 @@ namespace Fluid
                         return x.Item1;
                     }
 
-                    var result = x.Item2[x.Item2.Count - 1].Item2;
+                    var result = x.Item2[^1].Item2;
 
                     for (var i = x.Item2.Count - 1; i >= 0; i--)
                     {
@@ -183,7 +179,7 @@ namespace Fluid
                             "and" => new AndBinaryExpression(previous, result),
                             _ => throw new ParseException()
                         };
-                        
+
                     }
 
                     return result;
@@ -196,7 +192,7 @@ namespace Fluid
                                 Primary.Then(static x => new FilterArgument(null, x))
                             ));
 
-            // Primary ( | identifer ( ':' ArgumentsList )! ] )*
+            // Primary ( | identifier ( ':' ArgumentsList )! ] )*
             FilterExpression.Parser = LogicalExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter)
                 .And(ZeroOrMany(
                     Pipe
@@ -400,7 +396,7 @@ namespace Fluid
                         ).ElseError("Invalid 'for' tag");
 
             var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
-                .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = true; return x;})
+                .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = true; return x; })
                 .SkipAnd(OneOrMany(Identifier.Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed

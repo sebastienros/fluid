@@ -1,8 +1,5 @@
 ﻿using Parlot;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 
@@ -20,7 +17,7 @@ namespace Fluid.Values
         {
             for (var i = 0; i < CharToString.Length; ++i)
             {
-                var c = (char) i;
+                var c = (char)i;
                 CharToString[i] = new StringValue(c.ToString());
             }
         }
@@ -49,7 +46,7 @@ namespace Fluid.Values
         internal static StringValue Create(char c)
         {
             var temp = CharToString;
-            if ((uint) c < (uint) temp.Length)
+            if ((uint)c < (uint)temp.Length)
             {
                 return temp[c];
             }
@@ -91,13 +88,13 @@ namespace Fluid.Values
         public override bool Equals(FluidValue other)
         {
             if (other.Type == FluidValues.String) return _value == other.ToStringValue();
-            
+
             // Delegating other types 
             if (other == BlankValue.Instance || other == NilValue.Instance || other == EmptyValue.Instance)
             {
                 return other.Equals(this);
             }
-            
+
             return false;
         }
 

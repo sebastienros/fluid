@@ -1,11 +1,5 @@
 ﻿using Fluid.Values;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Encodings.Web;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
@@ -14,13 +8,12 @@ namespace Fluid.Ast
 #pragma warning restore CA1001
     {
         public const string ViewExtension = ".liquid";
-        private readonly FluidParser _parser;
         private volatile CachedTemplate _cachedTemplate;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
-        public IncludeStatement(FluidParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
+        public IncludeStatement(FluidParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, List<AssignStatement> assignStatements = null)
         {
-            _parser = parser;
+            Parser = parser;
             Path = path;
             With = with;
             For = @for;
@@ -28,8 +21,9 @@ namespace Fluid.Ast
             AssignStatements = assignStatements;
         }
 
+        public FluidParser Parser { get; }
         public Expression Path { get; }
-        public IList<AssignStatement> AssignStatements { get; }
+        public IReadOnlyList<AssignStatement> AssignStatements { get; }
         public Expression With { get; }
         public Expression For { get; }
         public string Alias { get; }
@@ -71,7 +65,7 @@ namespace Fluid.Ast
                             content = await streamReader.ReadToEndAsync();
                         }
 
-                        if (!_parser.TryParse(content, out var template, out var errors))
+                        if (!Parser.TryParse(content, out var template, out var errors))
                         {
                             throw new ParseException(errors);
                         }
@@ -89,8 +83,8 @@ namespace Fluid.Ast
 
             try
             {
-                context.EnterChildScope(); 
-                
+                context.EnterChildScope();
+
                 if (With != null)
                 {
                     var with = await With.EvaluateAsync(context);
@@ -162,6 +156,8 @@ namespace Fluid.Ast
 
             return Completion.Normal;
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIncludeStatement(this);
 
         private sealed record CachedTemplate(IFluidTemplate Template, string Name);
     }

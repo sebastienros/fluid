@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace Fluid
+﻿namespace Fluid
 {
     public abstract class MemberAccessStrategy
     {

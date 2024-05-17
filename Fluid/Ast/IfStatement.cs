@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
+﻿using System.Text.Encodings.Web;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -100,7 +97,6 @@ namespace Fluid.Ast
             }
         }
 
-
         private async ValueTask<Completion> Awaited(
             ValueTask<FluidValue> conditionTask,
             ValueTask<Completion> incompleteStatementTask,
@@ -113,7 +109,7 @@ namespace Fluid.Ast
 
             if (result)
             {
-                var completion =  await incompleteStatementTask;
+                var completion = await incompleteStatementTask;
                 if (completion != Completion.Normal)
                 {
                     // Stop processing the block statements
@@ -153,7 +149,7 @@ namespace Fluid.Ast
             TemplateContext context,
             int startIndex)
         {
-            bool condition = (await conditionTask).ToBooleanValue();
+            var condition = (await conditionTask).ToBooleanValue();
             if (condition)
             {
                 return await (elseIfTask ?? elseIf.WriteToAsync(writer, encoder, context));
@@ -175,5 +171,7 @@ namespace Fluid.Ast
 
             return Completion.Normal;
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIfStatement(this);
     }
 }

@@ -2,9 +2,9 @@
 
 namespace Fluid.Ast.BinaryExpressions
 {
-    public sealed class SubstractBinaryExpression : BinaryExpression
+    public sealed class SubtractBinaryExpression : BinaryExpression
     {
-        public SubstractBinaryExpression(Expression left, Expression right) : base(left, right)
+        public SubtractBinaryExpression(Expression left, Expression right) : base(left, right)
         {
         }
 
@@ -14,5 +14,7 @@ namespace Fluid.Ast.BinaryExpressions
                 ? NumberValue.Create(leftValue.ToNumberValue() - rightValue.ToNumberValue())
                 : NilValue.Instance;
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitSubtractBinaryExpression(this);
     }
 }

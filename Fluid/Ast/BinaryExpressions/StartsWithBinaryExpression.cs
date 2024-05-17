@@ -1,5 +1,4 @@
 ﻿using Fluid.Values;
-using System.Threading.Tasks;
 
 namespace Fluid.Ast.BinaryExpressions
 {
@@ -28,5 +27,7 @@ namespace Fluid.Ast.BinaryExpressions
                         : BooleanValue.False;
             }
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitStartsWithBinaryExpression(this);
     }
 }
