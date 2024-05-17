@@ -1,6 +1,4 @@
-﻿using System.IO;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
+﻿using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
 {
@@ -11,5 +9,7 @@ namespace Fluid.Ast
         public static ValueTask<Completion> Continue() => new(Completion.Continue);
 
         public abstract ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context);
+
+        protected internal virtual Statement Accept(AstVisitor visitor) => visitor.VisitOtherStatement(this);
     }
 }

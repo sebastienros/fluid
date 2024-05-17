@@ -1,17 +1,12 @@
 ﻿using Fluid.Values;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
     public sealed class ForStatement : TagStatement
     {
-        private bool _isContinueOffset;
-        private string _continueOffsetLiteral;
+        private readonly bool _isContinueOffset;
+        private readonly string _continueOffsetLiteral;
 
         public ForStatement(
             List<Statement> statements,
@@ -40,7 +35,7 @@ namespace Fluid.Ast
         public Expression Limit { get; }
         public Expression Offset { get; }
         public bool Reversed { get; }
-        public Statement Else { get; }
+        public ElseStatement Else { get; }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -62,7 +57,7 @@ namespace Fluid.Ast
             {
                 if (_isContinueOffset)
                 {
-                    startIndex = (int) context.GetValue(_continueOffsetLiteral).ToNumberValue();
+                    startIndex = (int)context.GetValue(_continueOffsetLiteral).ToNumberValue();
                 }
                 else
                 {
@@ -75,7 +70,7 @@ namespace Fluid.Ast
 
             if (Limit is not null)
             {
-                var limit = (int) (await Limit.EvaluateAsync(context)).ToNumberValue();
+                var limit = (int)(await Limit.EvaluateAsync(context)).ToNumberValue();
 
                 // Limit can be negative
                 if (limit >= 0)
@@ -141,7 +136,7 @@ namespace Fluid.Ast
                         context.SetValue(_continueOffsetLiteral, forloop.Index);
                     }
 
-                    Completion completion = Completion.Normal;
+                    var completion = Completion.Normal;
 
                     for (var index = 0; index < _statements.Count; index++)
                     {
@@ -179,5 +174,7 @@ namespace Fluid.Ast
 
             return Completion.Normal;
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitForStatement(this);
     }
 }

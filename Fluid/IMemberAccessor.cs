@@ -1,6 +1,4 @@
-﻿using System.Threading.Tasks;
-
-namespace Fluid
+﻿namespace Fluid
 {
     public interface IMemberAccessor
     {

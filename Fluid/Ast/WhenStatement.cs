@@ -1,21 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
+﻿using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
 {
     public sealed class WhenStatement : TagStatement
     {
-        private readonly IReadOnlyList<Expression> _options;
-
         public WhenStatement(IReadOnlyList<Expression> options, List<Statement> statements) : base(statements)
         {
-            _options = options ?? Array.Empty<Expression>();
+            Options = options ?? [];
         }
 
-        public IReadOnlyList<Expression> Options => _options;
+        public IReadOnlyList<Expression> Options { get; }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -35,5 +29,6 @@ namespace Fluid.Ast
             return Completion.Normal;
         }
 
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitWhenStatement(this);
     }
 }

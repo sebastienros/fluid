@@ -1,15 +1,12 @@
 ﻿using Fluid.Utils;
 using Fluid.Values;
-using System.Collections.Generic;
-using System.IO;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
     public sealed class MacroStatement : TagStatement
     {
-        public MacroStatement(string identifier, IReadOnlyList<FunctionCallArgument> arguments, List<Statement> statements): base(statements)
+        public MacroStatement(string identifier, List<FunctionCallArgument> arguments, List<Statement> statements) : base(statements)
         {
             Identifier = identifier;
             Arguments = arguments;
@@ -92,5 +89,7 @@ namespace Fluid.Ast
 
             return Completion.Normal;
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitMacroStatement(this);
     }
 }

@@ -41,5 +41,7 @@ namespace Fluid.Ast.BinaryExpressions
 
             return NilValue.Instance;
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitGreaterThanBinaryExpression(this);
     }
 }

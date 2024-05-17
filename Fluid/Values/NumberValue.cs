@@ -1,6 +1,4 @@
-﻿using System;
-using System.Globalization;
-using System.IO;
+﻿using System.Globalization;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -113,7 +111,7 @@ namespace Fluid.Values
         internal static NumberValue Create(uint value)
         {
             var temp = IntToString;
-            if (value < (uint) temp.Length)
+            if (value < (uint)temp.Length)
             {
                 return temp[value];
             }
@@ -139,7 +137,7 @@ namespace Fluid.Values
 
             int[] bits = decimal.GetBits(value);
 
-            return (int) ((bits[3] >> 16) & 0x7F);
+            return (int)((bits[3] >> 16) & 0x7F);
         }
     }
 }

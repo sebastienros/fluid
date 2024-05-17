@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Text.Encodings.Web;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
@@ -175,7 +169,7 @@ namespace Fluid.Values
                         case IConvertible convertible:
                             var typeCode = convertible.GetTypeCode();
                             return typeCode switch
-                            {                      
+                            {
                                 TypeCode.Boolean => BooleanValue.Create(convertible.ToBoolean(options.CultureInfo)),
                                 TypeCode.Char => new StringValue(convertible.ToString(options.CultureInfo)),
                                 TypeCode.SByte => NumberValue.Create(convertible.ToInt32(options.CultureInfo)),
@@ -300,7 +294,7 @@ namespace Fluid.Values
         [Obsolete("Use Enumerate(TemplateContext) instead.")]
         internal virtual string[] ToStringArray()
         {
-            return Array.Empty<string>();
+            return [];
         }
 
         [Obsolete("Use Enumerate(TemplateContext) instead.")]

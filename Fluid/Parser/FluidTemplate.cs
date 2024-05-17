@@ -1,22 +1,18 @@
 ﻿using Fluid.Ast;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Fluid.Parser
 {
-    public sealed class FluidTemplate : IFluidTemplate
+    public sealed class FluidTemplate : IFluidTemplate, IStatementList
     {
-        private readonly List<Statement> _statements;
+        internal readonly IReadOnlyList<Statement> _statements;
 
         public FluidTemplate(params Statement[] statements)
         {
-            _statements = new List<Statement>(statements ?? Array.Empty<Statement>());
+            _statements = new List<Statement>(statements ?? []);
         }
 
-        public FluidTemplate(List<Statement> statements)
+        public FluidTemplate(IReadOnlyList<Statement> statements)
         {
             _statements = statements ?? throw new ArgumentNullException(nameof(statements));
         }

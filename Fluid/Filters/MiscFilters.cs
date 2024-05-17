@@ -1,14 +1,10 @@
 ﻿using Fluid.Values;
-using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using TimeZoneConverter;
 
 namespace Fluid.Filters
@@ -75,7 +71,7 @@ namespace Fluid.Filters
 
                     continue;
                 }
-                
+
                 if (IsCapitalLetter(lookAheadChar))
                 {
                     if (IsCapitalLetter(currentChar))
@@ -406,7 +402,7 @@ namespace Fluid.Filters
                                     break;
                                 }
                             case 'C': result.Append(Format(value.Year / 100, 2)); break;
-                            case 'd': result.Append(Format(value.Day, 2)); break; 
+                            case 'd': result.Append(Format(value.Day, 2)); break;
                             case 'D':
                                 {
                                     var sb = new StringBuilder();
@@ -414,7 +410,8 @@ namespace Fluid.Filters
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
                                     break;
                                 }
-                            case 'e': useSpaceForPaddingFlag = true; result.Append(Format(value.Day, 2));
+                            case 'e':
+                                useSpaceForPaddingFlag = true; result.Append(Format(value.Day, 2));
                                 break;
                             case 'F':
                                 {
@@ -479,7 +476,7 @@ namespace Fluid.Filters
                             case 'N':
                                 width ??= 9;
                                 var v = (value.Ticks % 10000000).ToString(context.CultureInfo);
-                                result.Append(v.Length >= width ? v.Substring(0, width.Value) : v.PadRight(width.Value, '0')); 
+                                result.Append(v.Length >= width ? v.Substring(0, width.Value) : v.PadRight(width.Value, '0'));
                                 break;
                             case 'p': result.Append(value.ToString("tt", context.CultureInfo).ToUpperInvariant()); break;
                             case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLowerInvariant()); break;
@@ -536,7 +533,7 @@ namespace Fluid.Filters
                                     {
                                         week = 0;
                                     }
-                                    result.Append(Format(week, 2)); 
+                                    result.Append(Format(week, 2));
                                     break;
                                 }
                             case 'x':

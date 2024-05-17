@@ -2,9 +2,9 @@
 
 namespace Fluid.Ast.BinaryExpressions
 {
-    public sealed class LowerThanExpression : BinaryExpression
+    public sealed class LowerThanBinaryExpression : BinaryExpression
     {
-        public LowerThanExpression(Expression left, Expression right, bool strict) : base(left, right)
+        public LowerThanBinaryExpression(Expression left, Expression right, bool strict) : base(left, right)
         {
             Strict = strict;
         }
@@ -41,5 +41,7 @@ namespace Fluid.Ast.BinaryExpressions
 
             return NilValue.Instance;
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitLowerThanBinaryExpression(this);
     }
 }

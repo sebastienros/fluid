@@ -1,15 +1,12 @@
 ﻿using Fluid.Utils;
 using Fluid.Values;
-using System.Collections.Generic;
-using System.IO;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
     public sealed class CaptureStatement : TagStatement
     {
-        public CaptureStatement(string identifier, List<Statement> statements): base(statements)
+        public CaptureStatement(string identifier, List<Statement> statements) : base(statements)
         {
             Identifier = identifier;
         }
@@ -39,7 +36,7 @@ namespace Fluid.Ast
             // Substitute the result if a custom callback is provided
             if (context.Captured != null)
             {
-                 result = await context.Captured.Invoke(Identifier, result);
+                result = await context.Captured.Invoke(Identifier, result);
             }
 
             // Don't encode captured blocks
@@ -47,5 +44,7 @@ namespace Fluid.Ast
 
             return completion;
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitCaptureStatement(this);
     }
 }

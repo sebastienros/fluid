@@ -221,6 +221,8 @@ namespace Fluid.Tests
             _result = result;
         }
 
+        protected override Expression Accept(AstVisitor visitor) => this;
+
         public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
             await Task.Delay(10);

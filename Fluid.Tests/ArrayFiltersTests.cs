@@ -3,7 +3,6 @@ using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
 using System.Threading.Tasks;
-using Fluid.Ast;
 using Fluid.Tests.Extensibility;
 
 namespace Fluid.Tests

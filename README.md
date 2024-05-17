@@ -45,6 +45,7 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 - [Whitespace control](#whitespace-control)
 - [Custom filters](#custom-filters)
 - [Functions](#functions)
+- [Visiting and altering a template](#visiting-and-altering-a-template)
 - [Performance](#performance)
 - [Used by](#used-by)
 
@@ -946,7 +947,6 @@ Macros defined in an external template **must** be imported before they can be i
 {{ field('pass', type='password') }}
 ```
 
-
 ### Extensibility
 
 Functions are `FluidValue` instances implementing the `InvokeAsync` method. It allows any template to be provided custom function values as part of the model, the `TemplateContext` or globally with options.
@@ -970,6 +970,96 @@ template.Render(context);
 ```
 
 <br>
+
+## Visiting and altering a template
+
+Fluid provides a __Visitor__ pattern allowing you to analyze what a template is made of, but also altering it. This can be used for instance to check if a specific identifier is used, replace some filters by another one, or remove any expression that might not be authorized.
+
+### Visiting a template
+
+The `Fluid.Ast.AstVisitor` class can be used to create a custom visitor.
+
+Here is an example of a visitor class which records if an identifier is accessed anywhere in a template:
+
+```c#
+  public class IdentifierIsAccessedVisitor : AstVisitor
+  {
+      private readonly string _identifier;
+
+      public IdentifierIsAccessedVisitor(string identifier)
+      {
+          _identifier = identifier;
+      }
+
+      public bool IsAccessed { get; private set; }
+
+      public override IFluidTemplate VisitTemplate(IFluidTemplate template)
+      {
+          // Initialize the result each time a template is visited with the same visitor instance
+
+          IsAccessed = false;
+          return base.VisitTemplate(template);
+      }
+
+      protected override Expression VisitMemberExpression(MemberExpression memberExpression)
+      {
+          var firstSegment = memberExpression.Segments.FirstOrDefault() as IdentifierSegment;
+
+          if (firstSegment != null)
+          {
+              IsAccessed |= firstSegment.Identifier == _identifier;
+          }
+
+          return base.VisitMemberExpression(memberExpression);
+      }
+  }
+```
+
+And its usage:
+
+```c#
+var template = new FluidParser().Parse("{{ a.b | plus: 1}}");
+
+var visitor = new IdentifierIsAccessedVisitor("a");
+visitor.VisitTemplate(template);
+
+Console.WriteLine(visitor.IsAccessed); // writes True
+```
+
+### Rewriting a template
+
+The `Fluid.Ast.AstRewriter` class can be used to create a custom rewriter.
+
+Here is an example of a visitor class which replaces any `plus` filter with a `minus` one:
+
+```c#
+  public class ReplacePlusFiltersVisitor : AstRewriter
+  {
+      protected override Expression VisitFilterExpression(FilterExpression filterExpression)
+      {
+          if (filterExpression.Name == "plus")
+          {
+              return new FilterExpression(filterExpression.Input, "minus", filterExpression.Parameters);
+          }
+
+          return filterExpression;
+      }
+  }
+```
+
+And its usage:
+
+```c#
+
+var template = new FluidParser().Parse("{{ 1 | plus: 2 }}");
+
+var visitor = new ReplacePlusFiltersVisitor();
+var changed = visitor.VisitTemplate(template);
+
+var result = changed.Render();
+
+Console.WriteLine(result); // writes -1
+```
 
 ## Performance
 

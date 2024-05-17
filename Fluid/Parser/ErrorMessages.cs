@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Fluid.Parser
+﻿namespace Fluid.Parser
 {
     public static class ErrorMessages
     {

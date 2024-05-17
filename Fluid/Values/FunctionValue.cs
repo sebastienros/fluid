@@ -1,8 +1,5 @@
-﻿using System;
-using System.Globalization;
-using System.IO;
+﻿using System.Globalization;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
@@ -18,7 +15,7 @@ namespace Fluid.Values
 
         public FunctionValue(Func<FunctionArguments, TemplateContext, FluidValue> action)
         {
-            _action = (args, c) => new ValueTask<FluidValue>(action(args, c)); 
+            _action = (args, c) => new ValueTask<FluidValue>(action(args, c));
         }
 
         public override FluidValues Type => FluidValues.Object;
@@ -71,7 +68,7 @@ namespace Fluid.Values
 
         public override int GetHashCode()
         {
-            return _action == null ? 0 :_action.GetHashCode();
+            return _action == null ? 0 : _action.GetHashCode();
         }
     }
 }

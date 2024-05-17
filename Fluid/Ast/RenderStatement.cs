@@ -1,11 +1,5 @@
 ﻿using Fluid.Values;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
-using System.Threading;
 
 namespace Fluid.Ast
 {
@@ -17,13 +11,12 @@ namespace Fluid.Ast
 #pragma warning restore CA1001
     {
         public const string ViewExtension = ".liquid";
-        private readonly FluidParser _parser;
         private volatile CachedTemplate _cachedTemplate;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
-        public RenderStatement(FluidParser parser, string path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
+        public RenderStatement(FluidParser parser, string path, Expression with = null, Expression @for = null, string alias = null, List<AssignStatement> assignStatements = null)
         {
-            _parser = parser;
+            Parser = parser;
             Path = path;
             With = with;
             For = @for;
@@ -31,8 +24,9 @@ namespace Fluid.Ast
             AssignStatements = assignStatements;
         }
 
+        public FluidParser Parser { get; }
         public string Path { get; }
-        public IList<AssignStatement> AssignStatements { get; }
+        public IReadOnlyList<AssignStatement> AssignStatements { get; }
         public Expression With { get; }
         public Expression For { get; }
         public string Alias { get; }
@@ -73,7 +67,7 @@ namespace Fluid.Ast
                             content = await streamReader.ReadToEndAsync();
                         }
 
-                        if (!_parser.TryParse(content, out var template, out var errors))
+                        if (!Parser.TryParse(content, out var template, out var errors))
                         {
                             throw new ParseException(errors);
                         }
@@ -177,6 +171,8 @@ namespace Fluid.Ast
             return Completion.Normal;
         }
 
-        private sealed record CachedTemplate (IFluidTemplate Template, string Name);
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitRenderStatement(this);
+
+        private sealed record CachedTemplate(IFluidTemplate Template, string Name);
     }
 }

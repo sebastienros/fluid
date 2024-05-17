@@ -11,8 +11,10 @@ namespace Fluid.Ast.BinaryExpressions
         internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
             return leftValue.Equals(rightValue)
-                ? BooleanValue.False 
+                ? BooleanValue.False
                 : BooleanValue.True;
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitNotEqualBinaryExpression(this);
     }
 }

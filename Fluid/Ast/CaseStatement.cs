@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
+﻿using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
 {
@@ -18,7 +14,7 @@ namespace Fluid.Ast
         {
             Expression = expression;
             Else = elseStatement;
-            _whenStatements = whenStatements ?? Array.Empty<WhenStatement>();
+            _whenStatements = whenStatements ?? [];
         }
 
         public Expression Expression { get; }
@@ -54,5 +50,7 @@ namespace Fluid.Ast
 
             return Completion.Normal;
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitCaseStatement(this);
     }
 }

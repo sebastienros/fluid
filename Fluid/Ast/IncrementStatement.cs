@@ -1,6 +1,4 @@
-﻿using System.IO;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
+﻿using System.Text.Encodings.Web;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -42,5 +40,7 @@ namespace Fluid.Ast
 
             return Normal();
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIncrementStatement(this);
     }
 }

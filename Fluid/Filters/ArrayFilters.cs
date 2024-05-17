@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Fluid.Values;
+﻿using Fluid.Values;
 
 namespace Fluid.Filters
 {
@@ -56,7 +52,7 @@ namespace Fluid.Filters
             {
                 return input;
             }
-            
+
             var concat = new List<FluidValue>();
 
             if (input.Type == FluidValues.Array)
@@ -97,7 +93,7 @@ namespace Fluid.Filters
 
             var list = new List<FluidValue>();
 
-            foreach(var item in input.Enumerate(context))
+            foreach (var item in input.Enumerate(context))
             {
                 list.Add(await item.GetValueAsync(member, context));
             }
@@ -121,7 +117,7 @@ namespace Fluid.Filters
                 else
                 {
                     var valueAsArray = value.ToCharArray();
-                    
+
                     Array.Reverse(valueAsArray);
 
                     return new ArrayValue(valueAsArray.Select(e => new StringValue(e.ToString())));
@@ -234,15 +230,15 @@ namespace Fluid.Filters
                     NumberValue or StringValue => x.ToNumberValue(),
                     _ => 0
                 });
-                
+
                 return NumberValue.Create(numbers.Sum());
             }
-            
+
             var member = arguments.At(0);
-            
+
             var sumList = new List<decimal>();
 
-            foreach(var item in input.Enumerate(context))
+            foreach (var item in input.Enumerate(context))
             {
                 switch (item)
                 {
@@ -250,14 +246,14 @@ namespace Fluid.Filters
                         sumList.Add(Sum(item, arguments, context).Result.ToNumberValue());
                         break;
                     case ObjectValue:
-                    {
-                        var value = await item.GetValueAsync(member.ToStringValue(), context);
-                        sumList.Add(value.ToNumberValue());
-                        break;
-                    }
+                        {
+                            var value = await item.GetValueAsync(member.ToStringValue(), context);
+                            sumList.Add(value.ToNumberValue());
+                            break;
+                        }
                 }
             }
-            
+
             return NumberValue.Create(sumList.Sum());
         }
     }
