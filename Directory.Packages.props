@@ -5,7 +5,7 @@
   <ItemGroup>
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Abstractions" Version="8.0.0" />
-    <PackageVersion Include="Parlot" Version="0.0.25" />
+    <PackageVersion Include="Parlot" Version="0.0.26" />
     <PackageVersion Include="System.Text.Json" Version="8.0.3" />
     <PackageVersion Include="TimeZoneConverter" Version="6.1.0" />
 
