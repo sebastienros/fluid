@@ -13,7 +13,7 @@
     <PackageVersion Include="BenchmarkDotNet" Version="0.13.12" />
     <PackageVersion Include="DotLiquid" Version="2.2.692" />
     <PackageVersion Include="Liquid.NET" Version="0.10.0" />
-    <PackageVersion Include="Scriban" Version="5.9.1" />
+    <PackageVersion Include="Scriban" Version="5.10.0" />
     <PackageVersion Include="Handlebars.Net" Version="2.1.4" />
   
     <!-- Global Package References -->
