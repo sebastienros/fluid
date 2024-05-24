@@ -1133,5 +1133,6 @@ Fluid is known to be used in the following projects:
 - [Optimizely](https://world.optimizely.com/blogs/deane-barker/dates/2023/1/introducing-liquid-templating/) An enterprise .NET CMS
 - [Rock](https://github.com/SparkDevNetwork/Rock) Relationship Management System
 - [TemplateTo](https://templateto.com) Powerful Template Based Document Generation
+- [Weavo Liquid Loom](https://www.weavo.dev) A Liquid Template generator/editor + corresponding Azure Logic Apps Connector / Microsoft Power Automate Connector
 
 _Please file an issue to be listed here._
