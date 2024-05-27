@@ -27,6 +27,9 @@ namespace Fluid.Utils
             internal T Value;
         }
 
+        /// <summary>
+        /// factory
+        /// </summary>
         /// <remarks>
         /// Not using System.Func{T} because this file is linked into the (debugger) Formatter,
         /// which does not have that type (since it compiles against .NET 2.0).

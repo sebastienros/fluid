@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
@@ -48,6 +49,12 @@ namespace Fluid.Values
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
             writer.Write(_value.ToString("u", cultureInfo));
+        }
+
+        public override async ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            AssertWriteToParameters(writer, encoder, cultureInfo);
+            await writer.WriteAsync(_value.ToString("u", cultureInfo));
         }
 
         public override object ToObjectValue()

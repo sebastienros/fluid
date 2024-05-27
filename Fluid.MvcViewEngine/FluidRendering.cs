@@ -14,10 +14,11 @@ namespace Fluid.MvcViewEngine
     /// </summary>
     public class FluidRendering
     {
-        private readonly FluidViewRenderer _fluidViewRenderer;
+        private readonly IFluidViewRenderer _fluidViewRenderer;
 
         public FluidRendering(
             IOptions<FluidMvcViewOptions> optionsAccessor,
+            IFluidViewRenderer fluidViewRenderer,
             IWebHostEnvironment hostingEnvironment)
         {
             _hostingEnvironment = hostingEnvironment;
@@ -27,7 +28,7 @@ namespace Fluid.MvcViewEngine
             _options.TemplateOptions.MemberAccessStrategy.Register<ModelStateDictionary>();
             _options.TemplateOptions.FileProvider = _options.PartialsFileProvider ?? _hostingEnvironment.ContentRootFileProvider;
 
-            _fluidViewRenderer = new FluidViewRenderer(_options);
+            _fluidViewRenderer = fluidViewRenderer;
 
             _options.ViewsFileProvider ??= _hostingEnvironment.ContentRootFileProvider;
         }
