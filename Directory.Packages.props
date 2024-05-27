@@ -25,6 +25,6 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
     <PackageVersion Include="xunit" Version="2.8.0" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.0" />
-    <PackageVersion Include="xunit.analyzers" Version="1.13.0" />
+    <PackageVersion Include="xunit.analyzers" Version="1.14.0" />
   </ItemGroup>
 </Project>
