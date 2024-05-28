@@ -87,7 +87,7 @@ namespace Fluid.ViewEngine
 
             var partialExpression = OneOf(
                         Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new { Expression = x.Item1, Assignments = x.Item2 }),
-                        Primary.Then(x => new { Expression = x, Assignments = new List<AssignStatement>() })
+                        Primary.Then(x => new { Expression = x, Assignments = (IReadOnlyList<AssignStatement>)[] })
                         ).ElseError("Invalid 'partial' tag");
 
             RegisterParserTag("partial", partialExpression, static async (partialStatement, writer, encoder, context) =>

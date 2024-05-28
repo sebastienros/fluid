@@ -12,7 +12,7 @@ namespace Fluid
 {
     public class FluidParser
     {
-        public Parser<List<Statement>> Grammar;
+        public Parser<IReadOnlyList<Statement>> Grammar;
         public Dictionary<string, Parser<Statement>> RegisteredTags { get; } = new();
         public Dictionary<string, Func<Expression, Expression, Expression>> RegisteredOperators { get; } = new();
 
@@ -46,14 +46,14 @@ namespace Fluid
 
         protected static readonly Parser<string> Identifier = SkipWhiteSpace(new IdentifierParser()).Then(x => x.ToString());
 
-        protected readonly Parser<List<FilterArgument>> ArgumentsList;
-        protected readonly Parser<List<FunctionCallArgument>> FunctionCallArgumentsList;
+        protected readonly Parser<IReadOnlyList<FilterArgument>> ArgumentsList;
+        protected readonly Parser<IReadOnlyList<FunctionCallArgument>> FunctionCallArgumentsList;
         protected readonly Parser<Expression> LogicalExpression;
         protected readonly Parser<Expression> CombinatoryExpression; // and | or
         protected readonly Deferred<Expression> Primary = Deferred<Expression>();
         protected readonly Deferred<Expression> FilterExpression = Deferred<Expression>();
-        protected readonly Deferred<List<Statement>> KnownTagsList = Deferred<List<Statement>>();
-        protected readonly Deferred<List<Statement>> AnyTagsList = Deferred<List<Statement>>();
+        protected readonly Deferred<IReadOnlyList<Statement>> KnownTagsList = Deferred<IReadOnlyList<Statement>>();
+        protected readonly Deferred<IReadOnlyList<Statement>> AnyTagsList = Deferred<IReadOnlyList<Statement>>();
 
         protected static readonly Parser<TagResult> OutputStart = TagParsers.OutputTagStart();
         protected static readonly Parser<TagResult> OutputEnd = TagParsers.OutputTagEnd(true);
@@ -82,12 +82,11 @@ namespace Fluid
                             OneOf(
                                 Identifier.AndSkip(Equal).And(Primary).Then(static x => new FunctionCallArgument(x.Item1, x.Item2)),
                                 Primary.Then(static x => new FunctionCallArgument(null, x))
-                            ))).Then(x => x ?? new List<FunctionCallArgument>());
+                            )));
 
             // (name [= value],)+
             var FunctionDefinitionArgumentsList = ZeroOrOne(Separated(Comma,
-                            Identifier.And(ZeroOrOne(Equal.SkipAnd(Primary))).Then(static x => new FunctionCallArgument(x.Item1, x.Item2)))
-                            ).Then(x => x ?? new List<FunctionCallArgument>());
+                            Identifier.And(ZeroOrOne(Equal.SkipAnd(Primary))).Then(static x => new FunctionCallArgument(x.Item1, x.Item2))));
 
             var Call = parserOptions.AllowFunctions
                 ? LParen.SkipAnd(FunctionCallArgumentsList).AndSkip(RParen).Then<MemberSegment>(x => new FunctionCallSegment(x))
@@ -101,8 +100,7 @@ namespace Fluid
                     .Or(Call)))
                 .Then(x =>
                 {
-                    x.Item2.Insert(0, x.Item1);
-                    return new MemberExpression(x.Item2);
+                    return new MemberExpression([x.Item1, .. x.Item2]);
                 });
 
             var Range = LParen
@@ -444,7 +442,7 @@ namespace Fluid
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static (Expression limitResult, Expression offsetResult, bool reversed) ReadForStatementConfiguration(List<ForModifier> modifiers)
+            static (Expression limitResult, Expression offsetResult, bool reversed) ReadForStatementConfiguration(IReadOnlyList<ForModifier> modifiers)
             {
                 if (modifiers.Count == 0)
                 {
@@ -452,7 +450,7 @@ namespace Fluid
                 }
 
                 // take slower route when needed
-                static (Expression limitResult, Expression offsetResult, bool reversed) ReadFromList(List<ForModifier> modifiers)
+                static (Expression limitResult, Expression offsetResult, bool reversed) ReadFromList(IReadOnlyList<ForModifier> modifiers)
                 {
                     Expression limitResult = null;
                     Expression offsetResult = null;

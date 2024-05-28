@@ -4,16 +4,16 @@ namespace Fluid.Ast
 {
     public sealed class FilterExpression : Expression
     {
-        public FilterExpression(Expression input, string name, List<FilterArgument> parameters)
+        public FilterExpression(Expression input, string name, IReadOnlyList<FilterArgument> parameters)
         {
             Input = input;
             Name = name;
-            Parameters = parameters ?? new List<FilterArgument>();
+            Parameters = parameters ?? [];
         }
 
         public Expression Input { get; }
         public string Name { get; }
-        public List<FilterArgument> Parameters { get; }
+        public IReadOnlyList<FilterArgument> Parameters { get; }
 
         private volatile bool _canBeCached = true;
         private volatile FilterArguments _cachedArguments;

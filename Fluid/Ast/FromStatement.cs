@@ -12,16 +12,16 @@ namespace Fluid.Ast
         private volatile CachedTemplate _cachedTemplate;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
-        public FromStatement(FluidParser parser, Expression path, List<string> functions = null)
+        public FromStatement(FluidParser parser, Expression path, IReadOnlyList<string> functions = null)
         {
             Parser = parser;
             Path = path;
-            Functions = functions;
+            Functions = functions ?? [];
         }
 
         public FluidParser Parser { get; }
         public Expression Path { get; }
-        public List<string> Functions { get; }
+        public IReadOnlyList<string> Functions { get; }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -73,7 +73,7 @@ namespace Fluid.Ast
                 context.EnterChildScope();
                 await _cachedTemplate.Template.RenderAsync(TextWriter.Null, encoder, context);
 
-                if (Functions != null)
+                if (Functions.Count > 0)
                 {
                     foreach (var functionName in Functions)
                     {
