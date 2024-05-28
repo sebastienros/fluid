@@ -100,7 +100,18 @@ namespace Fluid
                     .Or(Call)))
                 .Then(x =>
                 {
-                    return new MemberExpression([x.Item1, .. x.Item2]);
+                    if (x.Item2.Count == 0)
+                    {
+                        return new MemberExpression(x.Item1);
+                    }
+
+                    var list = new List<MemberSegment>(x.Item2.Count + 1);
+                    list.Add(x.Item1);
+                    list.AddRange(x.Item2);
+
+                    return new MemberExpression(list);
+
+                    // return new MemberExpression([x.Item1, .. x.Item2]);
                 });
 
             var Range = LParen
