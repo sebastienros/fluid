@@ -82,7 +82,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> RemoveFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            string remove = arguments.At(0).ToStringValue();
+            var remove = arguments.At(0).ToStringValue();
             var value = input.ToStringValue();
 
             var index = value.IndexOf(remove);
@@ -202,7 +202,7 @@ namespace Fluid.Filters
 
                 var sourceArray = ((ArrayValue)input).Values;
 
-                var sourceLength = sourceArray.Length;
+                var sourceLength = sourceArray.Count;
 
                 if (requestedStartIndex < 0 && Math.Abs(requestedStartIndex) > sourceLength)
                 {
@@ -213,11 +213,7 @@ namespace Fluid.Filters
                 var length = requestedLength > sourceLength ? sourceLength : requestedLength;
                 length = startIndex > 0 && length + startIndex > sourceLength ? length - startIndex : length;
 
-                var result = new FluidValue[length];
-
-                Array.Copy(sourceArray, startIndex, result, 0, length);
-
-                return new ArrayValue(result);
+                return new ArrayValue(sourceArray.Skip(startIndex).Take(length).ToArray());
             }
             else
             {
@@ -356,7 +352,7 @@ namespace Fluid.Filters
 
             if (chunks.Count >= size)
             {
-                chunks[chunks.Count - 1] += ellipsis;
+                chunks[^1] += ellipsis;
             }
 
             return new StringValue(string.Join(" ", chunks));

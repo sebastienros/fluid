@@ -6,7 +6,7 @@ namespace Fluid.Ast
 {
     public sealed class CaptureStatement : TagStatement
     {
-        public CaptureStatement(string identifier, List<Statement> statements) : base(statements)
+        public CaptureStatement(string identifier, IReadOnlyList<Statement> statements) : base(statements)
         {
             Identifier = identifier;
         }
@@ -19,9 +19,9 @@ namespace Fluid.Ast
 
             using var sb = StringBuilderPool.GetInstance();
             using var sw = new StringWriter(sb.Builder);
-            for (var i = 0; i < _statements.Count; i++)
+            for (var i = 0; i < Statements.Count; i++)
             {
-                completion = await _statements[i].WriteToAsync(sw, encoder, context);
+                completion = await Statements[i].WriteToAsync(sw, encoder, context);
 
                 if (completion != Completion.Normal)
                 {

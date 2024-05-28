@@ -46,12 +46,12 @@
         {
         }
 
-        public NamedExpressionList(params Expression[] values)
+        public NamedExpressionList(IReadOnlyList<Expression> values)
         {
             _positional = new List<Expression>(values);
         }
 
-        public NamedExpressionList(List<FilterArgument> arguments)
+        public NamedExpressionList(IReadOnlyList<FilterArgument> arguments)
         {
             foreach (var argument in arguments)
             {
@@ -75,7 +75,7 @@
             return this;
         }
 
-        public IEnumerable<string> Names => _named?.Keys ?? System.Linq.Enumerable.Empty<string>();
+        public IEnumerable<string> Names => _named?.Keys ?? Enumerable.Empty<string>();
 
         public IEnumerable<Expression> Values => _positional;
     }

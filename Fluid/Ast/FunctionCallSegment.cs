@@ -9,7 +9,7 @@ namespace Fluid.Ast
 
         public FunctionCallSegment(IReadOnlyList<FunctionCallArgument> arguments)
         {
-            Arguments = arguments;
+            Arguments = arguments ?? [];
         }
 
         public IReadOnlyList<FunctionCallArgument> Arguments { get; }

@@ -2,13 +2,11 @@
 {
     public abstract class TagStatement : Statement
     {
-        protected readonly List<Statement> _statements;
-
-        protected TagStatement(List<Statement> statements)
+        protected TagStatement(IReadOnlyList<Statement> statements)
         {
-            _statements = statements ?? new List<Statement>();
+            Statements = statements ?? [];
         }
 
-        public IReadOnlyList<Statement> Statements => _statements;
+        public IReadOnlyList<Statement> Statements { get; }
     }
 }

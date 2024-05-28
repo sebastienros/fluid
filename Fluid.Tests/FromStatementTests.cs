@@ -93,7 +93,7 @@ public class FromStatementTests
     }
 
     [Fact]
-    public async Task  FromStatement_ShouldInvokeImportedMarcos()
+    public async Task  FromStatement_ShouldInvokeImportedMacros()
     {
         var expression = new LiteralExpression(new StringValue("_Macros.liquid"));
         var sw = new StringWriter();

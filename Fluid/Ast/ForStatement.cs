@@ -9,7 +9,7 @@ namespace Fluid.Ast
         private readonly string _continueOffsetLiteral;
 
         public ForStatement(
-            List<Statement> statements,
+            IReadOnlyList<Statement> statements,
             string identifier,
             Expression source,
             Expression limit,
@@ -138,9 +138,9 @@ namespace Fluid.Ast
 
                     var completion = Completion.Normal;
 
-                    for (var index = 0; index < _statements.Count; index++)
+                    for (var index = 0; index < Statements.Count; index++)
                     {
-                        var statement = _statements[index];
+                        var statement = Statements[index];
                         completion = await statement.WriteToAsync(writer, encoder, context);
 
                         //// Restore the forloop property after every statement in case it replaced it,
