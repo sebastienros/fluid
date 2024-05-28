@@ -6,10 +6,10 @@ namespace Fluid.Ast
 {
     public sealed class MacroStatement : TagStatement
     {
-        public MacroStatement(string identifier, List<FunctionCallArgument> arguments, List<Statement> statements) : base(statements)
+        public MacroStatement(string identifier, IReadOnlyList<FunctionCallArgument> arguments, IReadOnlyList<Statement> statements) : base(statements)
         {
             Identifier = identifier;
-            Arguments = arguments;
+            Arguments = arguments ?? [];
         }
 
         public string Identifier { get; }
@@ -62,9 +62,9 @@ namespace Fluid.Ast
                         }
                     }
 
-                    for (var i = 0; i < _statements.Count; i++)
+                    for (var i = 0; i < Statements.Count; i++)
                     {
-                        var completion = await _statements[i].WriteToAsync(sw, encoder, context);
+                        var completion = await Statements[i].WriteToAsync(sw, encoder, context);
 
                         if (completion != Completion.Normal)
                         {

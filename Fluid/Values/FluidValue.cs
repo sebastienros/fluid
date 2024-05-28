@@ -237,11 +237,11 @@ namespace Fluid.Values
 
                     switch (value)
                     {
-                        case IList<FluidValue> list:
+                        case IReadOnlyList<FluidValue> list:
                             return new ArrayValue(list);
 
                         case IEnumerable<FluidValue> enumerable:
-                            return new ArrayValue(enumerable);
+                            return new ArrayValue(enumerable.ToArray());
 
                         case IList list:
                             var values = new FluidValue[list.Count];
@@ -280,7 +280,7 @@ namespace Fluid.Values
 
         public virtual IEnumerable<FluidValue> Enumerate(TemplateContext context)
         {
-            return Array.Empty<FluidValue>();
+            return [];
         }
 
         #region Obsolete members
@@ -288,7 +288,7 @@ namespace Fluid.Values
         [Obsolete("Use Enumerate(TemplateContext) instead.")]
         public virtual IEnumerable<FluidValue> Enumerate()
         {
-            return Array.Empty<FluidValue>();
+            return [];
         }
 
         [Obsolete("Use Enumerate(TemplateContext) instead.")]
@@ -334,6 +334,9 @@ namespace Fluid.Values
         }
         #endregion
 
-        public static implicit operator ValueTask<FluidValue>(FluidValue value) => new(value);
+        public static implicit operator ValueTask<FluidValue>(FluidValue value)
+        {
+            return new(value);
+        }
     }
 }

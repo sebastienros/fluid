@@ -4,7 +4,7 @@ namespace Fluid.Ast
 {
     public sealed class WhenStatement : TagStatement
     {
-        public WhenStatement(IReadOnlyList<Expression> options, List<Statement> statements) : base(statements)
+        public WhenStatement(IReadOnlyList<Expression> options, IReadOnlyList<Statement> statements) : base(statements)
         {
             Options = options ?? [];
         }
@@ -14,9 +14,9 @@ namespace Fluid.Ast
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             // Process statements until next block or end of statements
-            for (var index = 0; index < _statements.Count; index++)
+            for (var index = 0; index < Statements.Count; index++)
             {
-                var completion = await _statements[index].WriteToAsync(writer, encoder, context);
+                var completion = await Statements[index].WriteToAsync(writer, encoder, context);
 
                 if (completion != Completion.Normal)
                 {

@@ -14,14 +14,14 @@ namespace Fluid.Ast
         private volatile CachedTemplate _cachedTemplate;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
-        public RenderStatement(FluidParser parser, string path, Expression with = null, Expression @for = null, string alias = null, List<AssignStatement> assignStatements = null)
+        public RenderStatement(FluidParser parser, string path, Expression with = null, Expression @for = null, string alias = null, IReadOnlyList<AssignStatement> assignStatements = null)
         {
             Parser = parser;
             Path = path;
             With = with;
             For = @for;
             Alias = alias;
-            AssignStatements = assignStatements;
+            AssignStatements = assignStatements ?? [];
         }
 
         public FluidParser Parser { get; }
@@ -98,7 +98,7 @@ namespace Fluid.Ast
                     context.SetValue(Alias ?? _cachedTemplate.Name, with);
                     await _cachedTemplate.Template.RenderAsync(writer, encoder, context);
                 }
-                else if (AssignStatements != null)
+                else if (AssignStatements.Count > 0)
                 {
                     var length = AssignStatements.Count;
                     for (var i = 0; i < length; i++)

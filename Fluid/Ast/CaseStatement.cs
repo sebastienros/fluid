@@ -10,7 +10,7 @@ namespace Fluid.Ast
             Expression expression,
             ElseStatement elseStatement = null,
             WhenStatement[] whenStatements = null
-        ) : base(new List<Statement>())
+        ) : base([])
         {
             Expression = expression;
             Else = elseStatement;

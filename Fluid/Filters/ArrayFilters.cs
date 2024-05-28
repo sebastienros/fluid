@@ -105,7 +105,7 @@ namespace Fluid.Filters
         {
             if (input.Type == FluidValues.Array)
             {
-                return new ArrayValue(input.Enumerate(context).Reverse());
+                return new ArrayValue(input.Enumerate(context).Reverse().ToArray());
             }
             else if (input.Type == FluidValues.String)
             {
@@ -120,7 +120,7 @@ namespace Fluid.Filters
 
                     Array.Reverse(valueAsArray);
 
-                    return new ArrayValue(valueAsArray.Select(e => new StringValue(e.ToString())));
+                    return new ArrayValue(valueAsArray.Select(e => new StringValue(e.ToString())).ToArray());
                 }
             }
             else
@@ -211,7 +211,7 @@ namespace Fluid.Filters
             }
             else
             {
-                return new ArrayValue(input.Enumerate(context).OrderBy(x => x.ToStringValue(), StringComparer.OrdinalIgnoreCase));
+                return new ArrayValue(input.Enumerate(context).OrderBy(x => x.ToStringValue(), StringComparer.OrdinalIgnoreCase).ToArray());
             }
         }
 

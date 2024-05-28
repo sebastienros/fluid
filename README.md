@@ -1082,38 +1082,38 @@ For rendering, Fluid is 26% faster than the second, Handlebars, 5 times faster t
 Compared to DotLiquid, Fluid renders 11 times faster, and allocates 35 times less memory.
 
 ``` text
-BenchmarkDotNet v0.13.12, Windows 11 (10.0.22631.3007/23H2/2023Update/SunValley3)
+BenchmarkDotNet v0.13.12, Windows 11 (10.0.22631.3593/23H2/2023Update/SunValley3)
 12th Gen Intel Core i7-1260P, 1 CPU, 16 logical and 12 physical cores
-.NET SDK 8.0.101
-  [Host]     : .NET 8.0.1 (8.0.123.58001), X64 RyuJIT AVX2
-  DefaultJob : .NET 8.0.1 (8.0.123.58001), X64 RyuJIT AVX2
+.NET SDK 9.0.100-preview.4.24209.11
+  [Host]     : .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+  DefaultJob : .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
 
 
 | Method             | Mean          | Error       | StdDev      | Ratio  | RatioSD | Gen0      | Gen1     | Gen2    | Allocated   | Alloc Ratio |
 |------------------- |--------------:|------------:|------------:|-------:|--------:|----------:|---------:|--------:|------------:|------------:|
-| Fluid_Parse        |      2.807 us |   0.0106 us |   0.0088 us |   1.00 |    0.00 |    0.2899 |        - |       - |     2.68 KB |        1.00 |
-| Scriban_Parse      |      3.343 us |   0.0548 us |   0.0486 us |   1.19 |    0.02 |    0.7744 |   0.0267 |       - |     7.14 KB |        2.67 |
-| DotLiquid_Parse    |      6.413 us |   0.1190 us |   0.1323 us |   2.29 |    0.04 |    1.7395 |        - |       - |    16.21 KB |        6.05 |
-| LiquidNet_Parse    |     25.812 us |   0.4131 us |   0.3662 us |   9.20 |    0.12 |    6.7444 |   0.6104 |       - |    62.04 KB |       23.15 |
-| Handlebars_Parse   |  2,387.174 us |  32.5388 us |  28.8448 us | 851.62 |    9.06 |   15.6250 |   7.8125 |       - |   156.89 KB |       58.55 |
+| Fluid_Parse        |      2.849 us |   0.0191 us |   0.0159 us |   1.00 |    0.00 |    0.3052 |        - |       - |     2.81 KB |        1.00 |
+| Scriban_Parse      |      3.297 us |   0.0407 us |   0.0381 us |   1.16 |    0.01 |    0.7744 |   0.0267 |       - |     7.14 KB |        2.54 |
+| DotLiquid_Parse    |      6.558 us |   0.1118 us |   0.1046 us |   2.30 |    0.03 |    1.7624 |   0.0229 |       - |    16.21 KB |        5.76 |
+| LiquidNet_Parse    |     25.064 us |   0.1409 us |   0.1100 us |   8.80 |    0.07 |    6.7444 |   0.6104 |       - |    62.04 KB |       22.06 |
+| Handlebars_Parse   |  2,401.901 us |  41.1672 us |  38.5079 us | 843.36 |   15.09 |   15.6250 |   7.8125 |       - |   156.52 KB |       55.65 |
 |                    |               |             |             |        |         |           |          |         |             |             |
-| Fluid_ParseBig     |     16.306 us |   0.0856 us |   0.0669 us |   1.00 |    0.00 |    1.2512 |   0.0305 |       - |    11.61 KB |        1.00 |
-| Scriban_ParseBig   |     18.582 us |   0.3524 us |   0.3297 us |   1.14 |    0.02 |    3.4790 |   0.4883 |       - |    32.07 KB |        2.76 |
-| DotLiquid_ParseBig |     27.384 us |   0.4307 us |   0.3818 us |   1.68 |    0.02 |   10.2539 |   0.4883 |       - |    94.36 KB |        8.13 |
-| LiquidNet_ParseBig | 11,744.957 us | 185.4959 us | 144.8230 us | 720.29 |    9.27 | 3093.7500 |  15.6250 |       - | 28543.38 KB |    2,458.65 |
+| Fluid_ParseBig     |     16.257 us |   0.1450 us |   0.1357 us |   1.00 |    0.00 |    1.2512 |   0.0305 |       - |    11.64 KB |        1.00 |
+| Scriban_ParseBig   |     18.521 us |   0.1000 us |   0.0886 us |   1.14 |    0.01 |    3.4790 |   0.4883 |       - |    32.07 KB |        2.75 |
+| DotLiquid_ParseBig |     27.612 us |   0.4320 us |   0.4041 us |   1.70 |    0.03 |   10.2539 |   0.4883 |       - |    94.36 KB |        8.11 |
+| LiquidNet_ParseBig | 12,206.204 us | 188.5327 us | 176.3536 us | 750.86 |   12.96 | 3093.7500 |  15.6250 |       - | 28543.38 KB |    2,452.05 |
 |                    |               |             |             |        |         |           |          |         |             |             |
-| Fluid_Render       |    127.090 us |   1.3743 us |   1.2182 us |   1.00 |    0.00 |   10.2539 |   0.4883 |       - |    95.86 KB |        1.00 |
-| Scriban_Render     |    619.533 us |   5.3542 us |   4.4710 us |   4.88 |    0.06 |   68.3594 |  68.3594 | 68.3594 |   498.43 KB |        5.20 |
-| DotLiquid_Render   |  1,414.229 us |  14.7840 us |  13.8290 us |  11.12 |    0.16 |  351.5625 | 132.8125 | 23.4375 |  3367.98 KB |       35.13 |
-| LiquidNet_Render   |    829.018 us |  14.3937 us |  13.4639 us |   6.53 |    0.16 |  339.8438 | 160.1563 |       - |  3130.77 KB |       32.66 |
-| Handlebars_Render  |    160.397 us |   2.3408 us |   2.1896 us |   1.26 |    0.02 |   20.9961 |   3.4180 |       - |   194.92 KB |        2.03 |
+| Fluid_Render       |    134.311 us |   1.5910 us |   1.4104 us |   1.00 |    0.00 |   10.2539 |   0.4883 |       - |    95.86 KB |        1.00 |
+| Scriban_Render     |    615.143 us |   5.4851 us |   4.5803 us |   4.58 |    0.06 |   68.3594 |  68.3594 | 68.3594 |   498.64 KB |        5.20 |
+| DotLiquid_Render   |  1,403.693 us |  27.4426 us |  40.2251 us |  10.63 |    0.27 |  351.5625 | 140.6250 | 23.4375 |  3368.09 KB |       35.13 |
+| LiquidNet_Render   |    825.819 us |   8.6639 us |   7.6803 us |   6.15 |    0.08 |  339.8438 | 160.1563 |       - |   3130.8 KB |       32.66 |
+| Handlebars_Render  |    238.959 us |   4.7119 us |  11.5585 us |   1.68 |    0.06 |   20.9961 |   3.4180 |       - |   194.92 KB |        2.03 |
 ```
 
-Tested on January 31, 2024 with
-- Scriban 5.9.1
+Tested on May 28, 2024 with
+- Scriban 5.10.0
 - DotLiquid 2.2.692
 - Liquid.NET 0.10.0
-- Handlebars.Net 2.1.4
+- Handlebars.Net 2.1.6
 
 ##### Legend
 
@@ -1134,5 +1134,6 @@ Fluid is known to be used in the following projects:
 - [Rock](https://github.com/SparkDevNetwork/Rock) Relationship Management System
 - [TemplateTo](https://templateto.com) Powerful Template Based Document Generation
 - [Weavo Liquid Loom](https://www.weavo.dev) A Liquid Template generator/editor + corresponding Azure Logic Apps Connector / Microsoft Power Automate Connector
+- [Semantic Kernel](https://github.com/microsoft/semantic-kernel) Integrate cutting-edge LLM technology quickly and easily into your apps
 
-_Please file an issue to be listed here._
+_Please create a pull-request to be listed here._

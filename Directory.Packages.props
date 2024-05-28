@@ -5,7 +5,7 @@
   <ItemGroup>
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Abstractions" Version="8.0.0" />
-    <PackageVersion Include="Parlot" Version="0.0.26" />
+    <PackageVersion Include="Parlot" Version="0.0.28" />
     <PackageVersion Include="System.Text.Json" Version="8.0.3" />
     <PackageVersion Include="TimeZoneConverter" Version="6.1.0" />
 
@@ -13,8 +13,8 @@
     <PackageVersion Include="BenchmarkDotNet" Version="0.13.12" />
     <PackageVersion Include="DotLiquid" Version="2.2.692" />
     <PackageVersion Include="Liquid.NET" Version="0.10.0" />
-    <PackageVersion Include="Scriban" Version="5.9.1" />
-    <PackageVersion Include="Handlebars.Net" Version="2.1.4" />
+    <PackageVersion Include="Scriban" Version="5.10.0" />
+    <PackageVersion Include="Handlebars.Net" Version="2.1.6" />
   
     <!-- Global Package References -->
     <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
@@ -22,9 +22,9 @@
 
     <!-- Testing -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
-    <PackageVersion Include="xunit" Version="2.8.0" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.0" />
-    <PackageVersion Include="xunit.analyzers" Version="1.13.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
+    <PackageVersion Include="xunit" Version="2.8.1" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.1" />
+    <PackageVersion Include="xunit.analyzers" Version="1.14.0" />
   </ItemGroup>
 </Project>

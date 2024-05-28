@@ -5,19 +5,17 @@ namespace Fluid.Parser
 {
     public sealed class FluidTemplate : IFluidTemplate, IStatementList
     {
-        internal readonly IReadOnlyList<Statement> _statements;
-
         public FluidTemplate(params Statement[] statements)
         {
-            _statements = new List<Statement>(statements ?? []);
+            Statements = statements ?? [];
         }
 
         public FluidTemplate(IReadOnlyList<Statement> statements)
         {
-            _statements = statements ?? throw new ArgumentNullException(nameof(statements));
+            Statements = statements ?? throw new ArgumentNullException(nameof(statements));
         }
 
-        public IReadOnlyList<Statement> Statements => _statements;
+        public IReadOnlyList<Statement> Statements { get; }
 
         public ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {

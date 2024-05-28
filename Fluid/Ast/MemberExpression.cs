@@ -4,17 +4,22 @@ namespace Fluid.Ast
 {
     public sealed class MemberExpression : Expression
     {
-        public MemberExpression(params MemberSegment[] segments)
+        public MemberExpression(MemberSegment segment)
         {
-            Segments = segments.ToList();
+            Segments = [segment];
         }
 
-        public MemberExpression(List<MemberSegment> segments)
+        public MemberExpression(IReadOnlyList<MemberSegment> segments)
         {
-            Segments = segments;
+            Segments = segments ?? [];
+
+            if (Segments.Count == 0)
+            {
+                throw new ArgumentException("At least one segment is required in a MemberExpression");
+            }
         }
 
-        public List<MemberSegment> Segments { get; }
+        public IReadOnlyList<MemberSegment> Segments { get; }
 
         public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
@@ -66,7 +71,7 @@ namespace Fluid.Ast
         private static async ValueTask<FluidValue> Awaited(
             ValueTask<FluidValue> task,
             TemplateContext context,
-            List<MemberSegment> segments,
+            IReadOnlyList<MemberSegment> segments,
             int startIndex)
         {
             var value = await task;
