@@ -141,7 +141,7 @@ namespace Fluid
         /// <param name="getter">The <see cref="IMemberAccessor"/> instance used to retrieve the value.</param>
         public static void Register<T>(this MemberAccessStrategy strategy, string name, IMemberAccessor getter)
         {
-            strategy.Register(typeof(T), new[] { new KeyValuePair<string, IMemberAccessor>(name, getter) });
+            strategy.Register(typeof(T), [new KeyValuePair<string, IMemberAccessor>(name, getter)]);
         }
 
         /// <summary>
@@ -153,7 +153,7 @@ namespace Fluid
         /// <param name="getter">The <see cref="IMemberAccessor"/> instance used to retrieve the value.</param>
         public static void Register<T>(this MemberAccessStrategy strategy, IMemberAccessor getter)
         {
-            strategy.Register(typeof(T), new[] { new KeyValuePair<string, IMemberAccessor>("*", getter) });
+            strategy.Register(typeof(T), [new KeyValuePair<string, IMemberAccessor>("*", getter)]);
         }
 
         /// <summary>
@@ -165,7 +165,7 @@ namespace Fluid
         /// <param name="getter">The <see cref="IMemberAccessor"/> instance used to retrieve the value.</param>
         public static void Register(this MemberAccessStrategy strategy, Type type, IMemberAccessor getter)
         {
-            strategy.Register(type, new[] { new KeyValuePair<string, IMemberAccessor>("*", getter) });
+            strategy.Register(type, [new KeyValuePair<string, IMemberAccessor>("*", getter)]);
         }
 
         /// <summary>
@@ -191,7 +191,7 @@ namespace Fluid
         /// <param name="accessor">The <see cref="T:Func{T, string, TemplateContext, TResult}"/> instance used to retrieve the value.</param>
         public static void Register<T, TResult>(this MemberAccessStrategy strategy, Func<T, string, TemplateContext, TResult> accessor)
         {
-            strategy.Register(typeof(T), new[] { new KeyValuePair<string, IMemberAccessor>("*", new DelegateAccessor<T, TResult>(accessor)) });
+            strategy.Register(typeof(T), [new KeyValuePair<string, IMemberAccessor>("*", new DelegateAccessor<T, TResult>(accessor))]);
         }
 
         /// <summary>
@@ -213,7 +213,7 @@ namespace Fluid
         /// <param name="accessor">The <see cref="T:Func{T, string, TemplateContext, Task{TResult}}"/> instance used to retrieve the value.</param>
         public static void Register<T, TResult>(this MemberAccessStrategy strategy, Func<T, string, TemplateContext, Task<TResult>> accessor)
         {
-            strategy.Register(typeof(T), new[] { new KeyValuePair<string, IMemberAccessor>("*", new AsyncDelegateAccessor<T, TResult>(accessor)) });
+            strategy.Register(typeof(T), [new KeyValuePair<string, IMemberAccessor>("*", new AsyncDelegateAccessor<T, TResult>(accessor))]);
         }
 
         /// <summary>
@@ -235,7 +235,7 @@ namespace Fluid
         /// <param name="accessor">The <see cref="T:Func{T, TemplateContext, Task{Object}}"/> instance used to retrieve the value.</param>
         public static void Register<T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, TemplateContext, Task<TResult>> accessor)
         {
-            strategy.Register(typeof(T), new[] { new KeyValuePair<string, IMemberAccessor>(name, new AsyncDelegateAccessor<T, TResult>((obj, propertyName, ctx) => accessor(obj, ctx))) });
+            strategy.Register(typeof(T), [new KeyValuePair<string, IMemberAccessor>(name, new AsyncDelegateAccessor<T, TResult>((obj, propertyName, ctx) => accessor(obj, ctx)))]);
         }
 
         /// <summary>
@@ -257,7 +257,7 @@ namespace Fluid
         /// <param name="accessor">The <see cref="Func{T, TemplateContext, TResult}"/> instance used to retrieve the value.</param>
         public static void Register<T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, TemplateContext, TResult> accessor)
         {
-            strategy.Register(typeof(T), new[] { new KeyValuePair<string, IMemberAccessor>(name, new DelegateAccessor<T, TResult>((obj, propertyName, ctx) => accessor(obj, ctx))) });
+            strategy.Register(typeof(T), [new KeyValuePair<string, IMemberAccessor>(name, new DelegateAccessor<T, TResult>((obj, propertyName, ctx) => accessor(obj, ctx)))]);
         }
     }
 }

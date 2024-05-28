@@ -635,7 +635,7 @@ namespace Fluid.Filters
         {
             private const double DefaultTransperency = 1.0;
 
-            private static readonly char[] _colorSeparators = new[] { '(', ',', ' ', ')' };
+            private static readonly char[] _colorSeparators = ['(', ',', ' ', ')'];
 
             public static readonly RgbColor Empty = default;
 
@@ -814,7 +814,7 @@ namespace Fluid.Filters
         {
             private const double DefaultTransparency = 1.0;
 
-            private static readonly char[] _colorSeparators = new[] { '(', ',', ' ', ')' };
+            private static readonly char[] _colorSeparators = ['(', ',', ' ', ')'];
 
             public static readonly HslColor Empty = default;
 
