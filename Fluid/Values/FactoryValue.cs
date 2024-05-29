@@ -1,5 +1,4 @@
-﻿using Fluid.Utils;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -92,7 +91,7 @@ namespace Fluid.Values
             AssertWriteToParameters(writer, encoder, cultureInfo);
             var task = _factory.Value.WriteToAsync(writer, encoder, cultureInfo);
 
-            if (task.IsCompletedSuccessfully())
+            if (task.IsCompletedSuccessfully)
             {
                 return default;
             }

@@ -1,15 +1,13 @@
 ﻿using Fluid.Tests.Mocks;
 using Fluid.ViewEngine;
-using System;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
 namespace Fluid.Tests.MvcViewEngine
 {
-    public partial class ViewEngineTests
+    public class ViewEngineTests
     {
         FluidViewEngineOptions _options = new ();
         FluidViewRenderer _renderer;
