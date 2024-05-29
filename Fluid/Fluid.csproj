@@ -29,6 +29,7 @@
     <PackageReference Include="Parlot" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" />
     <PackageReference Include="TimeZoneConverter" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
@@ -36,12 +37,13 @@
     <PackageReference Include="Microsoft.CSharp" />
   </ItemGroup>
   
-  <!-- Keep specific targets since it removes some dependencies -->
-  <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
-  </ItemGroup>
+  <PropertyGroup Condition="'$(TargetFramework)'=='net6.0'">
+    <DefineConstants>$(DefineConstants);COMPILATION_SUPPORTED</DefineConstants>
+  </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
-  </ItemGroup>
+  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0'">
+    <DefineConstants>$(DefineConstants);COMPILATION_SUPPORTED</DefineConstants>
+  </PropertyGroup>
 
   <PropertyGroup>
     <PackageReadmeFile>README.md</PackageReadmeFile>

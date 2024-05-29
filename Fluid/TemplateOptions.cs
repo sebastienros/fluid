@@ -39,6 +39,11 @@ namespace Fluid
         public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Local;
 
         /// <summary>
+        /// Gets or sets the number of times the template needs to be rendered before it is compiled automatically. Default is 100. 0 disables compilation.
+        /// </summary>
+        public int TemplateCompilationThreshold { get; set; } = 1;
+
+        /// <summary>
         /// Gets or sets the maximum depth of recursions a script can execute. 100 by default.
         /// </summary>
         public int MaxRecursion { get; set; } = 100;

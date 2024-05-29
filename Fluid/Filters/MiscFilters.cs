@@ -53,7 +53,7 @@ namespace Fluid.Filters
             var result = new StringBuilder();
             var lastIndex = value.Length - 1;
 
-            for (int i = 0; i < value.Length; i++)
+            for (var i = 0; i < value.Length; i++)
             {
                 var currentChar = value[i];
                 var lookAheadChar = i == lastIndex
@@ -96,7 +96,7 @@ namespace Fluid.Filters
                 {
                     if (IsCapitalLetter(currentChar))
                     {
-                        if (result[result.Length - 1] != KebabCaseSeparator && !char.IsDigit(lookAheadChar))
+                        if (result[^1] != KebabCaseSeparator && !char.IsDigit(lookAheadChar))
                         {
                             result.Append(KebabCaseSeparator);
                         }
@@ -106,7 +106,7 @@ namespace Fluid.Filters
                 }
             }
 
-            static bool IsCapitalLetter(char c) => c >= 'A' && c <= 'Z';
+            static bool IsCapitalLetter(char c) => c is >= 'A' and <= 'Z';
 
             return new StringValue(result.ToString().ToLowerInvariant());
         }
@@ -235,7 +235,7 @@ namespace Fluid.Filters
                 var inside = false;
                 for (var i = 0; i < html.Length; i++)
                 {
-                    char current = html[i];
+                    var current = html[i];
 
                     switch (current)
                     {
@@ -813,7 +813,7 @@ namespace Fluid.Filters
 #pragma warning restore CA5351
             var builder = new StringBuilder(32);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
-            foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
                 builder.Append(b.ToString("x2").ToLowerInvariant());
@@ -835,7 +835,7 @@ namespace Fluid.Filters
 #pragma warning restore CA5350
             var builder = new StringBuilder(40);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
-            foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
                 builder.Append(b.ToString("x2").ToLowerInvariant());
@@ -855,7 +855,7 @@ namespace Fluid.Filters
             using var provider = System.Security.Cryptography.SHA256.Create();
             var builder = new StringBuilder(64);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
-            foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
                 builder.Append(b.ToString("x2").ToLowerInvariant());

@@ -8,6 +8,7 @@
     <PackageVersion Include="Parlot" Version="0.0.28" />
     <PackageVersion Include="System.Text.Json" Version="8.0.3" />
     <PackageVersion Include="TimeZoneConverter" Version="6.1.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
 
     <!-- Benchmarks -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.13.12" />

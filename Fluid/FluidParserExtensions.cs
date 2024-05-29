@@ -4,7 +4,7 @@ using System.Text.Encodings.Web;
 
 namespace Fluid
 {
-    public static class FluidParserExtensions
+    public static partial class FluidParserExtensions
     {
         public static IFluidTemplate Parse(this FluidParser parser, string template)
         {

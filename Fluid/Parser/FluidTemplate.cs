@@ -3,19 +3,28 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Parser
 {
-    public sealed class FluidTemplate : IFluidTemplate, IStatementList
+    public class FluidTemplate : IFluidTemplate, IStatementList
     {
+        internal readonly IReadOnlyList<Statement> _statements;
+
+#if COMPILATION_SUPPORTED
+        internal volatile int _count;
+        internal bool _compilationStarted;
+        internal IFluidTemplate _compiledTemplate;
+        private readonly object _synLock = new();
+#endif
+
         public FluidTemplate(params Statement[] statements)
         {
-            Statements = statements ?? [];
+            _statements = statements ?? [];
         }
 
         public FluidTemplate(IReadOnlyList<Statement> statements)
         {
-            Statements = statements ?? throw new ArgumentNullException(nameof(statements));
+            _statements = statements ?? throw new ArgumentNullException(nameof(statements));
         }
 
-        public IReadOnlyList<Statement> Statements { get; }
+        public IReadOnlyList<Statement> Statements => _statements;
 
         public ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -34,6 +43,56 @@ namespace Fluid.Parser
                 ExceptionHelper.ThrowArgumentNullException(nameof(context));
             }
 
+#if COMPILATION_SUPPORTED
+
+            if (context.TemplateCompilationThreshold > 0 && !_compilationStarted)
+            {
+                if (++_count >= context.TemplateCompilationThreshold)
+                {
+                    // For now we compile only if a model is used
+
+                    lock (_synLock)
+                    {
+                        var modelType = context.Model?.ToObjectValue()?.GetType() ?? typeof(object);
+
+                        if (!_compilationStarted && modelType != null)
+                        {
+                            // THIS IS ONLY FOR HAVING ALL TESTS RUN WITH COMPILED TEMPLATES
+                            // BEGIN
+                            if (context.TemplateCompilationThreshold == 1)
+                            {
+                                // Compile synchronously
+
+                                _compiledTemplate = this.Compile(modelType, CompilerOptions.Default);
+                            }
+                            // END
+                            else
+                            {
+                                // Compile the template asynchronously
+                                // Queue the compilation on the thread pool
+                                ThreadPool.QueueUserWorkItem((state) =>
+                                {
+                                    _compiledTemplate = this.Compile(modelType, CompilerOptions.Default);
+                                }, (object)null, false);
+                            }
+                        }
+
+                        _compilationStarted = true;
+                    }
+                }
+            }
+
+            if (_compiledTemplate != null)
+            {
+                return _compiledTemplate.RenderAsync(writer, encoder, context);
+            }
+#endif
+
+            return RenderAsyncInternal(writer, encoder, context);
+        }
+
+        private ValueTask RenderAsyncInternal(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        {
             var count = Statements.Count;
             for (var i = 0; i < count; i++)
             {
@@ -50,10 +109,14 @@ namespace Fluid.Parser
                 }
             }
 
+#if NET5_0_OR_GREATER
+            return ValueTask.CompletedTask;
+#else
             return new ValueTask();
+#endif
         }
 
-        private static async ValueTask Awaited(
+        internal static async ValueTask Awaited(
             ValueTask<Completion> task,
             TextWriter writer,
             TextEncoder encoder,
