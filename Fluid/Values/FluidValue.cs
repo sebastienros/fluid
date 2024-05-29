@@ -9,7 +9,16 @@ namespace Fluid.Values
     public abstract class FluidValue : IEquatable<FluidValue>
 #pragma warning restore CA1067
     {
+        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
         public abstract void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
+
+        public virtual ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            WriteTo(writer, encoder, cultureInfo);
+#pragma warning restore CS0618 // Type or member is obsolete
+            return default;
+        }
 
         private static Dictionary<Type, Type> _genericDictionaryTypeCache = new();
 

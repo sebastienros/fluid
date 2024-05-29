@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Fluid.Utils;
+using System.Collections;
 using System.Globalization;
 using System.Text.Encodings.Web;
 
@@ -104,7 +105,7 @@ namespace Fluid.Values
         {
             var members = name.Split(MemberSeparators);
 
-            object target = Value;
+            var target = Value;
 
             foreach (var prop in members)
             {
@@ -148,10 +149,30 @@ namespace Fluid.Values
             return Convert.ToDecimal(Value);
         }
 
+        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
             writer.Write(encoder.Encode(ToStringValue()));
+        }
+
+        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            AssertWriteToParameters(writer, encoder, cultureInfo);
+            var task = writer.WriteAsync(encoder.Encode(ToStringValue()));
+
+            if (task.IsCompletedSuccessfully())
+            {
+                return default;
+            }
+
+            return Awaited(task);
+
+            static async ValueTask Awaited(Task t)
+            {
+                await t;
+                return;
+            }
         }
 
         public override string ToStringValue()

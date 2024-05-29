@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using Fluid.Utils;
+using System.Globalization;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -79,10 +80,30 @@ namespace Fluid.Values
             return _factory.Value.ToStringValue();
         }
 
+        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
             _factory.Value.WriteTo(writer, encoder, cultureInfo);
+        }
+
+        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            AssertWriteToParameters(writer, encoder, cultureInfo);
+            var task = _factory.Value.WriteToAsync(writer, encoder, cultureInfo);
+
+            if (task.IsCompletedSuccessfully())
+            {
+                return default;
+            }
+
+            return Awaited(task);
+
+            static async ValueTask Awaited(ValueTask t)
+            {
+                await t;
+                return;
+            }
         }
     }
 }

@@ -98,7 +98,21 @@ namespace Fluid
                     Dot.SkipAnd(Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)))
                     .Or(Indexer)
                     .Or(Call)))
-                .Then(x => new MemberExpression([x.Item1, .. x.Item2]));
+                .Then(x =>
+                {
+                    if (x.Item2.Count == 0)
+                    {
+                        return new MemberExpression(x.Item1);
+                    }
+
+                    var list = new List<MemberSegment>(x.Item2.Count + 1);
+                    list.Add(x.Item1);
+                    list.AddRange(x.Item2);
+
+                    return new MemberExpression(list);
+
+                    // return new MemberExpression([x.Item1, .. x.Item2]);
+                });
 
             var Range = LParen
                 .SkipAnd(OneOf(Integer, Member.Then<Expression>(x => x)))

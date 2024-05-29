@@ -36,9 +36,20 @@ namespace Fluid.Ast
 
             context.SetValue(prefixedIdentifier, value);
 
-            value.WriteTo(writer, encoder, context.CultureInfo);
+            var task = value.WriteToAsync(writer, encoder, context.CultureInfo);
 
-            return Normal();
+            if (task.IsCompletedSuccessfully)
+            {
+                return new ValueTask<Completion>(Completion.Normal);
+            }
+
+            return Awaited(task);
+
+            static async ValueTask<Completion> Awaited(ValueTask t)
+            {
+                await t;
+                return Completion.Normal;
+            }
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIncrementStatement(this);

@@ -55,10 +55,16 @@ namespace Fluid.Values
             return false;
         }
 
+        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             // A function value should be invoked and its result used instead.
-            // Calling write to is equivalent to renderding {{ alert }} instead of {{ alert() }}
+            // Calling write to is equivalent to rendering {{ alert }} instead of {{ alert() }}
+        }
+
+        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            return default;
         }
 
         public override bool Equals(object obj)

@@ -12,7 +12,7 @@ namespace Fluid.Accessors
             var d = propertyInfo.GetGetMethod().CreateDelegate(delegateType);
 
             var invokerType = typeof(Invoker<,>).MakeGenericType(propertyInfo.DeclaringType, propertyInfo.PropertyType);
-            _invoker = Activator.CreateInstance(invokerType, [d]) as IInvoker;
+            _invoker = Activator.CreateInstance(invokerType, new object[] { d }) as IInvoker;
         }
 
         public object Get(object obj, string name, TemplateContext ctx)

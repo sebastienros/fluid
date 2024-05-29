@@ -10,16 +10,16 @@ namespace Fluid.Values
         // The K specifier is optional when used in TryParseExact, so
         // if a TZ is not specified, it will still match
 
-        private static readonly string[] DefaultFormats = [
+        private static readonly string[] DefaultFormats = {
             "yyyy-MM-ddTHH:mm:ss.FFFK",
             "yyyy-MM-ddTHH:mm:ssK",
             "yyyy-MM-ddTHH:mmK",
             "yyyy-MM-dd",
             "yyyy-MM",
             "yyyy"
-        ];
+        };
 
-        private static readonly string[] SecondaryFormats = [
+        private static readonly string[] SecondaryFormats = {
             // Formats used in DatePrototype toString methods
             "ddd MMM dd yyyy HH:mm:ss 'GMT'K",
             "ddd MMM dd yyyy",
@@ -47,7 +47,7 @@ namespace Fluid.Values
             "THH:mm:ssK",
             "THH:mmK",
             "THHK"
-        ];
+        };
 
         public static bool TryGetDateTimeInput(this FluidValue input, TemplateContext context, out DateTimeOffset result)
         {

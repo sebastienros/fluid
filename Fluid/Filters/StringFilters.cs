@@ -124,7 +124,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> ReplaceFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-#if NET6_0_OR_GREATER
+#if NETCOREAPP3_0_OR_GREATER
             var value = input.ToStringValue().AsSpan();
             var remove = arguments.At(0).ToStringValue().AsSpan();
 #else
@@ -138,7 +138,7 @@ namespace Fluid.Filters
                 return input;
             }
 
-#if NET6_0_OR_GREATER
+#if NETCOREAPP3_0_OR_GREATER
             var concat = string.Concat(value.Slice(0, index), arguments.At(1).ToStringValue(), value.Slice(index + remove.Length));
 #else
             var concat = string.Concat(value.Substring(0, index), arguments.At(1).ToStringValue(), value.Substring(index + remove.Length));
@@ -153,7 +153,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> ReplaceLast(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-#if NET6_0_OR_GREATER
+#if NETCOREAPP3_0_OR_GREATER
             var value = input.ToStringValue().AsSpan();
             var remove = arguments.At(0).ToStringValue().AsSpan();
 #else
@@ -167,7 +167,7 @@ namespace Fluid.Filters
                 return input;
             }
 
-#if NET6_0_OR_GREATER
+#if NETCOREAPP3_0_OR_GREATER
             var concat = string.Concat(value.Slice(0, index), arguments.At(1).ToStringValue(), value.Slice(index + remove.Length));
 #else
             var concat = string.Concat(value.Substring(0, index), arguments.At(1).ToStringValue(), value.Substring(index + remove.Length));
@@ -316,7 +316,7 @@ namespace Fluid.Filters
 
             var l = Math.Max(0, length - ellipsisStr.Length);
 
-#if NET6_0_OR_GREATER
+#if NETCOREAPP3_0_OR_GREATER
             var concat = string.Concat(inputStr.AsSpan().Slice(0, l), ellipsisStr);
 #else
             var concat = string.Concat(inputStr.Substring(0, l), ellipsisStr);
