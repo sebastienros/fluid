@@ -3,6 +3,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Tests.Domain.WithInterfaces
 {
@@ -42,7 +43,13 @@ namespace Fluid.Tests.Domain.WithInterfaces
             throw new NotImplementedException();
         }
 
+        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             throw new NotImplementedException();
         }

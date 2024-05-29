@@ -1,4 +1,5 @@
-﻿using Parlot;
+﻿using Fluid.Utils;
+using Parlot;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
@@ -110,7 +111,7 @@ namespace Fluid.Values
             {
                 "size" => NumberValue.Create(_value.Length),
                 "first" => _value.Length > 0 ? Create(_value[0]) : NilValue.Instance,
-                "last" => _value.Length > 0 ? Create(_value[_value.Length - 1]) : NilValue.Instance,
+                "last" => _value.Length > 0 ? Create(_value[^1]) : NilValue.Instance,
                 _ => NilValue.Instance,
             };
         }
@@ -140,6 +141,7 @@ namespace Fluid.Values
             return _value;
         }
 
+        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
@@ -162,6 +164,46 @@ namespace Fluid.Values
             else
             {
                 writer.Write(_value);
+            }
+        }
+
+        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            AssertWriteToParameters(writer, encoder, cultureInfo);
+            if (string.IsNullOrEmpty(_value))
+            {
+                return default;
+            }
+
+            Task task;
+
+            if (Encode)
+            {
+                // perf: Don't use this overload
+                // encoder.Encode(writer, _value);
+
+                // Use a transient string instead of calling
+                // encoder.Encode(TextWriter) since it would
+                // call writer.Write on each char if the string
+                // has even a single char to encode
+                task = writer.WriteAsync(encoder.Encode(_value));
+            }
+            else
+            {
+                task = writer.WriteAsync(_value);
+            }
+
+            if (task.IsCompletedSuccessfully())
+            {
+                return default;
+            }
+
+            return Awaited(task);
+
+            static async ValueTask Awaited(Task t)
+            {
+                await t;
+                return;
             }
         }
 
