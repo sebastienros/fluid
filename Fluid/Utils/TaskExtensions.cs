@@ -1,10 +1,13 @@
+using System.Runtime.CompilerServices;
+
 namespace Fluid.Utils
 {
     internal static class TaskExtensions
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsCompletedSuccessfully(this Task t)
         {
-#if !NETSTANDARD2_0
+#if NET6_0_OR_GREATER
             return t.IsCompletedSuccessfully;
 #else
             return t.Status == TaskStatus.RanToCompletion && !t.IsFaulted && !t.IsCanceled;

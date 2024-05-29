@@ -9,7 +9,7 @@ namespace Fluid.Values
     /// </summary>
     public abstract class ObjectValueBase : FluidValue
     {
-        protected static readonly char[] MemberSeparators = new[] { '.' };
+        protected static readonly char[] MemberSeparators = ['.'];
 
         protected bool? _isModelType;
 

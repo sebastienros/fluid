@@ -122,7 +122,7 @@ namespace Fluid.Values
             foreach (var key in _value.Keys)
             {
                 _value.TryGetValue(key, out var value);
-                yield return new ArrayValue(new[] { new StringValue(key), value });
+                yield return new ArrayValue([new StringValue(key), value]);
             }
         }
 
