@@ -35,7 +35,7 @@ namespace Fluid.Ast
         public Expression Offset { get; }
         public bool Reversed { get; }
         public ElseStatement Else { get; }
-        public bool OffSetIsContinue { get; }
+        public bool OffsetIsContinue { get; }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
