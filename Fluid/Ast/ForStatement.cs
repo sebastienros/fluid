@@ -55,7 +55,7 @@ namespace Fluid.Ast
             var startIndex = 0;
             if (Offset is not null)
             {
-                if (OffSetIsContinue)
+                if (OffsetIsContinue)
                 {
                     startIndex = (int)context.GetValue(_continueOffsetLiteral).ToNumberValue();
                 }
