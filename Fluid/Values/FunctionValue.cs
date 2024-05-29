@@ -18,7 +18,7 @@ namespace Fluid.Values
             _action = (args, c) => new ValueTask<FluidValue>(action(args, c));
         }
 
-        public override FluidValues Type => FluidValues.Object;
+        public override FluidValues Type => FluidValues.Function;
 
         public override ValueTask<FluidValue> InvokeAsync(FunctionArguments arguments, TemplateContext context)
         {

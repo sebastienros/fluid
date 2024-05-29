@@ -12,5 +12,6 @@
         Object = 7,
         String = 8,
         DateTime = 9,
+        Function = 10,
     }
 }
