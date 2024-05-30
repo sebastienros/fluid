@@ -1,5 +1,6 @@
 ﻿using Fluid.Values;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 namespace Fluid
 {
@@ -52,6 +53,7 @@ namespace Fluid
             TimeZone = options.TimeZone;
             Captured = options.Captured;
             Now = options.Now;
+            MaxSteps = options.MaxSteps;
         }
 
         /// <summary>
@@ -83,6 +85,11 @@ namespace Fluid
         public TemplateOptions Options { get; protected set; }
 
         /// <summary>
+        /// Gets or sets the maximum number of steps a script can execute. Leave to 0 for unlimited.
+        /// </summary>
+        public int MaxSteps { get; set; } = TemplateOptions.Default.MaxSteps;
+
+        /// <summary>
         /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
         /// </summary>
         public CultureInfo CultureInfo { get; set; } = TemplateOptions.Default.CultureInfo;
@@ -100,10 +107,10 @@ namespace Fluid
         /// <summary>
         /// Increments the number of statements the current template is processing.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void IncrementSteps()
         {
-            var maxSteps = Options.MaxSteps;
-            if (maxSteps > 0 && _steps++ > maxSteps)
+            if (MaxSteps > 0 && _steps++ > MaxSteps)
             {
                 ExceptionHelper.ThrowMaximumRecursionException();
             }
