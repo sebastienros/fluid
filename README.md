@@ -753,7 +753,7 @@ You can also define other variables or render some content.
 
 ### Custom views locations
 
-It is possible to add custom file locations containing views by adding them to `FluidMvcViewOptions.ViewsLocationFormats`.
+It is possible to add custom file locations containing views by adding them to `FluidViewEngineOptions.ViewsLocationFormats`.
 
 The default ones are:
 - `Views/{1}/{0}.liquid`
@@ -761,7 +761,7 @@ The default ones are:
 
 Where `{0}` is the view name, and `{1}` is the controller name.
 
-For partials, the list is defined in `FluidMvcViewOptions.PartialsLocationFormats`:
+For partials, the list is defined in `FluidViewEngineOptions.PartialsLocationFormats`:
 - `Views/{0}.liquid`
 - `Views/Partials/{0}.liquid`
 - `Views/Partials/{1}/{0}.liquid`

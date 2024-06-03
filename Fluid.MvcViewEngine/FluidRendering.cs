@@ -1,8 +1,6 @@
 ﻿using Fluid.ViewEngine;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Options;
 using System.IO;
 using System.Threading.Tasks;
@@ -14,26 +12,22 @@ namespace Fluid.MvcViewEngine
     /// </summary>
     public class FluidRendering
     {
-        private readonly FluidViewRenderer _fluidViewRenderer;
+        private readonly IFluidViewRenderer _fluidViewRenderer;
+        private readonly IWebHostEnvironment _hostingEnvironment;
+        private readonly FluidViewEngineOptions _options;
+        private readonly FluidMvcViewOptions _mvcOptions;
 
         public FluidRendering(
-            IOptions<FluidMvcViewOptions> optionsAccessor,
+            IFluidViewRenderer fluidViewRenderer,
+            IOptions<FluidViewEngineOptions> optionsAccessor,
+            IOptions<FluidMvcViewOptions> mvcOptionsAccessor,
             IWebHostEnvironment hostingEnvironment)
         {
             _hostingEnvironment = hostingEnvironment;
             _options = optionsAccessor.Value;
-
-            _options.TemplateOptions.MemberAccessStrategy.Register<ViewDataDictionary>();
-            _options.TemplateOptions.MemberAccessStrategy.Register<ModelStateDictionary>();
-            _options.TemplateOptions.FileProvider = _options.PartialsFileProvider ?? _hostingEnvironment.ContentRootFileProvider;
-
-            _fluidViewRenderer = new FluidViewRenderer(_options);
-
-            _options.ViewsFileProvider ??= _hostingEnvironment.ContentRootFileProvider;
+            _mvcOptions = mvcOptionsAccessor.Value;
+            _fluidViewRenderer = fluidViewRenderer;
         }
-
-        private readonly IWebHostEnvironment _hostingEnvironment;
-        private readonly FluidMvcViewOptions _options;
 
         public async Task RenderAsync(TextWriter writer, string path, ViewContext viewContext)
         {
@@ -42,9 +36,9 @@ namespace Fluid.MvcViewEngine
             context.SetValue("ModelState", viewContext.ModelState);
             context.SetValue("Model", viewContext.ViewData.Model);
 
-            if (_options.RenderingViewAsync != null)
+            if (_mvcOptions.RenderingViewAsync != null)
             {
-                await _options.RenderingViewAsync.Invoke(path, viewContext, context);
+                await _mvcOptions.RenderingViewAsync.Invoke(path, viewContext, context);
             }
 
             await _fluidViewRenderer.RenderViewAsync(writer, path, context);

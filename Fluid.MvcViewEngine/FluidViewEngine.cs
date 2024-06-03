@@ -19,11 +19,11 @@ namespace Fluid.MvcViewEngine
         private readonly IWebHostEnvironment _hostingEnvironment;
         private const string ControllerKey = "controller";
         private const string AreaKey = "area";
-        private FluidMvcViewOptions _options;
+        private FluidViewEngineOptions _options;
         private ConcurrentDictionary<LocationCacheKey, FluidView> _locationCache = new();
 
         public FluidViewEngine(FluidRendering fluidRendering,
-            IOptions<FluidMvcViewOptions> optionsAccessor,
+            IOptions<FluidViewEngineOptions> optionsAccessor,
             IWebHostEnvironment hostingEnvironment)
         {
             _options = optionsAccessor.Value;
