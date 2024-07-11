@@ -29,7 +29,7 @@ namespace Fluid
         protected static readonly Parser<char> Pipe = Terms.Char('|');
 
         protected static readonly Parser<TextSpan> String = Terms.String(StringLiteralQuotes.SingleOrDouble);
-        protected static readonly Parser<decimal> Number = Terms.Decimal(NumberOptions.AllowSign);
+        protected static readonly Parser<decimal> Number = Terms.Decimal();
 
         protected static readonly Parser<string> DoubleEquals = Terms.Text("==");
         protected static readonly Parser<string> NotEquals = Terms.Text("!=");
