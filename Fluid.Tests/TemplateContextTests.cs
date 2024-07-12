@@ -160,6 +160,15 @@ namespace Fluid.Tests
 
             Assert.Equal("101", output);
         }
+        
+        [Fact]
+        public void ShouldUseStringComparer()
+        {
+            var context = new TemplateContext();
+            context.StringComparer = StringComparer.InvariantCultureIgnoreCase;
+            context.SetValue("PageState", "insert");
+            Assert.Equal("insert", context.GetValue("pageState").ToStringValue());
+        }
 
         private class TestClass
         {

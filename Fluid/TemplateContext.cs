@@ -151,6 +151,15 @@ namespace Fluid
         public Func<string, string, ValueTask<string>> Captured { get; set; }
 
         /// <summary>
+        /// Gets or sets the string comparer used for matching keys of scope values.
+        /// </summary>
+        public StringComparer StringComparer
+        {
+            get => LocalScope.StringComparer;
+            set => LocalScope.StringComparer = value;
+        }
+
+        /// <summary>
         /// Creates a new isolated child scope. After than any value added to this content object will be released once
         /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
         /// </summary>

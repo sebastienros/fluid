@@ -7,15 +7,18 @@ namespace Fluid
     {
         private Dictionary<string, FluidValue> _properties;
         private readonly bool _forLoopScope;
+        public StringComparer StringComparer { get; set; }
 
         public Scope()
         {
             Parent = null;
+            StringComparer = StringComparer.CurrentCulture;
         }
 
         public Scope(Scope parent)
         {
             Parent = parent;
+            StringComparer = parent.StringComparer;
         }
 
         public Scope(Scope parent, bool forLoopScope)
@@ -23,12 +26,13 @@ namespace Fluid
             if (forLoopScope && parent == null) ExceptionHelper.ThrowArgumentNullException(nameof(parent));
 
             Parent = parent;
-
+            
             // A ForLoop scope reads and writes its values in the parent scope.
             // Internal accessors to the inner properties grant access to the local properties.
             _forLoopScope = forLoopScope;
-
-            _properties = new Dictionary<string, FluidValue>();
+            StringComparer = parent.StringComparer;
+            _properties =
+                new Dictionary<string, FluidValue>(StringComparer);
         }
 
         /// <summary>
@@ -115,7 +119,7 @@ namespace Fluid
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetOwnValue(string name, FluidValue value)
         {
-            _properties ??= new Dictionary<string, FluidValue>();
+            _properties ??= new Dictionary<string, FluidValue>(StringComparer);
             _properties[name] = value ?? NilValue.Instance;
         }
 
