@@ -25,13 +25,11 @@ namespace Fluid
             if (forLoopScope && parent == null) ExceptionHelper.ThrowArgumentNullException(nameof(parent));
 
             Parent = parent;
-            
             // A ForLoop scope reads and writes its values in the parent scope.
             // Internal accessors to the inner properties grant access to the local properties.
             _forLoopScope = forLoopScope;
             StringComparer = parent.StringComparer;
-            _properties =
-                new Dictionary<string, FluidValue>(StringComparer);
+            _properties = new Dictionary<string, FluidValue>(StringComparer);
         }
         
         /// <summary>
