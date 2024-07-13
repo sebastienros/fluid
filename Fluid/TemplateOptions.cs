@@ -72,6 +72,8 @@ namespace Fluid
         /// Gets or sets whether trimming is greedy. Default is true. When set to true, all successive blank chars are trimmed.
         /// </summary>
         public bool Greedy { get; set; } = true;
+
+        
         public TemplateOptions()
         {
             Filters.WithArrayFilters()
