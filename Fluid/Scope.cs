@@ -30,8 +30,7 @@ namespace Fluid
             // Internal accessors to the inner properties grant access to the local properties.
             _forLoopScope = forLoopScope;
             StringComparer = parent.StringComparer;
-            _properties =
-                new Dictionary<string, FluidValue>(StringComparer);
+            _properties = new Dictionary<string, FluidValue>(StringComparer);
         }
 
         /// <summary>
