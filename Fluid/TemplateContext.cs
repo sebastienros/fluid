@@ -226,7 +226,7 @@ namespace Fluid
         /// Sets a value on the context.
         /// </summary>
         /// <param name="name">The name of the value.</param>
-        /// <param name="value">Teh value to set.</param>
+        /// <param name="value">The value to set.</param>
         /// <returns></returns>
         public TemplateContext SetValue(string name, FluidValue value)
         {
