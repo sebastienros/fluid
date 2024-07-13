@@ -7,7 +7,6 @@ namespace Fluid
     {
         private Dictionary<string, FluidValue> _properties;
         private readonly bool _forLoopScope;
-        public StringComparer StringComparer { get; set; }
 
         public Scope()
         {
@@ -34,6 +33,11 @@ namespace Fluid
             _properties =
                 new Dictionary<string, FluidValue>(StringComparer);
         }
+        
+        /// <summary>
+        /// Gets or sets the <see cref="StringComparer"/> used for matching keys of this scope values.
+        /// </summary>
+        public StringComparer StringComparer { get; set; }
 
         /// <summary>
         /// Gets the own properties of the scope

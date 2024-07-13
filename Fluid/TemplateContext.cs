@@ -151,7 +151,7 @@ namespace Fluid
         public Func<string, string, ValueTask<string>> Captured { get; set; }
 
         /// <summary>
-        /// Gets or sets the string comparer used for matching keys of scope values.
+        /// Gets or sets the <see cref="StringComparer"/> used for matching keys of scope values.
         /// </summary>
         public StringComparer StringComparer
         {
