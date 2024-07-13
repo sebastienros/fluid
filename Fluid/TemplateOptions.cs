@@ -73,6 +73,7 @@ namespace Fluid
         /// </summary>
         public bool Greedy { get; set; } = true;
 
+
         public TemplateOptions()
         {
             Filters.WithArrayFilters()
