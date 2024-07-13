@@ -73,15 +73,6 @@ namespace Fluid
         /// </summary>
         public bool Greedy { get; set; } = true;
 
-        /// <summary>
-        /// Gets or sets the <see cref="StringComparer"/> used for matching keys of scope values.
-        /// </summary>
-        public StringComparer StringComparer
-        {
-            get => Scope.StringComparer;
-            set => Scope.StringComparer = value;
-        }
-
         public TemplateOptions()
         {
             Filters.WithArrayFilters()
