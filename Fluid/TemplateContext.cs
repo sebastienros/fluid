@@ -149,7 +149,6 @@ namespace Fluid
         /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
         /// </summary>
         public Func<string, string, ValueTask<string>> Captured { get; set; }
-        
         /// <summary>
         /// Gets or sets the <see cref="StringComparer"/> used for matching keys of scope values.
         /// </summary>
