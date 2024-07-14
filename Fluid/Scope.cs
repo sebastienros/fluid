@@ -15,7 +15,7 @@ namespace Fluid
         public Scope(Scope parent)
         {
             Parent = parent;
-            StringComparer = parent.StringComparer;
+            StringComparer = parent?.StringComparer ?? StringComparer.CurrentCulture;
         }
 
         public Scope(Scope parent, bool forLoopScope)
