@@ -8,10 +8,8 @@ namespace Fluid
         private Dictionary<string, FluidValue> _properties;
         private readonly bool _forLoopScope;
 
-        public Scope()
+        public Scope() : this(null)
         {
-            Parent = null;
-            StringComparer = StringComparer.CurrentCulture;
         }
 
         public Scope(Scope parent)
