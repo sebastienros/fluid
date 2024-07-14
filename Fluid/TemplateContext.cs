@@ -12,7 +12,50 @@ namespace Fluid
         /// <summary>
         /// Initializes a new instance of <see cref="TemplateContext"/>.
         /// </summary>
-        public TemplateContext() : this(TemplateOptions.Default)
+        public TemplateContext() : this(TemplateOptions.Default, StringComparer.CurrentCulture)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="TemplateContext"/>.
+        /// </summary>
+        public TemplateContext(StringComparer stringComparer) : this(TemplateOptions.Default, stringComparer)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="TemplateContext"/> with the specified <see cref="TemplateOptions"/>.
+        /// </summary>
+        /// <param name="options">The template options.</param>
+        public TemplateContext(TemplateOptions options) : this(options, StringComparer.CurrentCulture)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="TemplateContext"/> with the specified <see cref="TemplateOptions"/>.
+        /// </summary>
+        /// <param name="options">The template options.</param>
+        /// <param name="stringComparer">The the <see cref="StringComparer"/> used for matching keys of this scope values.</param>
+        public TemplateContext(TemplateOptions options, StringComparer stringComparer)
+        {
+            Options = options;
+            LocalScope = new Scope(options.Scope);
+            RootScope = LocalScope;
+            RootScope.StringComparer = stringComparer;
+            CultureInfo = options.CultureInfo;
+            TimeZone = options.TimeZone;
+            Captured = options.Captured;
+            Now = options.Now;
+            MaxSteps = options.MaxSteps;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="TemplateContext"/> wih a model and option regiter its properties.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
+        public TemplateContext(object model, bool allowModelMembers = true)
+            : this(model, TemplateOptions.Default, allowModelMembers)
         {
         }
 
@@ -22,7 +65,19 @@ namespace Fluid
         /// <param name="model">The model.</param>
         /// <param name="options">The template options.</param>
         /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
-        public TemplateContext(object model, TemplateOptions options, bool allowModelMembers = true) : this(options)
+        public TemplateContext(object model, TemplateOptions options, bool allowModelMembers = true)
+            : this(model, options, StringComparer.CurrentCulture, allowModelMembers)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="TemplateContext"/>.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="options">The template options.</param>
+        /// <param name="stringComparer">The the <see cref="StringComparer"/> used for matching keys of this scope values.</param>
+        /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
+        public TemplateContext(object model, TemplateOptions options, StringComparer stringComparer, bool allowModelMembers = true) : this(options, stringComparer)
         {
             if (model == null)
             {
@@ -36,45 +91,6 @@ namespace Fluid
             else
             {
                 Model = FluidValue.Create(model, options);
-                AllowModelMembers = allowModelMembers;
-            }
-        }
-
-        /// <summary>
-        /// Initializes a new instance of <see cref="TemplateContext"/> with the specified <see cref="TemplateOptions"/>.
-        /// </summary>
-        /// <param name="options">The template options.</param>
-        public TemplateContext(TemplateOptions options)
-        {
-            Options = options;
-            LocalScope = new Scope(options.Scope);
-            RootScope = LocalScope;
-            CultureInfo = options.CultureInfo;
-            TimeZone = options.TimeZone;
-            Captured = options.Captured;
-            Now = options.Now;
-            MaxSteps = options.MaxSteps;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of <see cref="TemplateContext"/> wih a model and option regiter its properties.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
-        public TemplateContext(object model, bool allowModelMembers = true) : this()
-        {
-            if (model == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(model));
-            }
-
-            if (model is FluidValue fluidValue)
-            {
-                Model = fluidValue;
-            }
-            else
-            {
-                Model = FluidValue.Create(model, TemplateOptions.Default);
                 AllowModelMembers = allowModelMembers;
             }
         }
@@ -149,15 +165,7 @@ namespace Fluid
         /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
         /// </summary>
         public Func<string, string, ValueTask<string>> Captured { get; set; }
-        /// <summary>
-        /// Gets or sets the <see cref="StringComparer"/> used for matching keys of scope values.
-        /// </summary>
-        public StringComparer StringComparer
-        {
-            get => RootScope.StringComparer;
-            set => RootScope.StringComparer = value;
-        }
-        
+
         /// <summary>
         /// Creates a new isolated child scope. After than any value added to this content object will be released once
         /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.

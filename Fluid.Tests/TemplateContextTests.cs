@@ -164,8 +164,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldUseStringComparer()
         {
-            var context = new TemplateContext();
-            context.StringComparer = StringComparer.InvariantCultureIgnoreCase;
+            var context = new TemplateContext(StringComparer.InvariantCultureIgnoreCase);
             context.SetValue("PageState", "insert");
 
             Assert.Equal("insert", context.GetValue("pageState").ToStringValue());
