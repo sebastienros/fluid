@@ -10,7 +10,7 @@
     <PackageVersion Include="TimeZoneConverter" Version="6.1.0" />
 
     <!-- Benchmarks -->
-    <PackageVersion Include="BenchmarkDotNet" Version="0.13.12" />
+    <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
     <PackageVersion Include="DotLiquid" Version="2.2.692" />
     <PackageVersion Include="Liquid.NET" Version="0.10.0" />
     <PackageVersion Include="Scriban" Version="5.10.0" />
