@@ -129,6 +129,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("a<>:a?", "YTw-OmE_")]
+        [InlineData("Hell", "SGVsbA")]
+        [InlineData("Hello", "SGVsbG8")]
         public async Task Base64UrlSafeEncode(string value, string expected)
         {
             // Arrange
