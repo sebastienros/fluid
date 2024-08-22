@@ -196,7 +196,7 @@ namespace Fluid.Filters
                 encodedBase64StringBuilder.Replace('+', '-');
                 encodedBase64StringBuilder.Replace('/', '_');
 
-                return new StringValue(encodedBase64StringBuilder.ToString());
+                return new StringValue(encodedBase64StringBuilder.ToString().TrimEnd('='));
             }
         }
 
