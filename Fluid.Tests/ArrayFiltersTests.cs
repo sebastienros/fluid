@@ -4,6 +4,7 @@ using Fluid.Filters;
 using Xunit;
 using System.Threading.Tasks;
 using Fluid.Tests.Extensibility;
+using Newtonsoft.Json.Linq;
 
 namespace Fluid.Tests
 {
@@ -609,6 +610,133 @@ namespace Fluid.Tests
             var result = await ArrayFilters.Sum(input, arguments, context);
             
             Assert.Equal(expectedValue, result.ToNumberValue());
+        }
+
+        [Fact]
+        public async Task GroupByFromAnonymousObject()
+        {
+            var options = new TemplateOptions
+            {
+                MemberAccessStrategy = new UnsafeMemberAccessStrategy()
+            };
+
+            var parser = new FluidParser();
+
+            var template = "{% assign users_by_age = users | group_by: \"age\" %}{% for user_age in users_by_age %}{{user_age.key}}({% for user in user_age.items %}{{ user.name }}{% endfor %}){% unless forloop.last %},{% endunless -%}{% endfor %}";
+
+            parser.TryParse(template, out var parsedTemplate);
+
+            var data = "{\"users\":[{\"age\":20, \"name\": \"arthur\" }, {\"age\": 30, \"name\": \"pedro\" }, {\"age\": 30, \"name\": \"joao\" }]}";
+
+            var objectModel = JObject.Parse(data);
+
+            var context = new Fluid.TemplateContext(objectModel, options);
+
+            var result = await parsedTemplate.RenderAsync(context);
+
+            Assert.Equal("20(arthur),30(pedrojoao)", result);
+        }
+
+        [Fact]
+        public async Task GroupByNestedPropertyFromAnonymousObject()
+        {
+            var options = new TemplateOptions
+            {
+                MemberAccessStrategy = new UnsafeMemberAccessStrategy()
+            };
+
+            var parser = new FluidParser();
+
+            var template = "{% assign users_by_type = users | group_by: \"type.name\" %}{% for user_type in users_by_type %}{{user_type.key}}({% for user in user_type.items %}{{ user.name }}{% endfor %}){% unless forloop.last %},{% endunless -%}{% endfor %}";
+
+            parser.TryParse(template, out var parsedTemplate);
+
+            var data = "{\"users\":[{\"age\":20, \"name\": \"arthur\", \"type\": { \"name\": \"admin\" } }, {\"age\": 30, \"name\": \"pedro\", \"type\": { \"name\": \"client\" }  }, {\"age\": 30, \"name\": \"joao\", \"type\": { \"name\": \"client\" } }]}";
+
+            var objectModel = JObject.Parse(data);
+
+            var objectValue = FluidValue.Create(objectModel, options);
+
+            var context = new Fluid.TemplateContext(objectValue, options);
+
+            var result = await parsedTemplate.RenderAsync(context);
+
+            Assert.Equal("admin(arthur),client(pedrojoao)", result);
+        }
+
+        [Fact]
+        public async Task GroupByInvalidNestedProperty()
+        {
+            var options = new TemplateOptions
+            {
+                MemberAccessStrategy = new UnsafeMemberAccessStrategy()
+            };
+
+            var parser = new FluidParser();
+
+            var template = "{% assign users_by_type = users | group_by: \"type.id\" %}{% for user_type in users_by_type %}{{user_type.key}}{% endfor %}";
+
+            parser.TryParse(template, out var parsedTemplate);
+
+            var data = "{\"users\":[{\"age\":20, \"name\": \"arthur\", \"type\": { \"name\": \"admin\" } }, {\"age\": 30, \"name\": \"pedro\", \"type\": { \"name\": \"client\" }  }, {\"age\": 30, \"name\": \"joao\", \"type\": { \"name\": \"client\" } }]}";
+
+            var objectModel = JObject.Parse(data);
+
+            var context = new Fluid.TemplateContext(objectModel, options);
+
+            var result = await parsedTemplate.RenderAsync(context);
+
+            Assert.Equal(string.Empty, result);
+        }
+
+        [Fact]
+        public async Task GroupBy()
+        {
+            var input = new ArrayValue(new[] {
+                new ObjectValue(new { Name = "Arthur", Age = 20 }),
+                new ObjectValue(new { Name = "Gabriel", Age = 20 }),
+                new ObjectValue(new { Name = "Pedro", Age = 30 }),
+                new ObjectValue(new { Name = "John", Age = 30 }),
+                new ObjectValue(new { Name = "Marco", Age = 30 }),
+                });
+
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+
+            options.MemberAccessStrategy.Register(new { Name = "Arthur", Age = 20 }.GetType());
+
+            var arguments = new FilterArguments().Add(new StringValue("Age"));
+
+            var results = await ArrayFilters.GroupBy(input, arguments, context);
+
+            Assert.Equal(2, results.Enumerate(context).Count());
+        }
+
+        [Fact]
+        public async Task GroupByNestedProperty()
+        {
+            var sample = new { Name = "", Age = 0, UserType = new { Name = "" } };
+
+            var input = new ArrayValue(new[] {
+                new ObjectValue(new { Name = "Arthur", Age = 20, UserType = new { Name = "admin" } }),
+                new ObjectValue(new { Name = "Gabriel", Age = 20, UserType = new { Name = "client" } }),
+                new ObjectValue(new { Name = "Pedro", Age = 30, UserType = new { Name = "client" } }),
+                new ObjectValue(new { Name = "John", Age = 30, UserType = new { Name = "client" } }),
+                new ObjectValue(new { Name = "Marco", Age = 30, UserType = new { Name = "client" } }),
+                });
+
+            var arguments = new FilterArguments().Add(new StringValue("UserType.Name"));
+
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+
+            options.MemberAccessStrategy.Register(sample.GetType(), "UserType");
+            options.MemberAccessStrategy.Register(sample.UserType.GetType(), "Name");                        
+
+            var results = await ArrayFilters.GroupBy(input, arguments, context);
+            var groups = results.Enumerate(context);
+            
+            Assert.Equal(2, groups.Count());            
         }
     }
 }

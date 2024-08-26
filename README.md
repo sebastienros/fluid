@@ -899,6 +899,26 @@ hello world $123.00
 
 Documentation: https://docs.microsoft.com/en-us/dotnet/api/system.string.format
 
+### group_by
+
+Groups a collection of items by a specified property. Returns an enumerable of key-value pairs where each key corresponds to the property value,
+and each value is a list of items sharing that property.
+
+Example: 
+Given the object
+```json
+{ users: [ { age: 20, name: "user1" }, { age: 30, name: "user2" }, { age: 20, name: "user3" } ] }
+```
+Given the template
+```liquid
+{%  assign users_by_age = users | group_by age %}
+{% for user_age in users_by_age %}{{user_age.key}}-{{user_age.items.first.name}} {% endfor %}
+```
+Output
+```
+20-user1 30-user2
+```
+
 <br>
 
 ## Functions
