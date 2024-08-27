@@ -101,6 +101,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("a<>:a?", "YTw+OmE/")]
+        [InlineData("Hell", "SGVsbA==")]
+        [InlineData("Hello", "SGVsbG8=")]
         public async Task Base64Encode(string value, string expected)
         {
             var input = new StringValue(value);
@@ -115,6 +117,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("YTw+OmE/", "a<>:a?")]
+        [InlineData("SGVsbA==", "Hell")]
+        [InlineData("SGVsbG8=", "Hello")]        
         public async Task Base64Decode(string value, string expected)
         {
             var input = new StringValue(value);
@@ -129,6 +133,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("a<>:a?", "YTw-OmE_")]
+        [InlineData("Hell", "SGVsbA")]
+        [InlineData("Hello", "SGVsbG8")]
         public async Task Base64UrlSafeEncode(string value, string expected)
         {
             // Arrange
@@ -145,6 +151,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("YTw-OmE_", "a<>:a?")]
+        [InlineData("SGVsbA", "Hell")]
+        [InlineData("SGVsbG8", "Hello")]   
         public async Task Base64UrlSafeDecode(string value, string expected)
         {
             // Arrange

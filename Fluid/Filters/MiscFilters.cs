@@ -196,6 +196,18 @@ namespace Fluid.Filters
                 encodedBase64StringBuilder.Replace('+', '-');
                 encodedBase64StringBuilder.Replace('/', '_');
 
+                if (encodedBase64StringBuilder[^1] == '=')
+                {
+                    if (encodedBase64StringBuilder[^2] == '=')
+                    {
+                        encodedBase64StringBuilder.Length -= 2;
+                    }
+                    else
+                    {
+                        encodedBase64StringBuilder.Length--;
+                    }
+                }
+
                 return new StringValue(encodedBase64StringBuilder.ToString());
             }
         }
@@ -209,13 +221,38 @@ namespace Fluid.Filters
             }
             else
             {
+                var paddingCharsToAdd = (value.Length % 4) switch
+                {
+                    0 => 0,
+                    2 => 2,
+                    3 => 1,
+                    _ => -1
+                };
+
+                if (paddingCharsToAdd == -1)
+                {
+                    return StringValue.Empty;
+                }
+
                 var encodedBase64StringBuilder = new StringBuilder(value);
                 encodedBase64StringBuilder.Replace('-', '+');
                 encodedBase64StringBuilder.Replace('_', '/');
 
-                var decodedBase64 = Encoding.UTF8.GetString(Convert.FromBase64String(encodedBase64StringBuilder.ToString()));
+                // Add the padding characters back.
+                for (; paddingCharsToAdd > 0; paddingCharsToAdd--)
+                {
+                    encodedBase64StringBuilder.Append('=');
+                }
 
-                return new StringValue(decodedBase64);
+                try
+                {
+                    var decodedBase64 = Encoding.UTF8.GetString(Convert.FromBase64String(encodedBase64StringBuilder.ToString()));
+                    return new StringValue(decodedBase64);
+                }
+                catch
+                {
+                    return StringValue.Empty;
+                }
             }
         }
 

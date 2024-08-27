@@ -20,7 +20,7 @@ namespace Fluid.Tests
 #endif
 
         [Fact]
-        public async Task IncludeSatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()
+        public async Task IncludeStatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()
         {
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var sw = new StringWriter();
@@ -39,7 +39,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task IncludeSatement_ShouldLoadPartial_IfThePartialsFolderExist()
+        public async Task IncludeStatement_ShouldLoadPartial_IfThePartialsFolderExist()
         {
 
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
@@ -64,7 +64,7 @@ shape: ''";
         }
 
         [Fact]
-        public async Task IncludeSatement_ShouldLoadCorrectTemplate_IfTheMemberExpressionValueChanges()
+        public async Task IncludeStatement_ShouldLoadCorrectTemplate_IfTheMemberExpressionValueChanges()
         {
             var expression = new MemberExpression(new IdentifierSegment("Firstname"));
             var sw = new StringWriter();
@@ -109,7 +109,7 @@ shape_Two: ''";
         }
 
         [Fact]
-        public async Task IncludeSatement_WithInlinevariableAssignment_ShouldBeEvaluated()
+        public async Task IncludeStatement_WithInlinevariableAssignment_ShouldBeEvaluated()
         {
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var assignStatements = new List<AssignStatement>
@@ -138,7 +138,7 @@ shape: 'circle'";
         }
 
         [Fact]
-        public async Task IncludeSatement_WithTagParams_ShouldBeEvaluated()
+        public async Task IncludeStatement_WithTagParams_ShouldBeEvaluated()
         {
             var pathExpression = new LiteralExpression(new StringValue("color"));
             var withExpression = new LiteralExpression(new StringValue("blue"));
@@ -163,7 +163,7 @@ shape: ''";
         }
 
         [Fact]
-        public async Task IncludeSatement_ShouldLimitRecursion()
+        public async Task IncludeStatement_ShouldLimitRecursion()
         {
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var sw = new StringWriter();
