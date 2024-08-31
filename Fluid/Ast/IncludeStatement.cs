@@ -126,8 +126,8 @@ namespace Fluid.Ast
                             // Set helper variables
                             forloop.Index = i + 1;
                             forloop.Index0 = i;
-                            forloop.RIndex = length - i - 1;
-                            forloop.RIndex0 = length - i;
+                            forloop.RIndex = length - i;
+                            forloop.RIndex0 = length - i - 1;
                             forloop.First = i == 0;
                             forloop.Last = i == length - 1;
 

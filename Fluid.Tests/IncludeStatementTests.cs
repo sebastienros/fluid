@@ -282,7 +282,7 @@ shape: ''";
         public void IncludeTag_For_Loop()
         {
             var fileProvider = new MockFileProvider();
-            fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} ");
+            fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} rindex:{{ forloop.rindex }} rindex0:{{ forloop.rindex0 }} " );
 
             var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
             var context = new TemplateContext(options);
@@ -291,14 +291,14 @@ shape: ''";
 
             var result = template.Render(context);
 
-            Assert.Equal("Product: Draft 151cm first  index:1 Product: Element 155cm  last index:2 ", result);
+            Assert.Equal("Product: Draft 151cm first  index:1 rindex:2 rindex0:1 Product: Element 155cm  last index:2 rindex:1 rindex0:0 ", result);
         }
 
         [Fact]
         public void RenderTag_For_Loop()
         {
             var fileProvider = new MockFileProvider();
-            fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} ");
+            fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} rindex:{{ forloop.rindex }} rindex0:{{ forloop.rindex0 }} " );
 
             var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
             var context = new TemplateContext(options);
@@ -307,7 +307,7 @@ shape: ''";
 
             var result = template.Render(context);
 
-            Assert.Equal("Product: Draft 151cm first  index:1 Product: Element 155cm  last index:2 ", result);
+            Assert.Equal("Product: Draft 151cm first  index:1 rindex:2 rindex0:1 Product: Element 155cm  last index:2 rindex:1 rindex0:0 ", result);
         }
 
         [Fact]
