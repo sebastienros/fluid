@@ -12,50 +12,7 @@ namespace Fluid
         /// <summary>
         /// Initializes a new instance of <see cref="TemplateContext"/>.
         /// </summary>
-        public TemplateContext() : this(TemplateOptions.Default, StringComparer.CurrentCulture)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of <see cref="TemplateContext"/>.
-        /// </summary>
-        public TemplateContext(StringComparer stringComparer) : this(TemplateOptions.Default, stringComparer)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of <see cref="TemplateContext"/> with the specified <see cref="TemplateOptions"/>.
-        /// </summary>
-        /// <param name="options">The template options.</param>
-        public TemplateContext(TemplateOptions options) : this(options, StringComparer.CurrentCulture)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of <see cref="TemplateContext"/> with the specified <see cref="TemplateOptions"/>.
-        /// </summary>
-        /// <param name="options">The template options.</param>
-        /// <param name="stringComparer">The the <see cref="StringComparer"/> used for matching keys of this scope values.</param>
-        public TemplateContext(TemplateOptions options, StringComparer stringComparer)
-        {
-            Options = options;
-            LocalScope = new Scope(options.Scope);
-            RootScope = LocalScope;
-            RootScope.StringComparer = stringComparer;
-            CultureInfo = options.CultureInfo;
-            TimeZone = options.TimeZone;
-            Captured = options.Captured;
-            Now = options.Now;
-            MaxSteps = options.MaxSteps;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of <see cref="TemplateContext"/> wih a model and option regiter its properties.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
-        public TemplateContext(object model, bool allowModelMembers = true)
-            : this(model, TemplateOptions.Default, allowModelMembers)
+        public TemplateContext() : this(TemplateOptions.Default)
         {
         }
 
@@ -65,19 +22,7 @@ namespace Fluid
         /// <param name="model">The model.</param>
         /// <param name="options">The template options.</param>
         /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
-        public TemplateContext(object model, TemplateOptions options, bool allowModelMembers = true)
-            : this(model, options, StringComparer.CurrentCulture, allowModelMembers)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of <see cref="TemplateContext"/>.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <param name="options">The template options.</param>
-        /// <param name="stringComparer">The the <see cref="StringComparer"/> used for matching keys of this scope values.</param>
-        /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
-        public TemplateContext(object model, TemplateOptions options, StringComparer stringComparer, bool allowModelMembers = true) : this(options, stringComparer)
+        public TemplateContext(object model, TemplateOptions options, bool allowModelMembers = true) : this(options)
         {
             if (model == null)
             {
@@ -96,6 +41,48 @@ namespace Fluid
         }
 
         /// <summary>
+        /// Initializes a new instance of <see cref="TemplateContext"/> with the specified <see cref="TemplateOptions"/>.
+        /// </summary>
+        /// <param name="options">The template options.</param>
+        /// <param name="modelNamesComparer">An optional <see cref="StringComparer"/> instance used when comparing model names.</param>
+        public TemplateContext(TemplateOptions options, StringComparer modelNamesComparer = null)
+        {
+            Options = options;
+            LocalScope = new Scope(options.Scope);
+            RootScope = LocalScope;
+            CultureInfo = options.CultureInfo;
+            TimeZone = options.TimeZone;
+            Captured = options.Captured;
+            Now = options.Now;
+            MaxSteps = options.MaxSteps;
+            ModelNamesComparer = modelNamesComparer ?? options.ModelNamesComparer;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="TemplateContext"/> wih a model and option register its properties.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
+        /// <param name="modelNamesComparer">An optional <see cref="StringComparer"/> instance used when comparing model names.</param>
+        public TemplateContext(object model, bool allowModelMembers = true, StringComparer modelNamesComparer = null) : this(TemplateOptions.Default, modelNamesComparer)
+        {
+            if (model == null)
+            {
+                ExceptionHelper.ThrowArgumentNullException(nameof(model));
+            }
+
+            if (model is FluidValue fluidValue)
+            {
+                Model = fluidValue;
+            }
+            else
+            {
+                Model = FluidValue.Create(model, TemplateOptions.Default);
+                AllowModelMembers = allowModelMembers;
+            }
+        }
+
+        /// <summary>
         /// Gets the <see cref="TemplateOptions"/>.
         /// </summary>
         public TemplateOptions Options { get; protected set; }
@@ -104,6 +91,11 @@ namespace Fluid
         /// Gets or sets the maximum number of steps a script can execute. Leave to 0 for unlimited.
         /// </summary>
         public int MaxSteps { get; set; } = TemplateOptions.Default.MaxSteps;
+
+        /// <summary>
+        /// Gets <see cref="StringComparer"/> used when comparing model names.
+        /// </summary>
+        public StringComparer ModelNamesComparer { get; private set; }
 
         /// <summary>
         /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
@@ -152,7 +144,7 @@ namespace Fluid
 
         /// <summary>
         /// Gets or sets a model object that is used to resolve properties in a template. This object is used if local and
-        /// global scopes are unsuccessfull.
+        /// global scopes are unsuccessful.
         /// </summary>
         public FluidValue Model { get; }
 
