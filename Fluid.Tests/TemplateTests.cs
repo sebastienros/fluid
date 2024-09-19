@@ -685,6 +685,21 @@ turtle
             Assert.Equal(expected, resultUS);
         }
 
+        [Theory]
+        [InlineData("{{ dic[1] }}", "/1/")]
+        [InlineData("{{ dic['1'] }}", "/1/")]
+        [InlineData("{{ dic[10] }}", "/10/")]
+        [InlineData("{{ dic['10'] }}", "/10/")]
+        [InlineData("{{ dic.2_ }}", "/2_/")]
+        [InlineData("{{ dic.10 }}", "/10/")]
+        public Task PropertiesCanBeDigits(string source, string expected)
+        {
+            return CheckAsync(source, expected, ctx =>
+            {
+                ctx.SetValue("dic", new Dictionary<string, string> { { "1", "/1/" }, { "2_", "/2_/" }, { "10", "/10/" } });
+            });
+        }
+
         [Fact]
         public Task IndexersAccessProperties()
         {
