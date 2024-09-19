@@ -4,6 +4,7 @@ using Fluid.Parser;
 using Fluid.Values;
 using Parlot;
 using Parlot.Fluent;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using static Parlot.Fluent.Parsers;
@@ -93,9 +94,13 @@ namespace Fluid
                 : LParen.Error<MemberSegment>(ErrorMessages.FunctionsNotAllowed)
                 ;
 
+            // An Identifier followed by a list of MemberSegments (dot accessor, indexer or arguments list)
             var Member = Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)).And(
                 ZeroOrMany(
-                    Dot.SkipAnd(Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)))
+                    Dot.SkipAnd(
+                        Identifier.Or(Terms.Integer(NumberOptions.None).Then(x => x.ToString(CultureInfo.InvariantCulture)))
+                            .Then<MemberSegment>(x => new IdentifierSegment(x))
+                    )
                     .Or(Indexer)
                     .Or(Call)))
                 .Then(x => new MemberExpression([x.Item1, .. x.Item2]));
