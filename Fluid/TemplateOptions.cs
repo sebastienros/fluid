@@ -24,6 +24,14 @@ namespace Fluid
         public int MaxSteps { get; set; }
 
         /// <summary>
+        /// Gets or sets the <see cref="StringComparer"/> to use when comparing model names.
+        /// </summary>
+        /// <value>
+        /// Default value is <see cref="StringComparer.OrdinalIgnoreCase"/>
+        /// </value>
+        public StringComparer ModelNamesComparer { get; set; } = StringComparer.OrdinalIgnoreCase;
+
+        /// <summary>
         /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
         /// </summary>
         public CultureInfo CultureInfo { get; set; } = CultureInfo.InvariantCulture;

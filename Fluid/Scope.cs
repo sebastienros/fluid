@@ -8,9 +8,8 @@ namespace Fluid
         private Dictionary<string, FluidValue> _properties;
         private readonly bool _forLoopScope;
 
-        public Scope()
+        public Scope() : this(null)
         {
-            Parent = null;
         }
 
         public Scope(Scope parent)
@@ -23,12 +22,12 @@ namespace Fluid
             if (forLoopScope && parent == null) ExceptionHelper.ThrowArgumentNullException(nameof(parent));
 
             Parent = parent;
-
             // A ForLoop scope reads and writes its values in the parent scope.
             // Internal accessors to the inner properties grant access to the local properties.
             _forLoopScope = forLoopScope;
 
-            _properties = new Dictionary<string, FluidValue>();
+            // ForLoop scopes are ordinal since the properties are keywords: "forloop"
+            _properties = new Dictionary<string, FluidValue>(StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -115,7 +114,7 @@ namespace Fluid
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetOwnValue(string name, FluidValue value)
         {
-            _properties ??= new Dictionary<string, FluidValue>();
+            _properties ??= new Dictionary<string, FluidValue>(Parent?._properties?.Comparer ?? TemplateOptions.Default.ModelNamesComparer);
             _properties[name] = value ?? NilValue.Instance;
         }
 
