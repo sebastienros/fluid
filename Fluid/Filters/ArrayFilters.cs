@@ -18,6 +18,7 @@ namespace Fluid.Filters
             filters.AddFilter("uniq", Uniq);
             filters.AddFilter("where", Where);
             filters.AddFilter("sum", Sum);
+            filters.AddFilter("group_by", GroupBy);
             return filters;
         }
 
@@ -255,6 +256,56 @@ namespace Fluid.Filters
             }
 
             return NumberValue.Create(sumList.Sum());
+        }
+    
+        public static async ValueTask<FluidValue> GroupBy(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (input.Type != FluidValues.Array)
+            {
+                return input;
+            }
+            
+            var memberPath = arguments.At(0).ToStringValue().Split('.');
+            var items = input.Enumerate(context).ToList();
+
+            var itemsByKey = new List<KeyValuePair<string, FluidValue>>();
+            foreach (var item in items)
+            {                
+                var propertyValue = await GetPropertyValueAsync(item, memberPath, context);
+                itemsByKey.Add(new KeyValuePair<string, FluidValue>(propertyValue, item));
+            }
+
+            var grouped = itemsByKey
+                .GroupBy(
+                    x => x.Key,
+                    x => x.Value
+                )
+                .Select(item => 
+                    new ObjectValue(new { 
+                        key = item.Key, 
+                        items = item.ToList() 
+                    })
+                )
+                .ToList();
+
+            return new ArrayValue(grouped);
+
+        }
+
+        private static async Task<string> GetPropertyValueAsync(FluidValue input, IEnumerable<string> propertyPath, TemplateContext context)
+        {
+            var current = input;
+            var value = string.Empty;
+            foreach (var prop in propertyPath)
+            {
+                current = await current.GetValueAsync(prop, context);                
+                if (!current.IsNil())
+                {
+                    value = current.ToStringValue();
+
+                }
+            }
+            return value;
         }
     }
 }
