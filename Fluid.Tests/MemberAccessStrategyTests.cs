@@ -2,7 +2,9 @@
 using Fluid.Tests.Domain;
 using Fluid.Values;
 using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -238,6 +240,38 @@ namespace Fluid.Tests
             var template = _parser.Parse("{{Firstname}} {{Lastname}}");
             
             Assert.Equal("Bill Gates", template.Render(new TemplateContext(model, options)));
+        }
+
+        [Fact]
+        public void ShouldResolveEnums()
+        {
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<Person>();
+
+            var john = new Person { Firstname = "John", EyesColor = Colors.Yellow };
+
+            var template = _parser.Parse("{{Firstname}} {{EyesColor}}");
+            Assert.Equal("John 2", template.Render(new TemplateContext(john, options, false)));
+        }
+
+        [Fact]
+        public void ShouldResolveStructs()
+        {
+            // We can't create an open delegate on a Struc (dotnet limitation?), so instead create custom delegates
+            // https://sharplab.io/#v2:EYLgtghglgdgNAFxAJwK7wCYgNQB8ACATAAwCwAUEQIwX7EAE+VAdACLIQDusA5gNwUKANwjJ6ABwCSMAGYB7egF56CAJ7iApnJkAKAApzYCAJTMA4hoR7kczcjU6ARAA1HxgeRFiMhJROny5pYWCACylgAWchg6pgDCyBoQCBqsGgA2GjzJGjpqmto6+ACsADwGRnD0RgB8xu4UQA==
+
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<Shape>();
+            options.MemberAccessStrategy.Register<Point>(nameof(Point.X), new DelegateAccessor<Point, int>((point, name, context) => point.X));
+            options.MemberAccessStrategy.Register<Point>(nameof(Point.Y), new DelegateAccessor<Point, int>((point, name, context) => point.Y));
+
+            var circle = new Shape
+            {
+                Coordinates = new Point(1, 2)
+            };
+
+            var template = _parser.Parse("{{Coordinates.X}} {{Coordinates.Y}}");
+            Assert.Equal("1 2", template.Render(new TemplateContext(circle, options, false)));
         }
     }
 
