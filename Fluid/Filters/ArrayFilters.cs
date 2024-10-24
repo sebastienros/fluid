@@ -141,7 +141,11 @@ namespace Fluid.Filters
             var member = arguments.At(0).ToStringValue();
 
             // Second argument is the value to match, or 'true' if none is defined
-            var targetValue = arguments.At(1).Or(BooleanValue.True);
+            var targetValue = arguments.At(1);
+            if (targetValue.IsNil()) 
+            { 
+                targetValue = BooleanValue.True; 
+            }
 
             var list = new List<FluidValue>();
 
@@ -149,7 +153,7 @@ namespace Fluid.Filters
             {
                 var itemValue = await item.GetValueAsync(member, context);
 
-                if (itemValue.Equals(targetValue))
+                if (targetValue.Equals(itemValue))
                 {
                     list.Add(item);
                 }
