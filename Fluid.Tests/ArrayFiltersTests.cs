@@ -386,10 +386,14 @@ namespace Fluid.Tests
             options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
             options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true, Missing = 1 }.GetType());
 
+            // x | where: "Missing"
+
             var arguments1 = new FilterArguments().Add(new StringValue("Missing"));
             var result1 = await ArrayFilters.Where(input, arguments1, context);
 
             Assert.Equal(2, result1.Enumerate(context).Count());
+
+            // x | where: "Missing", false
 
             var arguments2 = new FilterArguments()
                 .Add(new StringValue("Missing"))
@@ -397,6 +401,23 @@ namespace Fluid.Tests
 
             var result2 = await ArrayFilters.Where(input, arguments2, context);
             Assert.Single(result2.Enumerate(context));
+
+            // x | where: "Title"
+
+            var arguments3 = new FilterArguments()
+                .Add(new StringValue("Title"));
+
+            var result3 = await ArrayFilters.Where(input, arguments3, context);
+            Assert.Equal(3, result3.Enumerate(context).Count());
+
+            // x | where: "Missing", true
+
+            var arguments4 = new FilterArguments()
+                .Add(new StringValue("Missing"))
+                .Add(BooleanValue.True);
+
+            var result4 = await ArrayFilters.Where(input, arguments4, context);
+            Assert.Equal(2, result4.Enumerate(context).Count());
         }
 
         [Fact]
