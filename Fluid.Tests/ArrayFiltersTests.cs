@@ -372,6 +372,34 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task WhereWithTruthy()
+        {
+            var input = new ArrayValue(new[]
+            {
+                new ObjectValue(new { Title = "a", Pinned = true, Missing = 1 }),
+                new ObjectValue(new { Title = "b", Pinned = false }),
+                new ObjectValue(new { Title = "c", Pinned = true, Missing = 1 })
+            });
+
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
+            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true, Missing = 1 }.GetType());
+
+            var arguments1 = new FilterArguments().Add(new StringValue("Missing"));
+            var result1 = await ArrayFilters.Where(input, arguments1, context);
+
+            Assert.Equal(2, result1.Enumerate(context).Count());
+
+            var arguments2 = new FilterArguments()
+                .Add(new StringValue("Missing"))
+                .Add(BooleanValue.False);
+
+            var result2 = await ArrayFilters.Where(input, arguments2, context);
+            Assert.Single(result2.Enumerate(context));
+        }
+
+        [Fact]
         public async Task WhereShouldNotThrow()
         {
             var input = new ArrayValue(new[] {
