@@ -15,7 +15,7 @@ namespace Fluid.Values
             WriteToAsync(writer, encoder, cultureInfo).GetAwaiter().GetResult();
         }
 
-        public virtual ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
+        public virtual ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo) => default;
 
         private static Dictionary<Type, Type> _genericDictionaryTypeCache = new();
 
