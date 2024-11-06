@@ -109,7 +109,7 @@ namespace Fluid.Filters
 
             static bool IsCapitalLetter(char c)
             {
-                return c is >= 'A' and <= 'Z';
+                return (uint)(c - 'A') <= (uint)('Z' - 'A');
             }
 
             return new StringValue(result.ToString().ToLowerInvariant());
@@ -727,7 +727,7 @@ namespace Fluid.Filters
                         foreach (var property in properties)
                         {
                             var name = conv(property);
-#pragma warning disable CA1859
+#pragma warning disable CA1859 // It's suggesting a wrong conversion (StringValue)
                             var fluidValue = await input.GetValueAsync(name, ctx);
 #pragma warning restore CA1859
                             if (fluidValue.IsNil())
