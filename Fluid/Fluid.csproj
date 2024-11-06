@@ -34,6 +34,7 @@
   <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
     <PackageReference Include="System.Text.Json" />
     <PackageReference Include="Microsoft.CSharp" />
+    <PackageReference Include="System.Reflection.Emit.Lightweight" />
   </ItemGroup>
   
   <!-- Keep specific targets since it removes some dependencies -->

@@ -8,18 +8,16 @@
     <PackageVersion Include="Parlot" Version="1.0.2" />
     <PackageVersion Include="System.Text.Json" Version="8.0.5" />
     <PackageVersion Include="TimeZoneConverter" Version="6.1.0" />
-
+    <PackageVersion Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
     <!-- Benchmarks -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
     <PackageVersion Include="DotLiquid" Version="2.2.692" />
     <PackageVersion Include="Liquid.NET" Version="0.10.0" />
     <PackageVersion Include="Scriban" Version="5.10.0" />
     <PackageVersion Include="Handlebars.Net" Version="2.1.6" />
-  
     <!-- Global Package References -->
     <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
     <GlobalPackageReference Include="PolySharp" Version="1.14.1" PrivateAssets="all" />
-
     <!-- Testing -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
