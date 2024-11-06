@@ -865,7 +865,7 @@ namespace Fluid.Filters
             using var provider = System.Security.Cryptography.MD5.Create();
 #pragma warning restore CA5351
             var builder = new StringBuilder(32);
-#pragma warning disable CA1850 // Preer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
+#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
