@@ -4,6 +4,11 @@ using System.Text;
 
 namespace Fluid.Benchmarks
 {
+    // | Method                  | Mean     | Error     | StdDev   | Gen0   | Allocated |
+    // |------------------------ |---------:|----------:|---------:|-------:|----------:|
+    // | HashSha256ToHex         | 213.7 ns |  48.62 ns |  2.67 ns | 0.0279 |     264 B |
+    // | HashSha256StringBuilder | 666.4 ns | 369.69 ns | 20.26 ns | 0.1774 |    1672 B |
+
     [MemoryDiagnoser, ShortRunJob]
     public class HashingBenchmarks
     {
@@ -25,7 +30,7 @@ namespace Fluid.Benchmarks
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(_value)))
 #pragma warning restore CA1850
             {
-                builder.Append(b.ToString("x2").ToLowerInvariant());
+                builder.Append(b.ToString("x2"));
             }
 
             return builder.ToString();

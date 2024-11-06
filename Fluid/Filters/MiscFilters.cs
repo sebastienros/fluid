@@ -854,6 +854,8 @@ namespace Fluid.Filters
                 return StringValue.Empty;
             }
 
+            // c.f. HashingBenchmarks
+
 #if NET6_0_OR_GREATER
 #pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
             var hash = System.Security.Cryptography.MD5.HashData(Encoding.UTF8.GetBytes(value));
@@ -869,7 +871,7 @@ namespace Fluid.Filters
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
-                builder.Append(b.ToString("x2").ToLowerInvariant());
+                builder.Append(b.ToString("x2"));
             }
 
             return new StringValue(builder.ToString());
@@ -883,6 +885,8 @@ namespace Fluid.Filters
             {
                 return StringValue.Empty;
             }
+
+            // c.f. HashingBenchmarks
 
 #if NET6_0_OR_GREATER
 #pragma warning disable CA5350 // Do Not Use Broken Cryptographic Algorithms
@@ -898,7 +902,7 @@ namespace Fluid.Filters
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
-                builder.Append(b.ToString("x2").ToLowerInvariant());
+                builder.Append(b.ToString("x2"));
             }
 
             return new StringValue(builder.ToString());
@@ -913,10 +917,7 @@ namespace Fluid.Filters
                 return StringValue.Empty;
             }
 
-            // | Method                  | Mean       | Error      | StdDev    | Gen0   | Allocated |
-            // |------------------------ |-----------:|-----------:|----------:|-------:|----------:|
-            // | HashSha256ToHex         |   678.4 ns |   561.7 ns |  30.79 ns | 0.0629 |     264 B |
-            // | HashSha256StringBuilder | 1,594.1 ns | 3,914.1 ns | 214.55 ns | 0.3986 |    1672 B |
+            // c.f. HashingBenchmarks
 
 #if NET6_0_OR_GREATER
             var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(value));
@@ -928,7 +929,7 @@ namespace Fluid.Filters
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
-                builder.Append(b.ToString("x2").ToLowerInvariant());
+                builder.Append(b.ToString("x2"));
             }
 
             return new StringValue(builder.ToString());
