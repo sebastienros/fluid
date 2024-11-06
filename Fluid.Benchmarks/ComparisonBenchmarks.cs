@@ -3,7 +3,7 @@ using BenchmarkDotNet.Configs;
 
 namespace Fluid.Benchmarks
 {
-    [MemoryDiagnoser, GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
+    [MemoryDiagnoser, GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory), ShortRunJob]
     public class ComparisonBenchmarks
     {
         private FluidBenchmarks _fluidBenchmarks = new FluidBenchmarks();

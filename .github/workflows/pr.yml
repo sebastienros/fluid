@@ -21,6 +21,9 @@ jobs:
 
     - name: Test
       run: dotnet test -c Release
+
+    - name: Version
+      run: dotnet --version
     
     - name: Test - Compiled
       run: dotnet test --configuration Release /p:Compiled=true
