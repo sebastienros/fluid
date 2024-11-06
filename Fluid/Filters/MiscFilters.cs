@@ -12,10 +12,6 @@ namespace Fluid.Filters
     public static class MiscFilters
     {
 
-#if NET6_0_OR_GREATER
-        private static ReadOnlySpan<byte> HexChars => "0123456789abcdef"u8;
-#endif
-
         private const char KebabCaseSeparator = '-';
 
         public static FilterCollection WithMiscFilters(this FilterCollection filters)
@@ -859,7 +855,7 @@ namespace Fluid.Filters
 #if NET6_0_OR_GREATER
 #pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
             var hash = System.Security.Cryptography.MD5.HashData(Encoding.UTF8.GetBytes(value));
-            return new StringValue(ToHexLower(hash));
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
 #pragma warning restore CA5351
 #else
 
@@ -892,7 +888,7 @@ namespace Fluid.Filters
 #pragma warning disable CA5350 // Do Not Use Broken Cryptographic Algorithms
             var hash = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(value));
 #pragma warning restore CA5350
-            return new StringValue(ToHexLower(hash));
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
 #else
 #pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
             using var provider = System.Security.Cryptography.SHA1.Create();
@@ -921,7 +917,7 @@ namespace Fluid.Filters
 
 #if NET6_0_OR_GREATER
             var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(value));
-            return new StringValue(ToHexLower(hash));
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
 #else
             using var provider = System.Security.Cryptography.SHA256.Create();
             var builder = new StringBuilder(64);
@@ -935,22 +931,5 @@ namespace Fluid.Filters
             return new StringValue(builder.ToString());
 #endif
         }
-
-#if NET6_0_OR_GREATER
-        public static string ToHexLower(byte[] hash)
-        {
-            return string.Create(hash.Length * 2, hash, (span, hash) =>
-            {
-                var j = 0;
-                var length = hash.Length;
-                for (var i = 0; i < length; i++)
-                {
-                    var b = hash[i];
-                    span[j++] = (char)HexChars[(b >> 4) & 0x0f];
-                    span[j++] = (char)HexChars[b & 0x0f];
-                }
-            });
-        }
-#endif
     }
 }

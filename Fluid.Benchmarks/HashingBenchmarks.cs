@@ -1,5 +1,4 @@
 using BenchmarkDotNet.Attributes;
-using Fluid.Filters;
 using System.Text;
 
 namespace Fluid.Benchmarks
@@ -18,7 +17,7 @@ namespace Fluid.Benchmarks
         public string HashSha256ToHex()
         {
             var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(_value));
-            return MiscFilters.ToHexLower(hash);
+            return Fluid.Utils.HexUtilities.ToHexLower(hash);
         }
 
         [Benchmark]
