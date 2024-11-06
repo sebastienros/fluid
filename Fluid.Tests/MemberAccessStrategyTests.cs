@@ -257,13 +257,9 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldResolveStructs()
         {
-            // We can't create an open delegate on a Struc (dotnet limitation?), so instead create custom delegates
-            // https://sharplab.io/#v2:EYLgtghglgdgNAFxAJwK7wCYgNQB8ACATAAwCwAUEQIwX7EAE+VAdACLIQDusA5gNwUKANwjJ6ABwCSMAGYB7egF56CAJ7iApnJkAKAApzYCAJTMA4hoR7kczcjU6ARAA1HxgeRFiMhJROny5pYWCACylgAWchg6pgDCyBoQCBqsGgA2GjzJGjpqmto6+ACsADwGRnD0RgB8xu4UQA==
-
             var options = new TemplateOptions();
             options.MemberAccessStrategy.Register<Shape>();
-            options.MemberAccessStrategy.Register<Point>(nameof(Point.X), new DelegateAccessor<Point, int>((point, name, context) => point.X));
-            options.MemberAccessStrategy.Register<Point>(nameof(Point.Y), new DelegateAccessor<Point, int>((point, name, context) => point.Y));
+            options.MemberAccessStrategy.Register<Point>();
 
             var circle = new Shape
             {
@@ -272,6 +268,23 @@ namespace Fluid.Tests
 
             var template = _parser.Parse("{{Coordinates.X}} {{Coordinates.Y}}");
             Assert.Equal("1 2", template.Render(new TemplateContext(circle, options, false)));
+        }
+
+        [Fact]
+        public void ShouldFindBackingFields()
+        {
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<CustomStruct>();
+
+            var s = new CustomStruct
+            {
+                X1 = 1,
+                X2 = 2,
+                X3 = 3
+            };
+
+            var template = _parser.Parse("{{X1}} {{X2}} {{X3}}");
+            Assert.Equal("1 2 3", template.Render(new TemplateContext(s, options, false)));
         }
     }
 
