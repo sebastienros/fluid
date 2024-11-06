@@ -4,6 +4,8 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <NoWarn>$(NoWarn);NU5104</NoWarn>
+    <!-- Ignore vulnerable packages imported for benchmarking only -->
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 

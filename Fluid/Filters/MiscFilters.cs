@@ -11,6 +11,7 @@ namespace Fluid.Filters
 {
     public static class MiscFilters
     {
+
         private const char KebabCaseSeparator = '-';
 
         public static FilterCollection WithMiscFilters(this FilterCollection filters)
@@ -53,7 +54,7 @@ namespace Fluid.Filters
             var result = new StringBuilder();
             var lastIndex = value.Length - 1;
 
-            for (int i = 0; i < value.Length; i++)
+            for (var i = 0; i < value.Length; i++)
             {
                 var currentChar = value[i];
                 var lookAheadChar = i == lastIndex
@@ -96,7 +97,7 @@ namespace Fluid.Filters
                 {
                     if (IsCapitalLetter(currentChar))
                     {
-                        if (result[result.Length - 1] != KebabCaseSeparator && !char.IsDigit(lookAheadChar))
+                        if (result[^1] != KebabCaseSeparator && !char.IsDigit(lookAheadChar))
                         {
                             result.Append(KebabCaseSeparator);
                         }
@@ -106,7 +107,10 @@ namespace Fluid.Filters
                 }
             }
 
-            static bool IsCapitalLetter(char c) => c >= 'A' && c <= 'Z';
+            static bool IsCapitalLetter(char c)
+            {
+                return (uint)(c - 'A') <= (uint)('Z' - 'A');
+            }
 
             return new StringValue(result.ToString().ToLowerInvariant());
         }
@@ -272,7 +276,7 @@ namespace Fluid.Filters
                 var inside = false;
                 for (var i = 0; i < html.Length; i++)
                 {
-                    char current = html[i];
+                    var current = html[i];
 
                     switch (current)
                     {
@@ -410,7 +414,10 @@ namespace Fluid.Filters
                         switch (c)
                         {
                             case 'a':
-                                string AbbreviatedDayName() => context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int)value.DayOfWeek];
+                                string AbbreviatedDayName()
+                                {
+                                    return context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int)value.DayOfWeek];
+                                }
 
                                 var abbreviatedDayName = AbbreviatedDayName();
                                 result.Append(upperCaseFlag ? abbreviatedDayName.ToUpperInvariant() : abbreviatedDayName);
@@ -720,7 +727,7 @@ namespace Fluid.Filters
                         foreach (var property in properties)
                         {
                             var name = conv(property);
-#pragma warning disable CA1859 // Change type of variable 'fluidValue' from 'Fluid.Values.FluidValue' to 'Fluid.Values.StringValue' for improved performance
+#pragma warning disable CA1859 // It's suggesting a wrong conversion (StringValue)
                             var fluidValue = await input.GetValueAsync(name, ctx);
 #pragma warning restore CA1859
                             if (fluidValue.IsNil())
@@ -845,18 +852,28 @@ namespace Fluid.Filters
                 return StringValue.Empty;
             }
 
+            // c.f. HashingBenchmarks
+
+#if NET6_0_OR_GREATER
+#pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
+            var hash = System.Security.Cryptography.MD5.HashData(Encoding.UTF8.GetBytes(value));
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+#pragma warning restore CA5351
+#else
+
 #pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
             using var provider = System.Security.Cryptography.MD5.Create();
 #pragma warning restore CA5351
             var builder = new StringBuilder(32);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
-            foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
-                builder.Append(b.ToString("x2").ToLowerInvariant());
+                builder.Append(b.ToString("x2"));
             }
 
             return new StringValue(builder.ToString());
+#endif
         }
 
         public static ValueTask<FluidValue> Sha1(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -867,18 +884,27 @@ namespace Fluid.Filters
                 return StringValue.Empty;
             }
 
+            // c.f. HashingBenchmarks
+
+#if NET6_0_OR_GREATER
+#pragma warning disable CA5350 // Do Not Use Broken Cryptographic Algorithms
+            var hash = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(value));
+#pragma warning restore CA5350
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+#else
 #pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
             using var provider = System.Security.Cryptography.SHA1.Create();
 #pragma warning restore CA5350
             var builder = new StringBuilder(40);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
-            foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
-                builder.Append(b.ToString("x2").ToLowerInvariant());
+                builder.Append(b.ToString("x2"));
             }
 
             return new StringValue(builder.ToString());
+#endif
         }
 
         public static ValueTask<FluidValue> Sha256(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -889,16 +915,23 @@ namespace Fluid.Filters
                 return StringValue.Empty;
             }
 
+            // c.f. HashingBenchmarks
+
+#if NET6_0_OR_GREATER
+            var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(value));
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+#else
             using var provider = System.Security.Cryptography.SHA256.Create();
             var builder = new StringBuilder(64);
-#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
-            foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.SHA256.HashData' method over 'ComputeHash'
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
-                builder.Append(b.ToString("x2").ToLowerInvariant());
+                builder.Append(b.ToString("x2"));
             }
 
             return new StringValue(builder.ToString());
+#endif
         }
     }
 }

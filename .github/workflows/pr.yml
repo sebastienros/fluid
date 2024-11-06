@@ -19,8 +19,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Version
+      run: dotnet --version
+    
     - name: Test
       run: dotnet test -c Release
-    
+
     - name: Test - Compiled
       run: dotnet test --configuration Release /p:Compiled=true
