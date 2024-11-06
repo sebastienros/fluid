@@ -727,7 +727,9 @@ namespace Fluid.Filters
                         foreach (var property in properties)
                         {
                             var name = conv(property);
+#pragma warning disable CA1859
                             var fluidValue = await input.GetValueAsync(name, ctx);
+#pragma warning restore CA1859
                             if (fluidValue.IsNil())
                             {
                                 continue;
