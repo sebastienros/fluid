@@ -10,7 +10,9 @@ namespace Fluid.Values
 #pragma warning restore CA1067
     {
         [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public abstract void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo);
+        public virtual void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+        }
 
         public virtual ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
