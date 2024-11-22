@@ -1,10 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net6.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net6.0;net8.0;net9.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <IsPackable>true</IsPackable>
     <PackageIcon>logo_64x64.png</PackageIcon>
+    <PackageId>Fluid.ViewEngine</PackageId>
+    <Description>Fluid.ViewEngine is a reusable library to build view engines based on Liquid templates. It supports Layouts, Sections, Bodies, ViewStarts like the Razor ASP.NET MVC engine.</Description>
   </PropertyGroup>
 
   <ItemGroup>
