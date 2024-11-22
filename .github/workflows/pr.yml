@@ -18,8 +18,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-      with:
-        dotnet-version: '9.0.x'
+    - uses: actions/setup-dotnet@v4
 
     - name: Version
       run: dotnet --version
