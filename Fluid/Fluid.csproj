@@ -1,53 +1,68 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net6.0;net8.0</TargetFrameworks>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>latest</LangVersion>
-    <IsPackable>true</IsPackable>
-    <ImplicitUsings>true</ImplicitUsings>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- Ingore missing comments errors and obsolete TFMs -->
-    <NoWarn>$(NoWarn);CS1591;NETSDK1138</NoWarn>
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;net6.0;net8.0;net9.0</TargetFrameworks>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<LangVersion>latest</LangVersion>
+		<IsPackable>true</IsPackable>
+		<ImplicitUsings>true</ImplicitUsings>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<!-- Ingore missing comments errors and obsolete TFMs -->
+		<NoWarn>$(NoWarn);CS1591;NETSDK1138</NoWarn>
 
-    <AnalysisLevel>latest-Recommended</AnalysisLevel>
-    <NoWarn>$(NoWarn);CA1016</NoWarn> <!-- CA1016: Mark assemblies with AssemblyVersionAttribute -->
-    <NoWarn>$(NoWarn);CA1051</NoWarn> <!-- CA1051: Do not declare visible instance fields -->
-    <NoWarn>$(NoWarn);CA1200</NoWarn> <!-- CA1200: Avoid using cref tags with a prefix -->
-    <NoWarn>$(NoWarn);CA1304</NoWarn> <!-- CA1304: Specify CultureInfo -->
-    <NoWarn>$(NoWarn);CA1305</NoWarn> <!-- CA1305: Specify IFormatProvider -->
-    <NoWarn>$(NoWarn);CA1310</NoWarn> <!-- CA1310: Specify StringComparison -->
-    <NoWarn>$(NoWarn);CA1711</NoWarn> <!-- CA1711: Identifiers should not have incorrect suffix -->
-    <NoWarn>$(NoWarn);CA1716</NoWarn> <!-- CA1716: Identifiers should not match keywords -->
-    <NoWarn>$(NoWarn);CA1720</NoWarn> <!-- CA1720: Identifier contains type name -->
-    <NoWarn>$(NoWarn);CA1805</NoWarn> <!-- CA1805: Do not initialize unnecessarily -->
-    <NoWarn>$(NoWarn);CA1863</NoWarn> <!-- CA1863: Cache a 'CompositeFormat' for repeated use in this formatting operation -->
-    <NoWarn>$(NoWarn);CA2012</NoWarn> <!-- CA2012: Use ValueTasks correctly -->
-  </PropertyGroup>
+		<AnalysisLevel>latest-Recommended</AnalysisLevel>
+		<NoWarn>$(NoWarn);CA1016</NoWarn>
+		<!-- CA1016: Mark assemblies with AssemblyVersionAttribute -->
+		<NoWarn>$(NoWarn);CA1051</NoWarn>
+		<!-- CA1051: Do not declare visible instance fields -->
+		<NoWarn>$(NoWarn);CA1200</NoWarn>
+		<!-- CA1200: Avoid using cref tags with a prefix -->
+		<NoWarn>$(NoWarn);CA1304</NoWarn>
+		<!-- CA1304: Specify CultureInfo -->
+		<NoWarn>$(NoWarn);CA1305</NoWarn>
+		<!-- CA1305: Specify IFormatProvider -->
+		<NoWarn>$(NoWarn);CA1310</NoWarn>
+		<!-- CA1310: Specify StringComparison -->
+		<NoWarn>$(NoWarn);CA1711</NoWarn>
+		<!-- CA1711: Identifiers should not have incorrect suffix -->
+		<NoWarn>$(NoWarn);CA1716</NoWarn>
+		<!-- CA1716: Identifiers should not match keywords -->
+		<NoWarn>$(NoWarn);CA1720</NoWarn>
+		<!-- CA1720: Identifier contains type name -->
+		<NoWarn>$(NoWarn);CA1805</NoWarn>
+		<!-- CA1805: Do not initialize unnecessarily -->
+		<NoWarn>$(NoWarn);CA1863</NoWarn>
+		<!-- CA1863: Cache a 'CompositeFormat' for repeated use in this formatting operation -->
+		<NoWarn>$(NoWarn);CA2012</NoWarn>
+		<!-- CA2012: Use ValueTasks correctly -->
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Parlot" />
-    <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" />
-    <PackageReference Include="TimeZoneConverter" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Parlot" />
+		<PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" />
+		<PackageReference Include="TimeZoneConverter" />
+	</ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
-    <PackageReference Include="System.Text.Json" />
-    <PackageReference Include="Microsoft.CSharp" />
-    <PackageReference Include="System.Reflection.Emit.Lightweight" />
-  </ItemGroup>
-  
-  <!-- Keep specific targets since it removes some dependencies -->
-  <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
-  </ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+		<PackageReference Include="System.Text.Json" />
+		<PackageReference Include="Microsoft.CSharp" />
+		<PackageReference Include="System.Reflection.Emit.Lightweight" />
+	</ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
-  </ItemGroup>
+	<!-- Keep specific targets since it removes some dependencies -->
+	<ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
+	</ItemGroup>
 
-  <PropertyGroup>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Include="..\README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)'=='net9.0'">
+	</ItemGroup>
+
+	<PropertyGroup>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="..\README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 </Project>
