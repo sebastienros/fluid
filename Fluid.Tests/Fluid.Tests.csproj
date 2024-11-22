@@ -5,6 +5,7 @@
     <LangVersion>latest</LangVersion>
     <DefineConstants Condition="'$(Compiled)' == 'true'">$(DefineConstants);COMPILED</DefineConstants>
     <IsPackable>false</IsPackable>
+    <SignAssembly>false</SignAssembly>
   </PropertyGroup>
 
   <ItemGroup>

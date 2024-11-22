@@ -7,6 +7,7 @@
     <!-- Ignore vulnerable packages imported for benchmarking only -->
     <NoWarn>$(NoWarn);NU1903</NoWarn>
     <IsPackable>false</IsPackable>
+    <SignAssembly>false</SignAssembly>
   </PropertyGroup>
 
   <ItemGroup>

@@ -5,6 +5,11 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <IsPackable>true</IsPackable>
+    <PackageId>Fluid.Core</PackageId>
+    <Title>Fluid Template Engine</Title>
+    <Description>Fluid is a template engine based on the Liquid markup, with focus on performance and .NET programming patterns.</Description>
+    <PackageTags>fluid;liquid;template;view engine</PackageTags>
+    <PackageIcon>logo_64x64.png</PackageIcon>
     <ImplicitUsings>true</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- Ingore missing comments errors and obsolete TFMs -->
@@ -25,6 +30,10 @@
     <NoWarn>$(NoWarn);CA2012</NoWarn> <!-- CA2012: Use ValueTasks correctly -->
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="../Assets/logo_64x64.png" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="Parlot" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" />

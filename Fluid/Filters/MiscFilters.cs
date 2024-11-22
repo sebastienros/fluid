@@ -1,4 +1,4 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 using System.Buffers;
 using System.Globalization;
 using System.Net;
