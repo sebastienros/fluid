@@ -1,35 +1,35 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
-		<LangVersion>9</LangVersion>
-		<IsPackable>true</IsPackable>
-		<PackageIcon>logo_64x64.png</PackageIcon>
-		<PackageId>MinimalApis.LiquidViews</PackageId>
-		<Description>MinimalApis.LiquidViews is a view engine for ASP.NET Core Minimal APIs based on the Liquid templating language.</Description>
-	</PropertyGroup>
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <LangVersion>9</LangVersion>
+    <IsPackable>true</IsPackable>
+    <PackageIcon>logo_64x64.png</PackageIcon>
+    <PackageId>MinimalApis.LiquidViews</PackageId>
+    <Description>MinimalApis.LiquidViews is a view engine for ASP.NET Core Minimal APIs based on the Liquid templating language.</Description>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<None Include="../Assets/logo_64x64.png" Pack="true" Visible="false" PackagePath="" />
-	</ItemGroup>
+  <ItemGroup>
+    <None Include="../Assets/logo_64x64.png" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\Fluid.ViewEngine\Fluid.ViewEngine.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Fluid.ViewEngine\Fluid.ViewEngine.csproj" />
+  </ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
-		<FrameworkReference Include="Microsoft.AspNetCore.App" VersionOverride="8.0.0" />
-	</ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
+    <FrameworkReference Include="Microsoft.AspNetCore.App" VersionOverride="8.0.0" />
+  </ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)'=='net9.0'">
-		<FrameworkReference Include="Microsoft.AspNetCore.App" VersionOverride="9.0.0" />
-	</ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='net9.0'">
+    <FrameworkReference Include="Microsoft.AspNetCore.App" VersionOverride="9.0.0" />
+  </ItemGroup>
 
-	<PropertyGroup>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-	</PropertyGroup>
-	<ItemGroup>
-		<None Include="README.md" Pack="true" PackagePath="\" />
-	</ItemGroup>
+  <PropertyGroup>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>
