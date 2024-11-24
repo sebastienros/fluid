@@ -2,7 +2,7 @@
 
 namespace Fluid.Benchmarks
 {
-    [MemoryDiagnoser]
+    [MemoryDiagnoser, ShortRunJob]
     public class FluidBenchmarks : BaseBenchmarks
     {
         private readonly TemplateOptions _options = new TemplateOptions();
