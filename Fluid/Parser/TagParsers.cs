@@ -1,6 +1,7 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using Parlot;
 using Parlot.Fluent;
+using Parlot.Rewriting;
 
 namespace Fluid.Parser
 {
@@ -36,7 +37,7 @@ namespace Fluid.Parser
         public static Parser<TagResult> OutputTagStart(bool skipWhiteSpace = false) => new OutputTagStartParser(skipWhiteSpace);
         public static Parser<TagResult> OutputTagEnd(bool skipWhiteSpace = false) => new OutputTagEndParser(skipWhiteSpace);
 
-        private sealed class TagStartParser : Parser<TagResult>
+        private sealed class TagStartParser : Parser<TagResult>, ISeekable
         {
             private readonly bool _skipWhiteSpace;
 
@@ -44,6 +45,12 @@ namespace Fluid.Parser
             {
                 _skipWhiteSpace = skipWhiteSpace;
             }
+
+            public bool CanSeek => true;
+
+            public char[] ExpectedChars => ['{'];
+
+            public bool SkipWhitespace => _skipWhiteSpace;
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
@@ -90,7 +97,7 @@ namespace Fluid.Parser
             }
         }
 
-        private sealed class TagEndParser : Parser<TagResult>
+        private sealed class TagEndParser : Parser<TagResult>, ISeekable
         {
             private readonly bool _skipWhiteSpace;
 
@@ -98,6 +105,12 @@ namespace Fluid.Parser
             {
                 _skipWhiteSpace = skipWhiteSpace;
             }
+
+            public bool CanSeek => true;
+
+            public char[] ExpectedChars => ['-', '}'];
+
+            public bool SkipWhitespace => _skipWhiteSpace;
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
@@ -183,7 +196,7 @@ namespace Fluid.Parser
             }
         }
 
-        private sealed class OutputTagStartParser : Parser<TagResult>
+        private sealed class OutputTagStartParser : Parser<TagResult>, ISeekable
         {
             private readonly bool _skipWhiteSpace;
 
@@ -191,6 +204,12 @@ namespace Fluid.Parser
             {
                 _skipWhiteSpace = skipWhiteSpace;
             }
+
+            public bool CanSeek => true;
+
+            public char[] ExpectedChars => ['{'];
+
+            public bool SkipWhitespace => _skipWhiteSpace;
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
@@ -231,7 +250,7 @@ namespace Fluid.Parser
             }
         }
 
-        private sealed class OutputTagEndParser : Parser<TagResult>
+        private sealed class OutputTagEndParser : Parser<TagResult>, ISeekable
         {
             private readonly bool _skipWhiteSpace;
 
@@ -239,6 +258,12 @@ namespace Fluid.Parser
             {
                 _skipWhiteSpace = skipWhiteSpace;
             }
+
+            public bool CanSeek => true;
+
+            public char[] ExpectedChars => ['-', '}'];
+
+            public bool SkipWhitespace => _skipWhiteSpace;
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {

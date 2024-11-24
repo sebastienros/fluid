@@ -1,4 +1,4 @@
-﻿using Parlot;
+using Parlot;
 using Parlot.Fluent;
 
 namespace Fluid.Parser
@@ -35,7 +35,7 @@ namespace Fluid.Parser
 
             cursor.Advance();
 
-            while (!context.Scanner.Cursor.Eof)
+            while (!cursor.Eof)
             {
                 current = cursor.Current;
 
