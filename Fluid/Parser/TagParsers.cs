@@ -40,7 +40,6 @@ namespace Fluid.Parser
         private sealed class TagStartParser : Parser<TagResult>
         {
             private readonly bool _skipWhiteSpace;
-
             public TagStartParser(bool skipWhiteSpace = false)
             {
                 _skipWhiteSpace = skipWhiteSpace;
@@ -94,16 +93,18 @@ namespace Fluid.Parser
         /// Search for `%}`, `-%}` or `-}` to close a tag.
         /// Also, if the tag is inside a `liquid` tag, it will only look for a new line to close the tag.
         /// </summary>
-        private sealed class TagEndParser : Parser<TagResult>
+        private sealed class TagEndParser : Parser<TagResult>, ISeekable
         {
             private readonly bool _skipWhiteSpace;
+
+            public bool CanSeek { get; set; } = true;
+            public bool SkipWhitespace { get; set; } = false;
+            public char[] ExpectedChars { get; set; } = ['\r', '\n', '}', '-', '%', ' ', '\t'];
 
             public TagEndParser(bool skipWhiteSpace = false)
             {
                 _skipWhiteSpace = skipWhiteSpace;
             }
-
-            public bool SkipWhitespace => _skipWhiteSpace;
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {

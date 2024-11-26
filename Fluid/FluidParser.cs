@@ -337,15 +337,12 @@ namespace Fluid
                         ;
             FromTag.Name = "FromTag";
 
-            var StringAfterRender = String.ElseError(ErrorMessages.ExpectedStringRender);
-            StringAfterRender.Name = "StringAfterRender";
-
             var RenderTag = OneOf(
-                        StringAfterRender.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new RenderStatement(this, x.Item1.ToString(), null, null, null, x.Item2)),
-                        StringAfterRender.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new RenderStatement(this, x.Item1.ToString(), with: x.Item2, alias: x.Item3)),
-                        StringAfterRender.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new RenderStatement(this, x.Item1.ToString(), @for: x.Item2, alias: x.Item3)),
-                        StringAfterRender.Then(x => new RenderStatement(this, x.ToString()))
-                        ).AndSkip(TagEnd)
+                        String.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new RenderStatement(this, x.Item1.ToString(), null, null, null, x.Item2)),
+                        String.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new RenderStatement(this, x.Item1.ToString(), with: x.Item2, alias: x.Item3)),
+                        String.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new RenderStatement(this, x.Item1.ToString(), @for: x.Item2, alias: x.Item3)),
+                        String.Then(x => new RenderStatement(this, x.ToString()))
+                        ).ElseError(ErrorMessages.ExpectedStringRender).AndSkip(TagEnd)
                         .Then<Statement>(x => x)
                         .ElseError("Invalid 'render' tag")
                         ;
