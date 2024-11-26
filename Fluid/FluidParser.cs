@@ -1,4 +1,4 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using Fluid.Ast.BinaryExpressions;
 using Fluid.Parser;
 using Fluid.Values;
@@ -73,10 +73,15 @@ namespace Fluid
 
         public FluidParser(FluidParserOptions parserOptions)
         {
+            String.Name = "String";
+            Number.Name = "Number";
+
             var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)));
+            Integer.Name = "Integer";
 
             // Member expressions
             var Indexer = Between(LBracket, Primary, RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
+            Indexer.Name = "Indexer";
 
             // ([name =] value,)+
             FunctionCallArgumentsList = ZeroOrOne(Separated(Comma,
@@ -84,15 +89,18 @@ namespace Fluid
                                 Identifier.AndSkip(Equal).And(Primary).Then(static x => new FunctionCallArgument(x.Item1, x.Item2)),
                                 Primary.Then(static x => new FunctionCallArgument(null, x))
                             )));
+            FunctionCallArgumentsList.Name = "FunctionArgumentsList";
 
             // (name [= value],)+
             var FunctionDefinitionArgumentsList = ZeroOrOne(Separated(Comma,
                             Identifier.And(ZeroOrOne(Equal.SkipAnd(Primary))).Then(static x => new FunctionCallArgument(x.Item1, x.Item2))));
+            FunctionDefinitionArgumentsList.Name = "FunctionDefinitionArgumentsList";
 
             var Call = parserOptions.AllowFunctions
                 ? LParen.SkipAnd(FunctionCallArgumentsList).AndSkip(RParen).Then<MemberSegment>(x => new FunctionCallSegment(x))
                 : LParen.Error<MemberSegment>(ErrorMessages.FunctionsNotAllowed)
                 ;
+            Call.Name = "Call";
 
             // An Identifier followed by a list of MemberSegments (dot accessor, indexer or arguments list)
             var Member = Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)).And(
@@ -104,6 +112,7 @@ namespace Fluid
                     .Or(Indexer)
                     .Or(Call)))
                 .Then(x => new MemberExpression([x.Item1, .. x.Item2]));
+            Member.Name = "Member";
 
             var Range = LParen
                 .SkipAnd(OneOf(Integer, Member.Then<Expression>(x => x)))
@@ -111,6 +120,7 @@ namespace Fluid
                 .And(OneOf(Integer, Member.Then<Expression>(x => x)))
                 .AndSkip(RParen)
                 .Then<Expression>(x => new RangeExpression(x.Item1, x.Item2));
+            Range.Name = "Range";
 
             // primary => NUMBER | STRING | property
             Primary.Parser =
@@ -133,6 +143,7 @@ namespace Fluid
                 .Or(Number.Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))))
                 .Or(Range)
                 ;
+            Primary.Name = "Primary";
 
             RegisteredOperators["contains"] = (a, b) => new ContainsBinaryExpression(a, b);
             RegisteredOperators["startswith"] = (a, b) => new StartsWithBinaryExpression(a, b);
@@ -146,8 +157,12 @@ namespace Fluid
             RegisteredOperators["<="] = (a, b) => new LowerThanBinaryExpression(a, b, false);
 
             var CaseValueList = Separated(Terms.Text("or").Or(Terms.Text(",")), Primary);
+            CaseValueList.Name = "CaseValueList";
 
-            CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.Pattern(x => x is '=' or '!' or '<' or '>', maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString()).When(RegisteredOperators.ContainsKey).And(Primary)))
+            // Seek anything that looks like a binary operator (==, !=, <, >, <=, >=, contains, startswith, endswith) then validates it with the registered operators
+            // An "identifier" operator should always be followed by a space so we ensure it's doing it with AndSkip(Literals.WhiteSpace())
+            CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.AnyOf("=!<>", maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString())
+                .When(RegisteredOperators.ContainsKey).And(Primary)))
                 .Then(x =>
                  {
                      if (x.Item2.Item1 == null)
@@ -156,7 +171,7 @@ namespace Fluid
                      }
 
                      return RegisteredOperators[x.Item2.Item1](x.Item1, x.Item2.Item2);
-                 });
+                 }).Named("CombinatoryExpression");
 
             LogicalExpression = CombinatoryExpression.And(ZeroOrMany(OneOf(Terms.Text("or"), Terms.Text("and")).And(CombinatoryExpression)))
                 .Then(x =>
@@ -184,6 +199,7 @@ namespace Fluid
 
                     return result;
                 });
+            LogicalExpression.Name = "LogicalExpression";
 
             // ([name :] value ,)+
             ArgumentsList = Separated(Comma,
@@ -191,6 +207,7 @@ namespace Fluid
                                 Identifier.AndSkip(Colon).And(Primary).Then(static x => new FilterArgument(x.Item1, x.Item2)),
                                 Primary.Then(static x => new FilterArgument(null, x))
                             ));
+            ArgumentsList.Name = "ArgumentsList";
 
             // Primary ( | identifier ( ':' ArgumentsList )! ] )*
             FilterExpression.Parser = LogicalExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter)
@@ -214,10 +231,12 @@ namespace Fluid
 
                         return result;
                     });
+            FilterExpression.Name = "FilterExpression";
 
             var Output = OutputStart.SkipAnd(FilterExpression.And(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd))
                 .Then<Statement>(static x => new OutputStatement(x.Item1))
                 );
+            Output.Name = "Output";
 
             var Text = AnyCharBefore(OutputStart.Or(TagStart))
                 .Then<Statement>(static (ctx, x) =>
@@ -241,16 +260,22 @@ namespace Fluid
 
                     return result;
                 });
-
+            Text.Name = "Text";
 
             var BreakTag = TagEnd.Then<Statement>(x => new BreakStatement()).ElseError("Invalid 'break' tag");
+            BreakTag.Name = "BreakTag";
+
             var ContinueTag = TagEnd.Then<Statement>(x => new ContinueStatement()).ElseError("Invalid 'continue' tag");
+            ContinueTag.Name = "ContinueTag";
+
             var CommentTag = TagEnd
                         .SkipAnd(AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true))
                         .AndSkip(CreateTag("endcomment").ElseError($"'{{% endcomment %}}' was expected"))
                         .Then<Statement>(x => new CommentStatement(x))
                         .ElseError("Invalid 'comment' tag")
                         ;
+            CommentTag.Name = "CommentTag";
+
             var CaptureTag = Identifier.ElseError(string.Format(ErrorMessages.IdentifierAfterTag, "capture"))
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
@@ -258,6 +283,8 @@ namespace Fluid
                         .Then<Statement>(x => new CaptureStatement(x.Item1, x.Item2))
                         .ElseError("Invalid 'capture' tag")
                         ;
+            CaptureTag.Name = "CaptureTag";
+
             var MacroTag = Identifier.ElseError(string.Format(ErrorMessages.IdentifierAfterTag, "macro"))
                         .AndSkip(LParen).ElseError(string.Format(ErrorMessages.IdentifierAfterTag, "macro"))
                         .And(FunctionDefinitionArgumentsList)
@@ -268,20 +295,27 @@ namespace Fluid
                         .Then<Statement>(x => new MacroStatement(x.Item1, x.Item2, x.Item3))
                         .ElseError("Invalid 'macro' tag")
                         ;
+            MacroTag.Name = "MacroTag";
+
             var CycleTag = ZeroOrOne(Primary.AndSkip(Colon))
                         .And(Separated(Comma, Primary))
                         .AndSkip(TagEnd)
                         .Then<Statement>(x => new CycleStatement(x.Item1, x.Item2))
                         .ElseError("Invalid 'cycle' tag")
                         ;
+            CycleTag.Name = "CycleTag";
+
             var DecrementTag = ZeroOrOne(Identifier).AndSkip(TagEnd)
                         .Then<Statement>(x => new DecrementStatement(x))
                         .ElseError("Invalid 'decrement' tag")
                         ;
+            DecrementTag.Name = "DecrementTag";
+
             var IncrementTag = ZeroOrOne(Identifier).AndSkip(TagEnd)
                         .Then<Statement>(x => new IncrementStatement(x))
                         .ElseError("Invalid 'increment' tag")
                         ;
+            IncrementTag.Name = "IncrementTag";
 
             var IncludeTag = OneOf(
                         Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new IncludeStatement(this, x.Item1, null, null, null, x.Item2)),
@@ -292,6 +326,7 @@ namespace Fluid
                         .Then<Statement>(x => x)
                         .ElseError("Invalid 'include' tag")
                         ;
+            IncludeTag.Name = "IncludeTag";
 
             var FromTag = OneOf(
                         Primary.AndSkip(Terms.Text("import")).And(Separated(Comma, Identifier)).Then(x => new FromStatement(this, x.Item1, x.Item2)),
@@ -300,8 +335,10 @@ namespace Fluid
                         .Then<Statement>(x => x)
                         .ElseError("Invalid 'from' tag")
                         ;
+            FromTag.Name = "FromTag";
 
             var StringAfterRender = String.ElseError(ErrorMessages.ExpectedStringRender);
+            StringAfterRender.Name = "StringAfterRender";
 
             var RenderTag = OneOf(
                         StringAfterRender.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new RenderStatement(this, x.Item1.ToString(), null, null, null, x.Item2)),
@@ -312,9 +349,14 @@ namespace Fluid
                         .Then<Statement>(x => x)
                         .ElseError("Invalid 'render' tag")
                         ;
+            RenderTag.Name = "RenderTag";
 
             var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), canBeEmpty: true, consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
+            RawTag.Name = "RawTag";
+
             var AssignTag = Identifier.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
+            AssignTag.Name = "AssignTag";
+
             var IfTag = LogicalExpression
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
@@ -327,6 +369,8 @@ namespace Fluid
                         .AndSkip(CreateTag("endif").ElseError($"'{{% endif %}}' was expected"))
                         .Then<Statement>(x => new IfStatement(x.Item1, x.Item2, x.Item4, x.Item3))
                         .ElseError("Invalid 'if' tag");
+            IfTag.Name = "IfTag";
+
             var UnlessTag = LogicalExpression
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
@@ -336,6 +380,8 @@ namespace Fluid
                         .AndSkip(CreateTag("endunless").ElseError($"'{{% endunless %}}' was expected"))
                         .Then<Statement>(x => new UnlessStatement(x.Item1, x.Item2, x.Item3))
                         .ElseError("Invalid 'unless' tag");
+            UnlessTag.Name = "UnlessTag";
+
             var CaseTag = Primary
                        .AndSkip(TagEnd)
                        .AndSkip(AnyCharBefore(TagStart, canBeEmpty: true))
@@ -348,6 +394,8 @@ namespace Fluid
                        .AndSkip(CreateTag("endcase").ElseError($"'{{% endcase %}}' was expected"))
                        .Then<Statement>(x => new CaseStatement(x.Item1, x.Item3, x.Item2))
                        .ElseError("Invalid 'case' tag");
+            CaseTag.Name = "CaseTag";
+
             var ForTag = OneOf(
                             Identifier
                             .AndSkip(Terms.Text("in"))
@@ -394,6 +442,7 @@ namespace Fluid
 
                             })
                         ).ElseError("Invalid 'for' tag");
+            ForTag.Name = "ForTag";
 
             var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
                 .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = true; return x; })
@@ -416,8 +465,10 @@ namespace Fluid
                 .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = false; return x; })
                 .AndSkip(TagEnd).Then<Statement>(x => new LiquidStatement(x))
                 ;
+            LiquidTag.Name = "LiquidTag";
 
             var EchoTag = FilterExpression.AndSkip(TagEnd).Then<Statement>(x => new OutputStatement(x));
+            EchoTag.Name = "EchoTag";
 
             RegisteredTags["break"] = BreakTag;
             RegisteredTags["continue"] = ContinueTag;
@@ -553,11 +604,13 @@ namespace Fluid
         public void RegisterParserTag<T>(string tagName, Parser<T> parser, Func<T, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             RegisteredTags[tagName] = parser.AndSkip(TagEnd).Then<Statement>(x => new ParserTagStatement<T>(x, render));
+            RegisteredTags[tagName].Name = tagName;
         }
 
         public void RegisterEmptyTag(string tagName, Func<TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             RegisteredTags[tagName] = TagEnd.Then<Statement>(x => new EmptyTagStatement(render)).ElseError($"Unexpected arguments in {tagName} tag");
+            RegisteredTags[tagName].Name = tagName;
         }
 
         public void RegisterEmptyBlock(string tagName, Func<IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
@@ -566,6 +619,7 @@ namespace Fluid
                 .Then<Statement>(x => new EmptyBlockStatement(x, render))
                 .ElseError($"Invalid '{tagName}' tag")
                 ;
+            RegisteredTags[tagName].Name = tagName;
         }
 
         /// <summary>

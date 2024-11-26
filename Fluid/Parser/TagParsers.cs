@@ -37,7 +37,7 @@ namespace Fluid.Parser
         public static Parser<TagResult> OutputTagStart(bool skipWhiteSpace = false) => new OutputTagStartParser(skipWhiteSpace);
         public static Parser<TagResult> OutputTagEnd(bool skipWhiteSpace = false) => new OutputTagEndParser(skipWhiteSpace);
 
-        private sealed class TagStartParser : Parser<TagResult>, ISeekable
+        private sealed class TagStartParser : Parser<TagResult>
         {
             private readonly bool _skipWhiteSpace;
 
@@ -45,12 +45,6 @@ namespace Fluid.Parser
             {
                 _skipWhiteSpace = skipWhiteSpace;
             }
-
-            public bool CanSeek => true;
-
-            public char[] ExpectedChars => ['{'];
-
-            public bool SkipWhitespace => _skipWhiteSpace;
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
@@ -71,7 +65,6 @@ namespace Fluid.Parser
 
                 if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('%'))
                 {
-
                     var trim = context.Scanner.ReadChar('-');
 
                     if (p.PreviousTextSpanStatement != null)
@@ -97,7 +90,11 @@ namespace Fluid.Parser
             }
         }
 
-        private sealed class TagEndParser : Parser<TagResult>, ISeekable
+        /// <summary>
+        /// Search for `%}`, `-%}` or `-}` to close a tag.
+        /// Also, if the tag is inside a `liquid` tag, it will only look for a new line to close the tag.
+        /// </summary>
+        private sealed class TagEndParser : Parser<TagResult>
         {
             private readonly bool _skipWhiteSpace;
 
@@ -105,10 +102,6 @@ namespace Fluid.Parser
             {
                 _skipWhiteSpace = skipWhiteSpace;
             }
-
-            public bool CanSeek => true;
-
-            public char[] ExpectedChars => ['-', '}'];
 
             public bool SkipWhitespace => _skipWhiteSpace;
 
@@ -207,7 +200,7 @@ namespace Fluid.Parser
 
             public bool CanSeek => true;
 
-            public char[] ExpectedChars => ['{'];
+            public char[] ExpectedChars { get; set; } = ['{'];
 
             public bool SkipWhitespace => _skipWhiteSpace;
 
@@ -261,7 +254,7 @@ namespace Fluid.Parser
 
             public bool CanSeek => true;
 
-            public char[] ExpectedChars => ['-', '}'];
+            public char[] ExpectedChars { get; set; } = ['-', '}'];
 
             public bool SkipWhitespace => _skipWhiteSpace;
 
