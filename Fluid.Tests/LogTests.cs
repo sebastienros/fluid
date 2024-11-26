@@ -25,11 +25,14 @@ public class LogTests
         """;
 
         var parseContext = new FluidParseContext(source);
+        var indent = 0;
         parseContext.OnEnterParser = (parser, ctx) =>
         {
+            indent += 4;
             var cursor = ctx.Scanner.Cursor;
-            _output.WriteLine($"{parser} {cursor.Position} ...{cursor.Span.Slice(0, Math.Min(cursor.Span.Length, 15))}");
+            _output.WriteLine($"{new string(' ', indent)} {parser} {cursor.Position} ...{cursor.Span.Slice(0, Math.Min(cursor.Span.Length, 15))}");
         };
+        parseContext.OnExitParser = (parser, ctx) => indent -= 4;
 
         var parser = new FluidParser();
         parser.Grammar.Parse(parseContext);
