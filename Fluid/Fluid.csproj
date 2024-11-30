@@ -35,7 +35,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <!--<PackageReference Include="Parlot" />-->
+    <PackageReference Include="Parlot" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" />
     <PackageReference Include="TimeZoneConverter" />
   </ItemGroup>
@@ -61,8 +61,5 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\parlot\src\Parlot\Parlot.csproj" />
   </ItemGroup>
 </Project>

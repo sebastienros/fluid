@@ -2,6 +2,7 @@ using Fluid.Ast;
 using Parlot;
 using Parlot.Fluent;
 using Parlot.Rewriting;
+using System.Net.Mime;
 
 namespace Fluid.Parser
 {
@@ -47,6 +48,8 @@ namespace Fluid.Parser
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
+                context.EnterParser(this);
+
                 if (_skipWhiteSpace)
                 {
                     context.SkipWhiteSpace();
@@ -59,6 +62,8 @@ namespace Fluid.Parser
                 if (p.InsideLiquidTag)
                 {
                     result.Set(start.Offset, context.Scanner.Cursor.Offset, TagResult.TagOpen);
+
+                    context.ExitParser(this);
                     return true;
                 }
 
@@ -79,11 +84,15 @@ namespace Fluid.Parser
                     }
 
                     result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagOpenTrim : TagResult.TagOpen);
+
+                    context.ExitParser(this);
                     return true;
                 }
                 else
                 {
                     context.Scanner.Cursor.ResetPosition(start);
+
+                    context.ExitParser(this);
                     return false;
                 }
             }
@@ -246,29 +255,29 @@ namespace Fluid.Parser
 
         private sealed class OutputTagEndParser : Parser<TagResult>, ISeekable
         {
-            private readonly bool _skipWhiteSpace;
-
             public OutputTagEndParser(bool skipWhiteSpace = false)
             {
-                _skipWhiteSpace = skipWhiteSpace;
+                SkipWhitespace = skipWhiteSpace;
             }
 
             public bool CanSeek => true;
 
             public char[] ExpectedChars { get; set; } = ['-', '}'];
 
-            public bool SkipWhitespace => _skipWhiteSpace;
+            public bool SkipWhitespace { get; }
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
-                if (_skipWhiteSpace)
+                context.EnterParser(this);
+
+                if (SkipWhitespace)
                 {
                     context.SkipWhiteSpace();
                 }
 
                 var start = context.Scanner.Cursor.Position;
 
-                bool trim = context.Scanner.ReadChar('-');
+                var trim = context.Scanner.ReadChar('-');
 
                 if (context.Scanner.ReadChar('}') && context.Scanner.ReadChar('}'))
                 {
@@ -280,11 +289,16 @@ namespace Fluid.Parser
                     p.PreviousIsOutput = true;
 
                     result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
+
+
+                    context.ExitParser(this);
                     return true;
                 }
                 else
                 {
                     context.Scanner.Cursor.ResetPosition(start);
+
+                    context.ExitParser(this);
                     return false;
                 }
             }

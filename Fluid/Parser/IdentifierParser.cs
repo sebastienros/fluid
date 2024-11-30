@@ -1,10 +1,18 @@
 using Parlot;
 using Parlot.Fluent;
+using Parlot.Rewriting;
 
 namespace Fluid.Parser
 {
-    public sealed class IdentifierParser : Parser<TextSpan>
+    public sealed class IdentifierParser : Parser<TextSpan>, ISeekable
     {
+        public const string StartChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+        public bool CanSeek => true;
+
+        public char[] ExpectedChars { get; } = StartChars.ToCharArray();
+
+        public bool SkipWhitespace => false;
+
         public override bool Parse(ParseContext context, ref ParseResult<TextSpan> result)
         {
             context.EnterParser(this);
