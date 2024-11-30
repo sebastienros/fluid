@@ -28,6 +28,8 @@ namespace Fluid.Parser
             else
             {
                 // Doesn't start with a letter or a digit
+
+                context.ExitParser(this);
                 return false;
             }
 
@@ -79,10 +81,15 @@ namespace Fluid.Parser
             {
                 // Invalid identifier, only digits
                 cursor.ResetPosition(start);
+
+                context.ExitParser(this);
                 return false;
             }
 
             result.Set(start.Offset, end, new TextSpan(context.Scanner.Buffer, start.Offset, end - start.Offset));
+
+
+            context.ExitParser(this);
             return true;
         }
 
