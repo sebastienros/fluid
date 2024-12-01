@@ -2,7 +2,6 @@ using Fluid.Ast;
 using Parlot;
 using Parlot.Fluent;
 using Parlot.Rewriting;
-using System.Net.Mime;
 
 namespace Fluid.Parser
 {
@@ -201,22 +200,20 @@ namespace Fluid.Parser
 
         private sealed class OutputTagStartParser : Parser<TagResult>, ISeekable
         {
-            private readonly bool _skipWhiteSpace;
-
             public OutputTagStartParser(bool skipWhiteSpace = false)
             {
-                _skipWhiteSpace = skipWhiteSpace;
+                SkipWhitespace = skipWhiteSpace;
             }
 
             public bool CanSeek => true;
 
             public char[] ExpectedChars { get; set; } = ['{'];
 
-            public bool SkipWhitespace => _skipWhiteSpace;
+            public bool SkipWhitespace { get; }
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
-                if (_skipWhiteSpace)
+                if (SkipWhitespace)
                 {
                     context.SkipWhiteSpace();
                 }

@@ -81,7 +81,7 @@ namespace Fluid.Parser
             if (lastIsDash && !cursor.Eof && (current == '%' || current == '}'))
             {
                 nonDigits--;
-                end = end - 1;
+                end--;
                 cursor.ResetPosition(lastDashPosition);
             }
 
