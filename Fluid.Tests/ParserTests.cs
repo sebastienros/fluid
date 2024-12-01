@@ -1,4 +1,4 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using Fluid.Parser;
 using Microsoft.Extensions.Primitives;
 using System;

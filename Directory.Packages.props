@@ -16,7 +16,7 @@
     <PackageVersion Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
     
     <!-- Common to all TFMs -->
-    <PackageVersion Include="Parlot" Version="1.1.0" />
+    <PackageVersion Include="Parlot" Version="1.2.1" />
     <PackageVersion Include="TimeZoneConverter" Version="6.1.0" />
     
     <!-- Benchmarks -->
