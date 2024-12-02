@@ -51,8 +51,7 @@ namespace Fluid
         protected readonly Parser<IReadOnlyList<FunctionCallArgument>> FunctionCallArgumentsList;
         protected readonly Parser<Expression> LogicalExpression;
         protected readonly Parser<Expression> CombinatoryExpression; // and | or
-        protected readonly Parser<Expression> Primary;
-        protected readonly Deferred<Expression> PrimaryInternal = Deferred<Expression>();
+        protected readonly Deferred<Expression> Primary = Deferred<Expression>();
         protected readonly Deferred<Expression> FilterExpression = Deferred<Expression>();
         protected readonly Deferred<IReadOnlyList<Statement>> KnownTagsList = Deferred<IReadOnlyList<Statement>>();
         protected readonly Deferred<IReadOnlyList<Statement>> AnyTagsList = Deferred<IReadOnlyList<Statement>>();
@@ -124,7 +123,7 @@ namespace Fluid
             Range.Name = "Range";
 
             // primary => NUMBER | STRING | property
-            PrimaryInternal.Parser =
+            Primary.Parser =
                 String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x)))
                 .Or(Member.Then<Expression>(static x =>
                 {
