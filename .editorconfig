@@ -89,6 +89,9 @@ csharp_style_prefer_range_operator = false
 dotnet_diagnostic.IDE1006.severity = silent
 csharp_prefer_system_threading_lock = true:suggestion
 
+# IDE0078: Use pattern matching
+dotnet_diagnostic.IDE0078.severity = silent
+
 [*.{cs,vb}]
 #### Naming styles ####
 

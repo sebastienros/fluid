@@ -1,13 +1,14 @@
-﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes;
 
 namespace Fluid.Benchmarks
 {
-    [MemoryDiagnoser, ShortRunJob]
+    [MemoryDiagnoser]
     public class FluidBenchmarks : BaseBenchmarks
     {
         private readonly TemplateOptions _options = new TemplateOptions();
         private readonly FluidParser _parser  = new FluidParser();
         private readonly IFluidTemplate _fluidTemplate;
+        private readonly FluidParser _compiledParser = new FluidParser().Compile();
 
         public FluidBenchmarks()
         {
@@ -26,6 +27,18 @@ namespace Fluid.Benchmarks
         public override object ParseBig()
         {
             return _parser.Parse(BlogPostTemplate);
+        }
+
+        [Benchmark]
+        public object ParseCompiled()
+        {
+            return _compiledParser.Parse(ProductTemplate);
+        }
+
+        [Benchmark]
+        public object ParseBigCompiled()
+        {
+            return _compiledParser.Parse(BlogPostTemplate);
         }
 
         [Benchmark]
