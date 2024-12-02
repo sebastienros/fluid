@@ -4,7 +4,6 @@ using Fluid.Parser;
 using Fluid.Values;
 using Parlot;
 using Parlot.Fluent;
-using Parlot.Rewriting;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
@@ -52,8 +51,7 @@ namespace Fluid
         protected readonly Parser<IReadOnlyList<FunctionCallArgument>> FunctionCallArgumentsList;
         protected readonly Parser<Expression> LogicalExpression;
         protected readonly Parser<Expression> CombinatoryExpression; // and | or
-        protected readonly Parser<Expression> Primary;
-        protected readonly Deferred<Expression> PrimaryInternal = Deferred<Expression>();
+        protected readonly Deferred<Expression> Primary = Deferred<Expression>();
         protected readonly Deferred<Expression> FilterExpression = Deferred<Expression>();
         protected readonly Deferred<IReadOnlyList<Statement>> KnownTagsList = Deferred<IReadOnlyList<Statement>>();
         protected readonly Deferred<IReadOnlyList<Statement>> AnyTagsList = Deferred<IReadOnlyList<Statement>>();
@@ -77,9 +75,6 @@ namespace Fluid
         {
             String.Name = "String";
             Number.Name = "Number";
-
-            // Build lookup for String/Member/Number/Range
-            Primary = PrimaryInternal.Lookup((ISeekable)String, (ISeekable)new IdentifierParser(), (ISeekable)Number, (ISeekable)LParen);
 
             var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)));
             Integer.Name = "Integer";
@@ -128,7 +123,7 @@ namespace Fluid
             Range.Name = "Range";
 
             // primary => NUMBER | STRING | property
-            PrimaryInternal.Parser =
+            Primary.Parser =
                 String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x)))
                 .Or(Member.Then<Expression>(static x =>
                 {
