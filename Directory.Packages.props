@@ -5,7 +5,7 @@
   <ItemGroup>
     <!-- Global Package References -->
     <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
-    <GlobalPackageReference Include="PolySharp" Version="1.14.1" PrivateAssets="all" />
+    <GlobalPackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" />
 
     <!-- TFM specific reference since they could lift some framework dependencies -->
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Abstractions" Version="$(MicrosoftExtensionsFileProvidersAbstractionsPackageVersion)" />
@@ -21,14 +21,14 @@
     
     <!-- Benchmarks -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
-    <PackageVersion Include="DotLiquid" Version="2.2.692" />
+    <PackageVersion Include="DotLiquid" Version="2.2.717" />
     <PackageVersion Include="Liquid.NET" Version="0.10.0" />
     <PackageVersion Include="Scriban" Version="5.12.0" />
     <PackageVersion Include="Handlebars.Net" Version="2.1.6" />
     
     <!-- Testing -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageVersion Include="xunit" Version="2.9.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageVersion Include="xunit.analyzers" Version="1.17.0" />
