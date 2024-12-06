@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
@@ -44,7 +44,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task First_EmptyArray()
+        public async Task FirstEmptyArray()
         {
             var input = new ArrayValue(new StringValue[0]);
 

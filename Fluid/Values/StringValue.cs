@@ -1,4 +1,4 @@
-﻿using Fluid.Utils;
+using Fluid.Utils;
 using Parlot;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -88,7 +88,10 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other)
         {
-            if (other.Type == FluidValues.String) return _value == other.ToStringValue();
+            if (other.Type == FluidValues.String)
+            {
+                return _value == other.ToStringValue();
+            }
 
             // Delegating other types 
             if (other == BlankValue.Instance || other == NilValue.Instance || other == EmptyValue.Instance)

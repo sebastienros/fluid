@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text.Encodings.Web;
@@ -120,7 +120,7 @@ namespace Fluid.Tests
         public async Task ShouldCustomizeCaptures()
         {
             _parser.TryParse("{% capture foo %}hello <br /> world{% endcapture %}{{ foo }}", out var template, out var error);
-            var result = await template.RenderAsync(new TemplateContext { Captured = (identifier, captured) => new ValueTask<string>(captured.ToUpper()) }, HtmlEncoder.Default);
+            var result = await template.RenderAsync(new TemplateContext { Captured = (identifier, captured, context) => new ValueTask<FluidValue>(new StringValue(captured.ToStringValue().ToUpper(), false)) }, HtmlEncoder.Default);
             Assert.Equal("HELLO <BR /> WORLD", result);
         }
 
