@@ -159,7 +159,6 @@ namespace Fluid
         /// </summary>
         public Func<string, string, ValueTask<string>> Captured { get; set; }
 
-
         /// <summary>
         /// Gets or sets the delegate to execute when a member has been assigned via capture or assign
         /// </summary>
