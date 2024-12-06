@@ -15,9 +15,9 @@ namespace Fluid.Tests
         private static FluidParser _parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
 #endif
 
-
         [Fact]
         public async Task Assign()
+
         {
             string buffer = null;
 
