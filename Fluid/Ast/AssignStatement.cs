@@ -1,4 +1,4 @@
-﻿using System.Text.Encodings.Web;
+using System.Text.Encodings.Web;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -31,6 +31,8 @@ namespace Fluid.Ast
             {
                 return Awaited(task, context, Identifier);
             }
+
+            context.Assigned?.Invoke(task.Result);
 
             context.SetValue(Identifier, task.Result);
             return new ValueTask<Completion>(Completion.Normal);

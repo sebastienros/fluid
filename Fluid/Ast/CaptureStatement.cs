@@ -1,4 +1,4 @@
-﻿using Fluid.Utils;
+using Fluid.Utils;
 using Fluid.Values;
 using System.Text.Encodings.Web;
 
@@ -38,6 +38,8 @@ namespace Fluid.Ast
             {
                 result = await context.Captured.Invoke(Identifier, result);
             }
+
+            context.Assigned?.Invoke(new StringValue(result));
 
             // Don't encode captured blocks
             context.SetValue(Identifier, new StringValue(result, false));

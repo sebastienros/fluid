@@ -1,4 +1,4 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
@@ -53,6 +53,7 @@ namespace Fluid
             CultureInfo = options.CultureInfo;
             TimeZone = options.TimeZone;
             Captured = options.Captured;
+            Assigned = options.Assigned;
             Now = options.Now;
             MaxSteps = options.MaxSteps;
             ModelNamesComparer = modelNamesComparer ?? options.ModelNamesComparer;
@@ -157,6 +158,12 @@ namespace Fluid
         /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
         /// </summary>
         public Func<string, string, ValueTask<string>> Captured { get; set; }
+
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when a member has been assigned via capture or assign
+        /// </summary>
+        public Action<FluidValue> Assigned { get; set; }
 
         /// <summary>
         /// Creates a new isolated child scope. After than any value added to this content object will be released once

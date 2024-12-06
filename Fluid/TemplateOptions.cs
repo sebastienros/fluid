@@ -1,4 +1,5 @@
-﻿using Fluid.Filters;
+using Fluid.Filters;
+using Fluid.Values;
 using Microsoft.Extensions.FileProviders;
 using System.Globalization;
 
@@ -70,6 +71,11 @@ namespace Fluid
         /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
         /// </summary>
         public Func<string, string, ValueTask<string>> Captured { get; set; }
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when a member has been assigned via capture or assign
+        /// </summary>
+        public Action<FluidValue> Assigned { get; set; }
 
         /// <summary>
         /// Gets or sets the default trimming rules.
