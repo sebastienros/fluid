@@ -7,6 +7,18 @@ namespace Fluid
 {
     public class TemplateOptions
     {
+        /// <param name="identifier">The name of the property that is assigned.</param>
+        /// <param name="value">The value that is assigned.</param>
+        /// <param name="context">The <see cref="TemplateContext" /> instance used for rendering the template.</param>
+        /// <returns>The value which should be assigned to the property.</returns>
+        public delegate ValueTask<FluidValue> AssignedDelegate(string identifier, FluidValue value, TemplateContext context);
+
+        /// <param name="identifier">The name of the property that is assigned.</param>
+        /// <param name="value">The value that is assigned.</param>
+        /// <param name="context">The <see cref="TemplateContext" /> instance used for rendering the template.</param>
+        /// <returns>The value which should be captured.</returns>
+        public delegate ValueTask<FluidValue> CapturedDelegate(string identifier, FluidValue value, TemplateContext context);
+
         public static readonly TemplateOptions Default = new();
 
         /// <summary>
@@ -70,12 +82,12 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
         /// </summary>
-        public Func<string, string, ValueTask<string>> Captured { get; set; }
+        public CapturedDelegate Captured { get; set; }
 
         /// <summary>
-        /// Gets or sets the delegate to execute when a member has been assigned via capture or assign
+        /// Gets or sets the delegate to execute when an Assign tag has been evaluated.
         /// </summary>
-        public Action<FluidValue> Assigned { get; set; }
+        public AssignedDelegate Assigned { get; set; }
 
         /// <summary>
         /// Gets or sets the default trimming rules.

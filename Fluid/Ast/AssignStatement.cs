@@ -20,6 +20,13 @@ namespace Fluid.Ast
             static async ValueTask<Completion> Awaited(ValueTask<FluidValue> task, TemplateContext context, string identifier)
             {
                 var value = await task;
+
+                // Substitute the result if a custom callback is provided
+                if (context.Assigned != null)
+                {
+                    value = await context.Assigned.Invoke(identifier, value, context);
+                }
+
                 context.SetValue(identifier, value);
                 return Completion.Normal;
             }
@@ -27,12 +34,10 @@ namespace Fluid.Ast
             context.IncrementSteps();
 
             var task = Value.EvaluateAsync(context);
-            if (!task.IsCompletedSuccessfully)
+            if (!task.IsCompletedSuccessfully || context.Assigned != null)
             {
                 return Awaited(task, context, Identifier);
             }
-
-            context.Assigned?.Invoke(task.Result);
 
             context.SetValue(Identifier, task.Result);
             return new ValueTask<Completion>(Completion.Normal);

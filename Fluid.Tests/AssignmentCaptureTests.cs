@@ -17,39 +17,18 @@ namespace Fluid.Tests
 
         [Fact]
         public async Task Assign()
-
         {
-            string buffer = null;
-
             var source = @"
-                {% assign a = 'b' %}
+                {%- assign a = 'b' %}{{a-}}
             ";
 
             _parser.TryParse(source, out var template, out var error);
             var context = new TemplateContext
             {
-                Assigned = (v) => buffer = v.ToStringValue()
+                Assigned = (identifier, value, context) => new StringValue(value.ToStringValue() + "_altered")
             };
             var result = await template.RenderAsync(context);
-            Assert.Equal("b", buffer);
-        }
-
-        [Fact]
-        public async Task Capture()
-        {
-            string buffer = null;
-
-            var source = @"
-                {% capture a %}b{% endcapture %}
-            ";
-
-            _parser.TryParse(source, out var template, out var error);
-            var context = new TemplateContext
-            {
-                Assigned = (v) => buffer = v.ToStringValue()
-            };
-            var result = await template.RenderAsync(context);
-            Assert.Equal("b", buffer);
+            Assert.Equal("b_altered", result);
         }
     }
 }
