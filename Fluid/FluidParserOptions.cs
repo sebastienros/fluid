@@ -1,4 +1,4 @@
-﻿namespace Fluid
+namespace Fluid
 {
     /// <summary>
     /// Parser options.
@@ -9,5 +9,10 @@
         /// Gets whether functions are allowed in templates. Default is <c>false</c>.
         /// </summary>
         public bool AllowFunctions { get; set; }
+
+        /// <summary>
+        /// Gets whether parentheses are allowed in templates. Default is <c>false</c>.
+        /// </summary>
+        public bool AllowParentheses { get; set; }
     }
 }

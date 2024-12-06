@@ -122,6 +122,12 @@ namespace Fluid
                 .Then<Expression>(x => new RangeExpression(x.Item1, x.Item2));
             Range.Name = "Range";
 
+            var Group = parserOptions.AllowParentheses
+                ? LParen.SkipAnd(FilterExpression).AndSkip(RParen)
+                : LParen.SkipAnd(FilterExpression).AndSkip(RParen).Error<Expression>(ErrorMessages.ParenthesesNotAllowed)
+                ;
+            Group.Name = "Group";
+
             // primary => NUMBER | STRING | property
             Primary.Parser =
                 String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x)))
@@ -141,6 +147,7 @@ namespace Fluid
                     return x;
                 }))
                 .Or(Number.Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))))
+                .Or(Group)
                 .Or(Range)
                 ;
             Primary.Name = "Primary";
@@ -194,7 +201,6 @@ namespace Fluid
                             "and" => new AndBinaryExpression(previous, result),
                             _ => throw new ParseException()
                         };
-
                     }
 
                     return result;

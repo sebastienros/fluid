@@ -971,6 +971,29 @@ template.Render(context);
 
 <br>
 
+## Order of execution
+
+With tags with more than one `and` or `or` operator, operators are checked in order from right to left. You cannot change the order of operations using parentheses. This is the same for filters which are executed from left to right.
+However Fluid provides an option to support grouping expression with parentheses.
+
+### Enabling parentheses
+
+When instantiating a `FluidParser` set the `FluidParserOptions.AllowParentheses` property to `true`.
+
+```
+var parser = new FluidParser(new FluidParserOptions { AllowParentheses = true });
+```
+
+When parentheses are used while the feature is not enabled, a parse error will be returned (unless for ranges like `(1..4)`).
+
+At that point a template like the following will work:
+
+```liquid
+{{ 1 | plus : (2 | times: 3) }}
+```
+
+<br>
+
 ## Visiting and altering a template
 
 Fluid provides a __Visitor__ pattern allowing you to analyze what a template is made of, but also altering it. This can be used for instance to check if a specific identifier is used, replace some filters by another one, or remove any expression that might not be authorized.
