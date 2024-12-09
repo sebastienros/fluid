@@ -14,3 +14,5 @@ updates:
        all-dependencies:
           patterns:
             - "*"
+          exclude-patterns:
+            - "*Abstractions" # Don't update abstractions packages
