@@ -198,27 +198,23 @@ namespace Fluid.Parser
             }
         }
 
-        private sealed class OutputTagStartParser : Parser<TagResult>, ISeekable
+        private sealed class OutputTagStartParser : Parser<TagResult>
         {
             public OutputTagStartParser(bool skipWhiteSpace = false)
             {
                 SkipWhitespace = skipWhiteSpace;
             }
 
-            public bool CanSeek => true;
-
-            public char[] ExpectedChars { get; set; } = ['{'];
-
             public bool SkipWhitespace { get; }
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
+                var start = context.Scanner.Cursor.Position;
+
                 if (SkipWhitespace)
                 {
                     context.SkipWhiteSpace();
                 }
-
-                var start = context.Scanner.Cursor.Position;
 
                 if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('{'))
                 {
