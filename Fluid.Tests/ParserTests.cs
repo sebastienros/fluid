@@ -1078,5 +1078,26 @@ class  {
             var template = _parser.Parse(source);
             Assert.Equal("12345", template.Render());
         }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData(" ")]
+        [InlineData(" \n")]
+        [InlineData(" \n ")]
+        [InlineData("\n")]
+        public void ShouldParseLiquidTagWithDifferentSpaces(string spaces)
+        {
+            var source = """
+                {% liquid
+                    for c in (1..3)
+                        echo c
+                    endforSPACE%}SPACE{{chars}}SPACE
+                """.Replace("SPACE", spaces);
+
+            var _parser = new FluidParser();
+            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Contains("123", rendered);
+        }
     }
 }
