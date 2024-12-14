@@ -19,10 +19,10 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void ShouldSubstract()
+        public void ShouldSubtract()
         {
             var template = new FluidParser().Parse("{{ 1 | plus: 2 }}");
-            var visitor = new ReplacePlustFiltersVisitor();
+            var visitor = new ReplacePlusFiltersVisitor();
             var changed = visitor.VisitTemplate(template);
 
             var result = changed.Render();
@@ -35,7 +35,7 @@ namespace Fluid.Tests
         public void ShouldDoNothing()
         {
             var template = new FluidParser().Parse("{{ 1 | plus: 2 }}");
-            var visitor = new RemovePlustFiltersVisitor();
+            var visitor = new RemovePlusFiltersVisitor();
             var changed = visitor.VisitTemplate(template);
 
             var result = changed.Render();

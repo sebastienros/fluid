@@ -4,14 +4,16 @@ using System.Linq;
 using System.Threading.Tasks;
 using Fluid.Filters;
 using Fluid.Values;
+using Newtonsoft.Json.Linq;
+using TimeZoneConverter;
 using Xunit;
 
 namespace Fluid.Tests
 {
     public class MiscFiltersTests
     {
-        private static readonly TimeZoneInfo Pacific = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/Los_Angeles");
-        private static readonly TimeZoneInfo Eastern = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/New_York");
+        private static readonly TimeZoneInfo Pacific = TZConvert.GetTimeZoneInfo("America/Los_Angeles");
+        private static readonly TimeZoneInfo Eastern = TZConvert.GetTimeZoneInfo("America/New_York");
         private static readonly string RoundTripDateTimePattern = "%Y-%m-%dT%H:%M:%S.%L%Z"; // Equivalent to "o" format
 
         [Fact]
@@ -99,6 +101,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("a<>:a?", "YTw+OmE/")]
+        [InlineData("Hell", "SGVsbA==")]
+        [InlineData("Hello", "SGVsbG8=")]
         public async Task Base64Encode(string value, string expected)
         {
             var input = new StringValue(value);
@@ -113,6 +117,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("YTw+OmE/", "a<>:a?")]
+        [InlineData("SGVsbA==", "Hell")]
+        [InlineData("SGVsbG8=", "Hello")]        
         public async Task Base64Decode(string value, string expected)
         {
             var input = new StringValue(value);
@@ -127,6 +133,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("a<>:a?", "YTw-OmE_")]
+        [InlineData("Hell", "SGVsbA")]
+        [InlineData("Hello", "SGVsbG8")]
         public async Task Base64UrlSafeEncode(string value, string expected)
         {
             // Arrange
@@ -143,6 +151,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("YTw-OmE_", "a<>:a?")]
+        [InlineData("SGVsbA", "Hell")]
+        [InlineData("SGVsbG8", "Hello")]   
         public async Task Base64UrlSafeDecode(string value, string expected)
         {
             // Arrange
@@ -202,6 +212,7 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("%a", "Tue")]
+        [InlineData("%a", "Sun", "2022-06-26 00:00:00 -0500")]
         [InlineData("%^a", "TUE")]
         [InlineData("%A", "Tuesday")]
         [InlineData("%^A", "TUESDAY")]
@@ -212,12 +223,17 @@ namespace Fluid.Tests
         [InlineData("%c", "Tuesday, August 1, 2017 5:04:36 PM")]
         [InlineData("%^c", "TUESDAY, AUGUST 1, 2017 5:04:36 PM")]
         [InlineData("%C", "20")]
+        [InlineData("%C", "02", "0217-01-01")]
         [InlineData("%d", "01")]
         [InlineData("%_d", " 1")]
         [InlineData("%-d", "1")]
         [InlineData("%D", "08/01/17")]
         [InlineData("%e", " 1")]
         [InlineData("%F", "2017-08-01")]
+        [InlineData("%G", "2022", "2023-01-01 12:00:00")]
+        [InlineData("%G", "2024", "2024-01-01 12:00:00")]
+        [InlineData("%g", "22", "2023-01-01 12:00:00")]
+        [InlineData("%g", "24", "2024-01-01 12:00:00")]
         [InlineData("%H", "17")]
         [InlineData("%I", "05")]
         [InlineData("%j", "213")]
@@ -228,21 +244,38 @@ namespace Fluid.Tests
         [InlineData("%_m", " 8")]
         [InlineData("%-m", "8")]
         [InlineData("%M", "04")]
+        [InlineData("%n", "\n")]
+        [InlineData("%N", "123456800")] // nanoseconds are parsed to the 7th digit
+        [InlineData("%3N", "123")]
+        [InlineData("%1N", "1")]
         [InlineData("%p", "PM")]
         [InlineData("%P", "pm")]
         [InlineData("%r", "05:04:36 PM")]
         [InlineData("%R", "17:04")]
         [InlineData("%s", "1501578276")]
+        [InlineData("%20s", "00000000001501578276")]
+        [InlineData("%_20s", "          1501578276")]
         [InlineData("%S", "36")]
+        [InlineData("%t", "\t")]
         [InlineData("%T", "17:04:36")]
         [InlineData("%u", "2")]
-        [InlineData("%U", "31")]
+        [InlineData("%u", "7", "2022-06-26 00:00:00")]
+        [InlineData("%U", "52", "2016-12-31T12:00:00")] // Saturday 12/31
+        [InlineData("%U", "01", "2017-01-01T12:00:00")] // Sunday 01/01 - week begins on a Sunday (for %U)
+        [InlineData("%U", "01", "2017-01-02T12:00:00")] // Monday 01/02 - week begins on a Sunday (for %U)
+        [InlineData("%U", "26", "2022-06-26T00:00:00")]
         [InlineData("%v", " 1-Aug-2017")]
         [InlineData("%^v", " 1-AUG-2017")]
         [InlineData("%V", "31")]
-        [InlineData("%W", "32")]
+        [InlineData("%W", "52", "2016-12-31T12:00:00")] // Saturday 12/31
+        [InlineData("%W", "00", "2017-01-01T12:00:00")] // Sunday 01/01 - still not first week of the year
+        [InlineData("%W", "01", "2017-01-02T12:00:00")] // Monday 01/02 - week begins on a Monday (for %W)
+        [InlineData("%W", "25", "2022-06-26T00:00:00")]
         [InlineData("%y", "17")]
         [InlineData("%Y", "2017")]
+        [InlineData("%Y", "0217", "0217-01-01")]
+        [InlineData("%y", "17", "0217-01-01")]
+        [InlineData("%y", "07", "0207-01-01")]
         [InlineData("%z", "+0800")]
         [InlineData("%Z", "+08:00")]
         [InlineData("%:z", "+08:00")]
@@ -251,14 +284,14 @@ namespace Fluid.Tests
         [InlineData("It is %r", "It is 05:04:36 PM")]
         [InlineData("Chained %z%:z%a%a%^a", "Chained +0800+08:00TueTueTUE")]
         [InlineData("%Y-%m-%dT%H:%M:%S.%L", "2017-08-01T17:04:36.123")]
-        public async Task Date(string format, string expected)
+        public async Task Date(string format, string expected, string dateTime = "2017-08-01T17:04:36.123456789+08:00")
         {
-            var input = new DateTimeValue(new DateTimeOffset(
-                new DateTime(2017, 8, 1, 17, 4, 36, 123), TimeSpan.FromHours(8)));
-
             var arguments = new FilterArguments(new StringValue(format));
             var options = new TemplateOptions() { CultureInfo = new CultureInfo("en-US", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
             var context = new TemplateContext(options);
+
+            new StringValue(dateTime).TryGetDateTimeInput(new TemplateContext(), out var customDateTime);
+            var input = new DateTimeValue(customDateTime);
 
             var result = await MiscFilters.Date(input, arguments, context);
 
@@ -267,8 +300,10 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("2020-05-18T12:00:00+01:00", "%l:%M%P", "12:00pm")]
-        [InlineData("2020-05-18T08:00:00+01:00", "%l:%M%P", "8:00am")]
-        [InlineData("2020-05-18T20:00:00+01:00", "%l:%M%P", "8:00pm")]
+        [InlineData("2020-05-18T08:00:00+01:00", "%l:%M%P", " 8:00am")]
+        [InlineData("2020-05-18T20:00:00+01:00", "%l:%M%P", " 8:00pm")]
+        [InlineData("2020-05-18T20:00:00+01:00", "%-l:%M%P", "8:00pm")]
+        [InlineData("2020-05-18T20:00:00+01:00", "%I:%M%P", "08:00pm")]
         [InlineData("2020-05-18T23:59:00+01:00", "%l:%M%P", "11:59pm")]
         [InlineData("2020-05-18T00:00:00+01:00", "%l:%M%P", "12:00am")]
         [InlineData("2020-05-18T11:59:00+01:00", "%l:%M%P", "11:59am")]
@@ -282,7 +317,7 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Date(input, arguments, context);
 
-            Assert.Equal(expected, result.ToStringValue().Trim());
+            Assert.Equal(expected, result.ToStringValue());
         }
 
         [Theory]
@@ -303,6 +338,27 @@ namespace Fluid.Tests
         }
 
         [Theory]
+        [InlineData("2022-12-13T21:02:18.399+00:00", "utc", "2022-12-13T21:02:18.399+00:00")]
+        [InlineData("2022-12-13T21:02:18.399+00:00", "America/New_York", "2022-12-13T21:02:18.399+00:00")]
+        [InlineData("2022-12-13T21:02:18.399+00:00", "Australia/Adelaide", "2022-12-13T21:02:18.399+00:00")]
+        [InlineData("2022-12-13T21:02:18.399", "utc", "2022-12-13T21:02:18.399+00:00")]
+        [InlineData("2022-12-13T21:02:18.399", "America/New_York", "2022-12-13T21:02:18.399-05:00")]
+        [InlineData("2022-12-13T21:02:18.399", "Australia/Adelaide", "2022-12-13T21:02:18.399+10:30")]
+        [InlineData("2022-12-13T21:02:18.399+01:00", "utc", "2022-12-13T21:02:18.399+01:00")] // Parsed as UTC+1, converted to UTC
+        public async Task DateFilterUsesContextTimezone(string initialDateTime, string timeZone, string expected)
+        {
+            // - When a TZ is provided in the source string, the resulting DateTimeOffset uses it
+            // - When no TZ is provided, we assume the local offset (context.TimeZone)
+
+            var input = new StringValue(initialDateTime);
+            var context = new TemplateContext { TimeZone = TZConvert.GetTimeZoneInfo(timeZone) };
+
+            var date = await MiscFilters.Date(input, new FilterArguments(new StringValue(RoundTripDateTimePattern)), context);
+
+            Assert.Equal(expected, date.ToStringValue());
+        }
+
+        [Theory]
         [InlineData("2020-05-18T02:13:09+00:00", "America/New_York", "%l:%M%P", "10:13pm")]
         [InlineData("2020-05-18T02:13:09+00:00", "Europe/London", "%l:%M%P", "3:13am")]
         [InlineData("2020-05-18T02:13:09+00:00", "Europe/wrongTZ", "%l:%M%P", "2:13am")]
@@ -319,6 +375,21 @@ namespace Fluid.Tests
             result = await MiscFilters.Date(result, formatArgument, context);
 
             Assert.Equal(expected, result.ToStringValue().Trim());
+        }
+
+        [Fact]
+        public async Task ShouldChangeToLocalTimeZone()
+        {
+            // - When a TZ is provided in the source string, the resulting DateTimeOffset uses it
+            // - When no TZ is provided, we assume the local offset (context.TimeZone)
+
+            var input = new StringValue("2022-12-13T21:02:18.399+01:00");
+            var context = new TemplateContext { TimeZone = Pacific };
+
+            var date = await MiscFilters.ChangeTimeZone(input, new FilterArguments(new StringValue("local")), context);
+            var formatted = await MiscFilters.Date(date, new FilterArguments(new StringValue(RoundTripDateTimePattern)), context);
+
+            Assert.Equal("2022-12-13T12:02:18.399-08:00", formatted.ToStringValue());
         }
 
         [Fact]
@@ -391,6 +462,20 @@ namespace Fluid.Tests
             var result = await MiscFilters.Date(input, arguments, context);
 
             Assert.Equal("08/01/17", result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task DateWithoutFormatShouldReturnInput()
+        {
+            var input = new StringValue("08/01/2017");
+
+            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture, TimeZone = TimeZoneInfo.Utc };
+            var context = new TemplateContext(options);
+
+            var result = await MiscFilters.Date(input, FilterArguments.Empty, context);
+
+            Assert.IsType<DateTimeValue>(result);
+            Assert.Equal("2017-08-01 00:00:00Z", result.ToStringValue());
         }
 
         [Theory]
@@ -665,6 +750,33 @@ namespace Fluid.Tests
             var input = FluidValue.Create(model, options);
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             Assert.Equal("{\"Id\":1,\"WithoutIndexable\":null,\"Bool\":true}", result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task JsonShouldWriteValuesWithCorrectDataTypeForJObjectInput()
+        {
+            var model = new JObject
+            {
+                ["a"] = true,
+                ["b"] = 1,
+                ["c"] = new DateTimeOffset(2017, 6, 8, 12, 53, 10, new TimeSpan(-7, 0, 0)),
+                ["d"] = "string",
+                ["e"] = null,
+                ["f"] = new JObject
+                {
+                    ["f_a"] = 1.2,
+                    ["f_b"] = false,
+                    ["f_c"] = ""
+                },
+                ["g"] = new JArray
+                {
+                    "val1", "val2"
+                }
+            };
+            var input = FluidValue.Create(model, TemplateOptions.Default);
+            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(TemplateOptions.Default));
+            var expected = "{\"a\":true,\"b\":1,\"c\":\"06/08/2017 12:53:10 -07:00\",\"d\":\"string\",\"e\":null,\"f\":{\"f_a\":1.2,\"f_b\":false,\"f_c\":\"\"},\"g\":[\"val1\",\"val2\"]}";
+            Assert.Equal(expected, result.ToStringValue());
         }
 
         [Theory]

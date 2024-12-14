@@ -6,20 +6,22 @@ namespace Fluid.Ast
     /// <summary>
     /// The render tag can only access immutable environments, which means the scope of the context that was passed to the main template, the options' scope, and the model.
     /// </summary>
-    public class RenderStatement : Statement
+#pragma warning disable CA1001 // Types that own disposable fields should be disposable
+    public sealed class RenderStatement : Statement
+#pragma warning restore CA1001
     {
         public const string ViewExtension = ".liquid";
         private volatile CachedTemplate _cachedTemplate;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
-        public RenderStatement(FluidParser parser, string path, Expression with = null, Expression @for = null, string alias = null, List<AssignStatement> assignStatements = null)
+        public RenderStatement(FluidParser parser, string path, Expression with = null, Expression @for = null, string alias = null, IReadOnlyList<AssignStatement> assignStatements = null)
         {
             Parser = parser;
             Path = path;
             With = with;
             For = @for;
             Alias = alias;
-            AssignStatements = assignStatements;
+            AssignStatements = assignStatements ?? [];
         }
 
         public FluidParser Parser { get; }
@@ -28,8 +30,6 @@ namespace Fluid.Ast
         public Expression With { get; }
         public Expression For { get; }
         public string Alias { get; }
-
-        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitRenderStatement(this);
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -98,7 +98,7 @@ namespace Fluid.Ast
                     context.SetValue(Alias ?? _cachedTemplate.Name, with);
                     await _cachedTemplate.Template.RenderAsync(writer, encoder, context);
                 }
-                else if (AssignStatements != null)
+                else if (AssignStatements.Count > 0)
                 {
                     var length = AssignStatements.Count;
                     for (var i = 0; i < length; i++)
@@ -137,8 +137,8 @@ namespace Fluid.Ast
                             // Set helper variables
                             forloop.Index = i + 1;
                             forloop.Index0 = i;
-                            forloop.RIndex = length - i - 1;
-                            forloop.RIndex0 = length - i;
+                            forloop.RIndex = length - i;
+                            forloop.RIndex0 = length - i - 1;
                             forloop.First = i == 0;
                             forloop.Last = i == length - 1;
 
@@ -171,7 +171,8 @@ namespace Fluid.Ast
             return Completion.Normal;
         }
 
-        private record class CachedTemplate (IFluidTemplate Template, string Name);
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitRenderStatement(this);
 
+        private sealed record CachedTemplate(IFluidTemplate Template, string Name);
     }
 }

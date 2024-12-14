@@ -15,12 +15,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.MvcViewEngine", "Flui
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{BE5EF08E-5F79-4BBA-BA72-F4E26E281125}"
 	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
 		.github\workflows\build.yml = .github\workflows\build.yml
 		Common.props = Common.props
 		CREDITS.md = CREDITS.md
+		Directory.Build.props = Directory.Build.props
+		Directory.Packages.props = Directory.Packages.props
 		NuGet.config = NuGet.config
+		.github\workflows\pr.yml = .github\workflows\pr.yml
 		.github\workflows\publish.yml = .github\workflows\publish.yml
 		README.md = README.md
+		Versions.props = Versions.props
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.ViewEngine", "Fluid.ViewEngine\Fluid.ViewEngine.csproj", "{3510D4C5-8328-4425-B2F1-B8591E85B965}"
@@ -29,9 +34,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MinimalApis.LiquidViews", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.MinimalApisSample", "Fluid.MinimalApisSample\Fluid.MinimalApisSample.csproj", "{6390F2D4-564B-455E-9C02-3DB998E5BD09}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid.SandBox", "Fluid.SandBox\Fluid.SandBox.csproj", "{63FC1F25-2357-4788-A5BB-1C022CFCE4E4}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fluid.Generator", "Fluid.Generator\Fluid.Generator.csproj", "{E1EB6D3E-18F9-4ECD-9E31-D290BB1A23DD}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D1E1DE19-67EF-43C8-BC9A-53E60D65ECFE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

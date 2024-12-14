@@ -14,17 +14,23 @@ jobs:
         DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+    - uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: global.json
+
     - name: Install dependencies
       run: dotnet restore
     - name: Test
-      run: dotnet test -c Release --framework net7.0
+      run: dotnet test -c Release --framework net9.0
     - name: Pack with dotnet
       run: |
         arrTag=(${GITHUB_REF//\// })
         VERSION="${arrTag[2]}"
         VERSION="${VERSION//v}"
+        PACKAGE_PATH="${GITHUB_WORKSPACE}/artifacts" 
         echo "$VERSION"
-        dotnet pack --output artifacts --configuration Release -p:Version=$VERSION
+        dotnet pack --property:PackageOutputPath=$PACKAGE_PATH --configuration Release -p:Version=$VERSION -p:ContinuousIntegrationBuild=True
+
     - name: Push with dotnet
       run: dotnet nuget push "artifacts/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

@@ -57,7 +57,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().ToLower());
+            return new StringValue(input.ToStringValue().ToLowerInvariant());
         }
 
         public static ValueTask<FluidValue> LStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -82,7 +82,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> RemoveFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            string remove = arguments.At(0).ToStringValue();
+            var remove = arguments.At(0).ToStringValue();
             var value = input.ToStringValue();
 
             var index = value.IndexOf(remove);
@@ -124,7 +124,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> ReplaceFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-#if NETCOREAPP3_0_OR_GREATER
+#if NET6_0_OR_GREATER
             var value = input.ToStringValue().AsSpan();
             var remove = arguments.At(0).ToStringValue().AsSpan();
 #else
@@ -138,7 +138,7 @@ namespace Fluid.Filters
                 return input;
             }
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NET6_0_OR_GREATER
             var concat = string.Concat(value.Slice(0, index), arguments.At(1).ToStringValue(), value.Slice(index + remove.Length));
 #else
             var concat = string.Concat(value.Substring(0, index), arguments.At(1).ToStringValue(), value.Substring(index + remove.Length));
@@ -153,7 +153,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> ReplaceLast(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-#if NETCOREAPP3_0_OR_GREATER
+#if NET6_0_OR_GREATER
             var value = input.ToStringValue().AsSpan();
             var remove = arguments.At(0).ToStringValue().AsSpan();
 #else
@@ -167,7 +167,7 @@ namespace Fluid.Filters
                 return input;
             }
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NET6_0_OR_GREATER
             var concat = string.Concat(value.Slice(0, index), arguments.At(1).ToStringValue(), value.Slice(index + remove.Length));
 #else
             var concat = string.Concat(value.Substring(0, index), arguments.At(1).ToStringValue(), value.Substring(index + remove.Length));
@@ -202,7 +202,7 @@ namespace Fluid.Filters
 
                 var sourceArray = ((ArrayValue)input).Values;
 
-                var sourceLength = sourceArray.Length;
+                var sourceLength = sourceArray.Count;
 
                 if (requestedStartIndex < 0 && Math.Abs(requestedStartIndex) > sourceLength)
                 {
@@ -213,11 +213,7 @@ namespace Fluid.Filters
                 var length = requestedLength > sourceLength ? sourceLength : requestedLength;
                 length = startIndex > 0 && length + startIndex > sourceLength ? length - startIndex : length;
 
-                var result = new FluidValue[length];
-
-                Array.Copy(sourceArray, startIndex, result, 0, length);
-
-                return new ArrayValue(result);
+                return new ArrayValue(sourceArray.Skip(startIndex).Take(length).ToArray());
             }
             else
             {
@@ -236,8 +232,9 @@ namespace Fluid.Filters
                 }
 
                 var startIndex = requestedStartIndex < 0 ? Math.Max(sourceStringLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceStringLength);
-                var length = requestedLength > sourceStringLength ? sourceStringLength : requestedLength;
-                length = startIndex > 0 && length + startIndex > sourceStringLength ? length - startIndex : length;
+                var length = requestedLength + startIndex > sourceStringLength
+                    ? sourceStringLength - startIndex
+                    : requestedLength;
 
                 return new StringValue(sourceString.Substring(startIndex, length));
             }
@@ -282,11 +279,11 @@ namespace Fluid.Filters
         {
             var result = input.ToStringValue();
 
-            if (result.Contains("\r"))
+            if (result.Contains('\r'))
             {
                 result = result.Replace("\r", "");
             }
-            if (result.Contains("\n"))
+            if (result.Contains('\n'))
             {
                 result = result.Replace("\n", "");
             }
@@ -319,7 +316,7 @@ namespace Fluid.Filters
 
             var l = Math.Max(0, length - ellipsisStr.Length);
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NET6_0_OR_GREATER
             var concat = string.Concat(inputStr.AsSpan().Slice(0, l), ellipsisStr);
 #else
             var concat = string.Concat(inputStr.Substring(0, l), ellipsisStr);
@@ -355,7 +352,7 @@ namespace Fluid.Filters
 
             if (chunks.Count >= size)
             {
-                chunks[chunks.Count - 1] += ellipsis;
+                chunks[^1] += ellipsis;
             }
 
             return new StringValue(string.Join(" ", chunks));
@@ -363,7 +360,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Upcase(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().ToUpper());
+            return new StringValue(input.ToStringValue().ToUpperInvariant());
         }
     }
 }

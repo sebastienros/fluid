@@ -15,10 +15,10 @@ namespace Fluid.Values
 
         public FunctionValue(Func<FunctionArguments, TemplateContext, FluidValue> action)
         {
-            _action = (args, c) => new ValueTask<FluidValue>(action(args, c)); 
+            _action = (args, c) => new ValueTask<FluidValue>(action(args, c));
         }
 
-        public override FluidValues Type => FluidValues.Object;
+        public override FluidValues Type => FluidValues.Function;
 
         public override ValueTask<FluidValue> InvokeAsync(FunctionArguments arguments, TemplateContext context)
         {
@@ -55,20 +55,26 @@ namespace Fluid.Values
             return false;
         }
 
+        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             // A function value should be invoked and its result used instead.
             // Calling write to is equivalent to rendering {{ alert }} instead of {{ alert() }}
         }
 
-        public override bool Equals(object other)
+        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            return object.ReferenceEquals(this, other);
+            return default;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return object.ReferenceEquals(this, obj);
         }
 
         public override int GetHashCode()
         {
-            return _action == null ? 0 :_action.GetHashCode();
+            return _action == null ? 0 : _action.GetHashCode();
         }
     }
 }

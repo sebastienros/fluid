@@ -3,12 +3,12 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
 {
-    public partial class ForStatement : TagStatement
+    public sealed class ForStatement : TagStatement
     {
-        private string _continueOffsetLiteral;
+        private readonly string _continueOffsetLiteral;
 
         public ForStatement(
-            List<Statement> statements,
+            IReadOnlyList<Statement> statements,
             string identifier,
             Expression source,
             Expression limit,
@@ -24,19 +24,18 @@ namespace Fluid.Ast
             Reversed = reversed;
             Else = elseStatement;
 
-            OffSetIsContinue = Offset is MemberExpression l && l.Segments.Count == 1 && ((IdentifierSegment)l.Segments[0]).Identifier == "continue";
+            OffsetIsContinue = Offset is MemberExpression l && l.Segments.Count == 1 && ((IdentifierSegment)l.Segments[0]).Identifier == "continue";
             _continueOffsetLiteral = source is MemberExpression m ? "for_continue_" + ((IdentifierSegment)m.Segments[0]).Identifier : null;
         }
 
         public string Identifier { get; }
+        public RangeExpression Range { get; }
         public Expression Source { get; }
         public Expression Limit { get; }
         public Expression Offset { get; }
         public bool Reversed { get; }
         public ElseStatement Else { get; }
-        public bool OffSetIsContinue { get; }
-
-        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitForStatement(this);
+        public bool OffsetIsContinue { get; }
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -56,9 +55,9 @@ namespace Fluid.Ast
             var startIndex = 0;
             if (Offset is not null)
             {
-                if (OffSetIsContinue)
+                if (OffsetIsContinue)
                 {
-                    startIndex = (int) context.GetValue(_continueOffsetLiteral).ToNumberValue();
+                    startIndex = (int)context.GetValue(_continueOffsetLiteral).ToNumberValue();
                 }
                 else
                 {
@@ -71,7 +70,7 @@ namespace Fluid.Ast
 
             if (Limit is not null)
             {
-                var limit = (int) (await Limit.EvaluateAsync(context)).ToNumberValue();
+                var limit = (int)(await Limit.EvaluateAsync(context)).ToNumberValue();
 
                 // Limit can be negative
                 if (limit >= 0)
@@ -109,11 +108,11 @@ namespace Fluid.Ast
 
                 var length = forloop.Length = startIndex + count;
 
-                context.LocalScope._properties["forloop"] = forloop;
+                context.LocalScope.SetOwnValue("forloop", forloop);
 
                 if (!parentLoop.IsNil())
                 {
-                    context.LocalScope._properties["parentloop"] = parentLoop;
+                    context.LocalScope.SetOwnValue("parentloop", parentLoop);
                 }
 
                 for (var i = startIndex; i < length; i++)
@@ -122,13 +121,13 @@ namespace Fluid.Ast
 
                     var item = source[i];
 
-                    context.LocalScope._properties[Identifier] = item;
+                    context.LocalScope.SetOwnValue(Identifier, item);
 
                     // Set helper variables
                     forloop.Index = i + 1;
                     forloop.Index0 = i;
-                    forloop.RIndex = length - i - 1;
-                    forloop.RIndex0 = length - i;
+                    forloop.RIndex = length - i;
+                    forloop.RIndex0 = length - i - 1;
                     forloop.First = i == 0;
                     forloop.Last = i == length - 1;
 
@@ -137,16 +136,16 @@ namespace Fluid.Ast
                         context.SetValue(_continueOffsetLiteral, forloop.Index);
                     }
 
-                    Completion completion = Completion.Normal;
+                    var completion = Completion.Normal;
 
-                    for (var index = 0; index < _statements.Count; index++)
+                    for (var index = 0; index < Statements.Count; index++)
                     {
-                        var statement = _statements[index];
+                        var statement = Statements[index];
                         completion = await statement.WriteToAsync(writer, encoder, context);
 
                         //// Restore the forloop property after every statement in case it replaced it,
                         //// for instance if it contains a nested for loop
-                        //context.LocalScope._properties["forloop"] = forloop;
+                        //context.LocalScope.SetOwnValue("forloop", forloop);
 
                         if (completion != Completion.Normal)
                         {
@@ -175,5 +174,7 @@ namespace Fluid.Ast
 
             return Completion.Normal;
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitForStatement(this);
     }
 }

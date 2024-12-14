@@ -5,57 +5,47 @@ namespace Fluid.Values
 {
     public sealed class ArrayValue : FluidValue
     {
-        public static readonly ArrayValue Empty = new ArrayValue(Array.Empty<FluidValue>());
-
-        private readonly FluidValue[] _value;
+        public static readonly ArrayValue Empty = new ArrayValue([]);
 
         public override FluidValues Type => FluidValues.Array;
 
-        public ArrayValue(FluidValue[] value)
+        public ArrayValue(IReadOnlyList<FluidValue> values)
         {
-            _value = value;
-        }
-
-        public ArrayValue(IEnumerable<FluidValue> value)
-        {
-            _value = value.ToArray();
-        }
-
-        internal ArrayValue(IList<FluidValue> value)
-        {
-            _value = value.ToArray();
+            Values = values ?? [];
         }
 
         public override bool Equals(FluidValue other)
         {
             if (other.IsNil())
             {
-                return _value.Length == 0;
+                return Values.Count == 0;
             }
 
             if (other is ArrayValue arrayValue)
             {
-                if (_value.Length != arrayValue._value.Length)
+                if (Values.Count != arrayValue.Values.Count)
                 {
                     return false;
                 }
 
-                for (var i = 0; i < _value.Length; i++)
+                for (var i = 0; i < Values.Count; i++)
                 {
-                    var item = _value[i];
-                    var otherItem = arrayValue._value[i];
+                    var item = Values[i];
+                    var otherItem = arrayValue.Values[i];
 
                     if (!item.Equals(otherItem))
                     {
                         return false;
                     }
                 }
+
+                return true;
             }
             else if (other.Type == FluidValues.Empty)
             {
-                return _value.Length == 0;
+                return Values.Count == 0;
             }
-            
+
             return false;
         }
 
@@ -64,19 +54,19 @@ namespace Fluid.Values
             switch (name)
             {
                 case "size":
-                    return NumberValue.Create(_value.Length);
+                    return NumberValue.Create(Values.Count);
 
                 case "first":
-                    if (_value.Length > 0)
+                    if (Values.Count > 0)
                     {
-                        return _value[0];
+                        return Values[0];
                     }
                     break;
 
                 case "last":
-                    if (_value.Length > 0)
+                    if (Values.Count > 0)
                     {
-                        return _value[_value.Length - 1];
+                        return Values[Values.Count - 1];
                     }
                     break;
 
@@ -89,9 +79,9 @@ namespace Fluid.Values
         {
             var i = (int)index.ToNumberValue();
 
-            if (i >= 0 && i < _value.Length)
+            if (i >= 0 && i < Values.Count)
             {
-                return FluidValue.Create(_value[i], context.Options);
+                return FluidValue.Create(Values[i], context.Options);
             }
 
             return NilValue.Instance;
@@ -104,46 +94,58 @@ namespace Fluid.Values
 
         public override decimal ToNumberValue()
         {
-            return _value.Length;
+            return Values.Count;
         }
 
-        public FluidValue[] Values => _value;
+        public IReadOnlyList<FluidValue> Values { get; }
+
+        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
-            
-            foreach (var v in _value)
+
+            foreach (var v in Values)
             {
                 writer.Write(v.ToStringValue());
             }
         }
 
+        public override async ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            AssertWriteToParameters(writer, encoder, cultureInfo);
+
+            foreach (var v in Values)
+            {
+                await writer.WriteAsync(v.ToStringValue());
+            }
+        }
+
         public override string ToStringValue()
         {
-            return String.Join("", _value.Select(x => x.ToStringValue()));
+            return String.Join("", Values.Select(x => x.ToStringValue()));
         }
 
         public override object ToObjectValue()
         {
-            return _value.Select(x => x.ToObjectValue()).ToArray();
+            return Values.Select(x => x.ToObjectValue()).ToArray();
         }
 
         public override bool Contains(FluidValue value)
         {
-            return Array.IndexOf(_value, value) > -1;
+            return Values.Contains(value);
         }
 
         public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
         {
-            return _value;
+            return Values;
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
             // The is operator will return false if null
-            if (other is ArrayValue otherValue)
+            if (obj is ArrayValue otherValue)
             {
-                return _value.Equals(otherValue._value);
+                return Values.Equals(otherValue.Values);
             }
 
             return false;
@@ -151,7 +153,7 @@ namespace Fluid.Values
 
         public override int GetHashCode()
         {
-            return _value.GetHashCode();
+            return Values.GetHashCode();
         }
     }
 }

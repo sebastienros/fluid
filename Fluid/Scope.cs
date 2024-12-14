@@ -3,14 +3,13 @@ using Fluid.Values;
 
 namespace Fluid
 {
-    public class Scope
+    public sealed class Scope
     {
-        internal Dictionary<string, FluidValue> _properties;
+        private Dictionary<string, FluidValue> _properties;
         private readonly bool _forLoopScope;
 
-        public Scope()
+        public Scope() : this(null)
         {
-            Parent = null;
         }
 
         public Scope(Scope parent)
@@ -23,12 +22,12 @@ namespace Fluid
             if (forLoopScope && parent == null) ExceptionHelper.ThrowArgumentNullException(nameof(parent));
 
             Parent = parent;
-
             // A ForLoop scope reads and writes its values in the parent scope.
             // Internal accessors to the inner properties grant access to the local properties.
             _forLoopScope = forLoopScope;
 
-            _properties = new Dictionary<string, FluidValue>();
+            // ForLoop scopes are ordinal since the properties are keywords: "forloop"
+            _properties = new Dictionary<string, FluidValue>(StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -64,29 +63,44 @@ namespace Fluid
                 : NilValue.Instance;
         }
 
+        /// <summary>
+        /// Deletes the value with the specified name in the chain of scopes.
+        /// </summary>
+        /// <param name="name">The name of the value to delete.</param>
         public void Delete(string name)
         {
-            if (_properties != null)
+            if (!_forLoopScope)
             {
-                if (!_forLoopScope)
-                {
-                    _properties.Remove(name);
-                }
-                else
-                {
-                    Parent.Delete(name);
-                }
+                DeleteOwn(name);
+            }
+            else
+            {
+                Parent.Delete(name);
             }
         }
 
+        /// <summary>
+        /// Deletes the value with the specified name in the current scopes.
+        /// </summary>
+        /// <param name="name">The name of the value to delete.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void DeleteOwn(string name)
+        {
+            if (_properties != null)
+            {
+                _properties.Remove(name);
+            }
+        }
+
+        /// <summary>
+        /// Sets the value with the specified name in the chain of scopes.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetValue(string name, FluidValue value)
         {
             if (!_forLoopScope)
             {
-                _properties ??= new Dictionary<string, FluidValue>();
-
-                _properties[name] = value ?? NilValue.Instance;
+                SetOwnValue(name, value);
             }
             else
             {
@@ -94,11 +108,24 @@ namespace Fluid
             }
         }
 
+        /// <summary>
+        /// Sets the value with the specified name in the current scope.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetOwnValue(string name, FluidValue value)
+        {
+            _properties ??= new Dictionary<string, FluidValue>(Parent?._properties?.Comparer ?? TemplateOptions.Default.ModelNamesComparer);
+            _properties[name] = value ?? NilValue.Instance;
+        }
+
         public FluidValue GetIndex(FluidValue index)
         {
             return GetValue(index.ToString());
         }
 
+        /// <summary>
+        /// Copies all the local scope properties to a different one.
+        /// </summary>
         public void CopyTo(Scope scope)
         {
             if (_properties != null)

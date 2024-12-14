@@ -7,12 +7,6 @@ on:
     - 'doc/**'
     - 'readme.md'
 
-  pull_request:
-    branches: [ main ]
-    paths-ignore:
-    - 'doc/**'
-    - 'readme.md'
-
 jobs:
   build:
 
@@ -22,10 +16,21 @@ jobs:
         DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+    - uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: global.json
 
     - name: Test
-      run: dotnet test --configuration Release
+      run: dotnet test -c Release
     
     - name: Test - Compiled
       run: dotnet test --configuration Release /p:Compiled=true
+
+    - name: Pack
+      run: |
+        PACKAGE_PATH="${GITHUB_WORKSPACE}/artifacts" 
+        dotnet pack --property:PackageOutputPath=$PACKAGE_PATH --configuration Release -p:PackageVersion=$GITHUB_RUN_NUMBER -p:ContinuousIntegrationBuild=True
+
+    - name: Publish on MyGet
+      run: dotnet nuget push "artifacts/*.nupkg" --api-key ${{ secrets.MYGET_API_KEY }} --skip-duplicate --source https://www.myget.org/F/fluid/api/v2/package

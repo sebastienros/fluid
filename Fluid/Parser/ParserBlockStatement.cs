@@ -7,7 +7,7 @@ namespace Fluid.Parser
     {
         private readonly Func<T, IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> _render;
 
-        public ParserBlockStatement(T value, List<Statement> statements, Func<T, IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render) : base(statements)
+        public ParserBlockStatement(T value, IReadOnlyList<Statement> statements, Func<T, IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render) : base(statements)
         {
             Value = value;
             _render = render ?? throw new ArgumentNullException(nameof(render));

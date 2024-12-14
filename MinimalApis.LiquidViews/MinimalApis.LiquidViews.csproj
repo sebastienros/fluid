@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <LangVersion>9</LangVersion>
     <IsPackable>true</IsPackable>
     <PackageIcon>logo_64x64.png</PackageIcon>
@@ -17,8 +17,8 @@
     <ProjectReference Include="..\Fluid.ViewEngine\Fluid.ViewEngine.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)'=='net7.0'">
-    <FrameworkReference Include="Microsoft.AspNetCore.App" Version="7.0.0" />
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -27,5 +27,5 @@
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
-  
+
 </Project>

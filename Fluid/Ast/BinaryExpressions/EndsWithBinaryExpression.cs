@@ -32,5 +32,7 @@ namespace Fluid.Ast.BinaryExpressions
                 return leftValue.ToStringValue().EndsWith(rightValue.ToStringValue());
             }
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitEndsWithBinaryExpression(this);
     }
 }

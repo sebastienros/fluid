@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Fluid.Ast
 {
-    public class RangeExpression : Expression
+    public sealed class RangeExpression : Expression
     {
         private FluidValue _cached = NilValue.Instance;
 
@@ -50,10 +50,10 @@ namespace Fluid.Ast
             else
             {
                 return Awaited(startTask, endTask);
-            }            
+            }
         }
 
-        private static FluidValue BuildArray(int start, int end)
+        private static ArrayValue BuildArray(int start, int end)
         {
             // If end < start, we create an empty array
             var list = new FluidValue[Math.Max(0, end - start + 1)];
@@ -67,7 +67,7 @@ namespace Fluid.Ast
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private async ValueTask<FluidValue> Awaited(
+        private static async ValueTask<FluidValue> Awaited(
             ValueTask<FluidValue> leftTask,
             ValueTask<FluidValue> rightTask)
         {
@@ -76,5 +76,7 @@ namespace Fluid.Ast
 
             return BuildArray(start, end);
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitRangeExpression(this);
     }
 }

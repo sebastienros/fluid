@@ -17,7 +17,7 @@ namespace Fluid.Values
         {
             if (other.Type == FluidValues.String && other.ToStringValue() == "") return true;
             if (other.Type == FluidValues.Array && other.ToNumberValue() == 0) return true;
-            if (other.Type == FluidValues.Dictionary &&other.ToNumberValue() == 0) return true;
+            if (other.Type == FluidValues.Dictionary && other.ToNumberValue() == 0) return true;
             if (other == BlankValue.Instance) return true;
             if (other == EmptyValue.Instance) return true;
             if (other == NilValue.Instance) return false;
@@ -50,14 +50,20 @@ namespace Fluid.Values
             return true;
         }
 
+        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
         }
 
-        public override bool Equals(object other)
+        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            return default;
+        }
+
+        public override bool Equals(object obj)
         {
             // The is operator will return false if null
-            return other is NilValue;
+            return obj is NilValue;
         }
 
         public override int GetHashCode()

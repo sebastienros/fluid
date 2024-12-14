@@ -19,7 +19,7 @@ namespace Fluid.Utils
     /// Rationale:
     ///    If there is no intent for reusing the object, do not use pool - just use "new".
     /// </summary>
-    internal class ObjectPool<T> where T : class
+    internal sealed class ObjectPool<T> where T : class
     {
         [DebuggerDisplay("{Value,nq}")]
         private struct Element

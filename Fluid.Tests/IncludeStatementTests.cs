@@ -20,7 +20,7 @@ namespace Fluid.Tests
 #endif
 
         [Fact]
-        public async Task IncludeSatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()
+        public async Task IncludeStatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()
         {
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var sw = new StringWriter();
@@ -39,7 +39,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task IncludeSatement_ShouldLoadPartial_IfThePartialsFolderExist()
+        public async Task IncludeStatement_ShouldLoadPartial_IfThePartialsFolderExist()
         {
 
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
@@ -64,7 +64,7 @@ shape: ''";
         }
 
         [Fact]
-        public async Task IncludeSatement_ShouldLoadCorrectTemplate_IfTheMemberExpressionValueChanges()
+        public async Task IncludeStatement_ShouldLoadCorrectTemplate_IfTheMemberExpressionValueChanges()
         {
             var expression = new MemberExpression(new IdentifierSegment("Firstname"));
             var sw = new StringWriter();
@@ -109,7 +109,7 @@ shape_Two: ''";
         }
 
         [Fact]
-        public async Task IncludeSatement_WithInlinevariableAssignment_ShouldBeEvaluated()
+        public async Task IncludeStatement_WithInlinevariableAssignment_ShouldBeEvaluated()
         {
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var assignStatements = new List<AssignStatement>
@@ -138,7 +138,7 @@ shape: 'circle'";
         }
 
         [Fact]
-        public async Task IncludeSatement_WithTagParams_ShouldBeEvaluated()
+        public async Task IncludeStatement_WithTagParams_ShouldBeEvaluated()
         {
             var pathExpression = new LiteralExpression(new StringValue("color"));
             var withExpression = new LiteralExpression(new StringValue("blue"));
@@ -163,7 +163,7 @@ shape: ''";
         }
 
         [Fact]
-        public async Task IncludeSatement_ShouldLimitRecursion()
+        public async Task IncludeStatement_ShouldLimitRecursion()
         {
             var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
             var sw = new StringWriter();
@@ -282,7 +282,7 @@ shape: ''";
         public void IncludeTag_For_Loop()
         {
             var fileProvider = new MockFileProvider();
-            fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} ");
+            fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} rindex:{{ forloop.rindex }} rindex0:{{ forloop.rindex0 }} " );
 
             var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
             var context = new TemplateContext(options);
@@ -291,14 +291,14 @@ shape: ''";
 
             var result = template.Render(context);
 
-            Assert.Equal("Product: Draft 151cm first  index:1 Product: Element 155cm  last index:2 ", result);
+            Assert.Equal("Product: Draft 151cm first  index:1 rindex:2 rindex0:1 Product: Element 155cm  last index:2 rindex:1 rindex0:0 ", result);
         }
 
         [Fact]
         public void RenderTag_For_Loop()
         {
             var fileProvider = new MockFileProvider();
-            fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} ");
+            fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} rindex:{{ forloop.rindex }} rindex0:{{ forloop.rindex0 }} " );
 
             var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
             var context = new TemplateContext(options);
@@ -307,7 +307,7 @@ shape: ''";
 
             var result = template.Render(context);
 
-            Assert.Equal("Product: Draft 151cm first  index:1 Product: Element 155cm  last index:2 ", result);
+            Assert.Equal("Product: Draft 151cm first  index:1 rindex:2 rindex0:1 Product: Element 155cm  last index:2 rindex:1 rindex0:0 ", result);
         }
 
         [Fact]

@@ -1,4 +1,4 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using Fluid.Parser;
 using Microsoft.Extensions.Primitives;
 using System;
@@ -163,6 +163,26 @@ namespace Fluid.Tests
             Assert.Single(statements);
             Assert.IsType<RawStatement>(statements.ElementAt(0));
             Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as RawStatement).Text.ToString());
+        }
+
+        [Fact]
+        public void ShouldParseEmptyRawTags()
+        {
+          var statements = Parse(@"{% raw %}{% endraw %}");
+
+          Assert.Single(statements);
+          Assert.IsType<RawStatement>(statements.ElementAt(0));
+          Assert.Equal("", (statements.ElementAt(0) as RawStatement).Text.ToString());
+        }
+
+        [Fact]
+        public void ShouldParseEmptyCommentTags()
+        {
+          var statements = Parse(@"{% comment %}{% endcomment %}");
+
+          Assert.Single(statements);
+          Assert.IsType<CommentStatement>(statements.ElementAt(0));
+          Assert.Equal("", (statements.ElementAt(0) as CommentStatement).Text.ToString());
         }
 
         [Fact]
@@ -1057,6 +1077,27 @@ class  {
 
             var template = _parser.Parse(source);
             Assert.Equal("12345", template.Render());
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData(" ")]
+        [InlineData(" \n")]
+        [InlineData(" \n ")]
+        [InlineData("\n")]
+        public void ShouldParseLiquidTagWithDifferentSpaces(string spaces)
+        {
+            var source = """
+                {% liquid
+                    for c in (1..3)
+                        echo c
+                    endforSPACE%}SPACE{{chars}}SPACE
+                """.Replace("SPACE", spaces);
+
+            var _parser = new FluidParser();
+            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Contains("123", rendered);
         }
     }
 }

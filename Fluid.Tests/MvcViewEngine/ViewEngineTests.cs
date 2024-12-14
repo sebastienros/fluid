@@ -1,6 +1,7 @@
 ﻿using Fluid.Tests.Mocks;
 using Fluid.ViewEngine;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -277,6 +278,30 @@ namespace Fluid.Tests.MvcViewEngine
             await sw.FlushAsync();
 
             Assert.Equal("[TITLE][SUBTITLE][ViewStart][View]", sw.ToString());
+        }
+
+        [Fact]
+        public async Task RenderViewOnlyAsyncStream_LargePropertyValue_Nested_SmallBuffer_BiggerThan128LengthString()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Layout' %}{% section bigboy %}{{BigString}}{% endsection %} ");
+            _mockFileProvider.Add("Views/_Layout.liquid", "{% rendersection bigboy %}");
+
+            await using var sw = new StreamWriter(new NoSyncStream(), bufferSize: 10);
+            var template = new TemplateContext(new { BigString = new string(Enumerable.Range(0, 129).Select(x => 'b').ToArray()) });
+            await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+            await sw.FlushAsync();
+        }
+
+        [Fact]
+        public async Task RenderViewOnlyAsyncStream_LargePropertyValue_Nested()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Layout' %}{% section bigboy %}{{BigString}}{% endsection %} ");
+            _mockFileProvider.Add("Views/_Layout.liquid", "{% rendersection bigboy %}");
+
+            await using var sw = new StreamWriter(new NoSyncStream());
+            var template = new TemplateContext(new { BigString = new string(Enumerable.Range(0, 1500).Select(_ => 'b').ToArray()) });
+            await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+            await sw.FlushAsync();
         }
     }
 }

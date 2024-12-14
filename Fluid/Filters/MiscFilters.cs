@@ -1,15 +1,17 @@
-﻿using System.Globalization;
-using System.Net;
-using System.Text.Json;
 using Fluid.Values;
-using TimeZoneConverter;
-using System.Text;
+using System.Buffers;
+using System.Globalization;
+using System.Net;
 using System.Reflection;
+using System.Text;
+using System.Text.Json;
+using TimeZoneConverter;
 
 namespace Fluid.Filters
 {
     public static class MiscFilters
     {
+
         private const char KebabCaseSeparator = '-';
 
         public static FilterCollection WithMiscFilters(this FilterCollection filters)
@@ -52,7 +54,7 @@ namespace Fluid.Filters
             var result = new StringBuilder();
             var lastIndex = value.Length - 1;
 
-            for (int i = 0; i < value.Length; i++)
+            for (var i = 0; i < value.Length; i++)
             {
                 var currentChar = value[i];
                 var lookAheadChar = i == lastIndex
@@ -70,7 +72,7 @@ namespace Fluid.Filters
 
                     continue;
                 }
-                
+
                 if (IsCapitalLetter(lookAheadChar))
                 {
                     if (IsCapitalLetter(currentChar))
@@ -95,7 +97,7 @@ namespace Fluid.Filters
                 {
                     if (IsCapitalLetter(currentChar))
                     {
-                        if (result[result.Length - 1] != KebabCaseSeparator && !char.IsDigit(lookAheadChar))
+                        if (result[^1] != KebabCaseSeparator && !char.IsDigit(lookAheadChar))
                         {
                             result.Append(KebabCaseSeparator);
                         }
@@ -105,7 +107,10 @@ namespace Fluid.Filters
                 }
             }
 
-            static bool IsCapitalLetter(char c) => c >= 'A' && c <= 'Z';
+            static bool IsCapitalLetter(char c)
+            {
+                return (uint)(c - 'A') <= (uint)('Z' - 'A');
+            }
 
             return new StringValue(result.ToString().ToLowerInvariant());
         }
@@ -195,6 +200,18 @@ namespace Fluid.Filters
                 encodedBase64StringBuilder.Replace('+', '-');
                 encodedBase64StringBuilder.Replace('/', '_');
 
+                if (encodedBase64StringBuilder[^1] == '=')
+                {
+                    if (encodedBase64StringBuilder[^2] == '=')
+                    {
+                        encodedBase64StringBuilder.Length -= 2;
+                    }
+                    else
+                    {
+                        encodedBase64StringBuilder.Length--;
+                    }
+                }
+
                 return new StringValue(encodedBase64StringBuilder.ToString());
             }
         }
@@ -208,13 +225,38 @@ namespace Fluid.Filters
             }
             else
             {
+                var paddingCharsToAdd = (value.Length % 4) switch
+                {
+                    0 => 0,
+                    2 => 2,
+                    3 => 1,
+                    _ => -1
+                };
+
+                if (paddingCharsToAdd == -1)
+                {
+                    return StringValue.Empty;
+                }
+
                 var encodedBase64StringBuilder = new StringBuilder(value);
                 encodedBase64StringBuilder.Replace('-', '+');
                 encodedBase64StringBuilder.Replace('_', '/');
 
-                var decodedBase64 = Encoding.UTF8.GetString(Convert.FromBase64String(encodedBase64StringBuilder.ToString()));
+                // Add the padding characters back.
+                for (; paddingCharsToAdd > 0; paddingCharsToAdd--)
+                {
+                    encodedBase64StringBuilder.Append('=');
+                }
 
-                return new StringValue(decodedBase64);
+                try
+                {
+                    var decodedBase64 = Encoding.UTF8.GetString(Convert.FromBase64String(encodedBase64StringBuilder.ToString()));
+                    return new StringValue(decodedBase64);
+                }
+                catch
+                {
+                    return StringValue.Empty;
+                }
             }
         }
 
@@ -226,14 +268,15 @@ namespace Fluid.Filters
                 return StringValue.Empty;
             }
 
+            var result = ArrayPool<char>.Shared.Rent(html.Length);
+
             try
             {
-                var result = new char[html.Length];
                 var cursor = 0;
                 var inside = false;
                 for (var i = 0; i < html.Length; i++)
                 {
-                    char current = html[i];
+                    var current = html[i];
 
                     switch (current)
                     {
@@ -256,6 +299,10 @@ namespace Fluid.Filters
             catch
             {
                 return new StringValue(String.Empty);
+            }
+            finally
+            {
+                ArrayPool<char>.Shared.Return(result);
             }
         }
 
@@ -283,13 +330,22 @@ namespace Fluid.Filters
 
             var timeZone = arguments.At(0).ToStringValue();
 
-            if (!TZConvert.TryGetTimeZoneInfo(timeZone, out var timeZoneInfo)) return new DateTimeValue(value);
+            TimeZoneInfo timeZoneInfo;
+
+            if (String.Equals(timeZone, "local", StringComparison.OrdinalIgnoreCase))
+            {
+                timeZoneInfo = context.TimeZone;
+            }
+            else if (!TZConvert.TryGetTimeZoneInfo(timeZone, out timeZoneInfo))
+            {
+                return new DateTimeValue(value);
+            }
 
             var result = TimeZoneInfo.ConvertTime(value, timeZoneInfo);
             return new DateTimeValue(result);
         }
 
-
+        // https://docs.ruby-lang.org/en/master/strftime_formatting_rdoc.html
         public static ValueTask<FluidValue> Date(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (!input.TryGetDateTimeInput(context, out var value))
@@ -299,7 +355,7 @@ namespace Fluid.Filters
 
             if (arguments.At(0).IsNil())
             {
-                return NilValue.Instance;
+                return new DateTimeValue(value);
             }
 
             var format = arguments.At(0).ToStringValue();
@@ -318,6 +374,7 @@ namespace Fluid.Filters
                 var useSpaceForPaddingFlag = false;
                 var upperCaseFlag = false;
                 var useColonsForZeeDirectiveFlag = false;
+                int? width = null;
 
                 for (var i = 0; i < format.Length; i++)
                 {
@@ -335,132 +392,200 @@ namespace Fluid.Filters
                     }
                     else
                     {
+                        // Zero or more flags (each is a character).
                         switch (c)
                         {
                             case '^': upperCaseFlag = true; continue;
                             case '-': removeLeadingZerosFlag = true; continue;
                             case '_': useSpaceForPaddingFlag = true; continue;
                             case ':': useColonsForZeeDirectiveFlag = true; continue;
+                            default: break;
+                        }
+
+                        // An optional width specifier (an integer).
+
+                        if (char.IsDigit(c))
+                        {
+                            width ??= 0;
+                            width = width * 10 + (c - '0');
+                            continue;
+                        }
+
+                        switch (c)
+                        {
                             case 'a':
-                                string AbbreviatedDayName() => context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int)value.DayOfWeek];
+                                string AbbreviatedDayName()
+                                {
+                                    return context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int)value.DayOfWeek];
+                                }
 
                                 var abbreviatedDayName = AbbreviatedDayName();
-                                result.Append(upperCaseFlag ? abbreviatedDayName.ToUpper() : abbreviatedDayName);
+                                result.Append(upperCaseFlag ? abbreviatedDayName.ToUpperInvariant() : abbreviatedDayName);
                                 break;
                             case 'A':
                                 {
                                     var dayName = context.CultureInfo.DateTimeFormat.DayNames[(int)value.DayOfWeek];
-                                    result.Append(upperCaseFlag ? dayName.ToUpper() : dayName);
+                                    result.Append(upperCaseFlag ? dayName.ToUpperInvariant() : dayName);
                                     break;
                                 }
                             case 'b':
                                 var abbreviatedMonthName = context.CultureInfo.DateTimeFormat.AbbreviatedMonthNames[value.Month - 1];
-                                result.Append(upperCaseFlag ? abbreviatedMonthName.ToUpper() : abbreviatedMonthName);
+                                result.Append(upperCaseFlag ? abbreviatedMonthName.ToUpperInvariant() : abbreviatedMonthName);
                                 break;
-
                             case 'B':
                                 {
                                     var monthName = context.CultureInfo.DateTimeFormat.MonthNames[value.Month - 1];
-                                    result.Append(upperCaseFlag ? monthName.ToUpper() : monthName);
+                                    result.Append(upperCaseFlag ? monthName.ToUpperInvariant() : monthName);
                                     break;
                                 }
                             case 'c':
                                 {
                                     // c is defined as "%a %b %e %T %Y" but it's also supposed to be locale aware, so we are using the 
                                     // C# standard format instead
-                                    result.Append(upperCaseFlag ? value.ToString("F", context.CultureInfo).ToUpper() : value.ToString("F", context.CultureInfo));
+                                    result.Append(upperCaseFlag ? value.ToString("F", context.CultureInfo).ToUpperInvariant() : value.ToString("F", context.CultureInfo));
                                     break;
                                 }
-                            case 'C': result.Append(value.Year / 100); break;
-                            case 'd':
-                                {
-                                    var day = value.Day.ToString(context.CultureInfo);
-                                    if (useSpaceForPaddingFlag)
-                                    {
-                                        result.Append(day.PadLeft(2, ' '));
-                                    }
-                                    else if (removeLeadingZerosFlag)
-                                    {
-                                        result.Append(day);
-                                    }
-                                    else
-                                    {
-                                        result.Append(day.PadLeft(2, '0'));
-                                    }
-                                    break;
-                                }
+                            case 'C': result.Append(Format(value.Year / 100, 2)); break;
+                            case 'd': result.Append(Format(value.Day, 2)); break;
                             case 'D':
                                 {
-
                                     var sb = new StringBuilder();
                                     ForStrf(value, "%m/%d/%y", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
                                     break;
                                 }
                             case 'e':
-                                result.Append(value.Day.ToString(context.CultureInfo).PadLeft(2, ' '));
+                                useSpaceForPaddingFlag = true; result.Append(Format(value.Day, 2));
                                 break;
                             case 'F':
                                 {
                                     var sb = new StringBuilder();
                                     ForStrf(value, "%Y-%m-%d", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
                                     break;
                                 }
+                            case 'g':
+                                {
+                                    var week = context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstFullWeek, DayOfWeek.Monday);
+                                    var year = week >= 52 && value.DateTime.Month == 1 ? value.Year - 1 : value.Year;
+                                    result.Append(Format(year % 100));
+                                    break;
+                                }
+                            case 'G':
+                                {
+                                    var week = context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstFullWeek, DayOfWeek.Monday);
+                                    var year = week >= 52 && value.DateTime.Month == 1 ? value.Year - 1 : value.Year;
+                                    result.Append(Format(year));
+                                    break;
+                                }
+                            case 'h':
+                                ForStrf(value, "%b", result);
+                                break;
                             case 'H':
                                 result.Append(value.ToString("HH"));
                                 break;
-                            case 'I': result.Append((value.Hour % 12).ToString(context.CultureInfo).PadLeft(2, '0')); break;
-                            case 'j': result.Append(value.DayOfYear.ToString(context.CultureInfo).PadLeft(3, '0')); break;
-                            case 'k': result.Append(value.Hour); break;
-                            case 'l': result.Append(value.ToString("%h", context.CultureInfo).PadLeft(2, ' ')); break;
-                            case 'L': result.Append(value.Millisecond.ToString(context.CultureInfo).PadLeft(3, '0')); break;
-                            case 'm':
+                            case 'I':
                                 {
-                                    var month = value.Month.ToString(context.CultureInfo);
-                                    if (useSpaceForPaddingFlag)
+                                    var hour = value.Hour switch
                                     {
-                                        result.Append(month.PadLeft(2, ' '));
-                                    }
-                                    else if (removeLeadingZerosFlag)
-                                    {
-                                        result.Append(month);
-                                    }
-                                    else
-                                    {
-                                        result.Append(month.PadLeft(2, '0'));
-                                    }
+                                        0 => 12,
+                                        <= 12 => value.Hour,
+                                        _ => value.Hour - 12
+                                    };
+
+                                    result.Append(Format(hour, 2));
                                     break;
                                 }
+                            case 'j': result.Append(Format(value.DayOfYear, 3)); break;
+                            case 'k': result.Append(value.Hour); break;
+                            case 'l':
+                                {
+                                    useSpaceForPaddingFlag = true;
+                                    var hour = value.Hour switch
+                                    {
+                                        0 => 12,
+                                        <= 12 => value.Hour,
+                                        _ => value.Hour - 12
+                                    };
+
+                                    result.Append(Format(hour, 2));
+                                    break;
+                                }
+                            case 'L': result.Append(Format(value.Millisecond, 3)); break;
+                            case 'm': result.Append(Format(value.Month, 2)); break;
                             case 'M':
-                                result.Append(value.Minute.ToString(context.CultureInfo).PadLeft(2, '0'));
+                                result.Append(Format(value.Minute, 2));
                                 break;
-                            case 'p': result.Append(value.ToString("tt", context.CultureInfo).ToUpper()); break;
-                            case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLower()); break;
+                            case 'n': result.Append(new String('\n', width ?? 1)); break;
+                            case 'N':
+                                width ??= 9;
+                                var v = (value.Ticks % 10000000).ToString(context.CultureInfo);
+                                result.Append(v.Length >= width ? v.Substring(0, width.Value) : v.PadRight(width.Value, '0'));
+                                break;
+                            case 'p': result.Append(value.ToString("tt", context.CultureInfo).ToUpperInvariant()); break;
+                            case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLowerInvariant()); break;
                             case 'r':
                                 {
                                     var sb = new StringBuilder();
                                     ForStrf(value, "%I:%M:%S %p", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
                                     break;
                                 }
                             case 'R':
                                 {
                                     var sb = new StringBuilder();
                                     ForStrf(value, "%H:%M", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
                                     break;
                                 }
-                            case 's': result.Append(value.ToUnixTimeSeconds()); break;
+                            case 's': result.Append(Format(value.ToUnixTimeSeconds())); break;
                             case 'S':
-                                result.Append(value.Second.ToString(context.CultureInfo).PadLeft(2, '0'));
+                                result.Append(Format(value.Second, 2));
                                 break;
+                            case 't': result.Append(new String('\t', width ?? 1)); break;
+                            case 'T':
+                                {
+                                    var sb = new StringBuilder();
+                                    ForStrf(value, "%H:%M:%S", sb);
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
+                                    break;
+                                }
+                            case 'u': result.Append(value.DayOfWeek switch { DayOfWeek.Sunday => 7, _ => (int)value.DayOfWeek }); break;
+                            case 'U':
+                                {
+                                    var week = context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstFullWeek, DayOfWeek.Sunday);
+                                    if (week >= 52 && value.DateTime.Month == 1)
+                                    {
+                                        week = 0;
+                                    }
+                                    result.Append(Format(week, 2));
+                                    break;
+                                }
+                            case 'v':
+                                {
+                                    var sb = new StringBuilder();
+                                    ForStrf(value, "%e-%b-%Y", sb);
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
+                                    break;
+                                }
+                            case 'V': result.Append(Format(value.DayOfYear / 7 + 1, 2)); break;
+                            case 'w': result.Append(((int)value.DayOfWeek).ToString(context.CultureInfo)); break;
+                            case 'W':
+                                {
+                                    var week = context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstFullWeek, DayOfWeek.Monday);
+                                    if (week >= 52 && value.DateTime.Month == 1)
+                                    {
+                                        week = 0;
+                                    }
+                                    result.Append(Format(week, 2));
+                                    break;
+                                }
                             case 'x':
                                 {
                                     // x is defined as "%m/%d/%y" but it's also supposed to be locale aware, so we are using the 
                                     // C# short date pattern standard format instead
 
-                                    result.Append(upperCaseFlag ? value.ToString("d", context.CultureInfo).ToUpper() : value.ToString("d", context.CultureInfo));
+                                    result.Append(upperCaseFlag ? value.ToString("d", context.CultureInfo).ToUpperInvariant() : value.ToString("d", context.CultureInfo));
                                     break;
                                 }
                             case 'X':
@@ -468,32 +593,14 @@ namespace Fluid.Filters
                                     // X is defined as "%T" but it's also supposed to be locale aware, so we are using the 
                                     // C# short time pattern standard format instead
 
-                                    result.Append(upperCaseFlag ? value.ToString("t", context.CultureInfo).ToUpper() : value.ToString("t", context.CultureInfo));
+                                    result.Append(upperCaseFlag ? value.ToString("t", context.CultureInfo).ToUpperInvariant() : value.ToString("t", context.CultureInfo));
                                     break;
                                 }
-                            case 'T':
-                                {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%H:%M:%S", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
-                                    break;
-                                }
-                            case 'u': result.Append((int)value.DayOfWeek); break;
-                            case 'U': result.Append(context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstDay, DayOfWeek.Sunday).ToString().PadLeft(2, '0')); break;
-                            case 'v':
-                                {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%e-%b-%Y", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
-                                    break;
-                                }
-                            case 'V': result.Append((value.DayOfYear / 7 + 1).ToString(context.CultureInfo).PadLeft(2, '0')); break;
-                            case 'W': result.Append(context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstDay, DayOfWeek.Monday).ToString().PadLeft(2, '0')); break;
                             case 'y':
-                                result.Append(value.Year % 100);
+                                result.Append(Format(value.Year % 100, 2));
                                 break;
                             case 'Y':
-                                result.Append(value.Year.ToString().PadLeft(4, '0'));
+                                result.Append(Format(value.Year, 4));
                                 break;
                             case 'z':
                                 {
@@ -509,7 +616,7 @@ namespace Fluid.Filters
                                 {
                                     var sb = new StringBuilder();
                                     ForStrf(value, "%a %b %e %H:%M:%S %Z %Y", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
                                     break;
                                 }
                             default: result.Append('%').Append(c); break;
@@ -520,6 +627,19 @@ namespace Fluid.Filters
                         useSpaceForPaddingFlag = false;
                         upperCaseFlag = false;
                         useColonsForZeeDirectiveFlag = false;
+                        width = null;
+
+                        string Format(long value, int defaultWidth = 0)
+                        {
+                            var stringValue = value.ToString(context.CultureInfo);
+
+                            if (removeLeadingZerosFlag)
+                            {
+                                return stringValue.TrimStart('0');
+                            }
+
+                            return stringValue.PadLeft(width == null ? defaultWidth : width.Value, useSpaceForPaddingFlag ? ' ' : '0');
+                        }
                     }
                 }
             }
@@ -607,7 +727,9 @@ namespace Fluid.Filters
                         foreach (var property in properties)
                         {
                             var name = conv(property);
+#pragma warning disable CA1859 // It's suggesting a wrong conversion (StringValue)
                             var fluidValue = await input.GetValueAsync(name, ctx);
+#pragma warning restore CA1859
                             if (fluidValue.IsNil())
                             {
                                 continue;
@@ -725,61 +847,91 @@ namespace Fluid.Filters
         public static ValueTask<FluidValue> MD5(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var value = input.ToStringValue();
-            if (String.IsNullOrEmpty(value))
+            if (string.IsNullOrEmpty(value))
             {
                 return StringValue.Empty;
             }
 
-            using (var provider = System.Security.Cryptography.MD5.Create())
-            {
-                var builder = new StringBuilder(32);
-                foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
-                {
-                    builder.Append(b.ToString("x2").ToLower());
-                }
+            // c.f. HashingBenchmarks
 
-                return new StringValue(builder.ToString());
+#if NET6_0_OR_GREATER
+#pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
+            var hash = System.Security.Cryptography.MD5.HashData(Encoding.UTF8.GetBytes(value));
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+#pragma warning restore CA5351
+#else
+
+#pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
+            using var provider = System.Security.Cryptography.MD5.Create();
+#pragma warning restore CA5351
+            var builder = new StringBuilder(32);
+#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+#pragma warning restore CA1850
+            {
+                builder.Append(b.ToString("x2"));
             }
+
+            return new StringValue(builder.ToString());
+#endif
         }
 
         public static ValueTask<FluidValue> Sha1(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var value = input.ToStringValue();
-            if (String.IsNullOrEmpty(value))
+            if (string.IsNullOrEmpty(value))
             {
                 return StringValue.Empty;
             }
 
-            using (var provider = System.Security.Cryptography.SHA1.Create())
-            {
-                var builder = new StringBuilder(40);
-                foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
-                {
-                    builder.Append(b.ToString("x2").ToLower());
-                }
+            // c.f. HashingBenchmarks
 
-                return new StringValue(builder.ToString());
+#if NET6_0_OR_GREATER
+#pragma warning disable CA5350 // Do Not Use Broken Cryptographic Algorithms
+            var hash = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(value));
+#pragma warning restore CA5350
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+#else
+#pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
+            using var provider = System.Security.Cryptography.SHA1.Create();
+#pragma warning restore CA5350
+            var builder = new StringBuilder(40);
+#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+#pragma warning restore CA1850
+            {
+                builder.Append(b.ToString("x2"));
             }
+
+            return new StringValue(builder.ToString());
+#endif
         }
 
         public static ValueTask<FluidValue> Sha256(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var value = input.ToStringValue();
-            if (String.IsNullOrEmpty(value))
+            if (string.IsNullOrEmpty(value))
             {
                 return StringValue.Empty;
             }
 
-            using (var provider = System.Security.Cryptography.SHA256.Create())
-            {
-                var builder = new StringBuilder(64);
-                foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
-                {
-                    builder.Append(b.ToString("x2").ToLower());
-                }
+            // c.f. HashingBenchmarks
 
-                return new StringValue(builder.ToString());
+#if NET6_0_OR_GREATER
+            var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(value));
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+#else
+            using var provider = System.Security.Cryptography.SHA256.Create();
+            var builder = new StringBuilder(64);
+#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.SHA256.HashData' method over 'ComputeHash'
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+#pragma warning restore CA1850
+            {
+                builder.Append(b.ToString("x2"));
             }
+
+            return new StringValue(builder.ToString());
+#endif
         }
     }
 }

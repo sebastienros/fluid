@@ -2,7 +2,7 @@
 
 namespace Fluid.Ast
 {
-    public class IndexerSegment : MemberSegment
+    public sealed class IndexerSegment : MemberSegment
     {
         public IndexerSegment(Expression expression)
         {

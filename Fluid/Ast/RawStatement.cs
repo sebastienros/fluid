@@ -4,7 +4,7 @@ using Fluid.Utils;
 
 namespace Fluid.Ast
 {
-    public class RawStatement : Statement
+    public sealed class RawStatement : Statement
     {
         private readonly TextSpan _text;
 
@@ -32,5 +32,7 @@ namespace Fluid.Ast
                 ? new ValueTask<Completion>(Completion.Normal)
                 : Awaited(task);
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitRawStatement(this);
     }
 }

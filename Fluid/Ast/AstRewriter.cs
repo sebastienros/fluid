@@ -30,7 +30,7 @@ namespace Fluid.Ast
             }
 
             result = expression;
-            return false;            
+            return false;
         }
 
         protected bool TryRewriteStatements<T>(IReadOnlyList<T> statements, out IReadOnlyList<T> result) where T : Statement
@@ -47,7 +47,7 @@ namespace Fluid.Ast
                 if (newStatement != null)
                 {
                     newStatements.Add(newStatement);
-                }                
+                }
             }
 
             result = updated ? newStatements : statements;
@@ -114,6 +114,16 @@ namespace Fluid.Ast
             return assignStatement;
         }
 
+        protected internal override Expression VisitAddBinaryExpression(AddBinaryExpression addBinaryExpression)
+        {
+            if (TryRewriteExpression(addBinaryExpression.Left, out var newLeft) | TryRewriteExpression(addBinaryExpression.Right, out var newRight))
+            {
+                return new AddBinaryExpression(newLeft, newRight);
+            }
+
+            return addBinaryExpression;
+        }
+
         protected internal override Expression VisitAndBinaryExpression(AndBinaryExpression andBinaryExpression)
         {
             if (TryRewriteExpression(andBinaryExpression.Left, out var newLeft) | TryRewriteExpression(andBinaryExpression.Right, out var newRight))
@@ -132,6 +142,16 @@ namespace Fluid.Ast
             }
 
             return containsBinaryExpression;
+        }
+
+        protected internal override Expression VisitDivideBinaryExpression(DivideBinaryExpression divideBinaryExpression)
+        {
+            if (TryRewriteExpression(divideBinaryExpression.Left, out var newLeft) | TryRewriteExpression(divideBinaryExpression.Right, out var newRight))
+            {
+                return new DivideBinaryExpression(newLeft, newRight);
+            }
+
+            return divideBinaryExpression;
         }
 
         protected internal override Expression VisitEndsWithBinaryExpression(EndsWithBinaryExpression endsWithBinaryExpression)
@@ -164,14 +184,34 @@ namespace Fluid.Ast
             return greaterThanBinaryExpression;
         }
 
-        protected internal override Expression VisitLowerThanBinaryExpression(LowerThanBinaryExpression lowerThanExpression)
+        protected internal override Expression VisitLowerThanBinaryExpression(LowerThanBinaryExpression lowerThanBinaryExpression)
         {
-            if (TryRewriteExpression(lowerThanExpression.Left, out var newLeft) | TryRewriteExpression(lowerThanExpression.Right, out var newRight))
+            if (TryRewriteExpression(lowerThanBinaryExpression.Left, out var newLeft) | TryRewriteExpression(lowerThanBinaryExpression.Right, out var newRight))
             {
-                return new LowerThanBinaryExpression(newLeft, newRight, lowerThanExpression.Strict);
+                return new LowerThanBinaryExpression(newLeft, newRight, lowerThanBinaryExpression.Strict);
             }
 
-            return lowerThanExpression;
+            return lowerThanBinaryExpression;
+        }
+
+        protected internal override Expression VisitModuloBinaryExpression(ModuloBinaryExpression moduloBinaryExpression)
+        {
+            if (TryRewriteExpression(moduloBinaryExpression.Left, out var newLeft) | TryRewriteExpression(moduloBinaryExpression.Right, out var newRight))
+            {
+                return new ModuloBinaryExpression(newLeft, newRight);
+            }
+
+            return moduloBinaryExpression;
+        }
+
+        protected internal override Expression VisitMultiplyBinaryExpression(MultiplyBinaryExpression multiplyBinaryExpression)
+        {
+            if (TryRewriteExpression(multiplyBinaryExpression.Left, out var newLeft) | TryRewriteExpression(multiplyBinaryExpression.Right, out var newRight))
+            {
+                return new MultiplyBinaryExpression(newLeft, newRight);
+            }
+
+            return multiplyBinaryExpression;
         }
 
         protected internal override Expression VisitNotEqualBinaryExpression(NotEqualBinaryExpression notEqualBinaryExpression)
@@ -192,6 +232,16 @@ namespace Fluid.Ast
             }
 
             return orBinaryExpression;
+        }
+
+        protected internal override Expression VisitSubtractBinaryExpression(SubtractBinaryExpression subtractBinaryExpression)
+        {
+            if (TryRewriteExpression(subtractBinaryExpression.Left, out var newLeft) | TryRewriteExpression(subtractBinaryExpression.Right, out var newRight))
+            {
+                return new SubtractBinaryExpression(newLeft, newRight);
+            }
+
+            return subtractBinaryExpression;
         }
 
         protected internal override Expression VisitStartsWithBinaryExpression(StartsWithBinaryExpression startsWithBinaryExpression)
@@ -285,7 +335,7 @@ namespace Fluid.Ast
         {
             var updated = false;
             var newParameters = new List<FilterArgument>(filterExpression.Parameters.Count);
-            
+
             foreach (var parameter in filterExpression.Parameters)
             {
                 if (TryRewriteExpression(parameter.Expression, out var newExpression))
@@ -318,6 +368,16 @@ namespace Fluid.Ast
             return forStatement;
         }
 
+        protected internal override Statement VisitFromStatement(FromStatement fromStatement)
+        {
+            if (TryRewriteExpression(fromStatement.Path, out var newPath))
+            {
+                return new FromStatement(fromStatement.Parser, newPath, fromStatement.Functions);
+            }
+
+            return fromStatement;
+        }
+
         protected internal override Statement VisitIfStatement(IfStatement ifStatement)
         {
             if (TryRewriteExpression(ifStatement.Condition, out var newCondition) |
@@ -340,7 +400,7 @@ namespace Fluid.Ast
             {
                 return new IncludeStatement(includeStatement.Parser, newPath, newWith, newFor, includeStatement.Alias, newAssignStatements.ToList());
             }
-            
+
             return includeStatement;
         }
 
@@ -403,7 +463,7 @@ namespace Fluid.Ast
             {
                 return new OutputStatement(newExpression);
             }
-            
+
             return outputStatement;
         }
 
@@ -414,7 +474,7 @@ namespace Fluid.Ast
             {
                 return new RangeExpression(newFrom, newTo);
             }
-            
+
             return rangeExpression;
         }
 
@@ -425,7 +485,7 @@ namespace Fluid.Ast
 
         protected internal override Statement VisitRenderStatement(RenderStatement renderStatement)
         {
-            if (TryRewriteExpression(renderStatement.With, out var newWith) | 
+            if (TryRewriteExpression(renderStatement.With, out var newWith) |
                 TryRewriteExpression(renderStatement.For, out var newFor) |
                 TryRewriteStatements(renderStatement.AssignStatements, out var newAssignStatements))
             {

@@ -42,6 +42,8 @@ namespace Fluid.Values
                         return false;
                     }
                 }
+
+                return true;
             }
             else if (other.Type == FluidValues.Empty)
             {
@@ -88,8 +90,14 @@ namespace Fluid.Values
             return 0;
         }
 
+        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
+        }
+
+        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        {
+            return default;
         }
 
         public override string ToStringValue()
@@ -120,14 +128,14 @@ namespace Fluid.Values
             foreach (var key in _value.Keys)
             {
                 _value.TryGetValue(key, out var value);
-                yield return new ArrayValue(new[] { new StringValue(key),  value });
+                yield return new ArrayValue([new StringValue(key), value]);
             }
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
             // The is operator will return false if null
-            if (other is DictionaryValue otherValue)
+            if (obj is DictionaryValue otherValue)
             {
                 return _value.Equals(otherValue._value);
             }

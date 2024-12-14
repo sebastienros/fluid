@@ -1,9 +1,9 @@
-﻿using System.Text.Encodings.Web;
-using Fluid.Values;
+﻿using Fluid.Values;
+using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
 {
-    public class DecrementStatement : Statement
+    public sealed class DecrementStatement : Statement
     {
         public DecrementStatement(string identifier)
         {
@@ -12,9 +12,7 @@ namespace Fluid.Ast
 
         public string Identifier { get; }
 
-        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitDecrementStatement(this);
-
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
@@ -25,8 +23,8 @@ namespace Fluid.Ast
             var prefixedIdentifier = IncrementStatement.Prefix + Identifier;
 
             var value = context.GetValue(prefixedIdentifier);
-            
-            if (value.IsNil()) 
+
+            if (value.IsNil())
             {
                 value = NumberValue.Zero;
             }
@@ -37,9 +35,11 @@ namespace Fluid.Ast
 
             context.SetValue(prefixedIdentifier, value);
 
-            value.WriteTo(writer, encoder, context.CultureInfo);
+            await value.WriteToAsync(writer, encoder, context.CultureInfo);
 
-            return Normal();
+            return Completion.Normal;
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitDecrementStatement(this);
     }
 }

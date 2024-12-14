@@ -63,7 +63,7 @@ namespace Fluid
         {
             static async ValueTask<Completion> Awaited(
                 ValueTask<Completion> task,
-                int startIndex, 
+                int startIndex,
                 IReadOnlyList<Statement> statements,
                 TextWriter writer,
                 TextEncoder encoder,
@@ -80,7 +80,7 @@ namespace Fluid
                 {
                     var statement = statements[i];
                     completion = await statement.WriteToAsync(writer, encoder, context);
-                
+
                     if (completion != Completion.Normal)
                     {
                         // Stop processing the block statements
@@ -92,7 +92,7 @@ namespace Fluid
                 return Completion.Normal;
             }
 
-            
+
             for (var i = 0; i < statements.Count; i++)
             {
                 var statement = statements[i];
@@ -101,7 +101,7 @@ namespace Fluid
                 {
                     return Awaited(task, i + 1, statements, writer, encoder, context);
                 }
-                
+
                 var completion = task.Result;
                 if (completion != Completion.Normal)
                 {

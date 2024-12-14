@@ -3,20 +3,22 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
 {
-    public class IncludeStatement : Statement
+#pragma warning disable CA1001 // Types that own disposable fields should be disposable
+    public sealed class IncludeStatement : Statement
+#pragma warning restore CA1001
     {
         public const string ViewExtension = ".liquid";
         private volatile CachedTemplate _cachedTemplate;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
-        public IncludeStatement(FluidParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, List<AssignStatement> assignStatements = null)
+        public IncludeStatement(FluidParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, IReadOnlyList<AssignStatement> assignStatements = null)
         {
             Parser = parser;
             Path = path;
             With = with;
             For = @for;
             Alias = alias;
-            AssignStatements = assignStatements;
+            AssignStatements = assignStatements ?? [];
         }
 
         public FluidParser Parser { get; }
@@ -25,8 +27,6 @@ namespace Fluid.Ast
         public Expression With { get; }
         public Expression For { get; }
         public string Alias { get; }
-
-        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIncludeStatement(this);
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
@@ -83,8 +83,8 @@ namespace Fluid.Ast
 
             try
             {
-                context.EnterChildScope(); 
-                
+                context.EnterChildScope();
+
                 if (With != null)
                 {
                     var with = await With.EvaluateAsync(context);
@@ -93,7 +93,7 @@ namespace Fluid.Ast
 
                     await _cachedTemplate.Template.RenderAsync(writer, encoder, context);
                 }
-                else if (AssignStatements != null)
+                else if (AssignStatements.Count > 0)
                 {
                     var length = AssignStatements.Count;
                     for (var i = 0; i < length; i++)
@@ -126,8 +126,8 @@ namespace Fluid.Ast
                             // Set helper variables
                             forloop.Index = i + 1;
                             forloop.Index0 = i;
-                            forloop.RIndex = length - i - 1;
-                            forloop.RIndex0 = length - i;
+                            forloop.RIndex = length - i;
+                            forloop.RIndex0 = length - i - 1;
                             forloop.First = i == 0;
                             forloop.Last = i == length - 1;
 
@@ -157,7 +157,8 @@ namespace Fluid.Ast
             return Completion.Normal;
         }
 
-        private record class CachedTemplate(IFluidTemplate Template, string Name);
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIncludeStatement(this);
 
+        private sealed record CachedTemplate(IFluidTemplate Template, string Name);
     }
 }

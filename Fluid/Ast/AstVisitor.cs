@@ -52,6 +52,15 @@ namespace Fluid.Ast
             return assignStatement;
         }
 
+        protected internal virtual Expression VisitAddBinaryExpression(AddBinaryExpression addBinaryExpression)
+        {
+            Visit(addBinaryExpression.Left);
+
+            Visit(addBinaryExpression.Right);
+
+            return addBinaryExpression;
+        }
+
         protected internal virtual Expression VisitAndBinaryExpression(AndBinaryExpression andBinaryExpression)
         {
             Visit(andBinaryExpression.Left);
@@ -68,6 +77,15 @@ namespace Fluid.Ast
             Visit(containsBinaryExpression.Right);
 
             return containsBinaryExpression;
+        }
+
+        protected internal virtual Expression VisitDivideBinaryExpression(DivideBinaryExpression divideBinaryExpression)
+        {
+            Visit(divideBinaryExpression.Left);
+
+            Visit(divideBinaryExpression.Right);
+
+            return divideBinaryExpression;
         }
 
         protected internal virtual Expression VisitEndsWithBinaryExpression(EndsWithBinaryExpression endsWithBinaryExpression)
@@ -97,13 +115,31 @@ namespace Fluid.Ast
             return greaterThanBinaryExpression;
         }
 
-        protected internal virtual Expression VisitLowerThanBinaryExpression(LowerThanBinaryExpression lowerThanExpression)
+        protected internal virtual Expression VisitLowerThanBinaryExpression(LowerThanBinaryExpression lowerThanBinaryExpression)
         {
-            Visit(lowerThanExpression.Left);
+            Visit(lowerThanBinaryExpression.Left);
 
-            Visit(lowerThanExpression.Right);
+            Visit(lowerThanBinaryExpression.Right);
 
-            return lowerThanExpression;
+            return lowerThanBinaryExpression;
+        }
+
+        protected internal virtual Expression VisitModuloBinaryExpression(ModuloBinaryExpression moduloBinaryExpression)
+        {
+            Visit(moduloBinaryExpression.Left);
+
+            Visit(moduloBinaryExpression.Right);
+
+            return moduloBinaryExpression;
+        }
+
+        protected internal virtual Expression VisitMultiplyBinaryExpression(MultiplyBinaryExpression multiplyBinaryExpression)
+        {
+            Visit(multiplyBinaryExpression.Left);
+
+            Visit(multiplyBinaryExpression.Right);
+
+            return multiplyBinaryExpression;
         }
 
         protected internal virtual Expression VisitNotEqualBinaryExpression(NotEqualBinaryExpression notEqualBinaryExpression)
@@ -122,6 +158,15 @@ namespace Fluid.Ast
             Visit(orBinaryExpression.Right);
 
             return orBinaryExpression;
+        }
+
+        protected internal virtual Expression VisitSubtractBinaryExpression(SubtractBinaryExpression subtractBinaryExpression)
+        {
+            Visit(subtractBinaryExpression.Left);
+
+            Visit(subtractBinaryExpression.Right);
+
+            return subtractBinaryExpression;
         }
 
         protected internal virtual Expression VisitStartsWithBinaryExpression(StartsWithBinaryExpression startsWithBinaryExpression)
@@ -245,6 +290,13 @@ namespace Fluid.Ast
             return forStatement;
         }
 
+        protected internal virtual Statement VisitFromStatement(FromStatement fromStatement)
+        {
+            Visit(fromStatement.Path);
+
+            return fromStatement;
+        }
+
         protected internal virtual Statement VisitIfStatement(IfStatement ifStatement)
         {
             Visit(ifStatement.Condition);
@@ -274,7 +326,7 @@ namespace Fluid.Ast
             Visit(includeStatement.With);
             Visit(includeStatement.For);
             Visit(includeStatement.Path);
-            
+
             return includeStatement;
         }
 
@@ -327,7 +379,7 @@ namespace Fluid.Ast
         protected internal virtual Statement VisitOutputStatement(OutputStatement outputStatement)
         {
             Visit(outputStatement.Expression);
-            
+
             return outputStatement;
         }
 
@@ -335,7 +387,7 @@ namespace Fluid.Ast
         {
             Visit(rangeExpression.From);
             Visit(rangeExpression.To);
-            
+
             return rangeExpression;
         }
 

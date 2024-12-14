@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text.Encodings.Web;
@@ -120,7 +120,7 @@ namespace Fluid.Tests
         public async Task ShouldCustomizeCaptures()
         {
             _parser.TryParse("{% capture foo %}hello <br /> world{% endcapture %}{{ foo }}", out var template, out var error);
-            var result = await template.RenderAsync(new TemplateContext { Captured = (identifier, captured) => new ValueTask<string>(captured.ToUpper()) }, HtmlEncoder.Default);
+            var result = await template.RenderAsync(new TemplateContext { Captured = (identifier, captured, context) => new ValueTask<FluidValue>(new StringValue(captured.ToStringValue().ToUpper(), false)) }, HtmlEncoder.Default);
             Assert.Equal("HELLO <BR /> WORLD", result);
         }
 
@@ -364,14 +364,14 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task ShouldEvaluateStringIndex()
+        public async Task StringIndexerReturnsNil()
         {
-            _parser.TryParse("{{ x[1] }}", out var template, out var error);
+            _parser.TryParse("{% if x[0] == blank %}true{% else %}false{% endif %}", out var template, out var error);
             var context = new TemplateContext();
             context.SetValue("x", "abc");
 
             var result = await template.RenderAsync(context);
-            Assert.Equal("b", result);
+            Assert.Equal("true", result);
         }
 
         [Fact]
@@ -685,6 +685,21 @@ turtle
             Assert.Equal(expected, resultUS);
         }
 
+        [Theory]
+        [InlineData("{{ dic[1] }}", "/1/")]
+        [InlineData("{{ dic['1'] }}", "/1/")]
+        [InlineData("{{ dic[10] }}", "/10/")]
+        [InlineData("{{ dic['10'] }}", "/10/")]
+        [InlineData("{{ dic.2_ }}", "/2_/")]
+        [InlineData("{{ dic.10 }}", "/10/")]
+        public Task PropertiesCanBeDigits(string source, string expected)
+        {
+            return CheckAsync(source, expected, ctx =>
+            {
+                ctx.SetValue("dic", new Dictionary<string, string> { { "1", "/1/" }, { "2_", "/2_/" }, { "10", "/10/" } });
+            });
+        }
+
         [Fact]
         public Task IndexersAccessProperties()
         {
@@ -832,10 +847,20 @@ shape: '{{ shape }}'");
         {
             _parser.TryParse("{% for w in (1..10000) %} FOO {% endfor %}", out var template, out var error);
 
-            var options = new TemplateOptions() { MaxSteps = 100 };
+            // Options are inherited from TemplateOptions
+            var options = new TemplateOptions
+            {
+                MaxSteps = 100
+            };
+
             var context = new TemplateContext(options);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => template.RenderAsync(context).AsTask());
+
+            // Options are customized on TemplateContext
+            context.MaxSteps = 0;
+
+            await template.RenderAsync(context).AsTask();
         }
 
         [Fact]
@@ -1153,6 +1178,22 @@ after
             var context = new TemplateContext();
             var result = await template.RenderAsync(context);
             Assert.Equal("123123", result);
+        }
+
+        [Fact]
+        public async Task ArraysShouldCompareElements()
+        {
+            var source = """
+                {% assign people1 = "alice, bob, carol" | split: ", " %}
+                {% assign people2 = "alice, bob, carol" | split: ", " %}
+
+                {% if people1 == people2 %}true{%else%}false{% endif %} 
+            """;
+
+            _parser.TryParse(source, out var template);
+            var context = new TemplateContext();
+            var result = await template.RenderAsync(context);
+            Assert.Contains("true", result);
         }
     }
 }

@@ -1,16 +1,16 @@
-﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 
 namespace Fluid.Benchmarks
 {
-    [MemoryDiagnoser, GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
+    [MemoryDiagnoser, GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory), ShortRunJob]
     public class ComparisonBenchmarks
     {
-        private FluidBenchmarks _fluidBenchmarks = new FluidBenchmarks();
-        private HandlebarsBenchmarks _handlebarsBenchmarks = new HandlebarsBenchmarks();
-        private DotLiquidBenchmarks _dotLiquidBenchmarks = new DotLiquidBenchmarks();
-        private LiquidNetBenchmarks _liquidNetBenchmarks = new LiquidNetBenchmarks();
-        private ScribanBenchmarks _scribanBenchmarks = new ScribanBenchmarks();
+        private readonly FluidBenchmarks _fluidBenchmarks = new FluidBenchmarks();
+        private readonly HandlebarsBenchmarks _handlebarsBenchmarks = new HandlebarsBenchmarks();
+        private readonly DotLiquidBenchmarks _dotLiquidBenchmarks = new DotLiquidBenchmarks();
+        private readonly LiquidNetBenchmarks _liquidNetBenchmarks = new LiquidNetBenchmarks();
+        private readonly ScribanBenchmarks _scribanBenchmarks = new ScribanBenchmarks();
 
         [Benchmark(Baseline = true), BenchmarkCategory("Parse")]
         public object Fluid_Parse()

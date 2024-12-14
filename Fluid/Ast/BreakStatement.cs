@@ -2,7 +2,7 @@
 
 namespace Fluid.Ast
 {
-    public class BreakStatement : Statement
+    public sealed class BreakStatement : Statement
     {
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitBreakStatement(this);
 
@@ -10,5 +10,7 @@ namespace Fluid.Ast
         {
             return Break();
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitBreakStatement(this);
     }
 }

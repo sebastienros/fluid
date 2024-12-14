@@ -1,9 +1,9 @@
-﻿using System.Text.Encodings.Web;
+using System.Text.Encodings.Web;
 using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class AssignStatement : Statement
+    public sealed class AssignStatement : Statement
     {
         public AssignStatement(string identifier, Expression value)
         {
@@ -19,7 +19,14 @@ namespace Fluid.Ast
         {
             static async ValueTask<Completion> Awaited(ValueTask<FluidValue> task, TemplateContext context, string identifier)
             {
+
                 var value = await task;
+
+                // Substitute the result if a custom callback is provided
+                if (context.Assigned != null)
+                {
+                    value = await context.Assigned.Invoke(identifier, value, context);
+                }
                 context.SetValue(identifier, value);
                 return Completion.Normal;
             }
@@ -27,7 +34,7 @@ namespace Fluid.Ast
             context.IncrementSteps();
 
             var task = Value.EvaluateAsync(context);
-            if (!task.IsCompletedSuccessfully)
+            if (!task.IsCompletedSuccessfully || context.Assigned != null)
             {
                 return Awaited(task, context, Identifier);
             }

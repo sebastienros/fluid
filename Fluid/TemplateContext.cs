@@ -1,4 +1,4 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
@@ -6,9 +6,8 @@ namespace Fluid
 {
     public class TemplateContext
     {
-        protected int _recursion = 0;
-        protected int _steps = 0;
-        protected int _maxSteps = 0;
+        protected int _recursion;
+        protected int _steps;
 
         /// <summary>
         /// Initializes a new instance of <see cref="TemplateContext"/>.
@@ -45,7 +44,8 @@ namespace Fluid
         /// Initializes a new instance of <see cref="TemplateContext"/> with the specified <see cref="TemplateOptions"/>.
         /// </summary>
         /// <param name="options">The template options.</param>
-        public TemplateContext(TemplateOptions options)
+        /// <param name="modelNamesComparer">An optional <see cref="StringComparer"/> instance used when comparing model names.</param>
+        public TemplateContext(TemplateOptions options, StringComparer modelNamesComparer = null)
         {
             Options = options;
             LocalScope = new Scope(options.Scope);
@@ -53,18 +53,19 @@ namespace Fluid
             CultureInfo = options.CultureInfo;
             TimeZone = options.TimeZone;
             Captured = options.Captured;
+            Assigned = options.Assigned;
             Now = options.Now;
-            TemplateCompilationThreshold = options.TemplateCompilationThreshold;
-
-            _maxSteps = Options.MaxSteps;
+            MaxSteps = options.MaxSteps;
+            ModelNamesComparer = modelNamesComparer ?? options.ModelNamesComparer;
         }
 
         /// <summary>
-        /// Initializes a new instance of <see cref="TemplateContext"/> wih a model and option regiter its properties.
+        /// Initializes a new instance of <see cref="TemplateContext"/> wih a model and option register its properties.
         /// </summary>
         /// <param name="model">The model.</param>
         /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
-        public TemplateContext(object model, bool allowModelMembers = true) : this()
+        /// <param name="modelNamesComparer">An optional <see cref="StringComparer"/> instance used when comparing model names.</param>
+        public TemplateContext(object model, bool allowModelMembers = true, StringComparer modelNamesComparer = null) : this(TemplateOptions.Default, modelNamesComparer)
         {
             if (model == null)
             {
@@ -88,6 +89,16 @@ namespace Fluid
         public TemplateOptions Options { get; protected set; }
 
         /// <summary>
+        /// Gets or sets the maximum number of steps a script can execute. Leave to 0 for unlimited.
+        /// </summary>
+        public int MaxSteps { get; set; } = TemplateOptions.Default.MaxSteps;
+
+        /// <summary>
+        /// Gets <see cref="StringComparer"/> used when comparing model names.
+        /// </summary>
+        public StringComparer ModelNamesComparer { get; private set; }
+
+        /// <summary>
         /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
         /// </summary>
         public CultureInfo CultureInfo { get; set; } = TemplateOptions.Default.CultureInfo;
@@ -103,17 +114,12 @@ namespace Fluid
         public TimeZoneInfo TimeZone { get; set; } = TemplateOptions.Default.TimeZone;
 
         /// <summary>
-        /// Gets or sets the number of times the template needs to be rendered before it is compiled automatically. Default is 100. 0 disables compilation.
-        /// </summary>
-        public int TemplateCompilationThreshold { get; set; } = TemplateOptions.Default.TemplateCompilationThreshold;
-
-        /// <summary>
         /// Increments the number of statements the current template is processing.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void IncrementSteps()
         {
-            if (_maxSteps > 0 && _steps++ > _maxSteps)
+            if (MaxSteps > 0 && _steps++ > MaxSteps)
             {
                 ExceptionHelper.ThrowMaximumRecursionException();
             }
@@ -151,7 +157,12 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
         /// </summary>
-        public Func<string, string, ValueTask<string>> Captured { get; set; }
+        public TemplateOptions.CapturedDelegate Captured { get; set; }
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when an Assign tag has been evaluated.
+        /// </summary>
+        public TemplateOptions.AssignedDelegate Assigned { get; set; }
 
         /// <summary>
         /// Creates a new isolated child scope. After than any value added to this content object will be released once
@@ -220,7 +231,7 @@ namespace Fluid
         /// Sets a value on the context.
         /// </summary>
         /// <param name="name">The name of the value.</param>
-        /// <param name="value">Teh value to set.</param>
+        /// <param name="value">The value to set.</param>
         /// <returns></returns>
         public TemplateContext SetValue(string name, FluidValue value)
         {

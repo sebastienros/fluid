@@ -1,6 +1,6 @@
 ﻿namespace Fluid
 {
-    public class ParseException : Exception
+    public sealed class ParseException : Exception
     {
         //
         // Summary:

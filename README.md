@@ -2,6 +2,7 @@
 
 [![NuGet](https://img.shields.io/nuget/v/Fluid.Core.svg)](https://nuget.org/packages/Fluid.Core)
 [![MIT](https://img.shields.io/github/license/sebastienros/fluid)](https://github.com/sebastienros/fluid/blob/main/LICENSE)
+[![MyGet](https://img.shields.io/myget/fluid/vpre/fluid.core.svg?label=MyGet)](https://www.myget.org/feed/fluid/package/nuget/fluid.core)
 
 ## Basic Overview
 
@@ -9,6 +10,13 @@ Fluid is an open-source .NET template engine based on the [Liquid template langu
 
 > The following content is based on the 2.0.0-beta version, which is the recommended version even though some of its API might vary significantly.
 To see the corresponding content for v1.0 use [this version](https://github.com/sebastienros/fluid/blob/release/1.x/README.md)
+
+<br>
+
+## Tutorials
+
+[Deane Barker](https://deanebarker.net) wrote a [very comprehensive tutorial](https://deanebarker.net/tech/fluid/) on how to write Liquid templates with Fluid.
+For a high-level overview, read [The Four Levels of Fluid Development](https://deanebarker.net/tech/fluid/intro/) describing different stages of usages of Fluid.
 
 <br>
 
@@ -37,6 +45,7 @@ To see the corresponding content for v1.0 use [this version](https://github.com/
 - [Whitespace control](#whitespace-control)
 - [Custom filters](#custom-filters)
 - [Functions](#functions)
+- [Visiting and altering a template](#visiting-and-altering-a-template)
 - [Performance](#performance)
 - [Used by](#used-by)
 
@@ -372,9 +381,11 @@ Tuesday, August 1, 2017
 
 ### System time zone
 
-`TemplateOptions` and `TemplateContext` provides a property to define a default time zone to use when parsing date and times. The default value is the current system's time zone.
-When dates and times are parsed and don't specify a time zone, the default one is assumed. Setting a custom one can also prevent different environments (data centers) from
+`TemplateOptions` and `TemplateContext` provides a property to define a default time zone to use when parsing date and times. The default value is the current system's time zone. Setting a custom one can also prevent different environments (data centers) from
 generating different results.
+
+- When dates and times are parsed and don't specify a time zone, the configured one is assumed. 
+- When a time zone is provided in the source string, the resulting date time uses it.
 
 > Note: The `date` filter conforms to the Ruby date and time formats https://ruby-doc.org/core-3.0.0/Time.html#method-i-strftime. To use the .NET standard date formats, use the `format_date` filter.
 
@@ -429,7 +440,7 @@ Blocks are useful when manipulating a section of a a template as a set of statem
 Fluid provides helper method to register common tags and blocks. All tags and block always start with an __identifier__ that is
 the tag name.
 
-Each custom tag needs to provide a delegate that is evaluated when the tag is matched. Each degate will be able to use these properties:
+Each custom tag needs to provide a delegate that is evaluated when the tag is matched. Each delegate will be able to use these properties:
 
 - `writer`, a `TextWriter` instance that is used to render some text.
 - `encode`, a `TextEncoder` instance, like `HtmlEncoder`, or `NullEncoder`. It's defined by the caller of the template.
@@ -471,11 +482,13 @@ Blocks are created the same way as tags, and the lambda expression can then acce
 
 ```csharp
 
-parser.RegisterExpressionBlock("repeat", (value, statements, writer, encoder, context) =>
+parser.RegisterExpressionBlock("repeat", async (value, statements, writer, encoder, context) =>
 {
-    for (var i = 0; i < value.ToNumber(); i++)
+    var fluidValue = await value.EvaluateAsync(context);
+
+    for (var i = 0; i < fluidValue.ToNumberValue(); i++)
     {
-      await return statements.RenderStatementsAsync(writer, encoder, context);
+        await statements.RenderStatementsAsync(writer, encoder, context);
     }
 
     return Completion.Normal;
@@ -550,6 +563,17 @@ __Usage__
 Hello
 ```
 
+## Accessing the concrete syntax tree
+
+The syntax tree is accessible by casting the template to its concrete `FluidTemplate` type and using the `Statements` property.
+
+#### Source
+
+```csharp
+var template = (FluidTemplate)iTemplate;
+var statements = template.Statements;
+```
+
 <br>
 
 ## ASP.NET MVC View Engine
@@ -566,7 +590,7 @@ The package `Fluid.MvcViewEngine` provides a convenient way to use Liquid as a r
 
 #### Sample
 ```csharp
-using FluidMvcViewEngine;
+using Fluid.MvcViewEngine;
 
 public class Startup
 {
@@ -583,7 +607,7 @@ Because the Liquid language only accepts known members to be accessed, the View 
 #### View Model registration
 
 View models are automatically registered and available as the root object in liquid templates.
-Custom model regsitrations can be added when calling `AddFluid()`.
+Custom model registrations can be added when calling `AddFluid()`.
 
 ```csharp
 public class Startup
@@ -911,7 +935,17 @@ Now `field` is available as a local property of the template and can be invoked 
 {{ field('pass', type='password') }}
 ```
 
-> Macros need to be defined before they are used as they are discovered as the template is executed. They can also be defined in external templates and imported using the `{% include %}` tag.
+> Macros need to be defined before they are used as they are discovered as the template is executed.
+
+### Importing functions from external templates
+Macros defined in an external template **must** be imported before they can be invoked.
+
+```
+{% from 'forms' import field %}
+
+{{ field('user') }}
+{{ field('pass', type='password') }}
+```
 
 ### Extensibility
 
@@ -937,6 +971,119 @@ template.Render(context);
 
 <br>
 
+## Order of execution
+
+With tags with more than one `and` or `or` operator, operators are checked in order from right to left. You cannot change the order of operations using parentheses. This is the same for filters which are executed from left to right.
+However Fluid provides an option to support grouping expression with parentheses.
+
+### Enabling parentheses
+
+When instantiating a `FluidParser` set the `FluidParserOptions.AllowParentheses` property to `true`.
+
+```
+var parser = new FluidParser(new FluidParserOptions { AllowParentheses = true });
+```
+
+When parentheses are used while the feature is not enabled, a parse error will be returned (unless for ranges like `(1..4)`).
+
+At that point a template like the following will work:
+
+```liquid
+{{ 1 | plus : (2 | times: 3) }}
+```
+
+<br>
+
+## Visiting and altering a template
+
+Fluid provides a __Visitor__ pattern allowing you to analyze what a template is made of, but also altering it. This can be used for instance to check if a specific identifier is used, replace some filters by another one, or remove any expression that might not be authorized.
+
+### Visiting a template
+
+The `Fluid.Ast.AstVisitor` class can be used to create a custom visitor.
+
+Here is an example of a visitor class which records if an identifier is accessed anywhere in a template:
+
+```c#
+  public class IdentifierIsAccessedVisitor : AstVisitor
+  {
+      private readonly string _identifier;
+
+      public IdentifierIsAccessedVisitor(string identifier)
+      {
+          _identifier = identifier;
+      }
+
+      public bool IsAccessed { get; private set; }
+
+      public override IFluidTemplate VisitTemplate(IFluidTemplate template)
+      {
+          // Initialize the result each time a template is visited with the same visitor instance
+
+          IsAccessed = false;
+          return base.VisitTemplate(template);
+      }
+
+      protected override Expression VisitMemberExpression(MemberExpression memberExpression)
+      {
+          var firstSegment = memberExpression.Segments.FirstOrDefault() as IdentifierSegment;
+
+          if (firstSegment != null)
+          {
+              IsAccessed |= firstSegment.Identifier == _identifier;
+          }
+
+          return base.VisitMemberExpression(memberExpression);
+      }
+  }
+```
+
+And its usage:
+
+```c#
+var template = new FluidParser().Parse("{{ a.b | plus: 1}}");
+
+var visitor = new IdentifierIsAccessedVisitor("a");
+visitor.VisitTemplate(template);
+
+Console.WriteLine(visitor.IsAccessed); // writes True
+```
+
+### Rewriting a template
+
+The `Fluid.Ast.AstRewriter` class can be used to create a custom rewriter.
+
+Here is an example of a visitor class which replaces any `plus` filter with a `minus` one:
+
+```c#
+  public class ReplacePlusFiltersVisitor : AstRewriter
+  {
+      protected override Expression VisitFilterExpression(FilterExpression filterExpression)
+      {
+          if (filterExpression.Name == "plus")
+          {
+              return new FilterExpression(filterExpression.Input, "minus", filterExpression.Parameters);
+          }
+
+          return filterExpression;
+      }
+  }
+```
+
+And its usage:
+
+```c#
+
+var template = new FluidParser().Parse("{{ 1 | plus: 2 }}");
+
+var visitor = new ReplacePlusFiltersVisitor();
+var changed = visitor.VisitTemplate(template);
+
+var result = changed.Render();
+
+Console.WriteLine(result); // writes -1
+```
+
 ## Performance
 
 ### Caching
@@ -953,43 +1100,45 @@ Run it locally to analyze the time it takes to execute specific templates.
 #### Results
 
 Fluid is faster and allocates less memory than all other well-known .NET Liquid parsers.
-For parsing, Fluid is 60% faster than Scriban, allocating nearly 3 times less memory.
-For rendering, Fluid is slightly faster than Handlebars, 4 times faster than Scriban, but allocates at least half the memory.
-Compared to DotLiquid, Fluid renders 9 times faster, and allocates 35 times less memory.
+For parsing, Fluid is 20% faster than the second, Scriban, allocating 2 times less memory.
+For rendering, Fluid is 30% faster than the second, Handlebars, allocating half the memory, and 5 times faster than Scriban.
+Compared to DotLiquid, Fluid renders 10 times faster, and allocates 34 times less memory.
 
 ``` text
-BenchmarkDotNet=v0.13.2, OS=Windows 11 (10.0.22621.819)
-Intel Core i7-1065G7 CPU 1.30GHz, 1 CPU, 8 logical and 4 physical cores
-.NET SDK=7.0.100
-  [Host]     : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
-  DefaultJob : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.26100.2314)
+12th Gen Intel Core i7-1260P, 1 CPU, 16 logical and 12 physical cores
+.NET SDK 9.0.100
+  [Host]   : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX2
+  ShortRun : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX2
 
+Job=ShortRun  IterationCount=3  LaunchCount=1
+WarmupCount=3
 
-|             Method |          Mean |         Error |        StdDev |        Median |  Ratio | RatioSD |      Gen0 |     Gen1 |    Gen2 |   Allocated | Alloc Ratio |
-|------------------- |--------------:|--------------:|--------------:|--------------:|-------:|--------:|----------:|---------:|--------:|------------:|------------:|
-|        Fluid_Parse |      5.956 us |     0.0932 us |     0.0872 us |      5.961 us |   1.00 |    0.00 |    0.6561 |        - |       - |     2.68 KB |        1.00 |
-|      Scriban_Parse |      9.179 us |     0.3109 us |     0.8919 us |      9.333 us |   1.29 |    0.04 |    1.7242 |        - |       - |     7.07 KB |        2.64 |
-|    DotLiquid_Parse |     14.230 us |     0.2821 us |     0.5502 us |     14.117 us |   2.44 |    0.10 |    3.9673 |        - |       - |    16.21 KB |        6.05 |
-|    LiquidNet_Parse |     92.625 us |     1.8196 us |     2.4290 us |     92.299 us |  15.55 |    0.47 |   15.1367 |        - |       - |    62.08 KB |       23.17 |
-|   Handlebars_Parse |  4,396.658 us |    86.4525 us |   146.8029 us |  4,376.402 us | 738.89 |   29.11 |   39.0625 |   7.8125 |       - |   160.68 KB |       59.96 |
-|                    |               |               |               |               |        |         |           |          |         |             |             |
-|     Fluid_ParseBig |     39.423 us |     0.7568 us |     0.9841 us |     39.590 us |   1.00 |    0.00 |    2.8076 |        - |       - |    11.61 KB |        1.00 |
-|   Scriban_ParseBig |     52.415 us |     0.9024 us |     0.8441 us |     52.598 us |   1.32 |    0.04 |    7.8125 |        - |       - |       32 KB |        2.76 |
-| DotLiquid_ParseBig |     65.549 us |     2.2007 us |     6.1348 us |     63.689 us |   1.67 |    0.15 |   23.0713 |        - |       - |    94.37 KB |        8.13 |
-| LiquidNet_ParseBig | 34,256.609 us | 1,473.1558 us | 4,179.0978 us | 33,082.588 us | 941.47 |  106.43 | 6718.7500 | 406.2500 |       - | 28543.66 KB |    2,458.67 |
-|                    |               |               |               |               |        |         |           |          |         |             |             |
-|       Fluid_Render |    467.469 us |    24.3842 us |    67.9734 us |    442.731 us |   1.00 |    0.00 |   22.9492 |        - |       - |    95.87 KB |        1.00 |
-|     Scriban_Render |  1,530.949 us |    70.8292 us |   198.6128 us |  1,467.999 us |   3.33 |    0.60 |  103.5156 |  68.3594 | 68.3594 |   498.46 KB |        5.20 |
-|   DotLiquid_Render |  3,263.084 us |    64.9926 us |   126.7631 us |  3,226.557 us |   7.01 |    1.26 |  746.0938 | 175.7813 | 27.3438 |  3371.13 KB |       35.16 |
-|   LiquidNet_Render |  2,182.528 us |    76.8237 us |   220.4217 us |  2,130.184 us |   4.76 |    0.87 |  527.3438 | 492.1875 |       - |  3143.17 KB |       32.79 |
-|  Handlebars_Render |    470.900 us |     9.3233 us |    16.8118 us |    465.707 us |   1.02 |    0.19 |   46.8750 |  10.7422 |       - |   194.92 KB |        2.03 |
+| Method             | Mean          | Error         | StdDev      | Ratio    | Allocated   | Alloc Ratio |
+|------------------- |--------------:|--------------:|------------:|---------:|------------:|------------:|
+| Fluid_Parse        |      2.622 us |     1.4586 us |   0.0800 us |     1.00 |     2.83 KB |        1.00 |
+| Scriban_Parse      |      3.149 us |     0.8304 us |   0.0455 us |     1.20 |     7.14 KB |        2.53 |
+| DotLiquid_Parse    |      6.133 us |     1.5094 us |   0.0827 us |     2.34 |    16.21 KB |        5.73 |
+| LiquidNet_Parse    |     23.112 us |     6.0582 us |   0.3321 us |     8.82 |    62.04 KB |       21.94 |
+| Handlebars_Parse   |  2,662.991 us | 4,830.0818 us | 264.7531 us | 1,016.17 |   155.42 KB |       54.95 |
+|                    |               |               |             |          |             |             |
+| Fluid_ParseBig     |     10.642 us |     2.0982 us |   0.1150 us |     1.00 |    11.66 KB |        1.00 |
+| Scriban_ParseBig   |     18.546 us |    14.2197 us |   0.7794 us |     1.74 |    32.07 KB |        2.75 |
+| DotLiquid_ParseBig |     25.980 us |     8.1228 us |   0.4452 us |     2.44 |    94.36 KB |        8.10 |
+| LiquidNet_ParseBig | 11,175.713 us | 5,605.1094 us | 307.2350 us | 1,050.22 | 28542.56 KB |    2,448.69 |
+|                    |               |               |             |          |             |             |
+| Fluid_Render       |    127.984 us |    46.8250 us |   2.5666 us |     1.00 |    95.87 KB |        1.00 |
+| Scriban_Render     |    601.083 us |    86.9414 us |   4.7656 us |     4.70 |   498.66 KB |        5.20 |
+| DotLiquid_Render   |  1,248.906 us |   231.9350 us |  12.7131 us |     9.76 |   3270.3 KB |       34.11 |
+| LiquidNet_Render   |    903.463 us | 2,324.0151 us | 127.3871 us |     7.06 |  3126.47 KB |       32.61 |
+| Handlebars_Render  |    170.182 us |    30.0175 us |   1.6454 us |     1.33 |   194.92 KB |        2.03 |
 ```
 
-Tested on November 30, 2022 with
-- Scriban 5.5.0
-- DotLiquid 2.2.656
+Tested on November 24, 2024 with
+- Scriban 5.12.0
+- DotLiquid 2.2.692
 - Liquid.NET 0.10.0
-- Handlebars.Net 2.1.2
+- Handlebars.Net 2.1.6
 
 ##### Legend
 
@@ -1000,11 +1149,17 @@ Tested on November 30, 2022 with
 ## Used by
 
 Fluid is known to be used in the following projects:
-- [Orchard Core CMS](https://github.com/OrchardCMS/Orchard2)
+- [Orchard Core CMS](https://github.com/OrchardCMS/OrchardCore) Open Source .NET modular framework and CMS
 - [MaltReport](https://github.com/oldrev/maltreport) OpenDocument/OfficeOpenXML powered reporting engine for .NET and Mono
 - [Elsa Workflows](https://github.com/elsa-workflows/elsa-core) .NET Workflows Library
 - [FluentEmail](https://github.com/lukencode/FluentEmail) All in one email sender for .NET
-- [NJsonSchema](https://github.com/RicoSuter/NJsonSchema) Library to read, generate and validate JSON Schema draft v4+ schemas.
+- [NJsonSchema](https://github.com/RicoSuter/NJsonSchema) Library to read, generate and validate JSON Schema draft v4+ schemas
 - [NSwag](https://github.com/RicoSuter/NSwag) Swagger/OpenAPI 2.0 and 3.0 toolchain for .NET
+- [Optimizely](https://world.optimizely.com/blogs/deane-barker/dates/2023/1/introducing-liquid-templating/) An enterprise .NET CMS
+- [Rock](https://github.com/SparkDevNetwork/Rock) Relationship Management System
+- [TemplateTo](https://templateto.com) Powerful Template Based Document Generation
+- [Weavo Liquid Loom](https://www.weavo.dev) A Liquid Template generator/editor + corresponding Azure Logic Apps Connector / Microsoft Power Automate Connector
+- [Semantic Kernel](https://github.com/microsoft/semantic-kernel) Integrate cutting-edge LLM technology quickly and easily into your apps
+- [Mailgen](https://github.com/hsndmr/Mailgen) A .NET package that generates clean, responsive HTML e-mails for sending transactional mail
 
-_Please file an issue to be listed here._
+_Please create a pull-request to be listed here._

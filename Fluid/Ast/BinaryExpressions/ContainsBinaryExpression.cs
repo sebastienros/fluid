@@ -16,5 +16,7 @@ namespace Fluid.Ast.BinaryExpressions
                 ? BooleanValue.True
                 : BooleanValue.False;
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitContainsBinaryExpression(this);
     }
 }

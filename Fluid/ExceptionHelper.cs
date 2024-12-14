@@ -41,7 +41,7 @@ namespace Fluid
         public static void ThrowMaximumRecursionException()
         {
             throw new InvalidOperationException("The maximum level of recursion has been reached. Your script must have a cyclic include statement.");
-        }        
+        }
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -49,9 +49,5 @@ namespace Fluid
         {
             throw new InvalidOperationException("The maximum number of statements has been reached. Your script took too long to run.");
         }
-
-#if NETSTANDARD2_0
-        private class DoesNotReturnAttribute : Attribute {}
-#endif
     }
 }

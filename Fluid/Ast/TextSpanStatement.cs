@@ -39,7 +39,7 @@ namespace Fluid.Ast
             {
                 return;
             }
-            
+
             // Prevent two threads from stripping the same statement in case WriteToAsync is called concurrently
             lock (_synLock)
             {

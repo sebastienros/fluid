@@ -2,7 +2,7 @@
 
 namespace Fluid.Ast
 {
-    public class ContinueStatement : Statement
+    public sealed class ContinueStatement : Statement
     {
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitContinueStatement(this);
 
@@ -10,5 +10,7 @@ namespace Fluid.Ast
         {
             return Continue();
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitContinueStatement(this);
     }
 }

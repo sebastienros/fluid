@@ -44,5 +44,7 @@ namespace Fluid.Ast.BinaryExpressions
 
             return false;
         }
+
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitLowerThanBinaryExpression(this);
     }
 }

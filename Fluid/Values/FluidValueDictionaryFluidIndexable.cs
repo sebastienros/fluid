@@ -2,7 +2,7 @@
 {
     public sealed class FluidValueDictionaryFluidIndexable : IFluidIndexable
     {
-        private readonly IDictionary<string, FluidValue> _dictionary;
+        private readonly Dictionary<string, FluidValue> _dictionary;
 
         public FluidValueDictionaryFluidIndexable(IDictionary<string, FluidValue> dictionary)
         {

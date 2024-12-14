@@ -11,13 +11,11 @@ namespace Fluid.Ast
 
         public FluidValue Value { get; }
 
-        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitLiteralExpression(this);
-
         public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
             return new ValueTask<FluidValue>(Value);
         }
 
-        public override bool IsConstantExpression() => true;
+        protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitLiteralExpression(this);
     }
 }

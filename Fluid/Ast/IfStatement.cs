@@ -3,26 +3,23 @@ using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class IfStatement : TagStatement
+    public sealed class IfStatement : TagStatement
     {
-        private readonly List<ElseIfStatement> _elseIfStatements;
-
         public IfStatement(
             Expression condition,
-            List<Statement> statements,
+            IReadOnlyList<Statement> statements,
             ElseStatement elseStatement = null,
-            List<ElseIfStatement> elseIfStatements = null
+            IReadOnlyList<ElseIfStatement> elseIfStatements = null
         ) : base(statements)
         {
             Condition = condition;
             Else = elseStatement;
-            _elseIfStatements = elseIfStatements ?? new List<ElseIfStatement>();
+            ElseIfs = elseIfStatements ?? [];
         }
 
         public Expression Condition { get; }
         public ElseStatement Else { get; }
-
-        public IReadOnlyList<ElseIfStatement> ElseIfs => _elseIfStatements;
+        public IReadOnlyList<ElseIfStatement> ElseIfs { get; }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIfStatement(this);
 
@@ -35,9 +32,9 @@ namespace Fluid.Ast
 
                 if (result)
                 {
-                    for (var i = 0; i < _statements.Count; i++)
+                    for (var i = 0; i < Statements.Count; i++)
                     {
-                        var statement = _statements[i];
+                        var statement = Statements[i];
                         var task = statement.WriteToAsync(writer, encoder, context);
                         if (!task.IsCompletedSuccessfully)
                         {
@@ -58,9 +55,9 @@ namespace Fluid.Ast
                 }
                 else
                 {
-                    for (var i = 0; i < _elseIfStatements.Count; i++)
+                    for (var i = 0; i < ElseIfs.Count; i++)
                     {
-                        var elseIf = _elseIfStatements[i];
+                        var elseIf = ElseIfs[i];
                         var elseIfConditionTask = elseIf.Condition.EvaluateAsync(context);
                         if (!elseIfConditionTask.IsCompletedSuccessfully)
                         {
@@ -99,7 +96,6 @@ namespace Fluid.Ast
             }
         }
 
-
         private async ValueTask<Completion> Awaited(
             ValueTask<FluidValue> conditionTask,
             ValueTask<Completion> incompleteStatementTask,
@@ -112,7 +108,7 @@ namespace Fluid.Ast
 
             if (result)
             {
-                var completion =  await incompleteStatementTask;
+                var completion = await incompleteStatementTask;
                 if (completion != Completion.Normal)
                 {
                     // Stop processing the block statements
@@ -120,9 +116,9 @@ namespace Fluid.Ast
                     return completion;
                 }
 
-                for (var i = statementStartIndex; i < _statements.Count; i++)
+                for (var i = statementStartIndex; i < Statements.Count; i++)
                 {
-                    var statement = _statements[i];
+                    var statement = Statements[i];
                     completion = await statement.WriteToAsync(writer, encoder, context);
 
                     if (completion != Completion.Normal)
@@ -152,15 +148,15 @@ namespace Fluid.Ast
             TemplateContext context,
             int startIndex)
         {
-            bool condition = (await conditionTask).ToBooleanValue();
+            var condition = (await conditionTask).ToBooleanValue();
             if (condition)
             {
                 return await (elseIfTask ?? elseIf.WriteToAsync(writer, encoder, context));
             }
 
-            for (var i = startIndex; i < _elseIfStatements.Count; i++)
+            for (var i = startIndex; i < ElseIfs.Count; i++)
             {
-                elseIf = _elseIfStatements[i];
+                elseIf = ElseIfs[i];
                 if ((await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue())
                 {
                     return await elseIf.WriteToAsync(writer, encoder, context);
@@ -174,5 +170,7 @@ namespace Fluid.Ast
 
             return Completion.Normal;
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIfStatement(this);
     }
 }

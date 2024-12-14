@@ -2,25 +2,23 @@
 
 namespace Fluid.Ast
 {
-    public class WhenStatement : TagStatement
+    public sealed class WhenStatement : TagStatement
     {
-        private readonly IReadOnlyList<Expression> _options;
-
-        public WhenStatement(IReadOnlyList<Expression> options, List<Statement> statements) : base(statements)
+        public WhenStatement(IReadOnlyList<Expression> options, IReadOnlyList<Statement> statements) : base(statements)
         {
-            _options = options ?? Array.Empty<Expression>();
+            Options = options ?? [];
         }
 
-        public IReadOnlyList<Expression> Options => _options;
+        public IReadOnlyList<Expression> Options { get; }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitWhenStatement(this);
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             // Process statements until next block or end of statements
-            for (var index = 0; index < _statements.Count; index++)
+            for (var index = 0; index < Statements.Count; index++)
             {
-                var completion = await _statements[index].WriteToAsync(writer, encoder, context);
+                var completion = await Statements[index].WriteToAsync(writer, encoder, context);
 
                 if (completion != Completion.Normal)
                 {
@@ -33,5 +31,6 @@ namespace Fluid.Ast
             return Completion.Normal;
         }
 
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitWhenStatement(this);
     }
 }

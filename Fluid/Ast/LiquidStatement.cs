@@ -2,9 +2,9 @@
 
 namespace Fluid.Ast
 {
-    public class LiquidStatement : TagStatement
+    public sealed class LiquidStatement : TagStatement
     {
-        public LiquidStatement(List<Statement> statements) : base(statements)
+        public LiquidStatement(IReadOnlyList<Statement> statements) : base(statements)
         {
         }
 
@@ -14,13 +14,15 @@ namespace Fluid.Ast
         {
             context.IncrementSteps();
 
-            for (var i = 0; i < _statements.Count; i++)
+            for (var i = 0; i < Statements.Count; i++)
             {
-                var statement = _statements[i];
+                var statement = Statements[i];
                 await statement.WriteToAsync(writer, encoder, context);
             }
 
             return Completion.Normal;
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitLiquidStatement(this);
     }
 }

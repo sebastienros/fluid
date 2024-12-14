@@ -17,7 +17,7 @@
 
         public bool TryGetValue(string name, out FluidValue value)
         {
-            if(_dictionary.TryGetValue(name, out var obj))
+            if (_dictionary.TryGetValue(name, out var obj))
             {
                 value = FluidValue.Create(obj, _options);
                 return true;

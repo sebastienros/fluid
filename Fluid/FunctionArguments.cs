@@ -1,14 +1,14 @@
-﻿using Fluid.Values;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
+using Fluid.Values;
 
 namespace Fluid
 {
     /// <summary>
     /// Represents the list of arguments of a function.
     /// </summary>
-    public class FunctionArguments
+    public sealed class FunctionArguments
     {
-        public static readonly FunctionArguments Empty = new();
+        public static readonly FunctionArguments Empty = new FunctionArguments();
 
         private List<FluidValue> _positional;
         private Dictionary<string, FluidValue> _named;
@@ -62,25 +62,19 @@ namespace Fluid
         {
             if (name != null)
             {
-                if (_named == null)
-                {
-                    _named = new Dictionary<string, FluidValue>();
-                }
+                _named ??= new Dictionary<string, FluidValue>();
 
                 _named.Add(name, value);
             }
 
-            if (_positional == null)
-            {
-                _positional = new List<FluidValue>();
-            }
+            _positional ??= new List<FluidValue>();
 
             _positional.Add(value);
 
             return this;
         }
 
-        public IEnumerable<string> Names => _named?.Keys ?? Enumerable.Empty<string>();
+        public IEnumerable<string> Names => _named?.Keys ?? System.Linq.Enumerable.Empty<string>();
 
         public IEnumerable<FluidValue> Values => _positional;
 
