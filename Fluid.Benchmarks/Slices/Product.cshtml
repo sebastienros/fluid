@@ -1,0 +1,12 @@
+@using Fluid.Benchmarks
+@inherits RazorSlice<List<Product>>
+<ul id='products'>
+  @foreach (var product in Model)
+  {
+  <li>
+    <h2>@product.Name</h2>
+      Only @product.Price
+      @product.Description.Substring(0, 15)
+  </li>
+  }
+</ul>

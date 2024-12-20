@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -7,6 +7,7 @@
     <!-- Ignore vulnerable packages imported for benchmarking only -->
     <NoWarn>$(NoWarn);NU1903</NoWarn>
     <IsPackable>false</IsPackable>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <SignAssembly>false</SignAssembly>
   </PropertyGroup>
 
@@ -23,6 +24,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Slices\_ViewImports.cshtml" />
+    <EmbeddedResource Include="Slices\Product.cshtml" />
     <EmbeddedResource Include="product.mustache" />
     <EmbeddedResource Include="product.liquid" />
     <EmbeddedResource Include="blogpost.liquid" />
@@ -32,6 +35,7 @@
     <PackageReference Include="BenchmarkDotNet" />
     <PackageReference Include="DotLiquid" />
     <PackageReference Include="Liquid.NET" />
+    <PackageReference Include="RazorSlices" />
     <PackageReference Include="Scriban" />
     <PackageReference Include="Handlebars.Net" />
   </ItemGroup>

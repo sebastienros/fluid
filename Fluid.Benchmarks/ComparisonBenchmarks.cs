@@ -11,6 +11,7 @@ namespace Fluid.Benchmarks
         private readonly DotLiquidBenchmarks _dotLiquidBenchmarks = new DotLiquidBenchmarks();
         private readonly LiquidNetBenchmarks _liquidNetBenchmarks = new LiquidNetBenchmarks();
         private readonly ScribanBenchmarks _scribanBenchmarks = new ScribanBenchmarks();
+        private readonly RazorSlicesBenchmarks _razorSlicesBenchmarks = new RazorSlicesBenchmarks();
 
         [Benchmark(Baseline = true), BenchmarkCategory("Parse")]
         public object Fluid_Parse()
@@ -94,6 +95,12 @@ namespace Fluid.Benchmarks
         public string Handlebars_Render()
         {
             return _handlebarsBenchmarks.Render();
+        }
+
+        [Benchmark, BenchmarkCategory("Render")]
+        public string RazorSlices_Render()
+        {
+            return _razorSlicesBenchmarks.Render();
         }
     }
 }
