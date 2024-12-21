@@ -1,4 +1,4 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using Fluid.Ast.BinaryExpressions;
 using Fluid.Parser;
 using Fluid.Tests.Visitors;
@@ -50,12 +50,12 @@ namespace Fluid.Compilation
 
             // Check that the compiled template is used with a model it was created for.
 
-            builder.AppendLine($@"{_indent}if (model == null)");
-            builder.AppendLine($@"{_indent}{{");
-            IncreaseIndent();
-            builder.AppendLine($@"{_indent}throw new InvalidOperationException(""The model provided is not a valid instance of '{_modelType.FullName}'."");");
-            DecreaseIndent();
-            builder.AppendLine($@"{_indent}}}");
+            WriteLine($$"""
+            if (model == null)
+            {
+                throw new InvalidOperationException("The model provided is not a valid instance of '{_modelType.FullName}'.");
+            }
+            """);
 
             VisitTemplate(template);
 
@@ -129,14 +129,14 @@ namespace Fluid.Compilation
             {
                 source = DeclareLocalValue($@"{source.Name}.Enumerate(context)");
                 _localVariables.Add(forStatement.Identifier);
-                WriteLine($@"context.EnterForLoopScope();");
+                WriteLine("context.EnterForLoopScope();");
             }
 
             var continueOffsetLiteral = forStatement.Source is MemberExpression m ? "for_continue_" + ((IdentifierSegment)m.Segments[0]).Identifier : null;
 
             if (_hasContinueOffset && !_localVariables.Contains(continueOffsetLiteral))
             {
-                WriteLine($@"var {continueOffsetLiteral} = 0;");
+                WriteLine($"var {continueOffsetLiteral} = 0;");
                 _localVariables.Add(continueOffsetLiteral);
             }
 
@@ -146,15 +146,15 @@ namespace Fluid.Compilation
             {
                 if (_hasContinueOffset)
                 {
-                    startIndexVariable = DeclareLocalValue($@"{continueOffsetLiteral}", isModel: true);
+                    startIndexVariable = DeclareLocalValue($"{continueOffsetLiteral}", isModel: true);
                 }
                 else
                 {
                     Visit(forStatement.Offset);
-                    startIndexVariable = DeclareLocalValue($@"(int){GetLocalObject(FluidValues.Number)}", isModel: true);
+                    startIndexVariable = DeclareLocalValue($"(int){GetLocalObject(FluidValues.Number)}", isModel: true);
                 }
 
-                source = DeclareLocalValue($@"{source.Name}.Skip({startIndexVariable.Name})", isModel: true);
+                source = DeclareLocalValue($"{source.Name}.Skip({startIndexVariable.Name})", isModel: true);
             }
             else if (forloopAccessed || hasElseStatement || forStatement.Limit != null)
             {
@@ -182,14 +182,18 @@ namespace Fluid.Compilation
 
             if (sourceIsModel)
             {
-                WriteLine($@"foreach (var {forStatement.Identifier} in {source.Name})");
-                WriteLine($@"{{");
+                WriteLine($$"""
+                    foreach (var {{forStatement.Identifier}} in {{source.Name}})
+                    {
+                    """);
                 IncreaseIndent();
             }
             else
             {
-                WriteLine($@"foreach (var {forStatement.Identifier} in {source.Name})");
-                WriteLine($@"{{");
+                WriteLine($$"""
+                    foreach (var {{forStatement.Identifier}} in {{source.Name}})
+                    {
+                    """);
                 IncreaseIndent();
                 WriteLine($@"context.SetValue(""{forStatement.Identifier}"", {forStatement.Identifier});");
             }
@@ -201,12 +205,14 @@ namespace Fluid.Compilation
 
             if (forloopAccessed)
             {
-                WriteLine($@"{forloopVariable.Name}.Index = {counterVariable.Name} + 1;");
-                WriteLine($@"{forloopVariable.Name}.Index0 = {counterVariable.Name}; ");
-                WriteLine($@"{forloopVariable.Name}.RIndex = length - {counterVariable.Name} - 1;");
-                WriteLine($@"{forloopVariable.Name}.RIndex0 = length - {counterVariable.Name};");
-                WriteLine($@"{forloopVariable.Name}.First = {counterVariable.Name} == 0;");
-                WriteLine($@"{forloopVariable.Name}.Last = {counterVariable.Name} == length - 1;");
+                WriteLine($$"""
+                    {{forloopVariable.Name}}.Index = {counterVariable.Name} + 1;
+                    {{forloopVariable.Name}}.Index0 = {counterVariable.Name};
+                    {{forloopVariable.Name}}.RIndex = length - {counterVariable.Name} - 1;
+                    {{forloopVariable.Name}}.RIndex0 = length - {counterVariable.Name};
+                    {{forloopVariable.Name}}.First = {counterVariable.Name} == 0;
+                    {{forloopVariable.Name}}.Last = {counterVariable.Name} == length - 1;
+                    """);
             }
 
             if (_hasContinueOffset)
@@ -973,12 +979,12 @@ namespace Fluid.Compilation
 
         private void WriteLine(string value)
         {
-            _currentBuilder.Append(_indent).AppendLine(value);
+            _currentBuilder.Append(_indent).AppendLine(value.Replace(Environment.NewLine, Environment.NewLine + _indent));
         }
 
         private void Write(string value)
         {
-            _currentBuilder.Append(_indent).Append(value);
+            _currentBuilder.Append(_indent).Append(value.Replace(Environment.NewLine, Environment.NewLine + _indent));
         }
 
         private sealed record Variable(string Name = null, bool IsModel = false, FluidValues Type = FluidValues.Nil);

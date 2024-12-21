@@ -1,4 +1,4 @@
-﻿#if COMPILATION_SUPPORTED
+#if COMPILATION_SUPPORTED
 using Fluid.Compilation;
 using Fluid.Parser;
 using Microsoft.CodeAnalysis;
@@ -152,8 +152,7 @@ public sealed class {className} : CompiledTemplateBase, IFluidTemplate
         var myTemplateInstance = Activator.CreateInstance(myTemplateType);
         var myFluidTemplate = myTemplateInstance as IFluidTemplate;
 
-        var compiledTemplate = new CompiledTemplate(myFluidTemplate);
-        return compiledTemplate;
+        return myFluidTemplate;
     }
 
     internal sealed class SimpleUnloadableAssemblyLoadContext : AssemblyLoadContext

@@ -1,4 +1,4 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 

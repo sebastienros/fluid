@@ -1,4 +1,4 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Parser
@@ -9,9 +9,8 @@ namespace Fluid.Parser
 
 #if COMPILATION_SUPPORTED
         internal volatile int _count;
-        internal bool _compilationStarted;
+        internal int _compilationStarted = 0;
         internal IFluidTemplate _compiledTemplate;
-        private readonly object _synLock = new();
 #endif
 
         public FluidTemplate(params Statement[] statements)
@@ -45,17 +44,17 @@ namespace Fluid.Parser
 
 #if COMPILATION_SUPPORTED
 
-            if (context.TemplateCompilationThreshold > 0 && !_compilationStarted)
+            if (_compiledTemplate == null && context.TemplateCompilationThreshold > 0 && _compilationStarted == 0)
             {
                 if (++_count >= context.TemplateCompilationThreshold)
                 {
                     // For now we compile only if a model is used
 
-                    lock (_synLock)
+                    if (0 == Interlocked.Exchange(ref _compilationStarted, 1))
                     {
                         var modelType = context.Model?.ToObjectValue()?.GetType() ?? typeof(object);
 
-                        if (!_compilationStarted && modelType != null)
+                        if (modelType != null)
                         {
                             // THIS IS ONLY FOR HAVING ALL TESTS RUN WITH COMPILED TEMPLATES
                             // BEGIN
@@ -76,8 +75,6 @@ namespace Fluid.Parser
                                 }, (object)null, false);
                             }
                         }
-
-                        _compilationStarted = true;
                     }
                 }
             }
