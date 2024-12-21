@@ -1,4 +1,4 @@
-﻿using MinimalApis.LiquidViews;
+using MinimalApis.LiquidViews;
 
 namespace Microsoft.AspNetCore.Http
 {

@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -39,7 +39,7 @@ namespace Fluid.Ast
             var leftValue = await leftTask;
             var rightValue = await rightTask;
 
-            return Evaluate(leftValue, rightValue);
+            return this.Evaluate(leftValue, rightValue);
         }
 
         // sub-classes using the default implementation need to override this

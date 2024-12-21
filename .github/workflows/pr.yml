@@ -18,9 +18,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: global.json
 
+    - name: Version
+      run: dotnet --version
+    
     - name: Test
       run: dotnet test -c Release
-    
+
     - name: Test - Compiled
       run: dotnet test --configuration Release /p:Compiled=true

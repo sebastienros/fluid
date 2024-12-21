@@ -1,10 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net6.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net6.0;net8.0;net9.0</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <IsPackable>true</IsPackable>
+    <PackageId>Fluid.Core</PackageId>
+    <Title>Fluid Template Engine</Title>
+    <Description>Fluid is a template engine based on the Liquid markup, with focus on performance and .NET programming patterns.</Description>
+    <PackageTags>fluid;liquid;template;view engine</PackageTags>
+    <PackageIcon>logo_64x64.png</PackageIcon>
     <ImplicitUsings>true</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- Ingore missing comments errors and obsolete TFMs -->
@@ -26,6 +31,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="../Assets/logo_64x64.png" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <PackageReference Include="Parlot" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" />
     <PackageReference Include="TimeZoneConverter" />
@@ -35,8 +44,9 @@
   <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
     <PackageReference Include="System.Text.Json" />
     <PackageReference Include="Microsoft.CSharp" />
+    <PackageReference Include="System.Reflection.Emit.Lightweight" />
   </ItemGroup>
-  
+
   <PropertyGroup Condition="'$(TargetFramework)'=='net6.0'">
     <DefineConstants>$(DefineConstants);COMPILATION_SUPPORTED</DefineConstants>
   </PropertyGroup>
@@ -45,9 +55,14 @@
     <DefineConstants>$(DefineConstants);COMPILATION_SUPPORTED</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)'=='net9.0'">
+    <DefineConstants>$(DefineConstants);COMPILATION_SUPPORTED</DefineConstants>
+  </PropertyGroup>
+
   <PropertyGroup>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+  
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>

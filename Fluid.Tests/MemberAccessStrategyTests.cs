@@ -2,7 +2,9 @@
 using Fluid.Tests.Domain;
 using Fluid.Values;
 using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -238,6 +240,51 @@ namespace Fluid.Tests
             var template = _parser.Parse("{{Firstname}} {{Lastname}}");
             
             Assert.Equal("Bill Gates", template.Render(new TemplateContext(model, options)));
+        }
+
+        [Fact]
+        public void ShouldResolveEnums()
+        {
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<Person>();
+
+            var john = new Person { Firstname = "John", EyesColor = Colors.Yellow };
+
+            var template = _parser.Parse("{{Firstname}} {{EyesColor}}");
+            Assert.Equal("John 2", template.Render(new TemplateContext(john, options, false)));
+        }
+
+        [Fact]
+        public void ShouldResolveStructs()
+        {
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<Shape>();
+            options.MemberAccessStrategy.Register<Point>();
+
+            var circle = new Shape
+            {
+                Coordinates = new Point(1, 2)
+            };
+
+            var template = _parser.Parse("{{Coordinates.X}} {{Coordinates.Y}}");
+            Assert.Equal("1 2", template.Render(new TemplateContext(circle, options, false)));
+        }
+
+        [Fact]
+        public void ShouldFindBackingFields()
+        {
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<CustomStruct>();
+
+            var s = new CustomStruct
+            {
+                X1 = 1,
+                X2 = 2,
+                X3 = 3
+            };
+
+            var template = _parser.Parse("{{X1}} {{X2}} {{X3}}");
+            Assert.Equal("1 2 3", template.Render(new TemplateContext(s, options, false)));
         }
     }
 

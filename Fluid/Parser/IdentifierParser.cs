@@ -1,10 +1,18 @@
-﻿using Parlot;
+using Parlot;
 using Parlot.Fluent;
+using Parlot.Rewriting;
 
 namespace Fluid.Parser
 {
-    public sealed class IdentifierParser : Parser<TextSpan>
+    public sealed class IdentifierParser : Parser<TextSpan>, ISeekable
     {
+        public const string StartChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+        public bool CanSeek => true;
+
+        public char[] ExpectedChars { get; } = StartChars.ToCharArray();
+
+        public bool SkipWhitespace => false;
+
         public override bool Parse(ParseContext context, ref ParseResult<TextSpan> result)
         {
             context.EnterParser(this);
@@ -28,6 +36,8 @@ namespace Fluid.Parser
             else
             {
                 // Doesn't start with a letter or a digit
+
+                context.ExitParser(this);
                 return false;
             }
 
@@ -35,7 +45,7 @@ namespace Fluid.Parser
 
             cursor.Advance();
 
-            while (!context.Scanner.Cursor.Eof)
+            while (!cursor.Eof)
             {
                 current = cursor.Current;
 
@@ -71,7 +81,7 @@ namespace Fluid.Parser
             if (lastIsDash && !cursor.Eof && (current == '%' || current == '}'))
             {
                 nonDigits--;
-                end = end - 1;
+                end--;
                 cursor.ResetPosition(lastDashPosition);
             }
 
@@ -79,10 +89,15 @@ namespace Fluid.Parser
             {
                 // Invalid identifier, only digits
                 cursor.ResetPosition(start);
+
+                context.ExitParser(this);
                 return false;
             }
 
             result.Set(start.Offset, end, new TextSpan(context.Scanner.Buffer, start.Offset, end - start.Offset));
+
+
+            context.ExitParser(this);
             return true;
         }
 

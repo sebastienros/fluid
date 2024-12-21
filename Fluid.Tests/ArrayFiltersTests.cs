@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
@@ -44,7 +44,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task First_EmptyArray()
+        public async Task FirstEmptyArray()
         {
             var input = new ArrayValue(new StringValue[0]);
 
@@ -369,6 +369,55 @@ namespace Fluid.Tests
             var result3 = await  ArrayFilters.Where(input, arguments3, context);
 
             Assert.Single(result3.Enumerate(context));
+        }
+
+        [Fact]
+        public async Task WhereWithTruthy()
+        {
+            var input = new ArrayValue(new[]
+            {
+                new ObjectValue(new { Title = "a", Pinned = true, Missing = 1 }),
+                new ObjectValue(new { Title = "b", Pinned = false }),
+                new ObjectValue(new { Title = "c", Pinned = true, Missing = 1 })
+            });
+
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
+            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true, Missing = 1 }.GetType());
+
+            // x | where: "Missing"
+
+            var arguments1 = new FilterArguments().Add(new StringValue("Missing"));
+            var result1 = await ArrayFilters.Where(input, arguments1, context);
+
+            Assert.Equal(2, result1.Enumerate(context).Count());
+
+            // x | where: "Missing", false
+
+            var arguments2 = new FilterArguments()
+                .Add(new StringValue("Missing"))
+                .Add(BooleanValue.False);
+
+            var result2 = await ArrayFilters.Where(input, arguments2, context);
+            Assert.Single(result2.Enumerate(context));
+
+            // x | where: "Title"
+
+            var arguments3 = new FilterArguments()
+                .Add(new StringValue("Title"));
+
+            var result3 = await ArrayFilters.Where(input, arguments3, context);
+            Assert.Equal(3, result3.Enumerate(context).Count());
+
+            // x | where: "Missing", true
+
+            var arguments4 = new FilterArguments()
+                .Add(new StringValue("Missing"))
+                .Add(BooleanValue.True);
+
+            var result4 = await ArrayFilters.Where(input, arguments4, context);
+            Assert.Equal(2, result4.Enumerate(context).Count());
         }
 
         [Fact]

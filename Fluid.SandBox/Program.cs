@@ -1,4 +1,4 @@
-﻿using Fluid;
+using Fluid;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
@@ -90,8 +90,11 @@ foreach (var (name, template) in templates)
         await template.RenderAsync(writer, HtmlEncoder.Default, templateContext);
     }
 
+    var operationsPerSecond = Math.Round(iterations / (decimal)sw.ElapsedMilliseconds * 1000, 2);
+    var microSecondsPerOperations = Math.Round(1 / operationsPerSecond * 1000000, 2);
+
     Console.WriteLine();
-    Console.WriteLine($"{name}: {sw.ElapsedMilliseconds} ms {Math.Round(iterations/ (decimal)sw.ElapsedMilliseconds * 1000, 2)}/s");
+    Console.WriteLine($"{name}: {sw.ElapsedMilliseconds} ms {operationsPerSecond} op/s {microSecondsPerOperations} us/op");
 }
 
 public class Fortune

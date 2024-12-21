@@ -1,4 +1,5 @@
-﻿using Fluid.Filters;
+using Fluid.Filters;
+using Fluid.Values;
 using Microsoft.Extensions.FileProviders;
 using System.Globalization;
 
@@ -6,6 +7,18 @@ namespace Fluid
 {
     public class TemplateOptions
     {
+        /// <param name="identifier">The name of the property that is assigned.</param>
+        /// <param name="value">The value that is assigned.</param>
+        /// <param name="context">The <see cref="TemplateContext" /> instance used for rendering the template.</param>
+        /// <returns>The value which should be assigned to the property.</returns>
+        public delegate ValueTask<FluidValue> AssignedDelegate(string identifier, FluidValue value, TemplateContext context);
+
+        /// <param name="identifier">The name of the property that is assigned.</param>
+        /// <param name="value">The value that is assigned.</param>
+        /// <param name="context">The <see cref="TemplateContext" /> instance used for rendering the template.</param>
+        /// <returns>The value which should be captured.</returns>
+        public delegate ValueTask<FluidValue> CapturedDelegate(string identifier, FluidValue value, TemplateContext context);
+
         public static readonly TemplateOptions Default = new();
 
         /// <summary>
@@ -24,6 +37,14 @@ namespace Fluid
         public int MaxSteps { get; set; }
 
         /// <summary>
+        /// Gets or sets the <see cref="StringComparer"/> to use when comparing model names.
+        /// </summary>
+        /// <value>
+        /// Default value is <see cref="StringComparer.OrdinalIgnoreCase"/>
+        /// </value>
+        public StringComparer ModelNamesComparer { get; set; } = StringComparer.OrdinalIgnoreCase;
+
+        /// <summary>
         /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
         /// </summary>
         public CultureInfo CultureInfo { get; set; } = CultureInfo.InvariantCulture;
@@ -39,14 +60,14 @@ namespace Fluid
         public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Local;
 
         /// <summary>
-        /// Gets or sets the number of times the template needs to be rendered before it is compiled automatically. Default is 100. 0 disables compilation.
-        /// </summary>
-        public int TemplateCompilationThreshold { get; set; } = 1;
-
-        /// <summary>
         /// Gets or sets the maximum depth of recursions a script can execute. 100 by default.
         /// </summary>
         public int MaxRecursion { get; set; } = 100;
+
+        /// <summary>
+        /// Gets or sets the number of times the template needs to be rendered before it is compiled automatically. Default is 100. 0 disables compilation.
+        /// </summary>
+        public int TemplateCompilationThreshold { get; set; } = 1;
 
         /// <summary>
         /// Gets the collection of filters available in the templates.
@@ -66,7 +87,12 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
         /// </summary>
-        public Func<string, string, ValueTask<string>> Captured { get; set; }
+        public CapturedDelegate Captured { get; set; }
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when an Assign tag has been evaluated.
+        /// </summary>
+        public AssignedDelegate Assigned { get; set; }
 
         /// <summary>
         /// Gets or sets the default trimming rules.

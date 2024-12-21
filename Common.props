@@ -24,9 +24,8 @@
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
 
     <BuildNumber Condition="'$(BuildNumber)' == ''">0</BuildNumber>
-    <VersionPrefix>2.5.1</VersionPrefix>
+    <VersionPrefix>2.0.0</VersionPrefix>
     <VersionSuffix>beta-$(BuildNumber)</VersionSuffix>
-    <FileVersion>$(VersionPrefix).$(BuildNumber)</FileVersion>
 
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <SignAssembly>true</SignAssembly>

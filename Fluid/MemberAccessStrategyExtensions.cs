@@ -31,27 +31,35 @@ namespace Fluid
                     }
 
                     if (propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Task<>))
+                    {
                         list[memberNameStrategy(propertyInfo)] = new AsyncDelegateAccessor(async (o, n) =>
                         {
                             var asyncValue = (Task)propertyInfo.GetValue(o);
                             await asyncValue.ConfigureAwait(false);
                             return (object)((dynamic)asyncValue).Result;
                         });
+                    }
                     else
+                    {
                         list[memberNameStrategy(propertyInfo)] = new PropertyInfoAccessor(propertyInfo);
+                    }
                 }
 
                 foreach (var fieldInfo in key.Type.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))
                 {
                     if (fieldInfo.FieldType.IsGenericType && fieldInfo.FieldType.GetGenericTypeDefinition() == typeof(Task<>))
+                    {
                         list[memberNameStrategy(fieldInfo)] = new AsyncDelegateAccessor(async (o, n) =>
                         {
                             var asyncValue = (Task)fieldInfo.GetValue(o);
                             await asyncValue.ConfigureAwait(false);
                             return (object)((dynamic)asyncValue).Result;
                         });
+                    }
                     else
+                    {
                         list[memberNameStrategy(fieldInfo)] = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
+                    }
                 }
 
                 return list;
@@ -76,7 +84,7 @@ namespace Fluid
         /// </summary>
         /// <typeparam name="T">The type to register.</typeparam>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
-        public static void Register<T>(this MemberAccessStrategy strategy) where T : class
+        public static void Register<T>(this MemberAccessStrategy strategy)
         {
             Register(strategy, typeof(T));
         }
@@ -97,7 +105,7 @@ namespace Fluid
         /// <typeparam name="T">The type to register.</typeparam>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="names">The names of the properties in the type to register.</param>
-        public static void Register<T>(this MemberAccessStrategy strategy, params string[] names) where T : class
+        public static void Register<T>(this MemberAccessStrategy strategy, params string[] names)
         {
             strategy.Register(typeof(T), names);
         }
@@ -108,7 +116,7 @@ namespace Fluid
         /// <typeparam name="T">The type to register.</typeparam>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="names">The property's expressions in the type to register.</param>
-        public static void Register<T>(this MemberAccessStrategy strategy, params Expression<Func<T, object>>[] names) where T : class
+        public static void Register<T>(this MemberAccessStrategy strategy, params Expression<Func<T, object>>[] names)
         {
             strategy.Register<T>(names.Select(ExpressionHelper.GetPropertyName).ToArray());
         }

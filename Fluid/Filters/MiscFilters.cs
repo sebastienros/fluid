@@ -1,4 +1,4 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 using System.Buffers;
 using System.Globalization;
 using System.Net;
@@ -11,6 +11,7 @@ namespace Fluid.Filters
 {
     public static class MiscFilters
     {
+
         private const char KebabCaseSeparator = '-';
 
         public static FilterCollection WithMiscFilters(this FilterCollection filters)
@@ -196,6 +197,18 @@ namespace Fluid.Filters
                 encodedBase64StringBuilder.Replace('+', '-');
                 encodedBase64StringBuilder.Replace('/', '_');
 
+                if (encodedBase64StringBuilder[^1] == '=')
+                {
+                    if (encodedBase64StringBuilder[^2] == '=')
+                    {
+                        encodedBase64StringBuilder.Length -= 2;
+                    }
+                    else
+                    {
+                        encodedBase64StringBuilder.Length--;
+                    }
+                }
+
                 return new StringValue(encodedBase64StringBuilder.ToString());
             }
         }
@@ -209,13 +222,38 @@ namespace Fluid.Filters
             }
             else
             {
+                var paddingCharsToAdd = (value.Length % 4) switch
+                {
+                    0 => 0,
+                    2 => 2,
+                    3 => 1,
+                    _ => -1
+                };
+
+                if (paddingCharsToAdd == -1)
+                {
+                    return StringValue.Empty;
+                }
+
                 var encodedBase64StringBuilder = new StringBuilder(value);
                 encodedBase64StringBuilder.Replace('-', '+');
                 encodedBase64StringBuilder.Replace('_', '/');
 
-                var decodedBase64 = Encoding.UTF8.GetString(Convert.FromBase64String(encodedBase64StringBuilder.ToString()));
+                // Add the padding characters back.
+                for (; paddingCharsToAdd > 0; paddingCharsToAdd--)
+                {
+                    encodedBase64StringBuilder.Append('=');
+                }
 
-                return new StringValue(decodedBase64);
+                try
+                {
+                    var decodedBase64 = Encoding.UTF8.GetString(Convert.FromBase64String(encodedBase64StringBuilder.ToString()));
+                    return new StringValue(decodedBase64);
+                }
+                catch
+                {
+                    return StringValue.Empty;
+                }
             }
         }
 
@@ -373,7 +411,10 @@ namespace Fluid.Filters
                         switch (c)
                         {
                             case 'a':
-                                string AbbreviatedDayName() => context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int)value.DayOfWeek];
+                                string AbbreviatedDayName()
+                                {
+                                    return context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int)value.DayOfWeek];
+                                }
 
                                 var abbreviatedDayName = AbbreviatedDayName();
                                 result.Append(upperCaseFlag ? abbreviatedDayName.ToUpperInvariant() : abbreviatedDayName);
@@ -683,7 +724,7 @@ namespace Fluid.Filters
                         foreach (var property in properties)
                         {
                             var name = conv(property);
-#pragma warning disable CA1859 // Change type of variable 'fluidValue' from 'Fluid.Values.FluidValue' to 'Fluid.Values.StringValue' for improved performance
+#pragma warning disable CA1859 // It's suggesting a wrong conversion (StringValue)
                             var fluidValue = await input.GetValueAsync(name, ctx);
 #pragma warning restore CA1859
                             if (fluidValue.IsNil())
@@ -808,6 +849,15 @@ namespace Fluid.Filters
                 return StringValue.Empty;
             }
 
+            // c.f. HashingBenchmarks
+
+#if NET6_0_OR_GREATER
+#pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
+            var hash = System.Security.Cryptography.MD5.HashData(Encoding.UTF8.GetBytes(value));
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+#pragma warning restore CA5351
+#else
+
 #pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
             using var provider = System.Security.Cryptography.MD5.Create();
 #pragma warning restore CA5351
@@ -816,10 +866,11 @@ namespace Fluid.Filters
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
-                builder.Append(b.ToString("x2").ToLowerInvariant());
+                builder.Append(b.ToString("x2"));
             }
 
             return new StringValue(builder.ToString());
+#endif
         }
 
         public static ValueTask<FluidValue> Sha1(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -830,6 +881,14 @@ namespace Fluid.Filters
                 return StringValue.Empty;
             }
 
+            // c.f. HashingBenchmarks
+
+#if NET6_0_OR_GREATER
+#pragma warning disable CA5350 // Do Not Use Broken Cryptographic Algorithms
+            var hash = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(value));
+#pragma warning restore CA5350
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+#else
 #pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
             using var provider = System.Security.Cryptography.SHA1.Create();
 #pragma warning restore CA5350
@@ -838,10 +897,11 @@ namespace Fluid.Filters
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
-                builder.Append(b.ToString("x2").ToLowerInvariant());
+                builder.Append(b.ToString("x2"));
             }
 
             return new StringValue(builder.ToString());
+#endif
         }
 
         public static ValueTask<FluidValue> Sha256(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -852,16 +912,23 @@ namespace Fluid.Filters
                 return StringValue.Empty;
             }
 
+            // c.f. HashingBenchmarks
+
+#if NET6_0_OR_GREATER
+            var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(value));
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+#else
             using var provider = System.Security.Cryptography.SHA256.Create();
             var builder = new StringBuilder(64);
-#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
+#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.SHA256.HashData' method over 'ComputeHash'
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
-                builder.Append(b.ToString("x2").ToLowerInvariant());
+                builder.Append(b.ToString("x2"));
             }
 
             return new StringValue(builder.ToString());
+#endif
         }
     }
 }
