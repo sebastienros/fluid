@@ -5,6 +5,7 @@ using Fluid.Tests.Visitors;
 using Fluid.Values;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Collections;
+using System.Globalization;
 using System.Reflection;
 using System.Text;
 
@@ -333,6 +334,63 @@ namespace Fluid.Compilation
             {
                 // _variableMappings contains the variables defined with {% assign %}
                 _lastVariable = mapped;
+
+                var nextSegment = memberExpression.Segments.Skip(1).FirstOrDefault();
+
+                if (nextSegment != null)
+                {
+                    if (nextSegment is IdentifierSegment i)
+                    {
+                        DeclareLocalValue($@"await {_lastVariable.Name}.GetValueAsync(""{i.Identifier}"", context)");
+                    }
+                    else if (nextSegment is FunctionCallSegment f)
+                    {
+                        // Invoking a function requires to initialize a FunctionArguments instance
+                        if (f.Arguments.Any())
+                        {
+                            // If all the arguments are literal expressions, define the FunctionArguments statically
+                            var _canBeCached = true;
+                            var initArguments = new List<string>();
+                            foreach (var parameter in f.Arguments)
+                            {
+                                Visit(parameter.Expression);
+                                _canBeCached = _canBeCached && parameter.Expression is LiteralExpression;
+                                if (String.IsNullOrEmpty(parameter.Name))
+                                {
+                                    initArguments.Add($@".Add({_lastVariable.Name})");
+                                }
+                                else
+                                {
+                                    initArguments.Add($@".Add(""{parameter.Name}"", {_lastVariable.Name})");
+                                }
+                            }
+                            // FunctionArguments instances that contain only LiteralExpression are declared as static fields in the template class
+                            if (_canBeCached)
+                            {
+                                DeclareStaticVariable($@"new FunctionArguments(){String.Concat(initArguments)}", cSharpType: "FunctionArguments", isModel: true);
+                            }
+                            else
+                            {
+                                DeclareLocalValue($@"new FunctionArguments(){String.Concat(initArguments)}", isModel: true);
+                            }
+                        }
+                        else
+                        {
+                            _lastVariable = new("FunctionArguments.Empty", true);
+                        }
+                        DeclareLocalValue($@"await {_lastVariable.Name}.InvokeAsync(context)");
+                    }
+                    else if (nextSegment is IndexerSegment d)
+                    {
+                        Visit(d.Expression);
+                        DeclareLocalValue($@"await {_lastVariable.Name}.GetIndexAsync({GetLocalValue()}, context)");
+                    }
+                    else
+                    {
+                        throw new NotSupportedException("Invalid segment");
+                    }
+                }
+
                 return memberExpression;
             }
             else if (_modelType is IDictionary)
@@ -432,7 +490,7 @@ namespace Fluid.Compilation
             Visit(assignStatement.Value);
             var localValue = GetLocalValue();
 
-            DeclareLocalValue(@$"context.Assigned == null ? {localValue} : await context.Assigned.Invoke(""{assignStatement.Identifier}"", {localValue}, context);");
+            DeclareLocalValue(@$"context.Assigned == null ? {localValue} : await context.Assigned.Invoke(""{assignStatement.Identifier}"", {localValue}, context)");
 
             // TODO: Maybe it should actually force a call to context.SetValue() ?
 
@@ -481,11 +539,11 @@ namespace Fluid.Compilation
             {
                 case FluidValues.Number:
                     var number = DeclareStaticVariable($@"NumberValue.Create({SymbolDisplay.FormatPrimitive(literalExpression.Value.ToNumberValue(), false, false)}M)", FluidValues.Number, null, false);
-                    _lastVariable = _lastVariable with { Name = number };
+                    _lastVariable = _lastVariable with { Name = number, Type = FluidValues.Number };
                     break;
                 case FluidValues.String:
                     var s = DeclareStaticVariable($@"StringValue.Create({SymbolDisplay.FormatLiteral(literalExpression.Value.ToStringValue(), true)})", FluidValues.String, null, false);
-                    _lastVariable = _lastVariable with { Name = s };
+                    _lastVariable = _lastVariable with { Name = s, Type = FluidValues.String };
                     break;
                 case FluidValues.Boolean:
                     _lastVariable = new(literalExpression.Value.ToBooleanValue() ? "BooleanValue.True" : "BooleanValue.False", false, FluidValues.Boolean);
@@ -858,6 +916,66 @@ namespace Fluid.Compilation
             return decrementStatement;
         }
 
+        protected internal override Statement VisitCycleStatement(CycleStatement cycleStatement)
+        {
+            var allLiterals = cycleStatement.Values.All(x => x is LiteralExpression);
+
+            // if all values are literals, declare the array as a static field
+            // otherwise evaluate on each usage of the statement
+
+            string valuesVariable = null;
+
+            if (allLiterals)
+            {
+                var values = new List<string>();
+                foreach (var value in cycleStatement.Values)
+                {
+                    Visit(value);
+                    values.Add(_lastVariable.Name);
+                }
+                valuesVariable = DeclareStaticVariable($@"new List<FluidValue> {{ {String.Join(", ", values)} }}", FluidValues.Array, "List<FluidValue>", false);
+            }
+            else
+            {
+                var values = new List<string>();
+                foreach (var value in cycleStatement.Values)
+                {
+                    Visit(value);
+                    values.Add(_lastVariable.Name);
+                }
+                valuesVariable = DeclareLocalValue($@"new List<FluidValue> {{ {String.Join(", ", values)} }}", FluidValues.Array, false).Name;
+            }
+
+            // The group could also be a variable so it needs to be evaluated
+
+            Visit(cycleStatement.Group);
+            var groupVariable = DeclareLocalValue($@"String.Concat(""$cycle_"", {_lastVariable.Name}.ToStringValue())", FluidValues.String, false);
+
+            var cycleCounter = $"cycle_{groupVariable.Name}";
+            WriteLine($$"""
+                var {{cycleCounter}} = context.GetValue({{groupVariable.Name}});
+
+                if ({{cycleCounter}}.IsNil())
+                {
+                    {{cycleCounter}} = NumberValue.Zero;
+                }
+
+                var index_{{_locals}} = (uint){{cycleCounter}}.ToNumberValue() % {{cycleStatement.Values.Count.ToString(CultureInfo.InvariantCulture)}};
+                var value_{{_locals}} = {{valuesVariable}}[(int)index_{{_locals}}];
+                context.SetValue({{groupVariable.Name}}, NumberValue.Create(index_{{_locals}} + 1));
+
+                await value_{{_locals}}.WriteToAsync(writer, encoder, context.CultureInfo);
+                """);
+
+            return cycleStatement;
+        }
+
+        protected internal override Statement VisitRawStatement(RawStatement rawStatement)
+        {
+            WriteLine($@"await writer.WriteAsync({SymbolDisplay.FormatLiteral(rawStatement.Text.ToString(), true)});");
+            return rawStatement;
+        }
+
         protected internal override Statement VisitBreakStatement(BreakStatement breakStatement)
         {
             WriteLine($@"break;");
@@ -1031,6 +1149,6 @@ namespace Fluid.Compilation
             _currentBuilder.Append(_indent).Append(value.Replace(Environment.NewLine, Environment.NewLine + _indent));
         }
 
-        private sealed record Variable(string Name = null, bool IsModel = false, FluidValues Type = FluidValues.Nil);
+        internal sealed record Variable(string Name = null, bool IsModel = false, FluidValues Type = FluidValues.Nil);
     }
 }

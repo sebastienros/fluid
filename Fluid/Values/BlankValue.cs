@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -11,7 +11,7 @@ namespace Fluid.Values
         {
         }
 
-        public override FluidValues Type => FluidValues.Empty;
+        public override FluidValues Type => FluidValues.Blank;
 
         public override bool Equals(FluidValue other)
         {

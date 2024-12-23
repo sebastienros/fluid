@@ -518,7 +518,9 @@ def", "at (")]
 
         [Theory]
         [InlineData("{% assign my_string = 'abcd' %}{{ my_string.size }}", "4")]
-        public void SizeAppliedToStrings(string source, string expected)
+        [InlineData("{% assign my_string = 'abcd' %}{{ my_string.first }}", "a")]
+        [InlineData("{% assign my_string = 'abcd' %}{{ my_string.last }}", "d")]
+        public void StringPseudoProperties(string source, string expected)
         {
             var result = _parser.TryParse(source, out var template, out var errors);
 
@@ -700,7 +702,33 @@ true
             var rendered = template.Render();
 
             Assert.Equal("1<br />2<br />3<br />1<br />2<br />3<br />1<br />2<br />3<br />", rendered);
-        }        
+        }
+
+        [Fact]
+        public void CycleShouldEvaluateExpression()
+        {
+            var source = """
+                {%- assign a = 1 -%}
+                {%- assign b = "one" -%}
+                {% cycle a: b, "two", "three" %}
+                {% cycle 1: b, "two", "three" %}
+                {% cycle 1: b, "two", "three" %}
+                {% cycle a: b, "two", "three" %}
+                {% cycle 1: b, "two", "three" %}
+                """;
+
+            _parser.TryParse(source, out var template, out var errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal("""
+                one
+                two
+                three
+                one
+                two
+                """, rendered);
+        }
 
         [Fact]
         public void ShouldAssignWithLogicalExpression()
