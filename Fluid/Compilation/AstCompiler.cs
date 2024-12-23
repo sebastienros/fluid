@@ -15,6 +15,7 @@ namespace Fluid.Compilation
     /// - String literals should not be able to be escaped (like SQL injection but for C#) and are encoded using SymbolDisplay.FormatLiteral
     /// - Introduce compiler options to provider compile time optimizations
     ///     - Ignore MaxSteps
+    /// - Add a test to ensure a model property can be assigned
     /// </remarks>
     public class AstCompiler : AstVisitor
     {
@@ -46,14 +47,19 @@ namespace Fluid.Compilation
 
             _defaultIndent = _indent;
 
-            builder.AppendLine(@$"{_indent}var model = context.Model?.ToObjectValue() as {_modelType.FullName};");
+            WriteLine($$"""
+                var contextModel = context.Model?.ToObjectValue();
+                var model = contextModel as {{_modelType.FullName}};
+                """);
 
-            // Check that the compiled template is used with a model it was created for.
+            // TODO: Check that the compiled template is used with a model it was created for.
+            // This can be done while the template is generated when an accessor is a valid property of the model.
+            // If one is found then we can inject this check.
 
             WriteLine($$"""
-            if (model == null)
+            if (model == null && contextModel != null)
             {
-                throw new InvalidOperationException("The model provided is not a valid instance of '{_modelType.FullName}'.");
+                throw new InvalidOperationException("The model provided is not a valid instance of '{{_modelType.FullName}}'.");
             }
             """);
 
@@ -424,6 +430,9 @@ namespace Fluid.Compilation
         protected internal override Statement VisitAssignStatement(AssignStatement assignStatement)
         {
             Visit(assignStatement.Value);
+            var localValue = GetLocalValue();
+
+            DeclareLocalValue(@$"context.Assigned == null ? {localValue} : await context.Assigned.Invoke(""{assignStatement.Identifier}"", {localValue}, context);");
 
             // TODO: Maybe it should actually force a call to context.SetValue() ?
 
@@ -458,7 +467,7 @@ namespace Fluid.Compilation
             }
             else
             {
-                WriteLine($"{_lastVariable.Name}.WriteTo(writer, encoder, context.CultureInfo);");
+                WriteLine($"await {_lastVariable.Name}.WriteToAsync(writer, encoder, context.CultureInfo);");
             }
 
             return outputStatement;
@@ -604,7 +613,7 @@ namespace Fluid.Compilation
             Visit(lowerThanBinaryExpression.Right);
             var right = GetLocalValue();
 
-            DeclareLocalValue($@"LowerThanBinaryExpression.IsLower({left}, {right}, {lowerThanBinaryExpression.Strict.ToString().ToLowerInvariant()})", FluidValues.Boolean, true);
+            DeclareLocalValue($@"{nameof(LowerThanBinaryExpression)}.{nameof(LowerThanBinaryExpression.IsLowerThan)}({left}, {right}, {lowerThanBinaryExpression.Strict.ToString().ToLowerInvariant()}).ToBooleanValue()", FluidValues.Boolean, true);
 
             return lowerThanBinaryExpression;
         }
@@ -617,7 +626,7 @@ namespace Fluid.Compilation
             Visit(greaterThanBinaryExpression.Right);
             var right = GetLocalValue();
 
-            DeclareLocalValue($@"GreaterThanBinaryExpression.IsGreater({left}, {right}, {greaterThanBinaryExpression.Strict.ToString().ToLowerInvariant()})", FluidValues.Boolean, true);
+            DeclareLocalValue($@"{nameof(GreaterThanBinaryExpression)}.{nameof(GreaterThanBinaryExpression.IsGreaterThan)}({left}, {right}, {greaterThanBinaryExpression.Strict.ToString().ToLowerInvariant()}).ToBooleanValue()", FluidValues.Boolean, true);
 
             return greaterThanBinaryExpression;
         }
@@ -630,7 +639,7 @@ namespace Fluid.Compilation
             Visit(startsWithBinaryExpression.Right);
             var right = GetLocalValue();
 
-            DeclareLocalValue($@"await StartsWithBinaryExpression.StartsWithAsync({left}, {right}, context)", FluidValues.Boolean, true);
+            DeclareLocalValue($@"(await {nameof(StartsWithBinaryExpression)}.{nameof(StartsWithBinaryExpression.StartsWithAsync)}({left}, {right}, context)).ToBooleanValue()", FluidValues.Boolean, true);
 
             return startsWithBinaryExpression;
         }
@@ -643,7 +652,7 @@ namespace Fluid.Compilation
             Visit(endsWithBinaryExpression.Right);
             var right = GetLocalValue();
 
-            DeclareLocalValue($@"await EndsWithBinaryExpression.EndsWithAsync({left}, {right}, context)", FluidValues.Boolean, true);
+            DeclareLocalValue($@"(await {nameof(EndsWithBinaryExpression)}.{nameof(EndsWithBinaryExpression.EndsWithAsync)}({left}, {right}, context)).ToBooleanValue()", FluidValues.Boolean, true);
 
             return endsWithBinaryExpression;
         }
@@ -815,6 +824,40 @@ namespace Fluid.Compilation
             return macroStatement;
         }
 
+        protected internal override Statement VisitIncrementStatement(IncrementStatement incrementStatement)
+        {
+            var counterIdentifier = $"counter_{incrementStatement.Identifier}";
+
+            if (_localVariables.Add(counterIdentifier))
+            {
+                WriteLine($@"var {counterIdentifier} = 0;");
+            }
+            else
+            {
+                WriteLine($@"{counterIdentifier}++;");
+            }
+
+            WriteLine($"await WriteAsync({counterIdentifier}, writer, encoder, context);");
+            return incrementStatement;
+        }
+
+        protected internal override Statement VisitDecrementStatement(DecrementStatement decrementStatement)
+        {
+            var counterIdentifier = $"counter_{decrementStatement.Identifier}";
+
+            if (_localVariables.Add(counterIdentifier))
+            {
+                WriteLine($@"var {counterIdentifier} = 0;");
+            }
+            else
+            {
+                WriteLine($@"{counterIdentifier}--;");
+            }
+
+            WriteLine($"await WriteAsync({counterIdentifier}, writer, encoder, context);");
+            return decrementStatement;
+        }
+
         protected internal override Statement VisitBreakStatement(BreakStatement breakStatement)
         {
             WriteLine($@"break;");
@@ -940,6 +983,7 @@ namespace Fluid.Compilation
             _lastVariable = new(name, isModel, type);
             return _lastVariable;
         }
+
         private void IncreaseIndent()
         {
             _indentLevel++;

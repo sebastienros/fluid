@@ -203,6 +203,7 @@ namespace Fluid.Values
 
             return Awaited(task);
 
+            [MethodImpl(MethodImplOptions.NoInlining)]
             static async ValueTask Awaited(Task t)
             {
                 await t;

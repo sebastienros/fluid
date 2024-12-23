@@ -1,4 +1,5 @@
-﻿using System.Text.Encodings.Web;
+using System.Runtime.CompilerServices;
+using System.Text.Encodings.Web;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -94,6 +95,7 @@ namespace Fluid.Ast
             }
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private async ValueTask<Completion> Awaited(
             ValueTask<FluidValue> conditionTask,
             ValueTask<Completion> incompleteStatementTask,

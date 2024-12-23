@@ -1,6 +1,7 @@
-﻿using Parlot;
+using Parlot;
 using System.Text.Encodings.Web;
 using Fluid.Utils;
+using System.Runtime.CompilerServices;
 
 namespace Fluid.Ast
 {
@@ -17,6 +18,7 @@ namespace Fluid.Ast
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
+            [MethodImpl(MethodImplOptions.NoInlining)]
             static async ValueTask<Completion> Awaited(Task task)
             {
                 await task;

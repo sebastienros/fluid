@@ -1,4 +1,5 @@
-﻿using System.Text.Encodings.Web;
+using System.Runtime.CompilerServices;
+using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
 {
@@ -36,6 +37,7 @@ namespace Fluid.Ast
             return new ValueTask<Completion>(Completion.Normal);
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private async ValueTask<Completion> Awaited(
             ValueTask<Completion> task,
             int startIndex,

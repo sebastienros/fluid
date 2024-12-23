@@ -1,4 +1,5 @@
-﻿using System.IO;
+using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -28,6 +29,7 @@ namespace Fluid.MvcViewEngine
 
         public override Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
         {
+            [MethodImpl(MethodImplOptions.NoInlining)]
             static async Task Awaited(TagHelperOutput o, StringWriter sw, Task t)
             {
                 await t;

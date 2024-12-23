@@ -1,4 +1,4 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using Fluid.Values;
 using System;
 using System.Globalization;

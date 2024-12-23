@@ -1,5 +1,6 @@
 using Fluid.Ast;
 using Fluid.Parser;
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 
 namespace Fluid
@@ -61,6 +62,7 @@ namespace Fluid
 
         public static ValueTask<Completion> RenderStatementsAsync(this IReadOnlyList<Statement> statements, TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
+            [MethodImpl(MethodImplOptions.NoInlining)]
             static async ValueTask<Completion> Awaited(
                 ValueTask<Completion> task,
                 int startIndex,

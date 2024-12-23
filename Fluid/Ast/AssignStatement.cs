@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using Fluid.Values;
 
@@ -17,6 +18,7 @@ namespace Fluid.Ast
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
+            [MethodImpl(MethodImplOptions.NoInlining)]
             static async ValueTask<Completion> Awaited(ValueTask<FluidValue> task, TemplateContext context, string identifier)
             {
                 var value = await task;

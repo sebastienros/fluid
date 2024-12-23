@@ -1,4 +1,5 @@
 using Fluid.Ast;
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Parser
@@ -113,6 +114,7 @@ namespace Fluid.Parser
 #endif
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         internal static async ValueTask Awaited(
             ValueTask<Completion> task,
             TextWriter writer,

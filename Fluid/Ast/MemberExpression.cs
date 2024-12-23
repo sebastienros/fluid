@@ -1,4 +1,5 @@
-﻿using Fluid.Values;
+using Fluid.Values;
+using System.Runtime.CompilerServices;
 
 namespace Fluid.Ast
 {
@@ -68,6 +69,7 @@ namespace Fluid.Ast
             return new ValueTask<FluidValue>(value);
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private static async ValueTask<FluidValue> Awaited(
             ValueTask<FluidValue> task,
             TemplateContext context,

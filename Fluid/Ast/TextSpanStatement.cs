@@ -1,5 +1,6 @@
-﻿using Fluid.Utils;
+using Fluid.Utils;
 using Parlot;
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
@@ -163,6 +164,7 @@ namespace Fluid.Ast
 
             // Since WriteAsync needs an actual buffer, we created and reused _buffer
 
+            [MethodImpl(MethodImplOptions.NoInlining)]
             static async ValueTask<Completion> Awaited(Task task)
             {
                 await task;

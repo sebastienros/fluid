@@ -1,4 +1,4 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 
 namespace Fluid.Ast.BinaryExpressions
 {
@@ -11,35 +11,36 @@ namespace Fluid.Ast.BinaryExpressions
 
         public bool Strict { get; }
 
-        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+        public static FluidValue IsLowerThan(FluidValue leftValue, FluidValue rightValue, bool strict)
         {
             if (leftValue.IsNil() || rightValue.IsNil())
             {
-                if (Strict)
+                if (strict)
                 {
                     return BooleanValue.False;
                 }
-
                 return leftValue.IsNil() && rightValue.IsNil()
                     ? BooleanValue.True
                     : BooleanValue.False;
             }
-
             if (leftValue is NumberValue)
             {
-                if (Strict)
+                if (strict)
                 {
                     return leftValue.ToNumberValue() < rightValue.ToNumberValue()
                         ? BooleanValue.True
                         : BooleanValue.False;
                 }
-
                 return leftValue.ToNumberValue() <= rightValue.ToNumberValue()
                     ? BooleanValue.True
                     : BooleanValue.False;
             }
-
             return NilValue.Instance;
+        }
+
+        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue, TemplateContext context)
+        {
+            return IsLowerThan(leftValue, rightValue, Strict);
         }
 
         protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitLowerThanBinaryExpression(this);

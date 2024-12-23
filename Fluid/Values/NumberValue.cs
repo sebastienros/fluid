@@ -1,5 +1,6 @@
-﻿using Fluid.Utils;
+using Fluid.Utils;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -77,6 +78,7 @@ namespace Fluid.Values
 
             return Awaited(task);
 
+            [MethodImpl(MethodImplOptions.NoInlining)]
             static async ValueTask Awaited(Task t)
             {
                 await t;
