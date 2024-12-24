@@ -1,4 +1,4 @@
-﻿using DotLiquid;
+using DotLiquid;
 using System.Linq;
 
 namespace Fluid.Benchmarks
@@ -17,7 +17,7 @@ namespace Fluid.Benchmarks
         {
             return Hash.FromAnonymousObject(new
             {
-                products = Products.Select(product => new Hash()
+                products = TemplateModel.Products.Select(product => new Hash()
                 {
                     ["name"] = product.Name,
                     ["price"] = product.Price,

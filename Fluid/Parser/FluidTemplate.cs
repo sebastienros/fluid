@@ -63,7 +63,7 @@ namespace Fluid.Parser
                             {
                                 // Compile synchronously
 
-                                _compiledTemplate = this.Compile(modelType, CompilerOptions.Default);
+                                _compiledTemplate = this.Compile(modelType, context.Options);
                             }
                             // END
                             else
@@ -72,7 +72,7 @@ namespace Fluid.Parser
                                 // Queue the compilation on the thread pool
                                 ThreadPool.QueueUserWorkItem((state) =>
                                 {
-                                    _compiledTemplate = this.Compile(modelType, CompilerOptions.Default);
+                                    _compiledTemplate = this.Compile(modelType, context.Options);
                                 }, (object)null, false);
                             }
                         }

@@ -857,9 +857,6 @@ shape: '{{ shape }}'");
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => template.RenderAsync(context).AsTask());
 
-            // Options are customized on TemplateContext
-            context.MaxSteps = 0;
-
             await template.RenderAsync(context).AsTask();
         }
 
@@ -1060,8 +1057,8 @@ after
         [Fact]
         public async Task DefaultMemberStrategyShouldSupportCamelCase()
         {
-            var model = new { FirstName = "Sebastien" };
-            var source = "{{ firstName }}";
+            var model = new Person { MiddleName = "Sebastien" };
+            var source = "{{ middleName }}";
             var expected = "Sebastien";
 
             _parser.TryParse(source, out var template, out var error);
@@ -1077,8 +1074,8 @@ after
         [Fact]
         public async Task DefaultMemberStrategyShouldSupportSnakeCase()
         {
-            var model = new { FirstName = "Sebastien" };
-            var source = "{{ first_name }}";
+            var model = new Person { MiddleName = "Sebastien" };
+            var source = "{{ middle_name }}";
             var expected = "Sebastien";
 
             _parser.TryParse(source, out var template, out var error);
@@ -1092,12 +1089,27 @@ after
         }
 
         [Theory]
+        [InlineData("FirstName")]
+        [InlineData("firstName")]
+        [InlineData("first_name")]
+        [InlineData("firstname")]
+        public void MemberStrategiesShouldBeIdempotent(string source)
+        {
+            foreach (var strategy in new[] { MemberNameStrategies.Default, MemberNameStrategies.CamelCase, MemberNameStrategies.SnakeCase, MemberNameStrategies.IgnoreCase })
+            {
+                var case1 = strategy(source);
+                var case2 = strategy(case1);
+                Assert.Equal(case1, case2);
+            }
+        }
+
+        [Theory]
         [InlineData(true)]
         [InlineData(false)]
         public async Task UnsafeMemberStrategyShouldSupportCamelCase(bool registerModelType)
         {
-            var model = new { FirstName = "Sebastien" };
-            var source = "{{ firstName }}";
+            var model = new Person { MiddleName = "Sebastien" };
+            var source = "{{ middleName }}";
             var expected = "Sebastien";
 
             _parser.TryParse(source, out var template, out var error);
@@ -1115,8 +1127,8 @@ after
         [InlineData(false)]
         public async Task UnsafeMemberStrategyShouldSupportSnakeCase(bool registerModelType)
         {
-            var model = new { FirstName = "Sebastien" };
-            var source = "{{ first_name }}";
+            var model = new Person { MiddleName = "Sebastien" };
+            var source = "{{ middle_name }}";
             var expected = "Sebastien";
 
             _parser.TryParse(source, out var template, out var error);
@@ -1181,6 +1193,20 @@ after
         }
 
         [Fact]
+        public async Task ForStringValueDoesntEnumerateModel()
+        {
+            var source = @"
+                {%- for c in Firstname -%}{{ c }}{{ c }}{% endfor -%}
+                {{- c -}}
+            ";
+
+            _parser.TryParse(source, out var template, out var error);
+            var context = new TemplateContext(new Person { Firstname = "123" });
+            var result = await template.RenderAsync(context);
+            Assert.Equal("123123", result);
+        }
+
+        [Fact]
         public async Task ArraysShouldCompareElements()
         {
             var source = """
@@ -1194,6 +1220,34 @@ after
             var context = new TemplateContext();
             var result = await template.RenderAsync(context);
             Assert.Contains("true", result);
+        }
+
+        [Fact]
+        public async Task AccessSubPropertiesOfModel()
+        {
+            _parser.TryParse("""
+                {% for employee in employees -%}
+                    {{- employee.firstname }}({{ employee.salary }})
+                {%- endfor %}
+                """, out var template, out var messages);
+
+            var company = new Company
+            {
+                Employees =
+                {
+                    new Employee { Firstname = "employee1", Salary = 1 },
+                    new Employee { Firstname = "employee2", Salary = 2 }
+                }
+            };
+
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.IgnoreCase;
+
+            var context = new TemplateContext(company, options);
+
+            var result = await template.RenderAsync(context);
+
+            Assert.Equal("""employee1(1)employee2(2)""", result);
         }
     }
 }

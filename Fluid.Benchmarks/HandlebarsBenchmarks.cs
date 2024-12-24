@@ -1,13 +1,13 @@
-﻿using HandlebarsDotNet;
+using HandlebarsDotNet;
 using System;
 
 namespace Fluid.Benchmarks
 {
     public class HandlebarsBenchmarks : BaseBenchmarks
     {
-        private readonly HandlebarsTemplate<object, object> _handlebarsTemplate;
+        private readonly HandlebarsTemplate<object, TemplateModel> _handlebarsTemplate;
 
-        public HandlebarsBenchmarks()
+        public HandlebarsBenchmarks() : base()
         {
             _handlebarsTemplate = Handlebars.Compile(ProductTemplateMustache);
         }
@@ -24,16 +24,13 @@ namespace Fluid.Benchmarks
 
         public override string Render()
         {
-            return _handlebarsTemplate(new
-            {
-                products = Products
-            });
+            return _handlebarsTemplate(TemplateModel);
         }
 
         public override string ParseAndRender()
         {
             var template = Handlebars.Compile(ProductTemplateMustache);
-            return template(new { products = Products });
+            return template(TemplateModel);
         }
     }
 }

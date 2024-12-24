@@ -1,4 +1,4 @@
-﻿using Scriban;
+using Scriban;
 using Scriban.Runtime;
 
 namespace Fluid.Benchmarks
@@ -24,14 +24,14 @@ namespace Fluid.Benchmarks
 
         public override string Render()
         {
-            var scriptObject = new ScriptObject { { "products", Products } };
+            var scriptObject = new ScriptObject { { "products", TemplateModel.Products } };
             return _scribanTemplate.Render(scriptObject);
         }
 
         public override string ParseAndRender()
         {
             var template = Template.ParseLiquid(ProductTemplate);
-            var scriptObject = new ScriptObject { { "products", Products } };
+            var scriptObject = new ScriptObject { { "products", TemplateModel.Products } };
             return template.Render(scriptObject);
         }
     }

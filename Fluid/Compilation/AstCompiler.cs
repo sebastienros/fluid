@@ -20,10 +20,9 @@ namespace Fluid.Compilation
     /// </remarks>
     public class AstCompiler : AstVisitor
     {
-        public AstCompiler(TemplateOptions templateOptions, CompilerOptions compilerOptions)
+        public AstCompiler(TemplateOptions templateOptions)
         {
             _templateOptions = templateOptions;
-            _compilerOptions = compilerOptions;
         }
 
         public void RenderTemplate(Type modelType, string _, FluidTemplate template, StringBuilder builder, StringBuilder global, StringBuilder staticConstructor)
@@ -85,9 +84,8 @@ namespace Fluid.Compilation
         private readonly StringBuilder _staticsSb = new();
         private readonly StringBuilder _staticConstructorSb = new();
         private readonly TemplateOptions _templateOptions;
-        private readonly CompilerOptions _compilerOptions;
         private readonly HashSet<string> _localVariables = new();
-        private readonly HashSet<string> _modelVariables = new();
+        private readonly Dictionary<string, Type> _modelVariables = new();
         private readonly Dictionary<string, Variable> _variableMappings = new(); // Maps a locally assigned property to its CSharp local_x member
         private string _indent = new string(' ', 4);
         private string _defaultIndent = "";
@@ -128,13 +126,47 @@ namespace Fluid.Compilation
 
             Variable counterVariable = new(); // To track the number of times the loop was executed
 
+            var collectionIsString = false;
+
             if (sourceIsModel)
             {
-                _modelVariables.Add(forStatement.Identifier);
+                // The identifier will be used as the variable name in the C# for loop
+                // Declare it base on the collection type
+
+                var collectionType = _modelVariables[source.Name];
+
+                if (collectionType == typeof(string))
+                {
+                    collectionIsString = true;
+                }
+
+                // Get the generic type of IEnumerable<T> in collectionType
+                var genericType = collectionType.GetInterfaces()
+                    .Where(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                    .Select(x => x.GetGenericArguments()[0])
+                    .FirstOrDefault();
+
+                if (genericType != null)
+                {
+                    // This will be removed then this statement is visited
+                    if (collectionIsString)
+                    {
+                        // A string in a for loop should not be iterated as a collection of characters
+                        // This is a special case in Liquid (probably Ruby)
+                        _modelVariables[forStatement.Identifier] = typeof(string);
+                    }
+                    else
+                    {
+                        _modelVariables[forStatement.Identifier] = genericType;
+                    }
+                }
             }
             else
             {
-                source = DeclareLocalValue($@"{source.Name}.Enumerate(context)");
+                collectionIsString = source.Type == FluidValues.String;
+
+                source = DeclareLocalValue($@"{source.Name}.Enumerate(context)", collectionIsString ? FluidValues.String : FluidValues.Nil);
+
                 _localVariables.Add(forStatement.Identifier);
                 WriteLine("context.EnterForLoopScope();");
             }
@@ -189,10 +221,20 @@ namespace Fluid.Compilation
 
             if (sourceIsModel)
             {
-                WriteLine($$"""
+                if (!collectionIsString)
+                {
+                    WriteLine($$"""
                     foreach (var {{forStatement.Identifier}} in {{source.Name}})
                     {
                     """);
+                }
+                else
+                {
+                    WriteLine($$"""
+                    foreach (var {{forStatement.Identifier}} in new string[] { {{source.Name}} })
+                    {
+                    """);
+                }
                 IncreaseIndent();
             }
             else
@@ -202,7 +244,7 @@ namespace Fluid.Compilation
                     {
                     """);
                 IncreaseIndent();
-                WriteLine($@"context.SetValue(""{forStatement.Identifier}"", {forStatement.Identifier});");
+                WriteLine($@"context.LocalScope.SetOwnValue(""{forStatement.Identifier}"", {forStatement.Identifier});");
             }
 
             if (_hasContinueOffset || forloopAccessed)
@@ -275,21 +317,26 @@ namespace Fluid.Compilation
             var identifierSegment = memberExpression.Segments.FirstOrDefault() as IdentifierSegment;
             var identifier = identifierSegment.Identifier;
 
-            var property = _modelType.GetProperty(identifier, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
-            var field = _modelType.GetField(identifier, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
-
-            if (_modelVariables.Contains(identifier))
+            if (_modelVariables.TryGetValue(identifier, out var propertyType))
             {
                 // _modelVariables contains the variable names that have been declared from Model properties
                 var accessor = identifier;
+                var variableName = identifier;
                 foreach (var segment in memberExpression.Segments.Skip(1))
                 {
-                    accessor += "." + (segment as IdentifierSegment).Identifier;
+                    var segmentIdentifier = (segment as IdentifierSegment).Identifier;
+                    if (!TryGetPropertyName(propertyType, segmentIdentifier, out var propertyName, out propertyType))
+                    {
+                        throw new ArgumentException($"Invalid property '{segmentIdentifier}' on '{propertyType}'");
+                    }
+
+                    accessor += $".{(segment as IdentifierSegment).Identifier}";
+                    variableName += $".{propertyName}";
                 }
 
-                _modelVariables.Add(accessor);
+                _modelVariables[accessor] = propertyType;
 
-                _lastVariable = _lastVariable with { Name = accessor, IsModel = true };
+                _lastVariable = _lastVariable with { Name = variableName, IsModel = true };
 
                 return memberExpression;
             }
@@ -316,17 +363,10 @@ namespace Fluid.Compilation
 
                 return memberExpression;
             }
-            else if (property != null)
+            else if (TryGetPropertyName(_modelType, identifier, out var propertyName, out propertyType))
             {
-                DeclareLocalValue($@"model.{property.Name}", isModel: true);
-                _modelVariables.Add(_lastVariable.Name);
-                return memberExpression;
-
-            }
-            else if (field != null)
-            {
-                DeclareLocalValue($@"model.{field.Name}", isModel: true);
-                _modelVariables.Add(_lastVariable.Name);
+                DeclareLocalValue($@"model.{propertyName}", isModel: true);
+                _modelVariables.Add(_lastVariable.Name, propertyType);
                 return memberExpression;
 
             }
@@ -485,16 +525,41 @@ namespace Fluid.Compilation
             return memberExpression;
         }
 
+        private bool TryGetPropertyName(Type modelType, string identifier, out string name, out Type type)
+        {
+            var property = modelType.GetProperties(BindingFlags.Instance | BindingFlags.Public).FirstOrDefault(x => _templateOptions.MemberAccessStrategy.MemberNameStrategy(x.Name) == _templateOptions.MemberAccessStrategy.MemberNameStrategy(identifier));
+
+            if (property != null)
+            {
+                name = property.Name;
+                type = property.PropertyType;
+                return true;
+            }
+
+            var field = modelType.GetFields(BindingFlags.Instance | BindingFlags.Public).FirstOrDefault(x => _templateOptions.MemberAccessStrategy.MemberNameStrategy(x.Name) == _templateOptions.MemberAccessStrategy.MemberNameStrategy(identifier));
+
+            if (field != null)
+            {
+                name = field.Name;
+                type = field.FieldType;
+                return true;
+            }
+
+            name = null;
+            type = null;
+            return false;
+        }
+
         protected internal override Statement VisitAssignStatement(AssignStatement assignStatement)
         {
             Visit(assignStatement.Value);
             var localValue = GetLocalValue();
 
-            DeclareLocalValue(@$"context.Assigned == null ? {localValue} : await context.Assigned.Invoke(""{assignStatement.Identifier}"", {localValue}, context)");
+            DeclareLocalValue(@$"context.Assigned == null ? {localValue} : await context.Assigned.Invoke(""{assignStatement.Identifier}"", {localValue}, context)", _lastVariable.Type);
 
             // TODO: Maybe it should actually force a call to context.SetValue() ?
 
-            if (_compilerOptions.LimitMaxSteps)
+            if (_templateOptions.MaxSteps > 0)
             {
                 WriteLine("context.IncrementSteps();");
             }
@@ -508,7 +573,7 @@ namespace Fluid.Compilation
         {
             Visit(outputStatement.Expression);
 
-            if (_compilerOptions.LimitMaxSteps)
+            if (_templateOptions.MaxSteps > 0)
             {
                 WriteLine("context.IncrementSteps();");
             }
@@ -588,7 +653,7 @@ namespace Fluid.Compilation
                 return textSpanStatement;
             }
 
-            if (_compilerOptions.LimitMaxSteps)
+            if (_templateOptions.MaxSteps > 0)
             {
                 WriteLine("context.IncrementSteps();");
             }

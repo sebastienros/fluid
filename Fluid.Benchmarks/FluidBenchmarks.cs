@@ -10,10 +10,9 @@ namespace Fluid.Benchmarks
         private readonly IFluidTemplate _fluidTemplate;
         private readonly FluidParser _compiledParser = new FluidParser().Compile();
 
-        public FluidBenchmarks()
+        public FluidBenchmarks() : base()
         {
-            _options.MemberAccessStrategy.Register<Product>();
-            _options.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
+            _options.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.IgnoreCase;
             _parser.TryParse(ProductTemplate, out _fluidTemplate, out var _);
         }
 
@@ -44,7 +43,7 @@ namespace Fluid.Benchmarks
         [Benchmark]
         public override string Render()
         {
-            var context = new TemplateContext(_options).SetValue("products", Products);
+            var context = new TemplateContext(TemplateModel, _options);
             return _fluidTemplate.Render(context);
         }
 
@@ -52,7 +51,7 @@ namespace Fluid.Benchmarks
         public override string ParseAndRender()
         {
             _parser.TryParse(ProductTemplate, out var template);
-            var context = new TemplateContext(_options).SetValue("products", Products);
+            var context = new TemplateContext(TemplateModel, _options);
             return template.Render(context);
         }
     }

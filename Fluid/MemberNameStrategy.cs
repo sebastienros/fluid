@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-
 namespace Fluid
 {
-    public delegate string MemberNameStrategy(MemberInfo member);
+    public delegate string MemberNameStrategy(string name);
 }

@@ -1,4 +1,4 @@
-﻿using Fluid.Accessors;
+using Fluid.Accessors;
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -32,7 +32,7 @@ namespace Fluid
 
                     if (propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Task<>))
                     {
-                        list[memberNameStrategy(propertyInfo)] = new AsyncDelegateAccessor(async (o, n) =>
+                        list[memberNameStrategy(propertyInfo.Name)] = new AsyncDelegateAccessor(async (o, n) =>
                         {
                             var asyncValue = (Task)propertyInfo.GetValue(o);
                             await asyncValue.ConfigureAwait(false);
@@ -41,7 +41,7 @@ namespace Fluid
                     }
                     else
                     {
-                        list[memberNameStrategy(propertyInfo)] = new PropertyInfoAccessor(propertyInfo);
+                        list[memberNameStrategy(propertyInfo.Name)] = new PropertyInfoAccessor(propertyInfo);
                     }
                 }
 
@@ -49,7 +49,7 @@ namespace Fluid
                 {
                     if (fieldInfo.FieldType.IsGenericType && fieldInfo.FieldType.GetGenericTypeDefinition() == typeof(Task<>))
                     {
-                        list[memberNameStrategy(fieldInfo)] = new AsyncDelegateAccessor(async (o, n) =>
+                        list[memberNameStrategy(fieldInfo.Name)] = new AsyncDelegateAccessor(async (o, n) =>
                         {
                             var asyncValue = (Task)fieldInfo.GetValue(o);
                             await asyncValue.ConfigureAwait(false);
@@ -58,7 +58,7 @@ namespace Fluid
                     }
                     else
                     {
-                        list[memberNameStrategy(fieldInfo)] = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
+                        list[memberNameStrategy(fieldInfo.Name)] = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
                     }
                 }
 

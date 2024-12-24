@@ -1,4 +1,4 @@
-﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes;
 
 namespace Fluid.Benchmarks
 {
@@ -31,7 +31,7 @@ namespace Fluid.Benchmarks
         [Benchmark]
         public override string Render()
         {
-            var context = new TemplateContext(_options).SetValue("products", Products);
+            var context = new TemplateContext(_options).SetValue("products", TemplateModel);
             return _fluidTemplate.Render(context);
         }
 
@@ -39,7 +39,7 @@ namespace Fluid.Benchmarks
         public override string ParseAndRender()
         {
             _parser.TryParse(ProductTemplate, out var template);
-            var context = new TemplateContext(_options).SetValue("products", Products);
+            var context = new TemplateContext(_options).SetValue("products", TemplateModel);
             return template.Render(context);
         }
     }

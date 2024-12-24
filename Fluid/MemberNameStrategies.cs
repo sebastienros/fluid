@@ -1,4 +1,3 @@
-﻿using System.Reflection;
 #if !NET6_0_OR_GREATER
 using System.Text;
 #endif
@@ -7,33 +6,36 @@ namespace Fluid
     public sealed class MemberNameStrategies
     {
         public static readonly MemberNameStrategy Default = RenameDefault;
+        public static readonly MemberNameStrategy IgnoreCase = RenameIgnoreCase;
         public static readonly MemberNameStrategy CamelCase = RenameCamelCase;
         public static readonly MemberNameStrategy SnakeCase = RenameSnakeCase;
 
-        private static string RenameDefault(MemberInfo member) => member.Name;
+        private static string RenameDefault(string memberName) => memberName;
+
+        private static string RenameIgnoreCase(string memberName) => memberName.ToLowerInvariant();
 
 #if NET6_0_OR_GREATER
-        public static string RenameCamelCase(MemberInfo member)
+        public static string RenameCamelCase(string memberName)
         {
-            return String.Create(member.Name.Length, member.Name, (data, name) =>
+            return String.Create(memberName.Length, memberName, (data, name) =>
             {
                 data[0] = char.ToLowerInvariant(name[0]);
                 name.AsSpan().Slice(1).CopyTo(data.Slice(1));
             });
         }
 
-        public static string RenameSnakeCase(MemberInfo member)
+        public static string RenameSnakeCase(string memberName)
         {
             var upper = 0;
-            for (var i = 1; i < member.Name.Length; i++)
+            for (var i = 1; i < memberName.Length; i++)
             {
-                if (char.IsUpper(member.Name[i]))
+                if (char.IsUpper(memberName[i]))
                 {
                     upper++;
                 }
             }
 
-            return String.Create(member.Name.Length + upper, member.Name, (data, name) =>
+            return String.Create(memberName.Length + upper, memberName, (data, name) =>
             {
                 var previousUpper = false;
                 var k = 0;
@@ -59,30 +61,29 @@ namespace Fluid
             });
         }
 #else
-        public static string RenameCamelCase(MemberInfo member)
+        public static string RenameCamelCase(string memberName)
         {
-            var firstChar = member.Name[0];
+            var firstChar = memberName[0];
 
             if (firstChar == char.ToLowerInvariant(firstChar))
             {
-                return member.Name;
+                return memberName;
             }
 
-            var name = member.Name.ToCharArray();
+            var name = memberName.ToCharArray();
             name[0] = char.ToLowerInvariant(firstChar);
 
             return new String(name);
         }
 
-        public static string RenameSnakeCase(MemberInfo member)
+        public static string RenameSnakeCase(string memberName)
         {
             var builder = new StringBuilder();
-            var name = member.Name;
             var previousUpper = false;
 
-            for (var i = 0; i < name.Length; i++)
+            for (var i = 0; i < memberName.Length; i++)
             {
-                var c = name[i];
+                var c = memberName[i];
                 if (char.IsUpper(c))
                 {
                     if (i > 0 && !previousUpper)

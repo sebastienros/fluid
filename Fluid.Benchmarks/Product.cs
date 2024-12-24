@@ -1,5 +1,12 @@
-﻿namespace Fluid.Benchmarks
+using System.Collections.Generic;
+
+namespace Fluid.Benchmarks
 {
+    public class TemplateModel
+    {
+        public List<Product> Products { get; set; } = [];
+    }
+
     public class Product
     {
         public Product(string name, float price, string description)

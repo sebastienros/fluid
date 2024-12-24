@@ -55,7 +55,6 @@ namespace Fluid
             Captured = options.Captured;
             Assigned = options.Assigned;
             Now = options.Now;
-            MaxSteps = options.MaxSteps;
             ModelNamesComparer = modelNamesComparer ?? options.ModelNamesComparer;
             TemplateCompilationThreshold = options.TemplateCompilationThreshold;
         }
@@ -90,11 +89,6 @@ namespace Fluid
         public TemplateOptions Options { get; protected set; }
 
         /// <summary>
-        /// Gets or sets the maximum number of steps a script can execute. Leave to 0 for unlimited.
-        /// </summary>
-        public int MaxSteps { get; set; } = TemplateOptions.Default.MaxSteps;
-
-        /// <summary>
         /// Gets <see cref="StringComparer"/> used when comparing model names.
         /// </summary>
         public StringComparer ModelNamesComparer { get; private set; }
@@ -125,7 +119,7 @@ namespace Fluid
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void IncrementSteps()
         {
-            if (MaxSteps > 0 && _steps++ > MaxSteps)
+            if (Options.MaxSteps > 0 && _steps++ > Options.MaxSteps)
             {
                 ExceptionHelper.ThrowMaximumRecursionException();
             }
@@ -134,7 +128,7 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the current scope.
         /// </summary>
-        internal Scope LocalScope { get; set; }
+        public Scope LocalScope { get; internal set; }
 
         /// <summary>
         /// Gets or sets the root scope.

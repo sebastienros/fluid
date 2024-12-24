@@ -40,12 +40,10 @@ templates["Interpreted"] = parser.Parse(source);
 templates["Custom"] = new CustomTemplate(fortunes);
 templates["CustomAsync"] = new CustomTemplateAsync(fortunes);
 
-var noMaxSteps = new CompilerOptions { LimitMaxSteps = false };
-
 sw.Restart();
-templates["Compiled"] = parser.Compile<ViewModel>(source, noMaxSteps);
+templates["Compiled"] = parser.Compile<ViewModel>(source);
 Console.WriteLine($"Compiled in {sw.Elapsed}");
-templates["CompiledObject"] = parser.Compile<object>(source, noMaxSteps);
+templates["CompiledObject"] = parser.Compile<object>(source);
 
 var options = new TemplateOptions();
 options.MemberAccessStrategy.Register<ViewModel>();

@@ -723,7 +723,7 @@ namespace Fluid.Filters
                         var conv = strategy.MemberNameStrategy;
                         foreach (var property in properties)
                         {
-                            var name = conv(property);
+                            var name = conv(property.Name);
 #pragma warning disable CA1859 // It's suggesting a wrong conversion (StringValue)
                             var fluidValue = await input.GetValueAsync(name, ctx);
 #pragma warning restore CA1859

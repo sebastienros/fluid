@@ -1,11 +1,10 @@
-﻿using System.Collections.Generic;
 using System.IO;
 
 namespace Fluid.Benchmarks
 {
     public abstract class BaseBenchmarks
     {
-        protected List<Product> Products = new List<Product>(ProductCount);
+        protected TemplateModel TemplateModel = new();
 
         protected const int ProductCount = 500;
 
@@ -43,7 +42,7 @@ namespace Fluid.Benchmarks
             for (int i = 0; i < ProductCount; i++)
             {
                 var product = new Product("Name" + i, i, Lorem);
-                Products.Add(product);
+                TemplateModel.Products.Add(product);
             }
         }
 
