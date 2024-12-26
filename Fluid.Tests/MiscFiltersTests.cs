@@ -118,7 +118,7 @@ namespace Fluid.Tests
         [Theory]
         [InlineData("YTw+OmE/", "a<>:a?")]
         [InlineData("SGVsbA==", "Hell")]
-        [InlineData("SGVsbG8=", "Hello")]        
+        [InlineData("SGVsbG8=", "Hello")]
         public async Task Base64Decode(string value, string expected)
         {
             var input = new StringValue(value);
@@ -152,7 +152,7 @@ namespace Fluid.Tests
         [Theory]
         [InlineData("YTw-OmE_", "a<>:a?")]
         [InlineData("SGVsbA", "Hell")]
-        [InlineData("SGVsbG8", "Hello")]   
+        [InlineData("SGVsbG8", "Hello")]
         public async Task Base64UrlSafeDecode(string value, string expected)
         {
             // Arrange
@@ -776,6 +776,19 @@ namespace Fluid.Tests
             var input = FluidValue.Create(model, TemplateOptions.Default);
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(TemplateOptions.Default));
             var expected = "{\"a\":true,\"b\":1,\"c\":\"06/08/2017 12:53:10 -07:00\",\"d\":\"string\",\"e\":null,\"f\":{\"f_a\":1.2,\"f_b\":false,\"f_c\":\"\"},\"g\":[\"val1\",\"val2\"]}";
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData(true, "{\"message\":\"这是一条短信\"}", "{\r\n  \"message\": \"\\u8FD9\\u662F\\u4E00\\u6761\\u77ED\\u4FE1\"\r\n}")]
+        [InlineData(false, "{\"message\":\"这是一条短信\"}", "{\"message\":\"这是一条短信\"}")]
+        public async Task JsonWithEscapeUnicode(bool escapeUnicode, string jsonValue, string expected)
+        {
+            var value = JObject.Parse(jsonValue);
+            var input = FluidValue.Create(value, TemplateOptions.Default);
+            var arguments = new FilterArguments().Add("EscapeUnicode", BooleanValue.Create(escapeUnicode));
+
+            var result = await MiscFilters.Json(input, arguments, new TemplateContext(TemplateOptions.Default));
             Assert.Equal(expected, result.ToStringValue());
         }
 
