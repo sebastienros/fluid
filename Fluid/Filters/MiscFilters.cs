@@ -442,7 +442,7 @@ namespace Fluid.Filters
                                 }
                             case 'c':
                                 {
-                                    // c is defined as "%a %b %e %T %Y" but it's also supposed to be locale aware, so we are using the
+                                    // c is defined as "%a %b %e %T %Y" but it's also supposed to be locale aware, so we are using the 
                                     // C# standard format instead
                                     result.Append(upperCaseFlag ? value.ToString("F", context.CultureInfo).ToUpperInvariant() : value.ToString("F", context.CultureInfo));
                                     break;
@@ -584,7 +584,7 @@ namespace Fluid.Filters
                                 }
                             case 'x':
                                 {
-                                    // x is defined as "%m/%d/%y" but it's also supposed to be locale aware, so we are using the
+                                    // x is defined as "%m/%d/%y" but it's also supposed to be locale aware, so we are using the 
                                     // C# short date pattern standard format instead
 
                                     result.Append(upperCaseFlag ? value.ToString("d", context.CultureInfo).ToUpperInvariant() : value.ToString("d", context.CultureInfo));
@@ -592,7 +592,7 @@ namespace Fluid.Filters
                                 }
                             case 'X':
                                 {
-                                    // X is defined as "%T" but it's also supposed to be locale aware, so we are using the
+                                    // X is defined as "%T" but it's also supposed to be locale aware, so we are using the 
                                     // C# short time pattern standard format instead
 
                                     result.Append(upperCaseFlag ? value.ToString("t", context.CultureInfo).ToUpperInvariant() : value.ToString("t", context.CultureInfo));

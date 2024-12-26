@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -800,8 +800,8 @@ namespace Fluid.Tests
         [InlineData(123456.00, "C2", "en-US", "$123,456.00")]
 
         // Skip tests with spaces as Linux and Windows implementation don't use the same space
-        //[InlineData(123456.00, "C2", "fr-FR", "123 456,00 €")]
-        //[InlineData("123456.00", "C2", "fr-FR", "123 456,00 €")]
+        //[InlineData(123456.00, "C2", "fr-FR", "123 456,00 €")]
+        //[InlineData("123456.00", "C2", "fr-FR", "123 456,00 €")]
         public async Task FormatNumber(object input, string format, string culture, string expected)
         {
             var cultureInfo = String.IsNullOrEmpty(culture)
