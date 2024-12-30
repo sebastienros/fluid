@@ -335,16 +335,35 @@ Not encoded: {{ html | raw }
 When using `capture` blocks, the inner content is flagged as 
 pre-encoded and won't be double-encoded if used in a `{{ }}` tag.
 
-#### Source
-```Liquid
-{% capture breaktag %}<br />{% endcapture %}
+### JSON encoding
 
-{{ breaktag }}
+By default all JSON strings are encoded using the default `JavaScriptEncoder` instance. This can be changed by setting the `TemplateOptions.JavaScriptEncoder` property.
+
+```Liquid
+{{ "你好，这是一条短信" | json" }}
+```
+
+#### Result
+
+```html
+"\u4F60\u597D\uFF0C\u8FD9\u662F\u4E00\u6761\u77ED\u4FE1"
+```
+
+Using the `JavaScriptEncoder.UnsafeRelaxedJsonEscaping` can be done this way:
+
+```csharp
+// This variable should be static and reused for all templates
+var options = new TemplateOptions
+{
+    JavaScriptEncoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+};
+
+var context = new TemplateContext(options);
 ```
 
 #### Result
 ```html
-<br />
+"你好，这是一条短信"
 ```
 
 <br>
