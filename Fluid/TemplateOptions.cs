@@ -2,6 +2,8 @@ using Fluid.Filters;
 using Fluid.Values;
 using Microsoft.Extensions.FileProviders;
 using System.Globalization;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace Fluid
 {
@@ -20,6 +22,8 @@ namespace Fluid
         public delegate ValueTask<FluidValue> CapturedDelegate(string identifier, FluidValue value, TemplateContext context);
 
         public static readonly TemplateOptions Default = new();
+
+        private static readonly JavaScriptEncoder DefaultJavaScriptEncoder = JavaScriptEncoder.Default;
 
         /// <summary>
         /// Gets ot sets the members than can be accessed in a template.
@@ -90,6 +94,11 @@ namespace Fluid
         public AssignedDelegate Assigned { get; set; }
 
         /// <summary>
+        /// Gets or sets the <see cref="JavaScriptEncoder" /> instance used by the <c>json</c> filter.
+        /// </summary>
+        public JavaScriptEncoder JavaScriptEncoder { get; set; } = DefaultJavaScriptEncoder;
+
+        /// <summary>
         /// Gets or sets the default trimming rules.
         /// </summary>
         public TrimmingFlags Trimming { get; set; } = TrimmingFlags.None;
@@ -98,7 +107,6 @@ namespace Fluid
         /// Gets or sets whether trimming is greedy. Default is true. When set to true, all successive blank chars are trimmed.
         /// </summary>
         public bool Greedy { get; set; } = true;
-
 
         public TemplateOptions()
         {
