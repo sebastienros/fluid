@@ -169,7 +169,7 @@ namespace Fluid
             // Seek anything that looks like a binary operator (==, !=, <, >, <=, >=, contains, startswith, endswith) then validates it with the registered operators
             // An "identifier" operator should always be followed by a space so we ensure it's doing it with AndSkip(Literals.WhiteSpace())
             CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.AnyOf("=!<>", maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString())
-                .When(RegisteredOperators.ContainsKey).And(Primary)))
+                .When((ctx, s) => RegisteredOperators.ContainsKey(s)).And(Primary)))
                 .Then(x =>
                  {
                      if (x.Item2.Item1 == null)
