@@ -1,4 +1,5 @@
-﻿using Fluid.Ast.BinaryExpressions;
+using Fluid.Ast.BinaryExpressions;
+using Fluid.Parser;
 
 namespace Fluid.Ast
 {
@@ -262,6 +263,21 @@ namespace Fluid.Ast
             return elseStatement;
         }
 
+        protected internal virtual Statement VisitEmptyBlockStatement(EmptyBlockStatement emptyBlockStatement)
+        {
+            foreach (var statement in emptyBlockStatement.Statements)
+            {
+                Visit(statement);
+            }
+
+            return emptyBlockStatement;
+        }
+
+        protected internal virtual Statement VisitEmptyTagStatement(EmptyTagStatement emptyTagStatement)
+        {
+            return emptyTagStatement;
+        }
+
         protected internal virtual Expression VisitFilterExpression(FilterExpression filterExpression)
         {
             Visit(filterExpression.Input);
@@ -374,6 +390,21 @@ namespace Fluid.Ast
         protected internal virtual Statement VisitNoOpStatement(NoOpStatement noOpStatement)
         {
             return noOpStatement;
+        }
+
+        protected internal virtual Statement VisitParserBlockStatement<T>(ParserBlockStatement<T> parserBlockStatement)
+        {
+            foreach (var statement in parserBlockStatement.Statements)
+            {
+                Visit(statement);
+            }
+
+            return parserBlockStatement;
+        }
+
+        protected internal virtual Statement VisitParserTagStatement<T>(ParserTagStatement<T> parserTagStatement)
+        {
+            return parserTagStatement;
         }
 
         protected internal virtual Statement VisitOutputStatement(OutputStatement outputStatement)

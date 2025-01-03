@@ -1,5 +1,8 @@
-﻿using Fluid.Tests.Visitors;
+using Fluid.Ast;
+using Fluid.Tests.Visitors;
 using Fluid.Values;
+using Fluid.ViewEngine;
+using Parlot.Fluent;
 using Xunit;
 
 namespace Fluid.Tests
@@ -72,6 +75,62 @@ namespace Fluid.Tests
 
             Assert.True(result1);
             Assert.False(result2);
+        }
+
+        [Fact]
+        public void VisitorShouldVisitParserTag()
+        {
+            var template = new FluidViewParser().Parse("{% layout '_Layout' %}");
+        
+            var visitor = new ParserVisitor();
+            visitor.VisitTemplate(template);
+
+            Assert.Equal("layout", visitor.TagName);
+            Assert.IsType<LiteralExpression>(visitor.Value);
+        }
+
+        [Fact]
+        public void VisitorShouldVisitParserBlock()
+        {
+            var template = new FluidViewParser().Parse("{% section body %}HELLO{% endsection %}");
+
+            var visitor = new ParserVisitor();
+            visitor.VisitTemplate(template);
+
+            Assert.Equal("section", visitor.TagName);
+            Assert.IsType<string>(visitor.Value);
+            Assert.Single(visitor.Statements);
+        }
+
+        [Fact]
+        public void VisitorShouldVisitEmptyTag()
+        {
+            var template = new FluidViewParser().Parse("{% renderbody %}");
+
+            var visitor = new ParserVisitor();
+            visitor.VisitTemplate(template);
+
+            Assert.Equal("renderbody", visitor.TagName);
+        }
+
+        [Fact]
+        public void VisitorShouldVisitEmptyBlock()
+        {
+            var parser = new FluidParser();
+
+            parser.RegisterEmptyBlock("hello", static (s, w, e, c) =>
+            {
+                w.Write("Hello World");
+                return s.RenderStatementsAsync(w, e, c);
+            });
+
+            var template = parser.Parse("{% hello %}HELLO{% endhello %}");
+
+            var visitor = new ParserVisitor();
+            visitor.VisitTemplate(template);
+
+            Assert.Equal("hello", visitor.TagName);
+            Assert.Single(visitor.Statements);
         }
     }
 }

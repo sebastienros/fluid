@@ -1,4 +1,4 @@
-﻿using Fluid.Ast.BinaryExpressions;
+using Fluid.Ast.BinaryExpressions;
 using Fluid.Parser;
 
 namespace Fluid.Ast
@@ -331,6 +331,21 @@ namespace Fluid.Ast
             return elseStatement;
         }
 
+        protected internal override Statement VisitEmptyBlockStatement(EmptyBlockStatement emptyBlockStatement)
+        {
+            if (TryRewriteStatements(emptyBlockStatement.Statements, out var newStatements))
+            {
+                return new EmptyBlockStatement(emptyBlockStatement.TagName, newStatements.ToList(), emptyBlockStatement.Render);
+            }
+
+            return emptyBlockStatement;
+        }
+
+        protected internal override Statement VisitEmptyTagStatement(EmptyTagStatement emptyTagStatement)
+        {
+            return emptyTagStatement;
+        }
+
         protected internal override Expression VisitFilterExpression(FilterExpression filterExpression)
         {
             var updated = false;
@@ -465,6 +480,21 @@ namespace Fluid.Ast
             }
 
             return outputStatement;
+        }
+
+        protected internal override Statement VisitParserBlockStatement<T>(ParserBlockStatement<T> parserBlockStatement)
+        {
+            if (TryRewriteStatements(parserBlockStatement.Statements, out var newStatements))
+            {
+                return new ParserBlockStatement<T>(parserBlockStatement.TagName, parserBlockStatement.Value, newStatements.ToList(), parserBlockStatement.Render);
+            }
+
+            return parserBlockStatement;
+        }
+
+        protected internal override Statement VisitParserTagStatement<T>(ParserTagStatement<T> parserTagStatement)
+        {
+            return parserTagStatement;
         }
 
         protected internal override Expression VisitRangeExpression(RangeExpression rangeExpression)

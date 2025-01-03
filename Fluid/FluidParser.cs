@@ -599,27 +599,27 @@ namespace Fluid
         public void RegisterParserBlock<T>(string tagName, Parser<T> parser, Func<T, IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             RegisteredTags[tagName] = parser.AndSkip(TagEnd).And(AnyTagsList).AndSkip(CreateTag("end" + tagName).ElseError($"'{{% end{tagName} %}}' was expected"))
-                .Then<Statement>(x => new ParserBlockStatement<T>(x.Item1, x.Item2, render))
+                .Then<Statement>(x => new ParserBlockStatement<T>(tagName, x.Item1, x.Item2, render))
                 .ElseError($"Invalid {tagName} tag")
                 ;
         }
 
         public void RegisterParserTag<T>(string tagName, Parser<T> parser, Func<T, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
-            RegisteredTags[tagName] = parser.AndSkip(TagEnd).Then<Statement>(x => new ParserTagStatement<T>(x, render));
+            RegisteredTags[tagName] = parser.AndSkip(TagEnd).Then<Statement>(x => new ParserTagStatement<T>(tagName, x, render));
             RegisteredTags[tagName].Name = tagName;
         }
 
         public void RegisterEmptyTag(string tagName, Func<TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
-            RegisteredTags[tagName] = TagEnd.Then<Statement>(x => new EmptyTagStatement(render)).ElseError($"Unexpected arguments in {tagName} tag");
+            RegisteredTags[tagName] = TagEnd.Then<Statement>(x => new EmptyTagStatement(tagName, render)).ElseError($"Unexpected arguments in {tagName} tag");
             RegisteredTags[tagName].Name = tagName;
         }
 
         public void RegisterEmptyBlock(string tagName, Func<IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             RegisteredTags[tagName] = TagEnd.SkipAnd(AnyTagsList).AndSkip(CreateTag("end" + tagName).ElseError($"'{{% end{tagName} %}}' was expected"))
-                .Then<Statement>(x => new EmptyBlockStatement(x, render))
+                .Then<Statement>(x => new EmptyBlockStatement(tagName, x, render))
                 .ElseError($"Invalid '{tagName}' tag")
                 ;
             RegisteredTags[tagName].Name = tagName;
