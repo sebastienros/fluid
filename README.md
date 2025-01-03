@@ -1103,6 +1103,17 @@ var result = changed.Render();
 Console.WriteLine(result); // writes -1
 ```
 
+### Custom parsers
+
+The [custom statements and expressions](#custom-parsers) can also be visited by using one of these methods:
+
+- `VisitParserTagStatement<T>(ParserTagStatement<T>)`
+- `VisitParserBlockStatement<T>(ParserBlockStatement<T>)`
+- `VisitEmptyTagStatement(EmptyTagStatement)`
+- `VisitEmptyBlockStatement(EmptyBlockStatement)`
+
+They all expose a `TagName` property and optionally a `Statements` and `Value` ones when it applies.
+
 ## Performance
 
 ### Caching
