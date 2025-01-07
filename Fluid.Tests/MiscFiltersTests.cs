@@ -621,8 +621,10 @@ namespace Fluid.Tests
             context = new TemplateContext { CultureInfo = new CultureInfo("en-US", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
             var resultUS = await MiscFilters.Date(input, arguments, context);
 
+            Assert.Equal("dddd, MMMM d, yyyy h:mm:ss tt", context.CultureInfo.DateTimeFormat.FullDateTimePattern);
+
             Assert.Equal("dimanche 8 janvier 2017 00:00:00", resultFR.ToStringValue());
-            Assert.Equal("Tuesday, August 1, 2017 12:00:00 AM".ToCharArray(), resultUS.ToStringValue().ToCharArray());
+            Assert.Equal("Tuesday, August 1, 2017 12:00:00 AM", resultUS.ToStringValue());
         }
 
         [Theory]
