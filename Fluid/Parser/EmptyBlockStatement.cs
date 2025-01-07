@@ -1,23 +1,28 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Parser
 {
-    internal sealed class EmptyBlockStatement : Statement
+    public sealed class EmptyBlockStatement : Statement
     {
-        private readonly Func<IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> _render;
-
-        public EmptyBlockStatement(IReadOnlyList<Statement> statements, Func<IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
+        public EmptyBlockStatement(string tagName, IReadOnlyList<Statement> statements, Func<IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
-            _render = render ?? throw new ArgumentNullException(nameof(render));
+            TagName = tagName ?? throw new ArgumentNullException(nameof(tagName));
+            Render = render ?? throw new ArgumentNullException(nameof(render));
             Statements = statements ?? [];
         }
 
+        public string TagName { get; }
+
         public IReadOnlyList<Statement> Statements { get; }
+
+        public Func<IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> Render { get; }
 
         public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            return _render(Statements, writer, encoder, context);
+            return Render(Statements, writer, encoder, context);
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitEmptyBlockStatement(this);
     }
 }
