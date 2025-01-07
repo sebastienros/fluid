@@ -420,29 +420,29 @@ namespace Fluid.Filters
                                 }
 
                                 var abbreviatedDayName = AbbreviatedDayName();
-                                result.Append(upperCaseFlag ? abbreviatedDayName.ToUpperInvariant() : abbreviatedDayName);
+                                result.Append(upperCaseFlag ? abbreviatedDayName.ToUpper(context.CultureInfo) : abbreviatedDayName);
                                 break;
                             case 'A':
                                 {
                                     var dayName = context.CultureInfo.DateTimeFormat.DayNames[(int)value.DayOfWeek];
-                                    result.Append(upperCaseFlag ? dayName.ToUpperInvariant() : dayName);
+                                    result.Append(upperCaseFlag ? dayName.ToUpper(context.CultureInfo) : dayName);
                                     break;
                                 }
                             case 'b':
                                 var abbreviatedMonthName = context.CultureInfo.DateTimeFormat.AbbreviatedMonthNames[value.Month - 1];
-                                result.Append(upperCaseFlag ? abbreviatedMonthName.ToUpperInvariant() : abbreviatedMonthName);
+                                result.Append(upperCaseFlag ? abbreviatedMonthName.ToUpper(context.CultureInfo) : abbreviatedMonthName);
                                 break;
                             case 'B':
                                 {
                                     var monthName = context.CultureInfo.DateTimeFormat.MonthNames[value.Month - 1];
-                                    result.Append(upperCaseFlag ? monthName.ToUpperInvariant() : monthName);
+                                    result.Append(upperCaseFlag ? monthName.ToUpper(context.CultureInfo) : monthName);
                                     break;
                                 }
                             case 'c':
                                 {
                                     // c is defined as "%a %b %e %T %Y" but it's also supposed to be locale aware, so we are using the 
                                     // C# standard format instead
-                                    result.Append(upperCaseFlag ? value.ToString("F", context.CultureInfo).ToUpperInvariant() : value.ToString("F", context.CultureInfo));
+                                    result.Append(upperCaseFlag ? value.ToString("F", context.CultureInfo).ToUpper(context.CultureInfo) : value.ToString("F", context.CultureInfo));
                                     break;
                                 }
                             case 'C': result.Append(Format(value.Year / 100, 2)); break;
@@ -451,7 +451,7 @@ namespace Fluid.Filters
                                 {
                                     var sb = new StringBuilder();
                                     ForStrf(value, "%m/%d/%y", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
                             case 'e':
@@ -461,7 +461,7 @@ namespace Fluid.Filters
                                 {
                                     var sb = new StringBuilder();
                                     ForStrf(value, "%Y-%m-%d", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
                             case 'g':
@@ -522,20 +522,20 @@ namespace Fluid.Filters
                                 var v = (value.Ticks % 10000000).ToString(context.CultureInfo);
                                 result.Append(v.Length >= width ? v.Substring(0, width.Value) : v.PadRight(width.Value, '0'));
                                 break;
-                            case 'p': result.Append(value.ToString("tt", context.CultureInfo).ToUpperInvariant()); break;
-                            case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLowerInvariant()); break;
+                            case 'p': result.Append(value.ToString("tt", context.CultureInfo).ToUpper(context.CultureInfo)); break;
+                            case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLower(context.CultureInfo)); break;
                             case 'r':
                                 {
                                     var sb = new StringBuilder();
                                     ForStrf(value, "%I:%M:%S %p", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
                             case 'R':
                                 {
                                     var sb = new StringBuilder();
                                     ForStrf(value, "%H:%M", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
                             case 's': result.Append(Format(value.ToUnixTimeSeconds())); break;
@@ -547,7 +547,7 @@ namespace Fluid.Filters
                                 {
                                     var sb = new StringBuilder();
                                     ForStrf(value, "%H:%M:%S", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
                             case 'u': result.Append(value.DayOfWeek switch { DayOfWeek.Sunday => 7, _ => (int)value.DayOfWeek }); break;
@@ -565,7 +565,7 @@ namespace Fluid.Filters
                                 {
                                     var sb = new StringBuilder();
                                     ForStrf(value, "%e-%b-%Y", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
                             case 'V': result.Append(Format(value.DayOfYear / 7 + 1, 2)); break;
@@ -585,7 +585,7 @@ namespace Fluid.Filters
                                     // x is defined as "%m/%d/%y" but it's also supposed to be locale aware, so we are using the 
                                     // C# short date pattern standard format instead
 
-                                    result.Append(upperCaseFlag ? value.ToString("d", context.CultureInfo).ToUpperInvariant() : value.ToString("d", context.CultureInfo));
+                                    result.Append(upperCaseFlag ? value.ToString("d", context.CultureInfo).ToUpper(context.CultureInfo) : value.ToString("d", context.CultureInfo));
                                     break;
                                 }
                             case 'X':
@@ -593,7 +593,7 @@ namespace Fluid.Filters
                                     // X is defined as "%T" but it's also supposed to be locale aware, so we are using the 
                                     // C# short time pattern standard format instead
 
-                                    result.Append(upperCaseFlag ? value.ToString("t", context.CultureInfo).ToUpperInvariant() : value.ToString("t", context.CultureInfo));
+                                    result.Append(upperCaseFlag ? value.ToString("t", context.CultureInfo).ToUpper(context.CultureInfo) : value.ToString("t", context.CultureInfo));
                                     break;
                                 }
                             case 'y':
@@ -616,7 +616,7 @@ namespace Fluid.Filters
                                 {
                                     var sb = new StringBuilder();
                                     ForStrf(value, "%a %b %e %H:%M:%S %Z %Y", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpperInvariant() : sb.ToString());
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
                             default: result.Append('%').Append(c); break;
