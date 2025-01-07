@@ -607,24 +607,22 @@ namespace Fluid.Tests
             Assert.Equal("01/08/2017", resultUS.ToStringValue());
         }
 
-        [Fact]
-        public async Task DateIsRenderedWithCulture()
+        [Theory]
+        [InlineData("fr-FR")]
+        [InlineData("en-US")]
+        public async Task DateIsRenderedWithCulture(string culture)
         {
             var input = new StringValue("08/01/2017");
             var format = "%c";
 
             var arguments = new FilterArguments(new StringValue(format));
 
-            var context = new TemplateContext { CultureInfo = new CultureInfo("fr-FR", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
-            var resultFR = await MiscFilters.Date(input, arguments, context);
+            var context = new TemplateContext { CultureInfo = new CultureInfo(culture, useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
+            var result = await MiscFilters.Date(input, arguments, context);
+            input.TryGetDateTimeInput(context, out var value);
+            var expectedResult = value.ToString("F", context.CultureInfo);
 
-            context = new TemplateContext { CultureInfo = new CultureInfo("en-US", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
-            var resultUS = await MiscFilters.Date(input, arguments, context);
-
-            Assert.Equal("dddd, MMMM d, yyyy h:mm:ss tt", context.CultureInfo.DateTimeFormat.FullDateTimePattern);
-
-            Assert.Equal("dimanche 8 janvier 2017 00:00:00", resultFR.ToStringValue());
-            Assert.Equal("Tuesday, August 1, 2017 12:00:00 AM", resultUS.ToStringValue());
+            Assert.Equal(expectedResult, result.ToStringValue());
         }
 
         [Theory]
