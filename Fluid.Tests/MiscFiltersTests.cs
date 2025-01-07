@@ -622,7 +622,7 @@ namespace Fluid.Tests
             var resultUS = await MiscFilters.Date(input, arguments, context);
 
             Assert.Equal("dimanche 8 janvier 2017 00:00:00", resultFR.ToStringValue());
-            Assert.Equal("Tuesday, August 1, 2017 12:00:00 AM", resultUS.ToStringValue());
+            Assert.Equal("Tuesday, August 1, 2017 12:00:00 AM".ToCharArray(), resultUS.ToStringValue().ToCharArray());
         }
 
         [Theory]
