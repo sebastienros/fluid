@@ -287,8 +287,13 @@ namespace Fluid.Tests
         [InlineData("%Y-%m-%dT%H:%M:%S.%L", "2017-08-01T17:04:36.123")]
         public async Task Date(string format, string expected, string dateTime = "2017-08-01T17:04:36.123456789+08:00")
         {
+            // This test sets the CultureInfo.DateTimeFormat so it's not impacted by changes in ICU
+            // see https://github.com/dotnet/runtime/issues/95620
+            var enUsCultureInfo = new CultureInfo("en-US", useUserOverride: false);
+            enUsCultureInfo.DateTimeFormat.FullDateTimePattern = "dddd, MMMM d, yyyy h:mm:ss tt";
+
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions() { CultureInfo = new CultureInfo("en-US", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
+            var options = new TemplateOptions() { CultureInfo = enUsCultureInfo, TimeZone = TimeZoneInfo.Utc };
             var context = new TemplateContext(options);
 
             new StringValue(dateTime).TryGetDateTimeInput(new TemplateContext(), out var customDateTime);
@@ -610,19 +615,34 @@ namespace Fluid.Tests
         [Fact]
         public async Task DateIsRenderedWithCulture()
         {
-            var input = new StringValue("08/01/2017");
-            var format = "%c";
+            // This tests 4 things:
+            // - The date is parsed with the specified culture (July vs February)
+            // - The date is rendered with the specified culture (French vs English)
+            // - The date is rendered with the specified timezone (UTC)
+            // - The uppercase modifier is applied with the culture (Turkish i)
+
+            var input = new StringValue("07/02/2017");
+            var format = "%^c";
 
             var arguments = new FilterArguments(new StringValue(format));
 
             var context = new TemplateContext { CultureInfo = new CultureInfo("fr-FR", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
             var resultFR = await MiscFilters.Date(input, arguments, context);
 
-            context = new TemplateContext { CultureInfo = new CultureInfo("en-US", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
+            context = new TemplateContext { CultureInfo = new CultureInfo("tr-TR", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
+            var resultTR = await MiscFilters.Date(input, arguments, context);
+
+            // This test sets the CultureInfo.DateTimeFormat so it's not impacted by changes in ICU
+            // see https://github.com/dotnet/runtime/issues/95620
+            var enUsCultureInfo = new CultureInfo("en-US", useUserOverride: false);
+            enUsCultureInfo.DateTimeFormat.FullDateTimePattern = "dddd, MMMM d, yyyy h:mm:ss tt";
+
+            context = new TemplateContext { CultureInfo = enUsCultureInfo, TimeZone = TimeZoneInfo.Utc };
             var resultUS = await MiscFilters.Date(input, arguments, context);
 
-            Assert.Equal("dimanche 8 janvier 2017 00:00:00", resultFR.ToStringValue());
-            Assert.Equal("Tuesday, August 1, 2017 12:00:00 AM", resultUS.ToStringValue());
+            Assert.Equal("7 ŞUBAT 2017 SALI 00:00:00", resultTR.ToStringValue());
+            Assert.Equal("MARDI 7 FÉVRIER 2017 00:00:00", resultFR.ToStringValue());
+            Assert.Equal("SUNDAY, JULY 2, 2017 12:00:00 AM", resultUS.ToStringValue());
         }
 
         [Theory]

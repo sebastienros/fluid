@@ -1,4 +1,4 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 
 namespace Fluid.Filters
 {
@@ -48,7 +48,7 @@ namespace Fluid.Filters
                 char c;
                 if (i == 0 || char.IsWhiteSpace(c = source[i - 1]) || c == '-' || c == '.')
                 {
-                    source[i] = char.ToUpper(source[i]);
+                    source[i] = char.ToUpper(source[i], context.CultureInfo);
                 }
             }
 
@@ -57,7 +57,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().ToLowerInvariant());
+            return new StringValue(input.ToStringValue().ToLower(context.CultureInfo));
         }
 
         public static ValueTask<FluidValue> LStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -360,7 +360,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Upcase(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().ToUpperInvariant());
+            return new StringValue(input.ToStringValue().ToUpper(context.CultureInfo));
         }
     }
 }
