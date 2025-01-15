@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
@@ -356,5 +357,77 @@ shape: ''";
             Assert.Equal("global value", result);
         }
 
+        [Fact]
+        public async Task IncludeTag_Cache_Is_ThreadSafe()
+        {
+            var templates = "abcdefg".Select(x => new string(x, 10)).ToArray();
+
+            var fileProvider = new MockFileProvider();
+
+            foreach (var t in templates)
+            {
+                fileProvider.Add($"{t[0]}.liquid", t);
+            }
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            _parser.TryParse("{%- include file -%}", out var template);
+
+            var stopped = false;
+
+            var tasks = templates.Select(x => Task.Run(() =>
+            {
+                while (!stopped)
+                {
+                    var context = new TemplateContext(options);
+                    context.SetValue("file", x[0]);
+                    var result = template.Render(context);
+
+                    Assert.Equal(x, result);
+                }
+            })).ToArray();
+
+            await Task.Delay(1000);
+
+            stopped = true;
+            Task.WaitAll(tasks);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void IncludeTag_Caches_Template(bool useExtension)
+        {
+            // Ensure the cache works even when the file extension is not set
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("a.liquid", "AAAA");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            IFluidTemplate template = null;
+
+            if (useExtension)
+            {
+                _parser.TryParse("""
+                {%- include 'a.liquid' -%}
+                """, out template);
+            }
+            else
+            {
+                _parser.TryParse("""
+                {%- include 'a' -%}
+                """, out template);
+            }
+
+            var result = template.Render(context);
+
+            Assert.Equal("AAAA", result);
+
+            // Update the content of the file
+            fileProvider.Add("a.liquid", "BBBB");
+            result = template.Render(context);
+
+            // The previously cached template should be used
+            Assert.Equal("AAAA", result);
+        }
     }
 }
