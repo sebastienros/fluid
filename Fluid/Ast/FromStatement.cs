@@ -1,4 +1,4 @@
-﻿using System.Text.Encodings.Web;
+using System.Text.Encodings.Web;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -10,7 +10,6 @@ namespace Fluid.Ast
         public const string ViewExtension = ".liquid";
 
         private volatile CachedTemplate _cachedTemplate;
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
         public FromStatement(FluidParser parser, Expression path, IReadOnlyList<string> functions = null)
         {
@@ -31,47 +30,42 @@ namespace Fluid.Ast
                 relativePath += ViewExtension;
             }
 
-            if (_cachedTemplate == null || !string.Equals(_cachedTemplate.Name, System.IO.Path.GetFileNameWithoutExtension(relativePath), StringComparison.Ordinal))
+            var cachedTemplate = _cachedTemplate;
+
+            if (cachedTemplate == null || !string.Equals(cachedTemplate.Name, System.IO.Path.GetFileNameWithoutExtension(relativePath), StringComparison.Ordinal))
             {
-                await _semaphore.WaitAsync();
-                try
+                var fileProvider = context.Options.FileProvider;
+                var fileInfo = fileProvider.GetFileInfo(relativePath);
+                if (fileInfo == null || !fileInfo.Exists)
                 {
-                    var fileProvider = context.Options.FileProvider;
-                    var fileInfo = fileProvider.GetFileInfo(relativePath);
-                    if (fileInfo == null || !fileInfo.Exists)
-                    {
-                        throw new FileNotFoundException(relativePath);
-                    }
-
-                    var content = "";
-
-                    using (var stream = fileInfo.CreateReadStream())
-                    using (var streamReader = new StreamReader(stream))
-                    {
-                        content = await streamReader.ReadToEndAsync();
-                    }
-
-                    if (!Parser.TryParse(content, out var template, out var errors))
-                    {
-                        throw new ParseException(errors);
-                    }
-
-                    var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
-                    _cachedTemplate = new CachedTemplate(template, identifier);
+                    throw new FileNotFoundException(relativePath);
                 }
-                finally
+
+                var content = "";
+
+                using (var stream = fileInfo.CreateReadStream())
+                using (var streamReader = new StreamReader(stream))
                 {
-                    _semaphore.Release();
+                    content = await streamReader.ReadToEndAsync();
                 }
+
+                if (!Parser.TryParse(content, out var template, out var errors))
+                {
+                    throw new ParseException(errors);
+                }
+
+                var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
+                _cachedTemplate = cachedTemplate = new CachedTemplate(template, identifier);
             }
+
+            var parentScope = context.LocalScope;
+
+            // Create a dedicated scope so we can list all macros defined in this template
+            context.EnterChildScope();
 
             try
             {
-                var parentScope = context.LocalScope;
-
-                // Create a dedicated scope so we can list all macros defined in this template
-                context.EnterChildScope();
-                await _cachedTemplate.Template.RenderAsync(TextWriter.Null, encoder, context);
+                await cachedTemplate.Template.RenderAsync(TextWriter.Null, encoder, context);
 
                 if (Functions.Count > 0)
                 {
