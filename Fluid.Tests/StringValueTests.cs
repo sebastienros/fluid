@@ -36,7 +36,7 @@ namespace Fluid.Tests
             var stringValue = StringValue.Create("a", encode);
 
             // Assert
-            Assert.Equal("a", stringValue.Value);
+            Assert.Equal("a", stringValue.ToStringValue());
             Assert.Equal(encode, stringValue.Encode);
         }
     }
