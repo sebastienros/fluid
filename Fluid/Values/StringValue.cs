@@ -70,7 +70,7 @@ namespace Fluid.Values
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static StringValue Create(string s, bool encode)
         {
-            return Create(s, encode);
+            return new StringValue(s, encode);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -93,7 +93,7 @@ namespace Fluid.Values
                 return _value == other.ToStringValue();
             }
 
-            // Delegating other types 
+            // Delegating other types
             if (other == BlankValue.Instance || other == NilValue.Instance || other == EmptyValue.Instance)
             {
                 return other.Equals(this);
