@@ -70,7 +70,7 @@ namespace Fluid.Values
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static StringValue Create(string s, bool encode)
         {
-            return Create(encode ? HtmlEncoder.Default.Encode(s) : s);
+            return new StringValue(s, encode);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

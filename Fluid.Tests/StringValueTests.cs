@@ -27,5 +27,17 @@ namespace Fluid.Tests
             // Assert
             Assert.Equal(StringValue.Empty, stringValue);
         }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void StringValue_Create_InitializesProperties(bool encode)
+        {
+            var stringValue = StringValue.Create("a", encode);
+
+            // Assert
+            Assert.Equal("a", stringValue.Value);
+            Assert.Equal(encode, stringValue.Encode);
+        }
     }
 }
