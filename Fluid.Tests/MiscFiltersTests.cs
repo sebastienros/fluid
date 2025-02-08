@@ -919,9 +919,12 @@ namespace Fluid.Tests
         [InlineData("", "", "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d")]
         [InlineData("", "Fluid", "47ab4d87fabf7a7162d59c57298780904de9e245")]
         [InlineData("secret_key", "Fluid", "1061ea276551355150b8581aa64dca829d41e357")]
-        public async Task HmacSha1(string key, string value, string expected) {
+        public async Task HmacSha1(string key, string value, string expected)
+        {
             // Arrange
-            FluidValue input = value is null ? NilValue.Empty : new StringValue(value);
+            FluidValue input = value is null
+                ? NilValue.Empty
+                : new StringValue(value);
             var arguments = new FilterArguments(FluidValue.Create(key, TemplateOptions.Default));
             var context = new TemplateContext();
 
@@ -938,9 +941,12 @@ namespace Fluid.Tests
         [InlineData("", "", "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad")]
         [InlineData("", "Fluid", "e9f2db8bd3900c469e4b560227c5d53b48f644208a13de05bb400f7611d1a623")]
         [InlineData("secret_key", "Fluid", "ac08ee5cdd007e1069680e93eb512049f5ff12afd0fe101de5c9b5043a047ea4")]
-        public async Task HmacSha256(string key, string value, string expected) {
+        public async Task HmacSha256(string key, string value, string expected)
+        {
             // Arrange
-            FluidValue input = value is null ? NilValue.Empty : new StringValue(value);
+            FluidValue input = value is null
+                ? NilValue.Empty
+                : new StringValue(value);
             var arguments = new FilterArguments(FluidValue.Create(key, TemplateOptions.Default));
             var context = new TemplateContext();
 

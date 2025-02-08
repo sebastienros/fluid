@@ -6,6 +6,8 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using TimeZoneConverter;
+using System.Security.Cryptography;
+using Fluid.Utils;
 
 namespace Fluid.Filters
 {
@@ -936,9 +938,11 @@ namespace Fluid.Filters
 #endif
         }
 
-        public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context) {
+        public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
             var key = arguments.At(0);
-            if (key.IsNil() || input.IsNil()) {
+            if (key.IsNil() || input.IsNil())
+            {
                 return StringValue.Empty;
             }
 
@@ -949,11 +953,11 @@ namespace Fluid.Filters
 
 #if NET6_0_OR_GREATER
 #pragma warning disable CA5350 // Do Not Use Broken Cryptographic Algorithms
-            var hash = System.Security.Cryptography.HMACSHA1.HashData(keyBytes, Encoding.UTF8.GetBytes(value));
+            var hash = HMACSHA1.HashData(keyBytes, Encoding.UTF8.GetBytes(value));
 #pragma warning restore CA5350
             return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
 #else
-            using var provider = System.Security.Cryptography.HMACSHA1.Create();
+            using var provider = HMACSHA1.Create();
             provider.Key = keyBytes;
             var builder = new StringBuilder(64);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.HMACSHA1.HashData' method over 'ComputeHash'
@@ -967,10 +971,12 @@ namespace Fluid.Filters
 #endif
         }
 
-        public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context) {
+        public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
             var key = arguments.At(0);
             
-            if (key.IsNil() || input.IsNil()) {
+            if (key.IsNil() || input.IsNil())
+            {
                 return StringValue.Empty;
             }
 
@@ -980,10 +986,10 @@ namespace Fluid.Filters
             // c.f. HashingBenchmarks
 
 #if NET6_0_OR_GREATER
-            var hash = System.Security.Cryptography.HMACSHA256.HashData(keyBytes, Encoding.UTF8.GetBytes(value));
-            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+            var hash = HMACSHA256.HashData(keyBytes, Encoding.UTF8.GetBytes(value));
+            return new StringValue(HexUtilities.ToHexLower(hash));
 #else
-            using var provider = System.Security.Cryptography.HMACSHA256.Create();
+            using var provider = HMACSHA256.Create();
             provider.Key = keyBytes;
             var builder = new StringBuilder(64);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.HMACSHA256.HashData' method over 'ComputeHash'
