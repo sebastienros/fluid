@@ -41,6 +41,8 @@ namespace Fluid.Filters
             filters.AddFilter("md5", MD5);
             filters.AddFilter("sha1", Sha1);
             filters.AddFilter("sha256", Sha256);
+            filters.AddFilter("hmac_sha1", HmacSha1);
+            filters.AddFilter("hmac_sha256", HmacSha256);
 
             return filters;
         }
@@ -924,6 +926,67 @@ namespace Fluid.Filters
             using var provider = System.Security.Cryptography.SHA256.Create();
             var builder = new StringBuilder(64);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.SHA256.HashData' method over 'ComputeHash'
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+#pragma warning restore CA1850
+            {
+                builder.Append(b.ToString("x2"));
+            }
+
+            return new StringValue(builder.ToString());
+#endif
+        }
+
+        public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context) {
+            var key = arguments.At(0);
+            if (key.IsNil() || input.IsNil()) {
+                return StringValue.Empty;
+            }
+
+            var value = input.ToStringValue();
+            var keyBytes = Encoding.UTF8.GetBytes(key.ToStringValue());
+
+            // c.f. HashingBenchmarks
+
+#if NET6_0_OR_GREATER
+#pragma warning disable CA5350 // Do Not Use Broken Cryptographic Algorithms
+            var hash = System.Security.Cryptography.HMACSHA1.HashData(keyBytes, Encoding.UTF8.GetBytes(value));
+#pragma warning restore CA5350
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+#else
+            using var provider = System.Security.Cryptography.HMACSHA1.Create();
+            provider.Key = keyBytes;
+            var builder = new StringBuilder(64);
+#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.HMACSHA1.HashData' method over 'ComputeHash'
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+#pragma warning restore CA1850
+            {
+                builder.Append(b.ToString("x2"));
+            }
+
+            return new StringValue(builder.ToString());
+#endif
+        }
+
+        public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context) {
+            var key = arguments.At(0);
+            
+            if (key.IsNil() || input.IsNil()) {
+                return StringValue.Empty;
+            }
+
+            var value = input.ToStringValue();
+            var keyBytes = Encoding.UTF8.GetBytes(key.ToStringValue());
+
+            // c.f. HashingBenchmarks
+
+#if NET6_0_OR_GREATER
+            var hash = System.Security.Cryptography.HMACSHA256.HashData(keyBytes, Encoding.UTF8.GetBytes(value));
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+#else
+            using var provider = System.Security.Cryptography.HMACSHA256.Create();
+            provider.Key = keyBytes;
+            var builder = new StringBuilder(64);
+#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.HMACSHA256.HashData' method over 'ComputeHash'
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
