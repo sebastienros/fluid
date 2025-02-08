@@ -938,7 +938,7 @@ namespace Fluid.Filters
 #endif
         }
 
-        public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context)
+        private static ValueTask<FluidValue> ComputeHmac(string algorithm, FluidValue input, FilterArguments arguments)
         {
             var key = arguments.At(0);
             if (key.IsNil() || input.IsNil())
@@ -949,16 +949,19 @@ namespace Fluid.Filters
             var value = input.ToStringValue();
             var keyBytes = Encoding.UTF8.GetBytes(key.ToStringValue());
 
-            // c.f. HashingBenchmarks
-
 #if NET6_0_OR_GREATER
-#pragma warning disable CA5350 // Do Not Use Broken Cryptographic Algorithms
-            var hash = HMACSHA1.HashData(keyBytes, Encoding.UTF8.GetBytes(value));
+#pragma warning disable CA5350
+            var hash = algorithm switch
+            {
+                "HMACSHA1" => HMACSHA1.HashData(keyBytes, Encoding.UTF8.GetBytes(value)),
+                "HMACSHA256" => HMACSHA256.HashData(keyBytes, Encoding.UTF8.GetBytes(value)),
+                _ => throw new ArgumentException("Unsupported HMAC algorithm", nameof(algorithm))
+            };
 #pragma warning restore CA5350
 
             return new StringValue(HexUtilities.ToHexLower(hash));
 #else
-            using var provider = HMAC.Create("HMACSHA1");
+            using var provider = HMAC.Create(algorithm); 
             provider.Key = keyBytes;
             var builder = new StringBuilder(64);
 #pragma warning disable CA1850
@@ -972,37 +975,14 @@ namespace Fluid.Filters
 #endif
         }
 
+        public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            return ComputeHmac("HMACSHA1", input, arguments);
+        }
+
         public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var key = arguments.At(0);
-            
-            if (key.IsNil() || input.IsNil())
-            {
-                return StringValue.Empty;
-            }
-
-            var value = input.ToStringValue();
-            var keyBytes = Encoding.UTF8.GetBytes(key.ToStringValue());
-
-            // c.f. HashingBenchmarks
-
-#if NET6_0_OR_GREATER
-            var hash = HMACSHA256.HashData(keyBytes, Encoding.UTF8.GetBytes(value));
-
-            return new StringValue(HexUtilities.ToHexLower(hash));
-#else
-            using var provider = HMAC.Create("HMACSHA256");
-            provider.Key = keyBytes;
-            var builder = new StringBuilder(64);
-#pragma warning disable CA1850
-            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
-#pragma warning restore CA1850
-            {
-                builder.Append(b.ToString("x2"));
-            }
-
-            return new StringValue(builder.ToString());
-#endif
+            return ComputeHmac("HMACSHA256", input, arguments);
         }
     }
 }
