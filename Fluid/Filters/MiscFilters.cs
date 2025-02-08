@@ -938,6 +938,10 @@ namespace Fluid.Filters
 #endif
         }
 
+        public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("HMACSHA1", input, arguments);
+
+        public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("HMACSHA256", input, arguments);
+
         private static ValueTask<FluidValue> ComputeHmac(string algorithm, FluidValue input, FilterArguments arguments)
         {
             var key = arguments.At(0);
@@ -973,16 +977,6 @@ namespace Fluid.Filters
 
             return new StringValue(builder.ToString());
 #endif
-        }
-
-        public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context)
-        {
-            return ComputeHmac("HMACSHA1", input, arguments);
-        }
-
-        public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context)
-        {
-            return ComputeHmac("HMACSHA256", input, arguments);
         }
     }
 }
