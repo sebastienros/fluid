@@ -1,13 +1,13 @@
+using Fluid.Utils;
 using Fluid.Values;
 using System.Buffers;
 using System.Globalization;
 using System.Net;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using TimeZoneConverter;
-using System.Security.Cryptography;
-using Fluid.Utils;
 
 namespace Fluid.Filters
 {
@@ -961,7 +961,7 @@ namespace Fluid.Filters
             using var provider = HMAC.Create("HMACSHA1");
             provider.Key = keyBytes;
             var builder = new StringBuilder(64);
-#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.HMACSHA1.HashData' method over 'ComputeHash'
+#pragma warning disable CA1850
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
@@ -994,7 +994,7 @@ namespace Fluid.Filters
             using var provider = HMAC.Create("HMACSHA256");
             provider.Key = keyBytes;
             var builder = new StringBuilder(64);
-#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.HMACSHA256.HashData' method over 'ComputeHash'
+#pragma warning disable CA1850
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
