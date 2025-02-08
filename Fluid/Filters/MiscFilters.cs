@@ -958,7 +958,7 @@ namespace Fluid.Filters
 
             return new StringValue(HexUtilities.ToHexLower(hash));
 #else
-            using var provider = HMACSHA1.Create();
+            using var provider = HMAC.Create("HMACSHA1");
             provider.Key = keyBytes;
             var builder = new StringBuilder(64);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.HMACSHA1.HashData' method over 'ComputeHash'
@@ -991,7 +991,7 @@ namespace Fluid.Filters
 
             return new StringValue(HexUtilities.ToHexLower(hash));
 #else
-            using var provider = HMACSHA256.Create();
+            using var provider = HMAC.Create("HMACSHA256");
             provider.Key = keyBytes;
             var builder = new StringBuilder(64);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.HMACSHA256.HashData' method over 'ComputeHash'
