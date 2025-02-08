@@ -955,7 +955,8 @@ namespace Fluid.Filters
 #pragma warning disable CA5350 // Do Not Use Broken Cryptographic Algorithms
             var hash = HMACSHA1.HashData(keyBytes, Encoding.UTF8.GetBytes(value));
 #pragma warning restore CA5350
-            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+
+            return new StringValue(HexUtilities.ToHexLower(hash));
 #else
             using var provider = HMACSHA1.Create();
             provider.Key = keyBytes;
@@ -987,6 +988,7 @@ namespace Fluid.Filters
 
 #if NET6_0_OR_GREATER
             var hash = HMACSHA256.HashData(keyBytes, Encoding.UTF8.GetBytes(value));
+
             return new StringValue(HexUtilities.ToHexLower(hash));
 #else
             using var provider = HMACSHA256.Create();
