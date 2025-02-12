@@ -14,7 +14,6 @@ public class LogTests
     public LogTests(ITestOutputHelper output)
     {
         _output = output;
-        _output = output;
     }
 
     [Fact]
