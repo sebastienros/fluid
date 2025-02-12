@@ -777,8 +777,6 @@ namespace Fluid.Filters
                     writer.WriteStringValue(JsonEncodedText.Encode(input.ToStringValue(), ctx.Options.JavaScriptEncoder));
                     break;
                 case FluidValues.Blank:
-                    writer.WriteStringValue(string.Empty);
-                    break;
                 case FluidValues.Empty:
                     writer.WriteStringValue(string.Empty);
                     break;
