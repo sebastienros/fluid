@@ -14,6 +14,6 @@ namespace Fluid.Parser
         public const string ParenthesesNotAllowed = "Parentheses are not allowed in order to group expressions. To enable the feature use the 'AllowParentheses' option.";
         [Obsolete("Error no longer used")] public const string IdentifierAfterMacro = "An identifier was expected after the 'macro' tag";
         public const string IdentifierAfterTag = "An identifier was expected after the '{0}' tag";
-        public const string ParentesesAfterFunctionName = "Start of arguments '(' is expected after a function name";
+        public const string ParenthesesAfterFunctionName = "Start of arguments '(' is expected after a function name";
     }
 }
