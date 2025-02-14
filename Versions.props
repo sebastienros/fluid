@@ -7,6 +7,6 @@
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
     <MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>9.0.0</MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>
-    <SystemTextJsonPackageVersion>9.0.0</SystemTextJsonPackageVersion>
+    <SystemTextJsonPackageVersion>9.0.2</SystemTextJsonPackageVersion>
   </PropertyGroup>
 </Project>
