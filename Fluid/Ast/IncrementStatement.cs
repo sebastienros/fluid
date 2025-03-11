@@ -1,4 +1,4 @@
-﻿using System.Text.Encodings.Web;
+using System.Text.Encodings.Web;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -13,7 +13,7 @@ namespace Fluid.Ast
 
         public string Identifier { get; }
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
@@ -29,27 +29,13 @@ namespace Fluid.Ast
             {
                 value = NumberValue.Zero;
             }
-            else
-            {
-                value = NumberValue.Create(value.ToNumberValue() + 1);
-            }
 
-            context.SetValue(prefixedIdentifier, value);
+            // Decrement renders the value before incrementing it.
+            await value.WriteToAsync(writer, encoder, context.CultureInfo);
 
-            var task = value.WriteToAsync(writer, encoder, context.CultureInfo);
+            context.SetValue(prefixedIdentifier, NumberValue.Create(value.ToNumberValue() + 1));
 
-            if (task.IsCompletedSuccessfully)
-            {
-                return new ValueTask<Completion>(Completion.Normal);
-            }
-
-            return Awaited(task);
-
-            static async ValueTask<Completion> Awaited(ValueTask t)
-            {
-                await t;
-                return Completion.Normal;
-            }
+            return Completion.Normal;
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIncrementStatement(this);

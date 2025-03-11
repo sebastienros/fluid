@@ -1,4 +1,4 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
@@ -26,7 +26,7 @@ namespace Fluid.Ast
 
             if (value.IsNil())
             {
-                value = NumberValue.Zero;
+                value = NumberValue.Create(-1);
             }
             else
             {

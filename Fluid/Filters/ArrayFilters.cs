@@ -1,4 +1,4 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 
 namespace Fluid.Filters
 {
@@ -23,12 +23,14 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Join(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("join", min: 0, max: 1, arguments);
+
             if (input.Type != FluidValues.Array)
             {
                 return input;
             }
 
-            var separator = arguments.At(0).ToStringValue();
+            var separator = arguments.Count > 0 ? arguments.At(0).ToStringValue() : " ";
             var values = input.Enumerate(context).Select(x => x.ToStringValue());
             var joined = string.Join(separator, values);
             return new StringValue(joined);
@@ -36,40 +38,46 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> First(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("first", expected: 0, arguments);
+
             return input.GetValueAsync("first", context);
         }
 
         public static ValueTask<FluidValue> Last(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("last", expected: 0, arguments);
+
             return input.GetValueAsync("last", context);
         }
 
         public static ValueTask<FluidValue> Concat(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("concat", expected: 1, arguments);
+
             var arg = arguments.At(0);
 
-            if (input.Type != FluidValues.Array && arg.Type != FluidValues.Array)
+            if (arg.Type != FluidValues.Array)
             {
-                return input;
+                throw new LiquidException("concat: argument must be an array");
             }
 
             var concat = new List<FluidValue>();
 
             if (input.Type == FluidValues.Array)
             {
-                foreach (var item in input.Enumerate(context))
+                foreach (var item in Flatten(input, context))
                 {
                     concat.Add(item);
                 }
             }
-            else
+            else if (input.Type != FluidValues.Nil)
             {
                 concat.Add(input);
             }
 
             if (arg.Type == FluidValues.Array)
             {
-                foreach (var item in arg.Enumerate(context))
+                foreach (var item in Flatten(arg, context))
                 {
                     concat.Add(item);
                 }
@@ -80,10 +88,30 @@ namespace Fluid.Filters
             }
 
             return new ArrayValue(concat);
+
+            static IEnumerable<FluidValue> Flatten(FluidValue value, TemplateContext context)
+            {
+                foreach (var item in value.Enumerate(context))
+                {
+                    if (value.Type != FluidValues.Array)
+                    {
+                        yield return value;
+                    }
+                    else
+                    {
+                        foreach (var subItem in Flatten(item, context))
+                        {
+                            yield return subItem;
+                        }
+                    }
+                }
+            }
         }
 
         public static async ValueTask<FluidValue> Map(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("map", expected: 1, arguments);
+
             if (input.Type != FluidValues.Array)
             {
                 return input;
@@ -103,6 +131,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("reverse", expected: 0, arguments);
+
             if (input.Type == FluidValues.Array)
             {
                 return new ArrayValue(input.Enumerate(context).Reverse().ToArray());
@@ -132,6 +162,8 @@ namespace Fluid.Filters
         // https://github.com/Shopify/liquid/commit/842986a9721de11e71387732be51951285225977
         public static async ValueTask<FluidValue> Where(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("where", min: 1, max: 2, arguments);
+
             if (input.Type != FluidValues.Array)
             {
                 return input;
@@ -164,11 +196,15 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Size(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("size", expected: 0, arguments);
+
             return input.GetValueAsync("size", context);
         }
 
         public static async ValueTask<FluidValue> Sort(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("sort", min: 0, max: 1, arguments);
+
             if (arguments.Count > 0)
             {
                 var member = arguments.At(0).ToStringValue();
@@ -195,6 +231,8 @@ namespace Fluid.Filters
 
         public static async ValueTask<FluidValue> SortNatural(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("sort_natural", min: 0, max: 2, arguments);
+
             if (arguments.Count > 0)
             {
                 var member = arguments.At(0).ToStringValue();
@@ -221,11 +259,15 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Uniq(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("uniq", expected: 0, arguments);
+
             return new ArrayValue(input.Enumerate(context).Distinct().ToArray());
         }
 
         public static async ValueTask<FluidValue> Sum(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("sum", min: 0, max: null, arguments);
+
             if (arguments.Count == 0)
             {
                 var numbers = input.Enumerate(context).Select(x => x switch

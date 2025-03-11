@@ -1,4 +1,4 @@
-﻿using Fluid.Utils;
+using Fluid.Utils;
 using System.Globalization;
 using System.Text.Encodings.Web;
 
@@ -73,6 +73,11 @@ namespace Fluid.Values
                 await t;
                 return;
             }
+        }
+
+        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        {
+            return [this];
         }
 
         public override object ToObjectValue()

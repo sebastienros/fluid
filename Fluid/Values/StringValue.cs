@@ -9,6 +9,7 @@ namespace Fluid.Values
     public sealed class StringValue : FluidValue, IEquatable<StringValue>
     {
         public static readonly StringValue Empty = new StringValue("");
+        public static readonly StringValue Space = new StringValue(" ");
 
         private static readonly StringValue[] CharToString = new StringValue[256];
 

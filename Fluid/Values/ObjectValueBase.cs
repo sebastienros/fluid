@@ -1,4 +1,4 @@
-﻿using Fluid.Utils;
+using Fluid.Utils;
 using System.Collections;
 using System.Globalization;
 using System.Text.Encodings.Web;
@@ -146,7 +146,14 @@ namespace Fluid.Values
 
         public override decimal ToNumberValue()
         {
-            return Convert.ToDecimal(Value);
+            try
+            {
+                return Convert.ToDecimal(Value);
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
@@ -173,6 +180,11 @@ namespace Fluid.Values
                 await t;
                 return;
             }
+        }
+
+        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        {
+            return [this];
         }
 
         public override string ToStringValue()

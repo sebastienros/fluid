@@ -50,6 +50,8 @@ namespace Fluid.Filters
         /// </summary>
         public static ValueTask<FluidValue> Handleize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("handleize", expected: 0, arguments);
+
             var value = input.ToStringValue();
             var result = new StringBuilder();
             var lastIndex = value.Length - 1;
@@ -117,6 +119,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("default", min: 1, max: 2, arguments);
+
             var falseCheck = arguments.HasNamed("allow_false") && arguments["allow_false"] == BooleanValue.True;
 
             if (falseCheck)
@@ -139,20 +143,33 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Raw(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("raw", expected: 0, arguments);
+
             var stringValue = new StringValue(input.ToStringValue(), false);
 
             return stringValue;
         }
 
-        public static ValueTask<FluidValue> Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static async ValueTask<FluidValue> Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("compact", min: 0, max: 1, arguments);
+
+            var member = arguments.At(0);
+
             var compacted = new List<FluidValue>();
             foreach (var value in input.Enumerate(context))
             {
-                if (!value.IsNil())
+                if (value.IsNil())
                 {
-                    compacted.Add(value);
+                    continue;
                 }
+
+                if (!member.IsNil() && (await value.GetValueAsync(member.ToStringValue(), context)).IsNil())
+                {
+                    continue;
+                }
+
+                compacted.Add(value);
             }
 
             return new ArrayValue(compacted);
@@ -160,16 +177,22 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> UrlEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("url_encode", expected: 0, arguments);
+
             return new StringValue(WebUtility.UrlEncode(input.ToStringValue()));
         }
 
         public static ValueTask<FluidValue> UrlDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("url_decode", expected: 0, arguments);
+
             return new StringValue(WebUtility.UrlDecode(input.ToStringValue()));
         }
 
         public static ValueTask<FluidValue> Base64Encode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("base64_encode", expected: 0, arguments);
+
             var value = input.ToStringValue();
 
             return String.IsNullOrEmpty(value)
@@ -179,6 +202,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Base64Decode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("base64_decode", expected: 0, arguments);
+
             var value = input.ToStringValue();
 
             return String.IsNullOrEmpty(value)
@@ -188,6 +213,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Base64UrlSafeEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("base64_url_safe_encode", expected: 0, arguments);
+
             var value = input.ToStringValue();
             if (String.IsNullOrEmpty(value))
             {
@@ -218,6 +245,13 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Base64UrlSafeDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("base64_url_safe_decode", expected: 0, arguments);
+
+            if (input is not StringValue and not NilValue)
+            {
+                throw new LiquidException("base64_url_safe_decode expects a string");
+            }
+
             var value = input.ToStringValue();
             if (String.IsNullOrEmpty(value))
             {
@@ -262,6 +296,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> StripHtml(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("strip_html", expected: 0, arguments);
+
             var html = input.ToStringValue();
             if (String.IsNullOrEmpty(html))
             {
@@ -308,16 +344,22 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Escape(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("escape", expected: 0, arguments);
+
             return new StringValue(WebUtility.HtmlEncode(input.ToStringValue()));
         }
 
         public static ValueTask<FluidValue> EscapeOnce(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("escape_once", expected: 0, arguments);
+
             return new StringValue(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())));
         }
 
         public static ValueTask<FluidValue> ChangeTimeZone(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("timezone", min: 0, max: 1, arguments);
+
             if (!input.TryGetDateTimeInput(context, out var value))
             {
                 return NilValue.Instance;
@@ -348,6 +390,8 @@ namespace Fluid.Filters
         // https://docs.ruby-lang.org/en/master/strftime_formatting_rdoc.html
         public static ValueTask<FluidValue> Date(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("date", min: 0, max: 1, arguments);
+
             if (!input.TryGetDateTimeInput(context, out var value))
             {
                 return NilValue.Instance;
@@ -647,6 +691,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> FormatDate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("format_date", min: 0, max: 2, arguments);
+
             if (!input.TryGetDateTimeInput(context, out var value))
             {
                 return NilValue.Instance;
@@ -789,6 +835,8 @@ namespace Fluid.Filters
 
         public static async ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("json", min: 0, max: 2, arguments);
+
             using var ms = new MemoryStream();
             await using (var writer = new Utf8JsonWriter(ms, new JsonWriterOptions
             {
@@ -846,6 +894,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> MD5(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("md5", expected: 0, arguments);
+
             var value = input.ToStringValue();
             if (string.IsNullOrEmpty(value))
             {
@@ -909,6 +959,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Sha256(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("sha256", expected: 0, arguments);
+
             var value = input.ToStringValue();
             if (string.IsNullOrEmpty(value))
             {

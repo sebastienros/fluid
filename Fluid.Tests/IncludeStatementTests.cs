@@ -386,10 +386,10 @@ shape: ''";
                 }
             })).ToArray();
 
-            await Task.Delay(1000);
+            await Task.Delay(1000, TestContext.Current.CancellationToken);
 
             stopped = true;
-            Task.WaitAll(tasks);
+            Task.WaitAll(tasks, TestContext.Current.CancellationToken);
         }
 
         [Theory]

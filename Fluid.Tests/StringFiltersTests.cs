@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
@@ -153,19 +153,6 @@ world
             var result = StringFilters.Remove(filterInput, filterArguments, context);
 
             Assert.Equal(expected, result.Result.ToStringValue());
-        }
-
-        [Fact]
-        public void RemovesReturnsInputWhenArgumentIsEmpty()
-        {
-            var input = new StringValue("abcabc");
-
-            var arguments = FilterArguments.Empty;
-            var context = new TemplateContext();
-
-            var result = StringFilters.Remove(input, arguments, context);
-
-            Assert.Equal("abcabc", result.Result.ToStringValue());
         }
 
         [Theory]

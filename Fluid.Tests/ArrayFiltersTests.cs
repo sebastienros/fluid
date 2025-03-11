@@ -46,7 +46,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task FirstEmptyArray()
         {
-            var input = new ArrayValue(new StringValue[0]);
+            var input = new ArrayValue([]);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -76,7 +76,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task Last_EmptyArray()
         {
-            var input = new ArrayValue(new StringValue[0]);
+            var input = new ArrayValue([]);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();

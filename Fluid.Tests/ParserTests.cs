@@ -414,7 +414,7 @@ def", "at (")]
                 Doubles = new List<double> { 1.1, 2.2, 3.3 }
             };
 
-            var template = "{{Doubles |map |uniq}}";
+            var template = "{{Doubles |map: 'title' |uniq}}";
 
             if (_parser.TryParse(template, out var result))
             {

@@ -615,7 +615,7 @@ turtle
 
         [Theory]
         [InlineData("{% assign var = 10 %}{% increment var %}{% increment var %}{{ var }}", "0110")]
-        [InlineData("{% assign var = 10 %}{% decrement var %}{% decrement var %}{{ var }}", "0-110")]
+        [InlineData("{% assign var = 10 %}{% decrement var %}{% decrement var %}{{ var }}", "-1-210")]
         public Task IncrementDoesntAffectVariable(string source, string expected)
         {
             return CheckAsync(source, expected);
@@ -623,8 +623,8 @@ turtle
 
         [Theory]
         [InlineData("{% increment %}{% increment %}{% increment %}", "012")]
-        [InlineData("{% decrement %}{% decrement %}{% decrement %}", "0-1-2")]
-        [InlineData("{% increment %}{% decrement %}{% increment %}", "0-10")]
+        [InlineData("{% decrement %}{% decrement %}{% decrement %}", "-1-2-3")]
+        [InlineData("{% increment %}{% decrement %}{% increment %}", "000")]
         public Task IncrementCanBeUsedWithoutIdentifier(string source, string expected)
         {
             return CheckAsync(source, expected);

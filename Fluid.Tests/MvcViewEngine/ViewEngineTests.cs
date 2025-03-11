@@ -1,4 +1,4 @@
-﻿using Fluid.Tests.Mocks;
+using Fluid.Tests.Mocks;
 using Fluid.ViewEngine;
 using System.IO;
 using System.Linq;
@@ -289,7 +289,11 @@ namespace Fluid.Tests.MvcViewEngine
             await using var sw = new StreamWriter(new NoSyncStream(), bufferSize: 10);
             var template = new TemplateContext(new { BigString = new string(Enumerable.Range(0, 129).Select(x => 'b').ToArray()) });
             await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+#if NET8_0_OR_GREATER
+            await sw.FlushAsync(TestContext.Current.CancellationToken);
+#else
             await sw.FlushAsync();
+#endif
         }
 
         [Fact]
@@ -301,7 +305,11 @@ namespace Fluid.Tests.MvcViewEngine
             await using var sw = new StreamWriter(new NoSyncStream());
             var template = new TemplateContext(new { BigString = new string(Enumerable.Range(0, 1500).Select(_ => 'b').ToArray()) });
             await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+#if NET8_0_OR_GREATER
+            await sw.FlushAsync(TestContext.Current.CancellationToken);
+#else
             await sw.FlushAsync();
+#endif
         }
     }
 }
