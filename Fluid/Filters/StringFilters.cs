@@ -170,7 +170,7 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Replace(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            LiquidException.ThrowFilterArgumentsCount("replace", expected: 2, arguments);
+            LiquidException.ThrowFilterArgumentsCount("replace", min: 1, max: 2, arguments);
 
             return new StringValue(input.ToStringValue().Replace(arguments.At(0).ToStringValue(), arguments.At(1).ToStringValue()));
         }

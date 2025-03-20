@@ -30,8 +30,6 @@ namespace Fluid.Tests
 
             ["liquid.golden.special/first of a string"] = "https://github.com/Shopify/liquid/discussions/1881#discussioncomment-11805960",
             ["liquid.golden.special/last of a string"] = "https://github.com/Shopify/liquid/discussions/1881#discussioncomment-11805960",
-            ["liquid.golden.first_filter/first of a string"] = "https://github.com/Shopify/liquid/discussions/1881#discussioncomment-11805960",
-            ["liquid.golden.first_filter/last of a string"] = "https://github.com/Shopify/liquid/discussions/1881#discussioncomment-11805960",
 
         };
 
@@ -103,7 +101,7 @@ namespace Fluid.Tests
             {
                 foreach (var partial in test.Partials)
                 {
-                    fileSystem.Add(partial.Key, partial.Value);
+                    fileSystem.Add(partial.Key + ".liquid", partial.Value);
                 }
             }
 

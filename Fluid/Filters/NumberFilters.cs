@@ -93,7 +93,7 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("modulo", expected: 1, arguments);
 
-            return NumberValue.Create(Convert.ToInt32(input.ToNumberValue()) % Convert.ToInt32(arguments.At(0).ToNumberValue()));
+            return NumberValue.Create(input.ToNumberValue() % arguments.At(0).ToNumberValue());
         }
 
         public static ValueTask<FluidValue> Plus(FluidValue input, FilterArguments arguments, TemplateContext context)
