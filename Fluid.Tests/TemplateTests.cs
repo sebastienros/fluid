@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Parser;
@@ -1127,6 +1128,24 @@ after
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void MemberNameStrategiesHandleSuccessiveUppercase()
+        {
+            var model = new { UVIndex = "" };
+            var memberInfo = model.GetType().GetProperty("UVIndex");
+
+            var camelCase = MemberNameStrategies.CamelCase(memberInfo);
+            var snakeCase = MemberNameStrategies.SnakeCase(memberInfo);
+
+#if NET8_0_OR_GREATER
+            Assert.Equal("uvIndex", camelCase);
+            Assert.Equal("uv_index", snakeCase);
+#else
+            Assert.Equal("uVIndex", camelCase);
+            Assert.Equal("uv_index", snakeCase);
+#endif
         }
 
         [Fact]
