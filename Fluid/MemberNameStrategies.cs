@@ -1,18 +1,42 @@
-﻿using System.Reflection;
-#if !NET6_0_OR_GREATER
+using System.Reflection;
+#if NET8_0_OR_GREATER
+using System.Text.Json;
+#else
 using System.Text;
 #endif
 namespace Fluid
 {
     public sealed class MemberNameStrategies
     {
-        public static readonly MemberNameStrategy Default = RenameDefault;
-        public static readonly MemberNameStrategy CamelCase = RenameCamelCase;
-        public static readonly MemberNameStrategy SnakeCase = RenameSnakeCase;
-
         private static string RenameDefault(MemberInfo member) => member.Name;
 
-#if NET6_0_OR_GREATER
+        public static readonly MemberNameStrategy Default = RenameDefault;
+
+#if NET8_0_OR_GREATER
+
+        private const string SwitchName = "Fluid.UseLegacyMemberNameStrategies";
+
+        public static readonly MemberNameStrategy CamelCase;
+        public static readonly MemberNameStrategy SnakeCase;
+
+        static MemberNameStrategies()
+        {
+            // STJ member name strategies are not compatible with the legacy strategies but are faster.
+            // To retain backward compatibility users have to set the Fluid.UseLegacyMemberNameStrategies switch to true.
+            // c.f. https://learn.microsoft.com/en-us/dotnet/fundamentals/runtime-libraries/system-appcontext
+
+            if (AppContext.TryGetSwitch(SwitchName, out var flag) && flag == true)
+            {
+                CamelCase = RenameCamelCase;
+                SnakeCase = RenameSnakeCase;
+            }
+            else
+            {
+                CamelCase = member => JsonNamingPolicy.CamelCase.ConvertName(member.Name);
+                SnakeCase = member => JsonNamingPolicy.SnakeCaseLower.ConvertName(member.Name);
+            }
+        }
+
         public static string RenameCamelCase(MemberInfo member)
         {
             return String.Create(member.Name.Length, member.Name, (data, name) =>
@@ -59,6 +83,10 @@ namespace Fluid
             });
         }
 #else
+
+        public static readonly MemberNameStrategy CamelCase = RenameCamelCase;
+        public static readonly MemberNameStrategy SnakeCase = RenameSnakeCase;
+
         public static string RenameCamelCase(MemberInfo member)
         {
             var firstChar = member.Name[0];
@@ -76,29 +104,46 @@ namespace Fluid
 
         public static string RenameSnakeCase(MemberInfo member)
         {
-            var builder = new StringBuilder();
-            var name = member.Name;
-            var previousUpper = false;
+            var input = member.Name;
 
-            for (var i = 0; i < name.Length; i++)
+            if (string.IsNullOrWhiteSpace(input))
+                return string.Empty;
+
+            StringBuilder result = new StringBuilder();
+            bool wasPrevUpper = false; // Track if the previous character was uppercase
+            int uppercaseCount = 0; // Count consecutive uppercase letters at the start
+
+            for (int i = 0; i < input.Length; i++)
             {
-                var c = name[i];
+                char c = input[i];
+
                 if (char.IsUpper(c))
                 {
-                    if (i > 0 && !previousUpper)
+                    if (i > 0 && (!wasPrevUpper || (uppercaseCount > 1 && i < input.Length - 1 && char.IsLower(input[i + 1]))))
                     {
-                        builder.Append('_');
+                        result.Append('_');
                     }
-                    builder.Append(char.ToLowerInvariant(c));
-                    previousUpper = true;
+
+                    result.Append(char.ToLower(c));
+                    wasPrevUpper = true;
+                    uppercaseCount++;
                 }
                 else
                 {
-                    builder.Append(c);
-                    previousUpper = false;
+                    if (c == ' ' || c == '-')
+                    {
+                        result.Append('_'); // Replace spaces and hyphens with underscores
+                    }
+                    else
+                    {
+                        result.Append(c);
+                    }
+
+                    wasPrevUpper = false;
                 }
             }
-            return builder.ToString();
+
+            return result.ToString();
         }
 #endif
     }
