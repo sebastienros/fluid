@@ -1130,8 +1130,8 @@ Run it locally to analyze the time it takes to execute specific templates.
 #### Results
 
 Fluid is faster and allocates less memory than all other well-known .NET Liquid parsers.
-For parsing, Fluid is 10% faster than the second best, Scriban, allocating half the memory.
-For rendering, Fluid is 30% faster than the second best, Handlebars, and allocating half the memory.
+For parsing, Fluid is 30% faster than the second best, Scriban, allocating half the memory.
+For rendering, Fluid is 20% faster than the second best, Handlebars, and allocating half the memory.
 Compared to DotLiquid, Fluid renders 10 times faster, and allocates 34 times less memory.
 
 ``` text
@@ -1144,24 +1144,24 @@ BenchmarkDotNet v0.14.0, Windows 11 (10.0.26100.3476)
 Job=ShortRun  IterationCount=3  LaunchCount=1
 WarmupCount=3
 
-| Method             | Mean          | Error         | StdDev      | Ratio  | RatioSD | Gen0      | Gen1     | Gen2    | Allocated   | Alloc Ratio |
-|------------------- |--------------:|--------------:|------------:|-------:|--------:|----------:|---------:|--------:|------------:|------------:|
-| Fluid_Parse        |      2.933 us |     0.4922 us |   0.0270 us |   1.00 |    0.01 |    0.3090 |        - |       - |     2.84 KB |        1.00 |
-| Scriban_Parse      |      3.211 us |     0.9128 us |   0.0500 us |   1.09 |    0.02 |    0.7744 |   0.0267 |       - |     7.14 KB |        2.51 |
-| DotLiquid_Parse    |      5.500 us |     1.4539 us |   0.0797 us |   1.88 |    0.03 |    1.7548 |   0.0229 |       - |    16.15 KB |        5.68 |
-| LiquidNet_Parse    |     24.432 us |    10.9780 us |   0.6017 us |   8.33 |    0.19 |    6.7444 |   0.6104 |       - |    62.04 KB |       21.82 |
-| Handlebars_Parse   |  2,380.071 us | 2,081.7556 us | 114.1080 us | 811.53 |   34.31 |   15.6250 |        - |       - |   154.68 KB |       54.39 |
-|                    |               |               |             |        |         |           |          |         |             |             |
-| Fluid_ParseBig     |     15.525 us |     0.8207 us |   0.0450 us |   1.00 |    0.00 |    1.2665 |   0.0305 |       - |    11.67 KB |        1.00 |
-| Scriban_ParseBig   |     17.804 us |     2.1999 us |   0.1206 us |   1.15 |    0.01 |    3.4790 |   0.4883 |       - |    32.07 KB |        2.75 |
-| DotLiquid_ParseBig |     29.340 us |    19.6011 us |   1.0744 us |   1.89 |    0.06 |   10.2539 |   0.4578 |       - |    94.24 KB |        8.07 |
-| LiquidNet_ParseBig | 12,050.630 us | 5,015.6871 us | 274.9267 us | 776.19 |   15.46 | 3093.7500 |  15.6250 |       - | 28542.56 KB |    2,445.41 |
-|                    |               |               |             |        |         |           |          |         |             |             |
-| Fluid_Render       |    130.257 us |    27.5925 us |   1.5124 us |   1.00 |    0.01 |   10.2539 |   0.4883 |       - |    95.88 KB |        1.00 |
-| Scriban_Render     |    654.042 us |   140.6127 us |   7.7075 us |   5.02 |    0.07 |   68.3594 |  68.3594 | 68.3594 |   498.66 KB |        5.20 |
-| DotLiquid_Render   |  1,313.476 us |   462.7480 us |  25.3648 us |  10.08 |    0.20 |  361.3281 | 150.3906 | 29.2969 |  3272.12 KB |       34.13 |
-| LiquidNet_Render   |    870.417 us |   506.1548 us |  27.7441 us |   6.68 |    0.20 |  339.8438 | 160.1563 |       - |  3126.44 KB |       32.61 |
-| Handlebars_Render  |    170.621 us |    56.0087 us |   3.0700 us |   1.31 |    0.02 |   20.9961 |   3.4180 |       - |   194.92 KB |        2.03 |
+| Method             | Mean          | Error        | StdDev      | Ratio    | RatioSD | Gen0      | Gen1     | Gen2    | Allocated   | Alloc Ratio |
+|------------------- |--------------:|-------------:|------------:|---------:|--------:|----------:|---------:|--------:|------------:|------------:|
+| Fluid_Parse        |      2.418 us |     1.770 us |   0.0970 us |     1.00 |    0.05 |    0.3090 |        - |       - |     2.84 KB |        1.00 |
+| Scriban_Parse      |      3.156 us |     1.316 us |   0.0722 us |     1.31 |    0.05 |    0.7744 |   0.0267 |       - |     7.14 KB |        2.51 |
+| DotLiquid_Parse    |      6.216 us |     8.672 us |   0.4753 us |     2.57 |    0.19 |    1.7548 |   0.0229 |       - |    16.15 KB |        5.68 |
+| LiquidNet_Parse    |     23.808 us |     3.388 us |   0.1857 us |     9.86 |    0.34 |    6.7444 |   0.6104 |       - |    62.04 KB |       21.82 |
+| Handlebars_Parse   |  2,504.618 us | 6,081.515 us | 333.3484 us | 1,036.88 |  124.65 |   15.6250 |        - |       - |   153.81 KB |       54.09 |
+|                    |               |              |             |          |         |           |          |         |             |             |
+| Fluid_ParseBig     |     11.383 us |    10.116 us |   0.5545 us |     1.00 |    0.06 |    1.2817 |   0.0305 |       - |    11.86 KB |        1.00 |
+| Scriban_ParseBig   |     17.779 us |     5.888 us |   0.3227 us |     1.56 |    0.07 |    3.4790 |   0.4883 |       - |    32.07 KB |        2.70 |
+| DotLiquid_ParseBig |     25.596 us |     3.955 us |   0.2168 us |     2.25 |    0.09 |   10.2539 |   0.4578 |       - |    94.24 KB |        7.95 |
+| LiquidNet_ParseBig | 11,786.566 us | 6,521.074 us | 357.4421 us | 1,037.03 |   50.83 | 3093.7500 |  15.6250 |       - | 28542.55 KB |    2,406.75 |
+|                    |               |              |             |          |         |           |          |         |             |             |
+| Fluid_Render       |    134.037 us |   101.115 us |   5.5425 us |     1.00 |    0.05 |   10.2539 |   0.4883 |       - |    95.88 KB |        1.00 |
+| Scriban_Render     |    633.523 us |   269.921 us |  14.7953 us |     4.73 |    0.19 |   68.3594 |  68.3594 | 68.3594 |   498.68 KB |        5.20 |
+| DotLiquid_Render   |  1,402.392 us |   918.007 us |  50.3191 us |    10.47 |    0.49 |  361.3281 | 150.3906 | 29.2969 |  3272.13 KB |       34.13 |
+| LiquidNet_Render   |    871.168 us |   726.955 us |  39.8469 us |     6.51 |    0.34 |  339.8438 | 160.1563 |       - |  3126.39 KB |       32.61 |
+| Handlebars_Render  |    161.000 us |    64.468 us |   3.5337 us |     1.20 |    0.05 |   20.9961 |   3.4180 |       - |   194.92 KB |        2.03 |
 ```
 
 Tested on 3/22/2025 with
