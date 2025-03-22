@@ -1091,8 +1091,8 @@ class  {
                 {% liquid
                     for c in (1..3)
                         echo c
-                    endforSPACE%}SPACE{{chars}}SPACE
-                """.Replace("SPACE", spaces);
+                    endfor[SPACE]%}[SPACE]{{chars}}[SPACE]
+                """.Replace("[SPACE]", spaces);
 
             var _parser = new FluidParser();
             Assert.True(_parser.TryParse(source, out var template, out var errors), errors);

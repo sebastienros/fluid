@@ -32,27 +32,22 @@ namespace Fluid.Parser
 
     public static class TagParsers
     {
-        public static Parser<TagResult> TagStart(bool skipWhiteSpace = false) => new TagStartParser(skipWhiteSpace);
-        public static Parser<TagResult> TagEnd(bool skipWhiteSpace = false) => new TagEndParser(skipWhiteSpace);
-        public static Parser<TagResult> OutputTagStart(bool skipWhiteSpace = false) => new OutputTagStartParser(skipWhiteSpace);
-        public static Parser<TagResult> OutputTagEnd(bool skipWhiteSpace = false) => new OutputTagEndParser(skipWhiteSpace);
+        public static Parser<TagResult> TagStart() => new TagStartParser();
+        public static Parser<TagResult> TagEnd() => new TagEndParser();
+        public static Parser<TagResult> OutputTagStart() => new OutputTagStartParser();
+        public static Parser<TagResult> OutputTagEnd() => new OutputTagEndParser();
 
-        private sealed class TagStartParser : Parser<TagResult>
+        private sealed class TagStartParser : Parser<TagResult>, ISeekable
         {
-            private readonly bool _skipWhiteSpace;
-            public TagStartParser(bool skipWhiteSpace = false)
-            {
-                _skipWhiteSpace = skipWhiteSpace;
-            }
+            public bool CanSeek => true;
+
+            // Due to InsideLiquidTag, we need to seek whitespaces too since they can be part of the start
+            public char[] ExpectedChars { get; set; } = [ '{', ' ', '\t' ];
+            public bool SkipWhitespace { get; } = false;
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
                 context.EnterParser(this);
-
-                if (_skipWhiteSpace)
-                {
-                    context.SkipWhiteSpace();
-                }
 
                 var start = context.Scanner.Cursor.Position;
 
@@ -66,7 +61,11 @@ namespace Fluid.Parser
                     return true;
                 }
 
+#if NET6_0_OR_GREATER
+                if (context.Scanner.ReadText("{%"))
+#else
                 if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('%'))
+#endif
                 {
                     var trim = context.Scanner.ReadChar('-');
 
@@ -101,18 +100,11 @@ namespace Fluid.Parser
         /// Search for `%}`, `-%}` or `-}` to close a tag.
         /// Also, if the tag is inside a `liquid` tag, it will only look for a new line to close the tag.
         /// </summary>
-        private sealed class TagEndParser : Parser<TagResult>, ISeekable
+        private sealed class TagEndParser : Parser<TagResult>
         {
-            private readonly bool _skipWhiteSpace;
-
-            public bool CanSeek { get; set; } = true;
-            public bool SkipWhitespace { get; set; } = false;
-            public char[] ExpectedChars { get; set; } = ['\r', '\n', '}', '-', '%', ' ', '\t'];
-
-            public TagEndParser(bool skipWhiteSpace = false)
-            {
-                _skipWhiteSpace = skipWhiteSpace;
-            }
+            //public bool CanSeek { get; set; } = true;
+            public bool SkipWhitespace { get; set; } = true;
+            //public char[] ExpectedChars { get; set; } = [ '-', '%' ];
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
@@ -120,7 +112,9 @@ namespace Fluid.Parser
 
                 var newLineIsPresent = false;
 
-                if (_skipWhiteSpace)
+                var start = context.Scanner.Cursor.Position;
+
+                if (SkipWhitespace)
                 {
                     if (p.InsideLiquidTag)
                     {
@@ -146,7 +140,6 @@ namespace Fluid.Parser
                     }
                 }
 
-                var start = context.Scanner.Cursor.Position;
                 bool trim;
 
                 if (p.InsideLiquidTag)
@@ -160,7 +153,11 @@ namespace Fluid.Parser
                     {
                         trim = context.Scanner.ReadChar('-');
 
+#if NET6_0_OR_GREATER
+                        if (context.Scanner.ReadText("%}"))
+#else
                         if (context.Scanner.ReadChar('%') && context.Scanner.ReadChar('}'))
+#endif
                         {
                             p.StripNextTextSpanStatement = trim;
                             p.PreviousTextSpanStatement = null;
@@ -180,7 +177,11 @@ namespace Fluid.Parser
 
                 trim = context.Scanner.ReadChar('-');
 
+#if NET6_0_OR_GREATER
+                if (context.Scanner.ReadText("%}"))
+#else
                 if (context.Scanner.ReadChar('%') && context.Scanner.ReadChar('}'))
+#endif
                 {
                     p.StripNextTextSpanStatement = trim;
                     p.PreviousTextSpanStatement = null;
@@ -198,25 +199,23 @@ namespace Fluid.Parser
             }
         }
 
-        private sealed class OutputTagStartParser : Parser<TagResult>
+        private sealed class OutputTagStartParser : Parser<TagResult>, ISeekable
         {
-            public OutputTagStartParser(bool skipWhiteSpace = false)
-            {
-                SkipWhitespace = skipWhiteSpace;
-            }
+            public bool CanSeek => true;
 
-            public bool SkipWhitespace { get; }
+            public char[] ExpectedChars { get; set; } = ['{'];
+
+            public bool SkipWhitespace { get; } = false;
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
                 var start = context.Scanner.Cursor.Position;
 
-                if (SkipWhitespace)
-                {
-                    context.SkipWhiteSpace();
-                }
-
+#if NET6_0_OR_GREATER
+                if (context.Scanner.ReadText("{{"))
+#else
                 if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('{'))
+#endif
                 {
                     var trim = context.Scanner.ReadChar('-');
 
@@ -248,31 +247,30 @@ namespace Fluid.Parser
 
         private sealed class OutputTagEndParser : Parser<TagResult>, ISeekable
         {
-            public OutputTagEndParser(bool skipWhiteSpace = false)
-            {
-                SkipWhitespace = skipWhiteSpace;
-            }
-
             public bool CanSeek => true;
 
-            public char[] ExpectedChars { get; set; } = ['-', '}'];
+            public char[] ExpectedChars { get; set; } = [ '-', '}' ];
 
-            public bool SkipWhitespace { get; }
+            public bool SkipWhitespace { get; } = true;
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
                 context.EnterParser(this);
+
+                var start = context.Scanner.Cursor.Position;
 
                 if (SkipWhitespace)
                 {
                     context.SkipWhiteSpace();
                 }
 
-                var start = context.Scanner.Cursor.Position;
-
                 var trim = context.Scanner.ReadChar('-');
 
+#if NET6_0_OR_GREATER
+                if (context.Scanner.ReadText("}}"))
+#else
                 if (context.Scanner.ReadChar('}') && context.Scanner.ReadChar('}'))
+#endif
                 {
                     var p = (FluidParseContext)context;
 

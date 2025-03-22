@@ -57,10 +57,9 @@ namespace Fluid
         protected readonly Deferred<IReadOnlyList<Statement>> AnyTagsList = Deferred<IReadOnlyList<Statement>>();
 
         protected static readonly Parser<TagResult> OutputStart = TagParsers.OutputTagStart();
-        protected static readonly Parser<TagResult> OutputEnd = TagParsers.OutputTagEnd(true);
+        protected static readonly Parser<TagResult> OutputEnd = TagParsers.OutputTagEnd();
         protected static readonly Parser<TagResult> TagStart = TagParsers.TagStart();
-        protected static readonly Parser<TagResult> TagStartSpaced = TagParsers.TagStart(true);
-        protected static readonly Parser<TagResult> TagEnd = TagParsers.TagEnd(true);
+        protected static readonly Parser<TagResult> TagEnd = TagParsers.TagEnd();
 
         protected static readonly LiteralExpression EmptyKeyword = new LiteralExpression(EmptyValue.Instance);
         protected static readonly LiteralExpression BlankKeyword = new LiteralExpression(BlankValue.Instance);
