@@ -97,14 +97,12 @@ namespace Fluid.Parser
         }
 
         /// <summary>
-        /// Search for `%}`, `-%}` or `-}` to close a tag.
+        /// Search for `%}`, `-%}` to close a tag.
         /// Also, if the tag is inside a `liquid` tag, it will only look for a new line to close the tag.
         /// </summary>
         private sealed class TagEndParser : Parser<TagResult>
         {
-            //public bool CanSeek { get; set; } = true;
             public bool SkipWhitespace { get; set; } = true;
-            //public char[] ExpectedChars { get; set; } = [ '-', '%' ];
 
             public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
@@ -166,7 +164,7 @@ namespace Fluid.Parser
 
                             context.Scanner.Cursor.ResetPosition(start);
 
-                            result.Set(start.Offset, start.Offset, TagResult.TagClose);
+                            result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
                             return true;
                         }
 
