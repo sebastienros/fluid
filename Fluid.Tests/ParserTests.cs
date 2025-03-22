@@ -987,7 +987,8 @@ class  {
     | upcase 
 %}";
 
-            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
             var rendered = template.Render();
             Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
         }
@@ -1003,7 +1004,8 @@ class  {
 %}
 ";
 
-            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
             var rendered = template.Render();
             Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
         }
@@ -1094,8 +1096,8 @@ class  {
                     endfor[SPACE]%}[SPACE]{{chars}}[SPACE]
                 """.Replace("[SPACE]", spaces);
 
-            var _parser = new FluidParser();
-            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
             var rendered = template.Render();
             Assert.Contains("123", rendered);
         }
