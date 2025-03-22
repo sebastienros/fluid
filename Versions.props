@@ -1,12 +1,18 @@
 <Project>
   <!-- This file define constants that can be changed per TFM -->
-  <PropertyGroup>
-    <MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>9.0.0</MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>
-    <SystemTextJsonPackageVersion>8.0.5</SystemTextJsonPackageVersion>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>6.0.1</MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>6.0.1</MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
     <MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>9.0.0</MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>
-    <SystemTextJsonPackageVersion>9.0.2</SystemTextJsonPackageVersion>
   </PropertyGroup>
 </Project>

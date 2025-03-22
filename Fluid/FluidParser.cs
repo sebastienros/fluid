@@ -56,11 +56,25 @@ namespace Fluid
         protected readonly Deferred<IReadOnlyList<Statement>> KnownTagsList = Deferred<IReadOnlyList<Statement>>();
         protected readonly Deferred<IReadOnlyList<Statement>> AnyTagsList = Deferred<IReadOnlyList<Statement>>();
 
-        protected static readonly Parser<TagResult> OutputStart = TagParsers.OutputTagStart();
-        protected static readonly Parser<TagResult> OutputEnd = TagParsers.OutputTagEnd(true);
-        protected static readonly Parser<TagResult> TagStart = TagParsers.TagStart();
-        protected static readonly Parser<TagResult> TagStartSpaced = TagParsers.TagStart(true);
-        protected static readonly Parser<TagResult> TagEnd = TagParsers.TagEnd(true);
+        internal const string WhiteSpaceChars = "\t\n\v\f\r \u0085             \u2028\u2029  　";
+
+        protected static readonly Parser<TagResult> InlineOutputStart = TagParsers.OutputTagStart();
+        protected static readonly Parser<TagResult> InlineOutputEnd = TagParsers.OutputTagEnd();
+        protected static readonly Parser<TagResult> InlineTagStart = TagParsers.TagStart();
+        protected static readonly Parser<TagResult> InlineTagEnd = TagParsers.TagEnd();
+
+        protected static readonly Parser<TagResult> NoInlineOutputStart = NonInlineLiquidTagParsers.OutputTagStart();
+        protected static readonly Parser<TagResult> NoInlineOutputEnd = Literals.AnyOf(WhiteSpaceChars, minSize: 0).SkipAnd(NonInlineLiquidTagParsers.OutputTagEnd());
+        protected static readonly Parser<TagResult> NoInlineTagStart = NonInlineLiquidTagParsers.TagStart();
+        protected static readonly Parser<TagResult> NoInlineTagEnd = Literals.AnyOf(WhiteSpaceChars, minSize: 0).SkipAnd(NonInlineLiquidTagParsers.TagEnd());
+
+        protected readonly Parser<TagResult> OutputStart = InlineOutputStart;
+        protected readonly Parser<TagResult> OutputEnd = InlineOutputEnd;
+        protected readonly Parser<TagResult> TagStart = InlineTagStart;
+        protected readonly Parser<TagResult> TagEnd = InlineTagEnd;
+
+        protected static readonly Parser<TagResult> RawOutputStart = NonInlineLiquidTagParsers.OutputTagStart();
+        protected static readonly Parser<TagResult> RawTagStart = NonInlineLiquidTagParsers.TagStart();
 
         protected static readonly LiteralExpression EmptyKeyword = new LiteralExpression(EmptyValue.Instance);
         protected static readonly LiteralExpression BlankKeyword = new LiteralExpression(BlankValue.Instance);
@@ -73,6 +87,14 @@ namespace Fluid
 
         public FluidParser(FluidParserOptions parserOptions)
         {
+            if (!parserOptions.AllowLiquidTag)
+            {
+                OutputStart = NoInlineOutputStart;
+                OutputEnd = NoInlineOutputEnd;
+                TagStart = NoInlineTagStart;
+                TagEnd = NoInlineTagEnd;
+            }
+
             String.Name = "String";
             Number.Name = "Number";
 
@@ -574,7 +596,7 @@ namespace Fluid
             Grammar = KnownTagsList;
         }
 
-        public static Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
+        public Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
 
         public void RegisterIdentifierTag(string tagName, Func<string, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
