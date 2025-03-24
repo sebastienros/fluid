@@ -1127,12 +1127,31 @@ These object are thread-safe as long as each call to `Render()` uses a dedicated
 A benchmark application is provided in the source code to compare Fluid, [Scriban](https://github.com/scriban/scriban), [DotLiquid](https://github.com/dotliquid/dotliquid), [Liquid.NET](https://github.com/mikebridge/Liquid.NET) and [Handlebars.NET](https://github.com/Handlebars-Net).
 Run it locally to analyze the time it takes to execute specific templates.
 
+TL;DR — Fluid is faster and allocates less memory than all other well-known .NET Liquid parsers.
+
 #### Results
 
-Fluid is faster and allocates less memory than all other well-known .NET Liquid parsers.
-For parsing, Fluid is 30% faster than the second best, Scriban, allocating half the memory.
-For rendering, Fluid is 20% faster than the second best, Handlebars, and allocating half the memory.
+**Parse: Parses a simple HTML template containing filters and properties**
+
+On this chart, Fluid is 30% faster than the second best, Scriban, allocating half the memory.
+
+![image](https://github.com/user-attachments/assets/4992a051-9ab7-4339-a6c1-a445b71dd61e)
+
+**ParseBig: Parses a Blog Post template**
+
+Fluid is 20% faster than the second best, Handlebars, and allocating half the memory.
+
+![image](https://github.com/user-attachments/assets/61646403-3027-4343-ac8f-9934d23cb615)
+
+**Render: Renders a simple HTML template containing filters and properties, with 500 products**
+
 Compared to DotLiquid, Fluid renders 10 times faster, and allocates 34 times less memory.
+
+![image](https://github.com/user-attachments/assets/8528b85e-f6df-4184-bc1d-6a5e5ef6c783)
+
+<details>
+
+<summary>Benchmark.NET data</summary>
 
 ``` text
 BenchmarkDotNet v0.14.0, Windows 11 (10.0.26100.3476)
@@ -1170,11 +1189,7 @@ Tested on 3/22/2025 with
 - Liquid.NET 0.10.0
 - Handlebars.Net 2.1.6
 
-##### Legend
-
-- Parse: Parses a simple HTML template containing filters and properties
-- ParseBig: Parses a Blog Post template.
-- Render: Renders a simple HTML template containing filters and properties, with 500 products.
+</details>
 
 ## Used by
 
