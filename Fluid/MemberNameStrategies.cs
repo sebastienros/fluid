@@ -1,21 +1,16 @@
 using System.Reflection;
-#if NET8_0_OR_GREATER
 using System.Text.Json;
-#else
 using System.Text;
-#endif
+
 namespace Fluid
 {
     public sealed class MemberNameStrategies
     {
         private static string RenameDefault(MemberInfo member) => member.Name;
 
-        public static readonly MemberNameStrategy Default = RenameDefault;
-
-#if NET8_0_OR_GREATER
-
         private const string SwitchName = "Fluid.UseLegacyMemberNameStrategies";
 
+        public static readonly MemberNameStrategy Default = RenameDefault;
         public static readonly MemberNameStrategy CamelCase;
         public static readonly MemberNameStrategy SnakeCase;
 
@@ -36,6 +31,8 @@ namespace Fluid
                 SnakeCase = member => JsonNamingPolicy.SnakeCaseLower.ConvertName(member.Name);
             }
         }
+
+#if NET6_0_OR_GREATER
 
         public static string RenameCamelCase(MemberInfo member)
         {
@@ -83,10 +80,6 @@ namespace Fluid
             });
         }
 #else
-
-        public static readonly MemberNameStrategy CamelCase = RenameCamelCase;
-        public static readonly MemberNameStrategy SnakeCase = RenameSnakeCase;
-
         public static string RenameCamelCase(MemberInfo member)
         {
             var firstChar = member.Name[0];

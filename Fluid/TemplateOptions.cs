@@ -3,7 +3,6 @@ using Fluid.Values;
 using Microsoft.Extensions.FileProviders;
 using System.Globalization;
 using System.Text.Encodings.Web;
-using System.Text.Json;
 
 namespace Fluid
 {
