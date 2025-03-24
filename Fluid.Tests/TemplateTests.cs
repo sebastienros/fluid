@@ -1139,13 +1139,8 @@ after
             var camelCase = MemberNameStrategies.CamelCase(memberInfo);
             var snakeCase = MemberNameStrategies.SnakeCase(memberInfo);
 
-#if NET8_0_OR_GREATER
             Assert.Equal("uvIndex", camelCase);
             Assert.Equal("uv_index", snakeCase);
-#else
-            Assert.Equal("uVIndex", camelCase);
-            Assert.Equal("uv_index", snakeCase);
-#endif
         }
 
         [Fact]
@@ -1206,7 +1201,7 @@ after
                 {% assign people1 = "alice, bob, carol" | split: ", " %}
                 {% assign people2 = "alice, bob, carol" | split: ", " %}
 
-                {% if people1 == people2 %}true{%else%}false{% endif %} 
+                {% if people1 == people2 %}true{%else%}false{% endif %}
             """;
 
             _parser.TryParse(source, out var template);

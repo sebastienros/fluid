@@ -33,7 +33,7 @@
   <ItemGroup>
     <None Include="../Assets/logo_64x64.png" Pack="true" Visible="false" PackagePath="" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <PackageReference Include="Parlot" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" />
@@ -48,6 +48,7 @@
 
   <!-- Keep specific targets since it removes some dependencies -->
   <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
+    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
