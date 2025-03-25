@@ -21,7 +21,7 @@
 
     <!-- Benchmarks -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
-    <PackageVersion Include="DotLiquid" Version="2.3.107" />
+    <PackageVersion Include="DotLiquid" Version="2.3.162" />
     <PackageVersion Include="Liquid.NET" Version="0.10.0" />
     <PackageVersion Include="Scriban" Version="6.0.0" />
     <PackageVersion Include="Handlebars.Net" Version="2.1.6" />
