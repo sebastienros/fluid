@@ -1,8 +1,10 @@
+using Fluid.Utils;
 using Fluid.Values;
 using System.Buffers;
 using System.Globalization;
 using System.Net;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using TimeZoneConverter;
@@ -41,6 +43,8 @@ namespace Fluid.Filters
             filters.AddFilter("md5", MD5);
             filters.AddFilter("sha1", Sha1);
             filters.AddFilter("sha256", Sha256);
+            filters.AddFilter("hmac_sha1", HmacSha1);
+            filters.AddFilter("hmac_sha256", HmacSha256);
 
             return filters;
         }
@@ -922,6 +926,47 @@ namespace Fluid.Filters
             using var provider = System.Security.Cryptography.SHA256.Create();
             var builder = new StringBuilder(64);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.SHA256.HashData' method over 'ComputeHash'
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+#pragma warning restore CA1850
+            {
+                builder.Append(b.ToString("x2"));
+            }
+
+            return new StringValue(builder.ToString());
+#endif
+        }
+
+        public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("HMACSHA1", input, arguments);
+
+        public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("HMACSHA256", input, arguments);
+
+        private static ValueTask<FluidValue> ComputeHmac(string algorithm, FluidValue input, FilterArguments arguments)
+        {
+            var key = arguments.At(0);
+            if (key.IsNil() || input.IsNil())
+            {
+                return StringValue.Empty;
+            }
+
+            var value = input.ToStringValue();
+            var keyBytes = Encoding.UTF8.GetBytes(key.ToStringValue());
+
+#if NET6_0_OR_GREATER
+#pragma warning disable CA5350
+            var hash = algorithm switch
+            {
+                "HMACSHA1" => HMACSHA1.HashData(keyBytes, Encoding.UTF8.GetBytes(value)),
+                "HMACSHA256" => HMACSHA256.HashData(keyBytes, Encoding.UTF8.GetBytes(value)),
+                _ => throw new ArgumentException("Unsupported HMAC algorithm", nameof(algorithm))
+            };
+#pragma warning restore CA5350
+
+            return new StringValue(HexUtilities.ToHexLower(hash));
+#else
+            using var provider = HMAC.Create(algorithm); 
+            provider.Key = keyBytes;
+            var builder = new StringBuilder(64);
+#pragma warning disable CA1850
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {
