@@ -1149,6 +1149,12 @@ Compared to DotLiquid, Fluid renders 10 times faster, and allocates 34 times les
 
 ![image](https://github.com/user-attachments/assets/8528b85e-f6df-4184-bc1d-6a5e5ef6c783)
 
+Tested on 3/22/2025 with
+- Scriban 6.0.0
+- DotLiquid 2.3.107
+- Liquid.NET 0.10.0
+- Handlebars.Net 2.1.6
+
 <details>
 
 <summary>Benchmark.NET data</summary>
@@ -1182,12 +1188,6 @@ WarmupCount=3
 | LiquidNet_Render   |    871.168 us |   726.955 us |  39.8469 us |     6.51 |    0.34 |  339.8438 | 160.1563 |       - |  3126.39 KB |       32.61 |
 | Handlebars_Render  |    161.000 us |    64.468 us |   3.5337 us |     1.20 |    0.05 |   20.9961 |   3.4180 |       - |   194.92 KB |        2.03 |
 ```
-
-Tested on 3/22/2025 with
-- Scriban 6.0.0
-- DotLiquid 2.3.107
-- Liquid.NET 0.10.0
-- Handlebars.Net 2.1.6
 
 </details>
 
