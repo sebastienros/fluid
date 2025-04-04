@@ -1,4 +1,6 @@
-﻿using BenchmarkDotNet.Running;
+using BenchmarkDotNet.Running;
+using System;
+using System.Diagnostics;
 
 namespace Fluid.Benchmarks
 {
@@ -6,7 +8,7 @@ namespace Fluid.Benchmarks
     {
         static void Main(string[] args)
         {
-            BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
+             BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
         }
     }
 }

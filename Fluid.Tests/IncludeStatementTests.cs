@@ -184,7 +184,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% include 'product' with products[0] %}", out var template);
@@ -199,7 +199,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product_alias.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% include 'product_alias' with products[0] as product %}", out var template);
@@ -214,7 +214,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product_alias.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% render 'product_alias' with products[0] as product %}", out var template);
@@ -229,7 +229,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("product", new { title = "Draft 151cm" });
             _parser.TryParse("{% include 'product' %}", out var template);
@@ -244,7 +244,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("product", new { title = "Draft 151cm" });
             _parser.TryParse("{% render 'product' %}", out var template);
@@ -259,7 +259,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("incr.liquid", "{% increment %}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             _parser.TryParse("{% increment %}{% increment %}{% render 'incr' %}", out var template, out var error);
             Assert.Null(error);
@@ -272,7 +272,7 @@ shape: ''";
         public void RenderTagCantUseDynamicName()
         {
             var fileProvider = new MockFileProvider();
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             var result = _parser.TryParse("{% assign name = 'snippet' %}{% render name %}", out var template, out var error);
             Assert.False(result);
@@ -285,7 +285,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} rindex:{{ forloop.rindex }} rindex0:{{ forloop.rindex0 }} " );
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% include 'product' for products %}", out var template);
@@ -301,7 +301,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} rindex:{{ forloop.rindex }} rindex0:{{ forloop.rindex0 }} " );
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% render 'product' for products %}", out var template);
@@ -317,7 +317,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("snippet.liquid", "{{ outer_variable }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("product", new { title = "Draft 151cm" });
             _parser.TryParse("{% assign outer_variable = 'should not be visible' %}{% render 'snippet' %}", out var template);
@@ -332,7 +332,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("snippet.liquid", "{{ outer_variable }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("product", new { title = "Draft 151cm" });
             _parser.TryParse("{% assign outer_variable = 'should be visible' %}{% include 'snippet' %}", out var template);
@@ -347,7 +347,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("snippet.liquid", "{{ global_variable }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             options.Scope.SetValue("global_variable", new StringValue("global value"));
             context.SetValue("product", new { title = "Draft 151cm" });
@@ -369,7 +369,7 @@ shape: ''";
                 fileProvider.Add($"{t[0]}.liquid", t);
             }
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             _parser.TryParse("{%- include file -%}", out var template);
 
             var stopped = false;
@@ -401,7 +401,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("a.liquid", "AAAA");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             IFluidTemplate template = null;
 

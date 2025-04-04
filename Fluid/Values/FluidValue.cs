@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Encodings.Web;
@@ -149,21 +149,24 @@ namespace Fluid.Values
             switch (System.Type.GetTypeCode(typeOfValue))
             {
                 case TypeCode.Boolean:
-                    return BooleanValue.Create(Convert.ToBoolean(value));
+                    return BooleanValue.Create((bool)value);
                 case TypeCode.Byte:
                 case TypeCode.UInt16:
-                case TypeCode.UInt32:
                     return NumberValue.Create(Convert.ToUInt32(value));
+                case TypeCode.UInt32:
+                    return NumberValue.Create((uint)value);
                 case TypeCode.SByte:
                 case TypeCode.Int16:
-                case TypeCode.Int32:
                     return NumberValue.Create(Convert.ToInt32(value));
+                case TypeCode.Int32:
+                    return NumberValue.Create((int)value);
                 case TypeCode.UInt64:
                 case TypeCode.Int64:
-                case TypeCode.Decimal:
                 case TypeCode.Double:
                 case TypeCode.Single:
                     return NumberValue.Create(Convert.ToDecimal(value));
+                case TypeCode.Decimal:
+                    return NumberValue.Create((decimal)value);
                 case TypeCode.Empty:
                     return NilValue.Instance;
                 case TypeCode.Object:
@@ -276,8 +279,9 @@ namespace Fluid.Values
                 case TypeCode.DateTime:
                     return new DateTimeValue((DateTime)value);
                 case TypeCode.Char:
-                case TypeCode.String:
                     return new StringValue(Convert.ToString(value, options.CultureInfo));
+                case TypeCode.String:
+                    return new StringValue((string)value);
                 default:
                     throw new InvalidOperationException();
             }
