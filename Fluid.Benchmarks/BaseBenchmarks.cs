@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -47,11 +48,23 @@ namespace Fluid.Benchmarks
             }
         }
 
+        public void CheckBenchmark()
+        {
+            var result = ParseAndRender();
+            if (string.IsNullOrEmpty(result) ||
+                !result.Contains("<h2>Name0</h2>") ||
+                !result.Contains($"<h2>Name{ProductCount - 1}</h2>") ||
+                !result.Contains($"Lorem ipsum ...") ||
+                !result.Contains($"Only 0") ||
+                !result.Contains($"Only {ProductCount - 1}"))
+            {
+                throw new InvalidOperationException($"Template rendering failed: \n {result}");
+            }
+        }
+
         public abstract object Parse();
         public abstract object ParseBig();
-
         public abstract string Render();
-
         public abstract string ParseAndRender();
 
     }

@@ -9,6 +9,12 @@ namespace Fluid.Benchmarks
 
         public HandlebarsBenchmarks()
         {
+            _handlebarsTemplate = CompileTemplate(ProductTemplateMustache);
+            CheckBenchmark();
+        }
+
+        private HandlebarsTemplate<object, object> CompileTemplate(string template)
+        {
             var handlebars = Handlebars.Create();
 
             using (handlebars.Configure())
@@ -23,7 +29,7 @@ namespace Fluid.Benchmarks
                     output.WriteSafeString(concat);
                 });
 
-                _handlebarsTemplate = handlebars.Compile(ProductTemplateMustache);
+                return handlebars.Compile(ProductTemplateMustache);
             }
         }
 
@@ -47,7 +53,7 @@ namespace Fluid.Benchmarks
 
         public override string ParseAndRender()
         {
-            var template = Handlebars.Compile(ProductTemplateMustache);
+            var template = CompileTemplate(ProductTemplateMustache);
             return template(new { products = Products });
         }
     }
