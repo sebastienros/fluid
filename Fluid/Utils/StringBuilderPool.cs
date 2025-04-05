@@ -64,7 +64,7 @@ namespace Fluid.Utils
 
             // Do not store builders that are too large.
 
-            if (builder.Capacity > _defaultCapacity)
+            if (builder.Capacity == _defaultCapacity)
             {
                 builder.Clear();
                 _pool.Free(this);
