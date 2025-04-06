@@ -4,10 +4,10 @@ using System.Runtime.CompilerServices;
 
 namespace Fluid
 {
-    public record struct AccessorKey(Type Type, string Name);
-
     public class DefaultMemberAccessStrategy : MemberAccessStrategy
     {
+        internal record struct AccessorKey(Type Type, string Name);
+
         private Dictionary<AccessorKey, IMemberAccessor> _map = [];
 
         public override IMemberAccessor GetAccessor(Type type, string name, StringComparer stringComparer)

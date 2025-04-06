@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+using Fluid.Values;
+using System.Reflection;
 using System.Reflection.Emit;
 
 namespace Fluid.Accessors
@@ -30,8 +31,51 @@ namespace Fluid.Accessors
                 _invoker = null;
             }
 
+            Delegate converter = null;
+
+            switch (Type.GetTypeCode(propertyInfo.PropertyType))
+            {
+                case TypeCode.Boolean:
+                    converter = (bool x) => BooleanValue.Create(x); break;
+                case TypeCode.Byte:
+                    converter = (byte x) => NumberValue.Create(x); break;
+                case TypeCode.UInt16:
+                    converter = (ushort x) => NumberValue.Create(x); break;
+                case TypeCode.UInt32:
+                    converter = (uint x) => NumberValue.Create(x); break;
+                case TypeCode.SByte:
+                    converter = (sbyte x) => NumberValue.Create(x); break;
+                case TypeCode.Int16:
+                    converter = (short x) => NumberValue.Create(x); break;
+                case TypeCode.Int32:
+                    converter = (int x) => NumberValue.Create(x); break;
+                case TypeCode.UInt64:
+                    converter = (ulong x) => NumberValue.Create(x); break;
+                case TypeCode.Int64:
+                    converter = (long x) => NumberValue.Create(x); break;
+                case TypeCode.Double:
+                    converter = (double x) => NumberValue.Create((decimal)x); break;
+                case TypeCode.Single:
+                    converter = (float x) => NumberValue.Create((decimal)x); break;
+                case TypeCode.Decimal:
+                    converter = (decimal x) => NumberValue.Create(x); break;
+                case TypeCode.DateTime:
+                    converter = (DateTime x) => new DateTimeValue(x); break;
+                case TypeCode.String:
+                    converter = (string x) => StringValue.Create(x); break;
+                case TypeCode.Char:
+                    converter = (char x) => StringValue.Create(x); break;
+                default:
+                    converter = null; break;
+            }
+
+            if (propertyInfo.PropertyType.IsEnum)
+            {
+                converter = null;
+            }
+
             var invokerType = typeof(Invoker<,>).MakeGenericType(propertyInfo.DeclaringType, propertyInfo.PropertyType);
-            _invoker = Activator.CreateInstance(invokerType, [d]) as IInvoker;
+            _invoker = Activator.CreateInstance(invokerType, [d, converter]) as IInvoker;
         }
 
         public object Get(object obj, string name, TemplateContext ctx)
@@ -62,26 +106,6 @@ namespace Fluid.Accessors
             emitter.Emit(OpCodes.Ret);
 
             return method.CreateDelegate(typeof(Func<,>).MakeGenericType(declaringType, field.FieldType));
-        }
-
-        private interface IInvoker
-        {
-            object Invoke(object target);
-        }
-
-        private sealed class Invoker<T, TResult> : IInvoker
-        {
-            private readonly Func<T, TResult> _d;
-
-            public Invoker(Delegate d)
-            {
-                _d = (Func<T, TResult>)d;
-            }
-
-            public object Invoke(object target)
-            {
-                return _d((T)target);
-            }
         }
     }
 }
