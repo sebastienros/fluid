@@ -128,7 +128,7 @@ namespace Fluid.Filters
             }
             else
             {
-                if (input.IsNil() || input == BooleanValue.False || EmptyValue.Instance.Equals(input))
+                if (input.IsNil() || input == BooleanValue.False || EmptyValue.Instance.Equals(input) || input.ToStringValue() == "")
                 {
                     return arguments.At(0);
                 }
