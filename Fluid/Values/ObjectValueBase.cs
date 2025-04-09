@@ -177,7 +177,7 @@ namespace Fluid.Values
 
         public override string ToStringValue()
         {
-            return Convert.ToString(Value);
+            return Convert.ToString(Value) ?? "";
         }
 
         public override object ToObjectValue()
