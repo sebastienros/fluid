@@ -659,5 +659,195 @@ namespace Fluid.Tests
             
             Assert.Equal(expectedValue, result.ToNumberValue());
         }
+
+        [Fact]
+        public async Task Reject()
+        {
+            var input = new ArrayValue(new[] {
+                new ObjectValue(new { Title = "a", Pinned = true }),
+                new ObjectValue(new { Title = "b", Pinned = false }),
+                new ObjectValue(new { Title = "c", Pinned = true })
+                });
+
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
+
+            var arguments1 = new FilterArguments().Add(new StringValue("Pinned"));
+
+            var result1 = await ArrayFilters.Reject(input, arguments1, context);
+
+            Assert.Single(result1.Enumerate(context));
+
+            var arguments2 = new FilterArguments()
+                .Add(new StringValue("Pinned"))
+                .Add(BooleanValue.Create(false))
+                ;
+
+            var result2 = await ArrayFilters.Reject(input, arguments2, context);
+
+            Assert.Equal(2, result2.Enumerate(context).Count());
+
+            var arguments3 = new FilterArguments()
+                .Add(new StringValue("Title"))
+                .Add(new StringValue("c"));
+
+            var result3 = await ArrayFilters.Reject(input, arguments3, context);
+
+            Assert.Equal(2, result3.Enumerate(context).Count());
+        }
+
+        [Fact]
+        public async Task Find()
+        {
+            var input = new ArrayValue(new[] {
+                new ObjectValue(new { Title = "a", Pinned = true }),
+                new ObjectValue(new { Title = "b", Pinned = false }),
+                new ObjectValue(new { Title = "c", Pinned = true })
+                });
+
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
+
+            var arguments1 = new FilterArguments().Add(new StringValue("Pinned")).Add(BooleanValue.True);
+
+            var result1 = await ArrayFilters.Find(input, arguments1, context);
+
+            Assert.Equal(input.Values[0], result1);
+
+            var arguments2 = new FilterArguments()
+                .Add(new StringValue("Pinned"))
+                .Add(BooleanValue.Create(false))
+                ;
+
+            var result2 = await ArrayFilters.Find(input, arguments2, context);
+
+            Assert.Equal(input.Values[1], result2);
+
+            var arguments3 = new FilterArguments()
+                .Add(new StringValue("Title"))
+                .Add(new StringValue("c"));
+
+            var result3 = await ArrayFilters.Find(input, arguments3, context);
+
+            Assert.Equal(input.Values[2], result3);
+
+            var arguments4 = new FilterArguments();
+
+            var result4 = await ArrayFilters.Find(input, arguments4, context);
+
+            Assert.Equal(NilValue.Instance, result4);
+
+            var arguments5 = new FilterArguments()
+                .Add(new StringValue("Title"))
+                .Add(new StringValue("d"));
+
+            var result5 = await ArrayFilters.Find(input, arguments5, context);
+
+            Assert.Equal(NilValue.Instance, result5);
+        }
+
+        [Fact]
+        public async Task FindIndex()
+        {
+            var input = new ArrayValue(new[] {
+                new ObjectValue(new { Title = "a", Pinned = true }),
+                new ObjectValue(new { Title = "b", Pinned = false }),
+                new ObjectValue(new { Title = "c", Pinned = true })
+                });
+
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
+
+            var arguments1 = new FilterArguments().Add(new StringValue("Pinned")).Add(BooleanValue.True);
+
+            var result1 = await ArrayFilters.FindIndex(input, arguments1, context);
+
+            Assert.Equal(0, result1.ToNumberValue());
+
+            var arguments2 = new FilterArguments()
+                .Add(new StringValue("Pinned"))
+                .Add(BooleanValue.Create(false))
+                ;
+
+            var result2 = await ArrayFilters.FindIndex(input, arguments2, context);
+
+            Assert.Equal(1, result2.ToNumberValue());
+
+            var arguments3 = new FilterArguments()
+                .Add(new StringValue("Title"))
+                .Add(new StringValue("c"));
+
+            var result3 = await ArrayFilters.FindIndex(input, arguments3, context);
+
+            Assert.Equal(2, result3.ToNumberValue());
+
+            var arguments4 = new FilterArguments();
+
+            var result4 = await ArrayFilters.FindIndex(input, arguments4, context);
+
+            Assert.Equal(NilValue.Instance, result4);
+
+            var arguments5 = new FilterArguments()
+                .Add(new StringValue("Title"))
+                .Add(new StringValue("d"));
+
+            var result5 = await ArrayFilters.FindIndex(input, arguments5, context);
+
+            Assert.Equal(NilValue.Instance, result5);
+        }
+
+        [Fact]
+        public async Task Has()
+        {
+            var input = new ArrayValue(new[] {
+                new ObjectValue(new { Title = "a", Pinned = true }),
+                new ObjectValue(new { Title = "b", Pinned = false }),
+                new ObjectValue(new { Title = "c", Pinned = true })
+                });
+
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
+
+            var arguments1 = new FilterArguments().Add(new StringValue("Pinned")).Add(BooleanValue.True);
+
+            var result1 = await ArrayFilters.Has(input, arguments1, context);
+
+            Assert.Equal(BooleanValue.True, result1);
+
+            var arguments2 = new FilterArguments()
+                .Add(new StringValue("Pinned"))
+                .Add(BooleanValue.Create(false))
+                ;
+
+            var result2 = await ArrayFilters.Has(input, arguments2, context);
+
+            Assert.Equal(BooleanValue.True, result2);
+
+            var arguments3 = new FilterArguments()
+                .Add(new StringValue("Title"))
+                .Add(new StringValue("c"));
+
+            var result3 = await ArrayFilters.Has(input, arguments3, context);
+
+            Assert.Equal(BooleanValue.True, result3);
+
+            var arguments4 = new FilterArguments();
+
+            var result4 = await ArrayFilters.Has(input, arguments4, context);
+
+            Assert.Equal(BooleanValue.False, result4);
+
+            var arguments5 = new FilterArguments()
+                .Add(new StringValue("Title"))
+                .Add(new StringValue("d"));
+
+            var result5 = await ArrayFilters.Has(input, arguments5, context);
+
+            Assert.Equal(BooleanValue.False, result5);
+        }
     }
 }
