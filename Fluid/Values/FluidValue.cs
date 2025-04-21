@@ -215,7 +215,9 @@ namespace Fluid.Values
                             return new DictionaryValue(new DictionaryDictionaryFluidIndexable(otherDictionary, options));
 
                         case FluidValue[] array:
-                            return array.Length > 0 ? new ArrayValue(array) : ArrayValue.Empty;
+                            return array.Length > 0
+                                ? new ArrayValue(array)
+                                : ArrayValue.Empty;
                     }
 
                     // Check if it's a more specific IDictionary<string, V>, e.g. JObject
