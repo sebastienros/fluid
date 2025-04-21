@@ -1,8 +1,12 @@
-﻿namespace Fluid
+﻿using System.Collections.Concurrent;
+
+namespace Fluid
 {
     public sealed class UnsafeMemberAccessStrategy : DefaultMemberAccessStrategy
     {
-        public static readonly UnsafeMemberAccessStrategy Instance = new UnsafeMemberAccessStrategy();
+        private readonly ConcurrentDictionary<Type, object> _handledTypes = new();
+
+        public static readonly UnsafeMemberAccessStrategy Instance = new();
 
         public override IMemberAccessor GetAccessor(Type type, string name)
         {
@@ -13,7 +17,11 @@
                 return accessor;
             }
 
-            this.Register(type);
+            if (!_handledTypes.ContainsKey(type))
+            {
+                this.Register(type);
+                _handledTypes.TryAdd(type, null);
+            }
 
             return base.GetAccessor(type, name);
         }
