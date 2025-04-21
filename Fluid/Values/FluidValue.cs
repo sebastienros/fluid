@@ -282,7 +282,10 @@ namespace Fluid.Values
                                 fluidValues ??= [];
                                 fluidValues.Add(Create(item, options));
                             }
-                            return fluidValues != null ? new ArrayValue(fluidValues) : ArrayValue.Empty;
+
+                            return fluidValues != null
+                                ? new ArrayValue(fluidValues)
+                                : ArrayValue.Empty;
                     }
 
                     return new ObjectValue(value);
