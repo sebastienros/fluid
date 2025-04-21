@@ -215,7 +215,7 @@ namespace Fluid.Values
                             return new DictionaryValue(new DictionaryDictionaryFluidIndexable(otherDictionary, options));
 
                         case FluidValue[] array:
-                            return new ArrayValue(array);
+                            return array.Length > 0 ? new ArrayValue(array) : ArrayValue.Empty;
                     }
 
                     // Check if it's a more specific IDictionary<string, V>, e.g. JObject
@@ -249,12 +249,22 @@ namespace Fluid.Values
                     switch (value)
                     {
                         case IReadOnlyList<FluidValue> list:
+                            if (list.Count == 0)
+                            {
+                                return ArrayValue.Empty;
+                            }
+
                             return new ArrayValue(list);
 
                         case IEnumerable<FluidValue> enumerable:
                             return new ArrayValue(enumerable.ToArray());
 
                         case IList list:
+                            if (list.Count == 0)
+                            {
+                                return ArrayValue.Empty;
+                            }
+
                             var values = new FluidValue[list.Count];
                             for (var i = 0; i < values.Length; i++)
                             {
@@ -264,20 +274,24 @@ namespace Fluid.Values
                             return new ArrayValue(values);
 
                         case IEnumerable enumerable:
-                            var fluidValues = new List<FluidValue>();
+                            List<FluidValue> fluidValues = null;
                             foreach (var item in enumerable)
                             {
+                                fluidValues ??= [];
                                 fluidValues.Add(Create(item, options));
                             }
-                            return new ArrayValue(fluidValues);
+                            return fluidValues != null ? new ArrayValue(fluidValues) : ArrayValue.Empty;
                     }
 
                     return new ObjectValue(value);
+
                 case TypeCode.DateTime:
                     return new DateTimeValue((DateTime)value);
+
                 case TypeCode.Char:
                 case TypeCode.String:
                     return new StringValue(Convert.ToString(value, options.CultureInfo));
+
                 default:
                     throw new InvalidOperationException();
             }
