@@ -5,9 +5,11 @@ namespace Fluid
 {
     public class DefaultMemberAccessStrategy : MemberAccessStrategy
     {
-        private readonly object _synLock = new();
+        private readonly Lock _synLock = new();
 
-        private Dictionary<Type, Dictionary<string, IMemberAccessor>> _map = new Dictionary<Type, Dictionary<string, IMemberAccessor>>();
+        private readonly record struct Key(Type Type, string Name);
+
+        private Dictionary<Key, IMemberAccessor> _map = new();
 
         public override IMemberAccessor GetAccessor(Type type, string name)
         {
@@ -51,16 +53,7 @@ namespace Fluid
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryGetAccessor(Type type, string name, out IMemberAccessor accessor)
         {
-            if (_map.TryGetValue(type, out var typeMap))
-            {
-                if (typeMap.TryGetValue(name, out accessor) || typeMap.TryGetValue("*", out accessor))
-                {
-                    return true;
-                }
-            }
-
-            accessor = null;
-            return false;
+            return _map.TryGetValue(new Key(type, name), out accessor) || _map.TryGetValue(new Key(type, "*"), out accessor);
         }
 
         public override void Register(Type type, IEnumerable<KeyValuePair<string, IMemberAccessor>> accessors)
@@ -75,29 +68,39 @@ namespace Fluid
             lock (_synLock)
             {
                 // Clone current dictionary
-                var temp = new Dictionary<Type, Dictionary<string, IMemberAccessor>>(_map);
-
-                // Clone inner dictionaries
-                foreach (var typeEntry in temp)
-                {
-                    var entry = new Dictionary<string, IMemberAccessor>(typeEntry.Value);
-                }
-
-                if (!temp.TryGetValue(type, out var typeMap))
-                {
-                    typeMap = new Dictionary<string, IMemberAccessor>(IgnoreCasing
-                        ? StringComparer.OrdinalIgnoreCase
-                        : StringComparer.Ordinal);
-
-                    temp[type] = typeMap;
-                }
+                var temp = IgnoreCasing
+                    ? new Dictionary<Key, IMemberAccessor>(_map, KeyIgnoreCaseComparer.Instance)
+                    : new Dictionary<Key, IMemberAccessor>(_map);
 
                 foreach (var accessor in accessors)
                 {
-                    typeMap[accessor.Key] = accessor.Value;
+                    temp[new Key(type, accessor.Key)] = accessor.Value;
                 }
 
                 _map = temp;
+            }
+        }
+
+        private sealed class KeyIgnoreCaseComparer : IEqualityComparer<Key>
+        {
+            public static readonly KeyIgnoreCaseComparer Instance = new();
+
+            private KeyIgnoreCaseComparer()
+            {
+            }
+
+            public bool Equals(Key x, Key y)
+            {
+                return x.Type == y.Type && string.Equals(x.Name, y.Name, StringComparison.OrdinalIgnoreCase);
+            }
+
+            public int GetHashCode(Key obj)
+            {
+#if NET6_0_OR_GREATER
+                return HashCode.Combine(obj.Type, obj.Name.GetHashCode(StringComparison.OrdinalIgnoreCase));
+#else
+                return obj.Type.GetHashCode() ^ obj.Name.ToUpperInvariant().GetHashCode();
+#endif
             }
         }
     }
