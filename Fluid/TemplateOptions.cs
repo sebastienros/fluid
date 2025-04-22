@@ -35,6 +35,14 @@ namespace Fluid
         public IFileProvider FileProvider { get; set; } = new NullFileProvider();
 
         /// <summary>
+        /// Gets or sets the <see cref="ITemplateCache"/> used to cache templates loaded from <see cref="FileProvider"/>.
+        /// </summary>
+        /// <remarks>
+        /// The instance needs to be thread-safe for insertion and retrieval of cached entries.
+        /// </remarks>
+        public ITemplateCache TemplateCache { get; set; } = new TemplateCache();
+
+        /// <summary>
         /// Gets or sets the maximum number of steps a script can execute. Leave to 0 for unlimited.
         /// </summary>
         public int MaxSteps { get; set; }
