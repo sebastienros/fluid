@@ -1,5 +1,4 @@
 using Fluid.Values;
-using System.Diagnostics;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
@@ -12,11 +11,6 @@ namespace Fluid.Ast
 #pragma warning restore CA1001
     {
         public const string ViewExtension = ".liquid";
-
-        // Since include statements will rarely vary the filename they render, we cache the most
-        // recent file only.
-
-        private volatile CachedTemplate _cachedTemplate;
 
         public RenderStatement(FluidParser parser, string path, Expression with = null, Expression @for = null, string alias = null, IReadOnlyList<AssignStatement> assignStatements = null)
         {
@@ -46,19 +40,17 @@ namespace Fluid.Ast
                 relativePath += ViewExtension;
             }
 
-            var cachedTemplate = _cachedTemplate;
+            var fileProvider = context.Options.FileProvider;
 
-            if (cachedTemplate == null || !string.Equals(cachedTemplate.Name, System.IO.Path.GetFileNameWithoutExtension(relativePath), StringComparison.Ordinal))
+            var fileInfo = fileProvider.GetFileInfo(relativePath);
+
+            if (fileInfo == null || !fileInfo.Exists || fileInfo.IsDirectory)
             {
-                var fileProvider = context.Options.FileProvider;
+                throw new FileNotFoundException(relativePath);
+            }
 
-                var fileInfo = fileProvider.GetFileInfo(relativePath);
-
-                if (fileInfo == null || !fileInfo.Exists)
-                {
-                    throw new FileNotFoundException(relativePath);
-                }
-
+            if (context.Options.TemplateCache == null || !context.Options.TemplateCache.TryGetTemplate(fileInfo, out var template))
+            {
                 var content = "";
 
                 using (var stream = fileInfo.CreateReadStream())
@@ -67,20 +59,18 @@ namespace Fluid.Ast
                     content = await streamReader.ReadToEndAsync();
                 }
 
-                if (!Parser.TryParse(content, out var template, out var errors))
+                if (!Parser.TryParse(content, out template, out var errors))
                 {
                     throw new ParseException(errors);
                 }
 
-                var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
-
-                _cachedTemplate = cachedTemplate = new CachedTemplate(template, identifier);
+                context.Options.TemplateCache?.SetTemplate(fileInfo, template);
             }
+
+            var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
 
             context.EnterChildScope();
             var previousScope = context.LocalScope;
-
-            Debug.Assert(cachedTemplate != null);
 
             try
             {
@@ -91,8 +81,8 @@ namespace Fluid.Ast
                     context.LocalScope = new Scope(context.RootScope);
                     previousScope.CopyTo(context.LocalScope);
 
-                    context.SetValue(Alias ?? cachedTemplate.Name, with);
-                    await cachedTemplate.Template.RenderAsync(writer, encoder, context);
+                    context.SetValue(Alias ?? identifier, with);
+                    await template.RenderAsync(writer, encoder, context);
                 }
                 else if (AssignStatements.Count > 0)
                 {
@@ -105,7 +95,7 @@ namespace Fluid.Ast
                     context.LocalScope = new Scope(context.RootScope);
                     previousScope.CopyTo(context.LocalScope);
 
-                    await cachedTemplate.Template.RenderAsync(writer, encoder, context);
+                    await template.RenderAsync(writer, encoder, context);
                 }
                 else if (For != null)
                 {
@@ -128,7 +118,7 @@ namespace Fluid.Ast
 
                             var item = list[i];
 
-                            context.SetValue(Alias ?? cachedTemplate.Name, item);
+                            context.SetValue(Alias ?? identifier, item);
 
                             // Set helper variables
                             forloop.Index = i + 1;
@@ -138,7 +128,7 @@ namespace Fluid.Ast
                             forloop.First = i == 0;
                             forloop.Last = i == length - 1;
 
-                            await cachedTemplate.Template.RenderAsync(writer, encoder, context);
+                            await template.RenderAsync(writer, encoder, context);
 
                             // Restore the forloop property after every statement in case it replaced it,
                             // for instance if it contains a nested for loop
@@ -155,7 +145,7 @@ namespace Fluid.Ast
                     context.LocalScope = new Scope(context.RootScope);
                     previousScope.CopyTo(context.LocalScope);
 
-                    await cachedTemplate.Template.RenderAsync(writer, encoder, context);
+                    await template.RenderAsync(writer, encoder, context);
                 }
             }
             finally

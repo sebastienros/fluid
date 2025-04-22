@@ -429,5 +429,75 @@ shape: ''";
             // The previously cached template should be used
             Assert.Equal("AAAA", result);
         }
+
+        [Fact]
+        public void IncludeTag_Caches_ParsedTemplate()
+        {
+            var templates = "abcdefg".Select(x => new string(x, 10)).ToArray();
+
+            var fileProvider = new MockFileProvider();
+
+            foreach (var t in templates)
+            {
+                fileProvider.Add($"{t[0]}.liquid", t);
+            }
+
+            var fileInfos = templates.Select(x => fileProvider.GetFileInfo($"{x[0]}.liquid")).Cast<MockFileInfo>().ToArray();
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            _parser.TryParse("{%- include file -%}", out var template);
+
+            // The first time a template is included it will be read from the file provider
+            foreach (var f in fileInfos)
+            {
+                var filename = f.Name;
+
+                Assert.False(f.Accessed);
+
+                var context = new TemplateContext(options);
+                context.SetValue("file", filename);
+                var result = template.Render(context);
+
+                Assert.True(f.Accessed);
+            }
+
+            foreach (var f in fileInfos)
+            {
+                f.Accessed = false;
+            }
+
+            // The next time a template is included it should not be accessed from the file provider but cached instead
+            foreach (var f in fileInfos)
+            {
+                var filename = f.Name;
+
+                Assert.False(f.Accessed);
+
+                var context = new TemplateContext(options);
+                context.SetValue("file", filename);
+                var result = template.Render(context);
+
+                Assert.False(f.Accessed);
+            }
+
+            foreach (var f in fileInfos)
+            {
+                f.LastModified = DateTime.UtcNow;
+            }
+
+            // If the attributes have changed then the template should be reloaded
+            foreach (var f in fileInfos)
+            {
+                var filename = f.Name;
+
+                Assert.False(f.Accessed);
+
+                var context = new TemplateContext(options);
+                context.SetValue("file", filename);
+                var result = template.Render(context);
+
+                Assert.True(f.Accessed);
+            }
+        }
     }
 }
