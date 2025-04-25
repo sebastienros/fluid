@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
+using System.Threading;
 using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Parser;
@@ -488,6 +489,8 @@ shape: ''";
 
             // Update the files so they are accessed again
             WriteFilesContent(templates, tempPath);
+
+            Thread.Sleep(1000); // Wait for the file provider to update the last modified date
 
             // If the attributes have changed then the template should be reloaded
             foreach (var t in templates)
