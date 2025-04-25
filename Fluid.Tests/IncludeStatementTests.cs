@@ -499,5 +499,40 @@ shape: ''";
                 Assert.True(f.Accessed);
             }
         }
+
+        [Fact]
+        public void IncludeTag_Caches_DifferentFolders()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("this-folder/this_file.liquid", "content1");
+            fileProvider.Add("this-folder/that-folder/this_file.liquid", "content2");
+
+            var fileInfo1 = fileProvider.GetFileInfo("this-folder/this_file.liquid") as MockFileInfo;
+            var fileInfo2 = fileProvider.GetFileInfo("this-folder/that-folder/this_file.liquid") as MockFileInfo;
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            _parser.TryParse("{%- include file -%}", out var template);
+
+            // The first time a template is included it will be read from the file provider
+
+            Assert.False(fileInfo1.Accessed);
+            Assert.False(fileInfo2.Accessed);
+
+            var context = new TemplateContext(options);
+            context.SetValue("file", "this-folder/this_file.liquid");
+
+            Assert.Equal("content1", template.Render(context));
+            Assert.True(fileInfo1.Accessed);
+            Assert.False(fileInfo2.Accessed);
+
+            // Rendering the second template should not access the first one
+            fileInfo1.Accessed = false;
+
+            context.SetValue("file", "this-folder/that-folder/this_file.liquid");
+
+            Assert.Equal("content2", template.Render(context));
+            Assert.False(fileInfo1.Accessed);
+            Assert.True(fileInfo2.Accessed);
+        }
     }
 }
