@@ -12,6 +12,7 @@ jobs:
   build:
 
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
@@ -34,8 +35,6 @@ jobs:
     
     - name: Test
       run: dotnet test -c Release
-      continue-on-error: true
 
     - name: Test - Compiled
       run: dotnet test --configuration Release /p:Compiled=true
-      continue-on-error: true
