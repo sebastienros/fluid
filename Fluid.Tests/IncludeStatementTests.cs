@@ -550,6 +550,12 @@ shape: ''";
         [Fact]
         public void IncludeTag_Caches_HandleFileSystemCasing()
         {
+            // We can't rely on the OS to detect if the FS is case sensitive or not. c.f. MacOS
+            string file = Path.GetTempPath() + Guid.NewGuid().ToString().ToLower();
+            File.CreateText(file).Close();
+            bool isCaseInsensitiveFilesystem = File.Exists(file.ToUpper());
+            File.Delete(file);
+
             var tempPath = Path.Combine(Path.GetTempPath(), "FluidTests", Path.GetRandomFileName());
             Directory.CreateDirectory(tempPath);
 
@@ -563,7 +569,7 @@ shape: ''";
 
             var context = new TemplateContext(options);
 
-            if (OperatingSystem.IsWindows())
+            if (isCaseInsensitiveFilesystem)
             {
                 // Windows is case insensitive, there should be only one file
                 context.SetValue("file", "this_file.liquid");
@@ -581,13 +587,13 @@ shape: ''";
             }
 
             try
-            {
-                Directory.Delete(tempPath, true);
-            }
-            catch
-            {
-                // Ignore any exceptions
-            }
+                {
+                    Directory.Delete(tempPath, true);
+                }
+                catch
+                {
+                    // Ignore any exceptions
+                }
         }
     }
 }

@@ -12,18 +12,7 @@ sealed class TemplateCache : ITemplateCache
 {
     record struct CachedTemplate(DateTimeOffset LastModified, IFluidTemplate Template);
 
-    private readonly ConcurrentDictionary<string, CachedTemplate> _cache;
-
-    public TemplateCache()
-    {
-        // On case-sensitive file systems (like Linux), we use Ordinal comparison.
-        var comparison =
-            Environment.OSVersion.Platform == PlatformID.Unix ||
-            Environment.OSVersion.Platform == PlatformID.MacOSX
-            ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-
-        _cache = new(comparison);
-    }
+    private readonly ConcurrentDictionary<string, CachedTemplate> _cache = new (StringComparer.Ordinal);
 
     public bool TryGetTemplate(IFileInfo fileInfo, out IFluidTemplate template)
     {
