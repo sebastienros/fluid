@@ -8,6 +8,7 @@ using Fluid.Ast;
 using Fluid.Parser;
 using Fluid.Tests.Mocks;
 using Fluid.Values;
+using Microsoft.Extensions.FileProviders;
 using Xunit;
 
 namespace Fluid.Tests
@@ -433,106 +434,160 @@ shape: ''";
         [Fact]
         public void IncludeTag_Caches_ParsedTemplate()
         {
-            var templates = "abcdefg".Select(x => new string(x, 10)).ToArray();
-
-            var fileProvider = new MockFileProvider();
-
-            foreach (var t in templates)
+            var templates = new Dictionary<string, string>
             {
-                fileProvider.Add($"{t[0]}.liquid", t);
-            }
+                ["a.liquid"] = "content1",
+                ["folder/a.liquid"] = "content2",
+                ["folder/b.liquid"] = "content3",
+                ["folder/c.liquid"] = "content4",
+                ["folder/other/d.liquid"] = "content5",
+                ["b.liquid"] = "content6",
+                ["c.liquid"] = "content7",
+                ["d.liquid"] = "content8",
+            };
 
-            var fileInfos = templates.Select(x => fileProvider.GetFileInfo($"{x[0]}.liquid")).Cast<MockFileInfo>().ToArray();
+            var tempPath = Path.Combine(Path.GetTempPath(), "FluidTests", Path.GetRandomFileName());
+            Directory.CreateDirectory(tempPath);
+
+            var fileProvider = new PhysicalFileProvider(tempPath);
+
+            WriteFilesContent(templates, tempPath);
+
+            var fileInfos = templates.ToDictionary(t => t.Key, t => fileProvider.GetFileInfo(t.Key));
 
             var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
             _parser.TryParse("{%- include file -%}", out var template);
 
             // The first time a template is included it will be read from the file provider
-            foreach (var f in fileInfos)
+            foreach (var t in templates)
             {
-                var filename = f.Name;
-
-                Assert.False(f.Accessed);
+                var f = fileProvider.GetFileInfo(t.Key);
 
                 var context = new TemplateContext(options);
-                context.SetValue("file", filename);
+                context.SetValue("file", t.Key);
                 var result = template.Render(context);
 
-                Assert.True(f.Accessed);
-            }
+                Assert.Equal(t.Value, result);
 
-            foreach (var f in fileInfos)
-            {
-                f.Accessed = false;
+                Assert.True(options.TemplateCache.TryGetTemplate(f, out var cachedTemplate));
             }
 
             // The next time a template is included it should not be accessed from the file provider but cached instead
-            foreach (var f in fileInfos)
+            foreach (var t in templates)
             {
-                var filename = f.Name;
+                var f = fileProvider.GetFileInfo(t.Key);
 
-                Assert.False(f.Accessed);
+                options.TemplateCache.SetTemplate(f, new MockFluidTemplate(t.Key));
 
                 var context = new TemplateContext(options);
-                context.SetValue("file", filename);
+                context.SetValue("file", t.Key);
                 var result = template.Render(context);
 
-                Assert.False(f.Accessed);
+                Assert.Equal(t.Key, result);
             }
 
-            foreach (var f in fileInfos)
-            {
-                f.LastModified = DateTime.UtcNow;
-            }
+            // Update the files so they are accessed again
+            WriteFilesContent(templates, tempPath);
 
             // If the attributes have changed then the template should be reloaded
-            foreach (var f in fileInfos)
+            foreach (var t in templates)
             {
-                var filename = f.Name;
-
-                Assert.False(f.Accessed);
+                var f = fileProvider.GetFileInfo(t.Key);
 
                 var context = new TemplateContext(options);
-                context.SetValue("file", filename);
+                context.SetValue("file", t.Key);
                 var result = template.Render(context);
 
-                Assert.True(f.Accessed);
+                Assert.Equal(t.Value, result);
+            }
+
+            static void WriteFilesContent(Dictionary<string, string> templates, string tempPath)
+            {
+                foreach (var t in templates)
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(tempPath, t.Key)));
+                    File.WriteAllText(Path.Combine(tempPath, t.Key), t.Value);
+                }
             }
         }
 
         [Fact]
         public void IncludeTag_Caches_DifferentFolders()
         {
-            var fileProvider = new MockFileProvider();
-            fileProvider.Add("this-folder/this_file.liquid", "content1");
-            fileProvider.Add("this-folder/that-folder/this_file.liquid", "content2");
+            var tempPath = Path.Combine(Path.GetTempPath(), "FluidTests", Path.GetRandomFileName());
+            Directory.CreateDirectory(tempPath);
 
-            var fileInfo1 = fileProvider.GetFileInfo("this-folder/this_file.liquid") as MockFileInfo;
-            var fileInfo2 = fileProvider.GetFileInfo("this-folder/that-folder/this_file.liquid") as MockFileInfo;
+            Directory.CreateDirectory(tempPath + "/this-folder");
+            Directory.CreateDirectory(tempPath + "/this-folder/that-folder");
+
+            var fileProvider = new PhysicalFileProvider(tempPath);
+
+            File.WriteAllText(tempPath + "/this-folder/this_file.liquid", "content1");
+            File.WriteAllText(tempPath + "/this-folder/that-folder/this_file.liquid", "content2");
 
             var options = new TemplateOptions() { FileProvider = fileProvider };
             _parser.TryParse("{%- include file -%}", out var template);
-
-            // The first time a template is included it will be read from the file provider
-
-            Assert.False(fileInfo1.Accessed);
-            Assert.False(fileInfo2.Accessed);
 
             var context = new TemplateContext(options);
             context.SetValue("file", "this-folder/this_file.liquid");
 
             Assert.Equal("content1", template.Render(context));
-            Assert.True(fileInfo1.Accessed);
-            Assert.False(fileInfo2.Accessed);
-
-            // Rendering the second template should not access the first one
-            fileInfo1.Accessed = false;
 
             context.SetValue("file", "this-folder/that-folder/this_file.liquid");
 
             Assert.Equal("content2", template.Render(context));
-            Assert.False(fileInfo1.Accessed);
-            Assert.True(fileInfo2.Accessed);
+
+            try
+            {
+                Directory.Delete(tempPath, true);
+            }
+            catch
+            {
+                // Ignore any exceptions
+            }
+        }
+
+        [Fact]
+        public void IncludeTag_Caches_HandleFileSystemCasing()
+        {
+            var tempPath = Path.Combine(Path.GetTempPath(), "FluidTests", Path.GetRandomFileName());
+            Directory.CreateDirectory(tempPath);
+
+            var fileProvider = new PhysicalFileProvider(tempPath);
+
+            File.WriteAllText(tempPath + "/this_file.liquid", "content1");
+            File.WriteAllText(tempPath + "/This_file.liquid", "content2");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            _parser.TryParse("{%- include file -%}", out var template);
+
+            var context = new TemplateContext(options);
+
+            if (OperatingSystem.IsWindows())
+            {
+                // Windows is case insensitive, there should be only one file
+                context.SetValue("file", "this_file.liquid");
+                Assert.Equal("content2", template.Render(context));
+                context.SetValue("file", "THIS_FILE.liquid");
+                Assert.Equal("content2", template.Render(context));
+            }
+            else
+            {
+                // Linux is case sensitive, this should be a new cache entry
+                context.SetValue("file", "this_file.liquid");
+                Assert.Equal("content1", template.Render(context));
+                context.SetValue("file", "This_file.liquid");
+                Assert.Equal("content2", template.Render(context));
+            }
+
+            try
+            {
+                Directory.Delete(tempPath, true);
+            }
+            catch
+            {
+                // Ignore any exceptions
+            }
         }
     }
 }

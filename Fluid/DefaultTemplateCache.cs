@@ -10,25 +10,31 @@ namespace Fluid;
 /// </summary>
 sealed class TemplateCache : ITemplateCache
 {
-    record struct CachedTemplate(string Name, DateTimeOffset LastModified, IFluidTemplate Template);
+    record struct CachedTemplate(DateTimeOffset LastModified, IFluidTemplate Template);
 
     private readonly ConcurrentDictionary<string, CachedTemplate> _cache;
 
     public TemplateCache()
     {
-        _cache = new(Environment.OSVersion.Platform == PlatformID.Unix ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
+        // On case-sensitive file systems (like Linux), we use Ordinal comparison.
+        var comparison =
+            Environment.OSVersion.Platform == PlatformID.Unix ||
+            Environment.OSVersion.Platform == PlatformID.MacOSX
+            ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+
+        _cache = new(comparison);
     }
 
     public bool TryGetTemplate(IFileInfo fileInfo, out IFluidTemplate template)
     {
         template = null;
 
-        if (_cache.TryGetValue(fileInfo.Name, out var cachedTemplate))
+        if (_cache.TryGetValue(fileInfo.PhysicalPath, out var cachedTemplate))
         {
             if (cachedTemplate.LastModified < fileInfo.LastModified)
             {
-                // The template has been modified, so we need to remove it from the cache
-                _cache.TryRemove(fileInfo.Name, out _);
+                // The template has been modified, so we can remove it from the cache
+                _cache.TryRemove(fileInfo.PhysicalPath, out _);
 
                 return false;
             }
@@ -45,9 +51,7 @@ sealed class TemplateCache : ITemplateCache
 
     public void SetTemplate(IFileInfo fileInfo, IFluidTemplate template)
     {
-        var cachedTemplate = new CachedTemplate(fileInfo.Name, fileInfo.LastModified, template);
-        _cache[fileInfo.Name] = cachedTemplate;
+        var cachedTemplate = new CachedTemplate(fileInfo.LastModified, template);
+        _cache[fileInfo.PhysicalPath] = cachedTemplate;
     }
 }
-
-
