@@ -42,5 +42,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: dotnet-testresults-${{ matrix.configuration }}
-        path: ./TestResults
+        path: ./Fluid.Tests/TestResults
       if: ${{ always() }}
