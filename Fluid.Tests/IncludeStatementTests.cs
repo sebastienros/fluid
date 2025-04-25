@@ -1,16 +1,19 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.Encodings.Web;
-using System.Threading;
-using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Parser;
 using Fluid.Tests.Mocks;
 using Fluid.Values;
 using Microsoft.Extensions.FileProviders;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text.Encodings.Web;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Fluid.Tests
 {
@@ -21,6 +24,13 @@ namespace Fluid.Tests
 #else
         private static FluidParser _parser = new FluidParser();
 #endif
+
+        private readonly ITestOutputHelper _testOutputHelper;
+
+        public IncludeStatementTests(ITestOutputHelper testOutputHelper)
+        {
+            _testOutputHelper = testOutputHelper;
+        }
 
         [Fact]
         public async Task IncludeStatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()
@@ -558,6 +568,8 @@ shape: ''";
             File.CreateText(file).Close();
             bool isCaseInsensitiveFilesystem = File.Exists(file.ToUpper());
             File.Delete(file);
+
+            _testOutputHelper.WriteLine($"OS: {RuntimeInformation.OSDescription}, Case-Insensitive: {isCaseInsensitiveFilesystem}");
 
             var tempPath = Path.Combine(Path.GetTempPath(), "FluidTests", Path.GetRandomFileName());
             Directory.CreateDirectory(tempPath);
