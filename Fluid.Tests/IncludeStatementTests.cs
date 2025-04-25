@@ -25,13 +25,6 @@ namespace Fluid.Tests
         private static FluidParser _parser = new FluidParser();
 #endif
 
-        private readonly ITestOutputHelper _testOutputHelper;
-
-        public IncludeStatementTests(ITestOutputHelper testOutputHelper)
-        {
-            _testOutputHelper = testOutputHelper;
-        }
-
         [Fact]
         public async Task IncludeStatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()
         {
@@ -568,8 +561,6 @@ shape: ''";
             File.CreateText(file).Close();
             bool isCaseInsensitiveFilesystem = File.Exists(file.ToUpper());
             File.Delete(file);
-
-            _testOutputHelper.WriteLine($"OS: {RuntimeInformation.OSDescription}, Case-Insensitive: {isCaseInsensitiveFilesystem}");
 
             var tempPath = Path.Combine(Path.GetTempPath(), "FluidTests", Path.GetRandomFileName());
             Directory.CreateDirectory(tempPath);
