@@ -14,6 +14,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        framework: [ 'net6.0', 'net8.0', 'net9.0' ]
 
     runs-on: ${{ matrix.os }}
     env:
@@ -33,14 +34,14 @@ jobs:
       run: dotnet --version
     
     - name: Test
-      run: dotnet test -c Release --logger trx
+      run: dotnet test -c Release -f ${{ matrix.framework }} --logger trx
 
     - name: Test - Compiled
-      run: dotnet test --configuration Release /p:Compiled=true
+      run: dotnet test --configuration Release -f ${{ matrix.framework }} /p:Compiled=true
 
     - name: Upload dotnet test results
       uses: actions/upload-artifact@v4
       with:
-        name: dotnet-testresults-${{ matrix.configuration }}
+        name: dotnet-testresults-${{ matrix.configuration }}-${{ matrix.framework }}
         path: ./Fluid.Tests/TestResults
       if: ${{ always() }}
