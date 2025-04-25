@@ -33,7 +33,14 @@ jobs:
       run: dotnet --version
     
     - name: Test
-      run: dotnet test -c Release
+      run: dotnet test -c Release --logger trx
 
     - name: Test - Compiled
       run: dotnet test --configuration Release /p:Compiled=true
+
+    - name: Upload dotnet test results
+      uses: actions/upload-artifact@v4
+      with:
+        name: dotnet-testresults-${{ matrix.configuration }}
+        path: ./TestResults
+      if: ${{ always() }}
