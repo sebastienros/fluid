@@ -1,4 +1,3 @@
-using Microsoft.Extensions.FileProviders;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 
@@ -11,9 +10,9 @@ namespace Fluid;
 /// </summary>
 sealed class TemplateCache : ITemplateCache
 {
-    record struct CachedTemplate(DateTimeOffset LastModified, IFluidTemplate Template);
+    private sealed record class TemplateCacheEntry(string Subpath, DateTimeOffset LastModified, IFluidTemplate Template);
 
-    private readonly ConcurrentDictionary<string, CachedTemplate> _cache;
+    private readonly ConcurrentDictionary<string, TemplateCacheEntry> _cache;
 
     public TemplateCache()
     {
@@ -23,23 +22,22 @@ sealed class TemplateCache : ITemplateCache
         _cache = new(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
     }
 
-    public bool TryGetTemplate(IFileInfo fileInfo, out IFluidTemplate template)
+    public bool TryGetTemplate(string subpath, DateTimeOffset lastModified, out IFluidTemplate template)
     {
-        template = null;
+        template = default;
 
-        if (_cache.TryGetValue(fileInfo.PhysicalPath, out var cachedTemplate))
+        if (_cache.TryGetValue(subpath, out var templateCacheEntry))
         {
-            if (cachedTemplate.LastModified < fileInfo.LastModified)
+            if (templateCacheEntry.LastModified < lastModified)
             {
                 // The template has been modified, so we can remove it from the cache
-                _cache.TryRemove(fileInfo.PhysicalPath, out _);
+                _cache.TryRemove(subpath, out _);
 
                 return false;
             }
             else
             {
-                // Return the cached template if it is still valid
-                template = cachedTemplate.Template;
+                template = templateCacheEntry.Template;
                 return true;
             }
         }
@@ -47,9 +45,8 @@ sealed class TemplateCache : ITemplateCache
         return false;
     }
 
-    public void SetTemplate(IFileInfo fileInfo, IFluidTemplate template)
+    public void SetTemplate(string subpath, DateTimeOffset lastModified, IFluidTemplate template)
     {
-        var cachedTemplate = new CachedTemplate(fileInfo.LastModified, template);
-        _cache[fileInfo.PhysicalPath] = cachedTemplate;
+        _cache[subpath] = new TemplateCacheEntry(subpath, lastModified, template);
     }
 }

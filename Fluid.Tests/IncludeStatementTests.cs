@@ -473,7 +473,7 @@ shape: ''";
 
                 Assert.Equal(t.Value, result);
 
-                Assert.True(options.TemplateCache.TryGetTemplate(f, out var cachedTemplate));
+                Assert.True(options.TemplateCache.TryGetTemplate(t.Key, f.LastModified, out var cachedTemplate));
             }
 
             // The next time a template is included it should not be accessed from the file provider but cached instead
@@ -481,7 +481,7 @@ shape: ''";
             {
                 var f = fileProvider.GetFileInfo(t.Key);
 
-                options.TemplateCache.SetTemplate(f, new MockFluidTemplate(t.Key));
+                options.TemplateCache.SetTemplate(t.Key, f.LastModified, new MockFluidTemplate(t.Key));
 
                 var context = new TemplateContext(options);
                 context.SetValue("file", t.Key);

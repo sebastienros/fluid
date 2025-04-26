@@ -39,7 +39,7 @@ namespace Fluid.Ast
 
             var fileProvider = context.Options.FileProvider;
 
-            // The file info is requested again to ensure the file hasn't changed and is still existing.
+            // The file info is requested again to ensure the file hasn't changed and or was deleted
 
             var fileInfo = fileProvider.GetFileInfo(relativePath);
 
@@ -48,7 +48,7 @@ namespace Fluid.Ast
                 throw new FileNotFoundException(relativePath);
             }
 
-            if (context.Options.TemplateCache == null || !context.Options.TemplateCache.TryGetTemplate(fileInfo, out var template))
+            if (context.Options.TemplateCache == null || !context.Options.TemplateCache.TryGetTemplate(relativePath, fileInfo.LastModified, out var template))
             {
                 var content = "";
 
@@ -63,7 +63,7 @@ namespace Fluid.Ast
                     throw new ParseException(errors);
                 }
 
-                context.Options.TemplateCache?.SetTemplate(fileInfo, template);
+                context.Options.TemplateCache?.SetTemplate(relativePath, fileInfo.LastModified, template);
             }
 
             var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
