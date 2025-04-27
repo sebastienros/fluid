@@ -1,11 +1,12 @@
 ﻿using System.Reflection;
 using System.Reflection.Emit;
+using Fluid.Values;
 
 namespace Fluid.Accessors
 {
     public sealed class PropertyInfoAccessor : IMemberAccessor
     {
-        private readonly IInvoker _invoker;
+        private readonly Invoker _invoker;
 
         public PropertyInfoAccessor(PropertyInfo propertyInfo)
         {
@@ -21,7 +22,7 @@ namespace Fluid.Accessors
                 // We can't create an open delegate on a struct (dotnet limitation?), so instead create custom delegates
                 // https://sharplab.io/#v2:EYLgtghglgdgNAFxAJwK7wCYgNQB8ACATAAwCwAUEQIwX7EAE+VAdACLIQDusA5gNwUKANwjJ6ABwCSMAGYB7egF56CAJ7iApnJkAKAApzYCAJTMA4hoR7kczcjU6ARAA1HxgeRFiMhJROny5pYWCACylgAWchg6pgDCyBoQCBqsGgA2GjzJGjpqmto6+ACsADwGRnD0RgB8xu4UQA==
                 // Instead we generate IL to access the backing field directly
-                
+
                 d = GetGetter(propertyInfo.DeclaringType, propertyInfo.Name);
             }
 
@@ -30,8 +31,21 @@ namespace Fluid.Accessors
                 _invoker = null;
             }
 
-            var invokerType = typeof(Invoker<,>).MakeGenericType(propertyInfo.DeclaringType, propertyInfo.PropertyType);
-            _invoker = Activator.CreateInstance(invokerType, [d]) as IInvoker;
+            if (propertyInfo.PropertyType == typeof(bool))
+            {
+                var invokerType = typeof(BooleanInvoker<>).MakeGenericType(propertyInfo.DeclaringType);
+                _invoker = (Invoker) Activator.CreateInstance(invokerType, [d]);
+            }
+            else if (propertyInfo.PropertyType == typeof(int))
+            {
+                var invokerType = typeof(Int32Invoker<>).MakeGenericType(propertyInfo.DeclaringType);
+                _invoker = (Invoker) Activator.CreateInstance(invokerType, [d]);
+            }
+            else
+            {
+                var invokerType = typeof(Invoker<,>).MakeGenericType(propertyInfo.DeclaringType, propertyInfo.PropertyType);
+                _invoker = (Invoker) Activator.CreateInstance(invokerType, [d]);
+            }
         }
 
         public object Get(object obj, string name, TemplateContext ctx)
@@ -64,12 +78,12 @@ namespace Fluid.Accessors
             return method.CreateDelegate(typeof(Func<,>).MakeGenericType(declaringType, field.FieldType));
         }
 
-        private interface IInvoker
+        private abstract class Invoker
         {
-            object Invoke(object target);
+            public abstract object Invoke(object target);
         }
 
-        private sealed class Invoker<T, TResult> : IInvoker
+        private sealed class Invoker<T, TResult> : Invoker
         {
             private readonly Func<T, TResult> _d;
 
@@ -78,9 +92,40 @@ namespace Fluid.Accessors
                 _d = (Func<T, TResult>)d;
             }
 
-            public object Invoke(object target)
+            public override object Invoke(object target)
             {
                 return _d((T)target);
+            }
+        }
+
+        private sealed class BooleanInvoker<T> : Invoker
+        {
+            private readonly Func<T, bool> _d;
+
+            public BooleanInvoker(Delegate d)
+            {
+                _d = (Func<T, bool>)d;
+            }
+
+            public override object Invoke(object target)
+            {
+                return _d((T)target) ? BooleanValue.True : BooleanValue.False;
+            }
+        }
+
+        private sealed class Int32Invoker<T> : Invoker
+        {
+            private readonly Func<T, int> _d;
+
+            public Int32Invoker(Delegate d)
+            {
+                _d = (Func<T, int>)d;
+            }
+
+            public override object Invoke(object target)
+            {
+                var value = _d((T)target);
+                return NumberValue.Create(value);
             }
         }
     }
