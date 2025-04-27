@@ -10,6 +10,7 @@ namespace Fluid
         private readonly record struct Key(Type Type, string Name);
 
         private Dictionary<Key, IMemberAccessor> _map = new();
+        private bool _hasAllAccessors;
 
         public override IMemberAccessor GetAccessor(Type type, string name)
         {
@@ -53,7 +54,8 @@ namespace Fluid
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryGetAccessor(Type type, string name, out IMemberAccessor accessor)
         {
-            return _map.TryGetValue(new Key(type, name), out accessor) || _map.TryGetValue(new Key(type, "*"), out accessor);
+            return _map.TryGetValue(new Key(type, name), out accessor)
+                   || (_hasAllAccessors && _map.TryGetValue(new Key(type, "*"), out accessor));
         }
 
         public override void Register(Type type, IEnumerable<KeyValuePair<string, IMemberAccessor>> accessors)
@@ -74,6 +76,7 @@ namespace Fluid
 
                 foreach (var accessor in accessors)
                 {
+                    _hasAllAccessors |= accessor.Key == "*";
                     temp[new Key(type, accessor.Key)] = accessor.Value;
                 }
 
