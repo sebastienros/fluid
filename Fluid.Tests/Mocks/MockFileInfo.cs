@@ -11,7 +11,8 @@ namespace Fluid.Tests.Mocks
 
         public MockFileInfo(string name, string content)
         {
-            Name = name;
+            Name = Path.GetFileName(name);
+            PhysicalPath = name.Replace('\\', Path.PathSeparator).Replace('/', Path.PathSeparator);
             Content = content;
             Exists = true;
         }
@@ -28,7 +29,7 @@ namespace Fluid.Tests.Mocks
 
         public string Name { get; }
 
-        public string PhysicalPath => null;
+        public string PhysicalPath { get; }
 
         public bool Accessed { get; set; }
 
