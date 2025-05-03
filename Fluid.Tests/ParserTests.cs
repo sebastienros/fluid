@@ -994,21 +994,25 @@ class  {
         }
 
         [Fact]
-        public void ShouldParseLiquidTagWithBlocks()
+        public void LiquidTagShouldBreakOnCompletion()
         {
-            var source = @"
-{% liquid assign cool = true
-   if cool
-     echo 'welcome to the liquid tag' | upcase
-   endif 
-%}
-";
+            var source = """
+                {%- for i in (1..5) %}
+                    {%- liquid 
+                        if i > 3
+                            continue
+                        endif
+                        echo i
+                    %}
+                {%- endfor %}
+                """;
 
             var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
             Assert.True(parser.TryParse(source, out var template, out var errors), errors);
             var rendered = template.Render();
-            Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
+            Assert.DoesNotContain("45", rendered);
         }
+         
 
         [Fact]
         public void ShouldParseFunctionCall()
