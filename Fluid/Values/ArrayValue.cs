@@ -49,7 +49,7 @@ namespace Fluid.Values
             return false;
         }
 
-        protected override FluidValue GetValue(string name, TemplateContext context)
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             switch (name)
             {
