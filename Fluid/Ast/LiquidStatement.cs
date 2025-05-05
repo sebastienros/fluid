@@ -15,7 +15,14 @@ namespace Fluid.Ast
             for (var i = 0; i < Statements.Count; i++)
             {
                 var statement = Statements[i];
-                await statement.WriteToAsync(writer, encoder, context);
+                var completion = await statement.WriteToAsync(writer, encoder, context);
+
+                if (completion != Completion.Normal)
+                {
+                    // Stop processing the block statements
+                    // We return the completion to flow it to the outer loop
+                    return completion;
+                }
             }
 
             return Completion.Normal;

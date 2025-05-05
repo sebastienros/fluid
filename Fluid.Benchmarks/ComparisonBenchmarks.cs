@@ -66,19 +66,22 @@ namespace Fluid.Benchmarks
             return _dotLiquidBenchmarks.Render();
         }
 
-        [Benchmark, BenchmarkCategory("Parse")]
+        // Ignored since Liquid.NET is much slower and not in active development
+        [BenchmarkCategory("Parse")]
         public object LiquidNet_Parse()
         {
             return _liquidNetBenchmarks.Parse();
         }
 
-        [Benchmark, BenchmarkCategory("ParseBig")]
+        // Ignored since Liquid.NET is much slower and not in active development
+        [BenchmarkCategory("ParseBig")]
         public object LiquidNet_ParseBig()
         {
             return _liquidNetBenchmarks.ParseBig();
         }
 
-        [Benchmark, BenchmarkCategory("Render")]
+        // Ignored since Liquid.NET is much slower and not in active development
+        [BenchmarkCategory("Render")]
         public string LiquidNet_Render()
         {
             return _liquidNetBenchmarks.Render();

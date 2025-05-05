@@ -13,6 +13,8 @@ namespace Fluid.Benchmarks
         {
             _options.ModelNamesComparer = StringComparers.CamelCase;
             _parser.TryParse(ProductTemplate, out _fluidTemplate, out var _);
+
+            CheckBenchmark();
         }
 
         [Benchmark]

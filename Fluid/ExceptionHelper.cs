@@ -31,6 +31,13 @@ namespace Fluid
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
+        public static void ThrowArgumentException(string paramName, string message)
+        {
+            throw new ArgumentException(paramName, message);
+        }
+
+        [DoesNotReturn]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public static void ThrowParseException<T>(string message)
         {
             throw new ParseException(message);

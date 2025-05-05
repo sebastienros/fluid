@@ -1,4 +1,4 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 
 namespace Fluid.Filters
 {
@@ -18,6 +18,10 @@ namespace Fluid.Filters
             filters.AddFilter("uniq", Uniq);
             filters.AddFilter("where", Where);
             filters.AddFilter("sum", Sum);
+            filters.AddFilter("find", Find);
+            filters.AddFilter("find_index", FindIndex);
+            filters.AddFilter("has", Has);
+            filters.AddFilter("reject", Reject);
             return filters;
         }
 
@@ -154,6 +158,114 @@ namespace Fluid.Filters
                 var itemValue = await item.GetValueAsync(member, context);
 
                 if (targetValue.Equals(itemValue))
+                {
+                    list.Add(item);
+                }
+            }
+
+            return new ArrayValue(list);
+        }
+
+        public static async ValueTask<FluidValue> Find(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (input.Type != FluidValues.Array)
+            {
+                return input;
+            }
+
+            // First argument is the property name to match
+            var member = arguments.At(0).ToStringValue();
+
+            // Second argument is the value to match
+            var targetValue = arguments.At(1);
+            if (targetValue.IsNil())
+            {
+                return NilValue.Instance;
+            }
+
+            FluidValue result = NilValue.Instance;
+
+            foreach (var item in input.Enumerate(context))
+            {
+                var itemValue = await item.GetValueAsync(member, context);
+
+                if (targetValue.Equals(itemValue))
+                {
+                    result = item;
+                    break;
+                }
+            }
+
+            return result;
+        }
+
+        public static async ValueTask<FluidValue> FindIndex(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (input.Type != FluidValues.Array)
+            {
+                return input;
+            }
+
+            // First argument is the property name to match
+            var member = arguments.At(0).ToStringValue();
+
+            // Second argument is the value to match
+            var targetValue = arguments.At(1);
+            if (targetValue.IsNil())
+            {
+                return NilValue.Instance;
+            }
+
+            FluidValue result = NilValue.Instance;
+            var index = 0;
+
+            foreach (var item in input.Enumerate(context))
+            {
+                var itemValue = await item.GetValueAsync(member, context);
+
+                if (targetValue.Equals(itemValue))
+                {
+                    result = NumberValue.Create(index);
+                    break;
+                }
+
+                index++;
+            }
+
+            return result;
+        }
+
+        public static async ValueTask<FluidValue> Has(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var result = await Find(input, arguments, context);
+
+            return result.Equals(NilValue.Instance) ? BooleanValue.False : BooleanValue.True;
+        }
+
+        public static async ValueTask<FluidValue> Reject(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (input.Type != FluidValues.Array)
+            {
+                return input;
+            }
+
+            // First argument is the property name to match
+            var member = arguments.At(0).ToStringValue();
+
+            // Second argument is the value to not match, or 'true' if none is defined
+            var targetValue = arguments.At(1);
+            if (targetValue.IsNil())
+            {
+                targetValue = BooleanValue.True;
+            }
+
+            var list = new List<FluidValue>();
+
+            foreach (var item in input.Enumerate(context))
+            {
+                var itemValue = await item.GetValueAsync(member, context);
+
+                if (!targetValue.Equals(itemValue))
                 {
                     list.Add(item);
                 }

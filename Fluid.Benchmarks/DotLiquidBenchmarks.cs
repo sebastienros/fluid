@@ -1,4 +1,4 @@
-﻿using DotLiquid;
+using DotLiquid;
 using System.Linq;
 
 namespace Fluid.Benchmarks
@@ -11,6 +11,8 @@ namespace Fluid.Benchmarks
         {
             _dotLiquidTemplate = Template.Parse(ProductTemplate);
             _dotLiquidTemplate.MakeThreadSafe();
+
+            CheckBenchmark();
         }
 
         private Hash MakeProducts()

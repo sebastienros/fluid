@@ -7,7 +7,7 @@ namespace Fluid.Ast
     public sealed class TextSpanStatement : Statement
     {
         private bool _isBufferPrepared;
-        private readonly object _synLock = new();
+        private readonly Lock _synLock = new();
         private TextSpan _text;
         internal string _preparedBuffer;
 
