@@ -661,7 +661,6 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned"));
 
@@ -698,7 +697,6 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned")).Add(BooleanValue.True);
 
@@ -749,7 +747,6 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned")).Add(BooleanValue.True);
 
@@ -800,7 +797,6 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned")).Add(BooleanValue.True);
 

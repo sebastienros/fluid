@@ -7,13 +7,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text.Encodings.Web;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
-using Xunit.Sdk;
 
 namespace Fluid.Tests
 {
@@ -459,7 +456,7 @@ shape: ''";
 
             var fileInfos = templates.ToDictionary(t => t.Key, t => fileProvider.GetFileInfo(t.Key));
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             _parser.TryParse("{%- include file -%}", out var template);
 
             // The first time a template is included it will be read from the file provider

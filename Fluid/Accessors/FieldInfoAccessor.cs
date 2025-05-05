@@ -6,7 +6,7 @@ namespace Fluid.Accessors
 {
     public sealed class FieldInfoAccessor : IMemberAccessor
     {
-        private readonly IInvoker _invoker;
+        private readonly Invoker _invoker;
 
         public FieldInfoAccessor(FieldInfo fieldInfo)
         {
@@ -57,7 +57,7 @@ namespace Fluid.Accessors
             }
 
             var invokerType = typeof(Invoker<,>).MakeGenericType(fieldInfo.DeclaringType, fieldInfo.FieldType);
-            _invoker = Activator.CreateInstance(invokerType, [d, converter]) as IInvoker;
+            _invoker = (Invoker) Activator.CreateInstance(invokerType, [d, converter]);
         }
 
         public object Get(object obj, string name, TemplateContext ctx)

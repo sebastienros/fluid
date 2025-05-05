@@ -2,12 +2,12 @@ using Fluid.Values;
 
 namespace Fluid.Accessors;
 
-internal interface IInvoker
+internal abstract class Invoker
 {
-    object Invoke(object target);
+    public abstract object Invoke(object target);
 }
 
-internal sealed class Invoker<T, TResult> : IInvoker
+internal sealed class Invoker<T, TResult> : Invoker
 {
     private readonly Func<T, TResult> _d;
     private readonly Func<TResult, FluidValue> _converter;
@@ -18,7 +18,7 @@ internal sealed class Invoker<T, TResult> : IInvoker
         _converter = converter;
     }
 
-    public object Invoke(object target)
+    public override object Invoke(object target)
     {
         var result = _d((T)target);
         return _converter != null ? _converter(result) : result;
