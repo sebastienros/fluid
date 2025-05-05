@@ -60,7 +60,7 @@ namespace Fluid.Values
 #pragma warning restore CS0618
         }
 
-        [Obsolete("Use GetValueAsync() instead.")]
+        [Obsolete("This method has been deprecated, please use GetValueAsync() instead.")]
         protected virtual FluidValue GetValue(string name, TemplateContext context)
         {
             return NilValue.Instance;
