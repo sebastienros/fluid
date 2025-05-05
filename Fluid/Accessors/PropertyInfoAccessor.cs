@@ -36,7 +36,7 @@ public sealed class PropertyInfoAccessor : IMemberAccessor
         switch (Type.GetTypeCode(propertyInfo.PropertyType))
         {
             case TypeCode.Boolean:
-                converter = (bool x) => BooleanValue.Create(x); break;
+                converter = (bool x) => x ? BooleanValue.True : BooleanValue.False; break;
             case TypeCode.Byte:
                 converter = (byte x) => NumberValue.Create(x); break;
             case TypeCode.UInt16:
