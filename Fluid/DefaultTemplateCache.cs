@@ -17,7 +17,7 @@ sealed class TemplateCache : ITemplateCache
     public TemplateCache()
     {
         // Use case-insensitive comparison only on Windows. Create a dedicated cache entry in other cases, even
-        // on MacOS when the file system coulb be case-sensitive too.
+        // on MacOS when the file system could be case-sensitive too.
 
         _cache = new(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
     }
