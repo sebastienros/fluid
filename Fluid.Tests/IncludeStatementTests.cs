@@ -490,10 +490,23 @@ shape: ''";
                 Assert.Equal(t.Key, result);
             }
 
+            var now = DateTimeOffset.UtcNow;
+
+            Thread.Sleep(500);
+
             // Update the files so they are accessed again
             WriteFilesContent(templates, tempPath);
 
             Thread.Sleep(1000); // Wait for the file provider to update the last modified date
+
+            // Assert that all files have their last modified date updated
+            foreach (var t in templates)
+            {
+                var f = fileProvider.GetFileInfo(t.Key);
+
+                Assert.True(f.Exists);
+                Assert.True(f.LastModified > now, $"File {t.Key} was not updated.");
+            }
 
             // If the attributes have changed then the template should be reloaded
             foreach (var t in templates)

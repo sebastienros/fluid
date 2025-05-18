@@ -155,7 +155,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task Map_DeepProperties() 
+        public async Task Map_DeepProperties()
         {
             var sample = new { Title = new { Text = "a" } };
             var input = new ArrayValue(new[] {
@@ -263,7 +263,7 @@ namespace Fluid.Tests
             arguments = new FilterArguments().Add(new StringValue("Address.Zip"));
 
             options = new TemplateOptions();
-            context = new TemplateContext(options); 
+            context = new TemplateContext(options);
             options.MemberAccessStrategy.Register(sample.GetType(), "Address");
             options.MemberAccessStrategy.Register(sample.Address.GetType(), "Zip");
 
@@ -366,7 +366,7 @@ namespace Fluid.Tests
                 .Add(new StringValue("Title"))
                 .Add(new StringValue("c"));
 
-            var result3 = await  ArrayFilters.Where(input, arguments3, context);
+            var result3 = await ArrayFilters.Where(input, arguments3, context);
 
             Assert.Single(result3.Enumerate(context));
         }
@@ -450,15 +450,15 @@ namespace Fluid.Tests
                 new ObjectValue(new { Value = 34 }),
                 new ObjectValue(new { Value = 56 })
             });
-            
+
             var arguments = new FilterArguments().Add(new StringValue("Value"));
-            
+
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
             options.MemberAccessStrategy.Register(sample.GetType(), "Value");
 
             var result = await ArrayFilters.Sum(input, arguments, context);
-            
+
             Assert.Equal(102, result.ToNumberValue());
         }
 
@@ -470,12 +470,12 @@ namespace Fluid.Tests
                 NumberValue.Create(34),
                 NumberValue.Create(56)
             });
-            
+
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
-            
+
             Assert.Equal(102, result.ToNumberValue());
         }
 
@@ -488,12 +488,12 @@ namespace Fluid.Tests
                 StringValue.Create("3"),
                 StringValue.Create("4")
             });
-            
+
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
-            
+
             Assert.Equal(10, result.ToNumberValue());
         }
 
@@ -512,12 +512,12 @@ namespace Fluid.Tests
                     })
                 })
             });
-            
+
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
-            
+
             Assert.Equal(10, result.ToNumberValue());
         }
 
@@ -530,12 +530,12 @@ namespace Fluid.Tests
                 NilValue.Instance,
                 new ObjectValue(new { Value = 12  })
             });
-            
+
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
-            
+
             Assert.Equal(1, result.ToNumberValue());
         }
 
@@ -545,20 +545,20 @@ namespace Fluid.Tests
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
 
-            context.SetValue("foo", new [] { 1m });
+            context.SetValue("foo", new[] { 1m });
             var parser = new CustomParser();
 
             var template = parser.Parse("{{ foo | sum }}");
             template.Render(context);
         }
-        
+
         [Fact]
         public void SumWithArgumentRender()
         {
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
 
-            context.SetValue("foo", new [] { new { Quantity = 1 }});
+            context.SetValue("foo", new[] { new { Quantity = 1 } });
             var parser = new CustomParser();
 
             var template = parser.Parse("{{ foo | sum: 'Quantity' }}");
@@ -573,12 +573,12 @@ namespace Fluid.Tests
                 NumberValue.Create(0.2m),
                 NumberValue.Create(-0.3m)
             });
-            
+
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
-            
+
             Assert.Equal(0.0m, result.ToNumberValue());
         }
 
@@ -590,12 +590,12 @@ namespace Fluid.Tests
                 StringValue.Create("0.2"),
                 StringValue.Create("0.3")
             });
-            
+
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
-            
+
             Assert.Equal(0.6m, result.ToNumberValue());
         }
 
@@ -607,12 +607,12 @@ namespace Fluid.Tests
                 NumberValue.Create(-0.2m),
                 NumberValue.Create(-0.3m)
             });
-            
+
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
-            
+
             Assert.Equal(-0.4m, result.ToNumberValue());
         }
 
@@ -628,35 +628,35 @@ namespace Fluid.Tests
                 Quantity = (decimal)0,
                 Weight = (decimal)0
             };
-            
+
             var quantityObjectType = new
             {
                 Quantity = (decimal)0
             };
-            
+
             var weightObjectType = new
             {
                 Weight = (decimal)0
             };
-            
+
             var input = new ArrayValue(new FluidValue[]
             {
                 new ObjectValue(new { Quantity = 1m }),
                 new ObjectValue(new { Quantity = 0.2m, Weight = -0.3m }),
                 new ObjectValue(new { Weight = 0.4m }),
             });
-            
+
             var arguments = new FilterArguments().Add(new StringValue(filterArgument));
-            
+
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            
+
             options.MemberAccessStrategy.Register(quantityObjectType.GetType(), filterArgument);
             options.MemberAccessStrategy.Register(weightObjectType.GetType(), filterArgument);
             options.MemberAccessStrategy.Register(quantityAndWeightObjectType.GetType(), filterArgument);
-            
+
             var result = await ArrayFilters.Sum(input, arguments, context);
-            
+
             Assert.Equal(expectedValue, result.ToNumberValue());
         }
 
@@ -848,6 +848,40 @@ namespace Fluid.Tests
             var result5 = await ArrayFilters.Has(input, arguments5, context);
 
             Assert.Equal(BooleanValue.False, result5);
+        }
+
+        [Fact]
+        public async Task FindIndex_OnEmptyArray_ReturnsNil()
+        {
+            // Arrange
+            var input = new ArrayValue([]); // Empty array
+            var arguments = new FilterArguments()
+                .Add(new StringValue("foo"))
+                .Add(new StringValue("bar"));
+            var context = new TemplateContext();
+
+            // Act
+            var result = await ArrayFilters.FindIndex(input, arguments, context);
+
+            // Assert
+            Assert.IsType<NilValue>(result);
+        }
+
+        [Fact]
+        public async Task Has_OnEmptyArray_ReturnsFalse()
+        {
+            // Arrange
+            var input = new ArrayValue([]); // Empty array
+            var arguments = new FilterArguments()
+                .Add(new StringValue("foo"))
+                .Add(new StringValue("bar"));
+            var context = new TemplateContext();
+
+            // Act
+            var result = await ArrayFilters.Has(input, arguments, context);
+
+            // Assert
+            Assert.Equal(BooleanValue.False, result);
         }
     }
 }
