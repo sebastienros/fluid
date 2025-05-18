@@ -27,6 +27,7 @@
     <PackageVersion Include="Handlebars.Net" Version="2.1.6" />
 
     <!-- Testing -->
+    <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
