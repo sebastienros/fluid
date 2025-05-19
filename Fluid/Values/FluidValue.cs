@@ -55,9 +55,12 @@ namespace Fluid.Values
 
         public virtual ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
+#pragma warning disable CS0618 // Use obsolete method for backward compatibility
             return new ValueTask<FluidValue>(GetValue(name, context));
+#pragma warning restore CS0618
         }
 
+        [Obsolete("This method has been deprecated, please use GetValueAsync() instead.")]
         protected virtual FluidValue GetValue(string name, TemplateContext context)
         {
             return NilValue.Instance;

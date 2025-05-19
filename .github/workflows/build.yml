@@ -24,10 +24,10 @@ jobs:
         global-json-file: global.json
 
     - name: Test
-      run: dotnet test -c Release
+      run: dotnet test -c Release --logger GitHubActions
 
     - name: Test - Compiled
-      run: dotnet test --configuration Release /p:Compiled=true
+      run: dotnet test --configuration Release --logger GitHubActions /p:Compiled=true
 
     - name: Pack
       run: |

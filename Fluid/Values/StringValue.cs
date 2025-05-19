@@ -108,7 +108,7 @@ namespace Fluid.Values
             return NilValue.Instance;
         }
 
-        protected override FluidValue GetValue(string name, TemplateContext context)
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             return name switch
             {
