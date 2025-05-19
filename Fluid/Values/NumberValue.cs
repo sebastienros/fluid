@@ -1,4 +1,4 @@
-﻿using Fluid.Utils;
+using Fluid.Utils;
 using System.Globalization;
 using System.Text.Encodings.Web;
 

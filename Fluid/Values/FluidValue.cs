@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Encodings.Web;
@@ -152,21 +152,29 @@ namespace Fluid.Values
             switch (System.Type.GetTypeCode(typeOfValue))
             {
                 case TypeCode.Boolean:
-                    return BooleanValue.Create(Convert.ToBoolean(value));
+                    return BooleanValue.Create((bool)value);
                 case TypeCode.Byte:
+                    return NumberValue.Create((byte)value);
                 case TypeCode.UInt16:
+                    return NumberValue.Create((ushort)value);
                 case TypeCode.UInt32:
-                    return NumberValue.Create(Convert.ToUInt32(value));
+                    return NumberValue.Create((uint)value);
                 case TypeCode.SByte:
+                    return NumberValue.Create((sbyte)value);
                 case TypeCode.Int16:
+                    return NumberValue.Create((short)value);
                 case TypeCode.Int32:
-                    return NumberValue.Create(Convert.ToInt32(value));
+                    return NumberValue.Create((int)value);
                 case TypeCode.UInt64:
+                    return NumberValue.Create((ulong)value);
                 case TypeCode.Int64:
-                case TypeCode.Decimal:
+                    return NumberValue.Create((long)value);
                 case TypeCode.Double:
+                    return NumberValue.Create((decimal)(double)value);
                 case TypeCode.Single:
-                    return NumberValue.Create(Convert.ToDecimal(value));
+                    return NumberValue.Create((decimal)(float)value);
+                case TypeCode.Decimal:
+                    return NumberValue.Create((decimal)value);
                 case TypeCode.Empty:
                     return NilValue.Instance;
                 case TypeCode.Object:
@@ -297,9 +305,11 @@ namespace Fluid.Values
                     return new DateTimeValue((DateTime)value);
 
                 case TypeCode.Char:
-                case TypeCode.String:
                     return new StringValue(Convert.ToString(value, options.CultureInfo));
-
+                
+                case TypeCode.String:
+                    return new StringValue((string)value);
+                
                 default:
                     throw new InvalidOperationException();
             }

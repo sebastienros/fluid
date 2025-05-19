@@ -1,4 +1,4 @@
-﻿using Fluid.MvcViewEngine;
+using Fluid.MvcViewEngine;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +15,6 @@ namespace Fluid.MvcSample
             services.Configure<FluidMvcViewOptions>(options =>
             {
                 options.Parser = new CustomFluidViewParser(new FluidParserOptions());
-                options.TemplateOptions.MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance;
             });
 
             services.AddMvc().AddFluid();
