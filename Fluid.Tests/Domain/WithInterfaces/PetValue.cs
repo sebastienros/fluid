@@ -54,7 +54,7 @@ namespace Fluid.Tests.Domain.WithInterfaces
             throw new NotImplementedException();
         }
 
-        protected override FluidValue GetValue(string name, TemplateContext context)
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             if (name == "Name")
             {
