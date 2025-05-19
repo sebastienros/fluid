@@ -180,6 +180,18 @@ namespace Fluid.Tests
             Assert.Equal("insert", context.GetValue("pageState").ToStringValue());
         }
 
+        [Fact]
+        public void ShouldUseTemplateOptionsStringComparerWithCaseSensitive()
+        {
+            var options = new TemplateOptions { ModelNamesComparer = StringComparer.Ordinal };
+            var context = new TemplateContext(options);
+            context.SetValue("case", "lower");
+            context.SetValue("CASE", "upper");
+            context.SetValue("Case", "mixed");
+
+            Assert.Equal("lowerupper", context.GetValue("case").ToStringValue() + context.GetValue("CASE").ToStringValue());
+        }
+
         private class TestClass
         {
             public string Name { get; set; }
