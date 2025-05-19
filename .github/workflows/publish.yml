@@ -2,7 +2,7 @@ name: Publish
 
 on:
   push:
-    tags: 
+    tags:
       - v*
 
 jobs:
@@ -17,8 +17,7 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: | 
-          6.0.x
+        dotnet-version: |
           8.0.x
         global-json-file: global.json
 
@@ -31,7 +30,7 @@ jobs:
         arrTag=(${GITHUB_REF//\// })
         VERSION="${arrTag[2]}"
         VERSION="${VERSION//v}"
-        PACKAGE_PATH="${GITHUB_WORKSPACE}/artifacts" 
+        PACKAGE_PATH="${GITHUB_WORKSPACE}/artifacts"
         echo "$VERSION"
         dotnet pack --property:PackageOutputPath=$PACKAGE_PATH --configuration Release -p:Version=$VERSION -p:ContinuousIntegrationBuild=True
 

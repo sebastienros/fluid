@@ -168,21 +168,21 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldParseEmptyRawTags()
         {
-          var statements = Parse(@"{% raw %}{% endraw %}");
+            var statements = Parse(@"{% raw %}{% endraw %}");
 
-          Assert.Single(statements);
-          Assert.IsType<RawStatement>(statements.ElementAt(0));
-          Assert.Equal("", (statements.ElementAt(0) as RawStatement).Text.ToString());
+            Assert.Single(statements);
+            Assert.IsType<RawStatement>(statements.ElementAt(0));
+            Assert.Equal("", (statements.ElementAt(0) as RawStatement).Text.ToString());
         }
 
         [Fact]
         public void ShouldParseEmptyCommentTags()
         {
-          var statements = Parse(@"{% comment %}{% endcomment %}");
+            var statements = Parse(@"{% comment %}{% endcomment %}");
 
-          Assert.Single(statements);
-          Assert.IsType<CommentStatement>(statements.ElementAt(0));
-          Assert.Equal("", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+            Assert.Single(statements);
+            Assert.IsType<CommentStatement>(statements.ElementAt(0));
+            Assert.Equal("", (statements.ElementAt(0) as CommentStatement).Text.ToString());
         }
 
         [Fact]
@@ -652,7 +652,7 @@ true
         {
             return CheckAsync(source, expected, t => t.SetValue("e", "").SetValue("f", "hello"));
         }
-        
+
         [Theory]
         [InlineData("zero == empty", "false")]
         [InlineData("empty == zero", "false")]
@@ -700,7 +700,7 @@ true
             var rendered = template.Render();
 
             Assert.Equal("1<br />2<br />3<br />1<br />2<br />3<br />1<br />2<br />3<br />", rendered);
-        }        
+        }
 
         [Fact]
         public void ShouldAssignWithLogicalExpression()
@@ -1012,7 +1012,7 @@ class  {
             var rendered = template.Render();
             Assert.DoesNotContain("45", rendered);
         }
-         
+
 
         [Fact]
         public void ShouldParseFunctionCall()
@@ -1049,7 +1049,7 @@ class  {
 #if COMPILED
         var parser = new FluidParser(options).Compile();
 #else
-        var parser = new FluidParser(options);
+            var parser = new FluidParser(options);
 #endif
 
             Assert.False(parser.TryParse("{{ a() }}", out var template, out var errors));
@@ -1104,6 +1104,52 @@ class  {
             Assert.True(parser.TryParse(source, out var template, out var errors), errors);
             var rendered = template.Render();
             Assert.Contains("123", rendered);
+        }
+        [Fact]
+        public async Task Has_WithEmptyArrays_ReturnsExpectedOutput()
+        {
+            // Arrange
+            var template = """
+                {%- assign has_product = products | has: 'title.content', 'Not found' -%}
+                {%- unless has_product -%}
+                  Product not found.
+                {%- endunless -%}
+                """;
+
+            var expectedOutput = "Product not found.";
+            var context = new TemplateContext();
+            context.SetValue("products", Array.Empty<object>()); // Empty array
+
+            // Act
+            var parser = new FluidParser();
+            parser.TryParse(template, out var fluidTemplate, out var errors);
+            var result = await fluidTemplate.RenderAsync(context);
+
+            // Assert
+            Assert.Equal(expectedOutput, result.Trim());
+        }
+
+        [Fact]
+        public async Task FindIndex_WithEmptyArrays_ReturnsExpectedOutput()
+        {
+            // Arrange
+            var template = """
+                {%- assign index = products | find_index: 'title.content', 'Not found' -%}
+                {%- unless index -%}
+                  Index not found.
+                {%- endunless -%}
+                """;
+            var expectedOutput = "Index not found.";
+            var context = new TemplateContext();
+            context.SetValue("products", Array.Empty<object>()); // Empty array
+
+            // Act
+            var parser = new FluidParser();
+            parser.TryParse(template, out var fluidTemplate, out var errors);
+            var result = await fluidTemplate.RenderAsync(context);
+
+            // Assert
+            Assert.Equal(expectedOutput, result.Trim());
         }
     }
 }
