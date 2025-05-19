@@ -47,8 +47,10 @@ namespace Fluid
         /// <param name="modelNamesComparer">An optional <see cref="StringComparer"/> instance used when comparing model names.</param>
         public TemplateContext(TemplateOptions options, StringComparer modelNamesComparer = null)
         {
+            modelNamesComparer ??= options.ModelNamesComparer;
+
             Options = options;
-            LocalScope = new Scope(options.Scope);
+            LocalScope = new Scope(options.Scope, forLoopScope: false, modelNamesComparer);
             RootScope = LocalScope;
             CultureInfo = options.CultureInfo;
             TimeZone = options.TimeZone;
@@ -56,7 +58,7 @@ namespace Fluid
             Assigned = options.Assigned;
             Now = options.Now;
             MaxSteps = options.MaxSteps;
-            ModelNamesComparer = modelNamesComparer ?? options.ModelNamesComparer;
+            ModelNamesComparer = modelNamesComparer;
         }
 
         /// <summary>

@@ -1,5 +1,5 @@
-﻿using System.Runtime.CompilerServices;
 using Fluid.Values;
+using System.Runtime.CompilerServices;
 
 namespace Fluid
 {
@@ -7,27 +7,28 @@ namespace Fluid
     {
         private Dictionary<string, FluidValue> _properties;
         private readonly bool _forLoopScope;
+        private readonly StringComparer _stringComparer;
 
-        public Scope() : this(null)
+        public Scope() : this(null, false, null)
         {
         }
 
-        public Scope(Scope parent)
+        public Scope(Scope parent) : this(parent, false, null)
         {
-            Parent = parent;
         }
 
-        public Scope(Scope parent, bool forLoopScope)
+        public Scope(Scope parent, bool forLoopScope, StringComparer stringComparer = null)
         {
             if (forLoopScope && parent == null) ExceptionHelper.ThrowArgumentNullException(nameof(parent));
 
+            // For loops are also ordinal by default
+            _stringComparer = stringComparer ?? StringComparer.Ordinal;
+
             Parent = parent;
+
             // A ForLoop scope reads and writes its values in the parent scope.
             // Internal accessors to the inner properties grant access to the local properties.
             _forLoopScope = forLoopScope;
-
-            // ForLoop scopes are ordinal since the properties are keywords: "forloop"
-            _properties = new Dictionary<string, FluidValue>(StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -114,7 +115,7 @@ namespace Fluid
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetOwnValue(string name, FluidValue value)
         {
-            _properties ??= new Dictionary<string, FluidValue>(Parent?._properties?.Comparer ?? TemplateOptions.Default.ModelNamesComparer);
+            _properties ??= new Dictionary<string, FluidValue>(Parent?._properties?.Comparer ?? _stringComparer);
             _properties[name] = value ?? NilValue.Instance;
         }
 
