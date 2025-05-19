@@ -75,7 +75,7 @@ public sealed class PropertyInfoAccessor : IMemberAccessor
         }
 
         var invokerType = typeof(Invoker<,>).MakeGenericType(propertyInfo.DeclaringType, propertyInfo.PropertyType);
-        _invoker = (Invoker)Activator.CreateInstance(invokerType, [d]);
+        _invoker = (Invoker)Activator.CreateInstance(invokerType, [d, converter]);
     }
 
     public object Get(object obj, string name, TemplateContext ctx) => _invoker.Invoke(obj);
