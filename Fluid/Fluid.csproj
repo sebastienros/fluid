@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net6.0;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <IsPackable>true</IsPackable>
@@ -12,8 +12,6 @@
     <PackageIcon>logo_64x64.png</PackageIcon>
     <ImplicitUsings>true</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- Ingore missing comments errors and obsolete TFMs -->
-    <NoWarn>$(NoWarn);CS1591;NETSDK1138</NoWarn>
 
     <AnalysisLevel>latest-Recommended</AnalysisLevel>
     <NoWarn>$(NoWarn);CA1016</NoWarn> <!-- CA1016: Mark assemblies with AssemblyVersionAttribute -->
@@ -40,15 +38,10 @@
     <PackageReference Include="TimeZoneConverter" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+  <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible($(TargetFramework), 'net8.0'))">
     <PackageReference Include="System.Text.Json" />
     <PackageReference Include="Microsoft.CSharp" />
     <PackageReference Include="System.Reflection.Emit.Lightweight" />
-  </ItemGroup>
-
-  <!-- Keep specific targets since it removes some dependencies -->
-  <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
-    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
