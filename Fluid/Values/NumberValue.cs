@@ -169,7 +169,6 @@ namespace Fluid.Values
 
         /// <summary>
         /// Gets the scale of a decimal value, which is the number of digits to the right of the decimal point.
-        /// If the value is zero, the scale is zero.
         /// </summary>
         public static byte GetScale(decimal value)
         {
