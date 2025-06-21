@@ -68,8 +68,26 @@ namespace Fluid.Values
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
-            var task = writer.WriteAsync(encoder.Encode(_value.ToString(cultureInfo)));
 
+            Task task = default;
+
+            var scale = GetScale(_value);
+            if (scale == 0)
+            {
+                // If the scale is zero, we can write the value directly without formatting
+                task = writer.WriteAsync(encoder.Encode(_value.ToString(cultureInfo)));
+            }
+            else if (_value * (10 * scale) % (10 * scale) == 0)
+            {
+                // If the decimal part is zero(s), write one only
+                task = writer.WriteAsync(encoder.Encode(_value.ToString("F1", cultureInfo)));
+            }
+            else
+            {
+                // For larger scales, we use G29 to avoid trailing zeros
+                task = writer.WriteAsync(encoder.Encode(_value.ToString("G29", cultureInfo)));
+            }
+            
             if (task.IsCompletedSuccessfully())
             {
                 return default;
@@ -149,16 +167,16 @@ namespace Fluid.Values
             return new NumberValue(value);
         }
 
-        public static int GetScale(decimal value)
+        /// <summary>
+        /// Gets the scale of a decimal value, which is the number of digits to the right of the decimal point.
+        /// </summary>
+        public static byte GetScale(decimal value)
         {
-            if (value == 0)
-            {
-                return 0;
-            }
-
-            var bits = decimal.GetBits(value);
-
-            return (int)((bits[3] >> 16) & 0x7F);
+#if NET8_0_OR_GREATER
+            return value.Scale;
+#else       
+            return unchecked((byte)(decimal.GetBits(value)[3] >> 16));
+#endif
         }
     }
 }
