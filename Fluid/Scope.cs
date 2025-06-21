@@ -13,9 +13,8 @@ namespace Fluid
         {
         }
 
-        public Scope(Scope parent)
+        public Scope(Scope parent) : this(parent, false, null)
         {
-            Parent = parent;
         }
 
         public Scope(Scope parent, bool forLoopScope, StringComparer stringComparer = null)
