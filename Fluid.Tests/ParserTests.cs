@@ -517,6 +517,38 @@ def", "at (")]
         }
 
         [Theory]
+        [InlineData("{{ 0 | times: 1 }}", "0")]
+        [InlineData("{{ 0. | times: 1 }}", "0.0")]
+        [InlineData("{{ 0.0 | times: 1 }}", "0.0")]
+        [InlineData("{{ 0.1 | times: 1 }}", "0.1")]
+        [InlineData("{{ 0.00 | times: 1 }}", "0.0")]
+        [InlineData("{{ 0.01 | times: 1 }}", "0.01")]
+        [InlineData("{{ 0.0123 | times: 1 }}", "0.0123")]
+        [InlineData("{{ 0 | times: 1.0 }}", "0.0")]
+        [InlineData("{{ 0. | times: 1.0 }}", "0.0")]
+        [InlineData("{{ 0.0 | times: 1.0 }}", "0.0")]
+        [InlineData("{{ 1 | times: 1 }}", "1")]
+        [InlineData("{{ 1 | times: 1. }}", "1.0")]
+        [InlineData("{{ 1 | times: 1.0 }}", "1.0")]
+        [InlineData("{{ 1 | times: 1.1 }}", "1.1")]
+        [InlineData("{{ 1 | times: 1.123 }}", "1.123")]
+        [InlineData("{{ 1 | times: 1.1234567890 }}", "1.123456789")]
+        [InlineData("{{ 1 | times: 1.1000 }}", "1.1")]
+        [InlineData("{{ 1.1000 | times: 1 }}", "1.1")]
+        public void ShouldPreservePrecision(string source, string expected)
+        {
+            var result = _parser.TryParse(source, out var template, out var errors);
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Null(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal(expected, rendered);
+        }
+
+        [Theory]
         [InlineData("{% assign my_string = 'abcd' %}{{ my_string.size }}", "4")]
         public void SizeAppliedToStrings(string source, string expected)
         {

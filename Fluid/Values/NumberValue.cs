@@ -155,11 +155,6 @@ namespace Fluid.Values
         /// </summary>
         public static byte GetScale(decimal value)
         {
-            if (value == 0)
-            {
-                return 0;
-            }
-
 #if NET8_0_OR_GREATER
             return value.Scale;
 #else       
