@@ -149,16 +149,22 @@ namespace Fluid.Values
             return new NumberValue(value);
         }
 
-        public static int GetScale(decimal value)
+        /// <summary>
+        /// Gets the scale of a decimal value, which is the number of digits to the right of the decimal point.
+        /// If the value is zero, the scale is zero.
+        /// </summary>
+        public static byte GetScale(decimal value)
         {
             if (value == 0)
             {
                 return 0;
             }
 
-            var bits = decimal.GetBits(value);
-
-            return (int)((bits[3] >> 16) & 0x7F);
+#if NET8_0_OR_GREATER
+            return value.Scale;
+#else       
+            return unchecked((byte)(decimal.GetBits(value)[3] >> 16));
+#endif
         }
     }
 }
