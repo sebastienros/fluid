@@ -1,4 +1,4 @@
-﻿using Fluid;
+using Fluid;
 using Fluid.ViewEngine;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Options;
@@ -12,8 +12,6 @@ namespace MinimalApis.LiquidViews
             {
                 options.PartialsFileProvider = new FileProviderMapper(webHostEnvironment.ContentRootFileProvider, "Views");
                 options.ViewsFileProvider = new FileProviderMapper(webHostEnvironment.ContentRootFileProvider, "Views");
-
-                options.TemplateOptions.MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance;
 
                 options.ViewsLocationFormats.Clear();
                 options.ViewsLocationFormats.Add("/{0}" + Constants.ViewExtension);

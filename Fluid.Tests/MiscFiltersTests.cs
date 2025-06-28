@@ -724,7 +724,6 @@ namespace Fluid.Tests
             var model = TestObjects.RecursiveReferenceObject;
             var input = FluidValue.Create(model, TemplateOptions.Default);
             var to = new TemplateOptions();
-            to.MemberAccessStrategy.Register<TestObjects.Node>();
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
 
@@ -737,8 +736,6 @@ namespace Fluid.Tests
             var model = TestObjects.SiblingPropertiesHaveSameReferenceObject;
             var input = FluidValue.Create(model, TemplateOptions.Default);
             var to = new TemplateOptions();
-            to.MemberAccessStrategy.Register<TestObjects.Node>();
-            to.MemberAccessStrategy.Register<TestObjects.MultipleNode>();
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
 
@@ -751,7 +748,6 @@ namespace Fluid.Tests
             var model = new JsonWithStaticMember { Id = 100 };
             var input = FluidValue.Create(model, TemplateOptions.Default);
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<JsonWithStaticMember>();
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             Assert.Equal("{\"Id\":100}", result.ToStringValue());
@@ -767,7 +763,6 @@ namespace Fluid.Tests
                 Bool = true
             };
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register(model.GetType());
             var input = FluidValue.Create(model, options);
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             Assert.Equal("{\"Id\":1,\"WithoutIndexable\":null,\"Bool\":true}", result.ToStringValue());
