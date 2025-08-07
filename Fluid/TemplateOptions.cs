@@ -120,9 +120,7 @@ namespace Fluid
             Filters.WithArrayFilters()
                 .WithStringFilters()
                 .WithNumberFilters()
-                .WithMiscFilters()
-                .WithColorFilters();
+                .WithMiscFilters();
         }
     }
 }
-
