@@ -16,7 +16,7 @@
     <PackageVersion Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
 
     <!-- Common to all TFMs -->
-    <PackageVersion Include="Parlot" Version="1.4.0" />
+    <PackageVersion Include="Parlot" Version="1.4.3" />
     <PackageVersion Include="TimeZoneConverter" Version="7.0.0" />
 
     <!-- Benchmarks -->
@@ -31,7 +31,7 @@
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.1" />
-    <PackageVersion Include="xunit.analyzers" Version="1.22.0" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageVersion Include="xunit.analyzers" Version="1.24.0" />
   </ItemGroup>
 </Project>
