@@ -727,12 +727,10 @@ namespace Fluid.Filters
                         var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
                         var strategy = ctx.Options.MemberAccessStrategy;
 
-                        var conv = strategy.MemberNameStrategy;
                         foreach (var property in properties)
                         {
-                            var name = conv(property);
 #pragma warning disable CA1859 // It's suggesting a wrong conversion (StringValue)
-                            var fluidValue = await input.GetValueAsync(name, ctx);
+                            var fluidValue = await input.GetValueAsync(property.Name, ctx);
 #pragma warning restore CA1859
                             if (fluidValue.IsNil())
                             {
@@ -749,7 +747,7 @@ namespace Fluid.Filters
                                 }
                             }
 
-                            writer.WritePropertyName(name);
+                            writer.WritePropertyName(property.Name);
                             stack.Add(obj);
                             await WriteJson(writer, fluidValue, ctx, stack);
                             stack.Remove(obj);
