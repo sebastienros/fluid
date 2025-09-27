@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Fluid.Values;
 using Fluid.Filters;
@@ -332,6 +333,62 @@ namespace Fluid.Tests
             var result = ArrayFilters.Uniq(input, arguments, context);
 
             Assert.Equal(2, result.Result.Enumerate(context).Count());
+        }
+
+        [Fact]
+        public void UniqWithArrays()
+        {
+            var input = new ArrayValue(new[] {
+                new ArrayValue([ StringValue.Create("a"), StringValue.Create("b") ]),
+                new ArrayValue([ StringValue.Create("a"), StringValue.Create("c") ]),
+                new ArrayValue([ StringValue.Create("a"), StringValue.Create("c") ]),
+                new ArrayValue([ StringValue.Create("b"), StringValue.Create("a") ]),
+            });
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = ArrayFilters.Uniq(input, arguments, context);
+
+            Assert.Equal(3, result.Result.Enumerate(context).Count());
+        }
+
+        [Fact]
+        public void UniqWithDictionaries()
+        {
+            var input = new ArrayValue([
+                new DictionaryValue(new FluidValueDictionaryFluidIndexable(
+                    new Dictionary<string, FluidValue>()
+                    {
+                        ["a"] = StringValue.Create("b"),
+                        ["b"] = StringValue.Create("c"),
+                    })),
+                new DictionaryValue(new FluidValueDictionaryFluidIndexable(
+                    new Dictionary<string, FluidValue>()
+                    {
+                        ["a"] = StringValue.Create("b"),
+                        ["b"] = StringValue.Create("c"),
+                    })),
+                new DictionaryValue(new FluidValueDictionaryFluidIndexable(
+                    new Dictionary<string, FluidValue>()
+                    {
+                        ["a"] = StringValue.Create("b"),
+                        ["c"] = StringValue.Create("c"),
+                    })),
+                new DictionaryValue(new FluidValueDictionaryFluidIndexable(
+                    new Dictionary<string, FluidValue>()
+                    {
+                        ["a"] = StringValue.Create("c"),
+                        ["b"] = StringValue.Create("a"),
+                    }))
+            ]);
+
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = ArrayFilters.Uniq(input, arguments, context);
+
+            Assert.Equal(3, result.Result.Enumerate(context).Count());
         }
 
         [Fact]

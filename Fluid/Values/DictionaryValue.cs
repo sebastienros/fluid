@@ -137,7 +137,7 @@ namespace Fluid.Values
             // The is operator will return false if null
             if (obj is DictionaryValue otherValue)
             {
-                return _value.Equals(otherValue._value);
+                return Equals(otherValue);
             }
 
             return false;
@@ -145,7 +145,15 @@ namespace Fluid.Values
 
         public override int GetHashCode()
         {
-            return _value.GetHashCode();
+            var hc = new HashCode();
+            foreach (var key in _value.Keys.OrderBy(k => k))
+            {
+                hc.Add(key);
+                if (_value.TryGetValue(key, out var v))
+                    hc.Add(v);
+            }
+
+            return hc.ToHashCode();
         }
     }
 }
