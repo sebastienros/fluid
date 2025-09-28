@@ -37,11 +37,11 @@ namespace Fluid
     {
         private int _hc = 19;
 
-        public void Add(object o)
+        public void Add<T>(T value)
         {
             unchecked
             {
-                _hc = _hc * 31 + o.GetHashCode();
+                _hc = _hc * 31 + (value?.GetHashCode() ?? 0);
             }
         }
         public int ToHashCode() => _hc;
