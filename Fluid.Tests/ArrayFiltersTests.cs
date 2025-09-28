@@ -372,6 +372,12 @@ namespace Fluid.Tests
                 new DictionaryValue(new FluidValueDictionaryFluidIndexable(
                     new Dictionary<string, FluidValue>()
                     {
+                        ["b"] = StringValue.Create("c"),
+                        ["a"] = StringValue.Create("b"),
+                    })),
+                new DictionaryValue(new FluidValueDictionaryFluidIndexable(
+                    new Dictionary<string, FluidValue>()
+                    {
                         ["a"] = StringValue.Create("b"),
                         ["c"] = StringValue.Create("c"),
                     })),
