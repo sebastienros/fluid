@@ -155,9 +155,11 @@ namespace Fluid.Values
         {
             var hc = new HashCode();
 
-            foreach (var v in Values)
+            IReadOnlyList<FluidValue> values = Values;
+            int count = values.Count;
+            for (int i = 0; i < count; ++i)
             {
-                hc.Add(v);
+                hc.Add(values[i]);
             }
 
             return hc.ToHashCode();
