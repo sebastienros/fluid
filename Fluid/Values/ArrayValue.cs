@@ -145,7 +145,7 @@ namespace Fluid.Values
             // The is operator will return false if null
             if (obj is ArrayValue otherValue)
             {
-                return Values.Equals(otherValue.Values);
+                return Equals(otherValue);
             }
 
             return false;
@@ -153,7 +153,16 @@ namespace Fluid.Values
 
         public override int GetHashCode()
         {
-            return Values.GetHashCode();
+            var hc = new HashCode();
+
+            IReadOnlyList<FluidValue> values = Values;
+            int count = values.Count;
+            for (int i = 0; i < count; ++i)
+            {
+                hc.Add(values[i]);
+            }
+
+            return hc.ToHashCode();
         }
     }
 }
