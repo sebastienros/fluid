@@ -42,6 +42,7 @@
     <PackageReference Include="System.Text.Json" />
     <PackageReference Include="Microsoft.CSharp" />
     <PackageReference Include="System.Reflection.Emit.Lightweight" />
+    <PackageReference Include="Microsoft.Bcl.HashCode" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">

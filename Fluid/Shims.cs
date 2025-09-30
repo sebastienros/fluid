@@ -31,20 +31,4 @@ namespace Fluid
 #if !NET9_0_OR_GREATER
     internal sealed class Lock;
 #endif
-
-#if !NET8_0_OR_GREATER
-    internal sealed class HashCode
-    {
-        private int _hc = 19;
-
-        public void Add<T>(T value)
-        {
-            unchecked
-            {
-                _hc = _hc * 31 + (value?.GetHashCode() ?? 0);
-            }
-        }
-        public int ToHashCode() => _hc;
-    }
-#endif
 }
