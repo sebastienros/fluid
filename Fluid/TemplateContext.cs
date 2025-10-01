@@ -21,8 +21,7 @@ namespace Fluid
         /// </summary>
         /// <param name="model">The model.</param>
         /// <param name="options">The template options.</param>
-        /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
-        public TemplateContext(object model, TemplateOptions options, bool allowModelMembers = true) : this(options)
+        public TemplateContext(object model, TemplateOptions options) : this(options)
         {
             if (model == null)
             {
@@ -36,7 +35,6 @@ namespace Fluid
             else
             {
                 Model = FluidValue.Create(model, options);
-                AllowModelMembers = allowModelMembers;
             }
         }
 
@@ -65,9 +63,7 @@ namespace Fluid
         /// Initializes a new instance of <see cref="TemplateContext"/> wih a model and option register its properties.
         /// </summary>
         /// <param name="model">The model.</param>
-        /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
-        /// <param name="modelNamesComparer">An optional <see cref="StringComparer"/> instance used when comparing model names.</param>
-        public TemplateContext(object model, bool allowModelMembers = true, StringComparer modelNamesComparer = null) : this(TemplateOptions.Default, modelNamesComparer)
+        public TemplateContext(object model) : this(TemplateOptions.Default)
         {
             if (model == null)
             {
@@ -81,7 +77,6 @@ namespace Fluid
             else
             {
                 Model = FluidValue.Create(model, TemplateOptions.Default);
-                AllowModelMembers = allowModelMembers;
             }
         }
 
@@ -150,11 +145,6 @@ namespace Fluid
         /// global scopes are unsuccessful.
         /// </summary>
         public FluidValue Model { get; }
-
-        /// <summary>
-        /// Whether the direct properties of the Model can be accessed without being registered. Default is <code>true</code>.
-        /// </summary>
-        public bool AllowModelMembers { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
