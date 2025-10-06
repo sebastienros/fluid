@@ -2,7 +2,7 @@
   <!-- This file define constants that can be changed per TFM -->
   <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <SystemTextJsonPackageVersion>8.0.5</SystemTextJsonPackageVersion>
-    <MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>6.0.1</MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>
+    <MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>9.0.9</MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
