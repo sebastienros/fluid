@@ -82,18 +82,16 @@ namespace Fluid.Ast
                     previousScope.CopyTo(context.LocalScope);
 
                     context.SetValue(Alias ?? identifier, with);
-                    await template.RenderAsync(writer, encoder, context);
-                }
-                else if (AssignStatements.Count > 0)
-                {
-                    var length = AssignStatements.Count;
-                    for (var i = 0; i < length; i++)
-                    {
-                        await AssignStatements[i].WriteToAsync(writer, encoder, context);
-                    }
 
-                    context.LocalScope = new Scope(context.RootScope);
-                    previousScope.CopyTo(context.LocalScope);
+                    // Evaluate assign statements in the new scope if present
+                    if (AssignStatements.Count > 0)
+                    {
+                        var length = AssignStatements.Count;
+                        for (var i = 0; i < length; i++)
+                        {
+                            await AssignStatements[i].WriteToAsync(writer, encoder, context);
+                        }
+                    }
 
                     await template.RenderAsync(writer, encoder, context);
                 }
@@ -107,6 +105,16 @@ namespace Fluid.Ast
 
                         context.LocalScope = new Scope(context.RootScope);
                         previousScope.CopyTo(context.LocalScope);
+
+                        // Evaluate assign statements in the new scope before the loop if present
+                        if (AssignStatements.Count > 0)
+                        {
+                            var assignLength = AssignStatements.Count;
+                            for (var j = 0; j < assignLength; j++)
+                            {
+                                await AssignStatements[j].WriteToAsync(writer, encoder, context);
+                            }
+                        }
 
                         var length = forloop.Length = list.Count;
 
@@ -139,6 +147,19 @@ namespace Fluid.Ast
                     {
                         context.LocalScope.Delete("forloop");
                     }
+                }
+                else if (AssignStatements.Count > 0)
+                {
+                    var length = AssignStatements.Count;
+                    for (var i = 0; i < length; i++)
+                    {
+                        await AssignStatements[i].WriteToAsync(writer, encoder, context);
+                    }
+
+                    context.LocalScope = new Scope(context.RootScope);
+                    previousScope.CopyTo(context.LocalScope);
+
+                    await template.RenderAsync(writer, encoder, context);
                 }
                 else
                 {

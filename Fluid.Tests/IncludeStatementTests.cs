@@ -614,5 +614,115 @@ shape: ''";
                     // Ignore any exceptions
                 }
         }
+
+        [Fact]
+        public void RenderTag_With_And_NamedArguments()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("icon.liquid", "Icon: {{ icon }}, Class: {{ class }}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% render 'icon' with 'rating-star', class: 'rating__star' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Icon: rating-star, Class: rating__star", result);
+        }
+
+        [Fact]
+        public void RenderTag_With_As_And_NamedArguments()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("product.liquid", "Product: {{ p.title }}, Price: {{ price }}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            context.SetValue("my_product", new { title = "Draft 151cm" });
+            _parser.TryParse("{% render 'product' with my_product as p, price: '$99' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Product: Draft 151cm, Price: $99", result);
+        }
+
+        [Fact]
+        public void RenderTag_With_MultipleNamedArguments()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("button.liquid", "Text: {{ button }}, Size: {{ size }}, Color: {{ color }}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% render 'button' with 'Click Me', size: 'large', color: 'blue' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Text: Click Me, Size: large, Color: blue", result);
+        }
+
+        [Fact]
+        public void RenderTag_For_And_NamedArguments()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("product.liquid", "Product: {{ product.title }}, Tag: {{ tag }} ");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
+            
+            var parseResult = _parser.TryParse("{% render 'product' for products, tag: 'sale' %}", out var template, out var error);
+            Assert.True(parseResult, $"Parse failed: {error}");
+            
+            // Check the parsed statement
+            var statements = (template as Fluid.Parser.FluidTemplate).Statements;
+            var renderStmt = statements.FirstOrDefault() as RenderStatement;
+            Assert.NotNull(renderStmt);
+            Assert.NotNull(renderStmt.For);
+            Assert.Single(renderStmt.AssignStatements);
+            Assert.Equal("tag", renderStmt.AssignStatements[0].Identifier);
+            
+            // Check that the For expression evaluates correctly
+            Assert.IsType<MemberExpression>(renderStmt.For);
+            var forValue = renderStmt.For.EvaluateAsync(context).GetAwaiter().GetResult();
+            var items = forValue.Enumerate(context).ToList();
+            Assert.Equal(2, items.Count);  // Should have 2 items
+            
+            // Also check that For is really the "products" variable
+            var memberExpr = renderStmt.For as MemberExpression;
+            Assert.Single(memberExpr.Segments);
+            Assert.IsType<IdentifierSegment>(memberExpr.Segments[0]);
+            Assert.Equal("products", ((IdentifierSegment)memberExpr.Segments[0]).Identifier);
+            
+            var result = template.Render(context);
+
+            Assert.Equal("Product: Draft 151cm, Tag: sale Product: Element 155cm, Tag: sale ", result);
+        }
+
+        [Fact]
+        public void RenderTag_For_As_And_NamedArguments()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("item.liquid", "Item: {{ i.name }}, Status: {{ status }} ");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            context.SetValue("items", new[] { new { name = "First" }, new { name = "Second" } });
+            _parser.TryParse("{% render 'item' for items as i, status: 'active' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Item: First, Status: active Item: Second, Status: active ", result);
+        }
+
+        [Fact]
+        public void RenderTag_NamedArguments_DoNotLeakToParentScope()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("snippet.liquid", "{{ class }}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% render 'snippet', class: 'test' %}{{ class }}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("test", result);
+        }
     }
 }
