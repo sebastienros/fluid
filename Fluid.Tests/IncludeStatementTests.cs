@@ -680,9 +680,16 @@ shape: ''";
             Assert.Equal("tag", renderStmt.AssignStatements[0].Identifier);
             
             // Check that the For expression evaluates correctly
+            Assert.IsType<MemberExpression>(renderStmt.For);
             var forValue = renderStmt.For.EvaluateAsync(context).GetAwaiter().GetResult();
             var items = forValue.Enumerate(context).ToList();
             Assert.Equal(2, items.Count);  // Should have 2 items
+            
+            // Also check that For is really the "products" variable
+            var memberExpr = renderStmt.For as MemberExpression;
+            Assert.Single(memberExpr.Segments);
+            Assert.IsType<IdentifierSegment>(memberExpr.Segments[0]);
+            Assert.Equal("products", ((IdentifierSegment)memberExpr.Segments[0]).Identifier);
             
             var result = template.Render(context);
 
