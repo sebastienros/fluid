@@ -368,6 +368,31 @@ def", "at (")]
             Assert.Null(errors);
         }
 
+        [Fact]
+        public void ShouldAllowCommentBetweenCaseAndWhen()
+        {
+            var result = _parser.TryParse(@"
+                {%- capture name -%}John{%- endcapture -%}
+
+                {%- case name -%}
+                {%- comment -%} Very important explanation {%- endcomment -%}
+                  {%- when 'John' -%}
+                    Name is John
+                  {%- when 'Jenny' -%}
+                    Name is Jenny
+                {%- endcase -%}
+                ", out var template, out var errors);
+
+            var context = new TemplateContext();
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Null(errors);
+
+            var output = template.Render(context);
+            Assert.Equal("Name is John", output);
+        }
+
         [Theory]
         [InlineData("{{ 20 | divided_by: 7.0 | round: 2 }}", "2.86")]
         [InlineData("{{ 20 | divided_by: 7 | round: 2 }}", "2")]

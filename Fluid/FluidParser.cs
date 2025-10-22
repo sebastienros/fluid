@@ -409,7 +409,7 @@ namespace Fluid
 
             var CaseTag = Primary
                        .AndSkip(TagEnd)
-                       .AndSkip(AnyCharBefore(TagStart, canBeEmpty: true))
+                       .AndSkip(AnyTagsList)
                        .And(ZeroOrMany(
                            TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList))
                            .Then(x => x.Select(e => new WhenStatement(e.Item2, e.Item3)).ToArray()))
