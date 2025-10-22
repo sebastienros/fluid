@@ -623,7 +623,7 @@ shape: ''";
 
             var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
             var context = new TemplateContext(options);
-            _parser.TryParse("{%- render 'icon' with 'rating-star', class: 'rating__star' -%}", out var template);
+            _parser.TryParse("{% render 'icon' with 'rating-star', class: 'rating__star' %}", out var template);
             var result = template.Render(context);
 
             Assert.Equal("Icon: rating-star, Class: rating__star", result);
