@@ -407,9 +407,18 @@ namespace Fluid
                         .ElseError("Invalid 'unless' tag");
             UnlessTag.Name = "UnlessTag";
 
+            // Parser for optional comment tags only (used between case and when)
+            var OptionalComment = TagStart.SkipAnd(Terms.Text("comment")).SkipAnd(TagEnd)
+                .SkipAnd(AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true))
+                .AndSkip(CreateTag("endcomment"))
+                .Then<Statement>(x => new CommentStatement(x));
+            
+            var OptionalComments = ZeroOrMany(OneOf<Statement>(OptionalComment, Text));
+            OptionalComments.Name = "OptionalComments";
+
             var CaseTag = Primary
                        .AndSkip(TagEnd)
-                       .AndSkip(AnyTagsList)
+                       .AndSkip(OptionalComments)
                        .And(ZeroOrMany(
                            TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList))
                            .Then(x => x.Select(e => new WhenStatement(e.Item2, e.Item3)).ToArray()))
