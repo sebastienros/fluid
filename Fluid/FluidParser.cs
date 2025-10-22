@@ -420,7 +420,7 @@ namespace Fluid
                        .AndSkip(TagEnd)
                        .AndSkip(OptionalComments)
                        .And(ZeroOrMany(
-                           TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList).AndSkip(OptionalComments))
+                           TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList))
                            .Then(x => x.Select(e => new WhenStatement(e.Item2, e.Item3)).ToArray()))
                        .And(ZeroOrOne(
                            CreateTag("else").SkipAnd(AnyTagsList))
