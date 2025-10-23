@@ -1144,6 +1144,48 @@ after
         }
 
         [Fact]
+        public void SnakeCaseHandlesAcronymsCorrectly()
+        {
+            // Test UserName -> user_name
+            Assert.Equal("user_name", MemberNameStrategies.SnakeCase(typeof(TestClass_UserName).GetProperty("UserName")));
+            
+            // Test OpenAIModel -> open_ai_model
+            Assert.Equal("open_ai_model", MemberNameStrategies.SnakeCase(typeof(TestClass_OpenAIModel).GetProperty("OpenAIModel")));
+            
+            // Test OEMVendor -> oem_vendor
+            Assert.Equal("oem_vendor", MemberNameStrategies.SnakeCase(typeof(TestClass_OEMVendor).GetProperty("OEMVendor")));
+            
+            // Test IDSecurity -> id_security
+            Assert.Equal("id_security", MemberNameStrategies.SnakeCase(typeof(TestClass_IDSecurity).GetProperty("IDSecurity")));
+            
+            // Test ID -> id
+            Assert.Equal("id", MemberNameStrategies.SnakeCase(typeof(TestClass_ID).GetProperty("ID")));
+            
+            // Test XMLParser -> xml_parser
+            Assert.Equal("xml_parser", MemberNameStrategies.SnakeCase(typeof(TestClass_XMLParser).GetProperty("XMLParser")));
+            
+            // Test HTMLElement -> html_element
+            Assert.Equal("html_element", MemberNameStrategies.SnakeCase(typeof(TestClass_HTMLElement).GetProperty("HTMLElement")));
+            
+            // Test IOError -> io_error
+            Assert.Equal("io_error", MemberNameStrategies.SnakeCase(typeof(TestClass_IOError).GetProperty("IOError")));
+            
+            // Test JSONData -> json_data
+            Assert.Equal("json_data", MemberNameStrategies.SnakeCase(typeof(TestClass_JSONData).GetProperty("JSONData")));
+        }
+
+        private class TestClass_UserName { public string UserName { get; set; } }
+        private class TestClass_OpenAIModel { public string OpenAIModel { get; set; } }
+        private class TestClass_OEMVendor { public string OEMVendor { get; set; } }
+        private class TestClass_IDSecurity { public string IDSecurity { get; set; } }
+        private class TestClass_ID { public int ID { get; set; } }
+        private class TestClass_UVIndex { public string UVIndex { get; set; } }
+        private class TestClass_XMLParser { public string XMLParser { get; set; } }
+        private class TestClass_HTMLElement { public string HTMLElement { get; set; } }
+        private class TestClass_IOError { public string IOError { get; set; } }
+        private class TestClass_JSONData { public string JSONData { get; set; } }
+
+        [Fact]
         public async Task ShouldIterateOnDictionaries()
         {
             var model = new

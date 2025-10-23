@@ -45,18 +45,30 @@ namespace Fluid
 
         public static string RenameSnakeCase(MemberInfo member)
         {
-            var upper = 0;
-            for (var i = 1; i < member.Name.Length; i++)
+            // Calculate the exact number of underscores needed
+            var underscores = 0;
+            var previousUpper = false;
+            
+            for (var i = 0; i < member.Name.Length; i++)
             {
-                if (char.IsUpper(member.Name[i]))
+                var c = member.Name[i];
+                if (char.IsUpper(c))
                 {
-                    upper++;
+                    if (i > 0 && (!previousUpper || (i + 1 < member.Name.Length && char.IsLower(member.Name[i + 1]))))
+                    {
+                        underscores++;
+                    }
+                    previousUpper = true;
+                }
+                else
+                {
+                    previousUpper = false;
                 }
             }
 
-            return String.Create(member.Name.Length + upper, member.Name, (data, name) =>
+            return String.Create(member.Name.Length + underscores, member.Name, (data, name) =>
             {
-                var previousUpper = false;
+                previousUpper = false;
                 var k = 0;
 
                 for (var i = 0; i < name.Length; i++)
@@ -64,7 +76,12 @@ namespace Fluid
                     var c = name[i];
                     if (char.IsUpper(c))
                     {
-                        if (i > 0 && !previousUpper)
+                        // Insert underscore if:
+                        // 1. Not at the start (i > 0)
+                        // 2. Either:
+                        //    a. Previous char was not uppercase (transition from lowercase to uppercase)
+                        //    b. Previous char was uppercase AND next char is lowercase (end of acronym, start of new word)
+                        if (i > 0 && (!previousUpper || (i + 1 < name.Length && char.IsLower(name[i + 1]))))
                         {
                             data[k++] = '_';
                         }
@@ -103,8 +120,7 @@ namespace Fluid
                 return string.Empty;
 
             StringBuilder result = new StringBuilder();
-            bool wasPrevUpper = false; // Track if the previous character was uppercase
-            int uppercaseCount = 0; // Count consecutive uppercase letters at the start
+            bool previousUpper = false;
 
             for (int i = 0; i < input.Length; i++)
             {
@@ -112,27 +128,23 @@ namespace Fluid
 
                 if (char.IsUpper(c))
                 {
-                    if (i > 0 && (!wasPrevUpper || (uppercaseCount > 1 && i < input.Length - 1 && char.IsLower(input[i + 1]))))
+                    // Insert underscore if:
+                    // 1. Not at the start (i > 0)
+                    // 2. Either:
+                    //    a. Previous char was not uppercase (transition from lowercase to uppercase)
+                    //    b. Previous char was uppercase AND next char is lowercase (end of acronym, start of new word)
+                    if (i > 0 && (!previousUpper || (i + 1 < input.Length && char.IsLower(input[i + 1]))))
                     {
                         result.Append('_');
                     }
 
                     result.Append(char.ToLower(c));
-                    wasPrevUpper = true;
-                    uppercaseCount++;
+                    previousUpper = true;
                 }
                 else
                 {
-                    if (c == ' ' || c == '-')
-                    {
-                        result.Append('_'); // Replace spaces and hyphens with underscores
-                    }
-                    else
-                    {
-                        result.Append(c);
-                    }
-
-                    wasPrevUpper = false;
+                    result.Append(c);
+                    previousUpper = false;
                 }
             }
 
