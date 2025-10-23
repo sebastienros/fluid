@@ -10,9 +10,8 @@ namespace Fluid.Ast.BinaryExpressions
 
         internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
-            return leftValue.Contains(rightValue)
-                ? BooleanValue.True
-                : BooleanValue.False;
+            var comparisonResult = leftValue.Contains(rightValue);
+            return new BinaryExpressionFluidValue(leftValue, comparisonResult);
         }
 
         protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitContainsBinaryExpression(this);

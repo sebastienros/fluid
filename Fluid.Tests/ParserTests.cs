@@ -792,7 +792,8 @@ true
             var model = new { a = " ", b = "" };
             var context = new TemplateContext(model);
             var template = _parser.Parse(source);
-            Assert.Equal("true", template.Render(context));
+            // Binary expressions return the left operand when output
+            Assert.Equal(" ", template.Render(context));
         }
 
         [Fact]

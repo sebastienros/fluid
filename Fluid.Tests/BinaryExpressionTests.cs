@@ -253,6 +253,39 @@ namespace Fluid.Tests
             Assert.True(actual.Equals(expected));
         }
 
+        [Theory]
+        [InlineData("{{ 2 == 3 }}", "2")]
+        [InlineData("{{ 5 == 5 }}", "5")]
+        [InlineData("{{ 10 != 5 }}", "10")]
+        [InlineData("{{ 10 > 5 }}", "10")]
+        [InlineData("{{ 3 < 5 }}", "3")]
+        [InlineData("{{ 10 >= 5 }}", "10")]
+        [InlineData("{{ 3 <= 5 }}", "3")]
+        [InlineData("{{ true and false }}", "true")]
+        [InlineData("{{ true or false }}", "true")]
+        [InlineData("{{ 'abc' contains 'a' }}", "abc")]
+        [InlineData("{{ 'abc' startswith 'a' }}", "abc")]
+        [InlineData("{{ 'abc' endswith 'c' }}", "abc")]
+        public async Task BinaryExpressionsReturnLeftOperand(string source, string expected)
+        {
+            // Binary expressions should return the left operand according to Liquid standard
+            _parser.TryParse(source, out var template, out var messages);
+            var result = await template.RenderAsync();
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData("{{ 2 == 3 | plus: 10 | minus: 3 }}", "9")]
+        [InlineData("{{ 5 == 5 | plus: 3 }}", "8")]
+        [InlineData("{{ 10 > 5 | minus: 2 }}", "8")]
+        public async Task BinaryExpressionsWithFilters(string source, string expected)
+        {
+            // Binary expressions return left operand which can then be filtered
+            _parser.TryParse(source, out var template, out var messages);
+            var result = await template.RenderAsync();
+            Assert.Equal(expected, result);
+        }
+
         [Fact]
         public async Task ObjectValuesShouldCompareByValueNotReference()
         {

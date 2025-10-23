@@ -13,33 +13,37 @@ namespace Fluid.Ast.BinaryExpressions
 
         internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
+            bool comparisonResult;
+
             if (leftValue.IsNil() || rightValue.IsNil())
             {
                 if (Strict)
                 {
-                    return BooleanValue.False;
+                    comparisonResult = false;
                 }
-
-                return leftValue.IsNil() && rightValue.IsNil()
-                    ? BooleanValue.True
-                    : BooleanValue.False;
+                else
+                {
+                    comparisonResult = leftValue.IsNil() && rightValue.IsNil();
+                }
             }
-
-            if (leftValue is NumberValue)
+            else if (leftValue is NumberValue)
             {
                 if (Strict)
                 {
-                    return leftValue.ToNumberValue() < rightValue.ToNumberValue()
-                        ? BooleanValue.True
-                        : BooleanValue.False;
+                    comparisonResult = leftValue.ToNumberValue() < rightValue.ToNumberValue();
                 }
-
-                return leftValue.ToNumberValue() <= rightValue.ToNumberValue()
-                    ? BooleanValue.True
-                    : BooleanValue.False;
+                else
+                {
+                    comparisonResult = leftValue.ToNumberValue() <= rightValue.ToNumberValue();
+                }
+            }
+            else
+            {
+                // For non-number types, return nil as left operand with false comparison
+                return new BinaryExpressionFluidValue(NilValue.Instance, false);
             }
 
-            return NilValue.Instance;
+            return new BinaryExpressionFluidValue(leftValue, comparisonResult);
         }
 
         protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitLowerThanBinaryExpression(this);
