@@ -221,5 +221,75 @@ namespace Fluid.Tests
             var result = await template.RenderAsync(context);
             Assert.Equal("HELLO", result);
         }
+
+        [Fact]
+        public void ShouldSupportTrailingQuestionOnIntermediateIdentifiers()
+        {
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            parser.TryParse("{{ a?.b.c }}", out var template, out var errors);
+
+            var statements = ((FluidTemplate)template).Statements;
+            var outputStatement = statements[0] as OutputStatement;
+            Assert.NotNull(outputStatement);
+
+            var memberExpression = outputStatement.Expression as MemberExpression;
+            Assert.NotNull(memberExpression);
+            Assert.Equal(3, memberExpression.Segments.Count);
+
+            var firstSegment = memberExpression.Segments[0] as IdentifierSegment;
+            Assert.NotNull(firstSegment);
+            Assert.Equal("a", firstSegment.Identifier); // Should NOT contain '?'
+
+            var secondSegment = memberExpression.Segments[1] as IdentifierSegment;
+            Assert.NotNull(secondSegment);
+            Assert.Equal("b", secondSegment.Identifier);
+
+            var thirdSegment = memberExpression.Segments[2] as IdentifierSegment;
+            Assert.NotNull(thirdSegment);
+            Assert.Equal("c", thirdSegment.Identifier);
+        }
+
+        [Fact]
+        public async Task ShouldResolveIntermediateIdentifiersWithTrailingQuestion()
+        {
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            parser.TryParse("{{ obj?.nested.value }}", out var template, out var errors);
+
+            var context = new TemplateContext();
+            var nested = new { value = "test" };
+            var obj = new { nested };
+            context.Options.MemberAccessStrategy.Register(nested.GetType());
+            context.Options.MemberAccessStrategy.Register(obj.GetType());
+            context.SetValue("obj", obj);
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("test", result);
+        }
+
+        [Theory]
+        [InlineData("{{ a?.b.c }}", new[] { "a", "b", "c" })]
+        [InlineData("{{ a.b?.c }}", new[] { "a", "b", "c" })]
+        [InlineData("{{ a?.b?.c }}", new[] { "a", "b", "c" })]
+        [InlineData("{{ a?.b?.c? }}", new[] { "a", "b", "c" })]
+        public void ShouldStripTrailingQuestionFromAllSegments(string template, string[] expectedIdentifiers)
+        {
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            parser.TryParse(template, out var parsedTemplate, out var errors);
+
+            var statements = ((FluidTemplate)parsedTemplate).Statements;
+            var outputStatement = statements[0] as OutputStatement;
+            Assert.NotNull(outputStatement);
+
+            var memberExpression = outputStatement.Expression as MemberExpression;
+            Assert.NotNull(memberExpression);
+            Assert.Equal(expectedIdentifiers.Length, memberExpression.Segments.Count);
+
+            for (int i = 0; i < expectedIdentifiers.Length; i++)
+            {
+                var segment = memberExpression.Segments[i] as IdentifierSegment;
+                Assert.NotNull(segment);
+                Assert.Equal(expectedIdentifiers[i], segment.Identifier);
+            }
+        }
     }
 }
