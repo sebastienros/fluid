@@ -487,7 +487,10 @@ namespace Fluid
 
             var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
                 .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = true; return x; })
-                .SkipAnd(OneOrMany(Identifier.Switch((context, previous) =>
+                .SkipAnd(OneOrMany(OneOf(
+                    Terms.Char('#').Then(x => "#"),
+                    Identifier
+                ).Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
