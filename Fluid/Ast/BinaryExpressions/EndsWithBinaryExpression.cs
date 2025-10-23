@@ -13,19 +13,7 @@ namespace Fluid.Ast.BinaryExpressions
             var leftValue = await Left.EvaluateAsync(context);
             var rightValue = await Right.EvaluateAsync(context);
 
-            if (leftValue is ArrayValue)
-            {
-                var first = await leftValue.GetValueAsync("last", context);
-                return first.Equals(rightValue)
-                        ? BooleanValue.True
-                        : BooleanValue.False;
-            }
-            else
-            {
-                return leftValue.ToStringValue().EndsWith(rightValue.ToStringValue())
-                        ? BooleanValue.True
-                        : BooleanValue.False;
-            }
+            return leftValue;
         }
 
         protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitEndsWithBinaryExpression(this);
