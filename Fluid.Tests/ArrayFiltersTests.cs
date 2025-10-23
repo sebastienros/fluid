@@ -145,7 +145,6 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(new { Title = "a" }.GetType());
 
             var result = await ArrayFilters.Map(input, arguments, context);
 
@@ -169,8 +168,6 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(sample.GetType());
-            options.MemberAccessStrategy.Register(sample.Title.GetType());
 
             var result = await ArrayFilters.Map(input, arguments, context);
 
@@ -252,7 +249,6 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(sample.GetType(), "Title");
 
             var result = await ArrayFilters.Sort(input, arguments, context);
 
@@ -264,9 +260,7 @@ namespace Fluid.Tests
             arguments = new FilterArguments().Add(new StringValue("Address.Zip"));
 
             options = new TemplateOptions();
-            context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(sample.GetType(), "Address");
-            options.MemberAccessStrategy.Register(sample.Address.GetType(), "Zip");
+            context = new TemplateContext(options); 
 
             result = await ArrayFilters.Sort(input, arguments, context);
 
@@ -408,7 +402,6 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned"));
 
@@ -446,8 +439,6 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
-            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true, Missing = 1 }.GetType());
 
             // x | where: "Missing"
 
@@ -494,7 +485,6 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
 
             var arguments1 = new FilterArguments().Add(new StringValue("a.b.c"));
 
@@ -518,7 +508,7 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(sample.GetType(), "Value");
+            //options.MemberAccessStrategy.Register(sample.GetType(), "Value");
 
             var result = await ArrayFilters.Sum(input, arguments, context);
 
@@ -713,11 +703,11 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-
-            options.MemberAccessStrategy.Register(quantityObjectType.GetType(), filterArgument);
-            options.MemberAccessStrategy.Register(weightObjectType.GetType(), filterArgument);
-            options.MemberAccessStrategy.Register(quantityAndWeightObjectType.GetType(), filterArgument);
-
+            
+            //options.MemberAccessStrategy.Register(quantityObjectType.GetType(), filterArgument);
+            //options.MemberAccessStrategy.Register(weightObjectType.GetType(), filterArgument);
+            //options.MemberAccessStrategy.Register(quantityAndWeightObjectType.GetType(), filterArgument);
+            
             var result = await ArrayFilters.Sum(input, arguments, context);
 
             Assert.Equal(expectedValue, result.ToNumberValue());
@@ -734,7 +724,6 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned"));
 
@@ -771,7 +760,6 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned")).Add(BooleanValue.True);
 
@@ -822,7 +810,6 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned")).Add(BooleanValue.True);
 
@@ -873,7 +860,6 @@ namespace Fluid.Tests
 
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
-            options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true }.GetType());
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned")).Add(BooleanValue.True);
 

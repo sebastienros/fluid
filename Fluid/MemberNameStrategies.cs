@@ -1,60 +1,98 @@
-using System.Reflection;
-using System.Text.Json;
 using System.Text;
 
 namespace Fluid
 {
-    public sealed class MemberNameStrategies
+    public sealed class StringComparers
     {
-        private static string RenameDefault(MemberInfo member) => member.Name;
+        public static StringComparer CamelCase { get; } = new CamelCaseStringComparer();
+        public static StringComparer SnakeCase { get; } = new SnakeCaseStringComparer();
+    }
 
-        private const string SwitchName = "Fluid.UseLegacyMemberNameStrategies";
-
-        public static readonly MemberNameStrategy Default = RenameDefault;
-        public static readonly MemberNameStrategy CamelCase;
-        public static readonly MemberNameStrategy SnakeCase;
-
-        static MemberNameStrategies()
+    public sealed class CamelCaseStringComparer : StringComparer
+    {
+        public override int Compare(string x, string y)
         {
-            // STJ member name strategies are not compatible with the legacy strategies but are faster.
-            // To retain backward compatibility users have to set the Fluid.UseLegacyMemberNameStrategies switch to true.
-            // c.f. https://learn.microsoft.com/en-us/dotnet/fundamentals/runtime-libraries/system-appcontext
-
-            if (AppContext.TryGetSwitch(SwitchName, out var flag) && flag == true)
-            {
-                CamelCase = RenameCamelCase;
-                SnakeCase = RenameSnakeCase;
-            }
-            else
-            {
-                CamelCase = member => JsonNamingPolicy.CamelCase.ConvertName(member.Name);
-                SnakeCase = member => JsonNamingPolicy.SnakeCaseLower.ConvertName(member.Name);
-            }
+            return RenameCamelCase(x).CompareTo(y);
+        }
+        public override bool Equals(string x, string y)
+        {
+            return RenameCamelCase(x).Equals(y, StringComparison.OrdinalIgnoreCase);
+        }
+        public override int GetHashCode(string obj)
+        {
+            return StringComparer.OrdinalIgnoreCase.GetHashCode(obj);
         }
 
 #if NET6_0_OR_GREATER
-
-        public static string RenameCamelCase(MemberInfo member)
+        public static string RenameCamelCase(string name)
         {
-            return String.Create(member.Name.Length, member.Name, (data, name) =>
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return string.Empty;
+            }
+
+            return String.Create(name.Length, name, (data, name) =>
             {
                 data[0] = char.ToLowerInvariant(name[0]);
                 name.AsSpan().Slice(1).CopyTo(data.Slice(1));
             });
         }
-
-        public static string RenameSnakeCase(MemberInfo member)
+#else
+        public static string RenameCamelCase(string name)
         {
-            var upper = 0;
-            for (var i = 1; i < member.Name.Length; i++)
+            if (string.IsNullOrWhiteSpace(name))
             {
-                if (char.IsUpper(member.Name[i]))
+                return string.Empty;
+            }
+
+            var firstChar = name[0];
+
+            if (firstChar == char.ToLowerInvariant(firstChar))
+            {
+                return name;
+            }
+
+            var chars = name.ToCharArray();
+            chars[0] = char.ToLowerInvariant(firstChar);
+
+            return new string(chars);
+        }
+#endif
+    }
+
+    public sealed class SnakeCaseStringComparer : StringComparer
+    {
+        public override int Compare(string x, string y)
+        {
+            return RenameSnakeCase(x).CompareTo(y);
+        }
+        public override bool Equals(string x, string y)
+        {
+            return RenameSnakeCase(x).Equals(y, StringComparison.OrdinalIgnoreCase);
+        }
+        public override int GetHashCode(string obj)
+        {
+            return StringComparer.OrdinalIgnoreCase.GetHashCode(obj);
+        }
+
+#if NET6_0_OR_GREATER
+        public static string RenameSnakeCase(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return string.Empty;
+            }
+
+            var upper = 0;
+            for (var i = 1; i < name.Length; i++)
+            {
+                if (char.IsUpper(name[i]))
                 {
                     upper++;
                 }
             }
 
-            return String.Create(member.Name.Length + upper, member.Name, (data, name) =>
+            return string.Create(name.Length + upper, name, (data, name) =>
             {
                 var previousUpper = false;
                 var k = 0;
@@ -80,29 +118,16 @@ namespace Fluid
             });
         }
 #else
-        public static string RenameCamelCase(MemberInfo member)
+        public static string RenameSnakeCase(string name)
         {
-            var firstChar = member.Name[0];
-
-            if (firstChar == char.ToLowerInvariant(firstChar))
-            {
-                return member.Name;
-            }
-
-            var name = member.Name.ToCharArray();
-            name[0] = char.ToLowerInvariant(firstChar);
-
-            return new String(name);
-        }
-
-        public static string RenameSnakeCase(MemberInfo member)
-        {
-            var input = member.Name;
+            var input = name;
 
             if (string.IsNullOrWhiteSpace(input))
+            {
                 return string.Empty;
+            }
 
-            StringBuilder result = new StringBuilder();
+            var result = new StringBuilder();
             bool wasPrevUpper = false; // Track if the previous character was uppercase
             int uppercaseCount = 0; // Count consecutive uppercase letters at the start
 
