@@ -23,6 +23,6 @@ namespace Fluid
         /// <summary>
         /// Gets whether identifiers can end with a question mark (`?`), which will be stripped during parsing. Default is <c>false</c>.
         /// </summary>
-        public bool AllowTrailingQuestion { get; set; }
+        public bool AllowTrailingQuestionMark { get; set; }
     }
 }

@@ -21,7 +21,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldParseTrailingQuestionWhenEnabled()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             var result = parser.TryParse("{{ product.empty? }}", out var template, out var errors);
             
             Assert.True(result);
@@ -31,7 +31,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldStripTrailingQuestionFromIdentifier()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             parser.TryParse("{{ product.empty? }}", out var template, out var errors);
 
             var statements = ((FluidTemplate)template).Statements;
@@ -54,7 +54,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldResolveIdentifierWithoutQuestionMark()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             parser.TryParse("{{ products.empty? }}", out var template, out var errors);
 
             var context = new TemplateContext();
@@ -72,7 +72,7 @@ namespace Fluid.Tests
         [InlineData("{{ collection.products.empty? }}", "empty")]
         public void ShouldStripTrailingQuestionFromVariousIdentifiers(string template, string expectedLastSegment)
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             parser.TryParse(template, out var parsedTemplate, out var errors);
 
             var statements = ((FluidTemplate)parsedTemplate).Statements;
@@ -90,7 +90,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldParseTrailingQuestionInIfStatement()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             var result = parser.TryParse("{% if collection.products.empty? %}No products{% endif %}", out var template, out var errors);
             
             Assert.True(result);
@@ -100,7 +100,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateTrailingQuestionInIfStatement()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             parser.TryParse("{% if collection.products.empty? %}No products{% endif %}", out var template, out var errors);
 
             var context = new TemplateContext();
@@ -117,7 +117,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldParseTrailingQuestionInFilterArgument()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             var result = parser.TryParse("{{ value | filter: item.empty? }}", out var template, out var errors);
             
             Assert.True(result);
@@ -127,7 +127,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldParseTrailingQuestionInAssignment()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             var result = parser.TryParse("{% assign x = product.empty? %}", out var template, out var errors);
             
             Assert.True(result);
@@ -137,7 +137,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateTrailingQuestionInAssignment()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             parser.TryParse("{% assign x = product.empty? %}{{ x }}", out var template, out var errors);
 
             var context = new TemplateContext();
@@ -152,7 +152,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldNotAllowMultipleTrailingQuestions()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             var result = parser.TryParse("{{ product.empty?? }}", out var template, out var errors);
             
             // Should fail because we only allow one trailing question mark
@@ -162,7 +162,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldParseTrailingQuestionInForLoop()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             var result = parser.TryParse("{% for item in collection.items? %}{{ item }}{% endfor %}", out var template, out var errors);
             
             Assert.True(result);
@@ -172,7 +172,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldWorkWithMixedIdentifiers()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             parser.TryParse("{{ a.b? }}{{ c.d }}", out var template, out var errors);
 
             var context = new TemplateContext();
@@ -190,7 +190,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldParseTrailingQuestionWithIndexer()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             var result = parser.TryParse("{{ items[0].empty? }}", out var template, out var errors);
             
             Assert.True(result);
@@ -202,7 +202,7 @@ namespace Fluid.Tests
         [InlineData("{{ a.b? | append: '.txt' }}")]
         public void ShouldParseTrailingQuestionWithFilters(string templateText)
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             var result = parser.TryParse(templateText, out var template, out var errors);
             
             Assert.True(result);
@@ -212,7 +212,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldRenderTrailingQuestionWithFilters()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             parser.TryParse("{{ text | upcase }}", out var template, out var errors);
 
             var context = new TemplateContext();
@@ -225,7 +225,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldSupportTrailingQuestionOnIntermediateIdentifiers()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             parser.TryParse("{{ a?.b.c }}", out var template, out var errors);
 
             var statements = ((FluidTemplate)template).Statements;
@@ -252,7 +252,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldResolveIntermediateIdentifiersWithTrailingQuestion()
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             parser.TryParse("{{ obj?.nested.value }}", out var template, out var errors);
 
             var context = new TemplateContext();
@@ -273,7 +273,7 @@ namespace Fluid.Tests
         [InlineData("{{ a?.b?.c? }}", new[] { "a", "b", "c" })]
         public void ShouldStripTrailingQuestionFromAllSegments(string template, string[] expectedIdentifiers)
         {
-            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestion = true });
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
             parser.TryParse(template, out var parsedTemplate, out var errors);
 
             var statements = ((FluidTemplate)parsedTemplate).Statements;

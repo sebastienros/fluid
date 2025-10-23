@@ -95,7 +95,7 @@ namespace Fluid
                 TagEnd = NoInlineTagEnd;
             }
 
-            Identifier = SkipWhiteSpace(new IdentifierParser(parserOptions.AllowTrailingQuestion)).Then(x => x.ToString());
+            Identifier = SkipWhiteSpace(new IdentifierParser(parserOptions.AllowTrailingQuestionMark)).Then(x => x.ToString());
 
             String.Name = "String";
             Number.Name = "Number";
