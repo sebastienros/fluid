@@ -7,11 +7,18 @@ namespace Fluid.Parser
     public sealed class IdentifierParser : Parser<TextSpan>, ISeekable
     {
         public const string StartChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+        private readonly bool _stripTrailingQuestion;
+
         public bool CanSeek => true;
 
         public char[] ExpectedChars { get; } = StartChars.ToCharArray();
 
         public bool SkipWhitespace => false;
+
+        public IdentifierParser(bool stripTrailingQuestion = false)
+        {
+            _stripTrailingQuestion = stripTrailingQuestion;
+        }
 
         public override bool Parse(ParseContext context, ref ParseResult<TextSpan> result)
         {
@@ -45,6 +52,8 @@ namespace Fluid.Parser
 
             cursor.Advance();
 
+            var hasTrailingQuestion = false;
+
             while (!cursor.Eof)
             {
                 current = cursor.Current;
@@ -62,6 +71,13 @@ namespace Fluid.Parser
                 }
                 else if (char.IsDigit(current))
                 {
+                    lastIsDash = false;
+                }
+                else if (_stripTrailingQuestion && current == '?' && !hasTrailingQuestion)
+                {
+                    // Allow one trailing '?' if the option is enabled
+                    hasTrailingQuestion = true;
+                    nonDigits++;
                     lastIsDash = false;
                 }
                 else
@@ -83,6 +99,13 @@ namespace Fluid.Parser
                 nonDigits--;
                 end--;
                 cursor.ResetPosition(lastDashPosition);
+            }
+
+            // Strip trailing '?' from the result if enabled and present
+            if (_stripTrailingQuestion && hasTrailingQuestion)
+            {
+                nonDigits--;
+                end--;
             }
 
             if (nonDigits == 0)
