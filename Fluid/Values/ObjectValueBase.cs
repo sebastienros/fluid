@@ -39,7 +39,7 @@ namespace Fluid.Values
                 return false;
             }
 
-            return other is ObjectValueBase && ((ObjectValueBase)other).Value == Value;
+            return other is ObjectValueBase otherObject && Value.Equals(otherObject.Value);
         }
 
         public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)

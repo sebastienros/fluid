@@ -286,5 +286,60 @@ namespace Fluid.Tests
             Assert.Equal(expected, result);
         }
 
+        [Fact]
+        public async Task ObjectValuesShouldCompareByValueNotReference()
+        {
+            // Create a simple class that overrides Equals
+            var obj1 = new TestObject { Value = "test" };
+            var obj2 = new TestObject { Value = "test" };
+
+            _parser.TryParse("{% if obj1 == obj2 %}equal{% else %}not equal{% endif %}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.Options.MemberAccessStrategy.Register<TestObject>();
+            context.SetValue("obj1", obj1);
+            context.SetValue("obj2", obj2);
+
+            var result = await template.RenderAsync(context);
+            
+            // obj1.Equals(obj2) returns true, so the comparison should return "equal"
+            Assert.Equal("equal", result);
+        }
+
+        [Fact]
+        public async Task ArrayContainsShouldCompareByValueNotReference()
+        {
+            var obj1 = new TestObject { Value = "test" };
+            var obj2 = new TestObject { Value = "test" };
+            var array = new[] { obj1 };
+
+            _parser.TryParse("{% if array contains obj2 %}found{% else %}not found{% endif %}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.Options.MemberAccessStrategy.Register<TestObject>();
+            context.SetValue("array", array);
+            context.SetValue("obj2", obj2);
+
+            var result = await template.RenderAsync(context);
+            
+            // obj1.Equals(obj2) returns true, so contains should return "found"
+            Assert.Equal("found", result);
+        }
+
+        private class TestObject
+        {
+            public string Value { get; set; }
+
+            public override bool Equals(object obj)
+            {
+                return obj is TestObject other && Value == other.Value;
+            }
+
+            public override int GetHashCode()
+            {
+                return Value?.GetHashCode() ?? 0;
+            }
+        }
+
     }
 }
