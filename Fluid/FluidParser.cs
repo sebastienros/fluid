@@ -45,7 +45,7 @@ namespace Fluid
         protected static readonly Parser<string> BinaryOr = Terms.Text("or");
         protected static readonly Parser<string> BinaryAnd = Terms.Text("and");
 
-        protected static readonly Parser<string> Identifier = SkipWhiteSpace(new IdentifierParser()).Then(x => x.ToString());
+        protected readonly Parser<string> Identifier;
 
         protected readonly Parser<IReadOnlyList<FilterArgument>> ArgumentsList;
         protected readonly Parser<IReadOnlyList<FunctionCallArgument>> FunctionCallArgumentsList;
@@ -94,6 +94,8 @@ namespace Fluid
                 TagStart = NoInlineTagStart;
                 TagEnd = NoInlineTagEnd;
             }
+
+            Identifier = SkipWhiteSpace(new IdentifierParser(parserOptions.AllowTrailingQuestionMark)).Then(x => x.ToString());
 
             String.Name = "String";
             Number.Name = "Number";
