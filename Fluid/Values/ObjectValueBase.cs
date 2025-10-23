@@ -153,13 +153,29 @@ namespace Fluid.Values
         public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
-            writer.Write(encoder.Encode(ToStringValue()));
+
+            var value = ToStringValue();
+            
+            if (string.IsNullOrEmpty(value))
+            {
+                return;
+            }
+
+            writer.Write(encoder.Encode(value));
         }
 
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
-            var task = writer.WriteAsync(encoder.Encode(ToStringValue()));
+
+            var value = ToStringValue();
+
+            if (string.IsNullOrEmpty(value))
+            {
+                return default;
+            }
+
+            var task = writer.WriteAsync(encoder.Encode(value));
 
             if (task.IsCompletedSuccessfully())
             {
