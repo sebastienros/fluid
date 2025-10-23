@@ -341,5 +341,20 @@ namespace Fluid.Tests
             }
         }
 
+        [Theory]
+        [InlineData("'1' <= '1'", "true")]
+        [InlineData("'1' <= '2'", "true")]
+        [InlineData("'2' <= '1'", "false")]
+        [InlineData("'a' <= 'b'", "true")]
+        [InlineData("'b' <= 'a'", "false")]
+        [InlineData("'ab' <= 'a'", "false")]
+        [InlineData("'abc' <= 'ab'", "false")]
+        [InlineData("'abc' <= 'abd'", "true")]
+        [InlineData("'ab' <= 'abd'", "true")]
+        public Task CompareString(string source, string expected)
+        {
+            return CheckAsync(source, expected);
+        }
+
     }
 }
