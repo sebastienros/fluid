@@ -304,6 +304,13 @@ namespace Fluid
                         ;
             CommentTag.Name = "CommentTag";
 
+            var InlineCommentTag = AnyCharBefore(TagEnd, canBeEmpty: true)
+                        .AndSkip(TagEnd)
+                        .Then<Statement>(x => new CommentStatement(x))
+                        .ElseError("Invalid inline comment tag")
+                        ;
+            InlineCommentTag.Name = "InlineCommentTag";
+
             var CaptureTag = Identifier.ElseError(string.Format(ErrorMessages.IdentifierAfterTag, "capture"))
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
@@ -507,6 +514,7 @@ namespace Fluid
             RegisteredTags["break"] = BreakTag;
             RegisteredTags["continue"] = ContinueTag;
             RegisteredTags["comment"] = CommentTag;
+            RegisteredTags["#"] = InlineCommentTag;
             RegisteredTags["capture"] = CaptureTag;
             RegisteredTags["cycle"] = CycleTag;
             RegisteredTags["decrement"] = DecrementTag;
@@ -565,7 +573,10 @@ namespace Fluid
                 return ReadFromList(modifiers);
             }
 
-            var AnyTags = TagStart.SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart).Switch((context, previous) =>
+            var AnyTags = TagStart.SkipAnd(OneOf(
+                Terms.Char('#').Then(x => "#"),
+                Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart)
+            ).Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
@@ -582,7 +593,10 @@ namespace Fluid
                 }
             }));
 
-            var KnownTags = TagStart.SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart).Switch((context, previous) =>
+            var KnownTags = TagStart.SkipAnd(OneOf(
+                Terms.Char('#').Then(x => "#"),
+                Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart)
+            ).Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% endif $}

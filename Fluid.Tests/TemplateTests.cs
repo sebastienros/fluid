@@ -1209,5 +1209,63 @@ after
             var result = await template.RenderAsync(context);
             Assert.Contains("true", result);
         }
+
+        [Fact]
+        public async Task InlineCommentShouldNotRender()
+        {
+            var source = "Hello {% # this is a comment %} World";
+            await CheckAsync(source, "Hello  World");
+        }
+
+        [Fact]
+        public async Task InlineCommentShouldNotRenderAnyContent()
+        {
+            var source = "{% # this is a comment with text %}Result";
+            await CheckAsync(source, "Result");
+        }
+
+        [Fact]
+        public async Task InlineCommentShouldWorkWithWhitespaceTrim()
+        {
+            var source = "Hello{%- # this is a comment -%}World";
+            await CheckAsync(source, "HelloWorld");
+        }
+
+        [Fact]
+        public async Task InlineCommentShouldWorkInTemplates()
+        {
+            var source = @"
+                {% # Start of template %}
+                {% assign name = 'John' %}
+                {% # Output the name %}
+                Hello {{ name }}!
+                {% # End of template %}
+            ";
+            
+            _parser.TryParse(source, out var template, out var error);
+            var context = new TemplateContext();
+            var result = await template.RenderAsync(context);
+            Assert.Contains("Hello John!", result);
+            Assert.DoesNotContain("Start of template", result);
+            Assert.DoesNotContain("Output the name", result);
+            Assert.DoesNotContain("End of template", result);
+        }
+
+        [Fact]
+        public async Task InlineCommentShouldWorkBetweenTags()
+        {
+            var source = @"
+                {% if true %}
+                {% # This is between if tags %}
+                Success
+                {% endif %}
+            ";
+            
+            _parser.TryParse(source, out var template, out var error);
+            var context = new TemplateContext();
+            var result = await template.RenderAsync(context);
+            Assert.Contains("Success", result);
+            Assert.DoesNotContain("This is between if tags", result);
+        }
     }
 }

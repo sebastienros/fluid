@@ -206,6 +206,45 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void ShouldParseInlineComment()
+        {
+            var statements = Parse(@"{% # this is an inline comment %}");
+
+            Assert.Single(statements);
+            Assert.IsType<CommentStatement>(statements.ElementAt(0));
+            Assert.Equal(" this is an inline comment", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+        }
+
+        [Fact]
+        public void ShouldParseEmptyInlineComment()
+        {
+            var statements = Parse(@"{% #%}");
+
+            Assert.Single(statements);
+            Assert.IsType<CommentStatement>(statements.ElementAt(0));
+            Assert.Equal("", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+        }
+
+        [Fact]
+        public void ShouldParseInlineCommentWithoutLiquidTags()
+        {
+            var statements = Parse(@"{% # this is a simple comment %}");
+
+            Assert.Single(statements);
+            Assert.IsType<CommentStatement>(statements.ElementAt(0));
+        }
+
+        [Fact]
+        public void ShouldParseInlineCommentWithWhitespaceTrim()
+        {
+            var statements = Parse(@"{%- # this is a trimmed comment -%}");
+
+            Assert.Single(statements);
+            Assert.IsType<CommentStatement>(statements.ElementAt(0));
+            Assert.Equal(" this is a trimmed comment", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+        }
+
+        [Fact]
         public void ShouldParseIfTag()
         {
             var statements = Parse("{% if true %}yes{% endif %}");
