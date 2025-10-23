@@ -207,6 +207,47 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task ShouldRenderNullValueFromContext()
+        {
+            _parser.TryParse("{{ x }}", out var template, out var error);
+            var context = new TemplateContext();
+            context.SetValue("x", (object)null);
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(string.Empty, result);
+        }
+
+        [Fact]
+        public async Task ShouldRenderNullValueFromProperty()
+        {
+            _parser.TryParse("{{ c.Value }}", out var template, out var error);
+
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<NullStringContainer>();
+
+            var context = new TemplateContext(options);
+            context.SetValue("c", new NullStringContainer());
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(string.Empty, result);
+        }
+
+        [Fact]
+        public async Task ShouldRenderNullValueFromToString()
+        {
+            _parser.TryParse("{{ c }}", out var template, out var error);
+
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<NullStringContainer>();
+
+            var context = new TemplateContext(options);
+            context.SetValue("c", new NullStringContainer());
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(string.Empty, result);
+        }
+
+        [Fact]
         public async Task ShouldEvaluateNumberValue()
         {
             _parser.TryParse("{{ x }}", out var template, out var error);
@@ -399,6 +440,13 @@ namespace Fluid.Tests
             _parser.TryParse("{{ p | size }} {{ p | first }} {{ p | last }}", out var template, out var error);
             var result = await template.RenderAsync(context);
             Assert.Equal("123 456 789", result);
+        }
+
+        private sealed class NullStringContainer
+        {
+            public string Value => null;
+
+            public override string ToString() => null;
         }
 
         private class PersonValue : ObjectValueBase
@@ -1309,5 +1357,7 @@ after
             Assert.Contains("Success", result);
             Assert.DoesNotContain("This is between if tags", result);
         }
+
+
     }
 }
