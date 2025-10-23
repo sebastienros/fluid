@@ -37,9 +37,22 @@ namespace Fluid.Ast.BinaryExpressions
                     comparisonResult = leftValue.ToNumberValue() >= rightValue.ToNumberValue();
                 }
             }
+            else if (leftValue is StringValue)
+            {
+                // Use standard C# string comparison for strings
+                var comparison = string.Compare(leftValue.ToStringValue(), rightValue.ToStringValue(), StringComparison.Ordinal);
+                if (Strict)
+                {
+                    comparisonResult = comparison > 0;
+                }
+                else
+                {
+                    comparisonResult = comparison >= 0;
+                }
+            }
             else
             {
-                // For non-number types, return nil as left operand with false comparison
+                // For non-number, non-string types, return nil as left operand with false comparison
                 return new BinaryExpressionFluidValue(NilValue.Instance, false);
             }
 
