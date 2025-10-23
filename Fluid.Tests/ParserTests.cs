@@ -1122,6 +1122,87 @@ class  {
             Assert.DoesNotContain("45", rendered);
         }
 
+        [Fact]
+        public void LiquidTagShouldSupportHashComments()
+        {
+            var source = @"{% liquid
+  assign name = 'John'
+  # very important information
+  assign name = 'Jenna'
+  echo name
+%}";
+
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Equal("Jenna", rendered.Trim());
+        }
+
+        [Fact]
+        public void LiquidTagShouldSupportMultipleHashComments()
+        {
+            var source = @"{% liquid
+  # required args:
+  assign product = 'MyProduct'
+
+  # optional args:
+  assign should_show_border = true
+  assign should_show_cursor = true
+  
+  echo product
+%}";
+
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Equal("MyProduct", rendered.Trim());
+        }
+
+        [Fact]
+        public void LiquidTagShouldSupportEmptyHashComment()
+        {
+            var source = @"{% liquid
+  #
+  assign name = 'Charlie'
+  echo name
+%}";
+
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Equal("Charlie", rendered.Trim());
+        }
+
+        [Fact]
+        public void LiquidTagShouldSupportHashCommentAtBeginning()
+        {
+            var source = @"{% liquid
+  # This is a comment at the beginning
+  assign name = 'Alice'
+  echo name
+%}";
+
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Equal("Alice", rendered.Trim());
+        }
+
+        [Fact]
+        public void LiquidTagShouldSupportHashCommentAtEnd()
+        {
+            var source = @"{% liquid
+  assign name = 'Bob'
+  echo name
+  # This is a comment at the end
+%}";
+
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Equal("Bob", rendered.Trim());
+        }
+
 
         [Fact]
         public void ShouldParseFunctionCall()
