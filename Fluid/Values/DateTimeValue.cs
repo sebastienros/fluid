@@ -18,25 +18,37 @@ namespace Fluid.Values
             // Handle edge cases where DateTime cannot be safely converted to DateTimeOffset
             // with local timezone offset due to overflow (e.g., DateTime.MinValue with positive offset)
             
-            try
+            // Check if the value is within one day of the boundaries where overflow might occur
+            if (value <= DateTime.MinValue.AddDays(1))
             {
-                // Attempt normal conversion - implicit conversion uses local timezone for Unspecified kind
-                _value = value;
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                // If conversion fails due to offset overflow, use the appropriate boundary value
-                // This happens when the UTC representation would be outside the valid range
-                if (value < DateTime.MinValue.AddDays(1))
+                // Value is close to MinValue - attempt conversion with try-catch
+                try
                 {
-                    // Value is close to MinValue and offset caused underflow
+                    _value = value;
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    // Offset caused underflow - use minimum boundary
                     _value = DateTimeOffset.MinValue;
                 }
-                else
+            }
+            else if (value >= DateTime.MaxValue.AddDays(-1))
+            {
+                // Value is close to MaxValue - attempt conversion with try-catch
+                try
                 {
-                    // Value is close to MaxValue and offset caused overflow
+                    _value = value;
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    // Offset caused overflow - use maximum boundary
                     _value = DateTimeOffset.MaxValue;
                 }
+            }
+            else
+            {
+                // Normal case - direct conversion without try-catch overhead
+                _value = value;
             }
         }
 
