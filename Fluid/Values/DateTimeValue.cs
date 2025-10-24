@@ -15,23 +15,28 @@ namespace Fluid.Values
 
         public DateTimeValue(DateTime value)
         {
-            // Handle edge cases where DateTime.MinValue or DateTime.MaxValue
-            // cannot be safely converted to DateTimeOffset with local timezone offset
+            // Handle edge cases where DateTime cannot be safely converted to DateTimeOffset
+            // with local timezone offset due to overflow (e.g., DateTime.MinValue with positive offset)
             
-            if (value == DateTime.MinValue)
+            try
             {
-                // Use DateTimeOffset.MinValue to avoid offset issues
-                _value = DateTimeOffset.MinValue;
-            }
-            else if (value == DateTime.MaxValue)
-            {
-                // Use DateTimeOffset.MaxValue to avoid offset issues
-                _value = DateTimeOffset.MaxValue;
-            }
-            else
-            {
-                // Normal conversion - implicit conversion uses local timezone for Unspecified kind
+                // Attempt normal conversion - implicit conversion uses local timezone for Unspecified kind
                 _value = value;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // If conversion fails due to offset overflow, use the appropriate boundary value
+                // This happens when the UTC representation would be outside the valid range
+                if (value < DateTime.MinValue.AddDays(1))
+                {
+                    // Value is close to MinValue and offset caused underflow
+                    _value = DateTimeOffset.MinValue;
+                }
+                else
+                {
+                    // Value is close to MaxValue and offset caused overflow
+                    _value = DateTimeOffset.MaxValue;
+                }
             }
         }
 
