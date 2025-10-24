@@ -13,6 +13,28 @@ namespace Fluid.Values
             _value = value;
         }
 
+        public DateTimeValue(DateTime value)
+        {
+            // Handle edge cases where DateTime.MinValue or DateTime.MaxValue
+            // cannot be safely converted to DateTimeOffset with local timezone offset
+            
+            if (value == DateTime.MinValue)
+            {
+                // Use DateTimeOffset.MinValue to avoid offset issues
+                _value = DateTimeOffset.MinValue;
+            }
+            else if (value == DateTime.MaxValue)
+            {
+                // Use DateTimeOffset.MaxValue to avoid offset issues
+                _value = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                // Normal conversion - implicit conversion uses local timezone for Unspecified kind
+                _value = value;
+            }
+        }
+
         public override FluidValues Type => FluidValues.DateTime;
 
         public override bool Equals(FluidValue other)
