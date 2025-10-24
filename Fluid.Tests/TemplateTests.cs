@@ -286,6 +286,86 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task ShouldHandleDateTimeMinValueWithPositiveTimezoneOffset()
+        {
+            // Set a timezone offset of +2 hours (like EET - Eastern European Time)
+            var plusTwoTimezone = TimeZoneInfo.CreateCustomTimeZone("Custom+2", TimeSpan.FromHours(2), "UTC+2", "UTC+2");
+            
+            _parser.TryParse("{{ foo }} {{ date }}", out var template, out var error);
+            
+            var context = new TemplateContext { TimeZone = plusTwoTimezone };
+            context.SetValue("foo", "bar");
+            context.SetValue("date", DateTime.MinValue);
+
+            // This should not throw ArgumentOutOfRangeException
+            var result = await template.RenderAsync(context);
+            
+            // DateTime.MinValue should be rendered as the minimum DateTimeOffset value
+            Assert.Contains("bar", result);
+            Assert.Contains("0001-01-01", result);
+        }
+
+        [Fact]
+        public async Task ShouldHandleDateTimeNearMinValueWithPositiveTimezoneOffset()
+        {
+            // Set a timezone offset of +2 hours (like EET - Eastern European Time)
+            var plusTwoTimezone = TimeZoneInfo.CreateCustomTimeZone("Custom+2", TimeSpan.FromHours(2), "UTC+2", "UTC+2");
+            
+            _parser.TryParse("{{ foo }} {{ date }}", out var template, out var error);
+            
+            var context = new TemplateContext { TimeZone = plusTwoTimezone };
+            context.SetValue("foo", "bar");
+            context.SetValue("date", DateTime.MinValue.AddHours(1));
+
+            // This should not throw ArgumentOutOfRangeException even with DateTime.MinValue + 1 hour
+            var result = await template.RenderAsync(context);
+            
+            // DateTime near MinValue should be rendered as the minimum DateTimeOffset value
+            Assert.Contains("bar", result);
+            Assert.Contains("0001-01-01", result);
+        }
+
+        [Fact]
+        public async Task ShouldHandleDateTimeMaxValueWithNegativeTimezoneOffset()
+        {
+            // Set a timezone offset of -2 hours (like Brazil Standard Time)
+            var minusTwoTimezone = TimeZoneInfo.CreateCustomTimeZone("Custom-2", TimeSpan.FromHours(-2), "UTC-2", "UTC-2");
+            
+            _parser.TryParse("{{ foo }} {{ date }}", out var template, out var error);
+            
+            var context = new TemplateContext { TimeZone = minusTwoTimezone };
+            context.SetValue("foo", "bar");
+            context.SetValue("date", DateTime.MaxValue);
+
+            // This should not throw ArgumentOutOfRangeException
+            var result = await template.RenderAsync(context);
+            
+            // DateTime.MaxValue should be rendered as the maximum DateTimeOffset value
+            Assert.Contains("bar", result);
+            Assert.Contains("9999-12-31", result);
+        }
+
+        [Fact]
+        public async Task ShouldHandleDateTimeNearMaxValueWithNegativeTimezoneOffset()
+        {
+            // Set a timezone offset of -2 hours (like Brazil Standard Time)
+            var minusTwoTimezone = TimeZoneInfo.CreateCustomTimeZone("Custom-2", TimeSpan.FromHours(-2), "UTC-2", "UTC-2");
+            
+            _parser.TryParse("{{ foo }} {{ date }}", out var template, out var error);
+            
+            var context = new TemplateContext { TimeZone = minusTwoTimezone };
+            context.SetValue("foo", "bar");
+            context.SetValue("date", DateTime.MaxValue.AddHours(-1));
+
+            // This should not throw ArgumentOutOfRangeException even with DateTime.MaxValue - 1 hour
+            var result = await template.RenderAsync(context);
+            
+            // DateTime near MaxValue should be rendered as the maximum DateTimeOffset value
+            Assert.Contains("bar", result);
+            Assert.Contains("9999-12-31", result);
+        }
+
+        [Fact]
         public async Task ShouldEvaluateObjectProperty()
         {
             _parser.TryParse("{{ p.Firstname }}", out var template, out var error);
