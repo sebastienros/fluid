@@ -88,6 +88,12 @@ namespace Fluid.Values
                 }
             }
 
+            // Track missing property if StrictVariables enabled
+            if (context.Options.StrictVariables)
+            {
+                context.TrackMissingVariable(name);
+            }
+
             return new ValueTask<FluidValue>(NilValue.Instance);
 
 
@@ -118,6 +124,12 @@ namespace Fluid.Values
 
                 if (accessor == null)
                 {
+                    // Track missing nested property if StrictVariables enabled
+                    if (context.Options.StrictVariables)
+                    {
+                        context.TrackMissingVariable(prop);
+                    }
+
                     return NilValue.Instance;
                 }
 

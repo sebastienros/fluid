@@ -34,7 +34,7 @@ namespace Fluid.Ast
 
             // Search the initial segment in the local scope first
 
-            var value = context.LocalScope.GetValue(initial.Identifier);
+            var value = context.LocalScope.GetValue(initial.Identifier, context);
 
             // If it was not successful, try again with a member of the model
 

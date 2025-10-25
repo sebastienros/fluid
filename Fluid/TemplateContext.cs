@@ -138,12 +138,38 @@ namespace Fluid
         internal Scope RootScope { get; set; }
 
         private Dictionary<string, object> _ambientValues;
+        private HashSet<string> _missingVariables;
 
         /// <summary>
         /// Used to define custom object on this instance to be used in filters and statements
         /// but which are not available from the template.
         /// </summary>
         public Dictionary<string, object> AmbientValues => _ambientValues ??= new Dictionary<string, object>();
+
+        /// <summary>
+        /// Tracks a missing variable when StrictVariables is enabled.
+        /// </summary>
+        internal void TrackMissingVariable(string variablePath)
+        {
+            _missingVariables ??= new HashSet<string>();
+            _missingVariables.Add(variablePath);
+        }
+
+        /// <summary>
+        /// Gets the collection of missing variables tracked during rendering.
+        /// </summary>
+        internal IReadOnlyList<string> GetMissingVariables()
+        {
+            return _missingVariables?.ToList() ?? new List<string>();
+        }
+
+        /// <summary>
+        /// Clears the collection of missing variables.
+        /// </summary>
+        internal void ClearMissingVariables()
+        {
+            _missingVariables?.Clear();
+        }
 
         /// <summary>
         /// Gets or sets a model object that is used to resolve properties in a template. This object is used if local and
@@ -226,7 +252,7 @@ namespace Fluid
         /// <param name="name">The name of the value.</param>
         public FluidValue GetValue(string name)
         {
-            return LocalScope.GetValue(name);
+            return LocalScope.GetValue(name, this);
         }
 
         /// <summary>
