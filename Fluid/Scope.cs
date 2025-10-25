@@ -46,8 +46,9 @@ namespace Fluid
         /// if it doesn't exist.
         /// </summary>
         /// <param name="name">The name of the value to return.</param>
+        /// <param name="context">The optional template context for tracking missing variables.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public FluidValue GetValue(string name)
+        public FluidValue GetValue(string name, TemplateContext context = null)
         {
             if (name == null)
             {
@@ -59,9 +60,18 @@ namespace Fluid
                 return result;
             }
 
-            return Parent != null
-                ? Parent.GetValue(name)
-                : NilValue.Instance;
+            if (Parent != null)
+            {
+                return Parent.GetValue(name, context);
+            }
+
+            // Track missing variable if StrictVariables enabled
+            if (context?.Options.StrictVariables == true)
+            {
+                context.TrackMissingVariable(name);
+            }
+
+            return NilValue.Instance;
         }
 
         /// <summary>
