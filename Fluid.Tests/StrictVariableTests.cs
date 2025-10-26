@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Fluid.Parser;
 using Fluid.Tests.Domain;
 using Xunit;
 
@@ -367,6 +365,53 @@ namespace Fluid.Tests
 
             var exception = await Assert.ThrowsAsync<StrictVariableException>(() => template.RenderAsync(context).AsTask());
             Assert.Contains("bar", exception.MissingVariables);
+        }
+
+        [Fact]
+        public async Task UndefinedDelegate_ReceivesNotifications()
+        {
+            _parser.TryParse("{{ first }} {{ first }} {{ second }}", out var template, out var _);
+
+            var arguments = new List<UndefinedVariableEventArgs>();
+            var options = new TemplateOptions
+            {
+                Undefined = args => arguments.Add(args)
+            };
+
+            var context = new TemplateContext(options);
+
+            var result = await template.RenderAsync(context);
+            Assert.True(string.IsNullOrWhiteSpace(result));
+
+            Assert.Equal(3, arguments.Count);
+            Assert.Equal("first", arguments[0].Path);
+            Assert.True(arguments[0].IsFirstOccurrence);
+            Assert.Equal("first", arguments[1].Path);
+            Assert.False(arguments[1].IsFirstOccurrence);
+            Assert.Equal("second", arguments[2].Path);
+            Assert.True(arguments[2].IsFirstOccurrence);
+        }
+
+        [Fact]
+        public async Task StrictVariables_ThrowsAfterUndefinedDelegate()
+        {
+            _parser.TryParse("{{ missing }}", out var template, out var _);
+
+            var paths = new List<string>();
+            var options = new TemplateOptions
+            {
+                StrictVariables = true,
+                Undefined = args => paths.Add(args.Path)
+            };
+
+            var context = new TemplateContext(options);
+
+            var exception = await Assert.ThrowsAsync<StrictVariableException>(() => template.RenderAsync(context).AsTask());
+            Assert.Single(exception.MissingVariables);
+            Assert.Equal("missing", exception.MissingVariables[0]);
+
+            Assert.Single(paths);
+            Assert.Equal("missing", paths[0]);
         }
     }
 }

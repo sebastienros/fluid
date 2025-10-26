@@ -1,5 +1,5 @@
-using Fluid.Values;
 using System.Runtime.CompilerServices;
+using Fluid.Values;
 
 namespace Fluid
 {
@@ -46,9 +46,25 @@ namespace Fluid
         /// if it doesn't exist.
         /// </summary>
         /// <param name="name">The name of the value to return.</param>
-        /// <param name="context">The optional template context for tracking missing variables.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public FluidValue GetValue(string name, TemplateContext context = null)
+        public FluidValue GetValue(string name)
+        {
+            if (TryGetValue(name, out var value))
+            {
+                return value;
+            }
+
+            return NilValue.Instance;
+        }
+
+        /// <summary>
+        /// Attempts to retrieve the value with the specified name in the chain of scopes.
+        /// </summary>
+        /// <param name="name">The name of the value to return.</param>
+        /// <param name="value">When this method returns, contains the value associated with the specified name, if found; otherwise <see cref="NilValue.Instance"/>.</param>
+        /// <returns><c>true</c> if the value was found; otherwise, <c>false</c>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetValue(string name, out FluidValue value)
         {
             if (name == null)
             {
@@ -57,21 +73,17 @@ namespace Fluid
 
             if (_properties != null && _properties.TryGetValue(name, out var result))
             {
-                return result;
+                value = result;
+                return true;
             }
 
             if (Parent != null)
             {
-                return Parent.GetValue(name, context);
+                return Parent.TryGetValue(name, out value);
             }
 
-            // Track missing variable if StrictVariables enabled
-            if (context?.Options.StrictVariables == true)
-            {
-                context.TrackMissingVariable(name);
-            }
-
-            return NilValue.Instance;
+            value = NilValue.Instance;
+            return false;
         }
 
         /// <summary>

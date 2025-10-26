@@ -1,6 +1,6 @@
-using Fluid.Values;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using Fluid.Values;
 
 namespace Fluid
 {
@@ -146,26 +146,42 @@ namespace Fluid
         /// </summary>
         public Dictionary<string, object> AmbientValues => _ambientValues ??= new Dictionary<string, object>();
 
-        /// <summary>
-        /// Tracks a missing variable when StrictVariables is enabled.
-        /// </summary>
-        internal void TrackMissingVariable(string variablePath)
+        internal bool ShouldTrackUndefined => Options.StrictVariables || Options.Undefined != null;
+
+        internal FluidValue CreateUndefinedValue(string path)
         {
-            _missingVariables ??= new HashSet<string>();
-            _missingVariables.Add(variablePath);
+            if (!ShouldTrackUndefined)
+            {
+                return NilValue.Instance;
+            }
+
+            return new UndefinedValue(path, this);
         }
 
-        /// <summary>
-        /// Gets the collection of missing variables tracked during rendering.
-        /// </summary>
+        internal void NotifyUndefinedUsage(string path)
+        {
+            if (!ShouldTrackUndefined)
+            {
+                return;
+            }
+
+            _missingVariables ??= new HashSet<string>(StringComparer.Ordinal);
+            var isFirst = _missingVariables.Add(path);
+
+            var handler = Options.Undefined;
+            if (handler != null)
+            {
+                handler(new UndefinedVariableEventArgs(this, path, isFirst));
+            }
+        }
+
         internal IReadOnlyList<string> GetMissingVariables()
         {
             return _missingVariables?.ToList() ?? new List<string>();
         }
 
-        /// <summary>
-        /// Clears the collection of missing variables.
-        /// </summary>
+        internal bool HasMissingVariables => _missingVariables != null && _missingVariables.Count > 0;
+
         internal void ClearMissingVariables()
         {
             _missingVariables?.Clear();
@@ -252,7 +268,12 @@ namespace Fluid
         /// <param name="name">The name of the value.</param>
         public FluidValue GetValue(string name)
         {
-            return LocalScope.GetValue(name, this);
+            if (LocalScope.TryGetValue(name, out var value))
+            {
+                return value;
+            }
+
+            return CreateUndefinedValue(name);
         }
 
         /// <summary>

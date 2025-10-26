@@ -1,7 +1,8 @@
-﻿using Fluid.Utils;
-using System.Collections;
+﻿using System.Collections;
 using System.Globalization;
+using System.Text;
 using System.Text.Encodings.Web;
+using Fluid.Utils;
 
 namespace Fluid.Values
 {
@@ -56,7 +57,6 @@ namespace Fluid.Values
 
             if (name.Contains('.'))
             {
-                // Try to access the property with dots inside
                 if (accessor != null)
                 {
                     if (accessor is IAsyncMemberAccessor asyncAccessor)
@@ -68,33 +68,24 @@ namespace Fluid.Values
 
                     if (directValue != null)
                     {
-                        return new ValueTask<FluidValue>(FluidValue.Create(directValue, context.Options));
+                        return new ValueTask<FluidValue>(Create(directValue, context.Options));
                     }
                 }
 
-                // Otherwise split the name in different segments
                 return GetNestedValueAsync(name, context);
             }
-            else
+
+            if (accessor != null)
             {
-                if (accessor != null)
+                if (accessor is IAsyncMemberAccessor asyncAccessor)
                 {
-                    if (accessor is IAsyncMemberAccessor asyncAccessor)
-                    {
-                        return Awaited(asyncAccessor, Value, name, context);
-                    }
-
-                    return FluidValue.Create(accessor.Get(Value, name, context), context.Options);
+                    return Awaited(asyncAccessor, Value, name, context);
                 }
+
+                return Create(accessor.Get(Value, name, context), context.Options);
             }
 
-            // Track missing property if StrictVariables enabled
-            if (context.Options.StrictVariables)
-            {
-                context.TrackMissingVariable(name);
-            }
-
-            return new ValueTask<FluidValue>(NilValue.Instance);
+            return new ValueTask<FluidValue>(context.CreateUndefinedValue(name));
 
 
             static async ValueTask<FluidValue> Awaited(
@@ -110,11 +101,20 @@ namespace Fluid.Values
         private async ValueTask<FluidValue> GetNestedValueAsync(string name, TemplateContext context)
         {
             var members = name.Split(MemberSeparators);
-
             var target = Value;
+            var builder = new StringBuilder();
+            var first = true;
 
             foreach (var prop in members)
             {
+                if (!first)
+                {
+                    builder.Append('.');
+                }
+
+                builder.Append(prop);
+                first = false;
+
                 if (target == null)
                 {
                     return NilValue.Instance;
@@ -124,13 +124,7 @@ namespace Fluid.Values
 
                 if (accessor == null)
                 {
-                    // Track missing nested property if StrictVariables enabled
-                    if (context.Options.StrictVariables)
-                    {
-                        context.TrackMissingVariable(prop);
-                    }
-
-                    return NilValue.Instance;
+                    return context.CreateUndefinedValue(builder.ToString());
                 }
 
                 if (accessor is IAsyncMemberAccessor asyncAccessor)
@@ -143,7 +137,7 @@ namespace Fluid.Values
                 }
             }
 
-            return FluidValue.Create(target, context.Options);
+            return Create(target, context.Options);
         }
 
         public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)

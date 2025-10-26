@@ -1,5 +1,5 @@
-﻿using Fluid.Ast;
-using System.Text.Encodings.Web;
+﻿using System.Text.Encodings.Web;
+using Fluid.Ast;
 
 namespace Fluid.Parser
 {
@@ -34,26 +34,20 @@ namespace Fluid.Parser
                 ExceptionHelper.ThrowArgumentNullException(nameof(context));
             }
 
-            // Clear missing variables from previous renders
-            context.ClearMissingVariables();
-
-            // If StrictVariables enabled, render to temp buffer to collect all missing variables
-            TextWriter targetWriter = writer;
-            if (context.Options.StrictVariables)
+            if (context.ShouldTrackUndefined)
             {
-                targetWriter = new StringWriter();
+                context.ClearMissingVariables();
             }
 
             var count = Statements.Count;
             for (var i = 0; i < count; i++)
             {
-                var task = Statements[i].WriteToAsync(targetWriter, encoder, context);
+                var task = Statements[i].WriteToAsync(writer, encoder, context);
                 if (!task.IsCompletedSuccessfully)
                 {
                     return Awaited(
                         task,
                         writer,
-                        targetWriter,
                         encoder,
                         context,
                         Statements,
@@ -61,17 +55,9 @@ namespace Fluid.Parser
                 }
             }
 
-            // Check for missing variables after rendering
-            if (context.Options.StrictVariables)
+            if (context.Options.StrictVariables && context.HasMissingVariables)
             {
-                var missingVariables = context.GetMissingVariables();
-                if (missingVariables.Count > 0)
-                {
-                    throw new StrictVariableException(missingVariables);
-                }
-
-                // Write buffered output to actual writer
-                writer.Write(((StringWriter)targetWriter).ToString());
+                throw new StrictVariableException(context.GetMissingVariables());
             }
 
             return new ValueTask();
@@ -80,7 +66,6 @@ namespace Fluid.Parser
         private static async ValueTask Awaited(
             ValueTask<Completion> task,
             TextWriter writer,
-            TextWriter targetWriter,
             TextEncoder encoder,
             TemplateContext context,
             IReadOnlyList<Statement> statements,
@@ -89,20 +74,12 @@ namespace Fluid.Parser
             await task;
             for (var i = startIndex; i < statements.Count; i++)
             {
-                await statements[i].WriteToAsync(targetWriter, encoder, context);
+                await statements[i].WriteToAsync(writer, encoder, context);
             }
 
-            // Check for missing variables after async rendering
-            if (context.Options.StrictVariables)
+            if (context.Options.StrictVariables && context.HasMissingVariables)
             {
-                var missingVariables = context.GetMissingVariables();
-                if (missingVariables.Count > 0)
-                {
-                    throw new StrictVariableException(missingVariables);
-                }
-
-                // Write buffered output to actual writer
-                await writer.WriteAsync(((StringWriter)targetWriter).ToString());
+                throw new StrictVariableException(context.GetMissingVariables());
             }
         }
     }

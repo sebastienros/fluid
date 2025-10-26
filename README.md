@@ -35,6 +35,7 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 - [Features](#features)
 - [Using Fluid in your project](#using-fluid-in-your-project)
 - [Allow-listing object members](#allow-listing-object-members)
+- [Handling undefined variables](#handling-undefined-variables)
 - [Execution limits](#execution-limits)
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
@@ -237,6 +238,64 @@ options.ValueConverters.Add(o => o is Person p ? new PersonValue(p) : null);
 ```
 
 It can also be used to replace custom member access by customizing `GetValueAsync`, or do custom conversions to standard Fluid types. 
+
+<br>
+
+## Handling undefined variables
+
+Fluid evaluates members lazily, so undefined identifiers can be detected precisely when they are consumed. You can opt into strict validation or simply observe the accesses.
+
+### Strict enforcement
+
+Enable `TemplateOptions.StrictVariables` to aggregate every missing variable that is evaluated while rendering. Fluid throws a `StrictVariableException` after the template finishes, and the exception exposes the full list via `MissingVariables`.
+
+```csharp
+var options = new TemplateOptions
+{
+    StrictVariables = true
+};
+
+var template = FluidTemplate.Parse("Hello {{ user.name }} in {{ city }}!");
+var context = new TemplateContext(options);
+
+try
+{
+    await template.RenderAsync(context);
+}
+catch (StrictVariableException ex)
+{
+    // ex.MissingVariables contains ["user.name", "city"]
+}
+```
+
+### Observing undefined accesses
+
+To log, collect metrics, or apply custom policies, assign `TemplateOptions.Undefined`. The delegate receives an `UndefinedVariableEventArgs` instance each time a path resolves to an undefined value, including:
+
+- `Path`: the path that was evaluated (nested identifiers are dot-separated).
+- `Context`: the active `TemplateContext`.
+- `IsFirstOccurrence`: `true` only the first time that path is seen during the render.
+
+```csharp
+var options = new TemplateOptions
+{
+    Undefined = args =>
+    {
+        if (args.IsFirstOccurrence)
+        {
+            Console.WriteLine($"Missing variable: {args.Path}");
+        }
+    }
+};
+
+var template = FluidTemplate.Parse("{{ first }} {{ first }} {{ second }}");
+var context = new TemplateContext(options);
+await template.RenderAsync(context);
+```
+
+The callback runs regardless of the strict-variable setting. When strict mode is enabled and a handler is provided, the notifications are raised before `StrictVariableException` is thrown, allowing you to fail fast or defer the decision.
+
+<br>
 
 ### Inheritance
 

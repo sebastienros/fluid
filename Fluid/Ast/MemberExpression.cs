@@ -32,19 +32,13 @@ namespace Fluid.Ast
 
             var initial = _segments[0] as IdentifierSegment;
 
-            // Search the initial segment in the local scope first
-
-            var value = context.LocalScope.GetValue(initial.Identifier, context);
-
-            // If it was not successful, try again with a member of the model
-
             var start = 1;
 
-            if (value.IsNil())
+            if (!context.LocalScope.TryGetValue(initial.Identifier, out var value))
             {
                 if (context.Model == null)
                 {
-                    return new ValueTask<FluidValue>(value);
+                    return new ValueTask<FluidValue>(context.CreateUndefinedValue(initial.Identifier));
                 }
 
                 start = 0;
