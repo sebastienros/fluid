@@ -9,9 +9,9 @@ namespace Fluid.Tests;
 public class StrictVariableTests
 {
 #if COMPILED
-    private static FluidParser _parser = new FluidParser().Compile();
+    private static readonly FluidParser _parser = new FluidParser().Compile();
 #else
-    private static FluidParser _parser = new FluidParser();
+    private static readonly FluidParser _parser = new FluidParser();
 #endif
 
     [Fact]
