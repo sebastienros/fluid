@@ -28,16 +28,13 @@ namespace Fluid.Values
         {
             if (other.IsNil())
             {
-                switch (Value)
+                return Value switch
                 {
-                    case ICollection collection:
-                        return collection.Count == 0;
+                    ICollection collection => collection.Count == 0,
+                    IEnumerable enumerable => !enumerable.GetEnumerator().MoveNext(),
+                    _ => false,
+                };
 
-                    case IEnumerable enumerable:
-                        return !enumerable.GetEnumerator().MoveNext();
-                }
-
-                return false;
             }
 
             return other is ObjectValueBase otherObject && Value.Equals(otherObject.Value);
@@ -85,7 +82,12 @@ namespace Fluid.Values
                 return Create(accessor.Get(Value, name, context), context.Options);
             }
 
-            return new ValueTask<FluidValue>(context.CreateUndefinedValue(name));
+            if (context.Undefined is not null)
+            {
+                return context.Undefined.Invoke(name);
+            }
+            
+            return new ValueTask<FluidValue>(NilValue.Instance);
 
 
             static async ValueTask<FluidValue> Awaited(
@@ -102,18 +104,15 @@ namespace Fluid.Values
         {
             var members = name.Split(MemberSeparators);
             var target = Value;
-            var builder = new StringBuilder();
-            var first = true;
+            List<string> segments = null;
 
             foreach (var prop in members)
             {
-                if (!first)
+                if (context.Undefined is not null)
                 {
-                    builder.Append('.');
+                    segments ??= [];
+                    segments.Add(prop);
                 }
-
-                builder.Append(prop);
-                first = false;
 
                 if (target == null)
                 {
@@ -124,7 +123,11 @@ namespace Fluid.Values
 
                 if (accessor == null)
                 {
-                    return context.CreateUndefinedValue(builder.ToString());
+                    if (context.Undefined is not null)
+                    {
+                        return await context.Undefined.Invoke(string.Join(".", segments));
+                    }
+                    return NilValue.Instance;
                 }
 
                 if (accessor is IAsyncMemberAccessor asyncAccessor)

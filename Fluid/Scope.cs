@@ -49,23 +49,6 @@ namespace Fluid
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public FluidValue GetValue(string name)
         {
-            if (TryGetValue(name, out var value))
-            {
-                return value;
-            }
-
-            return NilValue.Instance;
-        }
-
-        /// <summary>
-        /// Attempts to retrieve the value with the specified name in the chain of scopes.
-        /// </summary>
-        /// <param name="name">The name of the value to return.</param>
-        /// <param name="value">When this method returns, contains the value associated with the specified name, if found; otherwise <see cref="NilValue.Instance"/>.</param>
-        /// <returns><c>true</c> if the value was found; otherwise, <c>false</c>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetValue(string name, out FluidValue value)
-        {
             if (name == null)
             {
                 ExceptionHelper.ThrowArgumentNullException(nameof(name));
@@ -73,17 +56,12 @@ namespace Fluid
 
             if (_properties != null && _properties.TryGetValue(name, out var result))
             {
-                value = result;
-                return true;
+                return result;
             }
 
-            if (Parent != null)
-            {
-                return Parent.TryGetValue(name, out value);
-            }
-
-            value = NilValue.Instance;
-            return false;
+            return Parent != null
+                ? Parent.GetValue(name)
+                : NilValue.Instance;
         }
 
         /// <summary>

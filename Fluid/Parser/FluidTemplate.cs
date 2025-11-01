@@ -34,10 +34,10 @@ namespace Fluid.Parser
                 ExceptionHelper.ThrowArgumentNullException(nameof(context));
             }
 
-            if (context.ShouldTrackUndefined)
-            {
-                context.ClearMissingVariables();
-            }
+            // if (context.ShouldTrackUndefined)
+            // {
+            //     context.ClearMissingVariables();
+            // }
 
             var count = Statements.Count;
             for (var i = 0; i < count; i++)
@@ -55,11 +55,6 @@ namespace Fluid.Parser
                 }
             }
 
-            if (context.Options.StrictVariables && context.HasMissingVariables)
-            {
-                throw new StrictVariableException(context.GetMissingVariables());
-            }
-
             return new ValueTask();
         }
 
@@ -75,11 +70,6 @@ namespace Fluid.Parser
             for (var i = startIndex; i < statements.Count; i++)
             {
                 await statements[i].WriteToAsync(writer, encoder, context);
-            }
-
-            if (context.Options.StrictVariables && context.HasMissingVariables)
-            {
-                throw new StrictVariableException(context.GetMissingVariables());
             }
         }
     }

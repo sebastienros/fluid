@@ -56,6 +56,7 @@ namespace Fluid
             TimeZone = options.TimeZone;
             Captured = options.Captured;
             Assigned = options.Assigned;
+            Undefined = options.Undefined;
             Now = options.Now;
             MaxSteps = options.MaxSteps;
             ModelNamesComparer = modelNamesComparer;
@@ -138,54 +139,12 @@ namespace Fluid
         internal Scope RootScope { get; set; }
 
         private Dictionary<string, object> _ambientValues;
-        private HashSet<string> _missingVariables;
 
         /// <summary>
         /// Used to define custom object on this instance to be used in filters and statements
         /// but which are not available from the template.
         /// </summary>
         public Dictionary<string, object> AmbientValues => _ambientValues ??= new Dictionary<string, object>();
-
-        internal bool ShouldTrackUndefined => Options.StrictVariables || Options.Undefined != null;
-
-        internal FluidValue CreateUndefinedValue(string path)
-        {
-            if (!ShouldTrackUndefined)
-            {
-                return NilValue.Instance;
-            }
-
-            return new UndefinedValue(path, this);
-        }
-
-        internal void NotifyUndefinedUsage(string path)
-        {
-            if (!ShouldTrackUndefined)
-            {
-                return;
-            }
-
-            _missingVariables ??= new HashSet<string>(StringComparer.Ordinal);
-            var isFirst = _missingVariables.Add(path);
-
-            var handler = Options.Undefined;
-            if (handler != null)
-            {
-                handler(new UndefinedVariableEventArgs(this, path, isFirst));
-            }
-        }
-
-        internal IReadOnlyList<string> GetMissingVariables()
-        {
-            return _missingVariables?.ToList() ?? new List<string>();
-        }
-
-        internal bool HasMissingVariables => _missingVariables != null && _missingVariables.Count > 0;
-
-        internal void ClearMissingVariables()
-        {
-            _missingVariables?.Clear();
-        }
 
         /// <summary>
         /// Gets or sets a model object that is used to resolve properties in a template. This object is used if local and
@@ -207,6 +166,11 @@ namespace Fluid
         /// Gets or sets the delegate to execute when an Assign tag has been evaluated.
         /// </summary>
         public TemplateOptions.AssignedDelegate Assigned { get; set; }
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when an undefined value is used.
+        /// </summary>
+        public TemplateOptions.UndefinedDelegate Undefined { get; set; }
 
         /// <summary>
         /// Creates a new isolated child scope. After than any value added to this content object will be released once
@@ -268,12 +232,7 @@ namespace Fluid
         /// <param name="name">The name of the value.</param>
         public FluidValue GetValue(string name)
         {
-            if (LocalScope.TryGetValue(name, out var value))
-            {
-                return value;
-            }
-
-            return CreateUndefinedValue(name);
+            return LocalScope.GetValue(name);
         }
 
         /// <summary>
@@ -315,7 +274,7 @@ namespace Fluid
         {
             if (value == null)
             {
-                return context.SetValue(name, NilValue.Instance);
+                return context.SetValue(name, EmptyValue.Instance);
             }
 
             return context.SetValue(name, FluidValue.Create(value, context.Options));

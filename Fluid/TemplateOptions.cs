@@ -20,11 +20,9 @@ namespace Fluid
         /// <returns>The value which should be captured.</returns>
         public delegate ValueTask<FluidValue> CapturedDelegate(string identifier, FluidValue value, TemplateContext context);
 
-        /// <summary>
-        /// Represents the method that will handle undefined variable notifications.
-        /// </summary>
-        /// <param name="args">The event arguments containing context information.</param>
-        public delegate void UndefinedVariableDelegate(UndefinedVariableEventArgs args);
+        /// <param name="name">The name of the value that is undefined.</param>
+        /// <returns>The value to use for the undefined value.</returns>
+        public delegate ValueTask<FluidValue> UndefinedDelegate(string name);
 
         public static readonly TemplateOptions Default = new();
 
@@ -109,7 +107,7 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the delegate to execute when an undefined value is encountered during rendering.
         /// </summary>
-        public UndefinedVariableDelegate Undefined { get; set; }
+        public UndefinedDelegate Undefined { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="JavaScriptEncoder" /> instance used by the <c>json</c> filter.
@@ -131,7 +129,7 @@ namespace Fluid
         /// When true, accessing undefined variables will collect all missing variables and throw a StrictVariableException.
         /// Default is false.
         /// </summary>
-        public bool StrictVariables { get; set; } = false;
+        // public bool StrictVariables { get; set; } = false;
 
         public TemplateOptions()
         {
