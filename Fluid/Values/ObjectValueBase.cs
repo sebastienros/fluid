@@ -104,13 +104,12 @@ namespace Fluid.Values
         {
             var members = name.Split(MemberSeparators);
             var target = Value;
-            List<string> segments = null;
+            List<string> segments = context.Undefined is not null ? [] : null;
 
             foreach (var prop in members)
             {
                 if (context.Undefined is not null)
                 {
-                    segments ??= [];
                     segments.Add(prop);
                 }
 
