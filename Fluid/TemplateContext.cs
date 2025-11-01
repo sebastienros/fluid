@@ -120,7 +120,7 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the <see cref="JsonWriterOptions"/> used by the <c>json</c> filter.
         /// </summary>
-        public JsonWriterOptions JsonWriterOptions { get; set; } = new JsonWriterOptions();
+        public JsonWriterOptions JsonWriterOptions { get; set; } = TemplateOptions.Default.JsonWriterOptions();
 
         /// <summary>
         /// Increments the number of statements the current template is processing.
