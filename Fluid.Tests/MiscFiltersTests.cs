@@ -5,6 +5,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Threading.Tasks;
 using TimeZoneConverter;
 using Xunit;
@@ -828,7 +829,7 @@ namespace Fluid.Tests
         {
             var options = new TemplateOptions
             {
-                JsonWriterOptions = new System.Text.Json.JsonWriterOptions
+                JsonWriterOptions = new JsonWriterOptions
                 {
                     Indented = true
                 }
@@ -849,7 +850,7 @@ namespace Fluid.Tests
             var options = new TemplateOptions();
             var context = new TemplateContext(options)
             {
-                JsonWriterOptions = new System.Text.Json.JsonWriterOptions
+                JsonWriterOptions = new JsonWriterOptions
                 {
                     Indented = true
                 }
@@ -868,7 +869,7 @@ namespace Fluid.Tests
         {
             var options = new TemplateOptions
             {
-                JsonWriterOptions = new System.Text.Json.JsonWriterOptions
+                JsonWriterOptions = new JsonWriterOptions
                 {
                     Indented = true
                 }
