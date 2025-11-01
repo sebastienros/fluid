@@ -792,10 +792,15 @@ namespace Fluid.Filters
         public static async ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             using var ms = new MemoryStream();
-            await using (var writer = new Utf8JsonWriter(ms, new JsonWriterOptions
+            
+            // Start with context.JsonWriterOptions, but allow argument to override Indented
+            var writerOptions = context.JsonWriterOptions;
+            if (!arguments.At(0).IsNil())
             {
-                Indented = arguments.At(0).ToBooleanValue()
-            }))
+                writerOptions.Indented = arguments.At(0).ToBooleanValue();
+            }
+            
+            await using (var writer = new Utf8JsonWriter(ms, writerOptions))
             {
                 await WriteJson(writer, input, context);
             }
