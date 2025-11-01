@@ -42,7 +42,7 @@ namespace Fluid.Filters
             }
             else
             {
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
         }
 
@@ -63,7 +63,7 @@ namespace Fluid.Filters
             }
             else
             {
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
         }
 
@@ -84,7 +84,7 @@ namespace Fluid.Filters
             }
             else
             {
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
         }
 
@@ -108,7 +108,7 @@ namespace Fluid.Filters
             }
             else
             {
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
 
             return arguments.At(0).ToStringValue() switch
@@ -120,7 +120,7 @@ namespace Fluid.Filters
                 "hue" => new StringValue(hslColor.H.ToString(CultureInfo.InvariantCulture)),
                 "saturation" => new StringValue(Convert.ToInt32(hslColor.S * 100.0).ToString(CultureInfo.InvariantCulture)),
                 "lightness" => new StringValue(Convert.ToInt32(hslColor.L * 100.0).ToString(CultureInfo.InvariantCulture)),
-                _ => NilValue.Empty,
+                _ => EmptyValue.Instance,
             };
         }
 
@@ -150,7 +150,7 @@ namespace Fluid.Filters
             }
             else
             {
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
 
             var modifiedValue = arguments.At(1).ToNumberValue();
@@ -167,7 +167,7 @@ namespace Fluid.Filters
                     "hue" => new StringValue(((RgbColor)new HslColor((int)modifiedValue, hslColor.S, hslColor.L, hslColor.A)).ToString()),
                     "saturation" => new StringValue(((RgbColor)new HslColor(hslColor.H, (double)modifiedValue / 100.0, hslColor.L, hslColor.A)).ToString()),
                     "lightness" => new StringValue(((RgbColor)new HslColor(hslColor.H, hslColor.S, (double)modifiedValue / 100.0, hslColor.A)).ToString()),
-                    _ => NilValue.Empty,
+                    _ => EmptyValue.Instance,
                 };
             }
             else if (isHsl)
@@ -183,7 +183,7 @@ namespace Fluid.Filters
                     "hue" => new StringValue(new HslColor((int)modifiedValue, hslColor.S, hslColor.L, hslColor.A).ToString()),
                     "saturation" => new StringValue(new HslColor(hslColor.H, (double)modifiedValue / 100.0, hslColor.L, hslColor.A).ToString()),
                     "lightness" => new StringValue(new HslColor(hslColor.H, hslColor.S, (double)modifiedValue / 100.0, hslColor.A).ToString()),
-                    _ => NilValue.Empty,
+                    _ => EmptyValue.Instance,
                 };
             }
             else if (isHex)
@@ -200,13 +200,13 @@ namespace Fluid.Filters
                     "hue" => new StringValue(((HexColor)new HslColor((int)modifiedValue, hslColor.S, hslColor.L, hslColor.A)).ToString()),
                     "saturation" => new StringValue(((HexColor)new HslColor(hslColor.H, (double)modifiedValue / 100.0, hslColor.L, hslColor.A)).ToString()),
                     "lightness" => new StringValue(((HexColor)new HslColor(hslColor.H, hslColor.S, (double)modifiedValue / 100.0, hslColor.A)).ToString()),
-                    _ => NilValue.Empty,
+                    _ => EmptyValue.Instance,
                 };
             }
             else
             {
                 // The code is unreachable
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
         }
 
@@ -228,7 +228,7 @@ namespace Fluid.Filters
             }
             else
             {
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
 
             var brightness = Convert.ToDouble(rgbColor.R * 299 + rgbColor.G * 587 + rgbColor.B * 114) / 1000.0;
@@ -258,7 +258,7 @@ namespace Fluid.Filters
             }
             else
             {
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
 
             if (isHex)
@@ -286,7 +286,7 @@ namespace Fluid.Filters
             else
             {
                 // The code is unreachable
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
         }
 
@@ -312,7 +312,7 @@ namespace Fluid.Filters
             }
             else
             {
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
 
             if (isHex)
@@ -340,7 +340,7 @@ namespace Fluid.Filters
             else
             {
                 // The code is unreachable
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
         }
 
@@ -366,7 +366,7 @@ namespace Fluid.Filters
             }
             else
             {
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
 
             if (isHex)
@@ -394,7 +394,7 @@ namespace Fluid.Filters
             else
             {
                 // The code is unreachable
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
         }
 
@@ -421,7 +421,7 @@ namespace Fluid.Filters
             }
             else
             {
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
 
             if (isHex)
@@ -449,7 +449,7 @@ namespace Fluid.Filters
             else
             {
                 // The code is unreachable
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
         }
 
@@ -459,7 +459,7 @@ namespace Fluid.Filters
             var rgbColor2 = GetRgbColor(arguments.At(0).ToStringValue());
             if (rgbColor1.Equals(RgbColor.Empty) || rgbColor2.Equals(RgbColor.Empty))
             {
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
             else
             {
@@ -477,7 +477,7 @@ namespace Fluid.Filters
             var rgbColor2 = GetRgbColor(arguments.At(0).ToStringValue());
             if (rgbColor1.Equals(RgbColor.Empty) || rgbColor2.Equals(RgbColor.Empty))
             {
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
             else
             {
@@ -495,7 +495,7 @@ namespace Fluid.Filters
             var rgbColor2 = GetRgbColor(arguments.At(0).ToStringValue());
             if (rgbColor1.Equals(RgbColor.Empty) || rgbColor2.Equals(RgbColor.Empty))
             {
-                return NilValue.Empty;
+                return EmptyValue.Instance;
             }
             else
             {

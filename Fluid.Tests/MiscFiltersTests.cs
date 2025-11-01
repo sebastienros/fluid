@@ -923,7 +923,7 @@ namespace Fluid.Tests
         {
             // Arrange
             FluidValue input = value is null
-                ? NilValue.Empty
+                ? EmptyValue.Instance
                 : new StringValue(value);
             var arguments = new FilterArguments(FluidValue.Create(key, TemplateOptions.Default));
             var context = new TemplateContext();
@@ -945,7 +945,7 @@ namespace Fluid.Tests
         {
             // Arrange
             FluidValue input = value is null
-                ? NilValue.Empty
+                ? EmptyValue.Instance
                 : new StringValue(value);
             var arguments = new FilterArguments(FluidValue.Create(key, TemplateOptions.Default));
             var context = new TemplateContext();

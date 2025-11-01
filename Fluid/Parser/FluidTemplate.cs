@@ -1,5 +1,5 @@
-﻿using Fluid.Ast;
-using System.Text.Encodings.Web;
+﻿using System.Text.Encodings.Web;
+using Fluid.Ast;
 
 namespace Fluid.Parser
 {

@@ -3,15 +3,8 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Values
 {
-    public sealed class NilValue : FluidValue
+    public abstract class BaseNilValue : FluidValue
     {
-        public static readonly NilValue Instance = new NilValue(); // a variable that is not defined, or the nil keyword
-        public static readonly NilValue Empty = new NilValue(); // the empty keyword
-
-        private NilValue()
-        {
-        }
-
         public override FluidValues Type => FluidValues.Nil;
 
         public override bool Equals(FluidValue other)
@@ -71,6 +64,18 @@ namespace Fluid.Values
         public override int GetHashCode()
         {
             return GetType().GetHashCode();
+        }
+    }
+
+    public sealed class NilValue : BaseNilValue
+    {
+        public static readonly NilValue Instance = new NilValue(); // a variable that is not defined, or the nil keyword
+
+        [Obsolete("Use EmptyValue.Instance instead.")]
+        public static readonly EmptyValue Empty = EmptyValue.Instance;
+
+        private NilValue()
+        {
         }
     }
 }

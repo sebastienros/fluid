@@ -62,7 +62,7 @@ public class FromStatementTests
         await fromStatement.WriteToAsync(sw, HtmlEncoder.Default, context);
 
         Assert.IsType<FunctionValue>(context.GetValue("hello_world"));
-        Assert.IsType<NilValue>(context.GetValue("hello"));
+        Assert.IsType<UndefinedValue>(context.GetValue("hello"));
     }
 
     [Fact]

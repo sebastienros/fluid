@@ -5,7 +5,7 @@ namespace Fluid.Values
 {
     public sealed class EmptyValue : FluidValue
     {
-        public static readonly EmptyValue Instance = new EmptyValue();
+        public static readonly EmptyValue Instance = new();
 
         private EmptyValue()
         {
@@ -21,6 +21,7 @@ namespace Fluid.Values
             if (other == BlankValue.Instance) return true;
             if (other == EmptyValue.Instance) return true;
             if (other == NilValue.Instance) return false;
+            if (other == UndefinedValue.Instance) return false;
 
             return false;
         }
