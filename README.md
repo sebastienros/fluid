@@ -241,59 +241,73 @@ It can also be used to replace custom member access by customizing `GetValueAsyn
 
 <br>
 
-## Handling undefined variables
+## Handling undefined values
 
-Fluid evaluates members lazily, so undefined identifiers can be detected precisely when they are consumed. You can opt into strict validation or simply observe the accesses.
+Fluid evaluates members lazily, so undefined identifiers can be detected precisely when they are consumed. By default, undefined values render as empty strings without raising errors.
 
-### Strict enforcement
+### Tracking undefined values
 
-Enable `TemplateOptions.StrictVariables` to aggregate every missing variable that is evaluated while rendering. Fluid throws a `StrictVariableException` after the template finishes, and the exception exposes the full list via `MissingVariables`.
+To track missing values during template rendering, assign a delegate to `TemplateOptions.Undefined` or `TemplateContext.Undefined`. This delegate is called each time an undefined variable is accessed and receives the variable path as a string parameter.
+
+```csharp
+var missingVariables = new List<string>();
+
+var context = new TemplateContext();
+context.Undefined = path =>
+    {
+        missingVariables.Add(path);
+        return ValueTask.FromResult<FluidValue>(NilValue.Instance);
+    }
+};
+
+var template = FluidTemplate.Parse("Hello {{ user.name }} in {{ city }}!");
+
+await template.RenderAsync(context);
+
+// missingVariables now contains ["user.name", "city"]
+```
+
+### Returning custom values for undefined values
+
+The `Undefined` delegate can return a custom `FluidValue` to provide fallback values or error messages for missing values:
 
 ```csharp
 var options = new TemplateOptions
 {
-    StrictVariables = true
+    Undefined = path =>
+    {
+        // Return a custom default value for undefined variables
+        return ValueTask.FromResult<FluidValue>(new StringValue($"[{path} not found]"));
+    }
 };
 
 var template = FluidTemplate.Parse("Hello {{ user.name }} in {{ city }}!");
 var context = new TemplateContext(options);
 
-try
-{
-    await template.RenderAsync(context);
-}
-catch (StrictVariableException ex)
-{
-    // ex.MissingVariables contains ["user.name", "city"]
-}
+var result = await template.RenderAsync(context);
+// Outputs: "Hello [user.name not found] in [city not found]!"
 ```
 
-### Observing undefined accesses
+### Logging undefined accesses
 
-To log, collect metrics, or apply custom policies, assign `TemplateOptions.Undefined`. The delegate receives an `UndefinedVariableEventArgs` instance each time a path resolves to an undefined value, including:
-
-- `Path`: the path that was evaluated (nested identifiers are dot-separated).
-- `Context`: the active `TemplateContext`.
-- `IsFirstOccurrence`: `true` only the first time that path is seen during the render.
+You can use the `Undefined` delegate to log missing values for debugging or monitoring:
 
 ```csharp
 var options = new TemplateOptions
 {
-    Undefined = args =>
+    Undefined = path =>
     {
-        if (args.IsFirstOccurrence)
-        {
-            Console.WriteLine($"Missing variable: {args.Path}");
-        }
+        Console.WriteLine($"Missing variable: {path}");
+        return ValueTask.FromResult<FluidValue>(NilValue.Instance);
     }
 };
 
-var template = FluidTemplate.Parse("{{ first }} {{ first }} {{ second }}");
+var template = FluidTemplate.Parse("{{ first }} {{ second }}");
 var context = new TemplateContext(options);
 await template.RenderAsync(context);
+// Logs: "Missing variable: first"
+// Logs: "Missing variable: second"
 ```
-
-The callback runs regardless of the strict-variable setting. When strict mode is enabled and a handler is provided, the notifications are raised before `StrictVariableException` is thrown, allowing you to fail fast or defer the decision.
 
 <br>
 

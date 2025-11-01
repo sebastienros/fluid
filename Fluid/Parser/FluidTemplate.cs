@@ -34,11 +34,6 @@ namespace Fluid.Parser
                 ExceptionHelper.ThrowArgumentNullException(nameof(context));
             }
 
-            // if (context.ShouldTrackUndefined)
-            // {
-            //     context.ClearMissingVariables();
-            // }
-
             var count = Statements.Count;
             for (var i = 0; i < count; i++)
             {

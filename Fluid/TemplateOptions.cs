@@ -124,13 +124,6 @@ namespace Fluid
         /// </summary>
         public bool Greedy { get; set; } = true;
 
-        /// <summary>
-        /// Gets or sets whether to throw an exception when a template variable is not found.
-        /// When true, accessing undefined variables will collect all missing variables and throw a StrictVariableException.
-        /// Default is false.
-        /// </summary>
-        // public bool StrictVariables { get; set; } = false;
-
         public TemplateOptions()
         {
             Filters.WithArrayFilters()
