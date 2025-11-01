@@ -794,11 +794,16 @@ namespace Fluid.Filters
             using var ms = new MemoryStream();
             
             // Start with context.JsonWriterOptions, but allow argument to override Indented
-            var writerOptions = context.JsonWriterOptions;
-            if (!arguments.At(0).IsNil())
+            // Create a new instance to avoid modifying the context's options
+            var writerOptions = new JsonWriterOptions
             {
-                writerOptions.Indented = arguments.At(0).ToBooleanValue();
-            }
+                Encoder = context.JsonWriterOptions.Encoder,
+                Indented = arguments.At(0).IsNil() 
+                    ? context.JsonWriterOptions.Indented 
+                    : arguments.At(0).ToBooleanValue(),
+                MaxDepth = context.JsonWriterOptions.MaxDepth,
+                SkipValidation = context.JsonWriterOptions.SkipValidation
+            };
             
             await using (var writer = new Utf8JsonWriter(ms, writerOptions))
             {
