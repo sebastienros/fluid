@@ -274,7 +274,7 @@ namespace Fluid
         {
             if (value == null)
             {
-                return context.SetValue(name, EmptyValue.Instance);
+                return context.SetValue(name, NilValue.Instance);
             }
 
             return context.SetValue(name, FluidValue.Create(value, context.Options));

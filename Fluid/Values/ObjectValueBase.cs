@@ -126,7 +126,7 @@ namespace Fluid.Values
                     {
                         return await context.Undefined.Invoke(string.Join(".", segments));
                     }
-                    return NilValue.Instance;
+                    return UndefinedValue.Instance;
                 }
 
                 if (accessor is IAsyncMemberAccessor asyncAccessor)

@@ -61,7 +61,7 @@ namespace Fluid
 
             return Parent != null
                 ? Parent.GetValue(name)
-                : NilValue.Instance;
+                : UndefinedValue.Instance;
         }
 
         /// <summary>

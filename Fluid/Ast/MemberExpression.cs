@@ -44,13 +44,13 @@ namespace Fluid.Ast
             {
                 if (context.Model == null)
                 {
-                    // Check equality as IsNil() is also true for EmptyValue
-                    if (context.Undefined is not null && value == NilValue.Instance)
+                    // Check equality as IsNil() is also true for UndefinedValue
+                    if (context.Undefined is not null && value == UndefinedValue.Instance)
                     {
                         return context.Undefined.Invoke(initial.Identifier);
                     }
 
-                    return new ValueTask<FluidValue>(NilValue.Instance);
+                    return new ValueTask<FluidValue>(value);
                 }
 
                 start = 0;
