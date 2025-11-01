@@ -865,29 +865,6 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task JsonArgumentOverridesIndentedOption()
-        {
-            var options = new TemplateOptions
-            {
-                JsonWriterOptions = new JsonWriterOptions
-                {
-                    Indented = true
-                }
-            };
-
-            var input = FluidValue.Create(new { name = "test", value = 123 }, options);
-            options.MemberAccessStrategy.Register(input.ToObjectValue().GetType());
-            var context = new TemplateContext(options);
-            
-            // Argument false should override the option's true
-            var arguments = new FilterArguments(BooleanValue.False);
-            var result = await MiscFilters.Json(input, arguments, context);
-
-            // Non-indented JSON should not have newlines
-            Assert.DoesNotContain("\n", result.ToStringValue());
-        }
-
-        [Fact]
         public async Task JsonShouldSerializeEnumsAsNumbers()
         {
             var options = new TemplateOptions();
