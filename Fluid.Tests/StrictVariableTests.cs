@@ -415,9 +415,9 @@ public class StrictVariableTests
         var paths = new List<string>();
         var options = new TemplateOptions
         {
-            Undefined = path =>
+            Undefined = name =>
             {
-                paths.Add(path);
+                paths.Add(name);
                 return ValueTask.FromResult<FluidValue>(NilValue.Instance);
             }
         };
@@ -441,9 +441,9 @@ public class StrictVariableTests
         var paths = new List<string>();
         var options = new TemplateOptions
         {
-            Undefined = path =>
+            Undefined = name =>
             {
-                paths.Add(path);
+                paths.Add(name);
                 return ValueTask.FromResult<FluidValue>(NilValue.Instance);
             }
         };
@@ -463,10 +463,10 @@ public class StrictVariableTests
 
         var options = new TemplateOptions
         {
-            Undefined = path =>
+            Undefined = name =>
             {
                 // Return a custom default value for undefined variables
-                return ValueTask.FromResult<FluidValue>(new StringValue($"[{path} not found]"));
+                return ValueTask.FromResult<FluidValue>(new StringValue($"[{name} not found]"));
             }
         };
 
@@ -482,9 +482,9 @@ public class StrictVariableTests
 
         var options = new TemplateOptions
         {
-            Undefined = path =>
+            Undefined = name =>
             {
-                missingVariables.Add(path);
+                missingVariables.Add(name);
                 return ValueTask.FromResult<FluidValue>(NilValue.Instance);
             }
         };

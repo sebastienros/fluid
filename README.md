@@ -253,9 +253,9 @@ To track missing values during template rendering, assign a delegate to `Templat
 var missingVariables = new List<string>();
 
 var context = new TemplateContext();
-context.Undefined = path =>
+context.Undefined = name =>
     {
-        missingVariables.Add(path);
+        missingVariables.Add(name);
         return ValueTask.FromResult<FluidValue>(NilValue.Instance);
     }
 };
@@ -274,10 +274,10 @@ The `Undefined` delegate can return a custom `FluidValue` to provide fallback va
 ```csharp
 var options = new TemplateOptions
 {
-    Undefined = path =>
+    Undefined = name =>
     {
         // Return a custom default value for undefined variables
-        return ValueTask.FromResult<FluidValue>(new StringValue($"[{path} not found]"));
+        return ValueTask.FromResult<FluidValue>(new StringValue($"[{name} not found]"));
     }
 };
 
