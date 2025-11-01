@@ -366,6 +366,48 @@ var context = new TemplateContext(options);
 "你好，这是一条短信"
 ```
 
+### Customizing JSON output
+
+The `json` filter uses `System.Text.Json.JsonWriterOptions` to control the JSON output format. You can customize these options through `TemplateOptions.JsonWriterOptions` or `TemplateContext.JsonWriterOptions`.
+
+#### Example: Indented JSON output
+
+```csharp
+var options = new TemplateOptions
+{
+    JsonWriterOptions = new JsonWriterOptions
+    {
+        Indented = true
+    }
+};
+
+var context = new TemplateContext(options);
+context.SetValue("data", new { name = "John", age = 30 });
+```
+
+```Liquid
+{{ data | json }}
+```
+
+#### Result
+```json
+{
+  "name": "John",
+  "age": 30
+}
+```
+
+You can also set `JsonWriterOptions` per context:
+
+```csharp
+var context = new TemplateContext();
+context.JsonWriterOptions = new JsonWriterOptions
+{
+    Indented = true,
+    // Other options like MaxDepth, SkipValidation, etc.
+};
+```
+
 <br>
 
 ## Localization
