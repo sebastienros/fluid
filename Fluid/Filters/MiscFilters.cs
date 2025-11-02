@@ -792,10 +792,8 @@ namespace Fluid.Filters
         public static async ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             using var ms = new MemoryStream();
-            await using (var writer = new Utf8JsonWriter(ms, new JsonWriterOptions
-            {
-                Indented = arguments.At(0).ToBooleanValue()
-            }))
+            
+            await using (var writer = new Utf8JsonWriter(ms, context.JsonWriterOptions))
             {
                 await WriteJson(writer, input, context);
             }

@@ -5,6 +5,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Threading.Tasks;
 using TimeZoneConverter;
 using Xunit;
@@ -823,6 +824,60 @@ namespace Fluid.Tests
             Assert.Equal(expected, result.ToStringValue());
         }
 
+        [Fact]
+        public async Task JsonShouldUseJsonWriterOptionsFromTemplateOptions()
+        {
+            var options = new TemplateOptions
+            {
+                JsonWriterOptions = new JsonWriterOptions
+                {
+                    Indented = true
+                }
+            };
+
+            var input = FluidValue.Create(new { name = "test", value = 123 }, options);
+            options.MemberAccessStrategy.Register(input.ToObjectValue().GetType());
+            var context = new TemplateContext(options);
+            var result = await MiscFilters.Json(input, new FilterArguments(), context);
+
+            // Indented JSON should have newlines
+            Assert.Contains("\n", result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task JsonShouldUseJsonWriterOptionsFromTemplateContext()
+        {
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options)
+            {
+                JsonWriterOptions = new JsonWriterOptions
+                {
+                    Indented = true
+                }
+            };
+
+            var input = FluidValue.Create(new { name = "test", value = 123 }, options);
+            options.MemberAccessStrategy.Register(input.ToObjectValue().GetType());
+            var result = await MiscFilters.Json(input, new FilterArguments(), context);
+
+            // Indented JSON should have newlines
+            Assert.Contains("\n", result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task JsonShouldSerializeEnumsAsNumbers()
+        {
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<TestEnum>();
+            
+            var input = FluidValue.Create(TestEnum.Value2, options);
+            var context = new TemplateContext(options);
+            var result = await MiscFilters.Json(input, new FilterArguments(), context);
+
+            // Enum should be serialized as number (1 for Value2)
+            Assert.Equal("1", result.ToStringValue());
+        }
+
         [Theory]
         [InlineData("", "", "", "0")]
         [InlineData(123456, "", "", "123456")]
@@ -1028,6 +1083,13 @@ namespace Fluid.Tests
             {
 
             }
+        }
+
+        private enum TestEnum
+        {
+            Value1 = 0,
+            Value2 = 1,
+            Value3 = 2
         }
     }
 }

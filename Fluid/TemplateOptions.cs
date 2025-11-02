@@ -3,6 +3,7 @@ using Fluid.Values;
 using Microsoft.Extensions.FileProviders;
 using System.Globalization;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace Fluid
 {
@@ -104,6 +105,11 @@ namespace Fluid
         /// Gets or sets the <see cref="JavaScriptEncoder" /> instance used by the <c>json</c> filter.
         /// </summary>
         public JavaScriptEncoder JavaScriptEncoder { get; set; } = DefaultJavaScriptEncoder;
+
+        /// <summary>
+        /// Gets or sets the <see cref="JsonWriterOptions"/> used by the <c>json</c> filter.
+        /// </summary>
+        public JsonWriterOptions JsonWriterOptions { get; set; } = new JsonWriterOptions();
 
         /// <summary>
         /// Gets or sets the default trimming rules.
