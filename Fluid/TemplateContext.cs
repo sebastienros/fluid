@@ -60,7 +60,7 @@ namespace Fluid
             Now = options.Now;
             MaxSteps = options.MaxSteps;
             ModelNamesComparer = modelNamesComparer;
-            JsonWriterOptions = options.JsonWriterOptions;
+            JsonSerializerOptions = options.JsonSerializerOptions;
         }
 
         /// <summary>
@@ -118,9 +118,9 @@ namespace Fluid
         public TimeZoneInfo TimeZone { get; set; } = TemplateOptions.Default.TimeZone;
 
         /// <summary>
-        /// Gets or sets the <see cref="JsonWriterOptions"/> used by the <c>json</c> filter.
+        /// Gets or sets the <see cref="JsonSerializerOptions"/> used by the <c>json</c> filter.
         /// </summary>
-        public JsonWriterOptions JsonWriterOptions { get; set; } = TemplateOptions.Default.JsonWriterOptions;
+        public JsonSerializerOptions JsonSerializerOptions { get; set; } = TemplateOptions.Default.JsonSerializerOptions;
 
         /// <summary>
         /// Increments the number of statements the current template is processing.

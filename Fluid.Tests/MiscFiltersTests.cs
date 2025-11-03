@@ -694,59 +694,6 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task JsonShouldHideMembers()
-        {
-            var inputObject = new JsonAccessStrategy();
-            var templateOptions = new TemplateOptions();
-            templateOptions.MemberAccessStrategy.Register<JsonAccessStrategy, FluidValue>((obj, name, context) =>
-            {
-                return name switch
-                {
-                    nameof(JsonAccessStrategy.Visible) => new StringValue(obj.Visible),
-                    nameof(JsonAccessStrategy.Null) => new StringValue(obj.Null),
-                    _ => NilValue.Instance
-                };
-            });
-
-            var input = FluidValue.Create(inputObject, templateOptions);
-            var expected = "{\"Visible\":\"Visible\",\"Null\":\"\"}";
-
-            var arguments = new FilterArguments();
-            var context = new TemplateContext(templateOptions);
-
-            var result = await MiscFilters.Json(input, arguments, context);
-
-            Assert.Equal(expected, result.ToStringValue());
-        }
-
-        [Fact]
-        public async Task JsonShouldHandleCircularReferences()
-        {
-            var model = TestObjects.RecursiveReferenceObject;
-            var input = FluidValue.Create(model, TemplateOptions.Default);
-            var to = new TemplateOptions();
-            to.MemberAccessStrategy.Register<TestObjects.Node>();
-
-            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
-
-            Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}}", result.ToStringValue());
-        }
-
-        [Fact]
-        public async Task JsonShouldHandleCircularReferencesOnSiblingPropertiesSeparately()
-        {
-            var model = TestObjects.SiblingPropertiesHaveSameReferenceObject;
-            var input = FluidValue.Create(model, TemplateOptions.Default);
-            var to = new TemplateOptions();
-            to.MemberAccessStrategy.Register<TestObjects.Node>();
-            to.MemberAccessStrategy.Register<TestObjects.MultipleNode>();
-
-            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
-
-            Assert.Equal("{\"Name\":\"MultipleNode1\",\"Node1\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}},\"Node2\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}}}", result.ToStringValue());
-        }
-
-        [Fact]
         public async Task JsonShouldIgnoreStaticMembers()
         {
             var model = new JsonWithStaticMember { Id = 100 };
@@ -815,53 +762,16 @@ namespace Fluid.Tests
         {
             var options = new TemplateOptions
             {
-                JavaScriptEncoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                JsonSerializerOptions = new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                }
             };
 
             var input = FluidValue.Create("你好，这是一条短信", options);
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             var expected = @"""你好，这是一条短信""";
             Assert.Equal(expected, result.ToStringValue());
-        }
-
-        [Fact]
-        public async Task JsonShouldUseJsonWriterOptionsFromTemplateOptions()
-        {
-            var options = new TemplateOptions
-            {
-                JsonWriterOptions = new JsonWriterOptions
-                {
-                    Indented = true
-                }
-            };
-
-            var input = FluidValue.Create(new { name = "test", value = 123 }, options);
-            options.MemberAccessStrategy.Register(input.ToObjectValue().GetType());
-            var context = new TemplateContext(options);
-            var result = await MiscFilters.Json(input, new FilterArguments(), context);
-
-            // Indented JSON should have newlines
-            Assert.Contains("\n", result.ToStringValue());
-        }
-
-        [Fact]
-        public async Task JsonShouldUseJsonWriterOptionsFromTemplateContext()
-        {
-            var options = new TemplateOptions();
-            var context = new TemplateContext(options)
-            {
-                JsonWriterOptions = new JsonWriterOptions
-                {
-                    Indented = true
-                }
-            };
-
-            var input = FluidValue.Create(new { name = "test", value = 123 }, options);
-            options.MemberAccessStrategy.Register(input.ToObjectValue().GetType());
-            var result = await MiscFilters.Json(input, new FilterArguments(), context);
-
-            // Indented JSON should have newlines
-            Assert.Contains("\n", result.ToStringValue());
         }
 
         [Fact]
