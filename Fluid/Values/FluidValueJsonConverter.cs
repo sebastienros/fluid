@@ -10,13 +10,14 @@ namespace Fluid.Values
     /// This converter can be overridden by registering a custom JsonConverter for specific FluidValue types
     /// in the JsonSerializerOptions before the json filter is called.
     /// </remarks>
-    public class FluidValueJsonConverter : JsonConverter<FluidValue>
+    internal sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
     {
-        private readonly TemplateContext _context;
-
-        public FluidValueJsonConverter(TemplateContext context)
+        /// <summary>
+        /// Creates a new instance of FluidValueJsonConverter without a context.
+        /// The context will be extracted from SerializableFluidValue instances.
+        /// </summary>
+        public FluidValueJsonConverter()
         {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
         public override FluidValue Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -26,99 +27,86 @@ namespace Fluid.Values
 
         public override void Write(Utf8JsonWriter writer, FluidValue value, JsonSerializerOptions options)
         {
-            switch (value)
+            TemplateContext context;
+            FluidValue actualValue = value;
+
+            if (value is SerializableFluidValue serializableValue)
             {
-                case ArrayValue arrayValue:
-                    WriteArrayValue(writer, arrayValue, options);
+                context = serializableValue.Context;
+                actualValue = serializableValue.InnerValue;
+            }
+            else
+            {
+                // No context available
+                context = null;
+            }
+
+            switch (actualValue.Type)
+            {
+                case FluidValues.Array:
+                    if (context == null)
+                    {
+                        throw new InvalidOperationException("A TemplateContext is required to serialize FluidValue instances. Please wrap the FluidValue in a SerializableFluidValue.");
+                    }
+                    writer.WriteStartArray();
+                    foreach (var item in actualValue.Enumerate(context))
+                    {
+                        var wrapped = new SerializableFluidValue(item, context);
+                        JsonSerializer.Serialize<FluidValue>(writer, wrapped, options);
+                    }
+                    writer.WriteEndArray();
                     break;
-                case BooleanValue booleanValue:
-                    writer.WriteBooleanValue(booleanValue.ToBooleanValue());
+                case FluidValues.Boolean:
+                    writer.WriteBooleanValue(actualValue.ToBooleanValue());
                     break;
-                case NilValue:
+                case FluidValues.Nil:
                     writer.WriteNullValue();
                     break;
-                case NumberValue numberValue:
-                    writer.WriteNumberValue(numberValue.ToNumberValue());
+                case FluidValues.Number:
+                    writer.WriteNumberValue(actualValue.ToNumberValue());
                     break;
-                case DictionaryValue dictionaryValue:
-                    WriteDictionaryValue(writer, dictionaryValue, options);
+                case FluidValues.Dictionary:
+                    if (actualValue.ToObjectValue() is not IFluidIndexable dict)
+                    {
+                        writer.WriteNullValue();
+                        break;
+                    }
+
+                    writer.WriteStartObject();
+                    foreach (var key in dict.Keys)
+                    {
+                        writer.WritePropertyName(key);
+
+                        if (dict.TryGetValue(key, out var fluidValue) && fluidValue is not null)
+                        {
+                            var wrapped = new SerializableFluidValue(fluidValue, context);
+                            JsonSerializer.Serialize<FluidValue>(writer, wrapped, options);
+                        }
+                        else
+                        {
+                            writer.WriteNullValue();
+                        }
+                    }
+                    writer.WriteEndObject();
                     break;
-                case ObjectValue objectValue:
-                    WriteObjectValue(writer, objectValue, options);
+                case FluidValues.Object:
+                    JsonSerializer.Serialize(writer, actualValue.ToObjectValue(), options);
                     break;
-                case DateTimeValue dateTimeValue:
-                    writer.WriteStringValue((DateTimeOffset)dateTimeValue.ToObjectValue());
+                case FluidValues.DateTime:
+                    writer.WriteStringValue((DateTimeOffset)actualValue.ToObjectValue());
                     break;
-                case StringValue stringValue:
-                    writer.WriteStringValue(stringValue.ToStringValue());
+                case FluidValues.String:
+                    writer.WriteStringValue(actualValue.ToStringValue());
                     break;
-                case BlankValue:
+                case FluidValues.Blank:
                     writer.WriteStringValue(string.Empty);
                     break;
-                case EmptyValue:
+                case FluidValues.Empty:
                     writer.WriteStringValue(string.Empty);
                     break;
                 default:
                     writer.WriteNullValue();
                     break;
-            }
-        }
-
-        private void WriteArrayValue(Utf8JsonWriter writer, ArrayValue value, JsonSerializerOptions options)
-        {
-            writer.WriteStartArray();
-            foreach (var item in value.Enumerate(_context))
-            {
-                // Use FluidValue type to ensure our converter is used for FluidValue items
-                if (item is FluidValue fluidValue)
-                {
-                    JsonSerializer.Serialize<FluidValue>(writer, fluidValue, options);
-                }
-                else
-                {
-                    JsonSerializer.Serialize(writer, item, item.GetType(), options);
-                }
-            }
-            writer.WriteEndArray();
-        }
-
-        private static void WriteDictionaryValue(Utf8JsonWriter writer, DictionaryValue value, JsonSerializerOptions options)
-        {
-            if (value.ToObjectValue() is IFluidIndexable dic)
-            {
-                writer.WriteStartObject();
-                foreach (var key in dic.Keys)
-                {
-                    writer.WritePropertyName(key);
-                    if (dic.TryGetValue(key, out var property))
-                    {
-                        JsonSerializer.Serialize(writer, property, options);
-                    }
-                    else
-                    {
-                        JsonSerializer.Serialize(writer, null, options);
-                    }
-                }
-
-                writer.WriteEndObject();
-            }
-            else
-            {
-                writer.WriteNullValue();
-            }
-
-        }
-
-        private static void WriteObjectValue(Utf8JsonWriter writer, ObjectValue value, JsonSerializerOptions options)
-        {
-            var obj = value.ToObjectValue();
-            if (obj != null)
-            {
-                JsonSerializer.Serialize(writer, obj, obj.GetType(), options);
-            }
-            else
-            {
-                writer.WriteNullValue();
             }
         }
     }

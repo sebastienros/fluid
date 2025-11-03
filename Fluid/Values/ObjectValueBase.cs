@@ -68,7 +68,7 @@ namespace Fluid.Values
 
                     if (directValue != null)
                     {
-                        return new ValueTask<FluidValue>(FluidValue.Create(directValue, context.Options));
+                        return FluidValue.Create(directValue, context.Options);
                     }
                 }
 
@@ -88,8 +88,7 @@ namespace Fluid.Values
                 }
             }
 
-            return new ValueTask<FluidValue>(NilValue.Instance);
-
+            return NilValue.Instance;
 
             static async ValueTask<FluidValue> Awaited(
                 IAsyncMemberAccessor asyncAccessor,

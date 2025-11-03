@@ -3,7 +3,6 @@ using Fluid.Values;
 using System.Buffers;
 using System.Globalization;
 using System.Net;
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -13,7 +12,6 @@ namespace Fluid.Filters
 {
     public static class MiscFilters
     {
-
         private const char KebabCaseSeparator = '-';
 
         public static FilterCollection WithMiscFilters(this FilterCollection filters)
@@ -675,17 +673,11 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            // Create a copy of the options with the FluidValue converter
-            // CA1869: We need to create a new instance here to add the converter without modifying the original options
-#pragma warning disable CA1869
-            var options = new JsonSerializerOptions(context.JsonSerializerOptions);
-#pragma warning restore CA1869
+            // Wrap the input in a SerializableFluidValue to provide the context to the JSON converter
+            var serializableValue = new SerializableFluidValue(input, context);
             
-            // Register the FluidValue converter
-            // This is inserted at the beginning so custom converters in options can override it
-            options.Converters.Insert(0, new FluidValueJsonConverter(context));
-            
-            var json = JsonSerializer.Serialize(input, options);
+            // Cast to FluidValue to ensure the converter from the base class is used
+            var json = JsonSerializer.Serialize<FluidValue>(serializableValue, context.JsonSerializerOptions);
             return new StringValue(json);
         }
 

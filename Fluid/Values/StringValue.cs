@@ -102,7 +102,7 @@ namespace Fluid.Values
             return false;
         }
 
-        protected override FluidValue GetIndex(FluidValue index, TemplateContext context)
+        public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
             // Indexer on string values should return nil.
             return NilValue.Instance;

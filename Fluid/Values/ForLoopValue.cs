@@ -46,14 +46,14 @@ namespace Fluid.Values
         {
             return name switch
             {
-                "length" => new ValueTask<FluidValue>(NumberValue.Create(Length)),
-                "index" => new ValueTask<FluidValue>(NumberValue.Create(Index)),
-                "index0" => new ValueTask<FluidValue>(NumberValue.Create(Index0)),
-                "rindex" => new ValueTask<FluidValue>(NumberValue.Create(RIndex)),
-                "rindex0" => new ValueTask<FluidValue>(NumberValue.Create(RIndex0)),
-                "first" => new ValueTask<FluidValue>(BooleanValue.Create(First)),
-                "last" => new ValueTask<FluidValue>(BooleanValue.Create(Last)),
-                _ => new ValueTask<FluidValue>(NilValue.Instance),
+                "length" => NumberValue.Create(Length),
+                "index" => NumberValue.Create(Index),
+                "index0" => NumberValue.Create(Index0),
+                "rindex" => NumberValue.Create(RIndex),
+                "rindex0" => NumberValue.Create(RIndex0),
+                "first" => BooleanValue.Create(First),
+                "last" => BooleanValue.Create(Last),
+                _ => NilValue.Instance,
             };
         }
 
