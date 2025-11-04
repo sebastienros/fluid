@@ -35,7 +35,7 @@ namespace Fluid.Tests
             Assert.True(template != null, error);
             var context = new TemplateContext();
             context.SetValue("a", new FunctionValue((args, c) => new StringValue("hello")));
-            context.SetValue("b", new FunctionValue((args, c) => new ValueTask<FluidValue>(new StringValue("world"))));
+            context.SetValue("b", new FunctionValue((args, c) => new StringValue("world")));
 
             // Use a loop to exercise the arguments cache
             for (var i = 0; i < 10; i++)

@@ -104,12 +104,20 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the <see cref="JavaScriptEncoder" /> instance used by the <c>json</c> filter.
         /// </summary>
-        public JavaScriptEncoder JavaScriptEncoder { get; set; } = DefaultJavaScriptEncoder;
+        [Obsolete("Use JsonSerializerOptions.Encoder instead. This property will be removed in a future version.")]
+        public JavaScriptEncoder JavaScriptEncoder
+        {
+            get => JsonSerializerOptions.Encoder;
+            set => JsonSerializerOptions.Encoder = value;
+        }
 
         /// <summary>
-        /// Gets or sets the <see cref="JsonWriterOptions"/> used by the <c>json</c> filter.
+        /// Gets or sets the <see cref="JsonSerializerOptions"/> used by the <c>json</c> filter.
         /// </summary>
-        public JsonWriterOptions JsonWriterOptions { get; set; } = new JsonWriterOptions();
+        public JsonSerializerOptions JsonSerializerOptions { get; set; } = new JsonSerializerOptions
+        {
+            Encoder = DefaultJavaScriptEncoder
+        };
 
         /// <summary>
         /// Gets or sets the default trimming rules.

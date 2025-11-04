@@ -2,10 +2,12 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Encodings.Web;
+using System.Text.Json.Serialization;
 
 namespace Fluid.Values
 {
 #pragma warning disable CA1067 // should override Equals because it implements IEquatable<T>
+    [JsonConverter(typeof(FluidValueJsonConverter))]
     public abstract class FluidValue : IEquatable<FluidValue>
 #pragma warning restore CA1067
     {
@@ -56,27 +58,18 @@ namespace Fluid.Values
         public virtual ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
 #pragma warning disable CS0618 // Use obsolete method for backward compatibility
-            return new ValueTask<FluidValue>(GetValue(name, context));
+            return GetValue(name, context);
 #pragma warning restore CS0618
-        }
-
-        [Obsolete("This method has been deprecated, please use GetValueAsync() instead.")]
-        protected virtual FluidValue GetValue(string name, TemplateContext context)
-        {
-            return NilValue.Instance;
         }
 
         public virtual ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
-            return new ValueTask<FluidValue>(GetIndex(index, context));
+#pragma warning disable CS0618 // Use obsolete method for backward compatibility
+            return GetIndex(index, context);
+#pragma warning restore CS0618
         }
 
         public virtual ValueTask<FluidValue> InvokeAsync(FunctionArguments arguments, TemplateContext context)
-        {
-            return NilValue.Instance;
-        }
-
-        protected virtual FluidValue GetIndex(FluidValue index, TemplateContext context)
         {
             return NilValue.Instance;
         }
@@ -364,6 +357,18 @@ namespace Fluid.Values
         internal virtual FluidValue LastOrDefault(TemplateContext context)
         {
             return Enumerate(context).LastOrDefault();
+        }
+
+        [Obsolete("This method has been deprecated, please use GetValueAsync() instead.")]
+        protected virtual FluidValue GetValue(string name, TemplateContext context)
+        {
+            return NilValue.Instance;
+        }
+
+        [Obsolete("This method has been deprecated, please use GetIndexAsync() instead.")]
+        protected virtual FluidValue GetIndex(FluidValue index, TemplateContext context)
+        {
+            return NilValue.Instance;
         }
         #endregion
 

@@ -368,16 +368,16 @@ var context = new TemplateContext(options);
 
 ### Customizing JSON output
 
-The `json` filter uses `System.Text.Json.JsonWriterOptions` to control the JSON output format. You can customize these options through `TemplateOptions.JsonWriterOptions` or `TemplateContext.JsonWriterOptions`.
+The `json` filter uses `System.Text.Json.JsonSerializerOptions` to control the JSON output format. You can customize these options through `TemplateOptions.JsonSerializerOptions` or `TemplateContext.JsonSerializerOptions`.
 
 #### Example: Indented JSON output
 
 ```csharp
 var options = new TemplateOptions
 {
-    JsonWriterOptions = new JsonWriterOptions
+    JsonSerializerOptions = new JsonSerializerOptions
     {
-        Indented = true
+        WriteIndented = true
     }
 };
 
@@ -397,16 +397,7 @@ context.SetValue("data", new { name = "John", age = 30 });
 }
 ```
 
-You can also set `JsonWriterOptions` per context:
-
-```csharp
-var context = new TemplateContext();
-context.JsonWriterOptions = new JsonWriterOptions
-{
-    Indented = true,
-    // Other options like MaxDepth, SkipValidation, etc.
-};
-```
+You can also set `JsonSerializerOptions` per `TemplateContext`, however is is recommended to reuse `JsonSerializerOptions` instances:
 
 <br>
 
@@ -1019,7 +1010,7 @@ var lowercase = new FunctionValue((args, context) =>
 {
   var firstArg = args.At(0).ToStringValue();
   var lower = firstArg.ToLowerCase();
-  return new ValueTask<FluidValue>(new StringValue(lower));
+  return new StringValue(lower);
 });
 
 var context = new TemplateContext();

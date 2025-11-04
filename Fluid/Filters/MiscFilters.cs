@@ -3,7 +3,6 @@ using Fluid.Values;
 using System.Buffers;
 using System.Globalization;
 using System.Net;
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -13,7 +12,6 @@ namespace Fluid.Filters
 {
     public static class MiscFilters
     {
-
         private const char KebabCaseSeparator = '-';
 
         public static FilterCollection WithMiscFilters(this FilterCollection filters)
@@ -673,134 +671,13 @@ namespace Fluid.Filters
             return new StringValue(value.ToString(format, culture));
         }
 
-        private static async ValueTask WriteJson(Utf8JsonWriter writer, FluidValue input, TemplateContext ctx, HashSet<object> stack = null)
+        public static ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            switch (input.Type)
-            {
-                case FluidValues.Array:
-                    writer.WriteStartArray();
-                    foreach (var item in input.Enumerate(ctx))
-                    {
-                        await WriteJson(writer, item, ctx);
-                    }
-                    writer.WriteEndArray();
-                    break;
-                case FluidValues.Boolean:
-                    writer.WriteBooleanValue(input.ToBooleanValue());
-                    break;
-                case FluidValues.Nil:
-                    writer.WriteNullValue();
-                    break;
-                case FluidValues.Number:
-                    writer.WriteNumberValue(input.ToNumberValue());
-                    break;
-                case FluidValues.Dictionary:
-                    if (input.ToObjectValue() is IFluidIndexable dic)
-                    {
-                        writer.WriteStartObject();
-                        foreach (var key in dic.Keys)
-                        {
-                            writer.WritePropertyName(key);
-                            if (dic.TryGetValue(key, out var value))
-                            {
-                                await WriteJson(writer, value, ctx);
-                            }
-                            else
-                            {
-                                await WriteJson(writer, NilValue.Instance, ctx);
-                            }
-                        }
-
-                        writer.WriteEndObject();
-                    }
-                    else
-                    {
-                        writer.WriteNullValue();
-                    }
-                    break;
-                case FluidValues.Object:
-                    var obj = input.ToObjectValue();
-                    if (obj != null)
-                    {
-                        writer.WriteStartObject();
-                        var type = obj.GetType();
-                        var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
-                        var strategy = ctx.Options.MemberAccessStrategy;
-
-                        var conv = strategy.MemberNameStrategy;
-                        foreach (var property in properties)
-                        {
-                            var name = conv(property);
-#pragma warning disable CA1859 // It's suggesting a wrong conversion (StringValue)
-                            var fluidValue = await input.GetValueAsync(name, ctx);
-#pragma warning restore CA1859
-                            if (fluidValue.IsNil())
-                            {
-                                continue;
-                            }
-
-                            stack ??= new HashSet<object>();
-                            if (fluidValue is ObjectValue)
-                            {
-                                var value = fluidValue.ToObjectValue();
-                                if (stack.Contains(value))
-                                {
-                                    fluidValue = StringValue.Create("Circular reference has been detected.");
-                                }
-                            }
-
-                            writer.WritePropertyName(name);
-                            stack.Add(obj);
-                            await WriteJson(writer, fluidValue, ctx, stack);
-                            stack.Remove(obj);
-                        }
-
-                        writer.WriteEndObject();
-                    }
-                    else
-                    {
-                        writer.WriteNullValue();
-                    }
-                    break;
-                case FluidValues.DateTime:
-                    var objValue = input.ToObjectValue();
-                    if (objValue is DateTime dateTime)
-                    {
-                        writer.WriteStringValue(dateTime);
-                    }
-                    else if (objValue is DateTimeOffset dateTimeOffset)
-                    {
-                        writer.WriteStringValue(dateTimeOffset);
-                    }
-                    else
-                    {
-                        writer.WriteStringValue(Convert.ToDateTime(objValue));
-                    }
-                    break;
-                case FluidValues.String:
-                    writer.WriteStringValue(JsonEncodedText.Encode(input.ToStringValue() ?? "", ctx.Options.JavaScriptEncoder));
-                    break;
-                case FluidValues.Blank:
-                case FluidValues.Empty:
-                    writer.WriteStringValue(string.Empty);
-                    break;
-                default:
-                    throw new NotSupportedException("Unrecognized FluidValue");
-            }
-        }
-
-        public static async ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
-        {
-            using var ms = new MemoryStream();
+            // Wrap the input in a SerializableFluidValue to provide the context to the JSON converter
+            var serializableValue = new SerializableFluidValue(input, context);
             
-            await using (var writer = new Utf8JsonWriter(ms, context.JsonWriterOptions))
-            {
-                await WriteJson(writer, input, context);
-            }
-
-            ms.Seek(0, SeekOrigin.Begin);
-            using var sr = new StreamReader(ms, Encoding.UTF8);
-            var json = await sr.ReadToEndAsync();
+            // Cast to FluidValue to ensure the converter from the base class is used
+            var json = JsonSerializer.Serialize<FluidValue>(serializableValue, context.JsonSerializerOptions);
             return new StringValue(json);
         }
 

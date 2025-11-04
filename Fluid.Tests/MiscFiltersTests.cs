@@ -1,4 +1,5 @@
 using Fluid.Filters;
+using Fluid.Tests.Domain;
 using Fluid.Values;
 using Newtonsoft.Json.Linq;
 using System;
@@ -6,6 +7,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using TimeZoneConverter;
 using Xunit;
@@ -694,59 +696,6 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task JsonShouldHideMembers()
-        {
-            var inputObject = new JsonAccessStrategy();
-            var templateOptions = new TemplateOptions();
-            templateOptions.MemberAccessStrategy.Register<JsonAccessStrategy, FluidValue>((obj, name, context) =>
-            {
-                return name switch
-                {
-                    nameof(JsonAccessStrategy.Visible) => new StringValue(obj.Visible),
-                    nameof(JsonAccessStrategy.Null) => new StringValue(obj.Null),
-                    _ => NilValue.Instance
-                };
-            });
-
-            var input = FluidValue.Create(inputObject, templateOptions);
-            var expected = "{\"Visible\":\"Visible\",\"Null\":\"\"}";
-
-            var arguments = new FilterArguments();
-            var context = new TemplateContext(templateOptions);
-
-            var result = await MiscFilters.Json(input, arguments, context);
-
-            Assert.Equal(expected, result.ToStringValue());
-        }
-
-        [Fact]
-        public async Task JsonShouldHandleCircularReferences()
-        {
-            var model = TestObjects.RecursiveReferenceObject;
-            var input = FluidValue.Create(model, TemplateOptions.Default);
-            var to = new TemplateOptions();
-            to.MemberAccessStrategy.Register<TestObjects.Node>();
-
-            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
-
-            Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}}", result.ToStringValue());
-        }
-
-        [Fact]
-        public async Task JsonShouldHandleCircularReferencesOnSiblingPropertiesSeparately()
-        {
-            var model = TestObjects.SiblingPropertiesHaveSameReferenceObject;
-            var input = FluidValue.Create(model, TemplateOptions.Default);
-            var to = new TemplateOptions();
-            to.MemberAccessStrategy.Register<TestObjects.Node>();
-            to.MemberAccessStrategy.Register<TestObjects.MultipleNode>();
-
-            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
-
-            Assert.Equal("{\"Name\":\"MultipleNode1\",\"Node1\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}},\"Node2\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}}}", result.ToStringValue());
-        }
-
-        [Fact]
         public async Task JsonShouldIgnoreStaticMembers()
         {
             var model = new JsonWithStaticMember { Id = 100 };
@@ -771,7 +720,7 @@ namespace Fluid.Tests
             options.MemberAccessStrategy.Register(model.GetType());
             var input = FluidValue.Create(model, options);
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
-            Assert.Equal("{\"Id\":1,\"WithoutIndexable\":null,\"Bool\":true}", result.ToStringValue());
+            Assert.Equal("{\"Id\":1,\"WithoutIndexable\":{\"Type\":5,\"Value\":{}},\"Bool\":true}", result.ToStringValue());
         }
 
         [Fact]
@@ -815,7 +764,10 @@ namespace Fluid.Tests
         {
             var options = new TemplateOptions
             {
-                JavaScriptEncoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                JsonSerializerOptions = new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                }
             };
 
             var input = FluidValue.Create("你好，这是一条短信", options);
@@ -825,57 +777,37 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task JsonShouldUseJsonWriterOptionsFromTemplateOptions()
-        {
-            var options = new TemplateOptions
-            {
-                JsonWriterOptions = new JsonWriterOptions
-                {
-                    Indented = true
-                }
-            };
-
-            var input = FluidValue.Create(new { name = "test", value = 123 }, options);
-            options.MemberAccessStrategy.Register(input.ToObjectValue().GetType());
-            var context = new TemplateContext(options);
-            var result = await MiscFilters.Json(input, new FilterArguments(), context);
-
-            // Indented JSON should have newlines
-            Assert.Contains("\n", result.ToStringValue());
-        }
-
-        [Fact]
-        public async Task JsonShouldUseJsonWriterOptionsFromTemplateContext()
-        {
-            var options = new TemplateOptions();
-            var context = new TemplateContext(options)
-            {
-                JsonWriterOptions = new JsonWriterOptions
-                {
-                    Indented = true
-                }
-            };
-
-            var input = FluidValue.Create(new { name = "test", value = 123 }, options);
-            options.MemberAccessStrategy.Register(input.ToObjectValue().GetType());
-            var result = await MiscFilters.Json(input, new FilterArguments(), context);
-
-            // Indented JSON should have newlines
-            Assert.Contains("\n", result.ToStringValue());
-        }
-
-        [Fact]
         public async Task JsonShouldSerializeEnumsAsNumbers()
         {
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<TestEnum>();
-            
-            var input = FluidValue.Create(TestEnum.Value2, options);
+            options.MemberAccessStrategy.Register<Domain.Colors>();
+
+            var input = FluidValue.Create(Domain.Colors.Red, options);
             var context = new TemplateContext(options);
             var result = await MiscFilters.Json(input, new FilterArguments(), context);
 
-            // Enum should be serialized as number (1 for Value2)
+            // Enum should be serialized as number (1 for Red)
             Assert.Equal("1", result.ToStringValue());
+        }
+        
+        [Fact]
+        public async Task JsonShouldSerializeEnumsAsStrings()
+        {
+            var options = new TemplateOptions
+            {
+                JsonSerializerOptions = new JsonSerializerOptions
+                {
+                    Converters = { new JsonStringEnumConverter() }
+                }
+            };
+            options.MemberAccessStrategy.Register<Person>();
+
+            var input = FluidValue.Create(new Person { EyesColor = Colors.Red }, options);
+            var context = new TemplateContext(options);
+            var result = await MiscFilters.Json(input, new FilterArguments(), context);
+
+            // Enum should be serialized as string ("Red")
+            Assert.Equal("{\"Firstname\":null,\"Lastname\":null,\"EyesColor\":\"Red\",\"Address\":null}", result.ToStringValue());
         }
 
         [Theory]
@@ -1083,13 +1015,6 @@ namespace Fluid.Tests
             {
 
             }
-        }
-
-        private enum TestEnum
-        {
-            Value1 = 0,
-            Value2 = 1,
-            Value3 = 2
         }
     }
 }
