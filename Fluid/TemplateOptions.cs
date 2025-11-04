@@ -3,6 +3,9 @@ using System.Text.Encodings.Web;
 using Fluid.Filters;
 using Fluid.Values;
 using Microsoft.Extensions.FileProviders;
+using System.Globalization;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace Fluid
 {
@@ -112,7 +115,20 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the <see cref="JavaScriptEncoder" /> instance used by the <c>json</c> filter.
         /// </summary>
-        public JavaScriptEncoder JavaScriptEncoder { get; set; } = DefaultJavaScriptEncoder;
+        [Obsolete("Use JsonSerializerOptions.Encoder instead. This property will be removed in a future version.")]
+        public JavaScriptEncoder JavaScriptEncoder
+        {
+            get => JsonSerializerOptions.Encoder;
+            set => JsonSerializerOptions.Encoder = value;
+        }
+
+        /// <summary>
+        /// Gets or sets the <see cref="JsonSerializerOptions"/> used by the <c>json</c> filter.
+        /// </summary>
+        public JsonSerializerOptions JsonSerializerOptions { get; set; } = new JsonSerializerOptions
+        {
+            Encoder = DefaultJavaScriptEncoder
+        };
 
         /// <summary>
         /// Gets or sets the default trimming rules.

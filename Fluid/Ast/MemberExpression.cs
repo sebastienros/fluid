@@ -50,7 +50,7 @@ namespace Fluid.Ast
                         return context.Undefined.Invoke(initial.Identifier);
                     }
 
-                    return new ValueTask<FluidValue>(value);
+                    return value;
                 }
 
                 start = 0;
@@ -72,11 +72,11 @@ namespace Fluid.Ast
                 // Stop processing as soon as a member returns nothing
                 if (value.IsNil())
                 {
-                    return new ValueTask<FluidValue>(value);
+                    return value;
                 }
             }
 
-            return new ValueTask<FluidValue>(value);
+            return value;
         }
 
         private static async ValueTask<FluidValue> Awaited(

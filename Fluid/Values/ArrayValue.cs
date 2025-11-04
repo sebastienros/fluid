@@ -75,7 +75,7 @@ namespace Fluid.Values
             return NilValue.Instance;
         }
 
-        protected override FluidValue GetIndex(FluidValue index, TemplateContext context)
+        public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
             var i = (int)index.ToNumberValue();
 

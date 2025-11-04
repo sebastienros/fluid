@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using Fluid.Values;
+using System.Text.Json;
 
 namespace Fluid
 {
@@ -60,6 +60,7 @@ namespace Fluid
             Now = options.Now;
             MaxSteps = options.MaxSteps;
             ModelNamesComparer = modelNamesComparer;
+            JsonSerializerOptions = options.JsonSerializerOptions;
         }
 
         /// <summary>
@@ -115,6 +116,11 @@ namespace Fluid
         /// Gets or sets the local time zone used when parsing or creating dates without specific ones.
         /// </summary>
         public TimeZoneInfo TimeZone { get; set; } = TemplateOptions.Default.TimeZone;
+
+        /// <summary>
+        /// Gets or sets the <see cref="JsonSerializerOptions"/> used by the <c>json</c> filter.
+        /// </summary>
+        public JsonSerializerOptions JsonSerializerOptions { get; set; } = TemplateOptions.Default.JsonSerializerOptions;
 
         /// <summary>
         /// Increments the number of statements the current template is processing.

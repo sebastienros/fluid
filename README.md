@@ -439,6 +439,39 @@ var context = new TemplateContext(options);
 "你好，这是一条短信"
 ```
 
+### Customizing JSON output
+
+The `json` filter uses `System.Text.Json.JsonSerializerOptions` to control the JSON output format. You can customize these options through `TemplateOptions.JsonSerializerOptions` or `TemplateContext.JsonSerializerOptions`.
+
+#### Example: Indented JSON output
+
+```csharp
+var options = new TemplateOptions
+{
+    JsonSerializerOptions = new JsonSerializerOptions
+    {
+        WriteIndented = true
+    }
+};
+
+var context = new TemplateContext(options);
+context.SetValue("data", new { name = "John", age = 30 });
+```
+
+```Liquid
+{{ data | json }}
+```
+
+#### Result
+```json
+{
+  "name": "John",
+  "age": 30
+}
+```
+
+You can also set `JsonSerializerOptions` per `TemplateContext`, however is is recommended to reuse `JsonSerializerOptions` instances:
+
 <br>
 
 ## Localization
@@ -1050,7 +1083,7 @@ var lowercase = new FunctionValue((args, context) =>
 {
   var firstArg = args.At(0).ToStringValue();
   var lower = firstArg.ToLowerCase();
-  return new ValueTask<FluidValue>(new StringValue(lower));
+  return new StringValue(lower);
 });
 
 var context = new TemplateContext();
