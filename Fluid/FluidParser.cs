@@ -64,9 +64,9 @@ namespace Fluid
         protected static readonly Parser<TagResult> InlineTagEnd = TagParsers.TagEnd();
 
         protected static readonly Parser<TagResult> NoInlineOutputStart = NonInlineLiquidTagParsers.OutputTagStart();
-        protected static readonly Parser<TagResult> NoInlineOutputEnd = Literals.AnyOf(WhiteSpaceChars, minSize: 0).SkipAnd(NonInlineLiquidTagParsers.OutputTagEnd());
+        protected static readonly Parser<TagResult> NoInlineOutputEnd = Literals.AnyOf(WhiteSpaceChars.AsSpan(), minSize: 0).SkipAnd(NonInlineLiquidTagParsers.OutputTagEnd());
         protected static readonly Parser<TagResult> NoInlineTagStart = NonInlineLiquidTagParsers.TagStart();
-        protected static readonly Parser<TagResult> NoInlineTagEnd = Literals.AnyOf(WhiteSpaceChars, minSize: 0).SkipAnd(NonInlineLiquidTagParsers.TagEnd());
+        protected static readonly Parser<TagResult> NoInlineTagEnd = Literals.AnyOf(WhiteSpaceChars.AsSpan(), minSize: 0).SkipAnd(NonInlineLiquidTagParsers.TagEnd());
 
         protected readonly Parser<TagResult> OutputStart = InlineOutputStart;
         protected readonly Parser<TagResult> OutputEnd = InlineOutputEnd;
@@ -192,7 +192,7 @@ namespace Fluid
 
             // Seek anything that looks like a binary operator (==, !=, <, >, <=, >=, contains, startswith, endswith) then validates it with the registered operators
             // An "identifier" operator should always be followed by a space so we ensure it's doing it with AndSkip(Literals.WhiteSpace())
-            CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.AnyOf("=!<>", maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString())
+            CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.AnyOf("=!<>".AsSpan(), maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString())
                 .When((ctx, s) => RegisteredOperators.ContainsKey(s)).And(Primary)))
                 .Then(x =>
                  {
