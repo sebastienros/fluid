@@ -192,6 +192,85 @@ namespace Fluid.Tests
             Assert.Equal("lowerupper", context.GetValue("case").ToStringValue() + context.GetValue("CASE").ToStringValue());
         }
 
+        [Fact]
+        public void SetValue_WithNull_ShouldUseNilValue()
+        {
+            // This test verifies that setting null uses NilValue.Instance
+            // Changing to EmptyValue.Instance would break equality semantics
+            var context = new TemplateContext();
+            context.SetValue("nullVar", (object)null);
+
+            var value = context.GetValue("nullVar");
+
+            // NilValue equals NilValue.Instance
+            Assert.True(value.Equals(NilValue.Instance));
+            
+            // NilValue does NOT equal EmptyValue.Instance
+            Assert.False(value.Equals(EmptyValue.Instance));
+            
+            // NilValue converts to boolean false
+            Assert.False(value.ToBooleanValue());
+        }
+
+        [Fact]
+        public async Task SetValue_WithNull_NilEqualityInTemplates()
+        {
+            // This test verifies nil equality behavior in templates
+            // EmptyValue has different equality semantics than NilValue
+            _parser.TryParse("{% if nullVar == nil %}nil{% endif %}{% if nullVar == empty %}empty{% endif %}", out var template, out var _);
+
+            var context = new TemplateContext();
+            context.SetValue("nullVar", (object)null);
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("nil", result);
+        }
+
+        [Fact]
+        public async Task SetValue_WithUndefined_NilEqualityInTemplates()
+        {
+            // This test verifies nil equality behavior in templates
+            // EmptyValue has different equality semantics than NilValue
+            _parser.TryParse("{% if nullVar == nil %}nil{% endif %}{% if nullVar == empty %}empty{% endif %}", out var template, out var _);
+
+            var context = new TemplateContext();
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("nil", result);
+        }
+        
+        [Fact]
+        public async Task SetValue_WithNull_BooleanConversionInTemplates()
+        {
+            // This test verifies that null values are falsy in conditionals
+            // EmptyValue.ToBooleanValue() returns true, NilValue returns false
+            _parser.TryParse("{% if nullVar %}truthy{% else %}falsy{% endif %}", out var template, out var _);
+
+            var context = new TemplateContext();
+            context.SetValue("nullVar", (object)null);
+
+            var result = await template.RenderAsync(context);
+            
+            // With NilValue, null is falsy and should render "falsy"
+            // With EmptyValue, it would render "truthy"
+            Assert.Equal("falsy", result);
+        }
+
+        [Fact]
+        public async Task SetValue_WithNull_UnlessConditional()
+        {
+            // This test verifies unless conditional with null values
+            _parser.TryParse("{% unless nullVar %}rendered{% endunless %}", out var template, out var _);
+
+            var context = new TemplateContext();
+            context.SetValue("nullVar", (object)null);
+
+            var result = await template.RenderAsync(context);
+            
+            // With NilValue (falsy), unless should render the content
+            Assert.Equal("rendered", result);
+        }
+
         private class TestClass
         {
             public string Name { get; set; }

@@ -1,8 +1,8 @@
+using System.Globalization;
+using System.Text.Encodings.Web;
 using Fluid.Filters;
 using Fluid.Values;
 using Microsoft.Extensions.FileProviders;
-using System.Globalization;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace Fluid
@@ -20,6 +20,10 @@ namespace Fluid
         /// <param name="context">The <see cref="TemplateContext" /> instance used for rendering the template.</param>
         /// <returns>The value which should be captured.</returns>
         public delegate ValueTask<FluidValue> CapturedDelegate(string identifier, FluidValue value, TemplateContext context);
+
+        /// <param name="name">The name of the value that is undefined.</param>
+        /// <returns>The value to use for the undefined value.</returns>
+        public delegate ValueTask<FluidValue> UndefinedDelegate(string name);
 
         public static readonly TemplateOptions Default = new();
 
@@ -100,6 +104,11 @@ namespace Fluid
         /// Gets or sets the delegate to execute when an Assign tag has been evaluated.
         /// </summary>
         public AssignedDelegate Assigned { get; set; }
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when an undefined value is encountered during rendering.
+        /// </summary>
+        public UndefinedDelegate Undefined { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="JavaScriptEncoder" /> instance used by the <c>json</c> filter.

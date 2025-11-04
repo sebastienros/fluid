@@ -1,5 +1,5 @@
-using Fluid.Values;
 using System.Runtime.CompilerServices;
+using Fluid.Values;
 
 namespace Fluid
 {
@@ -61,7 +61,7 @@ namespace Fluid
 
             return Parent != null
                 ? Parent.GetValue(name)
-                : NilValue.Instance;
+                : UndefinedValue.Instance;
         }
 
         /// <summary>

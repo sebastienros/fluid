@@ -1,7 +1,8 @@
-﻿using Fluid.Utils;
-using System.Collections;
+﻿using System.Collections;
 using System.Globalization;
+using System.Text;
 using System.Text.Encodings.Web;
+using Fluid.Utils;
 
 namespace Fluid.Values
 {
@@ -27,16 +28,13 @@ namespace Fluid.Values
         {
             if (other.IsNil())
             {
-                switch (Value)
+                return Value switch
                 {
-                    case ICollection collection:
-                        return collection.Count == 0;
+                    ICollection collection => collection.Count == 0,
+                    IEnumerable enumerable => !enumerable.GetEnumerator().MoveNext(),
+                    _ => false,
+                };
 
-                    case IEnumerable enumerable:
-                        return !enumerable.GetEnumerator().MoveNext();
-                }
-
-                return false;
             }
 
             return other is ObjectValueBase otherObject && Value.Equals(otherObject.Value);
@@ -56,7 +54,6 @@ namespace Fluid.Values
 
             if (name.Contains('.'))
             {
-                // Try to access the property with dots inside
                 if (accessor != null)
                 {
                     if (accessor is IAsyncMemberAccessor asyncAccessor)
@@ -72,23 +69,26 @@ namespace Fluid.Values
                     }
                 }
 
-                // Otherwise split the name in different segments
                 return GetNestedValueAsync(name, context);
             }
-            else
-            {
-                if (accessor != null)
-                {
-                    if (accessor is IAsyncMemberAccessor asyncAccessor)
-                    {
-                        return Awaited(asyncAccessor, Value, name, context);
-                    }
 
-                    return FluidValue.Create(accessor.Get(Value, name, context), context.Options);
+            if (accessor != null)
+            {
+                if (accessor is IAsyncMemberAccessor asyncAccessor)
+                {
+                    return Awaited(asyncAccessor, Value, name, context);
                 }
+
+                return Create(accessor.Get(Value, name, context), context.Options);
             }
 
+            if (context.Undefined is not null)
+            {
+                return context.Undefined.Invoke(name);
+            }
+            
             return NilValue.Instance;
+
 
             static async ValueTask<FluidValue> Awaited(
                 IAsyncMemberAccessor asyncAccessor,
@@ -103,11 +103,16 @@ namespace Fluid.Values
         private async ValueTask<FluidValue> GetNestedValueAsync(string name, TemplateContext context)
         {
             var members = name.Split(MemberSeparators);
-
             var target = Value;
+            List<string> segments = context.Undefined is not null ? [] : null;
 
             foreach (var prop in members)
             {
+                if (context.Undefined is not null)
+                {
+                    segments.Add(prop);
+                }
+
                 if (target == null)
                 {
                     return NilValue.Instance;
@@ -117,7 +122,11 @@ namespace Fluid.Values
 
                 if (accessor == null)
                 {
-                    return NilValue.Instance;
+                    if (context.Undefined is not null)
+                    {
+                        return await context.Undefined.Invoke(string.Join(".", segments));
+                    }
+                    return UndefinedValue.Instance;
                 }
 
                 if (accessor is IAsyncMemberAccessor asyncAccessor)
@@ -130,7 +139,7 @@ namespace Fluid.Values
                 }
             }
 
-            return FluidValue.Create(target, context.Options);
+            return Create(target, context.Options);
         }
 
         public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)

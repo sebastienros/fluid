@@ -1,7 +1,7 @@
-using Fluid.Values;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using Fluid.Values;
 
 namespace Fluid
 {
@@ -57,6 +57,7 @@ namespace Fluid
             TimeZone = options.TimeZone;
             Captured = options.Captured;
             Assigned = options.Assigned;
+            Undefined = options.Undefined;
             Now = options.Now;
             MaxSteps = options.MaxSteps;
             ModelNamesComparer = modelNamesComparer;
@@ -172,6 +173,11 @@ namespace Fluid
         /// Gets or sets the delegate to execute when an Assign tag has been evaluated.
         /// </summary>
         public TemplateOptions.AssignedDelegate Assigned { get; set; }
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when an undefined value is used.
+        /// </summary>
+        public TemplateOptions.UndefinedDelegate Undefined { get; set; }
 
         /// <summary>
         /// Creates a new isolated child scope. After than any value added to this content object will be released once

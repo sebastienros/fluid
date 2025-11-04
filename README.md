@@ -35,6 +35,7 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 - [Features](#features)
 - [Using Fluid in your project](#using-fluid-in-your-project)
 - [Allow-listing object members](#allow-listing-object-members)
+- [Handling undefined variables](#handling-undefined-variables)
 - [Execution limits](#execution-limits)
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
@@ -237,6 +238,78 @@ options.ValueConverters.Add(o => o is Person p ? new PersonValue(p) : null);
 ```
 
 It can also be used to replace custom member access by customizing `GetValueAsync`, or do custom conversions to standard Fluid types. 
+
+<br>
+
+## Handling undefined values
+
+Fluid evaluates members lazily, so undefined identifiers can be detected precisely when they are consumed. By default, undefined values render as empty strings without raising errors.
+
+### Tracking undefined values
+
+To track missing values during template rendering, assign a delegate to `TemplateOptions.Undefined` or `TemplateContext.Undefined`. This delegate is called each time an undefined variable is accessed and receives the variable path as a string parameter.
+
+```csharp
+var missingVariables = new List<string>();
+
+var context = new TemplateContext();
+context.Undefined = name =>
+    {
+        missingVariables.Add(name);
+        return ValueTask.FromResult<FluidValue>(NilValue.Instance);
+    }
+};
+
+var template = FluidTemplate.Parse("Hello {{ user.name }} in {{ city }}!");
+
+await template.RenderAsync(context);
+
+// missingVariables now contains ["user.name", "city"]
+```
+
+### Returning custom values for undefined values
+
+The `Undefined` delegate can return a custom `FluidValue` to provide fallback values or error messages for missing values:
+
+```csharp
+var options = new TemplateOptions
+{
+    Undefined = name =>
+    {
+        // Return a custom default value for undefined variables
+        return ValueTask.FromResult<FluidValue>(new StringValue($"[{name} not found]"));
+    }
+};
+
+var template = FluidTemplate.Parse("Hello {{ user.name }} in {{ city }}!");
+var context = new TemplateContext(options);
+
+var result = await template.RenderAsync(context);
+// Outputs: "Hello [user.name not found] in [city not found]!"
+```
+
+### Logging undefined accesses
+
+You can use the `Undefined` delegate to log missing values for debugging or monitoring:
+
+```csharp
+var options = new TemplateOptions
+{
+    Undefined = path =>
+    {
+        Console.WriteLine($"Missing variable: {path}");
+        return ValueTask.FromResult<FluidValue>(NilValue.Instance);
+    }
+};
+
+var template = FluidTemplate.Parse("{{ first }} {{ second }}");
+var context = new TemplateContext(options);
+await template.RenderAsync(context);
+// Logs: "Missing variable: first"
+// Logs: "Missing variable: second"
+```
+
+<br>
 
 ### Inheritance
 
