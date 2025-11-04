@@ -720,7 +720,7 @@ namespace Fluid.Tests
             options.MemberAccessStrategy.Register(model.GetType());
             var input = FluidValue.Create(model, options);
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
-            Assert.Equal("{\"Id\":1,\"WithoutIndexable\":{\"Type\":5,\"Value\":{}},\"Bool\":true}", result.ToStringValue());
+            Assert.Equal("{\"Id\":1,\"WithoutIndexable\":{\"Type\":6,\"Value\":{}},\"Bool\":true}", result.ToStringValue());
         }
 
         [Fact]
