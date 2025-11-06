@@ -1,4 +1,4 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using Fluid.Values;
 using System;
 using System.Globalization;
@@ -28,7 +28,6 @@ namespace Fluid.Tests
         {
             await Task.Delay(10);
             var templateContext = new TemplateContext();
-            templateContext.Options.MemberAccessStrategy.Register(typeof(TestClass));
         }
 
         [Fact]
@@ -102,7 +101,7 @@ namespace Fluid.Tests
             // NB: Based on a previous implementation what would cache accessors too aggressively
 
             FluidParser parser = new();
-            var options = new TemplateOptions { MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions();
             var template = parser.Parse("{% if Model1 %}{{ Model1.Name }}{% endif %}");
 
             var model1 = new { Model1 = new { Name = "model1" } };

@@ -50,7 +50,6 @@ public class StrictVariableTests
         _parser.TryParse("{{ user.nonExistingProperty }}", out var template, out var _);
 
         var (options, missingVariables) = CreateStrictOptions();
-        options.MemberAccessStrategy.Register<Person>();
         var context = new TemplateContext(options);
         context.SetValue("user", new Person { Firstname = "John" });
 
@@ -76,33 +75,33 @@ public class StrictVariableTests
     [Fact]
     public async Task MissingSubProperties_Tracked()
     {
-        _parser.TryParse("{{ company.Director.Firstname }}", out var template, out var _);
+        // 'Occupation' is not defined on Employee 
+        _parser.TryParse("{{ company.Director.Occupation }}", out var template, out var _);
 
         var (options, missingVariables) = CreateStrictOptions();
-        options.MemberAccessStrategy.Register<Company>();
         // Note: Not registering Employee type
         var context = new TemplateContext(options);
         context.SetValue("company", new Company { Director = new Employee { Firstname = "John" } });
 
         await template.RenderAsync(context);
         Assert.Single(missingVariables);
-        Assert.Contains("Firstname", missingVariables);
+        Assert.Contains("Occupation", missingVariables);
     }
 
     [Fact]
     public async Task NestedMissingProperties_Tracked()
     {
-        _parser.TryParse("{{ company['Director.Firstname'] }}", out var template, out var _);
+        // 'Occupation' is not defined on Employee 
+        _parser.TryParse("{{ company['Director.Occupation'] }}", out var template, out var _);
 
         var (options, missingVariables) = CreateStrictOptions();
-        options.MemberAccessStrategy.Register<Company>();
         // Note: Not registering Employee type
         var context = new TemplateContext(options);
         context.SetValue("company", new Company { Director = new Employee { Firstname = "John" } });
 
         await template.RenderAsync(context);
         Assert.Single(missingVariables);
-        Assert.Contains("Director.Firstname", missingVariables);
+        Assert.Contains("Director.Occupation", missingVariables);
     }
 
     [Fact]
@@ -218,7 +217,6 @@ public class StrictVariableTests
         _parser.TryParse("{{ person.Firstname }} {{ person.Lastname }}", out var template, out var _);
 
         var (options, missingVariables) = CreateStrictOptions();
-        options.MemberAccessStrategy.Register<Person>();
         var context = new TemplateContext(options);
         context.SetValue("person", new Person { Firstname = "John", Lastname = "Doe" });
 
@@ -286,7 +284,6 @@ public class StrictVariableTests
 
         var (options, missingVariables) = CreateStrictOptions();
         var context = new TemplateContext(options);
-        options.MemberAccessStrategy.Register<Person>();
         context.SetValue("person", new Person { Firstname = null, Lastname = "Doe" });
 
         var result = await template.RenderAsync(context);
