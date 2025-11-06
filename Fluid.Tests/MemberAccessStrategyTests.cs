@@ -1,4 +1,4 @@
-﻿using Fluid.Accessors;
+using Fluid.Accessors;
 using Fluid.Tests.Domain;
 using Fluid.Values;
 using Newtonsoft.Json.Linq;
@@ -23,11 +23,9 @@ namespace Fluid.Tests
         {
             var strategy = new DefaultMemberAccessStrategy();
 
-            strategy.Register<Class1>();
-
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field1)));
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field2)));
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateField)));
+            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field1), StringComparer.Ordinal));
+            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field2), StringComparer.Ordinal));
+            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateField), StringComparer.Ordinal));
         }
 
         [Fact]
@@ -35,12 +33,10 @@ namespace Fluid.Tests
         {
             var strategy = new DefaultMemberAccessStrategy();
 
-            strategy.Register<Class1>();
+            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal));
+            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property2), StringComparer.Ordinal));
 
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1)));
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property2)));
-
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateProperty)));
+            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateProperty), StringComparer.Ordinal));
         }
 
         [Fact]
@@ -48,11 +44,9 @@ namespace Fluid.Tests
         {
             var strategy = new DefaultMemberAccessStrategy();
 
-            strategy.Register<Class1>();
-
-            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Field3));
+            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Field3), StringComparer.Ordinal);
             Assert.NotNull(accessor);
-            Assert.IsAssignableFrom<AsyncDelegateAccessor>(accessor);
+            Assert.IsType<AsyncDelegateAccessor>(accessor, exactMatch: false);
         }
 
         [Fact]
@@ -60,11 +54,9 @@ namespace Fluid.Tests
         {
             var strategy = new DefaultMemberAccessStrategy();
 
-            strategy.Register<Class1>();
-
-            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property3));
+            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property3), StringComparer.Ordinal);
             Assert.NotNull(accessor);
-            Assert.IsAssignableFrom<AsyncDelegateAccessor>(accessor);
+            Assert.IsType<AsyncDelegateAccessor>(accessor, exactMatch: false);
         }
 
         [Fact]
@@ -72,10 +64,8 @@ namespace Fluid.Tests
         {
             var strategy = new DefaultMemberAccessStrategy();
 
-            strategy.Register<Class1>();
-
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.StaticField)));
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.StaticProperty)));
+            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.StaticField), StringComparer.Ordinal));
+            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.StaticProperty), StringComparer.Ordinal));
         }
 
         [Fact]
@@ -83,36 +73,8 @@ namespace Fluid.Tests
         {
             var strategy = new DefaultMemberAccessStrategy();
 
-            strategy.Register<Class1>();
-
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateField)));
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateProperty)));
-        }
-
-        [Fact]
-        public void RegisterByTypeAndName()
-        {
-            var strategy = new DefaultMemberAccessStrategy();
-
-            strategy.Register<Class1>(nameof(Class1.Field1), nameof(Class1.Property1));
-
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field1)));
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field2)));
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1)));
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property2)));
-        }
-
-        [Fact]
-        public void RegisterByTypeAndExpression()
-        {
-            var strategy = new DefaultMemberAccessStrategy();
-
-            strategy.Register<Class1>(x => x.Field1, x => x.Property1);
-
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field1)));
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field2)));
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1)));
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property2)));
+            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateField), StringComparer.Ordinal));
+            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateProperty), StringComparer.Ordinal));
         }
 
         [Fact]
@@ -181,41 +143,14 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void SubPropertyShouldNotBeAccessible()
-        {
-            var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<Person>(x => x.Firstname);
-
-            var john = new Person { Firstname = "John", Lastname = "Wick", Address = new Address { City = "Redmond", State = "Washington" } };
-
-            var template = _parser.Parse("{{Firstname}};{{Lastname}};{{Address.City}};{{Address.State}}");
-            Assert.Equal("John;;;", template.Render(new TemplateContext(john, options, false)));
-        }
-
-        [Fact]
-        public void SiblingPropertyShouldNotBeAccessible()
-        {
-            var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<Person>(x => x.Firstname);
-            // Address is not registered
-            options.MemberAccessStrategy.Register<Address>(x => x.State);
-
-            var john = new Person { Firstname = "John", Lastname = "Wick", Address = new Address { City = "Redmond", State = "Washington" } };
-
-            var template = _parser.Parse("{{Firstname}};{{Lastname}};{{Address.City}};{{Address.State}}");
-            Assert.Equal("John;;;", template.Render(new TemplateContext(john, options, false)));
-        }
-
-        [Fact]
         public void ShouldResolveModelProperty()
         {
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<Person>(x => x.Firstname);
 
             var john = new Person { Firstname = "John", Lastname = "Wick", Address = new Address { City = "Redmond", State = "Washington" } };
 
-            var template = _parser.Parse("{{Firstname}}{{Lastname}}");
-            Assert.Equal("John", template.Render(new TemplateContext(john, options, false)));
+            var template = _parser.Parse("{{Firstname}} {{Lastname}}");
+            Assert.Equal("John Wick", template.Render(new TemplateContext(john, options)));
         }
 
         [Fact]
@@ -223,9 +158,7 @@ namespace Fluid.Tests
         {
             var strategy = new DefaultMemberAccessStrategy();
 
-            strategy.Register<Class1>();
-
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.WriteOnlyProperty)));
+            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.WriteOnlyProperty), StringComparer.Ordinal));
         }
 
         [Fact]
@@ -233,9 +166,11 @@ namespace Fluid.Tests
         {
             var options = new TemplateOptions();
 
-            var model = new Dictionary<string, object>();
-            model.Add("Firstname", "Bill");
-            model.Add("Lastname", "Gates");
+            var model = new Dictionary<string, object>
+            {
+                { "Firstname", "Bill" },
+                { "Lastname", "Gates" }
+            };
 
             var template = _parser.Parse("{{Firstname}} {{Lastname}}");
             
@@ -246,20 +181,17 @@ namespace Fluid.Tests
         public void ShouldResolveEnums()
         {
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<Person>();
 
             var john = new Person { Firstname = "John", EyesColor = Colors.Yellow };
 
             var template = _parser.Parse("{{Firstname}} {{EyesColor}}");
-            Assert.Equal("John 2", template.Render(new TemplateContext(john, options, false)));
+            Assert.Equal("John 2", template.Render(new TemplateContext(john, options)));
         }
 
         [Fact]
         public void ShouldResolveStructs()
         {
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<Shape>();
-            options.MemberAccessStrategy.Register<Point>();
 
             var circle = new Shape
             {
@@ -267,14 +199,13 @@ namespace Fluid.Tests
             };
 
             var template = _parser.Parse("{{Coordinates.X}} {{Coordinates.Y}}");
-            Assert.Equal("1 2", template.Render(new TemplateContext(circle, options, false)));
+            Assert.Equal("1 2", template.Render(new TemplateContext(circle, options)));
         }
 
         [Fact]
         public void ShouldFindBackingFields()
         {
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<CustomStruct>();
 
             var s = new CustomStruct
             {
@@ -284,7 +215,7 @@ namespace Fluid.Tests
             };
 
             var template = _parser.Parse("{{X1}} {{X2}} {{X3}}");
-            Assert.Equal("1 2 3", template.Render(new TemplateContext(s, options, false)));
+            Assert.Equal("1 2 3", template.Render(new TemplateContext(s, options)));
         }
     }
 

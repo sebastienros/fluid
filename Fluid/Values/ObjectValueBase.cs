@@ -13,8 +13,6 @@ namespace Fluid.Values
     {
         protected static readonly char[] MemberSeparators = ['.'];
 
-        protected bool? _isModelType;
-
         public ObjectValueBase(object value)
         {
             Value = value;
@@ -42,15 +40,7 @@ namespace Fluid.Values
 
         public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
-            // The model type has a custom ability to allow any of its members optionally
-            _isModelType ??= context.Model != null && context.Model?.ToObjectValue()?.GetType() == Value.GetType();
-
-            var accessor = context.Options.MemberAccessStrategy.GetAccessor(Value.GetType(), name);
-
-            if (accessor == null && _isModelType.Value && context.AllowModelMembers)
-            {
-                accessor = MemberAccessStrategyExtensions.GetNamedAccessor(Value.GetType(), name, context.Options.MemberAccessStrategy.MemberNameStrategy);
-            }
+            var accessor = context.Options.MemberAccessStrategy.GetAccessor(Value.GetType(), name, context.Options.ModelNamesComparer);
 
             if (name.Contains('.'))
             {
@@ -118,7 +108,7 @@ namespace Fluid.Values
                     return NilValue.Instance;
                 }
 
-                var accessor = context.Options.MemberAccessStrategy.GetAccessor(target.GetType(), prop);
+                var accessor = context.Options.MemberAccessStrategy.GetAccessor(target.GetType(), prop, context.Options.ModelNamesComparer);
 
                 if (accessor == null)
                 {

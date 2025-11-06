@@ -36,10 +36,10 @@ namespace Fluid.Utils
         /// <summary>
         /// If someone need to create a private pool
         /// </summary>
-        internal static ObjectPool<StringBuilderPool> CreatePool(int size = 100, int capacity = DefaultPoolCapacity)
+        internal static ObjectPool<StringBuilderPool> CreatePool(int? size = null, int capacity = DefaultPoolCapacity)
         {
             ObjectPool<StringBuilderPool> pool = null;
-            pool = new ObjectPool<StringBuilderPool>(() => new StringBuilderPool(pool, capacity), size);
+            pool = new ObjectPool<StringBuilderPool>(() => new StringBuilderPool(pool, capacity), size ?? Environment.ProcessorCount);
             return pool;
         }
 

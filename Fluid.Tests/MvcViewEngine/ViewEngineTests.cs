@@ -1,4 +1,4 @@
-﻿using Fluid.Tests.Mocks;
+using Fluid.Tests.Mocks;
 using Fluid.ViewEngine;
 using System.IO;
 using System.Linq;
@@ -17,8 +17,6 @@ namespace Fluid.Tests.MvcViewEngine
         {
             _options.PartialsFileProvider = new FileProviderMapper(_mockFileProvider, "Partials");
             _options.ViewsFileProvider = new FileProviderMapper(_mockFileProvider, "Views");
-
-            _options.TemplateOptions.MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance;
 
             _options.ViewsLocationFormats.Clear();
             _options.ViewsLocationFormats.Add("/{0}" + Constants.ViewExtension);
