@@ -1,4 +1,4 @@
-﻿using Fluid.ViewEngine;
+using Fluid.ViewEngine;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -23,8 +23,6 @@ namespace Fluid.MvcViewEngine
             _hostingEnvironment = hostingEnvironment;
             _options = optionsAccessor.Value;
 
-            _options.TemplateOptions.MemberAccessStrategy.Register<ViewDataDictionary>();
-            _options.TemplateOptions.MemberAccessStrategy.Register<ModelStateDictionary>();
             _options.TemplateOptions.FileProvider = _options.PartialsFileProvider ?? _hostingEnvironment.ContentRootFileProvider;
 
             _fluidViewRenderer = new FluidViewRenderer(_options);

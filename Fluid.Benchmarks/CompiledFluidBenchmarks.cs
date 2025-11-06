@@ -11,8 +11,7 @@ namespace Fluid.Benchmarks
 
         public CompiledFluidBenchmarks()
         {
-            _options.MemberAccessStrategy.Register<Product>();
-            _options.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
+            _options.ModelNamesComparer = StringComparers.CamelCase;
             _parser.TryParse(ProductTemplate, out _fluidTemplate, out var _);
 
             CheckBenchmark();

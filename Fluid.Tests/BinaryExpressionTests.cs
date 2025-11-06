@@ -296,7 +296,6 @@ namespace Fluid.Tests
             _parser.TryParse("{% if obj1 == obj2 %}equal{% else %}not equal{% endif %}", out var template, out var messages);
 
             var context = new TemplateContext();
-            context.Options.MemberAccessStrategy.Register<TestObject>();
             context.SetValue("obj1", obj1);
             context.SetValue("obj2", obj2);
 
@@ -316,7 +315,6 @@ namespace Fluid.Tests
             _parser.TryParse("{% if array contains obj2 %}found{% else %}not found{% endif %}", out var template, out var messages);
 
             var context = new TemplateContext();
-            context.Options.MemberAccessStrategy.Register<TestObject>();
             context.SetValue("array", array);
             context.SetValue("obj2", obj2);
 

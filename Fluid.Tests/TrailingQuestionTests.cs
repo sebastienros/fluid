@@ -59,7 +59,6 @@ namespace Fluid.Tests
 
             var context = new TemplateContext();
             var sampleObj = new { empty = true };
-            context.Options.MemberAccessStrategy.Register(sampleObj.GetType());
             context.SetValue("products", sampleObj);
 
             var result = await template.RenderAsync(context);
@@ -106,8 +105,6 @@ namespace Fluid.Tests
             var context = new TemplateContext();
             var products = new { empty = true };
             var collection = new { products };
-            context.Options.MemberAccessStrategy.Register(products.GetType());
-            context.Options.MemberAccessStrategy.Register(collection.GetType());
             context.SetValue("collection", collection);
 
             var result = await template.RenderAsync(context);
@@ -142,7 +139,6 @@ namespace Fluid.Tests
 
             var context = new TemplateContext();
             var product = new { empty = false };
-            context.Options.MemberAccessStrategy.Register(product.GetType());
             context.SetValue("product", product);
 
             var result = await template.RenderAsync(context);
@@ -176,12 +172,8 @@ namespace Fluid.Tests
             parser.TryParse("{{ a.b? }}{{ c.d }}", out var template, out var errors);
 
             var context = new TemplateContext();
-            var objA = new { b = "value1" };
-            var objC = new { d = "value2" };
-            context.Options.MemberAccessStrategy.Register(objA.GetType());
-            context.Options.MemberAccessStrategy.Register(objC.GetType());
-            context.SetValue("a", objA);
-            context.SetValue("c", objC);
+            context.SetValue("a", new { b = "value1" });
+            context.SetValue("c", new { d = "value2" });
 
             var result = await template.RenderAsync(context);
             Assert.Equal("value1value2", result);
@@ -258,8 +250,6 @@ namespace Fluid.Tests
             var context = new TemplateContext();
             var nested = new { value = "test" };
             var obj = new { nested };
-            context.Options.MemberAccessStrategy.Register(nested.GetType());
-            context.Options.MemberAccessStrategy.Register(obj.GetType());
             context.SetValue("obj", obj);
 
             var result = await template.RenderAsync(context);

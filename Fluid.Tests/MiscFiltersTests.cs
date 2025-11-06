@@ -701,7 +701,6 @@ namespace Fluid.Tests
             var model = new JsonWithStaticMember { Id = 100 };
             var input = FluidValue.Create(model, TemplateOptions.Default);
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<JsonWithStaticMember>();
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             Assert.Equal("{\"Id\":100}", result.ToStringValue());
@@ -717,7 +716,6 @@ namespace Fluid.Tests
                 Bool = true
             };
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register(model.GetType());
             var input = FluidValue.Create(model, options);
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             Assert.Equal("{\"Id\":1,\"WithoutIndexable\":{\"Type\":6,\"Value\":{}},\"Bool\":true}", result.ToStringValue());
@@ -780,7 +778,6 @@ namespace Fluid.Tests
         public async Task JsonShouldSerializeEnumsAsNumbers()
         {
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<Domain.Colors>();
 
             var input = FluidValue.Create(Domain.Colors.Red, options);
             var context = new TemplateContext(options);
@@ -800,7 +797,6 @@ namespace Fluid.Tests
                     Converters = { new JsonStringEnumConverter() }
                 }
             };
-            options.MemberAccessStrategy.Register<Person>();
 
             var input = FluidValue.Create(new Person { EyesColor = Colors.Red }, options);
             var context = new TemplateContext(options);
