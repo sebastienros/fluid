@@ -656,7 +656,7 @@ shape: ''";
         }
 
         [Fact]
-        public void RenderTag_For_And_NamedArguments()
+        public async Task RenderTag_For_And_NamedArguments()
         {
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }}, Tag: {{ tag }} ");
@@ -678,8 +678,8 @@ shape: ''";
             
             // Check that the For expression evaluates correctly
             Assert.IsType<MemberExpression>(renderStmt.For);
-            var forValue = renderStmt.For.EvaluateAsync(context).GetAwaiter().GetResult();
-            var items = forValue.EnumerateAsync(context).GetAwaiter().GetResult().ToList();
+            var forValue = await renderStmt.For.EvaluateAsync(context);
+            var items = (await forValue.EnumerateAsync(context)).ToList();
             Assert.Equal(2, items.Count);  // Should have 2 items
             
             // Also check that For is really the "products" variable
