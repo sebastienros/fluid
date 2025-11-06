@@ -304,26 +304,32 @@ namespace Fluid.Values
             return false;
         }
 
-        public virtual IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        public virtual ValueTask<IEnumerable<FluidValue>> EnumerateAsync(TemplateContext context)
         {
-            return [];
+            return new ValueTask<IEnumerable<FluidValue>>(Array.Empty<FluidValue>());
         }
 
         #region Obsolete members
 
-        [Obsolete("Use Enumerate(TemplateContext) instead.")]
+        [Obsolete("Use EnumerateAsync(TemplateContext) instead.")]
+        public virtual IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        {
+            return EnumerateAsync(context).GetAwaiter().GetResult();
+        }
+
+        [Obsolete("Use EnumerateAsync(TemplateContext) instead.")]
         public virtual IEnumerable<FluidValue> Enumerate()
         {
             return [];
         }
 
-        [Obsolete("Use Enumerate(TemplateContext) instead.")]
+        [Obsolete("Use EnumerateAsync(TemplateContext) instead.")]
         internal virtual string[] ToStringArray()
         {
             return [];
         }
 
-        [Obsolete("Use Enumerate(TemplateContext) instead.")]
+        [Obsolete("Use EnumerateAsync(TemplateContext) instead.")]
         internal virtual List<FluidValue> ToList()
         {
             return Enumerate().ToList();
@@ -341,7 +347,9 @@ namespace Fluid.Values
         [Obsolete("Handle the property 'first' in GetValueAsync() instead")]
         internal virtual FluidValue FirstOrDefault(TemplateContext context)
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             return Enumerate(context).FirstOrDefault();
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         [Obsolete("Handle the property 'last' in GetValueAsync() instead")]
@@ -356,7 +364,9 @@ namespace Fluid.Values
         [Obsolete("Handle the property 'last' in GetValueAsync() instead")]
         internal virtual FluidValue LastOrDefault(TemplateContext context)
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             return Enumerate(context).LastOrDefault();
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         [Obsolete("This method has been deprecated, please use GetValueAsync() instead.")]

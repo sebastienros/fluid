@@ -96,7 +96,7 @@ namespace Fluid.Ast
                     {
                         var forloop = new ForLoopValue();
 
-                        var list = (await For.EvaluateAsync(context)).Enumerate(context).ToList();
+                        var list = (await (await For.EvaluateAsync(context)).EnumerateAsync(context)).ToList();
 
                         var length = forloop.Length = list.Count;
 

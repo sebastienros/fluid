@@ -49,7 +49,8 @@ namespace Fluid.Values
                         throw new InvalidOperationException("A TemplateContext is required to serialize FluidValue instances. Please wrap the FluidValue in a SerializableFluidValue.");
                     }
                     writer.WriteStartArray();
-                    foreach (var item in actualValue.Enumerate(context))
+                    var items = actualValue.EnumerateAsync(context).GetAwaiter().GetResult();
+                    foreach (var item in items)
                     {
                         var wrapped = new SerializableFluidValue(item, context);
                         JsonSerializer.Serialize<FluidValue>(writer, wrapped, options);
