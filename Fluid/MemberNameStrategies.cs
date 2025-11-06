@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 
 namespace Fluid
@@ -13,15 +12,21 @@ namespace Fluid
     {
         public override int Compare(string x, string y)
         {
-            return JsonNamingPolicy.CamelCase.ConvertName(x).CompareTo(y);
+            var cx = JsonNamingPolicy.CamelCase.ConvertName(x);
+            var cy = JsonNamingPolicy.CamelCase.ConvertName(y);
+            return string.Compare(cx, cy, StringComparison.Ordinal);
         }
+
         public override bool Equals(string x, string y)
         {
-            return JsonNamingPolicy.CamelCase.ConvertName(x).Equals(y, StringComparison.OrdinalIgnoreCase);
+            var cx = JsonNamingPolicy.CamelCase.ConvertName(x);
+            var cy = JsonNamingPolicy.CamelCase.ConvertName(y);
+            return string.Equals(cx, cy, StringComparison.Ordinal);
         }
+    
         public override int GetHashCode(string obj)
         {
-            return StringComparer.OrdinalIgnoreCase.GetHashCode(obj);
+            return JsonNamingPolicy.CamelCase.ConvertName(obj).GetHashCode();
         }
     }
 
@@ -29,15 +34,21 @@ namespace Fluid
     {
         public override int Compare(string x, string y)
         {
-            return JsonNamingPolicy.SnakeCaseLower.ConvertName(x).CompareTo(y);
+            var cx = JsonNamingPolicy.SnakeCaseLower.ConvertName(x);
+            var cy = JsonNamingPolicy.SnakeCaseLower.ConvertName(y);
+            return string.Compare(cx, cy, StringComparison.Ordinal);
         }
+
         public override bool Equals(string x, string y)
         {
-            return JsonNamingPolicy.SnakeCaseLower.ConvertName(x).Equals(y, StringComparison.OrdinalIgnoreCase);
+            var cx = JsonNamingPolicy.SnakeCaseLower.ConvertName(x);
+            var cy = JsonNamingPolicy.SnakeCaseLower.ConvertName(y);
+            return string.Equals(cx, cy, StringComparison.Ordinal);
         }
+
         public override int GetHashCode(string obj)
         {
-            return StringComparer.OrdinalIgnoreCase.GetHashCode(obj);
+            return JsonNamingPolicy.SnakeCaseLower.ConvertName(obj).GetHashCode();
         }
     }
 }

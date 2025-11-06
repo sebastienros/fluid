@@ -1145,49 +1145,61 @@ after
         }
 
         [Fact]
-        public async Task DefaultMemberStrategyShouldSupportCamelCase()
+        public void DictionaryShouldWorkWithComparers_SnakeCase()
         {
-            var model = new { FirstName = "Sebastien" };
-            var source = "{{ firstName }}";
-            var expected = "Sebastien";
-
-            _parser.TryParse(source, out var template, out var error);
-
-            var options = new TemplateOptions();
-            options.ModelNamesComparer = StringComparers.CamelCase;
-            var context = new TemplateContext(model, options);
-
-            var result = await template.RenderAsync(context);
-            Assert.Equal(expected, result);
+            var comparer = StringComparers.SnakeCase;
+            var dict = new Dictionary<string, string>(comparer);
+            dict["FirstName"] = "Sebastien";
+            Assert.True(dict.ContainsKey("first_name"));
+            Assert.Equal("Sebastien", dict["first_name"]);
         }
-
+        
         [Fact]
         public async Task DefaultMemberStrategyShouldSupportSnakeCase()
         {
             var model = new { FirstName = "Sebastien" };
-            var source = "{{ first_name }}";
-            var expected = "Sebastien";
+            var source = "{{ first_name }} {{ last_name }}";
 
             _parser.TryParse(source, out var template, out var error);
 
             var options = new TemplateOptions() { ModelNamesComparer = StringComparers.SnakeCase };
             var context = new TemplateContext(model, options);
+            context.SetValue("LastName", "Ros");
 
             var result = await template.RenderAsync(context);
-            Assert.Equal(expected, result);
+            Assert.Equal("Sebastien Ros", result);
         }
 
-        [Fact(Skip = "Refactoring")]
-        public void MemberNameStrategiesHandleSuccessiveUppercase()
+        [Fact]
+        public async Task DefaultMemberStrategyShouldSupportCamelCase()
         {
-            var model = new { UVIndex = "" };
-            var memberInfo = model.GetType().GetProperty("UVIndex");
+            var model = new { FirstName = "Sebastien" };
+            var source = "{{ firstName }} {{ lastName}}";
 
-            //var camelCase = MemberNameStrategies.CamelCase(memberInfo);
-            //var snakeCase = MemberNameStrategies.SnakeCase(memberInfo);
+            _parser.TryParse(source, out var template, out var error);
 
-            //Assert.Equal("uvIndex", camelCase);
-            //Assert.Equal("uv_index", snakeCase);
+            var options = new TemplateOptions() { ModelNamesComparer = StringComparers.CamelCase };
+            var context = new TemplateContext(model, options);
+            context.SetValue("LastName", "Ros");
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("Sebastien Ros", result);
+        }
+
+        [Fact]
+        public async Task DefaultMemberStrategyShouldSupportAnyCase()
+        {
+            var model = new { FirstName = "Sebastien" };
+            var source = "{{ fIrSTnAme }} {{ lAsTnAme}}";
+
+            _parser.TryParse(source, out var template, out var error);
+
+            var options = new TemplateOptions() { ModelNamesComparer = StringComparer.OrdinalIgnoreCase };
+            var context = new TemplateContext(model, options);
+            context.SetValue("LastName", "Ros");
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("Sebastien Ros", result);
         }
 
         [Fact]
