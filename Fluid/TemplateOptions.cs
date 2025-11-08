@@ -27,8 +27,6 @@ namespace Fluid
 
         public static readonly TemplateOptions Default = new();
 
-        private static readonly JavaScriptEncoder DefaultJavaScriptEncoder = JavaScriptEncoder.Default;
-
         /// <summary>
         /// Gets ot sets the members than can be accessed in a template.
         /// </summary>
@@ -111,22 +109,9 @@ namespace Fluid
         public UndefinedDelegate Undefined { get; set; }
 
         /// <summary>
-        /// Gets or sets the <see cref="JavaScriptEncoder" /> instance used by the <c>json</c> filter.
-        /// </summary>
-        [Obsolete("Use JsonSerializerOptions.Encoder instead. This property will be removed in a future version.")]
-        public JavaScriptEncoder JavaScriptEncoder
-        {
-            get => JsonSerializerOptions.Encoder;
-            set => JsonSerializerOptions.Encoder = value;
-        }
-
-        /// <summary>
         /// Gets or sets the <see cref="JsonSerializerOptions"/> used by the <c>json</c> filter.
         /// </summary>
-        public JsonSerializerOptions JsonSerializerOptions { get; set; } = new JsonSerializerOptions
-        {
-            Encoder = DefaultJavaScriptEncoder
-        };
+        public JsonSerializerOptions JsonSerializerOptions { get; set; } = JsonSerializerOptions.Default;
 
         /// <summary>
         /// Gets or sets the default trimming rules.

@@ -6,27 +6,27 @@
 
 ## Basic Overview
 
-Fluid is an open-source .NET template engine based on the [Liquid template language](https://shopify.github.io/liquid/). It's a **secure** template language that is also **very accessible** for non-programmer audiences.
+Fluid is an open-source .NET template engine based on the [Liquid template language](https://shopify.github.io/liquid/). It is a **secure** template language that is also **very accessible** for non-programmer audiences.
 
-> The following content is based on the 2.0.0-beta version, which is the recommended version even though some of its API might vary significantly.
-To see the corresponding content for v1.0 use [this version](https://github.com/sebastienros/fluid/blob/release/1.x/README.md)
+> The following content is based on the 2.0.0-beta version, which is the recommended version, even though some of its API might vary significantly.
+> To see the corresponding content for v1.0, use [this version](https://github.com/sebastienros/fluid/blob/release/1.x/README.md)
 
 <br>
 
 ## Tutorials
 
 [Deane Barker](https://deanebarker.net) wrote a [very comprehensive tutorial](https://deanebarker.net/tech/fluid/) on how to write Liquid templates with Fluid.
-For a high-level overview, read [The Four Levels of Fluid Development](https://deanebarker.net/tech/fluid/intro/) describing different stages of usages of Fluid.
+For a high-level overview, read [The Four Levels of Fluid Development](https://deanebarker.net/tech/fluid/intro/), which describes different stages of using Fluid.
 
 <br>
 
 ## Features
 
 - Very fast Liquid parser and renderer (no-regexp), with few allocations. See [benchmarks](#performance).
-- Secure templates by allow-listing all the available properties in the template. User templates can't break your application.
+- Secure templates by allow-listing all available properties in the template. User templates can't break your application.
 - Supports **async** filters. Templates can execute database queries more efficiently under load.
-- Customize filters and tag with your own. Even with complex grammar constructs. See [Customizing tags and blocks](#customizing-tags-and-blocks)
-- Parses templates in a concrete syntax tree that lets you cache, analyze and alter the templates before they are rendered.
+- Customize filters and tags with your own, even with complex grammar constructs. See [Customizing tags and blocks](#customizing-tags-and-blocks).
+- Parses templates into a concrete syntax tree that lets you cache, analyze, and alter the templates before they are rendered.
 - Register any .NET types and properties, or define **custom handlers** to intercept when a named variable is accessed.
 
 <br>
@@ -102,6 +102,8 @@ Notice
 
 You can directly reference the [Nuget package](https://www.nuget.org/packages/Fluid.Core).
 
+The code samples in this document assumes you have registered the `Fluid` namespace with `using Fluid;`.
+
 ### Hello World
 
 #### Source
@@ -129,15 +131,15 @@ else
 
 ### Thread-safety
 
-A `FluidParser` instance is thread-safe, and should be shared by the whole application. A common pattern is declare the parser in a local static variable:
+A `FluidParser` instance is thread-safe and should be shared by the whole application. A common pattern is to declare the parser in a local static variable:
 
 ```c#
     private static readonly FluidParser _parser = new FluidParser();
 ```
 
-A `IFluidTemplate` instance is thread-safe and can be cached and reused by multiple threads concurrently.
+An `IFluidTemplate` instance is thread-safe and can be cached and reused by multiple threads concurrently.
 
-A `TemplateContext` instance is __not__ thread-safe and an instance should be created every time an `IFluidTemplate` instance is used.
+A `TemplateContext` instance is __not__ thread-safe, and a new instance should be created every time an `IFluidTemplate` instance is used.
 
 <br>
 
@@ -167,54 +169,27 @@ var context = new TemplateContext(options);
 
 <br>
 
-## Allow-listing object members
+## Altering exposed .NET properties
 
-Liquid is a secure template language which will only allow a predefined set of members to be accessed, and where model members can't be changed. 
-Property are added to the `TemplateOptions.MemberAccessStrategy` property. This options object can be reused every time a template is rendered.
+### Converting object types
 
-Alternatively, the `MemberAccessStrategy` can be assigned an instance of `UnsafeMemberAccessStrategy` which will allow any property to be accessed.
-
-### Allow-listing a specific type
-
-This will allow any public field or property to be read from a template.
+Use the `ValueConverters` property to return different values than those provided by the model classes and properties:
 
 ```csharp
 var options = new TemplateOptions();
-options.MemberAccessStrategy.Register<Person>();
-``` 
+options.ValueConverters.Add(o => o is DateTime d ? new StringValue($"This is a date time: {d}") : null);
+```
 
-> Note: When passing a model with `new TemplateContext(model)` the type of the `model` object is automatically registered. This behavior can be disable
-by calling `new TemplateContext(model, false)`
+The previous example will return a custom value instead of the actual `DateTime`. When no conversion should be applied, `null` is returned.
 
-### Allow-listing specific members
+### Customizing object properties
 
-This will only allow the specific fields or properties to be read from a template.
+A common scenario is to access named properties on an object that do not exist in the source class, or should return a different result.
 
-```csharp
-var options = new TemplateOptions();
-options.MemberAccessStrategy.Register<Person>("Firstname", "Lastname");
-``` 
+In this case the `ValueConverters` can be used to return a specific wrapper/proxy `FluidValue` instance.
+In practice you can inherit from `ObjectValueBase` as it implements how most objects should behave.
 
-### Intercepting a type access
-
-This will provide a method to intercept when a member is accessed and either return a custom value or prevent it.
-
-NB: If the model implements `IDictionary` or any similar generic dictionary types the dictionary access has priority over the custom accessors.
-
-This example demonstrates how to intercept calls to a `Person` and always return the same property.
-
-```csharp
-var model = new Person { Name = "Bill" };
-
-var options = new TemplateOptions();
-options.MemberAccessStrategy.Register<Person, object>((obj, name) => obj.Name);
-``` 
-
-### Customizing object accessors
-
-To provide advanced customization for specific types, it is recommended to use value converters and a custom `FluidValue` implementation by inheriting from `ObjectValueBase`.
-
-The following example show how to provide a custom transformation for any `Person` object:
+The following example shows how to provide a custom transformation for any `Person` object:
 
 ```csharp
 private class PersonValue : ObjectValueBase
@@ -223,21 +198,30 @@ private class PersonValue : ObjectValueBase
     {
     }
 
-    public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
+    public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
     {
-        return Create(((Person)Value).Firstname + "!!!" + index.ToStringValue(), context.Options);
+        if (name == "Bingo")
+        {
+          return new StringValue("Hello, World!");
+        }
     }
 }
 ```
 
-This custom type can be used with a converter such that any time a `Person` is used, it is wrapped as a `PersonValue`.
+This custom type can be used with a converter so that any time a `Person` is used, it is wrapped as a `PersonValue`.
 
 ```csharp
 var options = new TemplateOptions();
 options.ValueConverters.Add(o => o is Person p ? new PersonValue(p) : null);
 ```
 
-It can also be used to replace custom member access by customizing `GetValueAsync`, or do custom conversions to standard Fluid types. 
+Invoking the member `Bingo` on a `Person` instance will then return the string `"Hello, World!"`:
+
+```liquid
+{{ myPerson.Bingo }}
+```
+
+NB: This technique can also be used to substitute existing properties with other values or even computed data.
 
 <br>
 
@@ -309,50 +293,51 @@ await template.RenderAsync(context);
 // Logs: "Missing variable: second"
 ```
 
-<br>
-
-### Inheritance
-
-All the members of the class hierarchy are registered. Besides, all inherited classes will be correctly evaluated when a base class is registered and
-a member of the base class is accessed.
-
-<br>
-
 ### Object members casing
 
-By default, the properties of a registered object are case sensitive and registered as they are in their source code. For instance, 
-the property `FirstName` would be access using the `{{ p.FirstName }}` tag.
+By default, the properties of a registered object are case-sensitive and registered as they are in their source code. For instance, 
+the property `FirstName` would be accessed using the `{{ p.FirstName }}` tag.
 
-However it can be necessary to register these properties with different cases, like __Camel case__ (`firstName`), or __Snake case__ (`first_name`).
+However, it can be necessary to register these properties with different cases, like __camelCase__ (`firstName`), or __snake_case__ (`first_name`) or even be case-insensitive. The `ModelNamesComparer` option accepts an instance of `System.StringComparer`.
 
 The following example configures the templates to use Camel casing.
 
 ```csharp
-var options = new TemplateOptions();
-options.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
+var options = new TemplateOptions() 
+{ 
+    ModelNamesComparer = StringComparers.CamelCase
+}
 ```
+
+With this setting bot model properties and context properties are accessible using camel-casing:
+
+```liquid
+{{ firstName }} {{ lastName }}
+```
+
+<br>
 
 ## Execution limits
 
 ### Limiting templates recursion
 
-When invoking `{% include 'sub-template' %}` statements it is possible that some templates create an infinite recursion that could block the server.
-To prevent this the `TemplateOptions` class defines a default `MaxRecursion = 100` that prevents templates from being have a depth greater than `100`.
+When invoking `{% include 'sub-template' %}` statements, it is possible that some templates create an infinite recursion that could block the server.
+To prevent this, the `TemplateOptions` class defines a default `MaxRecursion = 100` that prevents templates from having a depth greater than `100`.
 
 ### Limiting templates execution
 
-Template can inadvertently create infinite loop that could block the server by running indefinitely. 
-To prevent this the `TemplateOptions` class defines a default `MaxSteps`. By default this value is not set.
+A template can inadvertently create an infinite loop that could block the server by running indefinitely. 
+To prevent this, the `TemplateOptions` class defines a default `MaxSteps`. By default, this value is not set.
 
 <br>
 
 ## Converting CLR types
 
-Whenever an object is manipulated in a template it is converted to a specific `FluidValue` instance that provides a dynamic type system somehow similar to the one in JavaScript.
+Whenever an object is manipulated in a template, it is converted to a specific `FluidValue` instance that provides a dynamic type system somewhat similar to the one in JavaScript.
 
-In Liquid they can be Number, String, Boolean, Array, Dictionary, or Object. Fluid will automatically convert the CLR types to the corresponding Liquid ones, and also provides specialized ones.
+In Liquid, they can be Number, String, Boolean, Array, Dictionary, or Object. Fluid will automatically convert the CLR types to the corresponding Liquid ones, and also provides specialized ones.
 
-To be able to customize this conversion you can add **value converters**.
+To customize this conversion, you can add **value converters**.
 
 ### Adding a value converter
 
@@ -371,7 +356,7 @@ var options = new TemplateOptions();
 options.ValueConverters.Add((value) => value is IUser user ? user.Name : null);
 ```
 
-> Note: Type mapping are defined globally for the application.
+> Note: Type mappings are defined globally for the application.
 
 <br>
 
@@ -381,13 +366,13 @@ By default Fluid doesn't encode the output. Encoders can be specified when calli
 
 ### HTML encoding
 
-To render a template with HTML encoding use the `System.Text.Encodings.Web.HtmlEncoder.Default` instance.
+To render a template with HTML encoding, use the `System.Text.Encodings.Web.HtmlEncoder.Default` instance.
 
 This encoder is used by default for the MVC View engine.
 
 ### Disabling encoding contextually
 
-When an encoder is defined you can use a special `raw` filter or `{% raw %} ... {% endraw %}` tag to prevent a value from being encoded, for instance if you know that the content is HTML and is safe.
+When an encoder is defined, you can use a special `raw` filter or `{% raw %} ... {% endraw %}` tag to prevent a value from being encoded, for instance if you know that the content is HTML and is safe.
 
 #### Source
 ```Liquid
@@ -407,37 +392,6 @@ Not encoded: {{ html | raw }
 
 When using `capture` blocks, the inner content is flagged as 
 pre-encoded and won't be double-encoded if used in a `{{ }}` tag.
-
-### JSON encoding
-
-By default all JSON strings are encoded using the default `JavaScriptEncoder` instance. This can be changed by setting the `TemplateOptions.JavaScriptEncoder` property.
-
-```Liquid
-{{ "你好，这是一条短信" | json" }}
-```
-
-#### Result
-
-```html
-"\u4F60\u597D\uFF0C\u8FD9\u662F\u4E00\u6761\u77ED\u4FE1"
-```
-
-Using the `JavaScriptEncoder.UnsafeRelaxedJsonEscaping` can be done this way:
-
-```csharp
-// This variable should be static and reused for all templates
-var options = new TemplateOptions
-{
-    JavaScriptEncoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-};
-
-var context = new TemplateContext(options);
-```
-
-#### Result
-```html
-"你好，这是一条短信"
-```
 
 ### Customizing JSON output
 
@@ -470,7 +424,43 @@ context.SetValue("data", new { name = "John", age = 30 });
 }
 ```
 
-You can also set `JsonSerializerOptions` per `TemplateContext`, however is is recommended to reuse `JsonSerializerOptions` instances:
+You can also set `JsonSerializerOptions` per `TemplateContext`, but it is recommended to reuse `JsonSerializerOptions` instances and define them in a `TemplateOptions` instance that can be reused across `TemplateContext` instances.
+
+### JSON encoding
+
+By default, all JSON strings are encoded using the default `JavaScriptEncoder` instance. This can be changed by setting the `JsonSerializerOptions.JavaScriptEncoder` property to `JavaScriptEncoder.UnsafeRelaxedJsonEscaping`.
+
+```Liquid
+{{ "你好，这是一条短信" | json" }}
+```
+
+With the default json encoder:
+
+```html
+"\u4F60\u597D\uFF0C\u8FD9\u662F\u4E00\u6761\u77ED\u4FE1"
+```
+
+Using the relaxed json encoding:
+
+```csharp
+// This variable should be static and reused for all template contexts
+var options = new TemplateOptions
+{
+    JsonSerializerOptions = new JsonSerializerOptions
+    {
+        JavaScriptEncoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    }
+    
+};
+
+var context = new TemplateContext(options);
+```
+
+Result:
+
+```html
+"你好，这是一条短信"
+```
 
 <br>
 
@@ -478,7 +468,7 @@ You can also set `JsonSerializerOptions` per `TemplateContext`, however is is re
 
 By default templates are rendered using an _invariant_ culture so that the results are consistent across systems. This is important for instance when rendering dates, times and numbers.
 
-However it is possible to define a specific culture to use when rendering a template using the `TemplateContext.CultureInfo` property. 
+However, it is possible to define a specific culture to use when rendering a template using the `TemplateContext.CultureInfo` property. 
 
 #### Source
 
@@ -506,8 +496,7 @@ Tuesday, August 1, 2017
 
 ### System time zone
 
-`TemplateOptions` and `TemplateContext` provides a property to define a default time zone to use when parsing date and times. The default value is the current system's time zone. Setting a custom one can also prevent different environments (data centers) from
-generating different results.
+`TemplateOptions` and `TemplateContext` provide a property to define a default time zone to use when parsing dates and times. The default value is the current system's time zone. Setting a custom one can also prevent different environments (data centers) from generating different results.
 
 - When dates and times are parsed and don't specify a time zone, the configured one is assumed. 
 - When a time zone is provided in the source string, the resulting date time uses it.
@@ -560,10 +549,9 @@ which makes it completely extensible.
 
 Unlike blocks, tags don't have a closing element (e.g., `cycle`, `increment`).
 A closing element will match the name of the opening tag with and `end` suffix, like `endfor`.
-Blocks are useful when manipulating a section of a a template as a set of statements.
+Blocks are useful when manipulating a section of a template as a set of statements.
 
-Fluid provides helper method to register common tags and blocks. All tags and block always start with an __identifier__ that is
-the tag name.
+Fluid provides helper methods to register common tags and blocks. All tags and blocks always start with an __identifier__ that is the tag name.
 
 Each custom tag needs to provide a delegate that is evaluated when the tag is matched. Each delegate will be able to use these properties:
 
@@ -703,7 +691,7 @@ var statements = template.Statements;
 
 ## ASP.NET MVC View Engine
 
-The package `Fluid.MvcViewEngine` provides a convenient way to use Liquid as a replacement or in combination of Razor in ASP.NET MVC.
+The package `Fluid.MvcViewEngine` provides a convenient way to use Liquid as a replacement for, or in combination with, Razor in ASP.NET MVC.
 
 ### Configuration
 
@@ -727,7 +715,7 @@ public class Startup
 ```
 #### Registering view models
 
-Because the Liquid language only accepts known members to be accessed, the View Model classes need to be registered in Fluid. Usually from a static constructor such that the code is run only once for the application.
+Because the Liquid language only allows known members to be accessed, the View Model classes need to be registered in Fluid, usually from a static constructor so that the code is run only once for the application.
 
 #### View Model registration
 
@@ -744,7 +732,7 @@ public class Startup
 }
 ```
 
-More way to register types and members can be found in the [Allow-listing object members](#allow-listing-object-members) section.
+More ways to register types and members can be found in the [Allow-listing object members](#allow-listing-object-members) section.
 
 #### Registering custom tags
 
@@ -863,9 +851,9 @@ This is is the home page
 
 ### ViewStart files
 
-Defining the layout template in each view might me cumbersome and make it difficult to change it globally. To prevent that it can be defined in a `_ViewStart.liquid` file.
+Defining the layout template in each view might be cumbersome and make it difficult to change it globally. To prevent that, it can be defined in a `_ViewStart.liquid` file.
 
-When a view is rendered all `_ViewStart.liquid` files from its current and parent directories are executed before. This means multiple files can be defined to defined settings for a group of views.
+When a view is rendered, all `_ViewStart.liquid` files from its current and parent directories are executed beforehand. This means multiple files can be defined to set settings for a group of views.
 
 #### _ViewStart.liquid
 
@@ -896,9 +884,9 @@ Layouts will be searched in the same locations as Views.
 
 ### Execution
 
-The content of a view is parsed once and kept in memory until the file or one of its dependencies changes. Once parsed, the tag are executed every time the view is called. To compare this with Razor, where views are first compiled then instantiated every time they are rendered. This means that on startup or when the view is changed, views with Fluid will run faster than those in Razor, unless you are using precompiled Razor views. In all cases Razor views will be faster on subsequent calls as they are compiled directly to C#.
+The content of a view is parsed once and kept in memory until the file or one of its dependencies changes. Once parsed, the tags are executed every time the view is called. In comparison, Razor views are first compiled and then instantiated every time they are rendered. This means that on startup or when the view is changed, views with Fluid will run faster than those in Razor, unless you are using precompiled Razor views. In all cases, Razor views will be faster on subsequent calls as they are compiled directly to C#.
 
-This difference makes Fluid very adapted for rapid development cycles where the views can be deployed and updated frequently. And because the Liquid language is secure, developers give access to them with more confidence.  
+This difference makes Fluid very suitable for rapid development cycles where the views can be deployed and updated frequently. And because the Liquid language is secure, developers can give access to them with more confidence.  
 
 <br>
 
@@ -915,8 +903,8 @@ Use the class `FluidViewRenderer : IFluidViewRender` and `FluidViewEngineOptions
 
 ## Whitespace control
 
-Liquid follows strict rules with regards to whitespace support. By default all spaces and new lines are preserved from the template.
-The Liquid syntax and some Fluid options allow to customize this behavior.
+Liquid follows strict rules with regard to whitespace support. By default, all spaces and new lines are preserved from the template.
+The Liquid syntax and some Fluid options allow you to customize this behavior.
 
 ### Hyphens
 
@@ -960,7 +948,7 @@ present in tags and output values.
 
 ## Greedy Mode
 
-When greedy model is disabled in `TemplateOptions.Greedy`, only the spaces before the first new line are stripped.
+When greedy mode is disabled in `TemplateOptions.Greedy`, only the spaces before the first new line are stripped.
 Greedy mode is enabled by default since this is the standard behavior of the Liquid language.
 
 <br>
@@ -971,8 +959,7 @@ Some non-standard filters are provided by default
 
 ### format_date
 
-Formats date and times using standard .NET date and time formats. It uses the current culture 
-of the system.
+Formats dates and times using standard .NET date and time formats. It uses the current culture of the system.
 
 Input
 
@@ -1028,7 +1015,7 @@ Documentation: https://docs.microsoft.com/en-us/dotnet/api/system.string.format
 
 ## Functions
 
-Fluid provides optional support for functions, which is not part of the standard Liquid templating language. As such it is not enabled by default.
+Fluid provides optional support for functions, which is not part of the standard Liquid templating language. As such, it is not enabled by default.
 
 ### Enabling functions
 
@@ -1042,7 +1029,7 @@ When functions are used while the feature is not enabled, a parse error will be 
 
 ### Declaring local functions with the `macro` tag
 
-`macro` allows you to define reusable chunks of content invoke with local function.
+`macro` allows you to define reusable chunks of content to invoke with a local function.
 
 ```
 {% macro field(name, value='', type='text') %}
@@ -1060,7 +1047,7 @@ Now `field` is available as a local property of the template and can be invoked 
 {{ field('pass', type='password') }}
 ```
 
-> Macros need to be defined before they are used as they are discovered as the template is executed.
+> Macros need to be defined before they are used, as they are discovered as the template is executed.
 
 ### Importing functions from external templates
 Macros defined in an external template **must** be imported before they can be invoked.
@@ -1074,7 +1061,7 @@ Macros defined in an external template **must** be imported before they can be i
 
 ### Extensibility
 
-Functions are `FluidValue` instances implementing the `InvokeAsync` method. It allows any template to be provided custom function values as part of the model, the `TemplateContext` or globally with options.
+Functions are `FluidValue` instances implementing the `InvokeAsync` method. This allows any template to be provided custom function values as part of the model, the `TemplateContext`, or globally with options.
 
 A `FunctionValue` type is also available to provide out of the box functions. It takes a delegate that returns a `ValueTask<FluidValue>` as the result.
 
@@ -1098,8 +1085,8 @@ template.Render(context);
 
 ## Order of execution
 
-With tags with more than one `and` or `or` operator, operators are checked in order from right to left. You cannot change the order of operations using parentheses. This is the same for filters which are executed from left to right.
-However Fluid provides an option to support grouping expression with parentheses.
+With tags with more than one `and` or `or` operator, operators are checked in order from right to left. You cannot change the order of operations using parentheses. This is the same for filters, which are executed from left to right.
+However, Fluid provides an option to support grouping expressions with parentheses.
 
 ### Enabling parentheses
 
@@ -1109,7 +1096,7 @@ When instantiating a `FluidParser` set the `FluidParserOptions.AllowParentheses`
 var parser = new FluidParser(new FluidParserOptions { AllowParentheses = true });
 ```
 
-When parentheses are used while the feature is not enabled, a parse error will be returned (unless for ranges like `(1..4)`).
+When parentheses are used while the feature is not enabled, a parse error will be returned (except for ranges like `(1..4)`).
 
 At that point a template like the following will work:
 
@@ -1121,13 +1108,13 @@ At that point a template like the following will work:
 
 ## Visiting and altering a template
 
-Fluid provides a __Visitor__ pattern allowing you to analyze what a template is made of, but also altering it. This can be used for instance to check if a specific identifier is used, replace some filters by another one, or remove any expression that might not be authorized.
+Fluid provides a __Visitor__ pattern allowing you to analyze what a template is made of, but also to alter it. This can be used, for instance, to check if a specific identifier is used, replace some filters with another one, or remove any expression that might not be authorized.
 
 ### Visiting a template
 
 The `Fluid.Ast.AstVisitor` class can be used to create a custom visitor.
 
-Here is an example of a visitor class which records if an identifier is accessed anywhere in a template:
+Here is an example of a visitor class that records if an identifier is accessed anywhere in a template:
 
 ```c#
   public class IdentifierIsAccessedVisitor : AstVisitor
@@ -1178,7 +1165,7 @@ Console.WriteLine(visitor.IsAccessed); // writes True
 
 The `Fluid.Ast.AstRewriter` class can be used to create a custom rewriter.
 
-Here is an example of a visitor class which replaces any `plus` filter with a `minus` one:
+Here is an example of a visitor class that replaces any `plus` filter with a `minus` one:
 
 ```c#
   public class ReplacePlusFiltersVisitor : AstRewriter
@@ -1218,7 +1205,7 @@ The [custom statements and expressions](#custom-parsers) can also be visited by 
 - `VisitEmptyTagStatement(EmptyTagStatement)`
 - `VisitEmptyBlockStatement(EmptyBlockStatement)`
 
-They all expose a `TagName` property and optionally a `Statements` and `Value` ones when it applies.
+They all expose a `TagName` property and, optionally, `Statements` and `Value` properties when applicable.
 
 ## Performance
 
@@ -1226,11 +1213,11 @@ They all expose a `TagName` property and optionally a `Statements` and `Value` o
 
 Some performance boost can be gained in your application if you decide to cache the parsed templates before they are rendered. Even though parsing is memory-safe as it won't induce any compilation (meaning all the memory can be collected if you decide to parse a lot of templates), you can skip the parsing step by storing and reusing the `FluidTemplate` instance.
 
-These object are thread-safe as long as each call to `Render()` uses a dedicated `TemplateContext` instance.
+These objects are thread-safe as long as each call to `Render()` uses a dedicated `TemplateContext` instance.
 
 ### Benchmarks
 
-A benchmark application is provided in the source code to compare Fluid, [Scriban](https://github.com/scriban/scriban), [DotLiquid](https://github.com/dotliquid/dotliquid), [Liquid.NET](https://github.com/mikebridge/Liquid.NET) and [Handlebars.NET](https://github.com/Handlebars-Net).
+A benchmark application is provided in the source code to compare Fluid, [Scriban](https://github.com/scriban/scriban), [DotLiquid](https://github.com/dotliquid/dotliquid), [Liquid.NET](https://github.com/mikebridge/Liquid.NET), and [Handlebars.NET](https://github.com/Handlebars-Net/Handlebars.Net).
 Run it locally to analyze the time it takes to execute specific templates.
 
 TL;DR — Fluid is faster and allocates less memory than all other well-known .NET Liquid parsers.
@@ -1312,4 +1299,4 @@ Fluid is known to be used in the following projects:
 - [Semantic Kernel](https://github.com/microsoft/semantic-kernel) Integrate cutting-edge LLM technology quickly and easily into your apps
 - [Mailgen](https://github.com/hsndmr/Mailgen) A .NET package that generates clean, responsive HTML e-mails for sending transactional mail
 
-_Please create a pull-request to be listed here._
+_Please create a pull request to be listed here._
