@@ -100,9 +100,9 @@ Notice
 
 ## Using Fluid in your project
 
-You can directly reference the [Nuget package](https://www.nuget.org/packages/Fluid.Core).
+You can directly reference the [NuGet package](https://www.nuget.org/packages/Fluid.Core).
 
-The code samples in this document assumes you have registered the `Fluid` namespace with `using Fluid;`.
+The code samples in this document assume you have registered the `Fluid` namespace with `using Fluid;`.
 
 ### Hello World
 
@@ -186,8 +186,8 @@ The previous example will return a custom value instead of the actual `DateTime`
 
 A common scenario is to access named properties on an object that do not exist in the source class, or should return a different result.
 
-In this case the `ValueConverters` can be used to return a specific wrapper/proxy `FluidValue` instance.
-In practice you can inherit from `ObjectValueBase` as it implements how most objects should behave.
+In this case, the `ValueConverters` can be used to return a specific wrapper/proxy `FluidValue` instance.
+In practice, you can inherit from `ObjectValueBase` as it implements how most objects should behave.
 
 The following example shows how to provide a custom transformation for any `Person` object:
 
@@ -221,7 +221,7 @@ Invoking the member `Bingo` on a `Person` instance will then return the string `
 {{ myPerson.Bingo }}
 ```
 
-NB: This technique can also be used to substitute existing properties with other values or even computed data.
+> Note: This technique can also be used to substitute existing properties with other values or even computed data.
 
 <br>
 
@@ -298,9 +298,9 @@ await template.RenderAsync(context);
 By default, the properties of a registered object are case-sensitive and registered as they are in their source code. For instance, 
 the property `FirstName` would be accessed using the `{{ p.FirstName }}` tag.
 
-However, it can be necessary to register these properties with different cases, like __camelCase__ (`firstName`), or __snake_case__ (`first_name`) or even be case-insensitive. The `ModelNamesComparer` option accepts an instance of `System.StringComparer`.
+However, you can register these properties with different cases, like __camelCase__ (`firstName`), __snake_case__ (`first_name`), or even make them case-insensitive. The `ModelNamesComparer` option accepts an instance of `System.StringComparer`.
 
-The following example configures the templates to use Camel casing.
+The following example configures the templates to use camel casing.
 
 ```csharp
 var options = new TemplateOptions() 
@@ -309,7 +309,7 @@ var options = new TemplateOptions()
 }
 ```
 
-With this setting bot model properties and context properties are accessible using camel-casing:
+With this setting, both model properties and context properties are accessible using camel-casing:
 
 ```liquid
 {{ firstName }} {{ lastName }}
@@ -319,12 +319,12 @@ With this setting bot model properties and context properties are accessible usi
 
 ## Execution limits
 
-### Limiting templates recursion
+### Limiting template recursion
 
 When invoking `{% include 'sub-template' %}` statements, it is possible that some templates create an infinite recursion that could block the server.
 To prevent this, the `TemplateOptions` class defines a default `MaxRecursion = 100` that prevents templates from having a depth greater than `100`.
 
-### Limiting templates execution
+### Limiting template execution
 
 A template can inadvertently create an infinite loop that could block the server by running indefinitely. 
 To prevent this, the `TemplateOptions` class defines a default `MaxSteps`. By default, this value is not set.
@@ -362,7 +362,7 @@ options.ValueConverters.Add((value) => value is IUser user ? user.Name : null);
 
 ## Encoding
 
-By default Fluid doesn't encode the output. Encoders can be specified when calling `Render()` or `RenderAsync()` on the template.
+By default, Fluid doesn't encode the output. Encoders can be specified when calling `Render()` or `RenderAsync()` on the template.
 
 ### HTML encoding
 
@@ -434,13 +434,13 @@ By default, all JSON strings are encoded using the default `JavaScriptEncoder` i
 {{ "你好，这是一条短信" | json" }}
 ```
 
-With the default json encoder:
+With the default JSON encoder:
 
 ```html
 "\u4F60\u597D\uFF0C\u8FD9\u662F\u4E00\u6761\u77ED\u4FE1"
 ```
 
-Using the relaxed json encoding:
+Using the relaxed JSON encoding:
 
 ```csharp
 // This variable should be static and reused for all template contexts
@@ -466,9 +466,9 @@ Result:
 
 ## Localization
 
-By default templates are rendered using an _invariant_ culture so that the results are consistent across systems. This is important for instance when rendering dates, times and numbers.
+By default, templates are rendered using an _invariant_ culture so that the results are consistent across systems. This is important, for instance, when rendering dates, times, and numbers.
 
-However, it is possible to define a specific culture to use when rendering a template using the `TemplateContext.CultureInfo` property. 
+However, you can define a specific culture to use when rendering a template using the `TemplateContext.CultureInfo` property. 
 
 #### Source
 
@@ -548,7 +548,7 @@ any custom parameters. The parser is based on [Parlot](https://github.com/sebast
 which makes it completely extensible.
 
 Unlike blocks, tags don't have a closing element (e.g., `cycle`, `increment`).
-A closing element will match the name of the opening tag with and `end` suffix, like `endfor`.
+A closing element will match the name of the opening tag with an `end` suffix, like `endfor`.
 Blocks are useful when manipulating a section of a template as a set of statements.
 
 Fluid provides helper methods to register common tags and blocks. All tags and blocks always start with an __identifier__ that is the tag name.
@@ -556,7 +556,7 @@ Fluid provides helper methods to register common tags and blocks. All tags and b
 Each custom tag needs to provide a delegate that is evaluated when the tag is matched. Each delegate will be able to use these properties:
 
 - `writer`, a `TextWriter` instance that is used to render some text.
-- `encode`, a `TextEncoder` instance, like `HtmlEncoder`, or `NullEncoder`. It's defined by the caller of the template.
+- `encode`, a `TextEncoder` instance, like `HtmlEncoder` or `NullEncoder`. It's defined by the caller of the template.
 - `context`, a `TemplateContext` instance.
 
 ### Registering a custom tag
@@ -627,7 +627,7 @@ be invoked with a `ValueTuple<Expression, Expression>` representing the two `Pri
 
 ### Registering a custom operator
 
-Operator are used to compare values, like `>` or `contains`. Custom operators can be defined if special comparisons need to be provided.
+Operators are used to compare values, like `>` or `contains`. Custom operators can be defined if special comparisons need to be provided.
 
 #### Source
 
@@ -787,11 +787,11 @@ public class Startup
 This is the home page
 ```
 
-The `{% layout [template] %}` tag accepts one argument which can be any expression that return the relative location of a liquid template that will be used as the master template.
+The `{% layout [template] %}` tag accepts one argument which can be any expression that returns the relative location of a Liquid template that will be used as the master template.
 
 The layout tag is optional in a view. It can also be defined multiple times or conditionally.
 
-From a layout template the `{% renderbody %}` tag is used to depict the location of the view's content inside the layout itself.
+From a layout template, the `{% renderbody %}` tag is used to depict the location of the view's content inside the layout itself.
 
 #### Layout.liquid
 
@@ -811,14 +811,14 @@ From a layout template the `{% renderbody %}` tag is used to depict the location
 
 ### Sections
 
-Sections are defined in a layout as for views to render content in specific locations. For instance a view can render some content in a **menu** or a **footer** section.
+Sections are defined in a layout for views to render content in specific locations. For instance, a view can render some content in a **menu** or a **footer** section.
 
 #### Rendering content in a section
 
 ```Liquid
 {% layout '_layout.liquid' %}
 
-This is is the home page
+This is the home page
 
 {% section menu %}
   <a href="h#">This link goes in the menu</a>
@@ -892,12 +892,12 @@ This difference makes Fluid very suitable for rapid development cycles where the
 
 ## View Engine
 
-The Fluid ASP.NET MVC View Engine is based on an MVC agnostic view engine provided in the `Fluid.ViewEngine` package. The same options and features are available, but without 
-requiring ASP.NET MVC. This is useful to provide the same experience to build template using layouts and sections.
+The Fluid ASP.NET MVC View Engine is based on an MVC-agnostic view engine provided in the `Fluid.ViewEngine` package. The same options and features are available, but without 
+requiring ASP.NET MVC. This is useful to provide the same experience when building templates using layouts and sections.
 
 ### Usage
 
-Use the class `FluidViewRenderer : IFluidViewRender` and `FluidViewEngineOptions`. 
+Use the class `FluidViewRenderer : IFluidViewRenderer` and `FluidViewEngineOptions`. 
 
 
 
@@ -955,7 +955,7 @@ Greedy mode is enabled by default since this is the standard behavior of the Liq
 
 ## Custom filters
 
-Some non-standard filters are provided by default
+Some non-standard filters are provided by default:
 
 ### format_date
 
@@ -995,7 +995,7 @@ Documentation: https://docs.microsoft.com/en-us/dotnet/standard/base-types/stand
 
 ### format_string
 
-Formats custom string using standard .NET format strings.
+Formats custom strings using standard .NET format strings.
 
 Input
 
@@ -1019,7 +1019,7 @@ Fluid provides optional support for functions, which is not part of the standard
 
 ### Enabling functions
 
-When instantiating a `FluidParser` set the `FluidParserOptions.AllowFunction` property to `true`.
+When instantiating a `FluidParser`, set the `FluidParserOptions.AllowFunctions` property to `true`.
 
 ```
 var parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
@@ -1050,6 +1050,7 @@ Now `field` is available as a local property of the template and can be invoked 
 > Macros need to be defined before they are used, as they are discovered as the template is executed.
 
 ### Importing functions from external templates
+
 Macros defined in an external template **must** be imported before they can be invoked.
 
 ```
@@ -1063,7 +1064,7 @@ Macros defined in an external template **must** be imported before they can be i
 
 Functions are `FluidValue` instances implementing the `InvokeAsync` method. This allows any template to be provided custom function values as part of the model, the `TemplateContext`, or globally with options.
 
-A `FunctionValue` type is also available to provide out of the box functions. It takes a delegate that returns a `ValueTask<FluidValue>` as the result.
+A `FunctionValue` type is also available to provide out-of-the-box functions. It takes a delegate that returns a `ValueTask<FluidValue>` as the result.
 
 ```c#
 var lowercase = new FunctionValue((args, context) => 
@@ -1085,12 +1086,12 @@ template.Render(context);
 
 ## Order of execution
 
-With tags with more than one `and` or `or` operator, operators are checked in order from right to left. You cannot change the order of operations using parentheses. This is the same for filters, which are executed from left to right.
+With tags containing more than one `and` or `or` operator, operators are evaluated in order from right to left. You cannot change the order of operations using parentheses. This is the same for filters, which are executed from left to right.
 However, Fluid provides an option to support grouping expressions with parentheses.
 
 ### Enabling parentheses
 
-When instantiating a `FluidParser` set the `FluidParserOptions.AllowParentheses` property to `true`.
+When instantiating a `FluidParser`, set the `FluidParserOptions.AllowParentheses` property to `true`.
 
 ```
 var parser = new FluidParser(new FluidParserOptions { AllowParentheses = true });
@@ -1108,7 +1109,7 @@ At that point a template like the following will work:
 
 ## Visiting and altering a template
 
-Fluid provides a __Visitor__ pattern allowing you to analyze what a template is made of, but also to alter it. This can be used, for instance, to check if a specific identifier is used, replace some filters with another one, or remove any expression that might not be authorized.
+Fluid provides a __Visitor__ pattern that allows you to analyze what a template is made of, and also to alter it. This can be used, for instance, to check if a specific identifier is used, replace some filters with others, or remove any expression that might not be authorized.
 
 ### Visiting a template
 
@@ -1209,11 +1210,23 @@ They all expose a `TagName` property and, optionally, `Statements` and `Value` p
 
 ## Performance
 
-### Caching
+Fluid is fast, but only if you follow these best practices:
 
-Some performance boost can be gained in your application if you decide to cache the parsed templates before they are rendered. Even though parsing is memory-safe as it won't induce any compilation (meaning all the memory can be collected if you decide to parse a lot of templates), you can skip the parsing step by storing and reusing the `FluidTemplate` instance.
+### Cache `IFluidTemplate` instances
 
-These objects are thread-safe as long as each call to `Render()` uses a dedicated `TemplateContext` instance.
+It is common for the same templates to be rendered over time. In this case, it is beneficial to cache the resulting `IFluidTemplate` instance from the `FluidParser.Parse()` method. You can use the template name with a timestamp or its content as the cache key. If your templates can evolve, ensure that the cache is not unbounded and entries eventually get evicted. The recommended approach is to use a singleton `IMemoryCache` that can be configured with size limits and eviction time.
+
+`IFluidTemplate` instances are thread-safe for read access and can be shared by multiple concurrent threads.
+
+### Reuse the `TemplateOptions` instance
+
+These instances are meant to be reused. This is why there is a separation between `TemplateContext`, which is per rendering, and `TemplateOptions`, which contains state that is shared across all renderings, such as property resolutions and lambdas. A convenient approach is to declare them as `static`, though you should adapt this to your needs.
+
+`TemplateOptions` instances are thread-safe for read access and can be shared by multiple concurrent threads.
+
+### Reuse the `FluidParser` instance
+
+Instantiating a `FluidParser` instance is expensive, do it once and reuse the instance. This can be registered as a singleton if you use dependency injection, but in most cases a `static` instance makes sense since it's rare to customize these.
 
 ### Benchmarks
 
@@ -1226,20 +1239,20 @@ TL;DR — Fluid is faster and allocates less memory than all other well-known .N
 
 **Parse: Parses a simple HTML template containing filters and properties**
 
-On this chart, Fluid is 40% faster than the second best, Scriban, allocating half the memory.
+On this chart, Fluid is 40% faster than the second best, Scriban, and allocates half the memory.
 
 ![image](https://github.com/user-attachments/assets/536665c5-cb32-45f6-9613-c394cd7430d9)
 
 **ParseBig: Parses a Blog Post template**
 
-Fluid is 60% faster than the second best, Scriban, and allocating half the memory.
+Fluid is 60% faster than the second best, Scriban, and allocates half the memory.
 
 ![image](https://github.com/user-attachments/assets/5525759e-3e92-4ce1-8a00-99a49c9faca9)
 
 **Render: Renders a simple HTML template containing filters and properties, with 100 elements**
 
-Compared to DotLiquid, Fluid renders almost 8 times faster, and allocates 14 times less memory.
-The second best, Handlebars (mustache), is almost 3 times slower than Fluid and allocates 3 times more memory.
+Compared to DotLiquid, Fluid renders almost 8 times faster and allocates 14 times less memory.
+The second best, Handlebars (Mustache), is almost 3 times slower than Fluid and allocates 3 times more memory.
 
 ![image](https://github.com/user-attachments/assets/4fbe9a79-63ba-4275-9971-55dd88e83e52)
 
