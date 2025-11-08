@@ -5,7 +5,6 @@ namespace Fluid;
 /// <summary>
 /// Interface for caching parsed templates in memory.
 /// </summary>
-[Experimental("FLUID001")]
 public interface ITemplateCache
 {
     /// <summary>
