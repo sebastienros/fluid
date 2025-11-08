@@ -102,6 +102,8 @@ Notice
 
 You can directly reference the [Nuget package](https://www.nuget.org/packages/Fluid.Core).
 
+The code samples in this document assumes you have registered the `Fluid` namespace with `using Fluid;`.
+
 ### Hello World
 
 #### Source
@@ -296,13 +298,21 @@ await template.RenderAsync(context);
 By default, the properties of a registered object are case-sensitive and registered as they are in their source code. For instance, 
 the property `FirstName` would be accessed using the `{{ p.FirstName }}` tag.
 
-However, it can be necessary to register these properties with different cases, like __camelCase__ (`firstName`), or __snake_case__ (`first_name`).
+However, it can be necessary to register these properties with different cases, like __camelCase__ (`firstName`), or __snake_case__ (`first_name`) or even be case-insensitive. The `ModelNamesComparer` option accepts an instance of `System.StringComparer`.
 
 The following example configures the templates to use Camel casing.
 
 ```csharp
-var options = new TemplateOptions();
-options.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
+var options = new TemplateOptions() 
+{ 
+    ModelNamesComparer = StringComparers.CamelCase
+}
+```
+
+With this setting bot model properties and context properties are accessible using camel-casing:
+
+```liquid
+{{ firstName }} {{ lastName }}
 ```
 
 <br>
