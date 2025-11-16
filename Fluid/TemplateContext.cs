@@ -138,7 +138,7 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the current scope.
         /// </summary>
-        internal Scope LocalScope { get; set; }
+        public Scope LocalScope { get; set; }
 
         /// <summary>
         /// Gets or sets the root scope.
@@ -231,6 +231,7 @@ namespace Fluid
         /// <summary>
         /// Gets the names of the values.
         /// </summary>
+        [Obsolete("Use LocalScope.Properties instead.")]
         public IEnumerable<string> ValueNames => LocalScope.Properties;
 
         /// <summary>
