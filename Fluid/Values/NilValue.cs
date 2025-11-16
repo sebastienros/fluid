@@ -45,11 +45,6 @@ namespace Fluid.Values
             return true;
         }
 
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-        }
-
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             return default;
@@ -70,9 +65,6 @@ namespace Fluid.Values
     public sealed class NilValue : BaseNilValue
     {
         public static readonly NilValue Instance = new NilValue(); // a variable that is not defined, or the nil keyword
-
-        [Obsolete("Use EmptyValue.Instance instead.")]
-        public static readonly EmptyValue Empty = EmptyValue.Instance;
 
         private NilValue()
         {

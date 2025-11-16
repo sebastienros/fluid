@@ -42,23 +42,5 @@ namespace Fluid
             return task.IsCompletedSuccessfully ? task.Result : task.AsTask().GetAwaiter().GetResult();
         }
 
-        /// <summary>
-        /// Renders the template to the specified text writer using the specified context and text encoder.
-        /// This method is obsolete and will be removed in a future version.
-        /// </summary>
-        /// <param name="template">The template to render.</param>
-        /// <param name="context">The context to use for rendering.</param>
-        /// <param name="encoder">The text encoder to use for rendering.</param>
-        /// <param name="writer">The text writer to write the rendered template to.</param>
-        [Obsolete("Use Render(this IFluidTemplate template, TextWriter writer, TemplateContext context, TextEncoder encoder) instead. This method will be removed in a future version.")]
-        public static void Render(this IFluidTemplate template, TemplateContext context, TextEncoder encoder, TextWriter writer)
-        {
-            var task = RenderAsync(template, writer, context, encoder);
-
-            if (!task.IsCompletedSuccessfully)
-            {
-                task.AsTask().GetAwaiter().GetResult();
-            }
-        }
     }
 }

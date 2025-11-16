@@ -11,16 +11,8 @@ namespace Fluid.Values
     public abstract class FluidValue : IEquatable<FluidValue>
 #pragma warning restore CA1067
     {
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public virtual void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-        }
-
         public virtual ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
-#pragma warning disable CS0618 // Type or member is obsolete
-            WriteTo(writer, encoder, cultureInfo);
-#pragma warning restore CS0618 // Type or member is obsolete
             return default;
         }
 
@@ -57,16 +49,12 @@ namespace Fluid.Values
 
         public virtual ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
-#pragma warning disable CS0618 // Use obsolete method for backward compatibility
-            return GetValue(name, context);
-#pragma warning restore CS0618
+            return NilValue.Instance;
         }
 
         public virtual ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
-#pragma warning disable CS0618 // Use obsolete method for backward compatibility
-            return GetIndex(index, context);
-#pragma warning restore CS0618
+            return NilValue.Instance;
         }
 
         public virtual ValueTask<FluidValue> InvokeAsync(FunctionArguments arguments, TemplateContext context)
@@ -324,79 +312,6 @@ namespace Fluid.Values
         {
             return new ValueTask<IEnumerable<FluidValue>>(Array.Empty<FluidValue>());
         }
-
-        #region Obsolete members
-
-        [Obsolete("Use EnumerateAsync(TemplateContext) instead.")]
-        public virtual IEnumerable<FluidValue> Enumerate(TemplateContext context)
-        {
-            return EnumerateAsync(context).GetAwaiter().GetResult();
-        }
-
-        [Obsolete("Use EnumerateAsync(TemplateContext) instead.")]
-        public virtual IEnumerable<FluidValue> Enumerate()
-        {
-            return [];
-        }
-
-        [Obsolete("Use EnumerateAsync(TemplateContext) instead.")]
-        internal virtual string[] ToStringArray()
-        {
-            return [];
-        }
-
-        [Obsolete("Use EnumerateAsync(TemplateContext) instead.")]
-        internal virtual List<FluidValue> ToList()
-        {
-            return Enumerate().ToList();
-        }
-
-        [Obsolete("Handle the property 'first' in GetValueAsync() instead")]
-        internal virtual FluidValue FirstOrDefault()
-        {
-            return Enumerate().FirstOrDefault();
-        }
-
-        /// <summary>
-        /// Returns the first element. Used by the <code>first</code> filter.
-        /// </summary>
-        [Obsolete("Handle the property 'first' in GetValueAsync() instead")]
-        internal virtual FluidValue FirstOrDefault(TemplateContext context)
-        {
-#pragma warning disable CS0618 // Type or member is obsolete
-            return Enumerate(context).FirstOrDefault();
-#pragma warning restore CS0618 // Type or member is obsolete
-        }
-
-        [Obsolete("Handle the property 'last' in GetValueAsync() instead")]
-        internal virtual FluidValue LastOrDefault()
-        {
-            return Enumerate().LastOrDefault();
-        }
-
-        /// <summary>
-        /// Returns the last element. Used by the <code>last</code> filter.
-        /// </summary>
-        [Obsolete("Handle the property 'last' in GetValueAsync() instead")]
-        internal virtual FluidValue LastOrDefault(TemplateContext context)
-        {
-#pragma warning disable CS0618 // Type or member is obsolete
-            return Enumerate(context).LastOrDefault();
-#pragma warning restore CS0618 // Type or member is obsolete
-        }
-
-        [Obsolete("This method has been deprecated, please use GetValueAsync() instead.")]
-        protected virtual FluidValue GetValue(string name, TemplateContext context)
-        {
-            return NilValue.Instance;
-        }
-
-        [Obsolete("This method has been deprecated, please use GetIndexAsync() instead.")]
-        protected virtual FluidValue GetIndex(FluidValue index, TemplateContext context)
-        {
-            return NilValue.Instance;
-        }
-        #endregion
 
         public static implicit operator ValueTask<FluidValue>(FluidValue value)
         {
