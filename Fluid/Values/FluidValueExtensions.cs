@@ -158,5 +158,27 @@ namespace Fluid.Values
 
             return self;
         }
+
+        public static IEnumerable<T> ToEnumerable<T>(this IAsyncEnumerable<T> asyncEnumerable)
+        {
+            var enumerator = asyncEnumerable.GetAsyncEnumerator();
+            try
+            {
+                var moveNextTask = enumerator.MoveNextAsync();
+                while (moveNextTask.IsCompleted ? moveNextTask.Result : moveNextTask.AsTask().GetAwaiter().GetResult())
+                {
+                    yield return enumerator.Current;
+                    moveNextTask = enumerator.MoveNextAsync();
+                }
+            }
+            finally
+            {
+                var disposeTask = enumerator.DisposeAsync();
+                if (!disposeTask.IsCompleted)
+                {
+                    disposeTask.AsTask().GetAwaiter().GetResult();
+                }
+            }
+        }
     }
 }

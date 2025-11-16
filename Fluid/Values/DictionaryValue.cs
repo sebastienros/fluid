@@ -118,15 +118,15 @@ namespace Fluid.Values
             return false;
         }
 
-        public override ValueTask<IEnumerable<FluidValue>> EnumerateAsync(TemplateContext context)
+        public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
-            var result = new List<FluidValue>();
             foreach (var key in _value.Keys)
             {
                 _value.TryGetValue(key, out var value);
-                result.Add(new ArrayValue([new StringValue(key), value]));
+                yield return new ArrayValue([new StringValue(key), value]);
             }
-            return new ValueTask<IEnumerable<FluidValue>>(result);
+
+            await Task.CompletedTask;
         }
 
         public override bool Equals(object obj)

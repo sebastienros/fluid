@@ -39,7 +39,7 @@ namespace Fluid.Ast
 
         public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            var source = (await (await Source.EvaluateAsync(context)).EnumerateAsync(context)).ToList();
+            var source = await (await Source.EvaluateAsync(context)).EnumerateAsync(context).ToListAsync();
 
             if (source.Count == 0)
             {

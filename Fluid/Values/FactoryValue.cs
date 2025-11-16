@@ -24,7 +24,7 @@ namespace Fluid.Values
             return _factory.Value.Contains(value);
         }
 
-        public override ValueTask<IEnumerable<FluidValue>> EnumerateAsync(TemplateContext context)
+        public override IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
             return _factory.Value.EnumerateAsync(context);
         }

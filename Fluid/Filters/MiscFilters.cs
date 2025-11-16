@@ -149,7 +149,7 @@ namespace Fluid.Filters
         public static async ValueTask<FluidValue> Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var compacted = new List<FluidValue>();
-            foreach (var value in await input.EnumerateAsync(context))
+            await foreach (var value in input.EnumerateAsync(context))
             {
                 if (!value.IsNil())
                 {
