@@ -679,7 +679,7 @@ shape: ''";
             // Check that the For expression evaluates correctly
             Assert.IsType<MemberExpression>(renderStmt.For);
             var forValue = await renderStmt.For.EvaluateAsync(context);
-            var items = (await forValue.EnumerateAsync(context)).ToList();
+            var items = await forValue.EnumerateAsync(context).ToListAsync();
             Assert.Equal(2, items.Count);  // Should have 2 items
             
             // Also check that For is really the "products" variable

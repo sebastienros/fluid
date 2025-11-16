@@ -194,9 +194,10 @@ namespace Fluid.Values
             return _value.Contains(value.ToStringValue());
         }
 
-        public override ValueTask<IEnumerable<FluidValue>> EnumerateAsync(TemplateContext context)
+        public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
-            return new ValueTask<IEnumerable<FluidValue>>(new[] { this });
+            yield return this;
+            await Task.CompletedTask;
         }
 
         public override bool Equals(object obj)

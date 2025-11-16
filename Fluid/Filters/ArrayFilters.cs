@@ -33,8 +33,8 @@ namespace Fluid.Filters
             }
 
             var separator = arguments.At(0).ToStringValue();
-            var values = (await input.EnumerateAsync(context)).Select(x => x.ToStringValue());
-            var joined = string.Join(separator, values);
+            var values = input.EnumerateAsync(context).Select(x => x.ToStringValue());
+            var joined = string.Join(separator, await values.ToListAsync());
             return new StringValue(joined);
         }
 
@@ -61,7 +61,7 @@ namespace Fluid.Filters
 
             if (input.Type == FluidValues.Array)
             {
-                foreach (var item in await input.EnumerateAsync(context))
+                await foreach (var item in input.EnumerateAsync(context))
                 {
                     concat.Add(item);
                 }
@@ -73,7 +73,7 @@ namespace Fluid.Filters
 
             if (arg.Type == FluidValues.Array)
             {
-                foreach (var item in await arg.EnumerateAsync(context))
+                await foreach (var item in arg.EnumerateAsync(context))
                 {
                     concat.Add(item);
                 }
@@ -97,7 +97,7 @@ namespace Fluid.Filters
 
             var list = new List<FluidValue>();
 
-            foreach (var item in await input.EnumerateAsync(context))
+            await foreach (var item in input.EnumerateAsync(context))
             {
                 list.Add(await item.GetValueAsync(member, context));
             }
@@ -109,7 +109,7 @@ namespace Fluid.Filters
         {
             if (input.Type == FluidValues.Array)
             {
-                return new ArrayValue((await input.EnumerateAsync(context)).Reverse().ToArray());
+                return new ArrayValue(await input.EnumerateAsync(context).Reverse().ToArrayAsync());
             }
             else if (input.Type == FluidValues.String)
             {
@@ -153,7 +153,7 @@ namespace Fluid.Filters
 
             var list = new List<FluidValue>();
 
-            foreach (var item in await input.EnumerateAsync(context))
+            await foreach (var item in input.EnumerateAsync(context))
             {
                 var itemValue = await item.GetValueAsync(member, context);
 
@@ -185,7 +185,7 @@ namespace Fluid.Filters
 
             FluidValue result = NilValue.Instance;
 
-            foreach (var item in await input.EnumerateAsync(context))
+            await foreach (var item in input.EnumerateAsync(context))
             {
                 var itemValue = await item.GetValueAsync(member, context);
 
@@ -219,7 +219,7 @@ namespace Fluid.Filters
             FluidValue result = NilValue.Instance;
             var index = 0;
 
-            foreach (var item in await input.EnumerateAsync(context))
+            await foreach (var item in input.EnumerateAsync(context))
             {
                 var itemValue = await item.GetValueAsync(member, context);
 
@@ -261,7 +261,7 @@ namespace Fluid.Filters
 
             var list = new List<FluidValue>();
 
-            foreach (var item in await input.EnumerateAsync(context))
+            await foreach (var item in input.EnumerateAsync(context))
             {
                 var itemValue = await item.GetValueAsync(member, context);
 
@@ -287,7 +287,7 @@ namespace Fluid.Filters
 
                 var values = new List<KeyValuePair<FluidValue, object>>();
 
-                foreach (var item in await input.EnumerateAsync(context))
+                await foreach (var item in input.EnumerateAsync(context))
                 {
                     values.Add(new KeyValuePair<FluidValue, object>(item, (await item.GetValueAsync(member, context)).ToObjectValue()));
                 }
@@ -301,7 +301,7 @@ namespace Fluid.Filters
             }
             else
             {
-                return new ArrayValue((await input.EnumerateAsync(context)).OrderBy(x => x.ToStringValue(), StringComparer.Ordinal).ToArray());
+                return new ArrayValue(await input.EnumerateAsync(context).OrderBy(x => x.ToStringValue(), StringComparer.Ordinal).ToArrayAsync());
             }
         }
 
@@ -313,7 +313,7 @@ namespace Fluid.Filters
 
                 var values = new List<KeyValuePair<FluidValue, object>>();
 
-                foreach (var item in await input.EnumerateAsync(context))
+                await foreach (var item in input.EnumerateAsync(context))
                 {
                     values.Add(new KeyValuePair<FluidValue, object>(item, (await item.GetValueAsync(member, context)).ToObjectValue()));
                 }
@@ -327,34 +327,34 @@ namespace Fluid.Filters
             }
             else
             {
-                return new ArrayValue((await input.EnumerateAsync(context)).OrderBy(x => x.ToStringValue(), StringComparer.OrdinalIgnoreCase).ToArray());
+                return new ArrayValue(await input.EnumerateAsync(context).OrderBy(x => x.ToStringValue(), StringComparer.OrdinalIgnoreCase).ToArrayAsync());
             }
         }
 
         public static async ValueTask<FluidValue> Uniq(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new ArrayValue((await input.EnumerateAsync(context)).Distinct().ToArray());
+            return new ArrayValue(await input.EnumerateAsync(context).Distinct().ToArrayAsync());
         }
 
         public static async ValueTask<FluidValue> Sum(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             if (arguments.Count == 0)
             {
-                var numbers = (await input.EnumerateAsync(context)).Select(x => x switch
+                var numbers = input.EnumerateAsync(context).Select(x => x switch
                 {
                     ArrayValue => Sum(x, arguments, context).Result.ToNumberValue(),
                     NumberValue or StringValue => x.ToNumberValue(),
                     _ => 0
                 });
 
-                return NumberValue.Create(numbers.Sum());
+                return NumberValue.Create(await numbers.SumAsync());
             }
 
             var member = arguments.At(0);
 
             var sumList = new List<decimal>();
 
-            foreach (var item in await input.EnumerateAsync(context))
+            await foreach (var item in input.EnumerateAsync(context))
             {
                 switch (item)
                 {

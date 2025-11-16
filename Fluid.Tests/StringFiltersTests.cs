@@ -286,7 +286,7 @@ world
 
             var result = await StringFilters.Split(input, arguments, context);
 
-            var enumerated = await result.EnumerateAsync(context);
+            var enumerated = await result.EnumerateAsync(context).ToListAsync();
             Assert.Equal(3, enumerated.Count());
             Assert.Equal(new StringValue("a"), enumerated.ElementAt(0));
             Assert.Equal(new StringValue("b"), enumerated.ElementAt(1));
@@ -303,7 +303,7 @@ world
 
             var result = await StringFilters.Split(input, arguments, context);
 
-            var enumerated = await result.EnumerateAsync(context);
+            var enumerated = await result.EnumerateAsync(context).ToListAsync();
             Assert.Equal(3, enumerated.Count());
             Assert.Equal(new StringValue("a"), enumerated.ElementAt(0));
             Assert.Equal(new StringValue("b"), enumerated.ElementAt(1));

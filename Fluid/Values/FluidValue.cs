@@ -308,9 +308,16 @@ namespace Fluid.Values
             return false;
         }
 
-        public virtual ValueTask<IEnumerable<FluidValue>> EnumerateAsync(TemplateContext context)
+        public virtual async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
-            return new ValueTask<IEnumerable<FluidValue>>(Array.Empty<FluidValue>());
+            await Task.CompletedTask;
+            yield break;
+        }
+
+        [Obsolete("Use EnumerateAsync instead")]
+        public virtual IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        {
+            return EnumerateAsync(context).ToEnumerable();
         }
 
         public static implicit operator ValueTask<FluidValue>(FluidValue value)
