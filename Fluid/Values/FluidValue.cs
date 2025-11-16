@@ -142,6 +142,12 @@ namespace Fluid.Values
 
             var typeOfValue = value.GetType();
 
+            // Check if the value is an enum and convert to string
+            if (typeOfValue.IsEnum)
+            {
+                return new StringValue(value.ToString());
+            }
+
             switch (System.Type.GetTypeCode(typeOfValue))
             {
                 case TypeCode.Boolean:
