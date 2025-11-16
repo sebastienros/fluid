@@ -164,14 +164,20 @@ namespace Fluid.Values
             var enumerator = asyncEnumerable.GetAsyncEnumerator();
             try
             {
-                while (enumerator.MoveNextAsync().AsTask().GetAwaiter().GetResult())
+                var moveNextTask = enumerator.MoveNextAsync();
+                while (moveNextTask.IsCompleted ? moveNextTask.Result : moveNextTask.AsTask().GetAwaiter().GetResult())
                 {
                     yield return enumerator.Current;
+                    moveNextTask = enumerator.MoveNextAsync();
                 }
             }
             finally
             {
-                enumerator.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                var disposeTask = enumerator.DisposeAsync();
+                if (!disposeTask.IsCompleted)
+                {
+                    disposeTask.AsTask().GetAwaiter().GetResult();
+                }
             }
         }
     }
