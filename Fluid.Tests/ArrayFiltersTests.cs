@@ -940,5 +940,30 @@ namespace Fluid.Tests
             // Assert
             Assert.Equal(BooleanValue.False, result);
         }
+
+        [Fact]
+#pragma warning disable CS0618 // Type or member is obsolete
+        public void Enumerate_Obsolete_WorksCorrectly()
+#pragma warning restore CS0618
+        {
+            // Arrange
+            var input = new ArrayValue(new[] {
+                new StringValue("a"),
+                new StringValue("b"),
+                new StringValue("c")
+            });
+            var context = new TemplateContext();
+
+            // Act
+#pragma warning disable CS0618 // Type or member is obsolete
+            var result = input.Enumerate(context).ToList();
+#pragma warning restore CS0618
+
+            // Assert
+            Assert.Equal(3, result.Count);
+            Assert.Equal("a", result[0].ToStringValue());
+            Assert.Equal("b", result[1].ToStringValue());
+            Assert.Equal("c", result[2].ToStringValue());
+        }
     }
 }
