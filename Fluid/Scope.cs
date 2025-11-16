@@ -119,11 +119,6 @@ namespace Fluid
             _properties[name] = value ?? NilValue.Instance;
         }
 
-        public FluidValue GetIndex(FluidValue index)
-        {
-            return GetValue(index.ToString());
-        }
-
         /// <summary>
         /// Copies all the local scope properties to a different one.
         /// </summary>

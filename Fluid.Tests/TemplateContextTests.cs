@@ -123,8 +123,8 @@ namespace Fluid.Tests
             template.Render(context);
 
             Assert.Equal("World", context.GetValue("text1").ToStringValue());
-            Assert.DoesNotContain("greetings", context.ValueNames);
-            Assert.DoesNotContain("foo", context.ValueNames);
+            Assert.DoesNotContain("greetings", context.LocalScope.Properties);
+            Assert.DoesNotContain("foo", context.LocalScope.Properties);
         }
 
         [Fact]
