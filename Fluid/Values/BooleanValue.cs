@@ -39,27 +39,12 @@ namespace Fluid.Values
             return _value;
         }
 
-        public override bool ToBooleanValue(TemplateContext context)
-        {
-            return _value;
-        }
-
         public override decimal ToNumberValue()
         {
             return _value ? 1 : 0;
         }
 
-        public override decimal ToNumberValue(TemplateContext context)
-        {
-            return _value ? 1 : 0;
-        }
-
         public override string ToStringValue()
-        {
-            return _value ? "true" : "false";
-        }
-
-        public override string ToStringValue(TemplateContext context)
         {
             return _value ? "true" : "false";
         }
@@ -84,11 +69,6 @@ namespace Fluid.Values
         }
 
         public override object ToObjectValue()
-        {
-            return _value ? BoxedTrue : BoxedFalse;
-        }
-
-        public override object ToObjectValue(TemplateContext context)
         {
             return _value ? BoxedTrue : BoxedFalse;
         }

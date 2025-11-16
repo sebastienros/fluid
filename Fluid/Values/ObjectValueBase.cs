@@ -134,15 +134,10 @@ namespace Fluid.Values
 
         public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
-            return GetValueAsync(index.ToStringValue(context), context);
+            return GetValueAsync(index.ToStringValue(), context);
         }
 
         public override bool ToBooleanValue()
-        {
-            return Value != null;
-        }
-
-        public override bool ToBooleanValue(TemplateContext context)
         {
             return Value != null;
         }
@@ -152,18 +147,11 @@ namespace Fluid.Values
             return Convert.ToDecimal(Value);
         }
 
-        public override decimal ToNumberValue(TemplateContext context)
-        {
-            return Convert.ToDecimal(Value);
-        }
-
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
 
-#pragma warning disable CS0618 // Type or member is obsolete
             var value = ToStringValue();
-#pragma warning restore CS0618 // Type or member is obsolete
 
             if (string.IsNullOrEmpty(value))
             {
@@ -191,17 +179,7 @@ namespace Fluid.Values
             return Convert.ToString(Value);
         }
 
-        public override string ToStringValue(TemplateContext context)
-        {
-            return Convert.ToString(Value);
-        }
-
         public override object ToObjectValue()
-        {
-            return Value;
-        }
-
-        public override object ToObjectValue(TemplateContext context)
         {
             return Value;
         }

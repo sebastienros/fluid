@@ -32,20 +32,9 @@ namespace Fluid.Values
             return _comparisonResult;
         }
 
-        public override bool ToBooleanValue(TemplateContext context)
-        {
-            // Return the comparison result for conditional logic
-            return _comparisonResult;
-        }
-
         public override decimal ToNumberValue()
         {
             return _leftOperand.ToNumberValue();
-        }
-
-        public override decimal ToNumberValue(TemplateContext context)
-        {
-            return _leftOperand.ToNumberValue(context);
         }
 
         public override string ToStringValue()
@@ -54,20 +43,9 @@ namespace Fluid.Values
             return _comparisonResult ? "true" : "false";
         }
 
-        public override string ToStringValue(TemplateContext context)
-        {
-            // When converted to string (e.g., for filters), return the boolean result as string
-            return _comparisonResult ? "true" : "false";
-        }
-
         public override object ToObjectValue()
         {
             return _leftOperand.ToObjectValue();
-        }
-
-        public override object ToObjectValue(TemplateContext context)
-        {
-            return _leftOperand.ToObjectValue(context);
         }
 
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)

@@ -8,10 +8,10 @@ namespace Fluid.Ast.BinaryExpressions
         {
         }
 
-        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue, TemplateContext context)
+        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
             return leftValue is NumberValue && rightValue is NumberValue
-                ? NumberValue.Create(leftValue.ToNumberValue(context) % rightValue.ToNumberValue(context))
+                ? NumberValue.Create(leftValue.ToNumberValue() % rightValue.ToNumberValue())
                 : NilValue.Instance;
         }
 

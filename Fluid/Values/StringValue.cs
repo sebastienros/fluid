@@ -28,7 +28,7 @@ namespace Fluid.Values
             // Returns a StringValue instance and not NilValue since this is what is asked for.
             // However FluidValue.Create(null) returns NilValue.
 
-            _value = value ?? "";
+            _value = value ?? NilValue.Instance.ToStringValue();
         }
 
         public StringValue(string value, bool encode) : this(value)
@@ -90,9 +90,7 @@ namespace Fluid.Values
         {
             if (other.Type == FluidValues.String)
             {
-#pragma warning disable CS0618 // Type or member is obsolete
                 return _value == other.ToStringValue();
-#pragma warning restore CS0618 // Type or member is obsolete
             }
 
             // Delegating other types
@@ -126,11 +124,6 @@ namespace Fluid.Values
             return true;
         }
 
-        public override bool ToBooleanValue(TemplateContext context)
-        {
-            return true;
-        }
-
         public override decimal ToNumberValue()
         {
             if (_value == "")
@@ -146,27 +139,7 @@ namespace Fluid.Values
             return 0;
         }
 
-        public override decimal ToNumberValue(TemplateContext context)
-        {
-            if (_value == "")
-            {
-                return 0;
-            }
-
-            if (decimal.TryParse(_value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
-            {
-                return d;
-            }
-
-            return 0;
-        }
-
         public override string ToStringValue()
-        {
-            return _value;
-        }
-
-        public override string ToStringValue(TemplateContext context)
         {
             return _value;
         }
@@ -216,16 +189,9 @@ namespace Fluid.Values
             return _value;
         }
 
-        public override object ToObjectValue(TemplateContext context)
-        {
-            return _value;
-        }
-
         public override bool Contains(FluidValue value)
         {
-#pragma warning disable CS0618 // Type or member is obsolete
             return _value.Contains(value.ToStringValue());
-#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         public override ValueTask<IEnumerable<FluidValue>> EnumerateAsync(TemplateContext context)

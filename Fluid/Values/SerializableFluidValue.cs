@@ -27,29 +27,13 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other) => _inner.Equals(other);
 
-#pragma warning disable CS0618 // Type or member is obsolete
         public override bool ToBooleanValue() => _inner.ToBooleanValue();
-#pragma warning restore CS0618 // Type or member is obsolete
 
-        public override bool ToBooleanValue(TemplateContext context) => _inner.ToBooleanValue(context);
-
-#pragma warning disable CS0618 // Type or member is obsolete
         public override decimal ToNumberValue() => _inner.ToNumberValue();
-#pragma warning restore CS0618 // Type or member is obsolete
 
-        public override decimal ToNumberValue(TemplateContext context) => _inner.ToNumberValue(context);
-
-#pragma warning disable CS0618 // Type or member is obsolete
         public override string ToStringValue() => _inner.ToStringValue();
-#pragma warning restore CS0618 // Type or member is obsolete
 
-        public override string ToStringValue(TemplateContext context) => _inner.ToStringValue(context);
-
-#pragma warning disable CS0618 // Type or member is obsolete
         public override object ToObjectValue() => _inner.ToObjectValue();
-#pragma warning restore CS0618 // Type or member is obsolete
-
-        public override object ToObjectValue(TemplateContext context) => _inner.ToObjectValue(context);
 
         public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context) 
             => _inner.GetValueAsync(name, context);

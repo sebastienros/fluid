@@ -16,7 +16,7 @@
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <LangVersion>latest</LangVersion>
-    <NoWarn>$(NoWarn);1591</NoWarn>
+    <NoWarn>$(NoWarn);1591;CS0618;CS0672</NoWarn>
     
     <!-- Sourcelink -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>

@@ -74,27 +74,12 @@ namespace Fluid.Values
             return true;
         }
 
-        public override bool ToBooleanValue(TemplateContext context)
-        {
-            return true;
-        }
-
         public override decimal ToNumberValue()
         {
             return _value.Ticks;
         }
 
-        public override decimal ToNumberValue(TemplateContext context)
-        {
-            return _value.Ticks;
-        }
-
         public override string ToStringValue()
-        {
-            return _value.ToString("u", CultureInfo.InvariantCulture);
-        }
-
-        public override string ToStringValue(TemplateContext context)
         {
             return _value.ToString("u", CultureInfo.InvariantCulture);
         }
@@ -119,11 +104,6 @@ namespace Fluid.Values
         }
 
         public override object ToObjectValue()
-        {
-            return _value;
-        }
-
-        public override object ToObjectValue(TemplateContext context)
         {
             return _value;
         }
