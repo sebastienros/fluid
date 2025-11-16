@@ -185,7 +185,7 @@ namespace Fluid.Tests
             var john = new Person { Firstname = "John", EyesColor = Colors.Yellow };
 
             var template = _parser.Parse("{{Firstname}} {{EyesColor}}");
-            Assert.Equal("John 2", template.Render(new TemplateContext(john, options)));
+            Assert.Equal("John Yellow", template.Render(new TemplateContext(john, options)));
         }
 
         [Fact]
