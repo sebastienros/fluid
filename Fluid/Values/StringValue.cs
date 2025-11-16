@@ -144,32 +144,6 @@ namespace Fluid.Values
             return _value;
         }
 
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-            if (string.IsNullOrEmpty(_value))
-            {
-                return;
-            }
-
-            if (Encode)
-            {
-                // perf: Don't use this overload
-                // encoder.Encode(writer, _value);
-
-                // Use a transient string instead of calling
-                // encoder.Encode(TextWriter) since it would
-                // call writer.Write on each char if the string
-                // has even a single char to encode
-                writer.Write(encoder.Encode(_value));
-            }
-            else
-            {
-                writer.Write(_value);
-            }
-        }
-
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);

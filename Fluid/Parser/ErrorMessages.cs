@@ -12,11 +12,7 @@ namespace Fluid.Parser
         public const string ExpectedStringRender = "A quoted string value is required for the render tag";
         public const string FunctionsNotAllowed = "Functions are not allowed. To enable the feature use the 'AllowFunctions' option.";
         public const string ParenthesesNotAllowed = "Parentheses are not allowed in order to group expressions. To enable the feature use the 'AllowParentheses' option.";
-        [Obsolete("Error no longer used")] public const string IdentifierAfterMacro = "An identifier was expected after the 'macro' tag";
         public const string IdentifierAfterTag = "An identifier was expected after the '{0}' tag";
-
-        [Obsolete("This constant is deprecated, please use ParenthesesAfterFunctionName instead.")]
-        public const string ParentesesAfterFunctionName = ParenthesesAfterFunctionName;
 
         public const string ParenthesesAfterFunctionName = "Start of arguments '(' is expected after a function name";
     }

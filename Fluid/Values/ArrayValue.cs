@@ -99,17 +99,6 @@ namespace Fluid.Values
 
         public IReadOnlyList<FluidValue> Values { get; }
 
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-
-            foreach (var v in Values)
-            {
-                writer.Write(v.ToStringValue());
-            }
-        }
-
         public override async ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);

@@ -147,21 +147,6 @@ namespace Fluid.Values
             return Convert.ToDecimal(Value);
         }
 
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-
-            var value = ToStringValue();
-            
-            if (string.IsNullOrEmpty(value))
-            {
-                return;
-            }
-
-            writer.Write(encoder.Encode(value));
-        }
-
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
