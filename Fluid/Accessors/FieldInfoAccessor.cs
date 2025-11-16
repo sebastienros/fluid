@@ -1,5 +1,4 @@
 using Fluid.Values;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -54,12 +53,7 @@ namespace Fluid.Accessors
 
             if (fieldInfo.FieldType.IsEnum)
             {
-                // Convert enums to string representation
-                // Create a converter of type Func<TEnum, FluidValue> dynamically
-                var enumToStringMethod = typeof(FieldInfoAccessor).GetMethod(nameof(EnumToStringValue), BindingFlags.Static | BindingFlags.NonPublic)
-                    .MakeGenericMethod(fieldInfo.FieldType);
-                var delegateType = typeof(Func<,>).MakeGenericType(fieldInfo.FieldType, typeof(FluidValue));
-                converter = Delegate.CreateDelegate(delegateType, enumToStringMethod);
+                converter = null;
             }
 
             var invokerType = typeof(Invoker<,>).MakeGenericType(fieldInfo.DeclaringType, fieldInfo.FieldType);
@@ -69,12 +63,6 @@ namespace Fluid.Accessors
         public object Get(object obj, string name, TemplateContext ctx)
         {
             return _invoker?.Invoke(obj);
-        }
-
-        [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "Must return FluidValue to match delegate signature")]
-        private static FluidValue EnumToStringValue<TEnum>(TEnum value) where TEnum : struct, Enum
-        {
-            return new StringValue(value.ToString());
         }
 
         private static Delegate GetGetter(FieldInfo field)
