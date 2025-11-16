@@ -1,4 +1,5 @@
 using Fluid.Values;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -71,11 +72,22 @@ public sealed class PropertyInfoAccessor : IMemberAccessor
 
         if (propertyInfo.PropertyType.IsEnum)
         {
-            converter = null;
+            // Convert enums to string representation
+            // Create a converter of type Func<TEnum, FluidValue> dynamically
+            var enumToStringMethod = typeof(PropertyInfoAccessor).GetMethod(nameof(EnumToStringValue), BindingFlags.Static | BindingFlags.NonPublic)
+                .MakeGenericMethod(propertyInfo.PropertyType);
+            var delegateType = typeof(Func<,>).MakeGenericType(propertyInfo.PropertyType, typeof(FluidValue));
+            converter = Delegate.CreateDelegate(delegateType, enumToStringMethod);
         }
 
         var invokerType = typeof(Invoker<,>).MakeGenericType(propertyInfo.DeclaringType, propertyInfo.PropertyType);
         _invoker = (Invoker)Activator.CreateInstance(invokerType, [d, converter]);
+    }
+
+    [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "Must return FluidValue to match delegate signature")]
+    private static FluidValue EnumToStringValue<TEnum>(TEnum value) where TEnum : struct, Enum
+    {
+        return new StringValue(value.ToString());
     }
 
     public object Get(object obj, string name, TemplateContext ctx) => _invoker.Invoke(obj);
