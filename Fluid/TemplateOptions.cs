@@ -46,6 +46,16 @@ namespace Fluid
         public ITemplateCache TemplateCache { get; set; } = new TemplateCache();
 
         /// <summary>
+        /// Gets or sets the default file extension to use when loading templates with include and render statements.
+        /// If set, the file provider will first check if the file exists with the specified name, then try appending this extension.
+        /// If null or empty, the filename is used as-is without any extension appending.
+        /// </summary>
+        /// <value>
+        /// Default value is ".liquid"
+        /// </value>
+        public string DefaultFileExtension { get; set; } = ".liquid";
+
+        /// <summary>
         /// Gets or sets the maximum number of steps a script can execute. Leave to 0 for unlimited.
         /// </summary>
         public int MaxSteps { get; set; }

@@ -721,5 +721,152 @@ shape: ''";
 
             Assert.Equal("test", result);
         }
+
+        [Fact]
+        public void IncludeTag_CustomExtension_Html()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template.html", "<div>{{ content }}</div>");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".html" };
+            var context = new TemplateContext(options);
+            context.SetValue("content", "Hello World");
+            _parser.TryParse("{% include 'template' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("<div>Hello World</div>", result);
+        }
+
+        [Fact]
+        public void RenderTag_CustomExtension_Html()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template.html", "<div>{{ content }}</div>");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".html" };
+            var context = new TemplateContext(options);
+            context.SetValue("content", "Hello World");
+            _parser.TryParse("{% render 'template' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("<div>Hello World</div>", result);
+        }
+
+        [Fact]
+        public void IncludeTag_CustomExtension_Css()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("styles.css", ".class { color: {{ color }}; }");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".css" };
+            var context = new TemplateContext(options);
+            context.SetValue("color", "red");
+            _parser.TryParse("{% include 'styles' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal(".class { color: red; }", result);
+        }
+
+        [Fact]
+        public void IncludeTag_ExplicitExtension_TakesPrecedence()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template.html", "HTML content");
+            fileProvider.Add("template.liquid", "Liquid content");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".liquid" };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% include 'template.html' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("HTML content", result);
+        }
+
+        [Fact]
+        public void RenderTag_ExplicitExtension_TakesPrecedence()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template.html", "HTML content");
+            fileProvider.Add("template.liquid", "Liquid content");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".liquid" };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% render 'template.html' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("HTML content", result);
+        }
+
+        [Fact]
+        public void IncludeTag_NoExtension_WhenDefaultIsNull()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template", "No extension content");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = null };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% include 'template' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("No extension content", result);
+        }
+
+        [Fact]
+        public void RenderTag_NoExtension_WhenDefaultIsNull()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template", "No extension content");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = null };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% render 'template' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("No extension content", result);
+        }
+
+        [Fact]
+        public void IncludeTag_NoExtension_WhenDefaultIsEmpty()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template", "No extension content");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = "" };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% include 'template' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("No extension content", result);
+        }
+
+        [Fact]
+        public void IncludeTag_DefaultExtension_BackwardCompatibility()
+        {
+            // Test that default behavior (using .liquid) still works
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template.liquid", "Default behavior");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% include 'template' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Default behavior", result);
+        }
+
+        [Fact]
+        public void RenderTag_DefaultExtension_BackwardCompatibility()
+        {
+            // Test that default behavior (using .liquid) still works
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template.liquid", "Default behavior");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% render 'template' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Default behavior", result);
+        }
     }
 }
