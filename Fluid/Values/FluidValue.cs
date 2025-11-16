@@ -39,13 +39,45 @@ namespace Fluid.Values
 
         public abstract bool Equals(FluidValue other);
 
+        [Obsolete("Use ToBooleanValue(TemplateContext) instead.")]
         public abstract bool ToBooleanValue();
 
+        [Obsolete("Use ToNumberValue(TemplateContext) instead.")]
         public abstract decimal ToNumberValue();
 
+        [Obsolete("Use ToStringValue(TemplateContext) instead.")]
         public abstract string ToStringValue();
 
+        [Obsolete("Use ToObjectValue(TemplateContext) instead.")]
         public abstract object ToObjectValue();
+
+        public virtual bool ToBooleanValue(TemplateContext context)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            return ToBooleanValue();
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+
+        public virtual decimal ToNumberValue(TemplateContext context)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            return ToNumberValue();
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+
+        public virtual string ToStringValue(TemplateContext context)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            return ToStringValue();
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+
+        public virtual object ToObjectValue(TemplateContext context)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            return ToObjectValue();
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
 
         public virtual ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
