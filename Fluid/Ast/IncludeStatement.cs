@@ -31,17 +31,28 @@ namespace Fluid.Ast
             context.IncrementSteps();
 
             var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
-
-            if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))
-            {
-                relativePath += ViewExtension;
-            }
-
             var fileProvider = context.Options.FileProvider;
 
-            // The file info is requested again to ensure the file hasn't changed and or was deleted
-
+            // First, try to get the file with the exact path provided
             var fileInfo = fileProvider.GetFileInfo(relativePath);
+
+            // If the file doesn't exist and a default extension is configured
+            if ((fileInfo == null || !fileInfo.Exists || fileInfo.IsDirectory) && !string.IsNullOrEmpty(context.Options.DefaultFileExtension))
+            {
+                // Check if the path already ends with the default extension
+                if (!relativePath.EndsWith(context.Options.DefaultFileExtension, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Try adding the default extension
+                    var pathWithExtension = relativePath + context.Options.DefaultFileExtension;
+                    var fileInfoWithExtension = fileProvider.GetFileInfo(pathWithExtension);
+
+                    if (fileInfoWithExtension != null && fileInfoWithExtension.Exists && !fileInfoWithExtension.IsDirectory)
+                    {
+                        relativePath = pathWithExtension;
+                        fileInfo = fileInfoWithExtension;
+                    }
+                }
+            }
 
             if (fileInfo == null || !fileInfo.Exists || fileInfo.IsDirectory)
             {
