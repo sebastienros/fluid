@@ -775,7 +775,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task JsonShouldSerializeEnumsAsNumbers()
+        public async Task JsonShouldSerializeEnumsAsStrings()
         {
             var options = new TemplateOptions();
 
@@ -783,12 +783,12 @@ namespace Fluid.Tests
             var context = new TemplateContext(options);
             var result = await MiscFilters.Json(input, new FilterArguments(), context);
 
-            // Enum should be serialized as number (1 for Red)
-            Assert.Equal("1", result.ToStringValue());
+            // Enum is converted to StringValue by default, so it's serialized as a string
+            Assert.Equal("\"Red\"", result.ToStringValue());
         }
         
         [Fact]
-        public async Task JsonShouldSerializeEnumsAsStrings()
+        public async Task JsonShouldSerializeEnumsInObjectsAsStrings()
         {
             var options = new TemplateOptions
             {
