@@ -85,7 +85,17 @@ namespace Fluid.Values
             return true;
         }
 
+        public override bool ToBooleanValue(TemplateContext context)
+        {
+            return true;
+        }
+
         public override decimal ToNumberValue()
+        {
+            return 0;
+        }
+
+        public override decimal ToNumberValue(TemplateContext context)
         {
             return 0;
         }
@@ -100,7 +110,17 @@ namespace Fluid.Values
             return "";
         }
 
+        public override string ToStringValue(TemplateContext context)
+        {
+            return "";
+        }
+
         public override object ToObjectValue()
+        {
+            return _value;
+        }
+
+        public override object ToObjectValue(TemplateContext context)
         {
             return _value;
         }

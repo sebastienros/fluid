@@ -40,10 +40,17 @@ namespace Fluid.Values
                 return false;
             }
 
+#pragma warning disable CS0618 // Type or member is obsolete
             return _value == other.ToNumberValue();
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         public override bool ToBooleanValue()
+        {
+            return true;
+        }
+
+        public override bool ToBooleanValue(TemplateContext context)
         {
             return true;
         }
@@ -53,7 +60,17 @@ namespace Fluid.Values
             return _value;
         }
 
+        public override decimal ToNumberValue(TemplateContext context)
+        {
+            return _value;
+        }
+
         public override string ToStringValue()
+        {
+            return _value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        public override string ToStringValue(TemplateContext context)
         {
             return _value.ToString(CultureInfo.InvariantCulture);
         }
@@ -96,6 +113,11 @@ namespace Fluid.Values
         }
 
         public override object ToObjectValue()
+        {
+            return _value;
+        }
+
+        public override object ToObjectValue(TemplateContext context)
         {
             return _value;
         }

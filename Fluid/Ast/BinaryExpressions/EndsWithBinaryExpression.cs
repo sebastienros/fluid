@@ -21,7 +21,7 @@ namespace Fluid.Ast.BinaryExpressions
             }
             else
             {
-                comparisonResult = leftValue.ToStringValue().EndsWith(rightValue.ToStringValue());
+                comparisonResult = leftValue.ToStringValue(context).EndsWith(rightValue.ToStringValue(context));
             }
 
             return new BinaryExpressionFluidValue(leftValue, comparisonResult);

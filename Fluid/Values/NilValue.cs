@@ -17,10 +17,17 @@ namespace Fluid.Values
                 return true;
             }
 
+#pragma warning disable CS0618 // Type or member is obsolete
             return other.ToObjectValue() == null;
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         public override bool ToBooleanValue()
+        {
+            return false;
+        }
+
+        public override bool ToBooleanValue(TemplateContext context)
         {
             return false;
         }
@@ -30,12 +37,27 @@ namespace Fluid.Values
             return 0;
         }
 
+        public override decimal ToNumberValue(TemplateContext context)
+        {
+            return 0;
+        }
+
         public override object ToObjectValue()
         {
             return null;
         }
 
+        public override object ToObjectValue(TemplateContext context)
+        {
+            return null;
+        }
+
         public override string ToStringValue()
+        {
+            return "";
+        }
+
+        public override string ToStringValue(TemplateContext context)
         {
             return "";
         }

@@ -8,7 +8,7 @@ namespace Fluid.Ast.BinaryExpressions
         {
         }
 
-        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue, TemplateContext context)
         {
             var comparisonResult = leftValue.Contains(rightValue);
             return new BinaryExpressionFluidValue(leftValue, comparisonResult);

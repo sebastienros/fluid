@@ -11,7 +11,7 @@ namespace Fluid.Ast.BinaryExpressions
 
         public bool Strict { get; }
 
-        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue, TemplateContext context)
         {
             bool comparisonResult;
 
@@ -30,17 +30,17 @@ namespace Fluid.Ast.BinaryExpressions
             {
                 if (Strict)
                 {
-                    comparisonResult = leftValue.ToNumberValue() > rightValue.ToNumberValue();
+                    comparisonResult = leftValue.ToNumberValue(context) > rightValue.ToNumberValue(context);
                 }
                 else
                 {
-                    comparisonResult = leftValue.ToNumberValue() >= rightValue.ToNumberValue();
+                    comparisonResult = leftValue.ToNumberValue(context) >= rightValue.ToNumberValue(context);
                 }
             }
             else if (leftValue is StringValue)
             {
                 // Use standard C# string comparison for strings
-                var comparison = string.Compare(leftValue.ToStringValue(), rightValue.ToStringValue(), StringComparison.Ordinal);
+                var comparison = string.Compare(leftValue.ToStringValue(context), rightValue.ToStringValue(context), StringComparison.Ordinal);
                 if (Strict)
                 {
                     comparisonResult = comparison > 0;

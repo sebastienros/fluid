@@ -54,19 +54,40 @@ namespace Fluid.Values
             return _factory.Value.IsNil();
         }
 
+#pragma warning disable CS0618 // Type or member is obsolete
         public override bool ToBooleanValue()
         {
             return _factory.Value.ToBooleanValue();
         }
+#pragma warning restore CS0618 // Type or member is obsolete
 
+        public override bool ToBooleanValue(TemplateContext context)
+        {
+            return _factory.Value.ToBooleanValue(context);
+        }
+
+#pragma warning disable CS0618 // Type or member is obsolete
         public override decimal ToNumberValue()
         {
             return _factory.Value.ToNumberValue();
         }
+#pragma warning restore CS0618 // Type or member is obsolete
 
+        public override decimal ToNumberValue(TemplateContext context)
+        {
+            return _factory.Value.ToNumberValue(context);
+        }
+
+#pragma warning disable CS0618 // Type or member is obsolete
         public override object ToObjectValue()
         {
             return _factory.Value.ToObjectValue();
+        }
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        public override object ToObjectValue(TemplateContext context)
+        {
+            return _factory.Value.ToObjectValue(context);
         }
 
         public override string ToString()
@@ -74,9 +95,16 @@ namespace Fluid.Values
             return _factory.Value.ToString();
         }
 
+#pragma warning disable CS0618 // Type or member is obsolete
         public override string ToStringValue()
         {
             return _factory.Value.ToStringValue();
+        }
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        public override string ToStringValue(TemplateContext context)
+        {
+            return _factory.Value.ToStringValue(context);
         }
 
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)

@@ -8,9 +8,9 @@ namespace Fluid.Ast.BinaryExpressions
         {
         }
 
-        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue, TemplateContext context)
         {
-            var comparisonResult = leftValue.ToBooleanValue() && rightValue.ToBooleanValue();
+            var comparisonResult = leftValue.ToBooleanValue(context) && rightValue.ToBooleanValue(context);
             return new BinaryExpressionFluidValue(leftValue, comparisonResult);
         }
 

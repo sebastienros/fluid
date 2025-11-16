@@ -92,7 +92,17 @@ namespace Fluid.Values
             return true;
         }
 
+        public override bool ToBooleanValue(TemplateContext context)
+        {
+            return true;
+        }
+
         public override decimal ToNumberValue()
+        {
+            return Values.Count;
+        }
+
+        public override decimal ToNumberValue(TemplateContext context)
         {
             return Values.Count;
         }
@@ -114,7 +124,17 @@ namespace Fluid.Values
             return String.Join("", Values.Select(x => x.ToStringValue()));
         }
 
+        public override string ToStringValue(TemplateContext context)
+        {
+            return String.Join("", Values.Select(x => x.ToStringValue()));
+        }
+
         public override object ToObjectValue()
+        {
+            return Values.Select(x => x.ToObjectValue()).ToArray();
+        }
+
+        public override object ToObjectValue(TemplateContext context)
         {
             return Values.Select(x => x.ToObjectValue()).ToArray();
         }

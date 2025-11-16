@@ -26,7 +26,7 @@ namespace Fluid.Ast
             var conditionTask = Condition.EvaluateAsync(context);
             if (conditionTask.IsCompletedSuccessfully)
             {
-                var result = conditionTask.Result.ToBooleanValue();
+                var result = conditionTask.Result.ToBooleanValue(context);
 
                 if (result)
                 {
@@ -62,7 +62,7 @@ namespace Fluid.Ast
                             return AwaitedElseBranch(elseIf, elseIfConditionTask, elseIfTask: null, writer, encoder, context, i + 1);
                         }
 
-                        if (elseIfConditionTask.Result.ToBooleanValue())
+                        if (elseIfConditionTask.Result.ToBooleanValue(context))
                         {
                             var writeTask = elseIf.WriteToAsync(writer, encoder, context);
                             if (!writeTask.IsCompletedSuccessfully)
@@ -102,7 +102,7 @@ namespace Fluid.Ast
             TemplateContext context,
             int statementStartIndex)
         {
-            var result = (await conditionTask).ToBooleanValue();
+            var result = (await conditionTask).ToBooleanValue(context);
 
             if (result)
             {
@@ -146,7 +146,7 @@ namespace Fluid.Ast
             TemplateContext context,
             int startIndex)
         {
-            var condition = (await conditionTask).ToBooleanValue();
+            var condition = (await conditionTask).ToBooleanValue(context);
             if (condition)
             {
                 return await (elseIfTask ?? elseIf.WriteToAsync(writer, encoder, context));
@@ -155,7 +155,7 @@ namespace Fluid.Ast
             for (var i = startIndex; i < ElseIfs.Count; i++)
             {
                 elseIf = ElseIfs[i];
-                if ((await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue())
+                if ((await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue(context))
                 {
                     return await elseIf.WriteToAsync(writer, encoder, context);
                 }

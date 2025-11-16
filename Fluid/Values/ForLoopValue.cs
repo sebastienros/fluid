@@ -27,7 +27,17 @@ namespace Fluid.Values
             return false;
         }
 
+        public override bool ToBooleanValue(TemplateContext context)
+        {
+            return false;
+        }
+
         public override decimal ToNumberValue()
+        {
+            return Length;
+        }
+
+        public override decimal ToNumberValue(TemplateContext context)
         {
             return Length;
         }
@@ -37,7 +47,17 @@ namespace Fluid.Values
             return null;
         }
 
+        public override object ToObjectValue(TemplateContext context)
+        {
+            return null;
+        }
+
         public override string ToStringValue()
+        {
+            return "forloop";
+        }
+
+        public override string ToStringValue(TemplateContext context)
         {
             return "forloop";
         }
