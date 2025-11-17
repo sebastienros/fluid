@@ -214,6 +214,38 @@ namespace Fluid.Tests
             Assert.Equal("1 &lt; 2 &amp; 3", result.ToStringValue());
         }
 
+        [Fact]
+        public async Task EscapeReturnsNonEncodableStringValue()
+        {
+            // The escape filter should return a StringValue with Encode = false
+            // to prevent double-encoding when rendered with an encoder
+            var input = new StringValue("<div>test</div>");
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = await MiscFilters.Escape(input, arguments, context);
+
+            Assert.IsType<StringValue>(result);
+            var stringValue = (StringValue)result;
+            Assert.False(stringValue.Encode, "Escape filter should return StringValue with Encode = false");
+        }
+
+        [Fact]
+        public async Task EscapeOnceReturnsNonEncodableStringValue()
+        {
+            // The escape_once filter should return a StringValue with Encode = false
+            // to prevent double-encoding when rendered with an encoder
+            var input = new StringValue("&lt;div&gt;test&lt;/div&gt;");
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = await MiscFilters.EscapeOnce(input, arguments, context);
+
+            Assert.IsType<StringValue>(result);
+            var stringValue = (StringValue)result;
+            Assert.False(stringValue.Encode, "EscapeOnce filter should return StringValue with Encode = false");
+        }
+
         [Theory]
         [InlineData("%a", "Tue")]
         [InlineData("%a", "Sun", "2022-06-26 00:00:00 -0500")]

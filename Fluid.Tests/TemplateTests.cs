@@ -125,6 +125,78 @@ namespace Fluid.Tests
             Assert.Equal("HELLO <BR /> WORLD", result);
         }
 
+        [Fact]
+        public async Task ShouldNotDoubleEncodeRawCaptureWithEscapeFilter()
+        {
+            // Issue: Capturing raw liquid tags and rendering with escape filter should not double-encode
+            var source = @"{% capture r %}
+{% raw %}
+{% assign cultures = Culture | supported_cultures %}
+<ul>item</ul>
+{% endraw %}
+{% endcapture %}
+{{ r | escape }}";
+            
+            _parser.TryParse(source, out var template, out var error);
+            var result = await template.RenderAsync(new TemplateContext(), HtmlEncoder.Default);
+            
+            // The raw content should be escaped once, not double-encoded
+            Assert.Contains("{% assign cultures = Culture | supported_cultures %}", result);
+            Assert.Contains("&lt;ul&gt;item&lt;/ul&gt;", result);
+            Assert.DoesNotContain("&amp;lt;", result); // Should not be double-encoded
+            Assert.DoesNotContain("&amp;gt;", result); // Should not be double-encoded
+        }
+
+        [Fact]
+        public async Task ShouldNotEncodeRawCaptureWithoutEscapeFilter()
+        {
+            // Capturing raw liquid tags without escape filter should output unencoded
+            var source = @"{% capture r %}
+{% raw %}
+{% assign cultures = Culture | supported_cultures %}
+<ul>item</ul>
+{% endraw %}
+{% endcapture %}
+{{ r }}";
+            
+            _parser.TryParse(source, out var template, out var error);
+            var result = await template.RenderAsync(new TemplateContext(), HtmlEncoder.Default);
+            
+            // The raw content should not be encoded
+            Assert.Contains("{% assign cultures = Culture | supported_cultures %}", result);
+            Assert.Contains("<ul>item</ul>", result);
+            Assert.DoesNotContain("&lt;", result);
+            Assert.DoesNotContain("&gt;", result);
+        }
+
+        [Fact]
+        public async Task EscapeFilterShouldNotDoubleEncode()
+        {
+            // Using escape filter with HtmlEncoder should not double-encode
+            var source = @"{{ '<div>test</div>' | escape }}";
+            
+            _parser.TryParse(source, out var template, out var error);
+            var result = await template.RenderAsync(new TemplateContext(), HtmlEncoder.Default);
+            
+            // Should be encoded once
+            Assert.Equal("&lt;div&gt;test&lt;/div&gt;", result);
+            Assert.DoesNotContain("&amp;", result); // Should not be double-encoded
+        }
+
+        [Fact]
+        public async Task EscapeOnceFilterShouldNotDoubleEncode()
+        {
+            // Using escape_once filter with HtmlEncoder should not double-encode
+            var source = @"{{ '&lt;div&gt;test&lt;/div&gt;' | escape_once }}";
+            
+            _parser.TryParse(source, out var template, out var error);
+            var result = await template.RenderAsync(new TemplateContext(), HtmlEncoder.Default);
+            
+            // Should be encoded once (escape_once should decode then encode)
+            Assert.Equal("&lt;div&gt;test&lt;/div&gt;", result);
+            Assert.DoesNotContain("&amp;", result); // Should not be double-encoded
+        }
+
         [Theory]
         [InlineData("{{ 0 }}", "0")]
         [InlineData("{{ 123 }}", "123")]
