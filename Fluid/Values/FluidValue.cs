@@ -334,10 +334,17 @@ namespace Fluid.Values
             }
         }
 
+        [Obsolete("Use ContainsAsync(FluidValue, TemplateContext) instead.")]
         public virtual bool Contains(FluidValue value)
         {
             // Used by the 'contains' keyword
-            return false;
+            return ContainsAsync(value, null).GetAwaiter().GetResult();
+        }
+
+        public virtual ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
+        {
+            // Used by the 'contains' keyword
+            return new ValueTask<bool>(false);
         }
 
         public virtual async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)

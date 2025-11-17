@@ -124,6 +124,11 @@ namespace Fluid.Values
             return Values.Contains(value);
         }
 
+        public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
+        {
+            return new ValueTask<bool>(Values.Contains(value));
+        }
+
         public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
             foreach (var value in Values)

@@ -74,6 +74,11 @@ namespace Fluid.Values
             return _leftOperand.Contains(value);
         }
 
+        public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
+        {
+            return _leftOperand.ContainsAsync(value, context);
+        }
+
         public override IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
             return _leftOperand.EnumerateAsync(context);
