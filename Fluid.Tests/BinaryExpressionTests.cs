@@ -354,5 +354,52 @@ namespace Fluid.Tests
             return CheckAsync(source, expected);
         }
 
+        [Fact]
+        public async Task ContainsShouldSupportAsyncWithContext()
+        {
+            // Create a custom FluidValue that uses ContainsAsync with TemplateContext
+            var customValue = new CustomAsyncContainsValue(new[] { "a", "b", "c" });
+
+            _parser.TryParse("{% if custom contains 'b' %}found{% else %}not found{% endif %}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("custom", customValue);
+
+            var result = await template.RenderAsync(context);
+            
+            // The custom value should use ContainsAsync and find 'b'
+            Assert.Equal("found", result);
+        }
+
+        private class CustomAsyncContainsValue : FluidValue
+        {
+            private readonly string[] _values;
+
+            public CustomAsyncContainsValue(string[] values)
+            {
+                _values = values;
+            }
+
+            public override FluidValues Type => FluidValues.Array;
+
+            public override bool Equals(FluidValue other) => false;
+
+            public override bool ToBooleanValue() => true;
+
+            public override decimal ToNumberValue() => _values.Length;
+
+            public override string ToStringValue() => string.Join(",", _values);
+
+            public override object ToObjectValue() => _values;
+
+            public override async ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
+            {
+                // Simulate async operation
+                await Task.Delay(1);
+                var searchValue = value.ToStringValue(context);
+                return Array.Exists(_values, v => v == searchValue);
+            }
+        }
+
     }
 }
