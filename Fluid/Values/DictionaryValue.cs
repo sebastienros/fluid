@@ -105,17 +105,17 @@ namespace Fluid.Values
             return _value;
         }
 
-        public override bool Contains(FluidValue value)
+        public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
         {
             foreach (var key in _value.Keys)
             {
-                if (_value.TryGetValue(key, out var item) && item.Equals(value.ToObjectValue()))
+                if (_value.TryGetValue(key, out var item) && item.Equals(value.ToObjectValue(context)))
                 {
-                    return true;
+                    return new ValueTask<bool>(true);
                 }
             }
 
-            return false;
+            return new ValueTask<bool>(false);
         }
 
         public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
