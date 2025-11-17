@@ -19,11 +19,6 @@ namespace Fluid.Values
             return _factory.Value.Equals(other);
         }
 
-        public override bool Contains(FluidValue value)
-        {
-            return _factory.Value.Contains(value);
-        }
-
         public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
         {
             return _factory.Value.ContainsAsync(value, context);

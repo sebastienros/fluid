@@ -119,11 +119,6 @@ namespace Fluid.Values
             return Values.Select(x => x.ToObjectValue()).ToArray();
         }
 
-        public override bool Contains(FluidValue value)
-        {
-            return Values.Contains(value);
-        }
-
         public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
         {
             return new ValueTask<bool>(Values.Contains(value));
