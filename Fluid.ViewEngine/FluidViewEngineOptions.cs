@@ -73,5 +73,15 @@ namespace Fluid.ViewEngine
         /// Gets or sets the delegate to execute when a view is rendered.
         /// </summary>
         public RenderingViewDelegate RenderingViewAsync { get; set; }
+
+        /// <summary>
+        /// Represents the method that will generate a cache key for a supplied template path.  Allows templates to be cached based on any external factor.
+        /// </summary>
+        public delegate string TemplateCacheKeyProviderDelegate(string path);
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when a template cache key is required
+        /// </summary>
+        public TemplateCacheKeyProviderDelegate TemplateCacheKeyProvider { get; set; }
     }
 }
