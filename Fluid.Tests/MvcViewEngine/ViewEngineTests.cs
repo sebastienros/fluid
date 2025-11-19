@@ -1,5 +1,6 @@
 using Fluid.Tests.Mocks;
 using Fluid.ViewEngine;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -300,6 +301,128 @@ namespace Fluid.Tests.MvcViewEngine
             var template = new TemplateContext(new { BigString = new string(Enumerable.Range(0, 1500).Select(_ => 'b').ToArray()) });
             await _renderer.RenderViewAsync(sw, "Index.liquid", template);
             await sw.FlushAsync();
+        }
+
+        [Fact]
+        public async Task ShouldApplyTemplateParsedCallback()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{{ 1 | plus: 2 }}");
+
+            // Use a visitor to replace 2 with 4
+            _options.TemplateParsed = (path, template) =>
+            {
+                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                
+                // Handle CompositeFluidTemplate by visiting each sub-template
+                if (template is Fluid.Parser.CompositeFluidTemplate composite)
+                {
+                    var newTemplates = new List<IFluidTemplate>();
+                    foreach (var subTemplate in composite.Templates)
+                    {
+                        if (subTemplate is Fluid.Ast.IStatementList)
+                        {
+                            newTemplates.Add(visitor.VisitTemplate(subTemplate));
+                        }
+                        else
+                        {
+                            newTemplates.Add(subTemplate);
+                        }
+                    }
+                    return new Fluid.Parser.CompositeFluidTemplate(newTemplates);
+                }
+                
+                return visitor.VisitTemplate(template);
+            };
+
+            var sw = new StringWriter();
+            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await sw.FlushAsync();
+
+            Assert.Equal("5", sw.ToString());
+
+            _options.TemplateParsed = null;
+        }
+
+        [Fact]
+        public async Task ShouldApplyTemplateParsedCallbackToNestedTemplates()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{% partial 'world' %}");
+            _mockFileProvider.Add("Partials/World.liquid", "{{ 1 | plus: 2 }}");
+
+            // Use a visitor to replace 2 with 4
+            _options.TemplateParsed = (path, template) =>
+            {
+                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                
+                // Handle CompositeFluidTemplate by visiting each sub-template
+                if (template is Fluid.Parser.CompositeFluidTemplate composite)
+                {
+                    var newTemplates = new List<IFluidTemplate>();
+                    foreach (var subTemplate in composite.Templates)
+                    {
+                        if (subTemplate is Fluid.Ast.IStatementList)
+                        {
+                            newTemplates.Add(visitor.VisitTemplate(subTemplate));
+                        }
+                        else
+                        {
+                            newTemplates.Add(subTemplate);
+                        }
+                    }
+                    return new Fluid.Parser.CompositeFluidTemplate(newTemplates);
+                }
+                
+                return visitor.VisitTemplate(template);
+            };
+
+            var sw = new StringWriter();
+            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await sw.FlushAsync();
+
+            Assert.Equal("5", sw.ToString());
+
+            _options.TemplateParsed = null;
+        }
+
+        [Fact]
+        public async Task ShouldApplyTemplateParsedCallbackToViewStarts()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "Hello");
+            _mockFileProvider.Add("Views/_ViewStart.liquid", "{{ 1 | plus: 2 }} ");
+
+            // Use a visitor to replace 2 with 4
+            _options.TemplateParsed = (path, template) =>
+            {
+                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                
+                // Handle CompositeFluidTemplate by visiting each sub-template
+                if (template is Fluid.Parser.CompositeFluidTemplate composite)
+                {
+                    var newTemplates = new List<IFluidTemplate>();
+                    foreach (var subTemplate in composite.Templates)
+                    {
+                        if (subTemplate is Fluid.Ast.IStatementList)
+                        {
+                            newTemplates.Add(visitor.VisitTemplate(subTemplate));
+                        }
+                        else
+                        {
+                            newTemplates.Add(subTemplate);
+                        }
+                    }
+                    return new Fluid.Parser.CompositeFluidTemplate(newTemplates);
+                }
+                
+                return visitor.VisitTemplate(template);
+            };
+
+            var sw = new StringWriter();
+            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await sw.FlushAsync();
+
+            Assert.Equal("5 Hello", sw.ToString());
+
+            _options.TemplateParsed = null;
         }
     }
 }
