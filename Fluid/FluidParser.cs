@@ -45,7 +45,7 @@ namespace Fluid
         protected static readonly Parser<string> BinaryOr = Terms.Text("or");
         protected static readonly Parser<string> BinaryAnd = Terms.Text("and");
 
-        protected static readonly Parser<string> Identifier = SkipWhiteSpace(new IdentifierParser()).Then(x => x.ToString());
+        protected readonly Parser<string> Identifier;
 
         protected readonly Parser<IReadOnlyList<FilterArgument>> ArgumentsList;
         protected readonly Parser<IReadOnlyList<FunctionCallArgument>> FunctionCallArgumentsList;
@@ -56,11 +56,25 @@ namespace Fluid
         protected readonly Deferred<IReadOnlyList<Statement>> KnownTagsList = Deferred<IReadOnlyList<Statement>>();
         protected readonly Deferred<IReadOnlyList<Statement>> AnyTagsList = Deferred<IReadOnlyList<Statement>>();
 
-        protected static readonly Parser<TagResult> OutputStart = TagParsers.OutputTagStart();
-        protected static readonly Parser<TagResult> OutputEnd = TagParsers.OutputTagEnd(true);
-        protected static readonly Parser<TagResult> TagStart = TagParsers.TagStart();
-        protected static readonly Parser<TagResult> TagStartSpaced = TagParsers.TagStart(true);
-        protected static readonly Parser<TagResult> TagEnd = TagParsers.TagEnd(true);
+        internal const string WhiteSpaceChars = "\t\n\v\f\r \u0085             \u2028\u2029  　";
+
+        protected static readonly Parser<TagResult> InlineOutputStart = TagParsers.OutputTagStart();
+        protected static readonly Parser<TagResult> InlineOutputEnd = TagParsers.OutputTagEnd();
+        protected static readonly Parser<TagResult> InlineTagStart = TagParsers.TagStart();
+        protected static readonly Parser<TagResult> InlineTagEnd = TagParsers.TagEnd();
+
+        protected static readonly Parser<TagResult> NoInlineOutputStart = NonInlineLiquidTagParsers.OutputTagStart();
+        protected static readonly Parser<TagResult> NoInlineOutputEnd = Literals.AnyOf(WhiteSpaceChars.AsSpan(), minSize: 0).SkipAnd(NonInlineLiquidTagParsers.OutputTagEnd());
+        protected static readonly Parser<TagResult> NoInlineTagStart = NonInlineLiquidTagParsers.TagStart();
+        protected static readonly Parser<TagResult> NoInlineTagEnd = Literals.AnyOf(WhiteSpaceChars.AsSpan(), minSize: 0).SkipAnd(NonInlineLiquidTagParsers.TagEnd());
+
+        protected readonly Parser<TagResult> OutputStart = InlineOutputStart;
+        protected readonly Parser<TagResult> OutputEnd = InlineOutputEnd;
+        protected readonly Parser<TagResult> TagStart = InlineTagStart;
+        protected readonly Parser<TagResult> TagEnd = InlineTagEnd;
+
+        protected static readonly Parser<TagResult> RawOutputStart = NonInlineLiquidTagParsers.OutputTagStart();
+        protected static readonly Parser<TagResult> RawTagStart = NonInlineLiquidTagParsers.TagStart();
 
         protected static readonly LiteralExpression EmptyKeyword = new LiteralExpression(EmptyValue.Instance);
         protected static readonly LiteralExpression BlankKeyword = new LiteralExpression(BlankValue.Instance);
@@ -73,6 +87,16 @@ namespace Fluid
 
         public FluidParser(FluidParserOptions parserOptions)
         {
+            if (!parserOptions.AllowLiquidTag)
+            {
+                OutputStart = NoInlineOutputStart;
+                OutputEnd = NoInlineOutputEnd;
+                TagStart = NoInlineTagStart;
+                TagEnd = NoInlineTagEnd;
+            }
+
+            Identifier = SkipWhiteSpace(new IdentifierParser(parserOptions.AllowTrailingQuestionMark)).Then(x => x.ToString());
+
             String.Name = "String";
             Number.Name = "Number";
 
@@ -168,7 +192,7 @@ namespace Fluid
 
             // Seek anything that looks like a binary operator (==, !=, <, >, <=, >=, contains, startswith, endswith) then validates it with the registered operators
             // An "identifier" operator should always be followed by a space so we ensure it's doing it with AndSkip(Literals.WhiteSpace())
-            CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.AnyOf("=!<>", maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString())
+            CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.AnyOf("=!<>".AsSpan(), maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString())
                 .When((ctx, s) => RegisteredOperators.ContainsKey(s)).And(Primary)))
                 .Then(x =>
                  {
@@ -282,6 +306,13 @@ namespace Fluid
                         ;
             CommentTag.Name = "CommentTag";
 
+            var InlineCommentTag = AnyCharBefore(TagEnd, canBeEmpty: true)
+                        .AndSkip(TagEnd)
+                        .Then<Statement>(x => new CommentStatement(x))
+                        .ElseError("Invalid inline comment tag")
+                        ;
+            InlineCommentTag.Name = "InlineCommentTag";
+
             var CaptureTag = Identifier.ElseError(string.Format(ErrorMessages.IdentifierAfterTag, "capture"))
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
@@ -344,9 +375,9 @@ namespace Fluid
             FromTag.Name = "FromTag";
 
             var RenderTag = OneOf(
+                        String.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).And(ZeroOrOne(Comma.SkipAnd(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))))).Then(x => new RenderStatement(this, x.Item1.ToString(), with: x.Item2, alias: x.Item3, assignStatements: x.Item4 ?? [])),
+                        String.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).And(ZeroOrOne(Comma.SkipAnd(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))))).Then(x => new RenderStatement(this, x.Item1.ToString(), @for: x.Item2, alias: x.Item3, assignStatements: x.Item4 ?? [])),
                         String.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new RenderStatement(this, x.Item1.ToString(), null, null, null, x.Item2)),
-                        String.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new RenderStatement(this, x.Item1.ToString(), with: x.Item2, alias: x.Item3)),
-                        String.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new RenderStatement(this, x.Item1.ToString(), @for: x.Item2, alias: x.Item3)),
                         String.Then(x => new RenderStatement(this, x.ToString()))
                         ).ElseError(ErrorMessages.ExpectedStringRender).AndSkip(TagEnd)
                         .Then<Statement>(x => x)
@@ -385,9 +416,18 @@ namespace Fluid
                         .ElseError("Invalid 'unless' tag");
             UnlessTag.Name = "UnlessTag";
 
+            // Parser for optional comment tags only (used between case and when)
+            var OptionalComment = TagStart.SkipAnd(Terms.Text("comment")).SkipAnd(TagEnd)
+                .SkipAnd(AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true))
+                .AndSkip(CreateTag("endcomment"))
+                .Then<Statement>(x => new CommentStatement(x));
+            
+            var OptionalComments = ZeroOrMany(OneOf<Statement>(OptionalComment, Text));
+            OptionalComments.Name = "OptionalComments";
+
             var CaseTag = Primary
                        .AndSkip(TagEnd)
-                       .AndSkip(AnyCharBefore(TagStart, canBeEmpty: true))
+                       .AndSkip(OptionalComments)
                        .And(ZeroOrMany(
                            TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList))
                            .Then(x => x.Select(e => new WhenStatement(e.Item2, e.Item3)).ToArray()))
@@ -449,7 +489,10 @@ namespace Fluid
 
             var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
                 .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = true; return x; })
-                .SkipAnd(OneOrMany(Identifier.Switch((context, previous) =>
+                .SkipAnd(OneOrMany(OneOf(
+                    Terms.Char('#').Then(x => "#"),
+                    Identifier
+                ).Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
@@ -476,6 +519,7 @@ namespace Fluid
             RegisteredTags["break"] = BreakTag;
             RegisteredTags["continue"] = ContinueTag;
             RegisteredTags["comment"] = CommentTag;
+            RegisteredTags["#"] = InlineCommentTag;
             RegisteredTags["capture"] = CaptureTag;
             RegisteredTags["cycle"] = CycleTag;
             RegisteredTags["decrement"] = DecrementTag;
@@ -534,7 +578,10 @@ namespace Fluid
                 return ReadFromList(modifiers);
             }
 
-            var AnyTags = TagStart.SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart).Switch((context, previous) =>
+            var AnyTags = TagStart.SkipAnd(OneOf(
+                Terms.Char('#').Then(x => "#"),
+                Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart)
+            ).Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
@@ -551,7 +598,10 @@ namespace Fluid
                 }
             }));
 
-            var KnownTags = TagStart.SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart).Switch((context, previous) =>
+            var KnownTags = TagStart.SkipAnd(OneOf(
+                Terms.Char('#').Then(x => "#"),
+                Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart)
+            ).Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% endif $}
@@ -574,7 +624,7 @@ namespace Fluid
             Grammar = KnownTagsList;
         }
 
-        public static Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
+        public Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
 
         public void RegisterIdentifierTag(string tagName, Func<string, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {

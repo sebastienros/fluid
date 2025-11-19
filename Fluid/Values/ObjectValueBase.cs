@@ -1,7 +1,8 @@
-using Fluid.Utils;
-using System.Collections;
+﻿using System.Collections;
 using System.Globalization;
+using System.Text;
 using System.Text.Encodings.Web;
+using Fluid.Utils;
 
 namespace Fluid.Values
 {
@@ -11,8 +12,6 @@ namespace Fluid.Values
     public abstract class ObjectValueBase : FluidValue
     {
         protected static readonly char[] MemberSeparators = ['.'];
-
-        protected bool? _isModelType;
 
         public ObjectValueBase(object value)
         {
@@ -27,36 +26,24 @@ namespace Fluid.Values
         {
             if (other.IsNil())
             {
-                switch (Value)
+                return Value switch
                 {
-                    case ICollection collection:
-                        return collection.Count == 0;
+                    ICollection collection => collection.Count == 0,
+                    IEnumerable enumerable => !enumerable.GetEnumerator().MoveNext(),
+                    _ => false,
+                };
 
-                    case IEnumerable enumerable:
-                        return !enumerable.GetEnumerator().MoveNext();
-                }
-
-                return false;
             }
 
-            return other is ObjectValueBase && ((ObjectValueBase)other).Value == Value;
+            return other is ObjectValueBase otherObject && Value.Equals(otherObject.Value);
         }
 
         public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
-            // The model type has a custom ability to allow any of its members optionally
-            _isModelType ??= context.Model != null && context.Model?.ToObjectValue()?.GetType() == Value.GetType();
-
-            var accessor = context.Options.MemberAccessStrategy.GetAccessor(Value.GetType(), name);
-
-            if (accessor == null && _isModelType.Value && context.AllowModelMembers)
-            {
-                accessor = MemberAccessStrategyExtensions.GetNamedAccessor(Value.GetType(), name, context.Options.MemberAccessStrategy.MemberNameStrategy);
-            }
+            var accessor = context.Options.MemberAccessStrategy.GetAccessor(Value.GetType(), name, context.Options.ModelNamesComparer);
 
             if (name.Contains('.'))
             {
-                // Try to access the property with dots inside
                 if (accessor != null)
                 {
                     if (accessor is IAsyncMemberAccessor asyncAccessor)
@@ -68,27 +55,29 @@ namespace Fluid.Values
 
                     if (directValue != null)
                     {
-                        return new ValueTask<FluidValue>(FluidValue.Create(directValue, context.Options));
+                        return FluidValue.Create(directValue, context.Options);
                     }
                 }
 
-                // Otherwise split the name in different segments
                 return GetNestedValueAsync(name, context);
             }
-            else
-            {
-                if (accessor != null)
-                {
-                    if (accessor is IAsyncMemberAccessor asyncAccessor)
-                    {
-                        return Awaited(asyncAccessor, Value, name, context);
-                    }
 
-                    return FluidValue.Create(accessor.Get(Value, name, context), context.Options);
+            if (accessor != null)
+            {
+                if (accessor is IAsyncMemberAccessor asyncAccessor)
+                {
+                    return Awaited(asyncAccessor, Value, name, context);
                 }
+
+                return Create(accessor.Get(Value, name, context), context.Options);
             }
 
-            return new ValueTask<FluidValue>(NilValue.Instance);
+            if (context.Undefined is not null)
+            {
+                return context.Undefined.Invoke(name);
+            }
+            
+            return NilValue.Instance;
 
 
             static async ValueTask<FluidValue> Awaited(
@@ -104,21 +93,30 @@ namespace Fluid.Values
         private async ValueTask<FluidValue> GetNestedValueAsync(string name, TemplateContext context)
         {
             var members = name.Split(MemberSeparators);
-
             var target = Value;
+            List<string> segments = context.Undefined is not null ? [] : null;
 
             foreach (var prop in members)
             {
+                if (context.Undefined is not null)
+                {
+                    segments.Add(prop);
+                }
+
                 if (target == null)
                 {
                     return NilValue.Instance;
                 }
 
-                var accessor = context.Options.MemberAccessStrategy.GetAccessor(target.GetType(), prop);
+                var accessor = context.Options.MemberAccessStrategy.GetAccessor(target.GetType(), prop, context.Options.ModelNamesComparer);
 
                 if (accessor == null)
                 {
-                    return NilValue.Instance;
+                    if (context.Undefined is not null)
+                    {
+                        return await context.Undefined.Invoke(string.Join(".", segments));
+                    }
+                    return UndefinedValue.Instance;
                 }
 
                 if (accessor is IAsyncMemberAccessor asyncAccessor)
@@ -131,7 +129,7 @@ namespace Fluid.Values
                 }
             }
 
-            return FluidValue.Create(target, context.Options);
+            return Create(target, context.Options);
         }
 
         public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
@@ -156,17 +154,18 @@ namespace Fluid.Values
             }
         }
 
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-            writer.Write(encoder.Encode(ToStringValue()));
-        }
-
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
-            var task = writer.WriteAsync(encoder.Encode(ToStringValue()));
+
+            var value = ToStringValue();
+
+            if (string.IsNullOrEmpty(value))
+            {
+                return default;
+            }
+
+            var task = writer.WriteAsync(encoder.Encode(value));
 
             if (task.IsCompletedSuccessfully())
             {

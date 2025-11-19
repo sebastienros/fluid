@@ -19,14 +19,14 @@ namespace Fluid.Values
             return _factory.Value.Equals(other);
         }
 
-        public override bool Contains(FluidValue value)
+        public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
         {
-            return _factory.Value.Contains(value);
+            return _factory.Value.ContainsAsync(value, context);
         }
 
-        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        public override IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
-            return _factory.Value.Enumerate(context);
+            return _factory.Value.EnumerateAsync(context);
         }
 
         public override bool Equals(object obj)
@@ -77,13 +77,6 @@ namespace Fluid.Values
         public override string ToStringValue()
         {
             return _factory.Value.ToStringValue();
-        }
-
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-            _factory.Value.WriteTo(writer, encoder, cultureInfo);
         }
 
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)

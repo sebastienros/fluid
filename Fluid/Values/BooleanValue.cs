@@ -49,13 +49,6 @@ namespace Fluid.Values
             return _value ? "true" : "false";
         }
 
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-            writer.Write(encoder.Encode(ToStringValue()));
-        }
-
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);

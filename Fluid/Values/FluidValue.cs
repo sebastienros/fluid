@@ -2,23 +2,17 @@ using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Encodings.Web;
+using System.Text.Json.Serialization;
 
 namespace Fluid.Values
 {
 #pragma warning disable CA1067 // should override Equals because it implements IEquatable<T>
+    [JsonConverter(typeof(FluidValueJsonConverter))]
     public abstract class FluidValue : IEquatable<FluidValue>
 #pragma warning restore CA1067
     {
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public virtual void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-        }
-
         public virtual ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
-#pragma warning disable CS0618 // Type or member is obsolete
-            WriteTo(writer, encoder, cultureInfo);
-#pragma warning restore CS0618 // Type or member is obsolete
             return default;
         }
 
@@ -45,35 +39,57 @@ namespace Fluid.Values
 
         public abstract bool Equals(FluidValue other);
 
+        [Obsolete("Use ToBooleanValue(TemplateContext) instead.")]
         public abstract bool ToBooleanValue();
 
+        [Obsolete("Use ToNumberValue(TemplateContext) instead.")]
         public abstract decimal ToNumberValue();
 
+        [Obsolete("Use ToStringValue(TemplateContext) instead.")]
         public abstract string ToStringValue();
 
+        [Obsolete("Use ToObjectValue(TemplateContext) instead.")]
         public abstract object ToObjectValue();
 
-        public virtual ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
+        public virtual bool ToBooleanValue(TemplateContext context)
         {
-            return new ValueTask<FluidValue>(GetValue(name, context));
+#pragma warning disable CS0618 // Type or member is obsolete
+            return ToBooleanValue();
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
-        protected virtual FluidValue GetValue(string name, TemplateContext context)
+        public virtual decimal ToNumberValue(TemplateContext context)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            return ToNumberValue();
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+
+        public virtual string ToStringValue(TemplateContext context)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            return ToStringValue();
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+
+        public virtual object ToObjectValue(TemplateContext context)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            return ToObjectValue();
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+
+        public virtual ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             return NilValue.Instance;
         }
 
         public virtual ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
-            return new ValueTask<FluidValue>(GetIndex(index, context));
-        }
-
-        public virtual ValueTask<FluidValue> InvokeAsync(FunctionArguments arguments, TemplateContext context)
-        {
             return NilValue.Instance;
         }
 
-        protected virtual FluidValue GetIndex(FluidValue index, TemplateContext context)
+        public virtual ValueTask<FluidValue> InvokeAsync(FunctionArguments arguments, TemplateContext context)
         {
             return NilValue.Instance;
         }
@@ -146,24 +162,38 @@ namespace Fluid.Values
 
             var typeOfValue = value.GetType();
 
+            // Check if the value is an enum and convert to string
+            if (typeOfValue.IsEnum)
+            {
+                return new StringValue(value.ToString());
+            }
+
             switch (System.Type.GetTypeCode(typeOfValue))
             {
                 case TypeCode.Boolean:
-                    return BooleanValue.Create(Convert.ToBoolean(value));
+                    return BooleanValue.Create((bool)value);
                 case TypeCode.Byte:
+                    return NumberValue.Create((byte)value);
                 case TypeCode.UInt16:
+                    return NumberValue.Create((ushort)value);
                 case TypeCode.UInt32:
-                    return NumberValue.Create(Convert.ToUInt32(value));
+                    return NumberValue.Create((uint)value);
                 case TypeCode.SByte:
+                    return NumberValue.Create((sbyte)value);
                 case TypeCode.Int16:
+                    return NumberValue.Create((short)value);
                 case TypeCode.Int32:
-                    return NumberValue.Create(Convert.ToInt32(value));
+                    return NumberValue.Create((int)value);
                 case TypeCode.UInt64:
+                    return NumberValue.Create((ulong)value);
                 case TypeCode.Int64:
-                case TypeCode.Decimal:
+                    return NumberValue.Create((long)value);
                 case TypeCode.Double:
+                    return NumberValue.Create((decimal)(double)value);
                 case TypeCode.Single:
-                    return NumberValue.Create(Convert.ToDecimal(value));
+                    return NumberValue.Create((decimal)(float)value);
+                case TypeCode.Decimal:
+                    return NumberValue.Create((decimal)value);
                 case TypeCode.Empty:
                     return NilValue.Instance;
                 case TypeCode.Object:
@@ -215,7 +245,9 @@ namespace Fluid.Values
                             return new DictionaryValue(new DictionaryDictionaryFluidIndexable(otherDictionary, options));
 
                         case FluidValue[] array:
-                            return new ArrayValue(array);
+                            return array.Length > 0
+                                ? new ArrayValue(array)
+                                : ArrayValue.Empty;
                     }
 
                     // Check if it's a more specific IDictionary<string, V>, e.g. JObject
@@ -249,12 +281,22 @@ namespace Fluid.Values
                     switch (value)
                     {
                         case IReadOnlyList<FluidValue> list:
+                            if (list.Count == 0)
+                            {
+                                return ArrayValue.Empty;
+                            }
+
                             return new ArrayValue(list);
 
                         case IEnumerable<FluidValue> enumerable:
                             return new ArrayValue(enumerable.ToArray());
 
                         case IList list:
+                            if (list.Count == 0)
+                            {
+                                return ArrayValue.Empty;
+                            }
+
                             var values = new FluidValue[list.Count];
                             for (var i = 0; i < values.Length; i++)
                             {
@@ -264,86 +306,58 @@ namespace Fluid.Values
                             return new ArrayValue(values);
 
                         case IEnumerable enumerable:
-                            var fluidValues = new List<FluidValue>();
+                            List<FluidValue> fluidValues = null;
                             foreach (var item in enumerable)
                             {
+                                fluidValues ??= [];
                                 fluidValues.Add(Create(item, options));
                             }
-                            return new ArrayValue(fluidValues);
+
+                            return fluidValues != null
+                                ? new ArrayValue(fluidValues)
+                                : ArrayValue.Empty;
                     }
 
                     return new ObjectValue(value);
+
                 case TypeCode.DateTime:
                     return new DateTimeValue((DateTime)value);
+
                 case TypeCode.Char:
-                case TypeCode.String:
                     return new StringValue(Convert.ToString(value, options.CultureInfo));
+                
+                case TypeCode.String:
+                    return new StringValue((string)value);
+                
                 default:
                     throw new InvalidOperationException();
             }
         }
 
+        [Obsolete("Use ContainsAsync(FluidValue, TemplateContext) instead.")]
         public virtual bool Contains(FluidValue value)
         {
             // Used by the 'contains' keyword
-            return false;
+            return ContainsAsync(value, null).GetAwaiter().GetResult();
         }
 
+        public virtual ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
+        {
+            // Used by the 'contains' keyword
+            return new ValueTask<bool>(false);
+        }
+
+        public virtual async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
+        {
+            await Task.CompletedTask;
+            yield break;
+        }
+
+        [Obsolete("Use EnumerateAsync instead")]
         public virtual IEnumerable<FluidValue> Enumerate(TemplateContext context)
         {
-            return [];
+            return EnumerateAsync(context).ToEnumerable();
         }
-
-        #region Obsolete members
-
-        [Obsolete("Use Enumerate(TemplateContext) instead.")]
-        public virtual IEnumerable<FluidValue> Enumerate()
-        {
-            return [];
-        }
-
-        [Obsolete("Use Enumerate(TemplateContext) instead.")]
-        internal virtual string[] ToStringArray()
-        {
-            return [];
-        }
-
-        [Obsolete("Use Enumerate(TemplateContext) instead.")]
-        internal virtual List<FluidValue> ToList()
-        {
-            return Enumerate().ToList();
-        }
-
-        [Obsolete("Handle the property 'first' in GetValueAsync() instead")]
-        internal virtual FluidValue FirstOrDefault()
-        {
-            return Enumerate().FirstOrDefault();
-        }
-
-        /// <summary>
-        /// Returns the first element. Used by the <code>first</code> filter.
-        /// </summary>
-        [Obsolete("Handle the property 'first' in GetValueAsync() instead")]
-        internal virtual FluidValue FirstOrDefault(TemplateContext context)
-        {
-            return Enumerate(context).FirstOrDefault();
-        }
-
-        [Obsolete("Handle the property 'last' in GetValueAsync() instead")]
-        internal virtual FluidValue LastOrDefault()
-        {
-            return Enumerate().LastOrDefault();
-        }
-
-        /// <summary>
-        /// Returns the last element. Used by the <code>last</code> filter.
-        /// </summary>
-        [Obsolete("Handle the property 'last' in GetValueAsync() instead")]
-        internal virtual FluidValue LastOrDefault(TemplateContext context)
-        {
-            return Enumerate(context).LastOrDefault();
-        }
-        #endregion
 
         public static implicit operator ValueTask<FluidValue>(FluidValue value)
         {

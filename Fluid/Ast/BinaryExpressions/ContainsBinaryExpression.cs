@@ -8,11 +8,13 @@ namespace Fluid.Ast.BinaryExpressions
         {
         }
 
-        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+        public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
-            return leftValue.Contains(rightValue)
-                ? BooleanValue.True
-                : BooleanValue.False;
+            var leftValue = await Left.EvaluateAsync(context);
+            var rightValue = await Right.EvaluateAsync(context);
+
+            var comparisonResult = await leftValue.ContainsAsync(rightValue, context);
+            return new BinaryExpressionFluidValue(leftValue, comparisonResult);
         }
 
         protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitContainsBinaryExpression(this);

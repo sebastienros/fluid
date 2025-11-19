@@ -1,8 +1,8 @@
+using System.Globalization;
+using System.Text.Encodings.Web;
 using Fluid.Filters;
 using Fluid.Values;
 using Microsoft.Extensions.FileProviders;
-using System.Globalization;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace Fluid
@@ -21,9 +21,11 @@ namespace Fluid
         /// <returns>The value which should be captured.</returns>
         public delegate ValueTask<FluidValue> CapturedDelegate(string identifier, FluidValue value, TemplateContext context);
 
-        public static readonly TemplateOptions Default = new();
+        /// <param name="name">The name of the value that is undefined.</param>
+        /// <returns>The value to use for the undefined value.</returns>
+        public delegate ValueTask<FluidValue> UndefinedDelegate(string name);
 
-        private static readonly JavaScriptEncoder DefaultJavaScriptEncoder = JavaScriptEncoder.Default;
+        public static readonly TemplateOptions Default = new();
 
         /// <summary>
         /// Gets ot sets the members than can be accessed in a template.
@@ -34,6 +36,24 @@ namespace Fluid
         /// Gets or sets the <see cref="IFileProvider"/> used to access files for include and render statements.
         /// </summary>
         public IFileProvider FileProvider { get; set; } = new NullFileProvider();
+
+        /// <summary>
+        /// Gets or sets the <see cref="ITemplateCache"/> used to cache templates loaded from <see cref="FileProvider"/>.
+        /// </summary>
+        /// <remarks>
+        /// The instance needs to be thread-safe for insertion and retrieval of cached entries.
+        /// </remarks>
+        public ITemplateCache TemplateCache { get; set; } = new TemplateCache();
+
+        /// <summary>
+        /// Gets or sets the default file extension to use when loading templates with include and render statements.
+        /// If set, the file provider will first check if the file exists with the specified name, then try appending this extension.
+        /// If null or empty, the filename is used as-is without any extension appending.
+        /// </summary>
+        /// <value>
+        /// Default value is ".liquid"
+        /// </value>
+        public string DefaultFileExtension { get; set; } = ".liquid";
 
         /// <summary>
         /// Gets or sets the maximum number of steps a script can execute. Leave to 0 for unlimited.
@@ -94,9 +114,14 @@ namespace Fluid
         public AssignedDelegate Assigned { get; set; }
 
         /// <summary>
-        /// Gets or sets the <see cref="JavaScriptEncoder" /> instance used by the <c>json</c> filter.
+        /// Gets or sets the delegate to execute when an undefined value is encountered during rendering.
         /// </summary>
-        public JavaScriptEncoder JavaScriptEncoder { get; set; } = DefaultJavaScriptEncoder;
+        public UndefinedDelegate Undefined { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="JsonSerializerOptions"/> used by the <c>json</c> filter.
+        /// </summary>
+        public JsonSerializerOptions JsonSerializerOptions { get; set; } = JsonSerializerOptions.Default;
 
         /// <summary>
         /// Gets or sets the default trimming rules.

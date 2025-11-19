@@ -11,25 +11,29 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
     env:
         DOTNET_NOLOGO: true
         DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-dotnet@v4
+    - uses: actions/checkout@v5
+    - uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: | 
-          6.0.x
+        dotnet-version: |
           8.0.x
+          10.0.x
         global-json-file: global.json
 
     - name: Version
       run: dotnet --version
-    
+
     - name: Test
-      run: dotnet test -c Release
+      run: dotnet test -c Release --logger GitHubActions
 
     - name: Test - Compiled
-      run: dotnet test --configuration Release /p:Compiled=true
+      run: dotnet test --configuration Release --logger GitHubActions /p:Compiled=true

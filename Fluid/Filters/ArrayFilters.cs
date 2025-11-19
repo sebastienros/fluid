@@ -18,10 +18,14 @@ namespace Fluid.Filters
             filters.AddFilter("uniq", Uniq);
             filters.AddFilter("where", Where);
             filters.AddFilter("sum", Sum);
+            filters.AddFilter("find", Find);
+            filters.AddFilter("find_index", FindIndex);
+            filters.AddFilter("has", Has);
+            filters.AddFilter("reject", Reject);
             return filters;
         }
 
-        public static ValueTask<FluidValue> Join(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static async ValueTask<FluidValue> Join(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             LiquidException.ThrowFilterArgumentsCount("join", min: 0, max: 1, arguments);
 
@@ -31,8 +35,8 @@ namespace Fluid.Filters
             }
 
             var separator = arguments.Count > 0 ? arguments.At(0).ToStringValue() : " ";
-            var values = input.Enumerate(context).Select(x => x.ToStringValue());
-            var joined = string.Join(separator, values);
+            var values = input.EnumerateAsync(context).Select(x => x.ToStringValue());
+            var joined = string.Join(separator, await values.ToListAsync());
             return new StringValue(joined);
         }
 
@@ -50,7 +54,7 @@ namespace Fluid.Filters
             return input.GetValueAsync("last", context);
         }
 
-        public static ValueTask<FluidValue> Concat(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static async ValueTask<FluidValue> Concat(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             LiquidException.ThrowFilterArgumentsCount("concat", expected: 1, arguments);
 
@@ -121,7 +125,7 @@ namespace Fluid.Filters
 
             var list = new List<FluidValue>();
 
-            foreach (var item in input.Enumerate(context))
+            await foreach (var item in input.EnumerateAsync(context))
             {
                 list.Add(await item.GetValueAsync(member, context));
             }
@@ -129,13 +133,13 @@ namespace Fluid.Filters
             return new ArrayValue(list);
         }
 
-        public static ValueTask<FluidValue> Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static async ValueTask<FluidValue> Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             LiquidException.ThrowFilterArgumentsCount("reverse", expected: 0, arguments);
 
             if (input.Type == FluidValues.Array)
             {
-                return new ArrayValue(input.Enumerate(context).Reverse().ToArray());
+                return new ArrayValue(await input.EnumerateAsync(context).Reverse().ToArrayAsync());
             }
             else if (input.Type == FluidValues.String)
             {
@@ -181,11 +185,119 @@ namespace Fluid.Filters
 
             var list = new List<FluidValue>();
 
-            foreach (var item in input.Enumerate(context))
+            await foreach (var item in input.EnumerateAsync(context))
             {
                 var itemValue = await item.GetValueAsync(member, context);
 
                 if (targetValue.Equals(itemValue))
+                {
+                    list.Add(item);
+                }
+            }
+
+            return new ArrayValue(list);
+        }
+
+        public static async ValueTask<FluidValue> Find(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (input.Type != FluidValues.Array)
+            {
+                return input;
+            }
+
+            // First argument is the property name to match
+            var member = arguments.At(0).ToStringValue();
+
+            // Second argument is the value to match
+            var targetValue = arguments.At(1);
+            if (targetValue.IsNil())
+            {
+                return NilValue.Instance;
+            }
+
+            FluidValue result = NilValue.Instance;
+
+            await foreach (var item in input.EnumerateAsync(context))
+            {
+                var itemValue = await item.GetValueAsync(member, context);
+
+                if (targetValue.Equals(itemValue))
+                {
+                    result = item;
+                    break;
+                }
+            }
+
+            return result;
+        }
+
+        public static async ValueTask<FluidValue> FindIndex(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (input.Type != FluidValues.Array)
+            {
+                return input;
+            }
+
+            // First argument is the property name to match
+            var member = arguments.At(0).ToStringValue();
+
+            // Second argument is the value to match
+            var targetValue = arguments.At(1);
+            if (targetValue.IsNil())
+            {
+                return NilValue.Instance;
+            }
+
+            FluidValue result = NilValue.Instance;
+            var index = 0;
+
+            await foreach (var item in input.EnumerateAsync(context))
+            {
+                var itemValue = await item.GetValueAsync(member, context);
+
+                if (targetValue.Equals(itemValue))
+                {
+                    result = NumberValue.Create(index);
+                    break;
+                }
+
+                index++;
+            }
+
+            return result;
+        }
+
+        public static async ValueTask<FluidValue> Has(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            var result = await Find(input, arguments, context);
+
+            return result.Equals(NilValue.Instance) ? BooleanValue.False : BooleanValue.True;
+        }
+
+        public static async ValueTask<FluidValue> Reject(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            if (input.Type != FluidValues.Array)
+            {
+                return input;
+            }
+
+            // First argument is the property name to match
+            var member = arguments.At(0).ToStringValue();
+
+            // Second argument is the value to not match, or 'true' if none is defined
+            var targetValue = arguments.At(1);
+            if (targetValue.IsNil())
+            {
+                targetValue = BooleanValue.True;
+            }
+
+            var list = new List<FluidValue>();
+
+            await foreach (var item in input.EnumerateAsync(context))
+            {
+                var itemValue = await item.GetValueAsync(member, context);
+
+                if (!targetValue.Equals(itemValue))
                 {
                     list.Add(item);
                 }
@@ -211,7 +323,7 @@ namespace Fluid.Filters
 
                 var values = new List<KeyValuePair<FluidValue, object>>();
 
-                foreach (var item in input.Enumerate(context))
+                await foreach (var item in input.EnumerateAsync(context))
                 {
                     values.Add(new KeyValuePair<FluidValue, object>(item, (await item.GetValueAsync(member, context)).ToObjectValue()));
                 }
@@ -225,7 +337,7 @@ namespace Fluid.Filters
             }
             else
             {
-                return new ArrayValue(input.Enumerate(context).OrderBy(x => x.ToStringValue(), StringComparer.Ordinal).ToArray());
+                return new ArrayValue(await input.EnumerateAsync(context).OrderBy(x => x.ToStringValue(), StringComparer.Ordinal).ToArrayAsync());
             }
         }
 
@@ -239,7 +351,7 @@ namespace Fluid.Filters
 
                 var values = new List<KeyValuePair<FluidValue, object>>();
 
-                foreach (var item in input.Enumerate(context))
+                await foreach (var item in input.EnumerateAsync(context))
                 {
                     values.Add(new KeyValuePair<FluidValue, object>(item, (await item.GetValueAsync(member, context)).ToObjectValue()));
                 }
@@ -253,15 +365,15 @@ namespace Fluid.Filters
             }
             else
             {
-                return new ArrayValue(input.Enumerate(context).OrderBy(x => x.ToStringValue(), StringComparer.OrdinalIgnoreCase).ToArray());
+                return new ArrayValue(await input.EnumerateAsync(context).OrderBy(x => x.ToStringValue(), StringComparer.OrdinalIgnoreCase).ToArrayAsync());
             }
         }
 
-        public static ValueTask<FluidValue> Uniq(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static async ValueTask<FluidValue> Uniq(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             LiquidException.ThrowFilterArgumentsCount("uniq", expected: 0, arguments);
 
-            return new ArrayValue(input.Enumerate(context).Distinct().ToArray());
+            return new ArrayValue(await input.EnumerateAsync(context).Distinct().ToArrayAsync());
         }
 
         public static async ValueTask<FluidValue> Sum(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -270,21 +382,21 @@ namespace Fluid.Filters
 
             if (arguments.Count == 0)
             {
-                var numbers = input.Enumerate(context).Select(x => x switch
+                var numbers = input.EnumerateAsync(context).Select(x => x switch
                 {
                     ArrayValue => Sum(x, arguments, context).Result.ToNumberValue(),
                     NumberValue or StringValue => x.ToNumberValue(),
                     _ => 0
                 });
 
-                return NumberValue.Create(numbers.Sum());
+                return NumberValue.Create(await numbers.SumAsync());
             }
 
             var member = arguments.At(0);
 
             var sumList = new List<decimal>();
 
-            foreach (var item in input.Enumerate(context))
+            await foreach (var item in input.EnumerateAsync(context))
             {
                 switch (item)
                 {

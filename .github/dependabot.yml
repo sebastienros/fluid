@@ -9,10 +9,21 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+    ignore:
+      - dependency-name: "Microsoft.CodeAnalysis.CSharp"
+      # NetPlatform dependencies shouldn't update across major versions
+      - dependency-name: "Microsoft.Extensions.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "System.*"
+        update-types: ["version-update:semver-major"]
     groups:
        # Grouped version updates configuration
        all-dependencies:
           patterns:
             - "*"
-          exclude-patterns:
-            - "*Abstractions" # Don't update abstractions packages
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 5

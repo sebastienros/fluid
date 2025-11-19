@@ -4,28 +4,33 @@ namespace Fluid.Ast
 {
     public sealed class MemberExpression : Expression
     {
-        public MemberExpression(MemberSegment segment)
+        private readonly MemberSegment[] _segments;
+
+        public MemberExpression(MemberSegment segment) : this([segment])
         {
-            Segments = [segment];
         }
 
-        public MemberExpression(IReadOnlyList<MemberSegment> segments)
+        public MemberExpression(IReadOnlyList<MemberSegment> segments) : this(segments as MemberSegment[] ?? segments.ToArray())
         {
-            Segments = segments ?? [];
+        }
 
-            if (Segments.Count == 0)
+        internal MemberExpression(MemberSegment[] segments)
+        {
+            _segments = segments ?? [];
+
+            if (_segments.Length == 0)
             {
-                throw new ArgumentException("At least one segment is required in a MemberExpression");
+                ExceptionHelper.ThrowArgumentNullException(nameof(segments), "At least one segment is required in a MemberExpression");
             }
         }
 
-        public IReadOnlyList<MemberSegment> Segments { get; }
+        public IReadOnlyList<MemberSegment> Segments => _segments;
 
         public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
             // The first segment can only be an IdentifierSegment
 
-            var initial = Segments[0] as IdentifierSegment;
+            var initial = _segments[0] as IdentifierSegment;
 
             // Search the initial segment in the local scope first
 
@@ -39,21 +44,27 @@ namespace Fluid.Ast
             {
                 if (context.Model == null)
                 {
-                    return new ValueTask<FluidValue>(value);
+                    // Check equality as IsNil() is also true for UndefinedValue
+                    if (context.Undefined is not null && value == UndefinedValue.Instance)
+                    {
+                        return context.Undefined.Invoke(initial.Identifier);
+                    }
+
+                    return value;
                 }
 
                 start = 0;
                 value = context.Model;
             }
 
-            for (var i = start; i < Segments.Count; i++)
+            for (var i = start; i < _segments.Length; i++)
             {
-                var s = Segments[i];
+                var s = _segments[i];
                 var task = s.ResolveAsync(value, context);
 
                 if (!task.IsCompletedSuccessfully)
                 {
-                    return Awaited(task, context, Segments, i + 1);
+                    return Awaited(task, context, _segments, i + 1);
                 }
 
                 value = task.Result;
@@ -61,21 +72,21 @@ namespace Fluid.Ast
                 // Stop processing as soon as a member returns nothing
                 if (value.IsNil())
                 {
-                    return new ValueTask<FluidValue>(value);
+                    return value;
                 }
             }
 
-            return new ValueTask<FluidValue>(value);
+            return value;
         }
 
         private static async ValueTask<FluidValue> Awaited(
             ValueTask<FluidValue> task,
             TemplateContext context,
-            IReadOnlyList<MemberSegment> segments,
+            MemberSegment[] segments,
             int startIndex)
         {
             var value = await task;
-            for (var i = startIndex; i < segments.Count; i++)
+            for (var i = startIndex; i < segments.Length; i++)
             {
                 var s = segments[i];
                 value = await s.ResolveAsync(value, context);

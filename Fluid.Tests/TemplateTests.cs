@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Parser;
@@ -21,6 +22,7 @@ namespace Fluid.Tests
 #endif
 
         private static readonly TimeZoneInfo Eastern = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/New_York");
+        private static readonly TimeZoneInfo Paris = TimeZoneConverter.TZConvert.GetTimeZoneInfo("Europe/Paris");
 
         private object _products = new[]
         {
@@ -34,7 +36,6 @@ namespace Fluid.Tests
             Assert.True(_parser.TryParse(source, out var template, out var error));
 
             var context = new TemplateContext();
-            context.Options.MemberAccessStrategy.Register(new { name = "product 1", price = 1 }.GetType());
             init?.Invoke(context);
 
             var result = await template.RenderAsync(context);
@@ -120,8 +121,80 @@ namespace Fluid.Tests
         public async Task ShouldCustomizeCaptures()
         {
             _parser.TryParse("{% capture foo %}hello <br /> world{% endcapture %}{{ foo }}", out var template, out var error);
-            var result = await template.RenderAsync(new TemplateContext { Captured = (identifier, captured, context) => new ValueTask<FluidValue>(new StringValue(captured.ToStringValue().ToUpper(), false)) }, HtmlEncoder.Default);
+            var result = await template.RenderAsync(new TemplateContext { Captured = (identifier, captured, context) => new StringValue(captured.ToStringValue().ToUpper(), false) }, HtmlEncoder.Default);
             Assert.Equal("HELLO <BR /> WORLD", result);
+        }
+
+        [Fact]
+        public async Task ShouldNotDoubleEncodeRawCaptureWithEscapeFilter()
+        {
+            // Issue: Capturing raw liquid tags and rendering with escape filter should not double-encode
+            var source = @"{% capture r %}
+{% raw %}
+{% assign cultures = Culture | supported_cultures %}
+<ul>item</ul>
+{% endraw %}
+{% endcapture %}
+{{ r | escape }}";
+            
+            _parser.TryParse(source, out var template, out var error);
+            var result = await template.RenderAsync(new TemplateContext(), HtmlEncoder.Default);
+            
+            // The raw content should be escaped once, not double-encoded
+            Assert.Contains("{% assign cultures = Culture | supported_cultures %}", result);
+            Assert.Contains("&lt;ul&gt;item&lt;/ul&gt;", result);
+            Assert.DoesNotContain("&amp;lt;", result); // Should not be double-encoded
+            Assert.DoesNotContain("&amp;gt;", result); // Should not be double-encoded
+        }
+
+        [Fact]
+        public async Task ShouldNotEncodeRawCaptureWithoutEscapeFilter()
+        {
+            // Capturing raw liquid tags without escape filter should output unencoded
+            var source = @"{% capture r %}
+{% raw %}
+{% assign cultures = Culture | supported_cultures %}
+<ul>item</ul>
+{% endraw %}
+{% endcapture %}
+{{ r }}";
+            
+            _parser.TryParse(source, out var template, out var error);
+            var result = await template.RenderAsync(new TemplateContext(), HtmlEncoder.Default);
+            
+            // The raw content should not be encoded
+            Assert.Contains("{% assign cultures = Culture | supported_cultures %}", result);
+            Assert.Contains("<ul>item</ul>", result);
+            Assert.DoesNotContain("&lt;", result);
+            Assert.DoesNotContain("&gt;", result);
+        }
+
+        [Fact]
+        public async Task EscapeFilterShouldNotDoubleEncode()
+        {
+            // Using escape filter with HtmlEncoder should not double-encode
+            var source = @"{{ '<div>test</div>' | escape }}";
+            
+            _parser.TryParse(source, out var template, out var error);
+            var result = await template.RenderAsync(new TemplateContext(), HtmlEncoder.Default);
+            
+            // Should be encoded once
+            Assert.Equal("&lt;div&gt;test&lt;/div&gt;", result);
+            Assert.DoesNotContain("&amp;", result); // Should not be double-encoded
+        }
+
+        [Fact]
+        public async Task EscapeOnceFilterShouldNotDoubleEncode()
+        {
+            // Using escape_once filter with HtmlEncoder should not double-encode
+            var source = @"{{ '&lt;div&gt;test&lt;/div&gt;' | escape_once }}";
+            
+            _parser.TryParse(source, out var template, out var error);
+            var result = await template.RenderAsync(new TemplateContext(), HtmlEncoder.Default);
+            
+            // Should be encoded once (escape_once should decode then encode)
+            Assert.Equal("&lt;div&gt;test&lt;/div&gt;", result);
+            Assert.DoesNotContain("&amp;", result); // Should not be double-encoded
         }
 
         [Theory]
@@ -206,6 +279,45 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task ShouldRenderNullValueFromContext()
+        {
+            _parser.TryParse("{{ x }}", out var template, out var error);
+            var context = new TemplateContext();
+            context.SetValue("x", (object)null);
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(string.Empty, result);
+        }
+
+        [Fact]
+        public async Task ShouldRenderNullValueFromProperty()
+        {
+            _parser.TryParse("{{ c.Value }}", out var template, out var error);
+
+            var options = new TemplateOptions();
+
+            var context = new TemplateContext(options);
+            context.SetValue("c", new NullStringContainer());
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(string.Empty, result);
+        }
+
+        [Fact]
+        public async Task ShouldRenderNullValueFromToString()
+        {
+            _parser.TryParse("{{ c }}", out var template, out var error);
+
+            var options = new TemplateOptions();
+
+            var context = new TemplateContext(options);
+            context.SetValue("c", new NullStringContainer());
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal(string.Empty, result);
+        }
+
+        [Fact]
         public async Task ShouldEvaluateNumberValue()
         {
             _parser.TryParse("{{ x }}", out var template, out var error);
@@ -244,16 +356,94 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task ShouldHandleDateTimeMinValueWithPositiveTimezoneOffset()
+        {
+            // Set a timezone offset of +2 hours (like EET - Eastern European Time)
+            var plusTwoTimezone = TimeZoneInfo.CreateCustomTimeZone("Custom+2", TimeSpan.FromHours(2), "UTC+2", "UTC+2");
+            
+            _parser.TryParse("{{ foo }} {{ date }}", out var template, out var error);
+            
+            var context = new TemplateContext { TimeZone = plusTwoTimezone };
+            context.SetValue("foo", "bar");
+            context.SetValue("date", DateTime.MinValue);
+
+            // This should not throw ArgumentOutOfRangeException
+            var result = await template.RenderAsync(context);
+            
+            // DateTime.MinValue should be rendered as the minimum DateTimeOffset value
+            Assert.Contains("bar", result);
+            Assert.Contains("0001-01-01", result);
+        }
+
+        [Fact]
+        public async Task ShouldHandleDateTimeNearMinValueWithPositiveTimezoneOffset()
+        {
+            // Set a timezone offset of +2 hours (like EET - Eastern European Time)
+            var plusTwoTimezone = TimeZoneInfo.CreateCustomTimeZone("Custom+2", TimeSpan.FromHours(2), "UTC+2", "UTC+2");
+            
+            _parser.TryParse("{{ foo }} {{ date }}", out var template, out var error);
+            
+            var context = new TemplateContext { TimeZone = plusTwoTimezone };
+            context.SetValue("foo", "bar");
+            context.SetValue("date", DateTime.MinValue.AddHours(1));
+
+            // This should not throw ArgumentOutOfRangeException even with DateTime.MinValue + 1 hour
+            var result = await template.RenderAsync(context);
+            
+            // DateTime near MinValue should be rendered as the minimum DateTimeOffset value
+            Assert.Contains("bar", result);
+            Assert.Contains("0001-01-01", result);
+        }
+
+        [Fact]
+        public async Task ShouldHandleDateTimeMaxValueWithNegativeTimezoneOffset()
+        {
+            // Set a timezone offset of -2 hours (like Brazil Standard Time)
+            var minusTwoTimezone = TimeZoneInfo.CreateCustomTimeZone("Custom-2", TimeSpan.FromHours(-2), "UTC-2", "UTC-2");
+            
+            _parser.TryParse("{{ foo }} {{ date }}", out var template, out var error);
+            
+            var context = new TemplateContext { TimeZone = minusTwoTimezone };
+            context.SetValue("foo", "bar");
+            context.SetValue("date", DateTime.MaxValue);
+
+            // This should not throw ArgumentOutOfRangeException
+            var result = await template.RenderAsync(context);
+            
+            // DateTime.MaxValue should be rendered as the maximum DateTimeOffset value
+            Assert.Contains("bar", result);
+            Assert.Contains("9999-12-31", result);
+        }
+
+        [Fact]
+        public async Task ShouldHandleDateTimeNearMaxValueWithNegativeTimezoneOffset()
+        {
+            // Set a timezone offset of -2 hours (like Brazil Standard Time)
+            var minusTwoTimezone = TimeZoneInfo.CreateCustomTimeZone("Custom-2", TimeSpan.FromHours(-2), "UTC-2", "UTC-2");
+            
+            _parser.TryParse("{{ foo }} {{ date }}", out var template, out var error);
+            
+            var context = new TemplateContext { TimeZone = minusTwoTimezone };
+            context.SetValue("foo", "bar");
+            context.SetValue("date", DateTime.MaxValue.AddHours(-1));
+
+            // This should not throw ArgumentOutOfRangeException even with DateTime.MaxValue - 1 hour
+            var result = await template.RenderAsync(context);
+            
+            // DateTime near MaxValue should be rendered as the maximum DateTimeOffset value
+            Assert.Contains("bar", result);
+            Assert.Contains("9999-12-31", result);
+        }
+
+        [Fact]
         public async Task ShouldEvaluateObjectProperty()
         {
             _parser.TryParse("{{ p.Firstname }}", out var template, out var error);
 
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<Person>();
 
             var context = new TemplateContext(options);
             context.SetValue("p", new Person { Firstname = "John" });
-
 
             var result = await template.RenderAsync(context);
             Assert.Equal("John", result);
@@ -263,7 +453,6 @@ namespace Fluid.Tests
         public async Task ShouldEvaluateObjectPropertyWhenInterfaceRegisteredAsGlobal()
         {
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<IAnimal>();
 
             _parser.TryParse("{{ p.Age }}", out var template, out var error);
 
@@ -290,10 +479,9 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task ShouldNotAllowNotRegisteredInterfaceMembers()
+        public async Task ShouldAllowInterfaceMembers()
         {
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<IAnimal>();
 
             _parser.TryParse("{{ p.Name }}", out var template, out var error);
 
@@ -301,21 +489,7 @@ namespace Fluid.Tests
             context.SetValue("p", new Dog { Name = "Rex" });
 
             var result = await template.RenderAsync(context);
-            Assert.Equal("", result);
-        }
-
-        [Fact]
-        public async Task ShouldEvaluateObjectPropertyWhenInterfaceRegistered()
-        {
-            _parser.TryParse("{{ p.Name }}", out var template, out var error);
-
-            var options = new TemplateOptions();
-            var context = new TemplateContext(options);
-            context.SetValue("p", new Dog { Name = "John" });
-            options.MemberAccessStrategy.Register<IDog>();
-
-            var result = await template.RenderAsync(context);
-            Assert.Equal("John", result);
+            Assert.Equal("Rex", result);
         }
 
         [Fact]
@@ -326,28 +500,13 @@ namespace Fluid.Tests
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
             context.SetValue("e", new Employee { Firstname = "John", Salary = 550 });
-            options.MemberAccessStrategy.Register<Employee>();
 
             var result = await template.RenderAsync(context);
             Assert.Equal("John 550", result);
         }
 
         [Fact]
-        public async Task ShouldNotAllowNotRegisteredMember()
-        {
-            _parser.TryParse("{{ c.Director.Firstname }} {{ c.Director.Salary }}", out var template, out var error);
-
-            var options = new TemplateOptions();
-            var context = new TemplateContext(options);
-            context.SetValue("c", new Company { Director = new Employee { Firstname = "John", Salary = 550 } });
-            options.MemberAccessStrategy.Register<Company>();
-
-            var result = await template.RenderAsync(context);
-            Assert.Equal(" ", result);
-        }
-
-        [Fact]
-        public async Task ShouldOnlyAllowInheritedMember()
+        public async Task ShouldAllowInheritedMember()
         {
             // The Employee class is not registered, hence any access to its properties should return nothing
             // but the Person class is registered, so Name should be available
@@ -356,11 +515,9 @@ namespace Fluid.Tests
             var options = new TemplateOptions();
             var context = new TemplateContext(options);
             context.SetValue("c", new Company { Director = new Employee { Firstname = "John", Salary = 550 } });
-            options.MemberAccessStrategy.Register<Company>();
-            options.MemberAccessStrategy.Register<Person>();
 
             var result = await template.RenderAsync(context);
-            Assert.Equal("John ", result);
+            Assert.Equal("John 550", result);
         }
 
         [Fact]
@@ -398,6 +555,13 @@ namespace Fluid.Tests
             _parser.TryParse("{{ p | size }} {{ p | first }} {{ p | last }}", out var template, out var error);
             var result = await template.RenderAsync(context);
             Assert.Equal("123 456 789", result);
+        }
+
+        private sealed class NullStringContainer
+        {
+            public string Value => null;
+
+            public override string ToString() => null;
         }
 
         private class PersonValue : ObjectValueBase
@@ -893,20 +1057,15 @@ shape: '{{ shape }}'");
         [Fact]
         public async Task IgnoreCasing()
         {
-            _parser.TryParse("{{ p.firsTname }}", out var template, out var error);
+            _parser.TryParse("{{ p.firsTname }}", out var template, out var _);
 
-            var options = new TemplateOptions();
-            options.MemberAccessStrategy.IgnoreCasing = true;
-            options.MemberAccessStrategy.Register<Person>();
-
+            var options = new TemplateOptions() { ModelNamesComparer = StringComparer.OrdinalIgnoreCase };
             var context = new TemplateContext(options);
             context.SetValue("p", new Person { Firstname = "John" });
             var result = await template.RenderAsync(context);
             Assert.Equal("John", result);
 
-            options = new TemplateOptions();
-            options.MemberAccessStrategy.IgnoreCasing = false;
-            options.MemberAccessStrategy.Register<Person>();
+            options = new TemplateOptions() { ModelNamesComparer = StringComparer.Ordinal };
             context = new TemplateContext(options);
             context.SetValue("p", new Person { Firstname = "John" });
             result = await template.RenderAsync(context);
@@ -1058,75 +1217,92 @@ after
         }
 
         [Fact]
-        public async Task DefaultMemberStrategyShouldSupportCamelCase()
+        public void DictionaryShouldWorkWithComparers_SnakeCase()
         {
-            var model = new { FirstName = "Sebastien" };
-            var source = "{{ firstName }}";
-            var expected = "Sebastien";
-
-            _parser.TryParse(source, out var template, out var error);
-
-            var options = new TemplateOptions();
-            options.MemberAccessStrategy = new DefaultMemberAccessStrategy { MemberNameStrategy = MemberNameStrategies.CamelCase };
-            var context = new TemplateContext(model, options);
-
-            var result = await template.RenderAsync(context);
-            Assert.Equal(expected, result);
+            var comparer = StringComparers.SnakeCase;
+            var dict = new Dictionary<string, string>(comparer);
+            dict["FirstName"] = "Sebastien";
+            Assert.True(dict.ContainsKey("first_name"));
+            Assert.Equal("Sebastien", dict["first_name"]);
         }
-
+        
         [Fact]
         public async Task DefaultMemberStrategyShouldSupportSnakeCase()
         {
             var model = new { FirstName = "Sebastien" };
-            var source = "{{ first_name }}";
-            var expected = "Sebastien";
+            var source = "{{ first_name }} {{ last_name }}";
 
             _parser.TryParse(source, out var template, out var error);
 
-            var options = new TemplateOptions();
-            options.MemberAccessStrategy = new DefaultMemberAccessStrategy { MemberNameStrategy = MemberNameStrategies.SnakeCase };
+            var options = new TemplateOptions() { ModelNamesComparer = StringComparers.SnakeCase };
             var context = new TemplateContext(model, options);
+            context.SetValue("LastName", "Ros");
 
             var result = await template.RenderAsync(context);
-            Assert.Equal(expected, result);
+            Assert.Equal("Sebastien Ros", result);
         }
 
-        [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task UnsafeMemberStrategyShouldSupportCamelCase(bool registerModelType)
+        [Fact]
+        public async Task DefaultMemberStrategyShouldSupportCamelCase()
         {
             var model = new { FirstName = "Sebastien" };
-            var source = "{{ firstName }}";
-            var expected = "Sebastien";
+            var source = "{{ firstName }} {{ lastName}}";
 
             _parser.TryParse(source, out var template, out var error);
 
-            var options = new TemplateOptions();
-            options.MemberAccessStrategy = new UnsafeMemberAccessStrategy { MemberNameStrategy = MemberNameStrategies.CamelCase };
-            var context = new TemplateContext(model, options, registerModelType);
+            var options = new TemplateOptions() { ModelNamesComparer = StringComparers.CamelCase };
+            var context = new TemplateContext(model, options);
+            context.SetValue("LastName", "Ros");
 
             var result = await template.RenderAsync(context);
-            Assert.Equal(expected, result);
+            Assert.Equal("Sebastien Ros", result);
         }
 
-        [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task UnsafeMemberStrategyShouldSupportSnakeCase(bool registerModelType)
+        [Fact]
+        public async Task DefaultMemberStrategyShouldSupportAnyCase()
         {
             var model = new { FirstName = "Sebastien" };
-            var source = "{{ first_name }}";
-            var expected = "Sebastien";
+            var source = "{{ fIrSTnAme }} {{ lAsTnAme}}";
 
             _parser.TryParse(source, out var template, out var error);
 
-            var options = new TemplateOptions();
-            options.MemberAccessStrategy = new UnsafeMemberAccessStrategy { MemberNameStrategy = MemberNameStrategies.SnakeCase };
-            var context = new TemplateContext(model, options, registerModelType);
+            var options = new TemplateOptions() { ModelNamesComparer = StringComparer.OrdinalIgnoreCase };
+            var context = new TemplateContext(model, options);
+            context.SetValue("LastName", "Ros");
 
             var result = await template.RenderAsync(context);
-            Assert.Equal(expected, result);
+            Assert.Equal("Sebastien Ros", result);
+        }
+
+        [Fact]
+        public void SnakeCaseHandlesAcronymsCorrectly()
+        {
+            // Test UserName -> user_name
+            Assert.True(StringComparers.SnakeCase.Equals("UserName", "user_name"));
+            
+            // Test OpenAIModel -> open_ai_model
+            Assert.True(StringComparers.SnakeCase.Equals("OpenAIModel", "open_ai_model"));
+
+            // Test OEMVendor -> oem_vendor
+            Assert.True(StringComparers.SnakeCase.Equals("OEMVendor", "oem_vendor"));
+
+            // Test IDSecurity -> id_security
+            Assert.True(StringComparers.SnakeCase.Equals("IDSecurity", "id_security"));
+
+            // Test ID -> id
+            Assert.True(StringComparers.SnakeCase.Equals("ID", "id"));
+
+            // Test XMLParser -> xml_parser
+            Assert.True(StringComparers.SnakeCase.Equals("XMLParser", "xml_parser"));
+
+            // Test HTMLElement -> html_element
+            Assert.True(StringComparers.SnakeCase.Equals("HTMLElement", "html_element"));
+
+            // Test IOError -> io_error
+            Assert.True(StringComparers.SnakeCase.Equals("IOError", "io_error"));
+
+            // Test JSONData -> json_data
+            Assert.True(StringComparers.SnakeCase.Equals("JSONData", "json_data"));
         }
 
         [Fact]
@@ -1143,7 +1319,6 @@ after
             _parser.TryParse(source, out var template, out var error);
 
             var options = new TemplateOptions();
-            options.MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance;
             var context = new TemplateContext(model, options);
 
             var result = await template.RenderAsync(context);
@@ -1187,7 +1362,7 @@ after
                 {% assign people1 = "alice, bob, carol" | split: ", " %}
                 {% assign people2 = "alice, bob, carol" | split: ", " %}
 
-                {% if people1 == people2 %}true{%else%}false{% endif %} 
+                {% if people1 == people2 %}true{%else%}false{% endif %}
             """;
 
             _parser.TryParse(source, out var template);
@@ -1195,5 +1370,65 @@ after
             var result = await template.RenderAsync(context);
             Assert.Contains("true", result);
         }
+
+        [Fact]
+        public async Task InlineCommentShouldNotRender()
+        {
+            var source = "Hello {% # this is a comment %} World";
+            await CheckAsync(source, "Hello  World");
+        }
+
+        [Fact]
+        public async Task InlineCommentShouldNotRenderAnyContent()
+        {
+            var source = "{% # this is a comment with text %}Result";
+            await CheckAsync(source, "Result");
+        }
+
+        [Fact]
+        public async Task InlineCommentShouldWorkWithWhitespaceTrim()
+        {
+            var source = "Hello{%- # this is a comment -%}World";
+            await CheckAsync(source, "HelloWorld");
+        }
+
+        [Fact]
+        public async Task InlineCommentShouldWorkInTemplates()
+        {
+            var source = @"
+                {% # Start of template %}
+                {% assign name = 'John' %}
+                {% # Output the name %}
+                Hello {{ name }}!
+                {% # End of template %}
+            ";
+            
+            _parser.TryParse(source, out var template, out var error);
+            var context = new TemplateContext();
+            var result = await template.RenderAsync(context);
+            Assert.Contains("Hello John!", result);
+            Assert.DoesNotContain("Start of template", result);
+            Assert.DoesNotContain("Output the name", result);
+            Assert.DoesNotContain("End of template", result);
+        }
+
+        [Fact]
+        public async Task InlineCommentShouldWorkBetweenTags()
+        {
+            var source = @"
+                {% if true %}
+                {% # This is between if tags %}
+                Success
+                {% endif %}
+            ";
+            
+            _parser.TryParse(source, out var template, out var error);
+            var context = new TemplateContext();
+            var result = await template.RenderAsync(context);
+            Assert.Contains("Success", result);
+            Assert.DoesNotContain("This is between if tags", result);
+        }
+
+
     }
 }

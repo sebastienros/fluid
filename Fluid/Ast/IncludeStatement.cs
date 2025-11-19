@@ -1,5 +1,4 @@
 using Fluid.Values;
-using System.Diagnostics;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
@@ -9,11 +8,6 @@ namespace Fluid.Ast
 #pragma warning restore CA1001
     {
         public const string ViewExtension = ".liquid";
-
-        // Since include statements will rarely vary the filename they render, we cache the most
-        // recent file only.
-
-        private volatile CachedTemplate _cachedTemplate;
 
         public IncludeStatement(FluidParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, IReadOnlyList<AssignStatement> assignStatements = null)
         {
@@ -37,25 +31,36 @@ namespace Fluid.Ast
             context.IncrementSteps();
 
             var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
+            var fileProvider = context.Options.FileProvider;
 
-            if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))
+            // First, try to get the file with the exact path provided
+            var fileInfo = fileProvider.GetFileInfo(relativePath);
+
+            // If the file doesn't exist and a default extension is configured
+            if ((fileInfo == null || !fileInfo.Exists || fileInfo.IsDirectory) && !string.IsNullOrEmpty(context.Options.DefaultFileExtension))
             {
-                relativePath += ViewExtension;
+                // Check if the path already ends with the default extension
+                if (!relativePath.EndsWith(context.Options.DefaultFileExtension, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Try adding the default extension
+                    var pathWithExtension = relativePath + context.Options.DefaultFileExtension;
+                    var fileInfoWithExtension = fileProvider.GetFileInfo(pathWithExtension);
+
+                    if (fileInfoWithExtension != null && fileInfoWithExtension.Exists && !fileInfoWithExtension.IsDirectory)
+                    {
+                        relativePath = pathWithExtension;
+                        fileInfo = fileInfoWithExtension;
+                    }
+                }
             }
 
-            var cachedTemplate = _cachedTemplate;
-
-            if (cachedTemplate == null || !string.Equals(cachedTemplate.Name, System.IO.Path.GetFileNameWithoutExtension(relativePath), StringComparison.Ordinal))
+            if (fileInfo == null || !fileInfo.Exists || fileInfo.IsDirectory)
             {
-                var fileProvider = context.Options.FileProvider;
+                throw new FileNotFoundException(relativePath);
+            }
 
-                var fileInfo = fileProvider.GetFileInfo(relativePath);
-
-                if (fileInfo == null || !fileInfo.Exists)
-                {
-                    throw new FileNotFoundException(relativePath);
-                }
-
+            if (context.Options.TemplateCache == null || !context.Options.TemplateCache.TryGetTemplate(relativePath, fileInfo.LastModified, out var template))
+            {
                 var content = "";
 
                 using (var stream = fileInfo.CreateReadStream())
@@ -64,17 +69,15 @@ namespace Fluid.Ast
                     content = await streamReader.ReadToEndAsync();
                 }
 
-                if (!Parser.TryParse(content, out var template, out var errors))
+                if (!Parser.TryParse(content, out template, out var errors))
                 {
                     throw new ParseException(errors);
                 }
 
-                var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
-
-                _cachedTemplate = cachedTemplate = new CachedTemplate(template, identifier);
+                context.Options.TemplateCache?.SetTemplate(relativePath, fileInfo.LastModified, template);
             }
 
-            Debug.Assert(cachedTemplate != null);
+            var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
 
             context.EnterChildScope();
 
@@ -84,9 +87,9 @@ namespace Fluid.Ast
                 {
                     var with = await With.EvaluateAsync(context);
 
-                    context.SetValue(Alias ?? _cachedTemplate.Name, with);
+                    context.SetValue(Alias ?? identifier, with);
 
-                    await cachedTemplate.Template.RenderAsync(writer, encoder, context);
+                    await template.RenderAsync(writer, encoder, context);
                 }
                 else if (AssignStatements.Count > 0)
                 {
@@ -96,7 +99,7 @@ namespace Fluid.Ast
                         await AssignStatements[i].WriteToAsync(writer, encoder, context);
                     }
 
-                    await cachedTemplate.Template.RenderAsync(writer, encoder, context);
+                    await template.RenderAsync(writer, encoder, context);
                 }
                 else if (For != null)
                 {
@@ -104,7 +107,7 @@ namespace Fluid.Ast
                     {
                         var forloop = new ForLoopValue();
 
-                        var list = (await For.EvaluateAsync(context)).Enumerate(context).ToList();
+                        var list = await (await For.EvaluateAsync(context)).EnumerateAsync(context).ToListAsync();
 
                         var length = forloop.Length = list.Count;
 
@@ -116,7 +119,7 @@ namespace Fluid.Ast
 
                             var item = list[i];
 
-                            context.SetValue(Alias ?? _cachedTemplate.Name, item);
+                            context.SetValue(Alias ?? identifier, item);
 
                             // Set helper variables
                             forloop.Index = i + 1;
@@ -126,7 +129,7 @@ namespace Fluid.Ast
                             forloop.First = i == 0;
                             forloop.Last = i == length - 1;
 
-                            await _cachedTemplate.Template.RenderAsync(writer, encoder, context);
+                            await template.RenderAsync(writer, encoder, context);
 
                             // Restore the forloop property after every statement in case it replaced it,
                             // for instance if it contains a nested for loop
@@ -141,7 +144,7 @@ namespace Fluid.Ast
                 else
                 {
                     // no with, for or assignments, e.g. {% include 'products' %}
-                    await cachedTemplate.Template.RenderAsync(writer, encoder, context);
+                    await template.RenderAsync(writer, encoder, context);
                 }
             }
             finally

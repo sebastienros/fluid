@@ -5,7 +5,7 @@ namespace Fluid.Values
 {
     public sealed class FunctionValue : FluidValue
     {
-        public static readonly FunctionValue NoOp = new FunctionValue((_, _) => new ValueTask<FluidValue>(NilValue.Instance));
+        public static readonly FunctionValue NoOp = new FunctionValue((_, _) => NilValue.Instance);
         private readonly Func<FunctionArguments, TemplateContext, ValueTask<FluidValue>> _action;
 
         public FunctionValue(Func<FunctionArguments, TemplateContext, ValueTask<FluidValue>> asyncAction)
@@ -15,7 +15,7 @@ namespace Fluid.Values
 
         public FunctionValue(Func<FunctionArguments, TemplateContext, FluidValue> action)
         {
-            _action = (args, c) => new ValueTask<FluidValue>(action(args, c));
+            _action = (args, c) => action(args, c);
         }
 
         public override FluidValues Type => FluidValues.Function;
@@ -55,15 +55,10 @@ namespace Fluid.Values
             return false;
         }
 
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             // A function value should be invoked and its result used instead.
             // Calling write to is equivalent to rendering {{ alert }} instead of {{ alert() }}
-        }
-
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
             return default;
         }
 

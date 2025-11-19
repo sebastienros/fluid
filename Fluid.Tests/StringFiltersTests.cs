@@ -1,4 +1,5 @@
-using System.Linq;
+﻿using System.Linq;
+using System.Threading.Tasks;
 using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
@@ -263,35 +264,37 @@ world
         }
 
         [Fact]
-        public void Split()
+        public async Task Split()
         {
             var input = new StringValue("a.b.c");
 
             var arguments = new FilterArguments().Add(new StringValue("."));
             var context = new TemplateContext();
 
-            var result = StringFilters.Split(input, arguments, context);
+            var result = await StringFilters.Split(input, arguments, context);
 
-            Assert.Equal(3, result.Result.Enumerate(context).Count());
-            Assert.Equal(new StringValue("a"), result.Result.Enumerate(context).ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Result.Enumerate(context).ElementAt(1));
-            Assert.Equal(new StringValue("c"), result.Result.Enumerate(context).ElementAt(2));
+            var enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal(3, enumerated.Count());
+            Assert.Equal(new StringValue("a"), enumerated.ElementAt(0));
+            Assert.Equal(new StringValue("b"), enumerated.ElementAt(1));
+            Assert.Equal(new StringValue("c"), enumerated.ElementAt(2));
         }
 
         [Fact]
-        public void SplitWithEmptyString()
+        public async Task SplitWithEmptyString()
         {
             var input = new StringValue("abc");
 
             var arguments = new FilterArguments().Add(StringValue.Empty);
             var context = new TemplateContext();
 
-            var result = StringFilters.Split(input, arguments, context);
+            var result = await StringFilters.Split(input, arguments, context);
 
-            Assert.Equal(3, result.Result.Enumerate(context).Count());
-            Assert.Equal(new StringValue("a"), result.Result.Enumerate(context).ElementAt(0));
-            Assert.Equal(new StringValue("b"), result.Result.Enumerate(context).ElementAt(1));
-            Assert.Equal(new StringValue("c"), result.Result.Enumerate(context).ElementAt(2));
+            var enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal(3, enumerated.Count());
+            Assert.Equal(new StringValue("a"), enumerated.ElementAt(0));
+            Assert.Equal(new StringValue("b"), enumerated.ElementAt(1));
+            Assert.Equal(new StringValue("c"), enumerated.ElementAt(2));
         }
 
         [Theory]

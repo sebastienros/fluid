@@ -1,10 +1,13 @@
 using Fluid.Filters;
+using Fluid.Tests.Domain;
 using Fluid.Values;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Globalization;
 using System.Linq;
 using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using TimeZoneConverter;
 using Xunit;
@@ -70,7 +73,7 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Compact(input, arguments, context);
 
-            Assert.Equal(3, result.Enumerate(context).Count());
+            Assert.Equal(3, await result.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
 
@@ -209,6 +212,38 @@ namespace Fluid.Tests
             var result = await MiscFilters.EscapeOnce(input, arguments, context);
 
             Assert.Equal("1 &lt; 2 &amp; 3", result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task EscapeReturnsNonEncodableStringValue()
+        {
+            // The escape filter should return a StringValue with Encode = false
+            // to prevent double-encoding when rendered with an encoder
+            var input = new StringValue("<div>test</div>");
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = await MiscFilters.Escape(input, arguments, context);
+
+            Assert.IsType<StringValue>(result);
+            var stringValue = (StringValue)result;
+            Assert.False(stringValue.Encode, "Escape filter should return StringValue with Encode = false");
+        }
+
+        [Fact]
+        public async Task EscapeOnceReturnsNonEncodableStringValue()
+        {
+            // The escape_once filter should return a StringValue with Encode = false
+            // to prevent double-encoding when rendered with an encoder
+            var input = new StringValue("&lt;div&gt;test&lt;/div&gt;");
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = await MiscFilters.EscapeOnce(input, arguments, context);
+
+            Assert.IsType<StringValue>(result);
+            var stringValue = (StringValue)result;
+            Assert.False(stringValue.Encode, "EscapeOnce filter should return StringValue with Encode = false");
         }
 
         [Theory]
@@ -693,65 +728,11 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task JsonShouldHideMembers()
-        {
-            var inputObject = new JsonAccessStrategy();
-            var templateOptions = new TemplateOptions();
-            templateOptions.MemberAccessStrategy.Register<JsonAccessStrategy, FluidValue>((obj, name, context) =>
-            {
-                return name switch
-                {
-                    nameof(JsonAccessStrategy.Visible) => new StringValue(obj.Visible),
-                    nameof(JsonAccessStrategy.Null) => new StringValue(obj.Null),
-                    _ => NilValue.Instance
-                };
-            });
-
-            var input = FluidValue.Create(inputObject, templateOptions);
-            var expected = "{\"Visible\":\"Visible\",\"Null\":\"\"}";
-
-            var arguments = new FilterArguments();
-            var context = new TemplateContext(templateOptions);
-
-            var result = await MiscFilters.Json(input, arguments, context);
-
-            Assert.Equal(expected, result.ToStringValue());
-        }
-
-        [Fact]
-        public async Task JsonShouldHandleCircularReferences()
-        {
-            var model = TestObjects.RecursiveReferenceObject;
-            var input = FluidValue.Create(model, TemplateOptions.Default);
-            var to = new TemplateOptions();
-            to.MemberAccessStrategy.Register<TestObjects.Node>();
-
-            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
-
-            Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}}", result.ToStringValue());
-        }
-
-        [Fact]
-        public async Task JsonShouldHandleCircularReferencesOnSiblingPropertiesSeparately()
-        {
-            var model = TestObjects.SiblingPropertiesHaveSameReferenceObject;
-            var input = FluidValue.Create(model, TemplateOptions.Default);
-            var to = new TemplateOptions();
-            to.MemberAccessStrategy.Register<TestObjects.Node>();
-            to.MemberAccessStrategy.Register<TestObjects.MultipleNode>();
-
-            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
-
-            Assert.Equal("{\"Name\":\"MultipleNode1\",\"Node1\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}},\"Node2\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}}}", result.ToStringValue());
-        }
-
-        [Fact]
         public async Task JsonShouldIgnoreStaticMembers()
         {
             var model = new JsonWithStaticMember { Id = 100 };
             var input = FluidValue.Create(model, TemplateOptions.Default);
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<JsonWithStaticMember>();
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             Assert.Equal("{\"Id\":100}", result.ToStringValue());
@@ -767,10 +748,9 @@ namespace Fluid.Tests
                 Bool = true
             };
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register(model.GetType());
             var input = FluidValue.Create(model, options);
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
-            Assert.Equal("{\"Id\":1,\"WithoutIndexable\":null,\"Bool\":true}", result.ToStringValue());
+            Assert.Equal("{\"Id\":1,\"WithoutIndexable\":{\"Type\":6,\"Value\":{}},\"Bool\":true}", result.ToStringValue());
         }
 
         [Fact]
@@ -814,13 +794,48 @@ namespace Fluid.Tests
         {
             var options = new TemplateOptions
             {
-                JavaScriptEncoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                JsonSerializerOptions = new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                }
             };
 
             var input = FluidValue.Create("你好，这是一条短信", options);
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             var expected = @"""你好，这是一条短信""";
             Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task JsonShouldSerializeEnumsAsStrings()
+        {
+            var options = new TemplateOptions();
+
+            var input = FluidValue.Create(Domain.Colors.Red, options);
+            var context = new TemplateContext(options);
+            var result = await MiscFilters.Json(input, new FilterArguments(), context);
+
+            // Enum is converted to StringValue by default, so it's serialized as a string
+            Assert.Equal("\"Red\"", result.ToStringValue());
+        }
+        
+        [Fact]
+        public async Task JsonShouldSerializeEnumsInObjectsAsStrings()
+        {
+            var options = new TemplateOptions
+            {
+                JsonSerializerOptions = new JsonSerializerOptions
+                {
+                    Converters = { new JsonStringEnumConverter() }
+                }
+            };
+
+            var input = FluidValue.Create(new Person { EyesColor = Colors.Red }, options);
+            var context = new TemplateContext(options);
+            var result = await MiscFilters.Json(input, new FilterArguments(), context);
+
+            // Enum should be serialized as string ("Red")
+            Assert.Equal("{\"Firstname\":null,\"Lastname\":null,\"EyesColor\":\"Red\",\"Address\":null}", result.ToStringValue());
         }
 
         [Theory]
@@ -911,6 +926,50 @@ namespace Fluid.Tests
 
             // Assert
             Assert.Equal("c7ac4687585ab5d3d5030db5a5cfc959fdf4e608cc396f1f615db345e35adb9e", result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData(null, "Fluid", "")]
+        [InlineData("secret_key", null, "")]
+        [InlineData("", "", "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d")]
+        [InlineData("", "Fluid", "47ab4d87fabf7a7162d59c57298780904de9e245")]
+        [InlineData("secret_key", "Fluid", "1061ea276551355150b8581aa64dca829d41e357")]
+        public async Task HmacSha1(string key, string value, string expected)
+        {
+            // Arrange
+            FluidValue input = value is null
+                ? EmptyValue.Instance
+                : new StringValue(value);
+            var arguments = new FilterArguments(FluidValue.Create(key, TemplateOptions.Default));
+            var context = new TemplateContext();
+
+            // Act
+            var result = await MiscFilters.HmacSha1(input, arguments, context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData(null, "Fluid", "")]
+        [InlineData("secret_key", null, "")]
+        [InlineData("", "", "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad")]
+        [InlineData("", "Fluid", "e9f2db8bd3900c469e4b560227c5d53b48f644208a13de05bb400f7611d1a623")]
+        [InlineData("secret_key", "Fluid", "ac08ee5cdd007e1069680e93eb512049f5ff12afd0fe101de5c9b5043a047ea4")]
+        public async Task HmacSha256(string key, string value, string expected)
+        {
+            // Arrange
+            FluidValue input = value is null
+                ? EmptyValue.Instance
+                : new StringValue(value);
+            var arguments = new FilterArguments(FluidValue.Create(key, TemplateOptions.Default));
+            var context = new TemplateContext();
+
+            // Act
+            var result = await MiscFilters.HmacSha256(input, arguments, context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
         }
 
         public static class TestObjects

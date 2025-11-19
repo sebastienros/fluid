@@ -5,7 +5,7 @@ namespace Fluid.Values
 {
     public sealed class EmptyValue : FluidValue
     {
-        public static readonly EmptyValue Instance = new EmptyValue();
+        public static readonly EmptyValue Instance = new();
 
         private EmptyValue()
         {
@@ -21,6 +21,7 @@ namespace Fluid.Values
             if (other == BlankValue.Instance) return true;
             if (other == EmptyValue.Instance) return true;
             if (other == NilValue.Instance) return false;
+            if (other == UndefinedValue.Instance) return false;
 
             return false;
         }
@@ -48,11 +49,6 @@ namespace Fluid.Values
         public override bool IsNil()
         {
             return true;
-        }
-
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
         }
 
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)

@@ -1,8 +1,9 @@
+using Fluid.Utils;
 using Fluid.Values;
 using System.Buffers;
 using System.Globalization;
 using System.Net;
-using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using TimeZoneConverter;
@@ -11,7 +12,6 @@ namespace Fluid.Filters
 {
     public static class MiscFilters
     {
-
         private const char KebabCaseSeparator = '-';
 
         public static FilterCollection WithMiscFilters(this FilterCollection filters)
@@ -41,6 +41,8 @@ namespace Fluid.Filters
             filters.AddFilter("md5", MD5);
             filters.AddFilter("sha1", Sha1);
             filters.AddFilter("sha256", Sha256);
+            filters.AddFilter("hmac_sha1", HmacSha1);
+            filters.AddFilter("hmac_sha256", HmacSha256);
 
             return filters;
         }
@@ -157,7 +159,7 @@ namespace Fluid.Filters
             var member = arguments.At(0);
 
             var compacted = new List<FluidValue>();
-            foreach (var value in input.Enumerate(context))
+            await foreach (var value in input.EnumerateAsync(context))
             {
                 if (value.IsNil())
                 {
@@ -346,14 +348,14 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("escape", expected: 0, arguments);
 
-            return new StringValue(WebUtility.HtmlEncode(input.ToStringValue()));
+            return new StringValue(WebUtility.HtmlEncode(input.ToStringValue()), encode: false);
         }
 
         public static ValueTask<FluidValue> EscapeOnce(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            LiquidException.ThrowFilterArgumentsCount("escape_once", expected: 0, arguments);
+            LiquidException.ThrowFilterArgumentsCount("escape", expected: 0, arguments);
 
-            return new StringValue(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())));
+            return new StringValue(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())), encode: false);
         }
 
         public static ValueTask<FluidValue> ChangeTimeZone(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -715,140 +717,13 @@ namespace Fluid.Filters
             return new StringValue(value.ToString(format, culture));
         }
 
-        private static async ValueTask WriteJson(Utf8JsonWriter writer, FluidValue input, TemplateContext ctx, HashSet<object> stack = null)
+        public static ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            switch (input.Type)
-            {
-                case FluidValues.Array:
-                    writer.WriteStartArray();
-                    foreach (var item in input.Enumerate(ctx))
-                    {
-                        await WriteJson(writer, item, ctx);
-                    }
-                    writer.WriteEndArray();
-                    break;
-                case FluidValues.Boolean:
-                    writer.WriteBooleanValue(input.ToBooleanValue());
-                    break;
-                case FluidValues.Nil:
-                    writer.WriteNullValue();
-                    break;
-                case FluidValues.Number:
-                    writer.WriteNumberValue(input.ToNumberValue());
-                    break;
-                case FluidValues.Dictionary:
-                    if (input.ToObjectValue() is IFluidIndexable dic)
-                    {
-                        writer.WriteStartObject();
-                        foreach (var key in dic.Keys)
-                        {
-                            writer.WritePropertyName(key);
-                            if (dic.TryGetValue(key, out var value))
-                            {
-                                await WriteJson(writer, value, ctx);
-                            }
-                            else
-                            {
-                                await WriteJson(writer, NilValue.Instance, ctx);
-                            }
-                        }
-
-                        writer.WriteEndObject();
-                    }
-                    else
-                    {
-                        writer.WriteNullValue();
-                    }
-                    break;
-                case FluidValues.Object:
-                    var obj = input.ToObjectValue();
-                    if (obj != null)
-                    {
-                        writer.WriteStartObject();
-                        var type = obj.GetType();
-                        var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
-                        var strategy = ctx.Options.MemberAccessStrategy;
-
-                        var conv = strategy.MemberNameStrategy;
-                        foreach (var property in properties)
-                        {
-                            var name = conv(property);
-#pragma warning disable CA1859 // It's suggesting a wrong conversion (StringValue)
-                            var fluidValue = await input.GetValueAsync(name, ctx);
-#pragma warning restore CA1859
-                            if (fluidValue.IsNil())
-                            {
-                                continue;
-                            }
-
-                            stack ??= new HashSet<object>();
-                            if (fluidValue is ObjectValue)
-                            {
-                                var value = fluidValue.ToObjectValue();
-                                if (stack.Contains(value))
-                                {
-                                    fluidValue = StringValue.Create("Circular reference has been detected.");
-                                }
-                            }
-
-                            writer.WritePropertyName(name);
-                            stack.Add(obj);
-                            await WriteJson(writer, fluidValue, ctx, stack);
-                            stack.Remove(obj);
-                        }
-
-                        writer.WriteEndObject();
-                    }
-                    else
-                    {
-                        writer.WriteNullValue();
-                    }
-                    break;
-                case FluidValues.DateTime:
-                    var objValue = input.ToObjectValue();
-                    if (objValue is DateTime dateTime)
-                    {
-                        writer.WriteStringValue(dateTime);
-                    }
-                    else if (objValue is DateTimeOffset dateTimeOffset)
-                    {
-                        writer.WriteStringValue(dateTimeOffset);
-                    }
-                    else
-                    {
-                        writer.WriteStringValue(Convert.ToDateTime(objValue));
-                    }
-                    break;
-                case FluidValues.String:
-                    writer.WriteStringValue(JsonEncodedText.Encode(input.ToStringValue(), ctx.Options.JavaScriptEncoder));
-                    break;
-                case FluidValues.Blank:
-                    writer.WriteStringValue(string.Empty);
-                    break;
-                case FluidValues.Empty:
-                    writer.WriteStringValue(string.Empty);
-                    break;
-                default:
-                    throw new NotSupportedException("Unrecognized FluidValue");
-            }
-        }
-
-        public static async ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
-        {
-            LiquidException.ThrowFilterArgumentsCount("json", min: 0, max: 2, arguments);
-
-            using var ms = new MemoryStream();
-            await using (var writer = new Utf8JsonWriter(ms, new JsonWriterOptions
-            {
-                Indented = arguments.At(0).ToBooleanValue()
-            }))
-            {
-                await WriteJson(writer, input, context);
-            }
-
-            ms.Seek(0, SeekOrigin.Begin);
-            using var sr = new StreamReader(ms, Encoding.UTF8);
-            var json = await sr.ReadToEndAsync();
+            // Wrap the input in a SerializableFluidValue to provide the context to the JSON converter
+            var serializableValue = new SerializableFluidValue(input, context);
+            
+            // Cast to FluidValue to ensure the converter from the base class is used
+            var json = JsonSerializer.Serialize<FluidValue>(serializableValue, context.JsonSerializerOptions);
             return new StringValue(json);
         }
 
@@ -976,6 +851,47 @@ namespace Fluid.Filters
             using var provider = System.Security.Cryptography.SHA256.Create();
             var builder = new StringBuilder(64);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.SHA256.HashData' method over 'ComputeHash'
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+#pragma warning restore CA1850
+            {
+                builder.Append(b.ToString("x2"));
+            }
+
+            return new StringValue(builder.ToString());
+#endif
+        }
+
+        public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("HMACSHA1", input, arguments);
+
+        public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("HMACSHA256", input, arguments);
+
+        private static ValueTask<FluidValue> ComputeHmac(string algorithm, FluidValue input, FilterArguments arguments)
+        {
+            var key = arguments.At(0);
+            if (key.IsNil() || input.IsNil())
+            {
+                return StringValue.Empty;
+            }
+
+            var value = input.ToStringValue();
+            var keyBytes = Encoding.UTF8.GetBytes(key.ToStringValue());
+
+#if NET6_0_OR_GREATER
+#pragma warning disable CA5350
+            var hash = algorithm switch
+            {
+                "HMACSHA1" => HMACSHA1.HashData(keyBytes, Encoding.UTF8.GetBytes(value)),
+                "HMACSHA256" => HMACSHA256.HashData(keyBytes, Encoding.UTF8.GetBytes(value)),
+                _ => throw new ArgumentException("Unsupported HMAC algorithm", nameof(algorithm))
+            };
+#pragma warning restore CA5350
+
+            return new StringValue(HexUtilities.ToHexLower(hash));
+#else
+            using var provider = HMAC.Create(algorithm); 
+            provider.Key = keyBytes;
+            var builder = new StringBuilder(64);
+#pragma warning disable CA1850
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
             {

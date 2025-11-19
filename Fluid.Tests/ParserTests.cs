@@ -168,21 +168,21 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldParseEmptyRawTags()
         {
-          var statements = Parse(@"{% raw %}{% endraw %}");
+            var statements = Parse(@"{% raw %}{% endraw %}");
 
-          Assert.Single(statements);
-          Assert.IsType<RawStatement>(statements.ElementAt(0));
-          Assert.Equal("", (statements.ElementAt(0) as RawStatement).Text.ToString());
+            Assert.Single(statements);
+            Assert.IsType<RawStatement>(statements.ElementAt(0));
+            Assert.Equal("", (statements.ElementAt(0) as RawStatement).Text.ToString());
         }
 
         [Fact]
         public void ShouldParseEmptyCommentTags()
         {
-          var statements = Parse(@"{% comment %}{% endcomment %}");
+            var statements = Parse(@"{% comment %}{% endcomment %}");
 
-          Assert.Single(statements);
-          Assert.IsType<CommentStatement>(statements.ElementAt(0));
-          Assert.Equal("", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+            Assert.Single(statements);
+            Assert.IsType<CommentStatement>(statements.ElementAt(0));
+            Assert.Equal("", (statements.ElementAt(0) as CommentStatement).Text.ToString());
         }
 
         [Fact]
@@ -203,6 +203,45 @@ namespace Fluid.Tests
             Assert.Single(statements);
             Assert.IsType<CommentStatement>(statements.ElementAt(0));
             Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+        }
+
+        [Fact]
+        public void ShouldParseInlineComment()
+        {
+            var statements = Parse(@"{% # this is an inline comment %}");
+
+            Assert.Single(statements);
+            Assert.IsType<CommentStatement>(statements.ElementAt(0));
+            Assert.Equal(" this is an inline comment", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+        }
+
+        [Fact]
+        public void ShouldParseEmptyInlineComment()
+        {
+            var statements = Parse(@"{% #%}");
+
+            Assert.Single(statements);
+            Assert.IsType<CommentStatement>(statements.ElementAt(0));
+            Assert.Equal("", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+        }
+
+        [Fact]
+        public void ShouldParseInlineCommentWithoutLiquidTags()
+        {
+            var statements = Parse(@"{% # this is a simple comment %}");
+
+            Assert.Single(statements);
+            Assert.IsType<CommentStatement>(statements.ElementAt(0));
+        }
+
+        [Fact]
+        public void ShouldParseInlineCommentWithWhitespaceTrim()
+        {
+            var statements = Parse(@"{%- # this is a trimmed comment -%}");
+
+            Assert.Single(statements);
+            Assert.IsType<CommentStatement>(statements.ElementAt(0));
+            Assert.Equal(" this is a trimmed comment", (statements.ElementAt(0) as CommentStatement).Text.ToString());
         }
 
         [Fact]
@@ -368,6 +407,31 @@ def", "at (")]
             Assert.Null(errors);
         }
 
+        [Fact]
+        public void ShouldAllowCommentBetweenCaseAndWhen()
+        {
+            var result = _parser.TryParse(@"
+                {%- capture name -%}John{%- endcapture -%}
+
+                {%- case name -%}
+                {%- comment -%} Very important explanation {%- endcomment -%}
+                  {%- when 'John' -%}
+                    Name is John
+                  {%- when 'Jenny' -%}
+                    Name is Jenny
+                {%- endcase -%}
+                ", out var template, out var errors);
+
+            var context = new TemplateContext();
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Null(errors);
+
+            var output = template.Render(context);
+            Assert.Equal("Name is John", output);
+        }
+
         [Theory]
         [InlineData("{{ 20 | divided_by: 7.0 | round: 2 }}", "2.86")]
         [InlineData("{{ 20 | divided_by: 7 | round: 2 }}", "2")]
@@ -517,6 +581,51 @@ def", "at (")]
         }
 
         [Theory]
+        [InlineData("{{ 0 | times: 1 }}", "0")]
+        [InlineData("{{ 0.0 | times: 1 }}", "0.0")]
+        [InlineData("{{ 0.1 | times: 1 }}", "0.1")]
+        [InlineData("{{ 0.01 | times: 1 }}", "0.01")]
+        [InlineData("{{ 0.0123 | times: 1 }}", "0.0123")]
+        [InlineData("{{ 0 | times: 1.0 }}", "0.0")]
+        [InlineData("{{ 1 | times: 1 }}", "1")]
+        [InlineData("{{ 1 | times: 1.1 }}", "1.1")]
+        [InlineData("{{ 1 | times: 1.123 }}", "1.123")]
+        [InlineData("{{ 1 | times: 1.1234567890 }}", "1.123456789")]
+        [InlineData("{{ 1 | times: 1.1000 }}", "1.1")]
+        [InlineData("{{ 1.1000 | times: 1 }}", "1.1")]
+        [InlineData("{{ 1 | times: 1. }}", "1")]
+        public void ShouldPreservePrecision(string source, string expected)
+        {
+            var result = _parser.TryParse(source, out var template, out var errors);
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Null(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal(expected, rendered);
+        }
+
+        [Theory]
+        [InlineData("{{ 0. | times: 1 }}", "0")]
+        [InlineData("{{ 0.0 | times: 1.0 }}", "0.0")]
+        [InlineData("{{ 0.00 | times: 1 }}", "0.0")]
+        [InlineData("{{ 0. | times: 1.0 }}", "0.0")]
+        public void DotsAreParsedAsIntegralValues(string source, string expected)
+        {
+            var result = _parser.TryParse(source, out var template, out var errors);
+
+            Assert.True(result);
+            Assert.NotNull(template);
+            Assert.Null(errors);
+
+            var rendered = template.Render();
+
+            Assert.Equal(expected, rendered);
+        }
+
+        [Theory]
         [InlineData("{% assign my_string = 'abcd' %}{{ my_string.size }}", "4")]
         public void SizeAppliedToStrings(string source, string expected)
         {
@@ -652,7 +761,7 @@ true
         {
             return CheckAsync(source, expected, t => t.SetValue("e", "").SetValue("f", "hello"));
         }
-        
+
         [Theory]
         [InlineData("zero == empty", "false")]
         [InlineData("empty == zero", "false")]
@@ -683,7 +792,8 @@ true
             var model = new { a = " ", b = "" };
             var context = new TemplateContext(model);
             var template = _parser.Parse(source);
-            Assert.Equal("true", template.Render(context));
+            // Binary expressions return the left operand when output
+            Assert.Equal(" ", template.Render(context));
         }
 
         [Fact]
@@ -700,7 +810,7 @@ true
             var rendered = template.Render();
 
             Assert.Equal("1<br />2<br />3<br />1<br />2<br />3<br />1<br />2<br />3<br />", rendered);
-        }        
+        }
 
         [Fact]
         public void ShouldAssignWithLogicalExpression()
@@ -987,26 +1097,113 @@ class  {
     | upcase 
 %}";
 
-            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
             var rendered = template.Render();
             Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
         }
 
         [Fact]
-        public void ShouldParseLiquidTagWithBlocks()
+        public void LiquidTagShouldBreakOnCompletion()
         {
-            var source = @"
-{% liquid assign cool = true
-   if cool
-     echo 'welcome to the liquid tag' | upcase
-   endif 
-%}
-";
+            var source = """
+                {%- for i in (1..5) %}
+                    {%- liquid 
+                        if i > 3
+                            continue
+                        endif
+                        echo i
+                    %}
+                {%- endfor %}
+                """;
 
-            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
             var rendered = template.Render();
-            Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
+            Assert.DoesNotContain("45", rendered);
         }
+
+        [Fact]
+        public void LiquidTagShouldSupportHashComments()
+        {
+            var source = @"{% liquid
+  assign name = 'John'
+  # very important information
+  assign name = 'Jenna'
+  echo name
+%}";
+
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Equal("Jenna", rendered.Trim());
+        }
+
+        [Fact]
+        public void LiquidTagShouldSupportMultipleHashComments()
+        {
+            var source = @"{% liquid
+  # required args:
+  assign product = 'MyProduct'
+
+  # optional args:
+  assign should_show_border = true
+  assign should_show_cursor = true
+  
+  echo product
+%}";
+
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Equal("MyProduct", rendered.Trim());
+        }
+
+        [Fact]
+        public void LiquidTagShouldSupportEmptyHashComment()
+        {
+            var source = @"{% liquid
+  #
+  assign name = 'Charlie'
+  echo name
+%}";
+
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Equal("Charlie", rendered.Trim());
+        }
+
+        [Fact]
+        public void LiquidTagShouldSupportHashCommentAtBeginning()
+        {
+            var source = @"{% liquid
+  # This is a comment at the beginning
+  assign name = 'Alice'
+  echo name
+%}";
+
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Equal("Alice", rendered.Trim());
+        }
+
+        [Fact]
+        public void LiquidTagShouldSupportHashCommentAtEnd()
+        {
+            var source = @"{% liquid
+  assign name = 'Bob'
+  echo name
+  # This is a comment at the end
+%}";
+
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+            var rendered = template.Render();
+            Assert.Equal("Bob", rendered.Trim());
+        }
+
 
         [Fact]
         public void ShouldParseFunctionCall()
@@ -1043,7 +1240,7 @@ class  {
 #if COMPILED
         var parser = new FluidParser(options).Compile();
 #else
-        var parser = new FluidParser(options);
+            var parser = new FluidParser(options);
 #endif
 
             Assert.False(parser.TryParse("{{ a() }}", out var template, out var errors));
@@ -1091,13 +1288,59 @@ class  {
                 {% liquid
                     for c in (1..3)
                         echo c
-                    endforSPACE%}SPACE{{chars}}SPACE
-                """.Replace("SPACE", spaces);
+                    endfor[SPACE]%}[SPACE]{{chars}}[SPACE]
+                """.Replace("[SPACE]", spaces);
 
-            var _parser = new FluidParser();
-            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
             var rendered = template.Render();
             Assert.Contains("123", rendered);
+        }
+        [Fact]
+        public async Task Has_WithEmptyArrays_ReturnsExpectedOutput()
+        {
+            // Arrange
+            var template = """
+                {%- assign has_product = products | has: 'title.content', 'Not found' -%}
+                {%- unless has_product -%}
+                  Product not found.
+                {%- endunless -%}
+                """;
+
+            var expectedOutput = "Product not found.";
+            var context = new TemplateContext();
+            context.SetValue("products", Array.Empty<object>()); // Empty array
+
+            // Act
+            var parser = new FluidParser();
+            parser.TryParse(template, out var fluidTemplate, out var errors);
+            var result = await fluidTemplate.RenderAsync(context);
+
+            // Assert
+            Assert.Equal(expectedOutput, result.Trim());
+        }
+
+        [Fact]
+        public async Task FindIndex_WithEmptyArrays_ReturnsExpectedOutput()
+        {
+            // Arrange
+            var template = """
+                {%- assign index = products | find_index: 'title.content', 'Not found' -%}
+                {%- unless index -%}
+                  Index not found.
+                {%- endunless -%}
+                """;
+            var expectedOutput = "Index not found.";
+            var context = new TemplateContext();
+            context.SetValue("products", Array.Empty<object>()); // Empty array
+
+            // Act
+            var parser = new FluidParser();
+            parser.TryParse(template, out var fluidTemplate, out var errors);
+            var result = await fluidTemplate.RenderAsync(context);
+
+            // Assert
+            Assert.Equal(expectedOutput, result.Trim());
         }
     }
 }

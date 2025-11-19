@@ -1,13 +1,15 @@
+using Fluid.Ast;
+using Fluid.Parser;
+using Fluid.Tests.Mocks;
+using Fluid.Values;
+using Microsoft.Extensions.FileProviders;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
+using System.Threading;
 using System.Threading.Tasks;
-using Fluid.Ast;
-using Fluid.Parser;
-using Fluid.Tests.Mocks;
-using Fluid.Values;
 using Xunit;
 
 namespace Fluid.Tests
@@ -184,7 +186,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% include 'product' with products[0] %}", out var template);
@@ -199,7 +201,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product_alias.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% include 'product_alias' with products[0] as product %}", out var template);
@@ -214,7 +216,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product_alias.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% render 'product_alias' with products[0] as product %}", out var template);
@@ -229,7 +231,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("product", new { title = "Draft 151cm" });
             _parser.TryParse("{% include 'product' %}", out var template);
@@ -244,7 +246,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("product", new { title = "Draft 151cm" });
             _parser.TryParse("{% render 'product' %}", out var template);
@@ -259,7 +261,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("incr.liquid", "{% increment %}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             _parser.TryParse("{% increment %}{% increment %}{% render 'incr' %}", out var template, out var error);
             Assert.Null(error);
@@ -272,7 +274,7 @@ shape: ''";
         public void RenderTagCantUseDynamicName()
         {
             var fileProvider = new MockFileProvider();
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             var result = _parser.TryParse("{% assign name = 'snippet' %}{% render name %}", out var template, out var error);
             Assert.False(result);
@@ -285,7 +287,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} rindex:{{ forloop.rindex }} rindex0:{{ forloop.rindex0 }} " );
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% include 'product' for products %}", out var template);
@@ -301,7 +303,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} rindex:{{ forloop.rindex }} rindex0:{{ forloop.rindex0 }} " );
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% render 'product' for products %}", out var template);
@@ -317,7 +319,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("snippet.liquid", "{{ outer_variable }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("product", new { title = "Draft 151cm" });
             _parser.TryParse("{% assign outer_variable = 'should not be visible' %}{% render 'snippet' %}", out var template);
@@ -332,7 +334,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("snippet.liquid", "{{ outer_variable }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             context.SetValue("product", new { title = "Draft 151cm" });
             _parser.TryParse("{% assign outer_variable = 'should be visible' %}{% include 'snippet' %}", out var template);
@@ -347,7 +349,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("snippet.liquid", "{{ global_variable }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             options.Scope.SetValue("global_variable", new StringValue("global value"));
             context.SetValue("product", new { title = "Draft 151cm" });
@@ -369,7 +371,7 @@ shape: ''";
                 fileProvider.Add($"{t[0]}.liquid", t);
             }
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             _parser.TryParse("{%- include file -%}", out var template);
 
             var stopped = false;
@@ -401,7 +403,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("a.liquid", "AAAA");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
             IFluidTemplate template = null;
 
@@ -428,6 +430,443 @@ shape: ''";
 
             // The previously cached template should be used
             Assert.Equal("AAAA", result);
+        }
+
+        [Fact]
+        public void IncludeTag_Caches_ParsedTemplate()
+        {
+            var templates = new Dictionary<string, string>
+            {
+                ["a.liquid"] = "content1",
+                ["folder/a.liquid"] = "content2",
+                ["folder/b.liquid"] = "content3",
+                ["folder/c.liquid"] = "content4",
+                ["folder/other/d.liquid"] = "content5",
+                ["b.liquid"] = "content6",
+                ["c.liquid"] = "content7",
+                ["d.liquid"] = "content8",
+            };
+
+            var tempPath = Path.Combine(Path.GetTempPath(), "FluidTests", Path.GetRandomFileName());
+            Directory.CreateDirectory(tempPath);
+
+            var fileProvider = new PhysicalFileProvider(tempPath);
+
+            WriteFilesContent(templates, tempPath);
+
+            var fileInfos = templates.ToDictionary(t => t.Key, t => fileProvider.GetFileInfo(t.Key));
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            _parser.TryParse("{%- include file -%}", out var template);
+
+            // The first time a template is included it will be read from the file provider
+            foreach (var t in templates)
+            {
+                var f = fileProvider.GetFileInfo(t.Key);
+
+                var context = new TemplateContext(options);
+                context.SetValue("file", t.Key);
+                var result = template.Render(context);
+
+                Assert.Equal(t.Value, result);
+
+                Assert.True(options.TemplateCache.TryGetTemplate(t.Key, f.LastModified, out var cachedTemplate));
+            }
+
+            // The next time a template is included it should not be accessed from the file provider but cached instead
+            foreach (var t in templates)
+            {
+                var f = fileProvider.GetFileInfo(t.Key);
+
+                options.TemplateCache.SetTemplate(t.Key, f.LastModified, new MockFluidTemplate(t.Key));
+
+                var context = new TemplateContext(options);
+                context.SetValue("file", t.Key);
+                var result = template.Render(context);
+
+                Assert.Equal(t.Key, result);
+            }
+
+            var now = DateTimeOffset.UtcNow;
+
+            Thread.Sleep(500);
+
+            // Update the files so they are accessed again
+            WriteFilesContent(templates, tempPath);
+
+            Thread.Sleep(1000); // Wait for the file provider to update the last modified date
+
+            // Assert that all files have their last modified date updated
+            foreach (var t in templates)
+            {
+                var f = fileProvider.GetFileInfo(t.Key);
+
+                Assert.True(f.Exists);
+                Assert.True(f.LastModified > now, $"File {t.Key} was not updated.");
+            }
+
+            // If the attributes have changed then the template should be reloaded
+            foreach (var t in templates)
+            {
+                var f = fileProvider.GetFileInfo(t.Key);
+
+                var context = new TemplateContext(options);
+                context.SetValue("file", t.Key);
+                var result = template.Render(context);
+
+                Assert.Equal(t.Value, result);
+            }
+
+            static void WriteFilesContent(Dictionary<string, string> templates, string tempPath)
+            {
+                foreach (var t in templates)
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(tempPath, t.Key)));
+                    File.WriteAllText(Path.Combine(tempPath, t.Key), t.Value);
+                }
+            }
+        }
+
+        [Fact]
+        public void IncludeTag_Caches_DifferentFolders()
+        {
+            var tempPath = Path.Combine(Path.GetTempPath(), "FluidTests", Path.GetRandomFileName());
+            Directory.CreateDirectory(tempPath);
+
+            Directory.CreateDirectory(tempPath + "/this-folder");
+            Directory.CreateDirectory(tempPath + "/this-folder/that-folder");
+
+            var fileProvider = new PhysicalFileProvider(tempPath);
+
+            File.WriteAllText(tempPath + "/this-folder/this_file.liquid", "content1");
+            File.WriteAllText(tempPath + "/this-folder/that-folder/this_file.liquid", "content2");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            _parser.TryParse("{%- include file -%}", out var template);
+
+            var context = new TemplateContext(options);
+            context.SetValue("file", "this-folder/this_file.liquid");
+
+            Assert.Equal("content1", template.Render(context));
+
+            context.SetValue("file", "this-folder/that-folder/this_file.liquid");
+
+            Assert.Equal("content2", template.Render(context));
+
+            try
+            {
+                Directory.Delete(tempPath, true);
+            }
+            catch
+            {
+                // Ignore any exceptions
+            }
+        }
+
+        [Fact]
+        public void IncludeTag_Caches_HandleFileSystemCasing()
+        {
+            // We can't rely on the OS to detect if the FS is case sensitive or not. c.f. MacOS
+            string file = Path.GetTempPath() + Guid.NewGuid().ToString().ToLower();
+            File.CreateText(file).Close();
+            bool isCaseInsensitiveFilesystem = File.Exists(file.ToUpper());
+            File.Delete(file);
+
+            var tempPath = Path.Combine(Path.GetTempPath(), "FluidTests", Path.GetRandomFileName());
+            Directory.CreateDirectory(tempPath);
+
+            var fileProvider = new PhysicalFileProvider(tempPath);
+
+            File.WriteAllText(tempPath + "/this_file.liquid", "content1");
+            File.WriteAllText(tempPath + "/This_file.liquid", "content2");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            _parser.TryParse("{%- include file -%}", out var template);
+
+            var context = new TemplateContext(options);
+
+            if (isCaseInsensitiveFilesystem)
+            {
+                // Windows is case insensitive, there should be only one file
+                context.SetValue("file", "this_file.liquid");
+                Assert.Equal("content2", template.Render(context));
+                context.SetValue("file", "THIS_FILE.liquid");
+                Assert.Equal("content2", template.Render(context));
+            }
+            else
+            {
+                // Linux is case sensitive, this should be a new cache entry
+                context.SetValue("file", "this_file.liquid");
+                Assert.Equal("content1", template.Render(context));
+                context.SetValue("file", "This_file.liquid");
+                Assert.Equal("content2", template.Render(context));
+            }
+
+            try
+                {
+                    Directory.Delete(tempPath, true);
+                }
+                catch
+                {
+                    // Ignore any exceptions
+                }
+        }
+
+        [Fact]
+        public void RenderTag_With_And_NamedArguments()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("icon.liquid", "Icon: {{ icon }}, Class: {{ class }}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% render 'icon' with 'rating-star', class: 'rating__star' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Icon: rating-star, Class: rating__star", result);
+        }
+
+        [Fact]
+        public void RenderTag_With_As_And_NamedArguments()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("product.liquid", "Product: {{ p.title }}, Price: {{ price }}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
+            context.SetValue("my_product", new { title = "Draft 151cm" });
+            _parser.TryParse("{% render 'product' with my_product as p, price: '$99' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Product: Draft 151cm, Price: $99", result);
+        }
+
+        [Fact]
+        public void RenderTag_With_MultipleNamedArguments()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("button.liquid", "Text: {{ button }}, Size: {{ size }}, Color: {{ color }}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% render 'button' with 'Click Me', size: 'large', color: 'blue' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Text: Click Me, Size: large, Color: blue", result);
+        }
+
+        [Fact]
+        public async Task RenderTag_For_And_NamedArguments()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("product.liquid", "Product: {{ product.title }}, Tag: {{ tag }} ");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
+            context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
+            
+            var parseResult = _parser.TryParse("{% render 'product' for products, tag: 'sale' %}", out var template, out var error);
+            Assert.True(parseResult, $"Parse failed: {error}");
+            
+            // Check the parsed statement
+            var statements = (template as Fluid.Parser.FluidTemplate).Statements;
+            var renderStmt = statements.FirstOrDefault() as RenderStatement;
+            Assert.NotNull(renderStmt);
+            Assert.NotNull(renderStmt.For);
+            Assert.Single(renderStmt.AssignStatements);
+            Assert.Equal("tag", renderStmt.AssignStatements[0].Identifier);
+            
+            // Check that the For expression evaluates correctly
+            Assert.IsType<MemberExpression>(renderStmt.For);
+            var forValue = await renderStmt.For.EvaluateAsync(context);
+            var items = await forValue.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal(2, items.Count);  // Should have 2 items
+            
+            // Also check that For is really the "products" variable
+            var memberExpr = renderStmt.For as MemberExpression;
+            Assert.Single(memberExpr.Segments);
+            Assert.IsType<IdentifierSegment>(memberExpr.Segments[0]);
+            Assert.Equal("products", ((IdentifierSegment)memberExpr.Segments[0]).Identifier);
+            
+            var result = template.Render(context);
+
+            Assert.Equal("Product: Draft 151cm, Tag: sale Product: Element 155cm, Tag: sale ", result);
+        }
+
+        [Fact]
+        public void RenderTag_For_As_And_NamedArguments()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("item.liquid", "Item: {{ i.name }}, Status: {{ status }} ");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
+            context.SetValue("items", new[] { new { name = "First" }, new { name = "Second" } });
+            _parser.TryParse("{% render 'item' for items as i, status: 'active' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Item: First, Status: active Item: Second, Status: active ", result);
+        }
+
+        [Fact]
+        public void RenderTag_NamedArguments_DoNotLeakToParentScope()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("snippet.liquid", "{{ class }}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% render 'snippet', class: 'test' %}{{ class }}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("test", result);
+        }
+
+        [Fact]
+        public void IncludeTag_CustomExtension_Html()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template.html", "<div>{{ content }}</div>");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".html" };
+            var context = new TemplateContext(options);
+            context.SetValue("content", "Hello World");
+            _parser.TryParse("{% include 'template' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("<div>Hello World</div>", result);
+        }
+
+        [Fact]
+        public void RenderTag_CustomExtension_Html()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template.html", "<div>{{ content }}</div>");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".html" };
+            var context = new TemplateContext(options);
+            context.SetValue("content", "Hello World");
+            _parser.TryParse("{% render 'template' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("<div>Hello World</div>", result);
+        }
+
+        [Fact]
+        public void IncludeTag_CustomExtension_Css()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("styles.css", ".class { color: {{ color }}; }");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".css" };
+            var context = new TemplateContext(options);
+            context.SetValue("color", "red");
+            _parser.TryParse("{% include 'styles' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal(".class { color: red; }", result);
+        }
+
+        [Fact]
+        public void IncludeTag_ExplicitExtension_TakesPrecedence()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template.html", "HTML content");
+            fileProvider.Add("template.liquid", "Liquid content");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".liquid" };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% include 'template.html' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("HTML content", result);
+        }
+
+        [Fact]
+        public void RenderTag_ExplicitExtension_TakesPrecedence()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template.html", "HTML content");
+            fileProvider.Add("template.liquid", "Liquid content");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".liquid" };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% render 'template.html' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("HTML content", result);
+        }
+
+        [Fact]
+        public void IncludeTag_NoExtension_WhenDefaultIsNull()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template", "No extension content");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = null };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% include 'template' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("No extension content", result);
+        }
+
+        [Fact]
+        public void RenderTag_NoExtension_WhenDefaultIsNull()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template", "No extension content");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = null };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% render 'template' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("No extension content", result);
+        }
+
+        [Fact]
+        public void IncludeTag_NoExtension_WhenDefaultIsEmpty()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template", "No extension content");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = "" };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% include 'template' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("No extension content", result);
+        }
+
+        [Fact]
+        public void IncludeTag_DefaultExtension_BackwardCompatibility()
+        {
+            // Test that default behavior (using .liquid) still works
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template.liquid", "Default behavior");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% include 'template' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Default behavior", result);
+        }
+
+        [Fact]
+        public void RenderTag_DefaultExtension_BackwardCompatibility()
+        {
+            // Test that default behavior (using .liquid) still works
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("template.liquid", "Default behavior");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% render 'template' %}", out var template);
+            var result = template.Render(context);
+
+            Assert.Equal("Default behavior", result);
         }
     }
 }

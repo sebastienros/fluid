@@ -16,8 +16,8 @@
 
     public enum Colors
     {
-        Blue,
-        Red,
-        Yellow
+        Blue = 0,
+        Red = 1,
+        Yellow = 2
     }
 }

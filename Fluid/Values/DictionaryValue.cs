@@ -57,18 +57,18 @@ namespace Fluid.Values
         {
             if (name == "size")
             {
-                return new ValueTask<FluidValue>(NumberValue.Create(_value.Count));
+                return NumberValue.Create(_value.Count);
             }
 
             if (!_value.TryGetValue(name, out var fluidValue))
             {
-                return new ValueTask<FluidValue>(NilValue.Instance);
+                return NilValue.Instance;
             }
 
-            return new ValueTask<FluidValue>(fluidValue);
+            return fluidValue;
         }
 
-        protected override FluidValue GetIndex(FluidValue index, TemplateContext context)
+        public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
             var name = index.ToStringValue();
 
@@ -90,11 +90,6 @@ namespace Fluid.Values
             return 0;
         }
 
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-        }
-
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             return default;
@@ -110,26 +105,28 @@ namespace Fluid.Values
             return _value;
         }
 
-        public override bool Contains(FluidValue value)
+        public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
         {
             foreach (var key in _value.Keys)
             {
-                if (_value.TryGetValue(key, out var item) && item.Equals(value.ToObjectValue()))
+                if (_value.TryGetValue(key, out var item) && item.Equals(value.ToObjectValue(context)))
                 {
-                    return true;
+                    return new ValueTask<bool>(true);
                 }
             }
 
-            return false;
+            return new ValueTask<bool>(false);
         }
 
-        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
             foreach (var key in _value.Keys)
             {
                 _value.TryGetValue(key, out var value);
                 yield return new ArrayValue([new StringValue(key), value]);
             }
+
+            await Task.CompletedTask;
         }
 
         public override bool Equals(object obj)
@@ -137,7 +134,7 @@ namespace Fluid.Values
             // The is operator will return false if null
             if (obj is DictionaryValue otherValue)
             {
-                return _value.Equals(otherValue._value);
+                return Equals(otherValue);
             }
 
             return false;
@@ -145,7 +142,15 @@ namespace Fluid.Values
 
         public override int GetHashCode()
         {
-            return _value.GetHashCode();
+            var hc = new HashCode();
+            foreach (var key in _value.Keys.OrderBy(k => k))
+            {
+                hc.Add(key);
+                if (_value.TryGetValue(key, out var v))
+                    hc.Add(v);
+            }
+
+            return hc.ToHashCode();
         }
     }
 }

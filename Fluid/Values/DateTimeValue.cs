@@ -13,6 +13,45 @@ namespace Fluid.Values
             _value = value;
         }
 
+        public DateTimeValue(DateTime value)
+        {
+            // Handle edge cases where DateTime cannot be safely converted to DateTimeOffset
+            // with local timezone offset due to overflow (e.g., DateTime.MinValue with positive offset)
+            
+            // Check if the value is within one day of the boundaries where overflow might occur
+            if (value <= DateTime.MinValue.AddDays(1))
+            {
+                // Value is close to MinValue - attempt conversion with try-catch
+                try
+                {
+                    _value = value;
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    // Offset caused underflow - use minimum boundary
+                    _value = DateTimeOffset.MinValue;
+                }
+            }
+            else if (value >= DateTime.MaxValue.AddDays(-1))
+            {
+                // Value is close to MaxValue - attempt conversion with try-catch
+                try
+                {
+                    _value = value;
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    // Offset caused overflow - use maximum boundary
+                    _value = DateTimeOffset.MaxValue;
+                }
+            }
+            else
+            {
+                // Normal case - direct conversion without try-catch overhead
+                _value = value;
+            }
+        }
+
         public override FluidValues Type => FluidValues.DateTime;
 
         public override bool Equals(FluidValue other)
@@ -43,13 +82,6 @@ namespace Fluid.Values
         public override string ToStringValue()
         {
             return _value.ToString("u", CultureInfo.InvariantCulture);
-        }
-
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-            writer.Write(_value.ToString("u", cultureInfo));
         }
 
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)

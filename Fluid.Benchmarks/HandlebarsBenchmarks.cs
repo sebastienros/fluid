@@ -1,4 +1,4 @@
-﻿using HandlebarsDotNet;
+using HandlebarsDotNet;
 using System;
 
 namespace Fluid.Benchmarks
@@ -9,7 +9,28 @@ namespace Fluid.Benchmarks
 
         public HandlebarsBenchmarks()
         {
-            _handlebarsTemplate = Handlebars.Compile(ProductTemplateMustache);
+            _handlebarsTemplate = CompileTemplate(ProductTemplateMustache);
+            CheckBenchmark();
+        }
+
+        private HandlebarsTemplate<object, object> CompileTemplate(string template)
+        {
+            var handlebars = Handlebars.Create();
+
+            using (handlebars.Configure())
+            {
+                handlebars.RegisterHelper("truncate", (output, options, context, arguments) =>
+                {
+                    const string ellipsisStr = "...";
+                    var inputStr = options.Template();
+                    var length = Convert.ToInt32(arguments.Length > 0 ? arguments[0] : 50);
+                    var l = Math.Max(0, length - ellipsisStr.Length);
+                    var concat = string.Concat(inputStr.AsSpan().Slice(0, l), ellipsisStr);
+                    output.WriteSafeString(concat);
+                });
+
+                return handlebars.Compile(ProductTemplateMustache);
+            }
         }
 
         public override object Parse()
@@ -32,7 +53,7 @@ namespace Fluid.Benchmarks
 
         public override string ParseAndRender()
         {
-            var template = Handlebars.Compile(ProductTemplateMustache);
+            var template = CompileTemplate(ProductTemplateMustache);
             return template(new { products = Products });
         }
     }

@@ -253,5 +253,153 @@ namespace Fluid.Tests
             Assert.True(actual.Equals(expected));
         }
 
+        [Theory]
+        [InlineData("{{ 2 == 3 }}", "2")]
+        [InlineData("{{ 5 == 5 }}", "5")]
+        [InlineData("{{ 10 != 5 }}", "10")]
+        [InlineData("{{ 10 > 5 }}", "10")]
+        [InlineData("{{ 3 < 5 }}", "3")]
+        [InlineData("{{ 10 >= 5 }}", "10")]
+        [InlineData("{{ 3 <= 5 }}", "3")]
+        [InlineData("{{ true and false }}", "true")]
+        [InlineData("{{ true or false }}", "true")]
+        [InlineData("{{ 'abc' contains 'a' }}", "abc")]
+        [InlineData("{{ 'abc' startswith 'a' }}", "abc")]
+        [InlineData("{{ 'abc' endswith 'c' }}", "abc")]
+        public async Task BinaryExpressionsReturnLeftOperand(string source, string expected)
+        {
+            // Binary expressions should return the left operand according to Liquid standard
+            _parser.TryParse(source, out var template, out var messages);
+            var result = await template.RenderAsync();
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData("{{ 2 == 3 | plus: 10 | minus: 3 }}", "9")]
+        [InlineData("{{ 5 == 5 | plus: 3 }}", "8")]
+        [InlineData("{{ 10 > 5 | minus: 2 }}", "8")]
+        public async Task BinaryExpressionsWithFilters(string source, string expected)
+        {
+            // Binary expressions return left operand which can then be filtered
+            _parser.TryParse(source, out var template, out var messages);
+            var result = await template.RenderAsync();
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public async Task ObjectValuesShouldCompareByValueNotReference()
+        {
+            // Create a simple class that overrides Equals
+            var obj1 = new TestObject { Value = "test" };
+            var obj2 = new TestObject { Value = "test" };
+
+            _parser.TryParse("{% if obj1 == obj2 %}equal{% else %}not equal{% endif %}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("obj1", obj1);
+            context.SetValue("obj2", obj2);
+
+            var result = await template.RenderAsync(context);
+            
+            // obj1.Equals(obj2) returns true, so the comparison should return "equal"
+            Assert.Equal("equal", result);
+        }
+
+        [Fact]
+        public async Task ArrayContainsShouldCompareByValueNotReference()
+        {
+            var obj1 = new TestObject { Value = "test" };
+            var obj2 = new TestObject { Value = "test" };
+            var array = new[] { obj1 };
+
+            _parser.TryParse("{% if array contains obj2 %}found{% else %}not found{% endif %}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("array", array);
+            context.SetValue("obj2", obj2);
+
+            var result = await template.RenderAsync(context);
+            
+            // obj1.Equals(obj2) returns true, so contains should return "found"
+            Assert.Equal("found", result);
+        }
+
+        private class TestObject
+        {
+            public string Value { get; set; }
+
+            public override bool Equals(object obj)
+            {
+                return obj is TestObject other && Value == other.Value;
+            }
+
+            public override int GetHashCode()
+            {
+                return Value?.GetHashCode() ?? 0;
+            }
+        }
+
+        [Theory]
+        [InlineData("'1' <= '1'", "true")]
+        [InlineData("'1' <= '2'", "true")]
+        [InlineData("'2' <= '1'", "false")]
+        [InlineData("'a' <= 'b'", "true")]
+        [InlineData("'b' <= 'a'", "false")]
+        [InlineData("'ab' <= 'a'", "false")]
+        [InlineData("'abc' <= 'ab'", "false")]
+        [InlineData("'abc' <= 'abd'", "true")]
+        [InlineData("'ab' <= 'abd'", "true")]
+        public Task CompareString(string source, string expected)
+        {
+            return CheckAsync(source, expected);
+        }
+
+        [Fact]
+        public async Task ContainsShouldSupportAsyncWithContext()
+        {
+            // Create a custom FluidValue that uses ContainsAsync with TemplateContext
+            var customValue = new CustomAsyncContainsValue(new[] { "a", "b", "c" });
+
+            _parser.TryParse("{% if custom contains 'b' %}found{% else %}not found{% endif %}", out var template, out var messages);
+
+            var context = new TemplateContext();
+            context.SetValue("custom", customValue);
+
+            var result = await template.RenderAsync(context);
+            
+            // The custom value should use ContainsAsync and find 'b'
+            Assert.Equal("found", result);
+        }
+
+        private class CustomAsyncContainsValue : FluidValue
+        {
+            private readonly string[] _values;
+
+            public CustomAsyncContainsValue(string[] values)
+            {
+                _values = values;
+            }
+
+            public override FluidValues Type => FluidValues.Array;
+
+            public override bool Equals(FluidValue other) => false;
+
+            public override bool ToBooleanValue() => true;
+
+            public override decimal ToNumberValue() => _values.Length;
+
+            public override string ToStringValue() => string.Join(",", _values);
+
+            public override object ToObjectValue() => _values;
+
+            public override async ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
+            {
+                // Simulate async operation
+                await Task.Delay(1);
+                var searchValue = value.ToStringValue(context);
+                return Array.Exists(_values, v => v == searchValue);
+            }
+        }
+
     }
 }

@@ -13,7 +13,7 @@ namespace Fluid.Ast
 
         public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
-            return new ValueTask<FluidValue>(Value);
+            return Value;
         }
 
         protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitLiteralExpression(this);

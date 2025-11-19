@@ -71,7 +71,7 @@ namespace Fluid.Values
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static StringValue Create(string s, bool encode)
         {
-            return Create(s, encode);
+            return new StringValue(s, encode);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -94,7 +94,7 @@ namespace Fluid.Values
                 return _value == other.ToStringValue();
             }
 
-            // Delegating other types 
+            // Delegating other types
             if (other == BlankValue.Instance || other == NilValue.Instance || other == EmptyValue.Instance)
             {
                 return other.Equals(this);
@@ -103,13 +103,13 @@ namespace Fluid.Values
             return false;
         }
 
-        protected override FluidValue GetIndex(FluidValue index, TemplateContext context)
+        public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
             // Indexer on string values should return nil.
             return NilValue.Instance;
         }
 
-        protected override FluidValue GetValue(string name, TemplateContext context)
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             return name switch
             {
@@ -143,32 +143,6 @@ namespace Fluid.Values
         public override string ToStringValue()
         {
             return _value;
-        }
-
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-            if (string.IsNullOrEmpty(_value))
-            {
-                return;
-            }
-
-            if (Encode)
-            {
-                // perf: Don't use this overload
-                // encoder.Encode(writer, _value);
-
-                // Use a transient string instead of calling
-                // encoder.Encode(TextWriter) since it would
-                // call writer.Write on each char if the string
-                // has even a single char to encode
-                writer.Write(encoder.Encode(_value));
-            }
-            else
-            {
-                writer.Write(_value);
-            }
         }
 
         public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
@@ -216,14 +190,15 @@ namespace Fluid.Values
             return _value;
         }
 
-        public override bool Contains(FluidValue value)
+        public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
         {
-            return _value.Contains(value.ToStringValue());
+            return new ValueTask<bool>(_value.Contains(value.ToStringValue(context)));
         }
 
-        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
             yield return this;
+            await Task.CompletedTask;
         }
 
         public override bool Equals(object obj)

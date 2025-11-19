@@ -10,7 +10,8 @@ namespace Fluid.Ast.BinaryExpressions
 
         internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
         {
-            return BooleanValue.Create(leftValue.ToBooleanValue() && rightValue.ToBooleanValue());
+            var comparisonResult = leftValue.ToBooleanValue() && rightValue.ToBooleanValue();
+            return new BinaryExpressionFluidValue(leftValue, comparisonResult);
         }
 
         protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitAndBinaryExpression(this);

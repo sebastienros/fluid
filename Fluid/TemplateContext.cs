@@ -1,6 +1,7 @@
-using Fluid.Values;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using Fluid.Values;
 
 namespace Fluid
 {
@@ -47,16 +48,20 @@ namespace Fluid
         /// <param name="modelNamesComparer">An optional <see cref="StringComparer"/> instance used when comparing model names.</param>
         public TemplateContext(TemplateOptions options, StringComparer modelNamesComparer = null)
         {
+            modelNamesComparer ??= options.ModelNamesComparer;
+
             Options = options;
-            LocalScope = new Scope(options.Scope);
+            LocalScope = new Scope(options.Scope, forLoopScope: false, modelNamesComparer);
             RootScope = LocalScope;
             CultureInfo = options.CultureInfo;
             TimeZone = options.TimeZone;
             Captured = options.Captured;
             Assigned = options.Assigned;
+            Undefined = options.Undefined;
             Now = options.Now;
             MaxSteps = options.MaxSteps;
-            ModelNamesComparer = modelNamesComparer ?? options.ModelNamesComparer;
+            ModelNamesComparer = modelNamesComparer;
+            JsonSerializerOptions = options.JsonSerializerOptions;
         }
 
         /// <summary>
@@ -114,6 +119,11 @@ namespace Fluid
         public TimeZoneInfo TimeZone { get; set; } = TemplateOptions.Default.TimeZone;
 
         /// <summary>
+        /// Gets or sets the <see cref="JsonSerializerOptions"/> used by the <c>json</c> filter.
+        /// </summary>
+        public JsonSerializerOptions JsonSerializerOptions { get; set; } = TemplateOptions.Default.JsonSerializerOptions;
+
+        /// <summary>
         /// Increments the number of statements the current template is processing.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -128,7 +138,7 @@ namespace Fluid
         /// <summary>
         /// Gets or sets the current scope.
         /// </summary>
-        internal Scope LocalScope { get; set; }
+        public Scope LocalScope { get; set; }
 
         /// <summary>
         /// Gets or sets the root scope.
@@ -163,6 +173,11 @@ namespace Fluid
         /// Gets or sets the delegate to execute when an Assign tag has been evaluated.
         /// </summary>
         public TemplateOptions.AssignedDelegate Assigned { get; set; }
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when an undefined value is used.
+        /// </summary>
+        public TemplateOptions.UndefinedDelegate Undefined { get; set; }
 
         /// <summary>
         /// Creates a new isolated child scope. After than any value added to this content object will be released once
@@ -216,6 +231,7 @@ namespace Fluid
         /// <summary>
         /// Gets the names of the values.
         /// </summary>
+        [Obsolete("Use LocalScope.Properties instead.")]
         public IEnumerable<string> ValueNames => LocalScope.Properties;
 
         /// <summary>

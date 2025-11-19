@@ -49,7 +49,7 @@ namespace Fluid.Values
             return false;
         }
 
-        protected override FluidValue GetValue(string name, TemplateContext context)
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             switch (name)
             {
@@ -75,7 +75,7 @@ namespace Fluid.Values
             return NilValue.Instance;
         }
 
-        protected override FluidValue GetIndex(FluidValue index, TemplateContext context)
+        public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
             var i = (int)index.ToNumberValue();
 
@@ -105,17 +105,6 @@ namespace Fluid.Values
 
         public IReadOnlyList<FluidValue> Values { get; }
 
-        [Obsolete("WriteTo is obsolete, prefer the WriteToAsync method.")]
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-
-            foreach (var v in Values)
-            {
-                writer.Write(v.ToStringValue());
-            }
-        }
-
         public override async ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(writer, encoder, cultureInfo);
@@ -136,14 +125,19 @@ namespace Fluid.Values
             return Values.Select(x => x.ToObjectValue()).ToArray();
         }
 
-        public override bool Contains(FluidValue value)
+        public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
         {
-            return Values.Contains(value);
+            return new ValueTask<bool>(Values.Contains(value));
         }
 
-        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
-            return Values;
+            foreach (var value in Values)
+            {
+                yield return value;
+            }
+
+            await Task.CompletedTask;
         }
 
         public override bool Equals(object obj)
@@ -151,7 +145,7 @@ namespace Fluid.Values
             // The is operator will return false if null
             if (obj is ArrayValue otherValue)
             {
-                return Values.Equals(otherValue.Values);
+                return Equals(otherValue);
             }
 
             return false;
@@ -159,7 +153,16 @@ namespace Fluid.Values
 
         public override int GetHashCode()
         {
-            return Values.GetHashCode();
+            var hc = new HashCode();
+
+            IReadOnlyList<FluidValue> values = Values;
+            int count = values.Count;
+            for (int i = 0; i < count; ++i)
+            {
+                hc.Add(values[i]);
+            }
+
+            return hc.ToHashCode();
         }
     }
 }
