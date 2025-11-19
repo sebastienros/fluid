@@ -1,6 +1,5 @@
 using Fluid.Tests.Mocks;
 using Fluid.Values;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
