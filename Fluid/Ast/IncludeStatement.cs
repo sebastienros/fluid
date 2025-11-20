@@ -74,7 +74,19 @@ namespace Fluid.Ast
                     throw new ParseException(errors);
                 }
 
+                // Allow user to modify the template before caching (e.g., apply visitors/rewriters)
+                if (context.Options.TemplateParsed != null)
+                {
+                    template = context.Options.TemplateParsed(relativePath, template);
+                }
+
                 context.Options.TemplateCache?.SetTemplate(relativePath, fileInfo.LastModified, template);
+            }
+            else if (context.Options.TemplateParsed != null)
+            {
+                // Template was retrieved from cache, but we still need to apply the callback
+                // to allow AST visitors/rewriters to modify it
+                template = context.Options.TemplateParsed(relativePath, template);
             }
 
             var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);

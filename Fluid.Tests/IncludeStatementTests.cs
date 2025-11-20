@@ -868,5 +868,131 @@ shape: ''";
 
             Assert.Equal("Default behavior", result);
         }
+
+        [Fact]
+        public async Task RenderStatement_ShouldInvokeTemplateParsedCallback()
+        {
+            // This test verifies that the TemplateParsed callback is invoked for templates loaded by render statements
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("inner.liquid", "{{ 2 | plus: 2 }}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            
+            // Use a visitor to replace 2 with 4
+            options.TemplateParsed = (path, template) =>
+            {
+                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                return visitor.VisitTemplate(template);
+            };
+
+            var context = new TemplateContext(options);
+            
+            // Parse the outer template manually and apply visitor to it too
+            _parser.TryParse("{{ 1 | plus: 2 }}\n{% render 'inner' %}", out var outerTemplate);
+            var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+            outerTemplate = visitor.VisitTemplate(outerTemplate);
+            
+            var result = await outerTemplate.RenderAsync(context);
+
+            // Both the outer template and the inner template should have 2 replaced with 4
+            // Outer: 1 + 4 = 5
+            // Inner: 4 + 4 = 8
+            Assert.Equal("5\n8", result);
+        }
+
+        [Fact]
+        public async Task IncludeStatement_ShouldInvokeTemplateParsedCallback()
+        {
+            // This test verifies that the TemplateParsed callback is invoked for templates loaded by include statements
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("inner.liquid", "{{ 2 | plus: 2 }}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            
+            // Use a visitor to replace 2 with 4
+            options.TemplateParsed = (path, template) =>
+            {
+                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                return visitor.VisitTemplate(template);
+            };
+
+            var context = new TemplateContext(options);
+            
+            // Parse the outer template manually and apply visitor to it too
+            _parser.TryParse("{{ 1 | plus: 2 }}\n{% include 'inner' %}", out var outerTemplate);
+            var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+            outerTemplate = visitor.VisitTemplate(outerTemplate);
+            
+            var result = await outerTemplate.RenderAsync(context);
+
+            // Both the outer template and the inner template should have 2 replaced with 4
+            // Outer: 1 + 4 = 5
+            // Inner: 4 + 4 = 8
+            Assert.Equal("5\n8", result);
+        }
+
+        [Fact]
+        public async Task RenderStatement_ShouldInvokeTemplateParsedCallbackForCachedTemplates()
+        {
+            // This test verifies that the TemplateParsed callback is also invoked for templates retrieved from cache
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("inner.liquid", "{{ 2 | plus: 2 }}");
+
+            var options = new TemplateOptions() 
+            { 
+                FileProvider = fileProvider
+                // TemplateCache is created by default
+            };
+            
+            // Use a visitor to replace 2 with 4
+            options.TemplateParsed = (path, template) =>
+            {
+                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                return visitor.VisitTemplate(template);
+            };
+
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% render 'inner' %}", out var template);
+            
+            // First render - template is parsed and cached
+            var result1 = await template.RenderAsync(context);
+            Assert.Equal("8", result1);
+            
+            // Second render - template is retrieved from cache but callback should still be invoked
+            var result2 = await template.RenderAsync(context);
+            Assert.Equal("8", result2);
+        }
+
+        [Fact]
+        public async Task IncludeStatement_ShouldInvokeTemplateParsedCallbackForCachedTemplates()
+        {
+            // This test verifies that the TemplateParsed callback is also invoked for templates retrieved from cache
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("inner.liquid", "{{ 2 | plus: 2 }}");
+
+            var options = new TemplateOptions() 
+            { 
+                FileProvider = fileProvider
+                // TemplateCache is created by default
+            };
+            
+            // Use a visitor to replace 2 with 4
+            options.TemplateParsed = (path, template) =>
+            {
+                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                return visitor.VisitTemplate(template);
+            };
+
+            var context = new TemplateContext(options);
+            _parser.TryParse("{% include 'inner' %}", out var template);
+            
+            // First render - template is parsed and cached
+            var result1 = await template.RenderAsync(context);
+            Assert.Equal("8", result1);
+            
+            // Second render - template is retrieved from cache but callback should still be invoked
+            var result2 = await template.RenderAsync(context);
+            Assert.Equal("8", result2);
+        }
     }
 }
