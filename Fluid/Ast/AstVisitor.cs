@@ -204,12 +204,41 @@ namespace Fluid.Ast
 
             Visit(caseStatement.Expression);
 
-            foreach (var statement in caseStatement.Whens)
+            // Visit new block-based structure if present
+            if (caseStatement.Blocks.Count > 0)
             {
-                Visit(statement);
+                foreach (var block in caseStatement.Blocks)
+                {
+                    if (block is WhenBlock whenBlock)
+                    {
+                        foreach (var option in whenBlock.Options)
+                        {
+                            Visit(option);
+                        }
+                        foreach (var statement in whenBlock.Statements)
+                        {
+                            Visit(statement);
+                        }
+                    }
+                    else if (block is ElseBlock elseBlock)
+                    {
+                        foreach (var statement in elseBlock.Statements)
+                        {
+                            Visit(statement);
+                        }
+                    }
+                }
             }
+            else
+            {
+                // Visit old structure for backward compatibility
+                foreach (var statement in caseStatement.Whens)
+                {
+                    Visit(statement);
+                }
 
-            Visit(caseStatement.Else);
+                Visit(caseStatement.Else);
+            }
 
             return caseStatement;
         }

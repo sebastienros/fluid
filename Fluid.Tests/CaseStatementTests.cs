@@ -311,5 +311,106 @@ namespace Fluid.Tests
             
             Assert.Equal("foobarbar", output);
         }
+
+        [Fact]
+        public async Task CaseWithOrSeparatedWhenExpression()
+        {
+            var parser = new FluidParser();
+            var template = "{% case title %}{% when 'foo' %}foo{% when 'bar' or 'Hello' %}bar{% endcase %}";
+            
+            var result = parser.Parse(template);
+            var context = new TemplateContext();
+            context.SetValue("title", "Hello");
+            var output = await result.RenderAsync(context);
+            
+            Assert.Equal("bar", output);
+        }
+
+        [Fact]
+        public async Task CaseWithCommaSeparatedWhenExpression()
+        {
+            var parser = new FluidParser();
+            var template = "{% case title %}{% when 'foo' %}foo{% when 'bar', 'Hello' %}bar{% endcase %}";
+            
+            var result = parser.Parse(template);
+            var context = new TemplateContext();
+            context.SetValue("title", "Hello");
+            var output = await result.RenderAsync(context);
+            
+            Assert.Equal("bar", output);
+        }
+
+        [Fact]
+        public async Task CaseMixOrAndCommaSeparatedWhenExpression()
+        {
+            var parser = new FluidParser();
+            var template = "{% case title %}{% when 'foo' %}foo{% when 'bar' or 'Hello', 'Hello' %}bar{% endcase %}";
+            
+            var result = parser.Parse(template);
+            var context = new TemplateContext();
+            context.SetValue("title", "Hello");
+            var output = await result.RenderAsync(context);
+            
+            // Both 'bar' or 'Hello' and 'Hello' match, so bar is output twice
+            Assert.Equal("barbar", output);
+        }
+
+        [Fact]
+        public async Task CaseNoWhensOnlyElse()
+        {
+            var parser = new FluidParser();
+            var template = "{% case title %}{% else %}bar{% endcase %}";
+            
+            var result = parser.Parse(template);
+            var context = new TemplateContext();
+            context.SetValue("title", "Hello");
+            var output = await result.RenderAsync(context);
+            
+            Assert.Equal("bar", output);
+        }
+
+        [Fact]
+        public async Task CaseNoWhensNoElse()
+        {
+            var parser = new FluidParser();
+            var template = "{% case title %}{% endcase %}";
+            
+            var result = parser.Parse(template);
+            var context = new TemplateContext();
+            context.SetValue("title", "Hello");
+            var output = await result.RenderAsync(context);
+            
+            Assert.Equal("", output);
+        }
+
+        [Fact]
+        public async Task CaseWhenExpressionUsingIdentifier()
+        {
+            var parser = new FluidParser();
+            var template = "{% case title %}{% when other %}foo{% when 'goodbye' %}bar{% endcase %}";
+            
+            var result = parser.Parse(template);
+            var context = new TemplateContext();
+            context.SetValue("title", "Hello");
+            context.SetValue("other", "Hello");
+            var output = await result.RenderAsync(context);
+            
+            Assert.Equal("foo", output);
+        }
+
+        [Fact]
+        public async Task CaseTagsInsideWhenBlock()
+        {
+            var parser = new FluidParser();
+            var template = "{% case title %}{% when other %}{% if true %}foo{% endif %}{% when 'goodbye' %}bar{% endcase %}";
+            
+            var result = parser.Parse(template);
+            var context = new TemplateContext();
+            context.SetValue("title", "Hello");
+            context.SetValue("other", "Hello");
+            var output = await result.RenderAsync(context);
+            
+            Assert.Equal("foo", output);
+        }
     }
 }
