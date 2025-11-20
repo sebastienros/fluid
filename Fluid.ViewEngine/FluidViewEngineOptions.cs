@@ -73,5 +73,16 @@ namespace Fluid.ViewEngine
         /// Gets or sets the delegate to execute when a view is rendered.
         /// </summary>
         public RenderingViewDelegate RenderingViewAsync { get; set; }
+
+        /// <summary>
+        /// <para>Represents the method that will handle the template parsed event.</para>
+        /// </summary>
+        public delegate IFluidTemplate TemplateParsedDelegate(string path, IFluidTemplate template);
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when a template is parsed, before it is cached.
+        /// This can be used to apply AST visitors or rewriters to modify templates.
+        /// </summary>
+        public TemplateParsedDelegate TemplateParsed { get; set; }
     }
 }
