@@ -85,12 +85,6 @@ namespace Fluid.Ast
 
                 context.Options.TemplateCache?.SetTemplate(relativePath, fileInfo.LastModified, template);
             }
-            else if (context.Options.TemplateParsed != null)
-            {
-                // Template was retrieved from cache, but we still need to apply the callback
-                // to allow AST visitors/rewriters to modify it
-                template = context.Options.TemplateParsed(relativePath, template);
-            }
 
             var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
 

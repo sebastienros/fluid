@@ -932,9 +932,9 @@ shape: ''";
         }
 
         [Fact]
-        public async Task RenderStatement_ShouldInvokeTemplateParsedCallbackForCachedTemplates()
+        public async Task RenderStatement_ShouldCacheModifiedTemplate()
         {
-            // This test verifies that the TemplateParsed callback is also invoked for templates retrieved from cache
+            // This test verifies that the modified template is cached after TemplateParsed callback
             var fileProvider = new MockFileProvider();
             fileProvider.Add("inner.liquid", "{{ 2 | plus: 2 }}");
 
@@ -944,9 +944,12 @@ shape: ''";
                 // TemplateCache is created by default
             };
             
+            var callbackCount = 0;
+            
             // Use a visitor to replace 2 with 4
             options.TemplateParsed = (path, template) =>
             {
+                callbackCount++;
                 var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
                 return visitor.VisitTemplate(template);
             };
@@ -957,16 +960,18 @@ shape: ''";
             // First render - template is parsed and cached
             var result1 = await template.RenderAsync(context);
             Assert.Equal("8", result1);
+            Assert.Equal(1, callbackCount);
             
-            // Second render - template is retrieved from cache but callback should still be invoked
+            // Second render - template is retrieved from cache, callback should NOT be invoked
             var result2 = await template.RenderAsync(context);
             Assert.Equal("8", result2);
+            Assert.Equal(1, callbackCount); // Callback count should still be 1
         }
 
         [Fact]
-        public async Task IncludeStatement_ShouldInvokeTemplateParsedCallbackForCachedTemplates()
+        public async Task IncludeStatement_ShouldCacheModifiedTemplate()
         {
-            // This test verifies that the TemplateParsed callback is also invoked for templates retrieved from cache
+            // This test verifies that the modified template is cached after TemplateParsed callback
             var fileProvider = new MockFileProvider();
             fileProvider.Add("inner.liquid", "{{ 2 | plus: 2 }}");
 
@@ -976,9 +981,12 @@ shape: ''";
                 // TemplateCache is created by default
             };
             
+            var callbackCount = 0;
+            
             // Use a visitor to replace 2 with 4
             options.TemplateParsed = (path, template) =>
             {
+                callbackCount++;
                 var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
                 return visitor.VisitTemplate(template);
             };
@@ -989,10 +997,12 @@ shape: ''";
             // First render - template is parsed and cached
             var result1 = await template.RenderAsync(context);
             Assert.Equal("8", result1);
+            Assert.Equal(1, callbackCount);
             
-            // Second render - template is retrieved from cache but callback should still be invoked
+            // Second render - template is retrieved from cache, callback should NOT be invoked
             var result2 = await template.RenderAsync(context);
             Assert.Equal("8", result2);
+            Assert.Equal(1, callbackCount); // Callback count should still be 1
         }
     }
 }
