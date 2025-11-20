@@ -25,9 +25,8 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 A,
-                null,
                 new[] {
-                    new WhenStatement(new List<Expression> { A }, TEXT("x"))
+                    new WhenBlock(new List<Expression> { A }, TEXT("x"))
                 }
             );
 
@@ -42,9 +41,8 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 A,
-                null,
                 new[] {
-                    new WhenStatement(new List<Expression> { A }, 
+                    new WhenBlock(new List<Expression> { A }, 
                     new List<Statement> { new TextSpanStatement("x"), new TextSpanStatement("y") })
                 }
             );
@@ -62,9 +60,8 @@ namespace Fluid.Tests
                 new MemberExpression(
                     new IdentifierSegment("val")
                 ),
-                null,
                 new[] {
-                    new WhenStatement(new List<Expression> { A }, TEXT("x"))
+                    new WhenBlock(new List<Expression> { A }, TEXT("x"))
                 }
             );
 
@@ -82,9 +79,8 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 A,
-                null,
                 new[] {
-                    new WhenStatement(new List<Expression> { A, B, C }, TEXT("x"))
+                    new WhenBlock(new List<Expression> { A, B, C }, TEXT("x"))
                 }
             );
 
@@ -99,11 +95,10 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 A,
-                null,
                 new[] {
-                    new WhenStatement(new List<Expression> { A, B, C }, TEXT("x")),
-                    new WhenStatement(new List<Expression> { D }, TEXT("y")),
-                    new WhenStatement(new List<Expression> { A }, TEXT("z"))
+                    new WhenBlock(new List<Expression> { A, B, C }, TEXT("x")),
+                    new WhenBlock(new List<Expression> { D }, TEXT("y")),
+                    new WhenBlock(new List<Expression> { A }, TEXT("z"))
                 }
             );
 
@@ -118,9 +113,8 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 A,
-                null,
                 new[] {
-                    new WhenStatement(new List<Expression> { B, C, D }, TEXT("x"))
+                    new WhenBlock(new List<Expression> { B, C, D }, TEXT("x"))
                 }
             );
 
@@ -135,9 +129,9 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 A,
-                new ElseStatement(new List<Statement> { new TextSpanStatement("y") }),
-                new[] {
-                    new WhenStatement(new List<Expression> { A }, TEXT("x"))
+                new CaseBlock[] {
+                    new WhenBlock(new List<Expression> { A }, TEXT("x")),
+                    new ElseBlock(new List<Statement> { new TextSpanStatement("y") })
                 }
             );
 
@@ -152,9 +146,9 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 A,
-                new ElseStatement(new List<Statement> { new TextSpanStatement("y") }),
-                new[] {
-                    new WhenStatement(new List<Expression> { B, C }, TEXT("x"))
+                new CaseBlock[] {
+                    new WhenBlock(new List<Expression> { B, C }, TEXT("x")),
+                    new ElseBlock(new List<Statement> { new TextSpanStatement("y") })
                 }
             );
 
@@ -169,11 +163,11 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 B,
-                new ElseStatement(new List<Statement> { new TextSpanStatement("y") }),
-                new[] {
-                    new WhenStatement(new List<Expression> { A, C }, TEXT("1")),
-                    new WhenStatement(new List<Expression> { B, C }, TEXT("2")),
-                    new WhenStatement(new List<Expression> { C }, TEXT("3"))
+                new CaseBlock[] {
+                    new WhenBlock(new List<Expression> { A, C }, TEXT("1")),
+                    new WhenBlock(new List<Expression> { B, C }, TEXT("2")),
+                    new WhenBlock(new List<Expression> { C }, TEXT("3")),
+                    new ElseBlock(new List<Statement> { new TextSpanStatement("y") })
                 }
             );
 
@@ -188,10 +182,9 @@ namespace Fluid.Tests
         {
             var e = new CaseStatement(
                 A,
-                null,
                 new[] {
-                    new WhenStatement(new List<Expression> { B }, TEXT("2")),
-                    new WhenStatement(new List<Expression> { C }, TEXT("3"))
+                    new WhenBlock(new List<Expression> { B }, TEXT("2")),
+                    new WhenBlock(new List<Expression> { C }, TEXT("3"))
                 }
             );
 

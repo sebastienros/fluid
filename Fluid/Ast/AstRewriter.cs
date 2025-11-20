@@ -276,66 +276,52 @@ namespace Fluid.Ast
 
         protected internal override Statement VisitCaseStatement(CaseStatement caseStatement)
         {
-            // Handle new block-based structure
-            if (caseStatement.Blocks.Count > 0)
-            {
-                var hasChanges = false;
-                var newBlocks = new List<CaseBlock>();
-                
-                if (TryRewriteExpression(caseStatement.Expression, out var newExpression))
-                {
-                    hasChanges = true;
-                }
-                else
-                {
-                    newExpression = caseStatement.Expression;
-                }
-
-                foreach (var block in caseStatement.Blocks)
-                {
-                    if (block is WhenBlock whenBlock)
-                    {
-                        var optionsChanged = TryRewriteExpressions(whenBlock.Options, out var newOptions);
-                        var statementsChanged = TryRewriteStatements(whenBlock.Statements, out var newStatements);
-                        
-                        if (optionsChanged || statementsChanged)
-                        {
-                            hasChanges = true;
-                            newBlocks.Add(new WhenBlock(newOptions.ToArray(), newStatements.ToArray()));
-                        }
-                        else
-                        {
-                            newBlocks.Add(block);
-                        }
-                    }
-                    else if (block is ElseBlock elseBlock)
-                    {
-                        if (TryRewriteStatements(elseBlock.Statements, out var newStatements))
-                        {
-                            hasChanges = true;
-                            newBlocks.Add(new ElseBlock(newStatements.ToArray()));
-                        }
-                        else
-                        {
-                            newBlocks.Add(block);
-                        }
-                    }
-                }
-
-                if (hasChanges)
-                {
-                    return new CaseStatement(newExpression, newBlocks.ToArray());
-                }
-
-                return caseStatement;
-            }
+            var hasChanges = false;
+            var newBlocks = new List<CaseBlock>();
             
-            // Handle old structure for backward compatibility
-            if (TryRewriteExpression(caseStatement.Expression, out var newExpression2)
-                | TryRewriteStatement(caseStatement.Else, out var newElseStatement)
-                | TryRewriteStatements(caseStatement.Whens, out var newWhenStatements))
+            if (TryRewriteExpression(caseStatement.Expression, out var newExpression))
             {
-                return new CaseStatement(newExpression2, newElseStatement, newWhenStatements.ToArray());
+                hasChanges = true;
+            }
+            else
+            {
+                newExpression = caseStatement.Expression;
+            }
+
+            foreach (var block in caseStatement.Blocks)
+            {
+                if (block is WhenBlock whenBlock)
+                {
+                    var optionsChanged = TryRewriteExpressions(whenBlock.Options, out var newOptions);
+                    var statementsChanged = TryRewriteStatements(whenBlock.Statements, out var newStatements);
+                    
+                    if (optionsChanged || statementsChanged)
+                    {
+                        hasChanges = true;
+                        newBlocks.Add(new WhenBlock(newOptions.ToArray(), newStatements.ToArray()));
+                    }
+                    else
+                    {
+                        newBlocks.Add(block);
+                    }
+                }
+                else if (block is ElseBlock elseBlock)
+                {
+                    if (TryRewriteStatements(elseBlock.Statements, out var newStatements))
+                    {
+                        hasChanges = true;
+                        newBlocks.Add(new ElseBlock(newStatements.ToArray()));
+                    }
+                    else
+                    {
+                        newBlocks.Add(block);
+                    }
+                }
+            }
+
+            if (hasChanges)
+            {
+                return new CaseStatement(newExpression, newBlocks.ToArray());
             }
 
             return caseStatement;
