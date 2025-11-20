@@ -78,6 +78,7 @@ namespace Fluid
 
         protected static readonly LiteralExpression EmptyKeyword = new LiteralExpression(EmptyValue.Instance);
         protected static readonly LiteralExpression BlankKeyword = new LiteralExpression(BlankValue.Instance);
+        protected static readonly LiteralExpression NilKeyword = new LiteralExpression(NilValue.Instance);
         protected static readonly LiteralExpression TrueKeyword = new LiteralExpression(BooleanValue.True);
         protected static readonly LiteralExpression FalseKeyword = new LiteralExpression(BooleanValue.False);
 
@@ -163,6 +164,8 @@ namespace Fluid
                         {
                             case "empty": return EmptyKeyword;
                             case "blank": return BlankKeyword;
+                            case "nil": return NilKeyword; // Both nil and null are supported for convenience
+                            case "null": return NilKeyword;
                             case "true": return TrueKeyword;
                             case "false": return FalseKeyword;
                         }
@@ -416,7 +419,7 @@ namespace Fluid
                         .ElseError("Invalid 'unless' tag");
             UnlessTag.Name = "UnlessTag";
 
-            // Parser for optional comment tags only (used between case and when)
+            // Parser for optional comment tags only (used between case blocks)
             var OptionalComment = TagStart.SkipAnd(Terms.Text("comment")).SkipAnd(TagEnd)
                 .SkipAnd(AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true))
                 .AndSkip(CreateTag("endcomment"))
@@ -425,17 +428,19 @@ namespace Fluid
             var OptionalComments = ZeroOrMany(OneOf<Statement>(OptionalComment, Text));
             OptionalComments.Name = "OptionalComments";
 
+            // Parse a single when or else block
+            var WhenBlock = TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList)
+                .Then<CaseBlock>(x => new Ast.WhenBlock(x.Item2, x.Item3));
+            
+            var ElseBlock = CreateTag("else").SkipAnd(AnyTagsList)
+                .Then<CaseBlock>(x => new Ast.ElseBlock(x));
+
             var CaseTag = Primary
                        .AndSkip(TagEnd)
                        .AndSkip(OptionalComments)
-                       .And(ZeroOrMany(
-                           TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList))
-                           .Then(x => x.Select(e => new WhenStatement(e.Item2, e.Item3)).ToArray()))
-                       .And(ZeroOrOne(
-                           CreateTag("else").SkipAnd(AnyTagsList))
-                           .Then(x => x != null ? new ElseStatement(x) : null))
+                       .And(ZeroOrMany(OneOf(WhenBlock, ElseBlock).AndSkip(OptionalComments)))
                        .AndSkip(CreateTag("endcase").ElseError($"'{{% endcase %}}' was expected"))
-                       .Then<Statement>(x => new CaseStatement(x.Item1, x.Item3, x.Item2))
+                       .Then<Statement>(x => new CaseStatement(x.Item1, x.Item2))
                        .ElseError("Invalid 'case' tag");
             CaseTag.Name = "CaseTag";
 
@@ -680,7 +685,7 @@ namespace Fluid
         /// </summary>
         public virtual FluidParser Compile()
         {
-            foreach (var entry in RegisteredTags.ToArray())
+            foreach (var entry in RegisteredTags)
             {
                 RegisteredTags[entry.Key] = entry.Value.Compile();
             }

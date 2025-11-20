@@ -1,5 +1,6 @@
 using Fluid.Tests.Mocks;
 using Fluid.ViewEngine;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -308,6 +309,102 @@ namespace Fluid.Tests.MvcViewEngine
 #else
             await sw.FlushAsync();
 #endif
+        }
+
+        [Fact]
+        public async Task ShouldApplyTemplateParsedCallback()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{{ 1 | plus: 2 }}");
+
+            // Use a visitor to replace 2 with 4
+            _options.TemplateOptions.TemplateParsed = (path, template) =>
+            {
+                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                return visitor.VisitTemplate(template);
+            };
+
+            var sw = new StringWriter();
+            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await sw.FlushAsync();
+
+            Assert.Equal("5", sw.ToString());
+
+            _options.TemplateOptions.TemplateParsed = null;
+        }
+
+        [Fact]
+        public async Task ShouldApplyTemplateParsedCallbackToNestedTemplates()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{% partial 'world' %}");
+            _mockFileProvider.Add("Partials/World.liquid", "{{ 1 | plus: 2 }}");
+
+            // Use a visitor to replace 2 with 4
+            _options.TemplateOptions.TemplateParsed = (path, template) =>
+            {
+                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                return visitor.VisitTemplate(template);
+            };
+
+            var sw = new StringWriter();
+            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await sw.FlushAsync();
+
+            Assert.Equal("5", sw.ToString());
+
+            _options.TemplateOptions.TemplateParsed = null;
+        }
+
+        [Fact]
+        public async Task ShouldApplyTemplateParsedCallbackToViewStarts()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "Hello");
+            _mockFileProvider.Add("Views/_ViewStart.liquid", "{{ 1 | plus: 2 }} ");
+
+            // Use a visitor to replace 2 with 4
+            _options.TemplateOptions.TemplateParsed = (path, template) =>
+            {
+                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                return visitor.VisitTemplate(template);
+            };
+
+            var sw = new StringWriter();
+            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await sw.FlushAsync();
+
+            Assert.Equal("5 Hello", sw.ToString());
+
+            _options.TemplateOptions.TemplateParsed = null;
+        }
+
+        [Fact]
+        public async Task CompositeFluidTemplateShouldRenderUsingStatementsNotTemplates()
+        {
+            // This test verifies that CompositeFluidTemplate renders using its Statements property
+            // rather than iterating through the Templates property, which is important for
+            // consistency with FluidTemplate and for ensuring altered statements are rendered.
+            
+            // Create a simple composite template
+            var parser = new FluidParser();
+            var template1 = parser.Parse("{{ 1 | plus: 2 }}");
+            var template2 = parser.Parse(" World");
+            
+            var composite = new Fluid.Parser.CompositeFluidTemplate(template1, template2);
+            
+            // Render it normally - should output "3 World"
+            var sw = new StringWriter();
+            await composite.RenderAsync(sw, System.Text.Encodings.Web.HtmlEncoder.Default, new TemplateContext());
+            Assert.Equal("3 World", sw.ToString());
+            
+            // Now apply a visitor that alters the statements
+            var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+            var altered = visitor.VisitTemplate(composite);
+            
+            // The visitor should return a new template with altered statements
+            var sw2 = new StringWriter();
+            await altered.RenderAsync(sw2, System.Text.Encodings.Web.HtmlEncoder.Default, new TemplateContext());
+            
+            // Should output "5 World" - the '2' has been replaced with '4', so 1+4=5
+            Assert.Equal("5 World", sw2.ToString());
         }
     }
 }

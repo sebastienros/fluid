@@ -30,7 +30,7 @@ namespace Fluid
 
         private static IMemberAccessor GetMemberAccessor(Type type, string name, StringComparer stringComparer)
         {
-            foreach (var propertyInfo in type.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            foreach (var propertyInfo in type.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
             {
                 if (propertyInfo.GetIndexParameters().Length > 0)
                 {
@@ -59,13 +59,18 @@ namespace Fluid
                         return ((dynamic)asyncValue).Result;
                     });
                 }
+                else if (propertyInfo.GetGetMethod().IsStatic)
+                {
+                    // For static properties, use DelegateAccessor that ignores the instance
+                    return new DelegateAccessor((o, n) => propertyInfo.GetValue(null));
+                }
                 else
                 {
                     return new PropertyInfoAccessor(propertyInfo);
                 }
             }
 
-            foreach (var fieldInfo in type.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance))
+            foreach (var fieldInfo in type.GetTypeInfo().GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
             {
                 // Use the comparer to match a field name
                 if (!stringComparer.Equals(fieldInfo.Name, name))
@@ -81,6 +86,11 @@ namespace Fluid
                         await asyncValue.ConfigureAwait(false);
                         return ((dynamic)asyncValue).Result;
                     });
+                }
+                else if (fieldInfo.IsStatic)
+                {
+                    // For static fields, use DelegateAccessor that ignores the instance
+                    return new DelegateAccessor((o, n) => fieldInfo.GetValue(null));
                 }
                 else
                 {

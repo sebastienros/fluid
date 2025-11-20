@@ -224,6 +224,12 @@ namespace Fluid.ViewEngine
 
             template = await ParseLiquidFileAsync(path, fileProvider, includeViewStarts);
 
+            // Allow user to modify the template before caching (e.g., apply visitors/rewriters)
+            if (_fluidViewEngineOptions.TemplateOptions.TemplateParsed != null)
+            {
+                template = _fluidViewEngineOptions.TemplateOptions.TemplateParsed(path, template);
+            }
+
             cache.TemplateCache[path] = template;
 
             return template;
