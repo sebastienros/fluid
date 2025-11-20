@@ -367,5 +367,36 @@ namespace Fluid.Tests.MvcViewEngine
 
             _options.TemplateParsed = null;
         }
+
+        [Fact]
+        public async Task CompositeFluidTemplateShouldRenderUsingStatementsNotTemplates()
+        {
+            // This test verifies that CompositeFluidTemplate renders using its Statements property
+            // rather than iterating through the Templates property, which is important for
+            // consistency with FluidTemplate and for ensuring altered statements are rendered.
+            
+            // Create a simple composite template
+            var parser = new FluidParser();
+            var template1 = parser.Parse("{{ 1 | plus: 2 }}");
+            var template2 = parser.Parse(" World");
+            
+            var composite = new Fluid.Parser.CompositeFluidTemplate(template1, template2);
+            
+            // Render it normally - should output "3 World"
+            var sw = new StringWriter();
+            await composite.RenderAsync(sw, System.Text.Encodings.Web.HtmlEncoder.Default, new TemplateContext());
+            Assert.Equal("3 World", sw.ToString());
+            
+            // Now apply a visitor that alters the statements
+            var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+            var altered = visitor.VisitTemplate(composite);
+            
+            // The visitor should return a new template with altered statements
+            var sw2 = new StringWriter();
+            await altered.RenderAsync(sw2, System.Text.Encodings.Web.HtmlEncoder.Default, new TemplateContext());
+            
+            // Should output "5 World" - the '2' has been replaced with '4', so 1+4=5
+            Assert.Equal("5 World", sw2.ToString());
+        }
     }
 }
