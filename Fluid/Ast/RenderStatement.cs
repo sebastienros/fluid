@@ -77,6 +77,12 @@ namespace Fluid.Ast
                     throw new ParseException(errors);
                 }
 
+                // Allow user to modify the template before caching (e.g., apply visitors/rewriters)
+                if (context.Options.TemplateParsed != null)
+                {
+                    template = context.Options.TemplateParsed(relativePath, template);
+                }
+
                 context.Options.TemplateCache?.SetTemplate(relativePath, fileInfo.LastModified, template);
             }
 
