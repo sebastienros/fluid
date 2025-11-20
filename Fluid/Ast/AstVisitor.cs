@@ -204,12 +204,27 @@ namespace Fluid.Ast
 
             Visit(caseStatement.Expression);
 
-            foreach (var statement in caseStatement.Whens)
+            foreach (var block in caseStatement.Blocks)
             {
-                Visit(statement);
+                if (block is WhenBlock whenBlock)
+                {
+                    foreach (var option in whenBlock.Options)
+                    {
+                        Visit(option);
+                    }
+                    foreach (var statement in whenBlock.Statements)
+                    {
+                        Visit(statement);
+                    }
+                }
+                else if (block is ElseBlock elseBlock)
+                {
+                    foreach (var statement in elseBlock.Statements)
+                    {
+                        Visit(statement);
+                    }
+                }
             }
-
-            Visit(caseStatement.Else);
 
             return caseStatement;
         }
