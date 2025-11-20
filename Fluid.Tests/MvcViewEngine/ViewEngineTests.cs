@@ -312,25 +312,6 @@ namespace Fluid.Tests.MvcViewEngine
             _options.TemplateParsed = (path, template) =>
             {
                 var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
-                
-                // Handle CompositeFluidTemplate by visiting each sub-template
-                if (template is Fluid.Parser.CompositeFluidTemplate composite)
-                {
-                    var newTemplates = new List<IFluidTemplate>();
-                    foreach (var subTemplate in composite.Templates)
-                    {
-                        if (subTemplate is Fluid.Ast.IStatementList)
-                        {
-                            newTemplates.Add(visitor.VisitTemplate(subTemplate));
-                        }
-                        else
-                        {
-                            newTemplates.Add(subTemplate);
-                        }
-                    }
-                    return new Fluid.Parser.CompositeFluidTemplate(newTemplates);
-                }
-                
                 return visitor.VisitTemplate(template);
             };
 
@@ -353,25 +334,6 @@ namespace Fluid.Tests.MvcViewEngine
             _options.TemplateParsed = (path, template) =>
             {
                 var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
-                
-                // Handle CompositeFluidTemplate by visiting each sub-template
-                if (template is Fluid.Parser.CompositeFluidTemplate composite)
-                {
-                    var newTemplates = new List<IFluidTemplate>();
-                    foreach (var subTemplate in composite.Templates)
-                    {
-                        if (subTemplate is Fluid.Ast.IStatementList)
-                        {
-                            newTemplates.Add(visitor.VisitTemplate(subTemplate));
-                        }
-                        else
-                        {
-                            newTemplates.Add(subTemplate);
-                        }
-                    }
-                    return new Fluid.Parser.CompositeFluidTemplate(newTemplates);
-                }
-                
                 return visitor.VisitTemplate(template);
             };
 
@@ -394,25 +356,6 @@ namespace Fluid.Tests.MvcViewEngine
             _options.TemplateParsed = (path, template) =>
             {
                 var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
-                
-                // Handle CompositeFluidTemplate by visiting each sub-template
-                if (template is Fluid.Parser.CompositeFluidTemplate composite)
-                {
-                    var newTemplates = new List<IFluidTemplate>();
-                    foreach (var subTemplate in composite.Templates)
-                    {
-                        if (subTemplate is Fluid.Ast.IStatementList)
-                        {
-                            newTemplates.Add(visitor.VisitTemplate(subTemplate));
-                        }
-                        else
-                        {
-                            newTemplates.Add(subTemplate);
-                        }
-                    }
-                    return new Fluid.Parser.CompositeFluidTemplate(newTemplates);
-                }
-                
                 return visitor.VisitTemplate(template);
             };
 

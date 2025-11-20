@@ -1211,25 +1211,6 @@ services.AddMvc().AddFluid(options =>
     options.TemplateParsed = (path, template) =>
     {
         var visitor = new MyCustomVisitor();
-        
-        // Handle CompositeFluidTemplate (when ViewStarts are used)
-        if (template is CompositeFluidTemplate composite)
-        {
-            var newTemplates = new List<IFluidTemplate>();
-            foreach (var subTemplate in composite.Templates)
-            {
-                if (subTemplate is IStatementList)
-                {
-                    newTemplates.Add(visitor.VisitTemplate(subTemplate));
-                }
-                else
-                {
-                    newTemplates.Add(subTemplate);
-                }
-            }
-            return new CompositeFluidTemplate(newTemplates);
-        }
-        
         return visitor.VisitTemplate(template);
     };
 });
