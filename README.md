@@ -1201,24 +1201,9 @@ var result = changed.Render();
 Console.WriteLine(result); // writes -1
 ```
 
-### Using visitors with templates
+### Visiting templates parsed during rendering
 
-You can apply visitors and rewriters to templates before they are cached by using the `TemplateParsed` callback on `TemplateOptions`. This works for all template parsing scenarios including the ViewEngine, `include` and `render` statements.
-
-**With the ViewEngine:**
-
-```c#
-services.AddMvc().AddFluid(options =>
-{
-    options.TemplateOptions.TemplateParsed = (path, template) =>
-    {
-        var visitor = new MyCustomVisitor();
-        return visitor.VisitTemplate(template);
-    };
-});
-```
-
-**With `include` or `render` statements:**
+You can apply visitors and rewriters to templates that are parsed before they are cached by using the `TemplateParsed` callback on `TemplateOptions`. This works for all template parsing scenarios including the ViewEngine, `include` and `render` statements.
 
 ```c#
 var options = new TemplateOptions { FileProvider = fileProvider };
