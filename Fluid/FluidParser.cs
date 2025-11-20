@@ -78,6 +78,7 @@ namespace Fluid
 
         protected static readonly LiteralExpression EmptyKeyword = new LiteralExpression(EmptyValue.Instance);
         protected static readonly LiteralExpression BlankKeyword = new LiteralExpression(BlankValue.Instance);
+        protected static readonly LiteralExpression NilKeyword = new LiteralExpression(NilValue.Instance);
         protected static readonly LiteralExpression TrueKeyword = new LiteralExpression(BooleanValue.True);
         protected static readonly LiteralExpression FalseKeyword = new LiteralExpression(BooleanValue.False);
 
@@ -163,6 +164,8 @@ namespace Fluid
                         {
                             case "empty": return EmptyKeyword;
                             case "blank": return BlankKeyword;
+                            case "nil": return NilKeyword; // Both nil and null are supported for convenience
+                            case "null": return NilKeyword;
                             case "true": return TrueKeyword;
                             case "false": return FalseKeyword;
                         }

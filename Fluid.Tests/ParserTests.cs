@@ -778,6 +778,27 @@ true
         }
 
         [Theory]
+        [InlineData("p == null", "true")]
+        [InlineData("p != null", "false")]
+        [InlineData("null == p", "true")]
+        [InlineData("null == blank", "true")]
+        [InlineData("blank == null", "true")]
+        [InlineData("null == ''", "false")]
+        [InlineData("'' == null", "false")]
+        [InlineData("empty == null", "false")]
+        [InlineData("null == empty", "false")]
+        [InlineData("null == nil", "true")]
+        [InlineData("nil == null", "true")]
+        [InlineData("e == null", "false")]
+        [InlineData("null == e", "false")]
+        [InlineData("p != null and p != ''", "false")]
+        [InlineData("p != '' and p != null", "false")]
+        public Task NullShouldBehaveLikeNil(string source, string expected)
+        {
+            return CheckAsync(source, expected, t => t.SetValue("e", "").SetValue("f", "hello"));
+        }
+
+        [Theory]
         [InlineData("blank == false", "true")]
         [InlineData("empty == false", "false")]
         public Task BlankShouldComparesToFalse(string source, string expected)
