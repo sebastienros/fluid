@@ -200,5 +200,116 @@ namespace Fluid.Tests
 
             Assert.Equal("", sw.ToString());
         }
+
+        [Fact]
+        public async Task CaseWithMixedWhenElse_NoMatch_AllElse()
+        {
+            var parser = new FluidParser();
+            var template = @"{%  case 'x' %}
+  {% when 'y' %}match1
+  {% when 'y' %}match2
+  {% else %} else1
+  {% else %} else2
+  {% when 'y' %}match3
+  {% when 'y' %}match4
+  {% else %} else3
+  {% else %} else4
+{% endcase %}";
+            
+            var result = parser.Parse(template);
+            var context = new TemplateContext();
+            var output = await result.RenderAsync(context);
+            
+            Assert.Equal(" else1\n   else2\n   else3\n   else4\n", output);
+        }
+        
+        [Fact]
+        public async Task CaseWithMixedWhenElse_Match_OnlyMatches()
+        {
+            var parser = new FluidParser();
+            var template = @"{%  case 'x' %}
+  {% when 'x' %}match1
+  {% when 'x' %}match2
+  {% else %} else1
+  {% else %} else2
+  {% when 'y' %}match3
+  {% when 'y' %}match4
+  {% else %} else3
+  {% else %} else4
+{% endcase %}";
+            
+            var result = parser.Parse(template);
+            var context = new TemplateContext();
+            var output = await result.RenderAsync(context);
+            
+            Assert.Equal("match1\n  match2\n  ", output);
+        }
+
+        [Fact]
+        public async Task CaseWithMultipleElseBlocks()
+        {
+            var parser = new FluidParser();
+            var template = "{% case 'x' %}{% when 'y' %}foo{% else %}bar{% else %}baz{% endcase %}";
+            
+            var result = parser.Parse(template);
+            var context = new TemplateContext();
+            var output = await result.RenderAsync(context);
+            
+            Assert.Equal("barbaz", output);
+        }
+
+        [Fact]
+        public async Task CaseWithFalsyWhenBeforeAndTruthyWhenAfterElse()
+        {
+            var parser = new FluidParser();
+            var template = "{% case 'x' %}{% when 'y' %}foo{% else %}bar{% when 'x' %}baz{% endcase %}";
+            
+            var result = parser.Parse(template);
+            var context = new TemplateContext();
+            var output = await result.RenderAsync(context);
+            
+            Assert.Equal("barbaz", output);
+        }
+
+        [Fact]
+        public async Task CaseWithFalsyWhenBeforeAndTruthyWhenAfterMultipleElseBlocks()
+        {
+            var parser = new FluidParser();
+            var template = "{% case 'x' %}{% when 'y' %}foo{% else %}bar{% else %}baz{% when 'x' %}qux{% endcase %}";
+            
+            var result = parser.Parse(template);
+            var context = new TemplateContext();
+            var output = await result.RenderAsync(context);
+            
+            Assert.Equal("barbazqux", output);
+        }
+
+        [Fact]
+        public async Task CaseWithTruthyWhenBeforeAndAfterElse()
+        {
+            var parser = new FluidParser();
+            var template = "{% case 'x' %}{% when 'x' %}foo{% else %}bar{% when 'x' %}baz{% endcase %}";
+            
+            var result = parser.Parse(template);
+            var context = new TemplateContext();
+            var output = await result.RenderAsync(context);
+            
+            Assert.Equal("foobaz", output);
+        }
+
+        [Fact]
+        public async Task CaseEvaluateMultipleMatchingBlocks()
+        {
+            var parser = new FluidParser();
+            var template = "{% case title %}{% when 'Hello' %}foo{% when a, 'Hello' %}bar{% endcase %}";
+            
+            var result = parser.Parse(template);
+            var context = new TemplateContext();
+            context.SetValue("title", "Hello");
+            context.SetValue("a", "Hello");
+            var output = await result.RenderAsync(context);
+            
+            Assert.Equal("foobarbar", output);
+        }
     }
 }
