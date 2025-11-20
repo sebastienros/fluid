@@ -60,12 +60,12 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void RegisterByTypeIgnoresStaticMembers()
+        public void RegisterByTypeIncludesStaticMembers()
         {
             var strategy = new DefaultMemberAccessStrategy();
 
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.StaticField), StringComparer.Ordinal));
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.StaticProperty), StringComparer.Ordinal));
+            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.StaticField), StringComparer.Ordinal));
+            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.StaticProperty), StringComparer.Ordinal));
         }
 
         [Fact]
@@ -217,6 +217,48 @@ namespace Fluid.Tests
             var template = _parser.Parse("{{X1}} {{X2}} {{X3}}");
             Assert.Equal("1 2 3", template.Render(new TemplateContext(s, options)));
         }
+
+        [Fact]
+        public void ShouldResolveStaticField()
+        {
+            var options = new TemplateOptions();
+
+            Class1.StaticField = "StaticValue";
+
+            var model = new Class1();
+            var template = _parser.Parse("{{StaticField}}");
+            Assert.Equal("StaticValue", template.Render(new TemplateContext(model, options)));
+        }
+
+        [Fact]
+        public void ShouldResolveStaticProperty()
+        {
+            var options = new TemplateOptions();
+
+            Class1.StaticProperty = "StaticPropertyValue";
+
+            var model = new Class1();
+            var template = _parser.Parse("{{StaticProperty}}");
+            Assert.Equal("StaticPropertyValue", template.Render(new TemplateContext(model, options)));
+        }
+
+        [Fact]
+        public void ShouldResolveStaticFluidValueForNullComparison()
+        {
+            var options = new TemplateOptions();
+
+            // This test verifies the use case from issue #867
+            var model = new ModelWithStaticNull();
+            var template = _parser.Parse("{% if product == Null %}Not found{% else %}Found{% endif %}");
+            
+            Assert.Equal("Not found", template.Render(new TemplateContext(model, options)));
+        }
+    }
+
+    public class ModelWithStaticNull
+    {
+        public static FluidValue Null => NilValue.Instance;
+        public FluidValue product => NilValue.Instance;
     }
 
     public class Class1
