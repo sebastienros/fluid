@@ -1201,25 +1201,23 @@ var result = changed.Render();
 Console.WriteLine(result); // writes -1
 ```
 
-### Using visitors with the ViewEngine
+### Visiting templates parsed during rendering
 
-When using the Fluid ASP.NET MVC ViewEngine or the standalone ViewEngine, you can apply visitors and rewriters to templates before they are cached by using the `TemplateParsed` callback:
+You can apply visitors and rewriters to templates that are parsed before they are cached by using the `TemplateParsed` callback on `TemplateOptions`. This works for all template parsing scenarios including the ViewEngine, `include` and `render` statements.
 
 ```c#
-services.AddMvc().AddFluid(options =>
+var options = new TemplateOptions { FileProvider = fileProvider };
+options.TemplateParsed = (path, template) =>
 {
-    options.TemplateParsed = (path, template) =>
-    {
-        var visitor = new MyCustomVisitor();
-        return visitor.VisitTemplate(template);
-    };
-});
+    var visitor = new MyCustomVisitor();
+    return visitor.VisitTemplate(template);
+};
 ```
 
 The `TemplateParsed` callback is invoked after a template is parsed but before it is cached. This means:
 - The modified template is cached, improving performance
-- The callback applies to all templates including partials and ViewStarts
-- Each template is processed only once (when first parsed)
+- The callback applies to all templates including partials, includes, and ViewStarts
+- Each template is processed only once (when first parsed, not when retrieved from cache)
 
 ### Custom parsers
 

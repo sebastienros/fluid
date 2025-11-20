@@ -25,6 +25,14 @@ namespace Fluid
         /// <returns>The value to use for the undefined value.</returns>
         public delegate ValueTask<FluidValue> UndefinedDelegate(string name);
 
+        /// <summary>
+        /// Represents the method that will handle the template parsed event.
+        /// </summary>
+        /// <param name="path">The path of the template that was parsed.</param>
+        /// <param name="template">The template that was parsed.</param>
+        /// <returns>The template to use, which may be modified by applying AST visitors or rewriters.</returns>
+        public delegate IFluidTemplate TemplateParsedDelegate(string path, IFluidTemplate template);
+
         public static readonly TemplateOptions Default = new();
 
         /// <summary>
@@ -117,6 +125,12 @@ namespace Fluid
         /// Gets or sets the delegate to execute when an undefined value is encountered during rendering.
         /// </summary>
         public UndefinedDelegate Undefined { get; set; }
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when a template is parsed during include or render statements.
+        /// This can be used to apply AST visitors or rewriters to modify templates before they are rendered or cached.
+        /// </summary>
+        public TemplateParsedDelegate TemplateParsed { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="JsonSerializerOptions"/> used by the <c>json</c> filter.

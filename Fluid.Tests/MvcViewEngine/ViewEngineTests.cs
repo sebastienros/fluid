@@ -309,7 +309,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/Index.liquid", "{{ 1 | plus: 2 }}");
 
             // Use a visitor to replace 2 with 4
-            _options.TemplateParsed = (path, template) =>
+            _options.TemplateOptions.TemplateParsed = (path, template) =>
             {
                 var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
                 return visitor.VisitTemplate(template);
@@ -321,7 +321,7 @@ namespace Fluid.Tests.MvcViewEngine
 
             Assert.Equal("5", sw.ToString());
 
-            _options.TemplateParsed = null;
+            _options.TemplateOptions.TemplateParsed = null;
         }
 
         [Fact]
@@ -331,7 +331,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Partials/World.liquid", "{{ 1 | plus: 2 }}");
 
             // Use a visitor to replace 2 with 4
-            _options.TemplateParsed = (path, template) =>
+            _options.TemplateOptions.TemplateParsed = (path, template) =>
             {
                 var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
                 return visitor.VisitTemplate(template);
@@ -343,7 +343,7 @@ namespace Fluid.Tests.MvcViewEngine
 
             Assert.Equal("5", sw.ToString());
 
-            _options.TemplateParsed = null;
+            _options.TemplateOptions.TemplateParsed = null;
         }
 
         [Fact]
@@ -353,7 +353,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/_ViewStart.liquid", "{{ 1 | plus: 2 }} ");
 
             // Use a visitor to replace 2 with 4
-            _options.TemplateParsed = (path, template) =>
+            _options.TemplateOptions.TemplateParsed = (path, template) =>
             {
                 var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
                 return visitor.VisitTemplate(template);
@@ -365,7 +365,7 @@ namespace Fluid.Tests.MvcViewEngine
 
             Assert.Equal("5 Hello", sw.ToString());
 
-            _options.TemplateParsed = null;
+            _options.TemplateOptions.TemplateParsed = null;
         }
 
         [Fact]
