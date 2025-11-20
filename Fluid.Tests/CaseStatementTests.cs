@@ -198,44 +198,58 @@ namespace Fluid.Tests
         public async Task CaseWithMixedWhenElse_NoMatch_AllElse()
         {
             var parser = new FluidParser();
-            var template = @"{%  case 'x' %}
-  {% when 'y' %}match1
-  {% when 'y' %}match2
-  {% else %} else1
-  {% else %} else2
-  {% when 'y' %}match3
-  {% when 'y' %}match4
-  {% else %} else3
-  {% else %} else4
-{% endcase %}";
+            var template = """
+                {%  case 'x' %}
+                  {% when 'y' %}match1
+                  {% when 'y' %}match2
+                  {% else %} else1
+                  {% else %} else2
+                  {% when 'y' %}match3
+                  {% when 'y' %}match4
+                  {% else %} else3
+                  {% else %} else4
+                {% endcase %}
+                """;
             
             var result = parser.Parse(template);
             var context = new TemplateContext();
             var output = await result.RenderAsync(context);
             
-            Assert.Equal(" else1\n   else2\n   else3\n   else4\n", output);
+            Assert.Equal("""
+                 else1
+                   else2
+                   else3
+                   else4
+
+                """, output);
         }
         
         [Fact]
         public async Task CaseWithMixedWhenElse_Match_OnlyMatches()
         {
             var parser = new FluidParser();
-            var template = @"{%  case 'x' %}
-  {% when 'x' %}match1
-  {% when 'x' %}match2
-  {% else %} else1
-  {% else %} else2
-  {% when 'y' %}match3
-  {% when 'y' %}match4
-  {% else %} else3
-  {% else %} else4
-{% endcase %}";
+            var template = """
+                {%  case 'x' %}
+                  {% when 'x' %}match1
+                  {% when 'x' %}match2
+                  {% else %} else1
+                  {% else %} else2
+                  {% when 'y' %}match3
+                  {% when 'y' %}match4
+                  {% else %} else3
+                  {% else %} else4
+                {% endcase %}
+                """;
             
             var result = parser.Parse(template);
             var context = new TemplateContext();
             var output = await result.RenderAsync(context);
-            
-            Assert.Equal("match1\n  match2\n  ", output);
+
+            Assert.Equal("""
+                match1
+                  match2
+                  
+                """, output);
         }
 
         [Fact]
