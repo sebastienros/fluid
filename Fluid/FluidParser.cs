@@ -164,7 +164,7 @@ namespace Fluid
                         {
                             case "empty": return EmptyKeyword;
                             case "blank": return BlankKeyword;
-                            case "nil": return NilKeyword;
+                            case "nil": return NilKeyword; // Both nil and null are supported for convenience
                             case "null": return NilKeyword;
                             case "true": return TrueKeyword;
                             case "false": return FalseKeyword;
