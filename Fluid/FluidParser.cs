@@ -440,7 +440,7 @@ namespace Fluid
                        .AndSkip(OptionalComments)
                        .And(ZeroOrMany(OneOf(WhenBlock, ElseBlock).AndSkip(OptionalComments)))
                        .AndSkip(CreateTag("endcase").ElseError($"'{{% endcase %}}' was expected"))
-                       .Then<Statement>(x => new CaseStatement(x.Item1, x.Item2.ToArray()))
+                       .Then<Statement>(x => new CaseStatement(x.Item1, x.Item2))
                        .ElseError("Invalid 'case' tag");
             CaseTag.Name = "CaseTag";
 
@@ -685,7 +685,7 @@ namespace Fluid
         /// </summary>
         public virtual FluidParser Compile()
         {
-            foreach (var entry in RegisteredTags.ToArray())
+            foreach (var entry in RegisteredTags)
             {
                 RegisteredTags[entry.Key] = entry.Value.Compile();
             }

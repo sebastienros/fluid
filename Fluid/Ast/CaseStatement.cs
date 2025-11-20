@@ -4,11 +4,11 @@ namespace Fluid.Ast
 {
     public sealed class CaseStatement : TagStatement
     {
-        private readonly CaseBlock[] _blocks;
+        private readonly IReadOnlyList<CaseBlock> _blocks;
 
         public CaseStatement(
             Expression expression,
-            CaseBlock[] blocks
+            IReadOnlyList<CaseBlock> blocks
         ) : base([])
         {
             Expression = expression;
