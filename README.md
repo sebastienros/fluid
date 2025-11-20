@@ -1208,7 +1208,7 @@ When using the Fluid ASP.NET MVC ViewEngine or the standalone ViewEngine, you ca
 ```c#
 services.AddMvc().AddFluid(options =>
 {
-    options.TemplateParsed = (path, template) =>
+    options.TemplateOptions.TemplateParsed = (path, template) =>
     {
         var visitor = new MyCustomVisitor();
         return visitor.VisitTemplate(template);
@@ -1220,6 +1220,17 @@ The `TemplateParsed` callback is invoked after a template is parsed but before i
 - The modified template is cached, improving performance
 - The callback applies to all templates including partials and ViewStarts
 - Each template is processed only once (when first parsed)
+
+This callback is also available when using `include` or `render` statements with `TemplateOptions`:
+
+```c#
+var options = new TemplateOptions { FileProvider = fileProvider };
+options.TemplateParsed = (path, template) =>
+{
+    var visitor = new MyCustomVisitor();
+    return visitor.VisitTemplate(template);
+};
+```
 
 ### Custom parsers
 
