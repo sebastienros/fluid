@@ -10,6 +10,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using TimeZoneConverter;
 using Xunit;
 using Xunit.Sdk;
 
@@ -17,6 +18,7 @@ namespace Fluid.Tests
 {
     public class GoldenLiquidTests
     {
+        private static readonly TimeZoneInfo Pacific = TZConvert.GetTimeZoneInfo("America/Los_Angeles");
         private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
         private static readonly FluidParser _parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true, AllowLiquidTag = true });
         private static readonly TemplateOptions _options = new TemplateOptions();
@@ -32,9 +34,6 @@ namespace Fluid.Tests
 
         static GoldenLiquidTests()
         {
-            // Golden Liquid tests expect UTC timezone for consistent date handling
-            _options.TimeZone = TimeZoneInfo.Utc;
-
             FluidValue ConvertJsonElement(JsonElement value, TemplateOptions options)
             {
                 if (value is JsonElement jsonElement)
@@ -85,6 +84,8 @@ namespace Fluid.Tests
 
             var context = new TemplateContext(_options);
 
+            context.TimeZone = test.Tags.Contains("utc") ? TimeZoneInfo.Utc : Pacific;
+
             if (test.Data.Count != 0)
             {
                 foreach (var item in test.Data)
@@ -104,7 +105,7 @@ namespace Fluid.Tests
                 }
             }
 
-            if (test.Invalid)
+            if (test.Invalid || test.Absent)
             {
                 try
                 {
@@ -194,6 +195,10 @@ namespace Fluid.Tests
                 {
                     test.Strict = true;
                 }
+                if (test.Tags.Remove("absent"))
+                {
+                    test.Absent = true;
+                }
                 
                 test.Id = JsonNamingPolicy.SnakeCaseLower.ConvertName(test.Name.Replace(",", " "));
 
@@ -263,6 +268,7 @@ namespace Fluid.Tests
         [JsonPropertyName("invalid")]
         public bool Invalid { get; set; }
 
+        public bool Absent { get; set; }
         public bool Strict { get; set; }
 
         public bool Rigid { get; set; }
@@ -281,6 +287,7 @@ namespace Fluid.Tests
             Invalid = info.GetValue<bool>(nameof(Invalid));
             Strict = info.GetValue<bool>(nameof(Strict));
             Rigid = info.GetValue<bool>(nameof(Rigid));
+            Absent = info.GetValue<bool>(nameof(Absent));
         }
 
         void IXunitSerializable.Serialize(IXunitSerializationInfo info)
@@ -295,6 +302,7 @@ namespace Fluid.Tests
             info.AddValue(nameof(Strict), Strict);
             info.AddValue(nameof(Rigid), Rigid);
             info.AddValue(nameof(Id), Id);
+            info.AddValue(nameof(Absent), Absent);
         }
 
         public override string ToString() => Id;
