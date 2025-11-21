@@ -409,7 +409,8 @@ namespace Fluid.Filters
 
             if (!input.TryGetDateTimeInput(context, out var value))
             {
-                return NilValue.Instance;
+                // return input unchanged if it can't be parsed as a date
+                return input;
             }
 
             if (arguments.At(0).IsNil())
