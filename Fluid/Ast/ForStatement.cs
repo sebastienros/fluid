@@ -104,7 +104,11 @@ namespace Fluid.Ast
 
             try
             {
-                var forloop = new ForLoopValue();
+                var forloop = new ForLoopValue
+                {
+                    Identifier = Identifier,
+                    Source = Source is MemberExpression m ? string.Join(".", m.Segments.Select(s => (s as IdentifierSegment)?.Identifier).Where(s => s != null)) : null
+                };
 
                 var length = forloop.Length = startIndex + count;
 

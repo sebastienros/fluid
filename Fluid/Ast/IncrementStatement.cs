@@ -30,7 +30,7 @@ namespace Fluid.Ast
                 value = NumberValue.Zero;
             }
 
-            // Decrement renders the value before incrementing it.
+            // Increment renders the value before incrementing it.
             await value.WriteToAsync(writer, encoder, context.CultureInfo);
 
             context.SetValue(prefixedIdentifier, NumberValue.Create(value.ToNumberValue() + 1));

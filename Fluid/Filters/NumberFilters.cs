@@ -57,19 +57,33 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> DividedBy(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            LiquidException.ThrowFilterArgumentsCount("divide_by", expected: 1, arguments);
+            LiquidException.ThrowFilterArgumentsCount("divided_by", expected: 1, arguments);
 
             var first = arguments.At(0);
             decimal divisor = first.ToNumberValue();
+            decimal dividend = input.ToNumberValue();
 
-            // The result is rounded down to the nearest integer(that is, the floor) if the divisor is an integer.
+            // The result is rounded down to the nearest integer(that is, the floor) if BOTH the divisor AND dividend are integers.
             // https://shopify.github.io/liquid/filters/divided_by/
 
-            var result = input.ToNumberValue() / divisor;
+            var result = dividend / divisor;
 
-            if (NumberValue.GetScale(divisor) == 0)
+            var divisorScale = NumberValue.GetScale(divisor);
+            var dividendScale = NumberValue.GetScale(dividend);
+
+            if (divisorScale == 0 && dividendScale == 0)
             {
                 return NumberValue.Create(decimal.Floor(result));
+            }
+
+            // For float division, round to 15 decimal places to match Shopify's implementation
+            result = Math.Round(result, 15);
+            
+            // Ensure the result has at least scale 1 when doing float division
+            // by adding .0 if needed (multiply by 10, divide by 10.0)
+            if (NumberValue.GetScale(result) == 0)
+            {
+                result = result * 1.0m; // This forces at least scale 1
             }
 
             return NumberValue.Create(result);

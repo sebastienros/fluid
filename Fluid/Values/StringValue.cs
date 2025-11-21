@@ -114,8 +114,6 @@ namespace Fluid.Values
             return name switch
             {
                 "size" => NumberValue.Create(_value.Length),
-                "first" => _value.Length > 0 ? Create(_value[0]) : NilValue.Instance,
-                "last" => _value.Length > 0 ? Create(_value[^1]) : NilValue.Instance,
                 _ => NilValue.Instance,
             };
         }

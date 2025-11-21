@@ -40,6 +40,12 @@ namespace Fluid.Values
                 return false;
             }
 
+            // Numbers should not equal booleans in Liquid (0 != false, 1 != true)
+            if (other.Type == FluidValues.Boolean)
+            {
+                return false;
+            }
+
             return _value == other.ToNumberValue();
         }
 

@@ -84,7 +84,8 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("newline_to_br", expected: 0, arguments);
 
-            return new StringValue(input.ToStringValue().Replace("\r\n", "<br />").Replace("\n", "<br />"));
+            // Replace \r\n first, then \n alone (order matters to avoid double replacement)
+            return new StringValue(input.ToStringValue().Replace("\r\n", "<br />\n").Replace("\r", "<br />\n").Replace("\n", "<br />\n"));
         }
 
         public static ValueTask<FluidValue> Prepend(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -206,20 +207,24 @@ namespace Fluid.Filters
             LiquidException.ThrowFilterArgumentsCount("slice", min: 1, max: 2, arguments);
 
             var firstArgument = arguments.At(0);
-            var secondArgument = arguments.At(1);
 
             if (!firstArgument.IsInteger())
             {
                 throw new ArgumentException("Slice: offset argument is an invalid number");
             }
 
-            if (arguments.Count > 1 && !secondArgument.IsInteger())
-            {
-                throw new ArgumentException("Slice: length argument is not a number");
-            }
-
             var requestedStartIndex = Convert.ToInt32(firstArgument.ToNumberValue());
-            var requestedLength = Convert.ToInt32(secondArgument.Or(NumberValue.Create(1)).ToNumberValue());
+            var requestedLength = 1;
+
+            if (arguments.Count > 1)
+            {
+                var secondArgument = arguments.At(1);
+                if (!secondArgument.IsNil() && !secondArgument.IsInteger())
+                {
+                    throw new ArgumentException("Slice: length argument is not a number");
+                }
+                requestedLength = secondArgument.IsNil() ? 1 : Convert.ToInt32(secondArgument.ToNumberValue());
+            }
 
             if (input.Type == FluidValues.Array)
             {
@@ -341,14 +346,44 @@ namespace Fluid.Filters
                 return StringValue.Empty;
             }
 
-            var length = Convert.ToInt32(arguments.At(0).Or(DefaultTruncateLength).ToNumberValue());
+            // If first argument is not provided, use default of 50
+            // If first argument is nil (undefined variable), throw error per Golden Liquid spec
+            var firstArg = arguments.At(0);
+            int length;
+            if (arguments.Count == 0)
+            {
+                length = 50; // Default length
+            }
+            else if (firstArg.IsNil())
+            {
+                throw new ArgumentException("truncate: cannot convert nil to number");
+            }
+            else
+            {
+                length = Convert.ToInt32(firstArg.ToNumberValue());
+            }
 
             if (inputStr.Length <= length)
             {
                 return input;
             }
 
-            var ellipsisStr = arguments.At(1).Or(Ellipsis).ToStringValue();
+            // If second argument is not provided, use default "..."
+            // If second argument is nil (undefined variable), use empty string per Golden Liquid spec
+            var secondArg = arguments.At(1);
+            string ellipsisStr;
+            if (arguments.Count < 2)
+            {
+                ellipsisStr = "..."; // Default ellipsis when not provided
+            }
+            else if (secondArg.IsNil())
+            {
+                ellipsisStr = ""; // Undefined variable means no ellipsis
+            }
+            else
+            {
+                ellipsisStr = secondArg.ToStringValue();
+            }
 
             var l = Math.Max(0, length - ellipsisStr.Length);
 
@@ -366,16 +401,44 @@ namespace Fluid.Filters
 
             var source = input.ToStringValue();
 
-            // Default value is 15
-            // c.f. https://github.com/Shopify/liquid/blob/81f44e36be5f2110c26b6532fd4ccd22edaf59f2/lib/liquid/standardfilters.rb#L233
-            var size = Convert.ToInt32(arguments.At(0).Or(NumberValue.Create(15)).ToNumberValue());
+            // If first argument is not provided, use default of 15
+            // If first argument is nil (undefined variable), throw error per Golden Liquid spec
+            var firstArg = arguments.At(0);
+            int size;
+            if (arguments.Count == 0)
+            {
+                size = 15; // Default word count
+            }
+            else if (firstArg.IsNil())
+            {
+                throw new ArgumentException("truncatewords: cannot convert nil to number");
+            }
+            else
+            {
+                size = Convert.ToInt32(firstArg.ToNumberValue());
+            }
 
             if (size <= 0)
             {
                 size = 1;
             }
 
-            var ellipsis = arguments.At(1).Or(Ellipsis).ToStringValue();
+            // If second argument is not provided, use default "..."
+            // If second argument is nil (undefined variable), use empty string per Golden Liquid spec
+            var secondArg = arguments.At(1);
+            string ellipsis;
+            if (arguments.Count < 2)
+            {
+                ellipsis = "..."; // Default ellipsis when not provided
+            }
+            else if (secondArg.IsNil())
+            {
+                ellipsis = ""; // Undefined variable means no ellipsis
+            }
+            else
+            {
+                ellipsis = secondArg.ToStringValue();
+            }
 
             var chunks = new List<string>();
 

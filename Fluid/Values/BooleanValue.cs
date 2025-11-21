@@ -31,6 +31,9 @@ namespace Fluid.Values
             // blank == false -> true
             if (other.Type == FluidValues.Blank) return !_value;
 
+            // Numbers should not equal booleans in Liquid (0 != false, 1 != true)
+            if (other.Type == FluidValues.Number) return false;
+
             return other.Type == FluidValues.Boolean && _value == other.ToBooleanValue();
         }
 

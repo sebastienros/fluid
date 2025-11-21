@@ -121,7 +121,17 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            LiquidException.ThrowFilterArgumentsCount("default", min: 1, max: 2, arguments);
+            LiquidException.ThrowFilterArgumentsCount("default", min: 0, max: 2, arguments);
+
+            if (arguments.Count == 0)
+            {
+                // When called with no arguments, return empty string for nil/false/empty
+                if (input.IsNil() || input == BooleanValue.False || EmptyValue.Instance.Equals(input))
+                {
+                    return StringValue.Empty;
+                }
+                return input;
+            }
 
             var falseCheck = arguments.HasNamed("allow_false") && arguments["allow_false"] == BooleanValue.True;
 
@@ -181,7 +191,10 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("url_encode", expected: 0, arguments);
 
-            return new StringValue(WebUtility.UrlEncode(input.ToStringValue()));
+            var encoded = WebUtility.UrlEncode(input.ToStringValue());
+            // WebUtility.UrlEncode doesn't encode ! but Shopify's Liquid does
+            encoded = encoded?.Replace("!", "%21");
+            return new StringValue(encoded);
         }
 
         public static ValueTask<FluidValue> UrlDecode(FluidValue input, FilterArguments arguments, TemplateContext context)

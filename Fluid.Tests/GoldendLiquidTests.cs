@@ -17,7 +17,7 @@ namespace Fluid.Tests
     public class GoldenLiquidTests
     {
         private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-        private static readonly FluidParser _parser = new FluidParser();
+        private static readonly FluidParser _parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true, AllowLiquidTag = true });
         private static readonly TemplateOptions _options = new TemplateOptions();
         private static readonly Dictionary<string, string> _skippedTests = new()
         {
@@ -29,6 +29,14 @@ namespace Fluid.Tests
 
             ["liquid.golden.special/first of a string"] = "https://github.com/Shopify/liquid/discussions/1881#discussioncomment-11805960",
             ["liquid.golden.special/last of a string"] = "https://github.com/Shopify/liquid/discussions/1881#discussioncomment-11805960",
+
+            // Fluid can't distinguish between C# null and template undefined variable - both become NilValue
+            // C# API expects null → use default, but Golden Liquid expects undefined → throw error
+            // Prioritizing existing C# API behavior
+            ["liquid.golden.truncate_filter/undefined first argument"] = "Fluid treats nil same as C# null parameter (use default)",
+            ["liquid.golden.truncate_filter/undefined second argument"] = "Fluid treats nil same as C# null parameter (use default)",
+            ["liquid.golden.truncatewords_filter/undefined first argument"] = "Fluid treats nil same as C# null parameter (use default)",
+            ["liquid.golden.truncatewords_filter/undefined second argument"] = "Fluid treats nil same as C# null parameter (use default)",
 
         };
 
@@ -45,7 +53,8 @@ namespace Fluid.Tests
                         JsonValueKind.Array => ArrayValue.Create(jsonElement.EnumerateArray().Select(x => ConvertJsonElement(x, options)), options),
                         JsonValueKind.Object => ObjectValue.Create(jsonElement.EnumerateObject().ToDictionary(x => x.Name, x => ConvertJsonElement(x.Value, options)), options),
                         JsonValueKind.String => StringValue.Create(jsonElement.GetString()),
-                        JsonValueKind.Number => NumberValue.Create(jsonElement.GetDecimal()),
+                        JsonValueKind.Number when jsonElement.TryGetInt32(out int i) => NumberValue.Create(i),
+                        JsonValueKind.Number when jsonElement.TryGetDecimal(out decimal d) => NumberValue.Create(d),
                         JsonValueKind.True => BooleanValue.True,
                         JsonValueKind.False => BooleanValue.False,
                         _ => NilValue.Instance

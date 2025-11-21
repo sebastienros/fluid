@@ -324,7 +324,8 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("sort", min: 0, max: 1, arguments);
 
-            if (arguments.Count > 0)
+            // If argument is provided but is nil, treat as no argument
+            if (arguments.Count > 0 && !arguments.At(0).IsNil())
             {
                 var member = arguments.At(0).ToStringValue();
 
@@ -352,7 +353,8 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("sort_natural", min: 0, max: 2, arguments);
 
-            if (arguments.Count > 0)
+            // If argument is provided but is nil, treat as no argument
+            if (arguments.Count > 0 && !arguments.At(0).IsNil())
             {
                 var member = arguments.At(0).ToStringValue();
 
@@ -411,6 +413,7 @@ namespace Fluid.Filters
                         sumList.Add(Sum(item, arguments, context).Result.ToNumberValue());
                         break;
                     case ObjectValue:
+                    case DictionaryValue:
                         {
                             var value = await item.GetValueAsync(member.ToStringValue(), context);
                             sumList.Add(value.ToNumberValue());
