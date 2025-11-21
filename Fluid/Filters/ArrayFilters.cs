@@ -189,7 +189,14 @@ namespace Fluid.Filters
             {
                 var itemValue = await item.GetValueAsync(member, context);
 
-                if (targetValue.Equals(itemValue))
+                if (targetValue.Type != FluidValues.Boolean)
+                {
+                    if (itemValue.Equals(targetValue))
+                    {
+                        list.Add(item);
+                    }
+                }
+                else if (itemValue.ToBooleanValue() == targetValue.ToBooleanValue())
                 {
                     list.Add(item);
                 }
