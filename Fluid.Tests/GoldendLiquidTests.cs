@@ -1,3 +1,4 @@
+using Fluid;
 using Fluid.Tests.Mocks;
 using Fluid.Values;
 using System;
@@ -45,7 +46,9 @@ namespace Fluid.Tests
                         JsonValueKind.Array => ArrayValue.Create(jsonElement.EnumerateArray().Select(x => ConvertJsonElement(x, options)), options),
                         JsonValueKind.Object => ObjectValue.Create(jsonElement.EnumerateObject().ToDictionary(x => x.Name, x => ConvertJsonElement(x.Value, options)), options),
                         JsonValueKind.String => StringValue.Create(jsonElement.GetString()),
-                        JsonValueKind.Number => NumberValue.Create(jsonElement.GetDecimal()),
+                        JsonValueKind.Number when jsonElement.TryGetInt64(out var integer) => NumberValue.Create(integer),
+                        JsonValueKind.Number when jsonElement.TryGetDecimal(out var decimalValue) => NumberValue.Create(decimalValue),
+                        JsonValueKind.Number => NumberValue.Create(jsonElement.GetDouble()),
                         JsonValueKind.True => BooleanValue.True,
                         JsonValueKind.False => BooleanValue.False,
                         _ => NilValue.Instance
@@ -70,6 +73,11 @@ namespace Fluid.Tests
 
             var parseResult = _parser.TryParse(test.Template, out var template, out var error);
 
+            if (!GoldenClassData.IsDataLoaded)
+            {
+                throw SkipException.ForSkip($"Golden liquid dataset could not be loaded: {GoldenClassData.DataSourceDescription}");
+            }
+
             if (parseResult == false)
             {
                 if (test.Error)
@@ -84,6 +92,11 @@ namespace Fluid.Tests
             Assert.True(parseResult, error?.ToString());
 
             var context = new TemplateContext(test.Context, _options);
+
+            if (test.Strict)
+            {
+                context.Undefined = static name => throw new LiquidException($"Undefined variable '{name}'");
+            }
 
             if (test.Context.Count != 0)
             {
@@ -155,25 +168,33 @@ namespace Fluid.Tests
         private readonly string _goldenGitHash = "507a01c5453607c8d9e33d83677f639c53e36fee";
         private readonly string _testsFilePath;
 
+        public static bool IsDataLoaded { get; private set; }
+
+        public static string DataSourceDescription { get; private set; } = "unspecified";
+
         public GoldenClassData()
         {
-            // Download the test specs locally if it doesn't exist
-            var _goldenLiquidUrl = $"https://raw.githubusercontent.com/jg-rp/golden-liquid/{_goldenGitHash}/golden_liquid.json";
+            var goldenLiquidUrl = $"https://raw.githubusercontent.com/jg-rp/golden-liquid/{_goldenGitHash}/golden_liquid.json";
+            _testsFilePath = ResolveLocalTestFile(goldenLiquidUrl);
 
-            _testsFilePath = Path.Combine(Path.GetTempPath(), $"golden_liquid.{_goldenGitHash}.json");
-
-            if (!File.Exists(_testsFilePath))
+            if (_testsFilePath is null)
             {
-                using (var client = new HttpClient())
-                {
-                    var content = client.GetStringAsync(_goldenLiquidUrl).Result;
-                    Directory.CreateDirectory(Path.GetDirectoryName(_testsFilePath));
-                    File.WriteAllText(_testsFilePath, content);
-                }
+                IsDataLoaded = false;
+                return;
             }
+
+            DataSourceDescription = _testsFilePath;
+            IsDataLoaded = true;
 
             // Read the test specs from _testsFilePath file
             var goldenTestFile = JsonSerializer.Deserialize<GoldenTestFile>(File.ReadAllText(_testsFilePath));
+
+            if (goldenTestFile?.TestGroups is null)
+            {
+                IsDataLoaded = false;
+                DataSourceDescription = $"Unable to parse golden liquid data at '{_testsFilePath}'";
+                return;
+            }
 
             foreach (var group in goldenTestFile.TestGroups)
             {
@@ -182,6 +203,44 @@ namespace Fluid.Tests
                     test.GroupName = group.Name;
                     Add(test);
                 }
+            }
+        }
+
+        private string ResolveLocalTestFile(string goldenLiquidUrl)
+        {
+            var envPath = Environment.GetEnvironmentVariable("GOLDEN_LIQUID_PATH");
+
+            if (!string.IsNullOrWhiteSpace(envPath) && File.Exists(envPath))
+            {
+                return envPath;
+            }
+
+            var repoLocalPath = Path.Combine(AppContext.BaseDirectory, "golden_liquid.json");
+
+            if (File.Exists(repoLocalPath))
+            {
+                return repoLocalPath;
+            }
+
+            var tempPath = Path.Combine(Path.GetTempPath(), $"golden_liquid.{_goldenGitHash}.json");
+
+            if (File.Exists(tempPath))
+            {
+                return tempPath;
+            }
+
+            try
+            {
+                using var client = new HttpClient();
+                var content = client.GetStringAsync(goldenLiquidUrl).Result;
+                Directory.CreateDirectory(Path.GetDirectoryName(tempPath));
+                File.WriteAllText(tempPath, content);
+                return tempPath;
+            }
+            catch (Exception e) when (e is HttpRequestException or IOException or UnauthorizedAccessException)
+            {
+                DataSourceDescription = e.Message;
+                return null;
             }
         }
     }
