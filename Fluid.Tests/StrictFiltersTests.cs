@@ -27,7 +27,7 @@ public class StrictFiltersTests
         _parser.TryParse("{{ 'hello' | unknown }}", out var template, out var _);
         var options = new TemplateOptions { StrictFilters = true };
         var context = new TemplateContext(options);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => template.RenderAsync(context).AsTask());
+        await Assert.ThrowsAsync<FluidException>(() => template.RenderAsync(context).AsTask());
     }
 
     [Fact]

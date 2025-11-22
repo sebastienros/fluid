@@ -31,7 +31,7 @@ public class StrictVariableTests
         _parser.TryParse("{{ missing }}", out var template, out var _);
         var options = new TemplateOptions { StrictVariables = true };
         var context = new TemplateContext(options);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => template.RenderAsync(context).AsTask());
+        await Assert.ThrowsAsync<FluidException>(() => template.RenderAsync(context).AsTask());
     }
 
     [Fact]
