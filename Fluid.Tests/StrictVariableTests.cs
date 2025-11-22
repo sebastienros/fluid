@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Fluid.Tests.Domain;
@@ -22,6 +23,26 @@ public class StrictVariableTests
         var context = new TemplateContext();
         var result = await template.RenderAsync(context);
         Assert.Equal("", result);
+    }
+
+    [Fact]
+    public async Task StrictVariables_ThrowsOnMissingVariable()
+    {
+        _parser.TryParse("{{ missing }}", out var template, out var _);
+        var options = new TemplateOptions { StrictVariables = true };
+        var context = new TemplateContext(options);
+        await Assert.ThrowsAsync<FluidException>(() => template.RenderAsync(context).AsTask());
+    }
+
+    [Fact]
+    public async Task StrictVariables_DoesNotThrowWhenVariableExists()
+    {
+        _parser.TryParse("{{ existing }}", out var template, out var _);
+        var options = new TemplateOptions { StrictVariables = true };
+        var context = new TemplateContext(options);
+        context.SetValue("existing", "value");
+        var result = await template.RenderAsync(context);
+        Assert.Equal("value", result);
     }
 
     [Fact]

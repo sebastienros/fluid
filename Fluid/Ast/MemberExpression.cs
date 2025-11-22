@@ -47,9 +47,16 @@ namespace Fluid.Ast
                     // Check equality as IsNil() is also true for UndefinedValue
                     if (context.Undefined is not null && value == UndefinedValue.Instance)
                     {
+                        if (context.Options.StrictVariables)
+                        {
+                            throw new FluidException($"Undefined variable '{initial.Identifier}'");
+                        }
                         return context.Undefined.Invoke(initial.Identifier);
                     }
-
+                    if (context.Options.StrictVariables)
+                    {
+                        throw new FluidException($"Undefined variable '{initial.Identifier}'");
+                    }
                     return value;
                 }
 
@@ -72,6 +79,10 @@ namespace Fluid.Ast
                 // Stop processing as soon as a member returns nothing
                 if (value.IsNil())
                 {
+                    if (context.Options.StrictVariables)
+                    {
+                        throw new FluidException($"Undefined variable '{_segments[i]}'");
+                    }
                     return value;
                 }
             }
