@@ -145,13 +145,11 @@ namespace Fluid
         /// </summary>
         internal Scope RootScope { get; set; }
 
-        private Dictionary<string, object> _ambientValues;
-
         /// <summary>
         /// Used to define custom object on this instance to be used in filters and statements
         /// but which are not available from the template.
         /// </summary>
-        public Dictionary<string, object> AmbientValues => _ambientValues ??= new Dictionary<string, object>();
+        public Dictionary<string, object> AmbientValues => field ??= [];
 
         /// <summary>
         /// Gets or sets a model object that is used to resolve properties in a template. This object is used if local and

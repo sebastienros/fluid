@@ -1,4 +1,5 @@
-﻿using Fluid.Values;
+﻿using System;
+using Fluid.Values;
 
 namespace Fluid.Ast
 {
@@ -48,7 +49,12 @@ namespace Fluid.Ast
 
             if (!context.Options.Filters.TryGetValue(Name, out var filter))
             {
-                // When a filter is not defined, return the input
+                // When a filter is not defined, return the input unless strict filters are enabled
+                if (context.Options.StrictFilters)
+                {
+                    throw new FluidException($"Undefined filter '{Name}'");
+                }
+
                 return input;
             }
 
