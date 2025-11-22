@@ -9,6 +9,22 @@ namespace Fluid
 {
     public class TemplateOptions
     {
+        /// <summary>
+        /// When set to <c>true</c>, any access to an undefined variable during template rendering will
+        /// immediately throw an <see cref="InvalidOperationException"/>. The default is <c>false</c>, which
+        /// renders undefined variables as empty strings (unless an <see cref="Undefined"/> delegate is provided).
+        /// This property can be set at any time and is checked when undefined variables are accessed.
+        /// </summary>
+        public bool StrictVariables { get; set; }
+
+        /// <summary>
+        /// When set to <c>true</c>, using an unknown filter name in a template will
+        /// immediately throw an <see cref="InvalidOperationException"/> instead of
+        /// silently ignoring the filter or returning the input value. The default is <c>false</c>.
+        /// This can be toggled after construction to enforce stricter authoring rules.
+        /// </summary>
+        public bool StrictFilters { get; set; }
+
         /// <param name="identifier">The name of the property that is assigned.</param>
         /// <param name="value">The value that is assigned.</param>
         /// <param name="context">The <see cref="TemplateContext" /> instance used for rendering the template.</param>
@@ -162,6 +178,9 @@ namespace Fluid
         /// </summary>
         public bool Greedy { get; set; } = true;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TemplateOptions"/> class.
+        /// </summary>
         public TemplateOptions()
         {
             Filters.WithArrayFilters()
