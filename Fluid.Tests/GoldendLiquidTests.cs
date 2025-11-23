@@ -1,6 +1,5 @@
 using Fluid.Tests.Mocks;
 using Fluid.Values;
-using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -28,6 +27,13 @@ namespace Fluid.Tests
             // e.g. ["tag:[tag]"] = "reason for skipping category of tests",
 
             ["tag:base64_url_safe_encode filter"] = "https://github.com/Shopify/liquid/issues/1862",
+            ["id:filters_date_missing_argument"] = "test expects error but Shopify parses date",
+            ["id:filters_date_seconds_since_epoch_format_directive"] = "should have utc tag to pass, confirmed in Shopify, https://github.com/jg-rp/golden-liquid/issues/28",
+            ["id:filters_date_undefined_argument"] = "test expects error but Shopify parses date",
+
+            ["tag:tablerow tag"] = "tablerow not implemented",
+            ["tag:snippet tag"] = "snippet tag not implemented",
+            ["tag:ifchanged tag"] = "ifchanged tag not implemented",
         };
 
         public ITestOutputHelper TestOutputHelper { get; }

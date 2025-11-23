@@ -55,7 +55,7 @@ namespace Fluid.Filters
             LiquidException.ThrowFilterArgumentsCount("handleize", expected: 0, arguments);
 
             var value = input.ToStringValue();
-            var result = new StringBuilder();
+            var result = new ValueStringBuilder(stackalloc char[Math.Max(512, value.Length * 2)]);
             var lastIndex = value.Length - 1;
 
             for (var i = 0; i < value.Length; i++)
@@ -91,9 +91,8 @@ namespace Fluid.Filters
                         }
                         else
                         {
-                            result
-                                .Append(currentChar)
-                                .Append(KebabCaseSeparator);
+                            result.Append(currentChar);
+                            result.Append(KebabCaseSeparator);
                         }
                     }
                 }
@@ -415,18 +414,19 @@ namespace Fluid.Filters
 
             if (arguments.At(0).IsNil())
             {
+                // An absent format argument returns the input parsed as date
                 return new DateTimeValue(value);
             }
 
             var format = arguments.At(0).ToStringValue();
 
-            var result = new StringBuilder(64);
+            var result = new ValueStringBuilder(stackalloc char[128]);
 
-            ForStrf(value, format, result);
+            ForStrf(value, format, ref result);
 
             return new StringValue(result.ToString());
 
-            void ForStrf(DateTimeOffset value, string format, StringBuilder result)
+            void ForStrf(DateTimeOffset value, string format, ref ValueStringBuilder result)
             {
                 var percent = false;
 
@@ -509,8 +509,8 @@ namespace Fluid.Filters
                             case 'd': result.Append(Format(value.Day, 2)); break;
                             case 'D':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%m/%d/%y", sb);
+                                    var sb = new ValueStringBuilder(stackalloc char[16]);
+                                    ForStrf(value, "%m/%d/%y", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
@@ -519,8 +519,8 @@ namespace Fluid.Filters
                                 break;
                             case 'F':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%Y-%m-%d", sb);
+                                    var sb = new ValueStringBuilder(stackalloc char[16]);
+                                    ForStrf(value, "%Y-%m-%d", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
@@ -539,7 +539,7 @@ namespace Fluid.Filters
                                     break;
                                 }
                             case 'h':
-                                ForStrf(value, "%b", result);
+                                ForStrf(value, "%b", ref result);
                                 break;
                             case 'H':
                                 result.Append(value.ToString("HH"));
@@ -557,7 +557,7 @@ namespace Fluid.Filters
                                     break;
                                 }
                             case 'j': result.Append(Format(value.DayOfYear, 3)); break;
-                            case 'k': result.Append(value.Hour); break;
+                            case 'k': result.Append(value.Hour.ToString(CultureInfo.InvariantCulture)); break;
                             case 'l':
                                 {
                                     useSpaceForPaddingFlag = true;
@@ -586,15 +586,15 @@ namespace Fluid.Filters
                             case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLower(context.CultureInfo)); break;
                             case 'r':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%I:%M:%S %p", sb);
+                                    var sb = new ValueStringBuilder(stackalloc char[32]);
+                                    ForStrf(value, "%I:%M:%S %p", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
                             case 'R':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%H:%M", sb);
+                                    var sb = new ValueStringBuilder(stackalloc char[16]);
+                                    ForStrf(value, "%H:%M", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
@@ -605,12 +605,15 @@ namespace Fluid.Filters
                             case 't': result.Append(new String('\t', width ?? 1)); break;
                             case 'T':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%H:%M:%S", sb);
+                                    var sb = new ValueStringBuilder(stackalloc char[32]);
+                                    ForStrf(value, "%H:%M:%S", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
-                            case 'u': result.Append(value.DayOfWeek switch { DayOfWeek.Sunday => 7, _ => (int)value.DayOfWeek }); break;
+                            case 'u':
+                                var dayOfWeek = ((int)value.DayOfWeek) == 0 ? 7 : (int)value.DayOfWeek;
+                                result.Append(dayOfWeek.ToString(CultureInfo.InvariantCulture));  
+                                break;
                             case 'U':
                                 {
                                     var week = context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstFullWeek, DayOfWeek.Sunday);
@@ -623,8 +626,8 @@ namespace Fluid.Filters
                                 }
                             case 'v':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%e-%b-%Y", sb);
+                                    var sb = new ValueStringBuilder(stackalloc char[32]);
+                                    ForStrf(value, "%e-%b-%Y", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
@@ -674,12 +677,15 @@ namespace Fluid.Filters
                             case '%': result.Append('%'); break;
                             case '+':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%a %b %e %H:%M:%S %Z %Y", sb);
+                                    var sb = new ValueStringBuilder(stackalloc char[128]);
+                                    ForStrf(value, "%a %b %e %H:%M:%S %Z %Y", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
-                            default: result.Append('%').Append(c); break;
+                            default: 
+                                result.Append('%');
+                                result.Append(c); 
+                                break;
                         }
 
                         percent = false;
@@ -803,7 +809,7 @@ namespace Fluid.Filters
 #pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
             using var provider = System.Security.Cryptography.MD5.Create();
 #pragma warning restore CA5351
-            var builder = new StringBuilder(32);
+            var builder = new ValueStringBuilder(stackalloc char[32]);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
@@ -834,7 +840,7 @@ namespace Fluid.Filters
 #pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
             using var provider = System.Security.Cryptography.SHA1.Create();
 #pragma warning restore CA5350
-            var builder = new StringBuilder(40);
+            var builder = new ValueStringBuilder(stackalloc char[40]);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
@@ -863,7 +869,7 @@ namespace Fluid.Filters
             return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
 #else
             using var provider = System.Security.Cryptography.SHA256.Create();
-            var builder = new StringBuilder(64);
+            var builder = new ValueStringBuilder(stackalloc char[64]);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.SHA256.HashData' method over 'ComputeHash'
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
@@ -904,7 +910,7 @@ namespace Fluid.Filters
 #else
             using var provider = HMAC.Create(algorithm); 
             provider.Key = keyBytes;
-            var builder = new StringBuilder(64);
+            var builder = new ValueStringBuilder(stackalloc char[64]);
 #pragma warning disable CA1850
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
