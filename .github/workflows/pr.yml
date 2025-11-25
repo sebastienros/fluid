@@ -33,7 +33,7 @@ jobs:
       run: dotnet --version
 
     - name: Test
-      run: dotnet test -c Release --logger GitHubActions
+      run: dotnet test -c Release
 
     - name: Test - Compiled
-      run: dotnet test --configuration Release --logger GitHubActions /p:Compiled=true
+      run: dotnet test --configuration Release /p:Compiled=true
