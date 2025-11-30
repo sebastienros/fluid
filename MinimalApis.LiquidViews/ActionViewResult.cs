@@ -1,4 +1,5 @@
 ﻿using Fluid;
+using Fluid.Utils;
 using Fluid.ViewEngine;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -50,8 +51,16 @@ namespace MinimalApis.LiquidViews
             var context = new TemplateContext(_model, options.TemplateOptions);
             context.Options.FileProvider = options.PartialsFileProvider;
 
-            await using var sw = new StreamWriter(httpContext.Response.Body);
-            await fluidViewRenderer.RenderViewAsync(sw, viewPath, context);
+            var textWriter = Utf8BufferTextWriter.Get(httpContext.Response.BodyWriter);
+            try
+            {
+                await fluidViewRenderer.RenderViewAsync(textWriter, viewPath, context);
+                await textWriter.FlushAsync();
+            }
+            finally
+            {
+                Utf8BufferTextWriter.Return(textWriter);
+            }
         }
 
         private static string LocatePageFromViewLocations(string viewName, FluidViewEngineOptions options)
