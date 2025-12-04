@@ -55,8 +55,13 @@ namespace Fluid.Values
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static StringValue Create(string s)
+        public static FluidValue Create(string s)
         {
+            if (s is null)
+            {
+                return NilValue.Instance;
+            }
+
             if (String.IsNullOrEmpty(s))
             {
                 return Empty;
@@ -68,8 +73,13 @@ namespace Fluid.Values
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static StringValue Create(string s, bool encode)
+        public static FluidValue Create(string s, bool encode)
         {
+            if (s is null)
+            {
+                return NilValue.Instance;
+            }
+
             return new StringValue(s, encode);
         }
 
