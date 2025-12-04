@@ -1,4 +1,5 @@
-﻿using Fluid.Values;
+﻿using System;
+using Fluid.Values;
 using Xunit;
 
 namespace Fluid.Tests
@@ -33,7 +34,7 @@ namespace Fluid.Tests
         [InlineData(false)]
         public void StringValue_Create_InitializesProperties(bool encode)
         {
-            var stringValue = StringValue.Create("a", encode);
+            var stringValue = StringValue.Create("a", encode) as StringValue;
 
             // Assert
             Assert.Equal("a", stringValue.ToStringValue());

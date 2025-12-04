@@ -33,52 +33,39 @@ public sealed class PropertyInfoAccessor : IMemberAccessor
 
         Delegate converter = null;
 
-        switch (Type.GetTypeCode(propertyInfo.PropertyType))
+        // We use a converter to FluidValue for known types to prevent the more expensive FluidValue.Create call
+        // that will use ValueConverters
+
+        converter = Type.GetTypeCode(propertyInfo.PropertyType) switch
         {
-            case TypeCode.Boolean:
-                converter = (bool x) => x ? BooleanValue.True : BooleanValue.False; break;
-            case TypeCode.Byte:
-                converter = (byte x) => NumberValue.Create(x); break;
-            case TypeCode.UInt16:
-                converter = (ushort x) => NumberValue.Create(x); break;
-            case TypeCode.UInt32:
-                converter = (uint x) => NumberValue.Create(x); break;
-            case TypeCode.SByte:
-                converter = (sbyte x) => NumberValue.Create(x); break;
-            case TypeCode.Int16:
-                converter = (short x) => NumberValue.Create(x); break;
-            case TypeCode.Int32:
-                converter = (int x) => NumberValue.Create(x); break;
-            case TypeCode.UInt64:
-                converter = (ulong x) => NumberValue.Create(x); break;
-            case TypeCode.Int64:
-                converter = (long x) => NumberValue.Create(x); break;
-            case TypeCode.Double:
-                converter = (double x) => NumberValue.Create((decimal)x); break;
-            case TypeCode.Single:
-                converter = (float x) => NumberValue.Create((decimal)x); break;
-            case TypeCode.Decimal:
-                converter = (decimal x) => NumberValue.Create(x); break;
-            case TypeCode.DateTime:
-                converter = (DateTime x) => new DateTimeValue(x); break;
-            case TypeCode.String:
-                converter = (string x) => StringValue.Create(x); break;
-            case TypeCode.Char:
-                converter = (char x) => StringValue.Create(x); break;
-            default:
-                converter = null; break;
-        }
+            TypeCode.Boolean => (bool x, TemplateOptions _) => x ? BooleanValue.True : BooleanValue.False,
+            TypeCode.Byte => (byte x, TemplateOptions _) => NumberValue.Create(x),
+            TypeCode.UInt16 => (ushort x, TemplateOptions _) => NumberValue.Create(x),
+            TypeCode.UInt32 => (uint x, TemplateOptions _) => NumberValue.Create(x),
+            TypeCode.SByte => (sbyte x, TemplateOptions _) => NumberValue.Create(x),
+            TypeCode.Int16 => (short x, TemplateOptions _) => NumberValue.Create(x),
+            TypeCode.Int32 => (int x, TemplateOptions _) => NumberValue.Create(x),
+            TypeCode.UInt64 => (ulong x, TemplateOptions _) => NumberValue.Create(x),
+            TypeCode.Int64 => (long x, TemplateOptions _) => NumberValue.Create(x),
+            TypeCode.Double => (double x, TemplateOptions _) => NumberValue.Create((decimal)x),
+            TypeCode.Single => (float x, TemplateOptions _) => NumberValue.Create((decimal)x),
+            TypeCode.Decimal => (decimal x, TemplateOptions _) => NumberValue.Create(x),
+            TypeCode.DateTime => (DateTime x, TemplateOptions _) => new DateTimeValue(x),
+            TypeCode.String => (string x, TemplateOptions _) => StringValue.Create(x),
+            _ => null,
+        };
 
         if (propertyInfo.PropertyType.IsEnum)
         {
             converter = null;
         }
 
-        var invokerType = typeof(Invoker<,>).MakeGenericType(propertyInfo.DeclaringType, propertyInfo.PropertyType);
+        var returnType = propertyInfo.PropertyType;
+        var invokerType = typeof(Invoker<,>).MakeGenericType(propertyInfo.DeclaringType, returnType);
         _invoker = (Invoker)Activator.CreateInstance(invokerType, [d, converter]);
     }
 
-    public object Get(object obj, string name, TemplateContext ctx) => _invoker.Invoke(obj);
+    public object Get(object obj, string name, TemplateContext ctx) => _invoker.Invoke(obj, ctx.Options);
 
     private static Delegate GetGetter(Type declaringType, string fieldName)
     {
