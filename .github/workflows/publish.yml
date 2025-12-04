@@ -19,12 +19,12 @@ jobs:
       with:
         dotnet-version: |
           8.0.x
+          10.0.x
         global-json-file: global.json
 
-    - name: Install dependencies
-      run: dotnet restore
     - name: Test
-      run: dotnet test -c Release --framework net9.0
+      run: dotnet test -c Release
+
     - name: Pack with dotnet
       run: |
         arrTag=(${GITHUB_REF//\// })
