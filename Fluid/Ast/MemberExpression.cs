@@ -81,7 +81,7 @@ namespace Fluid.Ast
                 {
                     if (context.Options.StrictVariables)
                     {
-                        throw new FluidException($"Undefined variable '{_segments[i]}'");
+                        throw new FluidException($"Undefined variable '{s.GetSegmentName()}'");
                     }
                     return value;
                 }
