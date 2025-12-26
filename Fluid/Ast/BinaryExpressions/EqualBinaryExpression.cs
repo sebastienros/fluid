@@ -12,14 +12,10 @@ namespace Fluid.Ast.BinaryExpressions
         {
             bool comparisonResult;
 
-            // Handle nil values (but not EmptyValue which also returns IsNil() == true)
-            if ((leftValue == NilValue.Instance || rightValue == NilValue.Instance))
-            {
-                comparisonResult = leftValue == NilValue.Instance && rightValue == NilValue.Instance;
-            }
             // When comparing number with string, always return false (regardless of order)
-            else if ((leftValue is NumberValue && rightValue is StringValue) ||
-                     (leftValue is StringValue && rightValue is NumberValue))
+            // This ensures symmetry: "1" == 1 returns false, and 1 == "1" also returns false
+            if ((leftValue is NumberValue && rightValue is StringValue) ||
+                (leftValue is StringValue && rightValue is NumberValue))
             {
                 comparisonResult = false;
             }
