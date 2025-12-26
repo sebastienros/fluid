@@ -98,18 +98,18 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other)
         {
-            if (other.Type == FluidValues.String)
-            {
-                return _value == other.ToStringValue();
-            }
-
-            // Delegating other types
+            // Delegating special cases to other types
             if (other == BlankValue.Instance || other == NilValue.Instance || other == EmptyValue.Instance)
             {
                 return other.Equals(this);
             }
 
-            return false;
+            if (other.Type != FluidValues.String)
+            {
+                return false;
+            }
+
+            return _value == other.ToStringValue();
         }
 
         public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
