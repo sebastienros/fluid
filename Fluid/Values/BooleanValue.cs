@@ -31,6 +31,11 @@ namespace Fluid.Values
             // blank == false -> true
             if (other.Type == FluidValues.Blank) return !_value;
 
+            if (other.Type != FluidValues.Boolean)
+            {
+                return false;
+            }
+
             return _value == other.ToBooleanValue();
         }
 

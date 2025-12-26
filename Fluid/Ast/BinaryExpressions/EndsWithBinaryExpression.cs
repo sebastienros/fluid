@@ -16,8 +16,8 @@ namespace Fluid.Ast.BinaryExpressions
             bool comparisonResult;
             if (leftValue is ArrayValue)
             {
-                var first = await leftValue.GetValueAsync("last", context);
-                comparisonResult = first.Equals(rightValue);
+                var last = await leftValue.GetValueAsync("last", context);
+                comparisonResult = last.Equals(rightValue);
             }
             else
             {
