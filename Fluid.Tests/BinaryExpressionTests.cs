@@ -401,5 +401,37 @@ namespace Fluid.Tests
             }
         }
 
+        [Theory]
+        [InlineData("'1' == 1", "false")]
+        [InlineData("1 == '1'", "false")]
+        [InlineData("'2' == 2", "false")]
+        [InlineData("2 == '2'", "false")]
+        [InlineData("'1' == 1.0", "false")]
+        [InlineData("1.0 == '1'", "false")]
+        [InlineData("'abc' == 123", "false")]
+        [InlineData("123 == 'abc'", "false")]
+        public Task EqualityComparisonShouldBeSymmetric(string source, string expected)
+        {
+            // Equality comparison should be symmetric: if a == b then b == a
+            // String and number comparisons should always return false regardless of order
+            return CheckAsync(source, expected);
+        }
+
+        [Theory]
+        [InlineData("'1' != 1", "true")]
+        [InlineData("1 != '1'", "true")]
+        [InlineData("'2' != 2", "true")]
+        [InlineData("2 != '2'", "true")]
+        [InlineData("'1' != 1.0", "true")]
+        [InlineData("1.0 != '1'", "true")]
+        [InlineData("'abc' != 123", "true")]
+        [InlineData("123 != 'abc'", "true")]
+        public Task NotEqualComparisonShouldBeSymmetric(string source, string expected)
+        {
+            // Not-equal comparison should be symmetric: if a != b then b != a
+            // String and number comparisons should always return true regardless of order
+            return CheckAsync(source, expected);
+        }
+
     }
 }
