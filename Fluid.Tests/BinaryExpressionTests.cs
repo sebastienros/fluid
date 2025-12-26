@@ -300,7 +300,7 @@ namespace Fluid.Tests
             context.SetValue("obj2", obj2);
 
             var result = await template.RenderAsync(context);
-            
+
             // obj1.Equals(obj2) returns true, so the comparison should return "equal"
             Assert.Equal("equal", result);
         }
@@ -319,7 +319,7 @@ namespace Fluid.Tests
             context.SetValue("obj2", obj2);
 
             var result = await template.RenderAsync(context);
-            
+
             // obj1.Equals(obj2) returns true, so contains should return "found"
             Assert.Equal("found", result);
         }
@@ -354,6 +354,55 @@ namespace Fluid.Tests
             return CheckAsync(source, expected);
         }
 
+        [Theory]
+        [InlineData("'1' == '1'", "true")]
+        [InlineData("'1' == '01'", "false")]        
+        [InlineData("'1' != '1'", "false")]
+        [InlineData("'1' != '01'", "true")]
+        [InlineData("'1' == 1", "false")]        
+        [InlineData("'1' != 1", "true")]
+        [InlineData("'1' == true", "false")]
+        [InlineData("'1' != false", "true")]
+        [InlineData("'1' == false", "false")]
+        [InlineData("'0' == true", "false")]
+        [InlineData("'0' == false", "false")]
+        public Task StringEquality(string source, string expected)
+        {
+            return CheckAsync(source, expected);
+        }
+
+        [Theory]
+        [InlineData("1 == 1", "true")]
+        [InlineData("1 != 1", "false")]
+        [InlineData("1 == 01", "true")]
+        [InlineData("1 == '1'", "false")]
+        [InlineData("1 != '1'", "true")]
+        [InlineData("1 == true", "false")]
+        [InlineData("1 != true", "true")]
+        [InlineData("1 == false", "false")]
+        [InlineData("0 == true", "false")]
+        [InlineData("0 == false", "false")]
+        public Task NumberEquality(string source, string expected)
+        {
+            return CheckAsync(source, expected);
+        }        
+
+        [Theory]
+        [InlineData("true == true", "true")]
+        [InlineData("false == false", "true")]
+        [InlineData("true == false", "false")]
+        [InlineData("true != true", "false")]
+        [InlineData("false != false", "false")]
+        [InlineData("true != false", "true")]
+        [InlineData("true == '1'", "false")]
+        [InlineData("true == 1", "false")]        
+        [InlineData("false == '1'", "false")]
+        [InlineData("false == 1", "false")]
+        public Task BooleanEquality(string source, string expected)
+        {
+            return CheckAsync(source, expected);
+        }   
+
         [Fact]
         public async Task ContainsShouldSupportAsyncWithContext()
         {
@@ -366,7 +415,7 @@ namespace Fluid.Tests
             context.SetValue("custom", customValue);
 
             var result = await template.RenderAsync(context);
-            
+
             // The custom value should use ContainsAsync and find 'b'
             Assert.Equal("found", result);
         }
