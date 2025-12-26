@@ -105,6 +105,10 @@ namespace Fluid.Ast
                 // Stop processing as soon as a member returns nothing
                 if (value.IsNil())
                 {
+                    if (context.Options.StrictVariables)
+                    {
+                        throw new FluidException($"Undefined variable '{s.GetSegmentName()}'");
+                    }
                     return value;
                 }
             }
