@@ -450,6 +450,7 @@ namespace Fluid.Tests
             options.MemberAccessStrategy.Register(new { Title = "a", Pinned = true, Missing = 1 }.GetType());
 
             // x | where: "Missing"
+            // No comparand so check for truthiness, 1 is truthy so both items with Missing=1 are returned
 
             var arguments1 = new FilterArguments().Add(new StringValue("Missing"));
             var result1 = await ArrayFilters.Where(input, arguments1, context);
@@ -457,13 +458,14 @@ namespace Fluid.Tests
             Assert.Equal(2, result1.Enumerate(context).Count());
 
             // x | where: "Missing", false
+            // 0 since a NumberValue is never equal to a boolean
 
             var arguments2 = new FilterArguments()
                 .Add(new StringValue("Missing"))
                 .Add(BooleanValue.False);
 
             var result2 = await ArrayFilters.Where(input, arguments2, context);
-            Assert.Single(result2.Enumerate(context));
+            Assert.Empty(result2.Enumerate(context));
 
             // x | where: "Title"
 
@@ -473,11 +475,11 @@ namespace Fluid.Tests
             var result3 = await ArrayFilters.Where(input, arguments3, context);
             Assert.Equal(3, result3.Enumerate(context).Count());
 
-            // x | where: "Missing", true
+            // x | where: "Missing", 1
 
             var arguments4 = new FilterArguments()
                 .Add(new StringValue("Missing"))
-                .Add(BooleanValue.True);
+                .Add(NumberValue.Create(1));
 
             var result4 = await ArrayFilters.Where(input, arguments4, context);
             Assert.Equal(2, result4.Enumerate(context).Count());
