@@ -21,7 +21,7 @@ jobs:
         DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - uses: actions/setup-dotnet@v5
       with:
         dotnet-version: |
@@ -33,7 +33,7 @@ jobs:
       run: dotnet --version
 
     - name: Test
-      run: dotnet test -c Release --logger GitHubActions
+      run: dotnet test -c Release
 
     - name: Test - Compiled
-      run: dotnet test --configuration Release --logger GitHubActions /p:Compiled=true
+      run: dotnet test --configuration Release /p:Compiled=true

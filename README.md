@@ -248,8 +248,52 @@ var template = FluidTemplate.Parse("Hello {{ user.name }} in {{ city }}!");
 
 await template.RenderAsync(context);
 
+### Strict variables
+
+If you prefer templates to fail fast when they reference a variable that does not exist, enable strict variable mode by setting `TemplateOptions.StrictVariables` to `true`. When `StrictVariables` is `true`, any attempt to access an undefined variable throws a `FluidException` containing the variable name. This makes missing data issues visible immediately instead of silently rendering as an empty string.
+
+```csharp
+var options = new TemplateOptions { StrictVariables = true };
+var context = new TemplateContext(options);
+
+// Parsing a template that references an undefined variable
+var template = FluidTemplate.Parse("Hello {{ user.name }}!");
+
+// Throws FluidException: Undefined variable 'user'
+await template.RenderAsync(context);
+```
+
+When `StrictVariables` is disabled (the default), you can still track missing variables using the `Undefined` delegate described above, or provide fallback values by returning a custom `FluidValue`.
+
 // missingVariables now contains ["user.name", "city"]
 ```
+
+### Strict filters
+
+By default, applying an unknown filter simply returns the input value unchanged:
+
+```liquid
+{{ 'hello' | unknown }}  => hello
+```
+
+If you would rather fail fast when a template references a filter that has not been registered, enable strict filter mode by setting `TemplateOptions.StrictFilters` to `true`:
+
+```csharp
+var options = new TemplateOptions { StrictFilters = true };
+var context = new TemplateContext(options);
+
+var template = FluidTemplate.Parse("{{ 'hello' | unknown }}");
+// Throws FluidException: Undefined filter 'unknown'
+await template.RenderAsync(context);
+```
+
+Known filters continue to work normally when `StrictFilters` is enabled:
+
+```liquid
+{{ 'hello' | upcase }}  => HELLO
+```
+
+Use `StrictFilters` together with `StrictVariables` to enforce both variable and filter correctness during authoring.
 
 ### Returning custom values for undefined values
 

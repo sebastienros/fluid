@@ -3,7 +3,7 @@ namespace Fluid
     /// <summary>
     /// Represents errors that occur during template parsing.
     /// </summary>
-    public sealed class ParseException : Exception
+    public sealed class ParseException : FluidException
     {
         /// <inheritdoc />
         public ParseException() : base() { }

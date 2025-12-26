@@ -92,6 +92,9 @@ csharp_prefer_system_threading_lock = true:suggestion
 # IDE0078: Use pattern matching
 dotnet_diagnostic.IDE0078.severity = silent
 
+# xUnit1051: CancellationToken warning (allow tests without explicit cancellation token)
+dotnet_diagnostic.xUnit1051.severity = suggestion
+
 # FLUID001: Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 dotnet_diagnostic.FLUID001.severity = none
 

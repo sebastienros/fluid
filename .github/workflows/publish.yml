@@ -14,22 +14,22 @@ jobs:
         DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - uses: actions/setup-dotnet@v5
       with:
         dotnet-version: |
           8.0.x
+          10.0.x
         global-json-file: global.json
 
-    - name: Install dependencies
-      run: dotnet restore
     - name: Test
-      run: dotnet test -c Release --framework net9.0
+      run: dotnet test -c Release
+
     - name: Pack with dotnet
       run: |
         arrTag=(${GITHUB_REF//\// })
         VERSION="${arrTag[2]}"
-        VERSION="${VERSION//v}"
+        VERSION="${VERSION#v}"
         PACKAGE_PATH="${GITHUB_WORKSPACE}/artifacts"
         echo "$VERSION"
         dotnet pack --property:PackageOutputPath=$PACKAGE_PATH --configuration Release -p:Version=$VERSION -p:ContinuousIntegrationBuild=True

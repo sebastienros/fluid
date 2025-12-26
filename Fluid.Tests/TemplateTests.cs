@@ -1429,6 +1429,19 @@ after
             Assert.DoesNotContain("This is between if tags", result);
         }
 
+        [Fact]
+        public async Task NullPropertyEvaluatesToFalse()
+        {
+            var source = @"
+                {% if a %}a is true{% else %}a is false{% endif %}
+                {% if b %}b is true{% else %}b is false{% endif %}
+                ";
 
+            _parser.TryParse(source, out var template, out var error);
+            var context = new TemplateContext(new { a = (string)null, b = "" });
+            var result = await template.RenderAsync(context);
+            Assert.Contains("a is false", result);
+            Assert.Contains("b is true", result);
+        }
     }
 }

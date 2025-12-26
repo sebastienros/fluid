@@ -72,11 +72,14 @@ namespace Fluid.Values
                 return Create(accessor.Get(Value, name, context), context.Options);
             }
 
+            if (context.Options.StrictVariables)
+            {
+                throw new FluidException($"Undefined variable '{name}'");
+            }
             if (context.Undefined is not null)
             {
                 return context.Undefined.Invoke(name);
             }
-            
             return NilValue.Instance;
 
 
@@ -112,6 +115,10 @@ namespace Fluid.Values
 
                 if (accessor == null)
                 {
+                    if (context.Options.StrictVariables)
+                    {
+                        throw new FluidException($"Undefined variable '{string.Join(".", segments)}'");
+                    }
                     if (context.Undefined is not null)
                     {
                         return await context.Undefined.Invoke(string.Join(".", segments));
