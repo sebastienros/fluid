@@ -1,0 +1,269 @@
+From d70a5e64f0d712b49bf91640430d3bcd2ffb17f0 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?S=C3=A9bastien=20Ros?= <sebastienros@gmail.com>
+Date: Fri, 26 Dec 2025 10:30:58 -0800
+Subject: [PATCH] Fix value comparisons between types (#897)
+
+---
+ Fluid.Tests/ArrayFiltersTests.cs              |  8 ++-
+ Fluid.Tests/BinaryExpressionTests.cs          | 55 ++++++++++++++++++-
+ .../EndsWithBinaryExpression.cs               |  4 +-
+ Fluid/Filters/ArrayFilters.cs                 | 21 +++++--
+ Fluid/Values/BooleanValue.cs                  |  5 ++
+ Fluid/Values/NumberValue.cs                   |  7 ++-
+ Fluid/Values/StringValue.cs                   | 12 ++--
+ 7 files changed, 91 insertions(+), 21 deletions(-)
+
+diff --git a/Fluid.Tests/ArrayFiltersTests.cs b/Fluid.Tests/ArrayFiltersTests.cs
+index 7957e75..5436295 100644
+--- a/Fluid.Tests/ArrayFiltersTests.cs
++++ b/Fluid.Tests/ArrayFiltersTests.cs
+@@ -449,6 +449,7 @@ namespace Fluid.Tests
+             var context = new TemplateContext(options);
+ 
+             // x | where: "Missing"
++            // No comparand so check for truthiness, 1 is truthy so both items with Missing=1 are returned
+ 
+             var arguments1 = new FilterArguments().Add(new StringValue("Missing"));
+             var result1 = await ArrayFilters.Where(input, arguments1, context);
+@@ -456,13 +457,14 @@ namespace Fluid.Tests
+             Assert.Equal(2, await result1.EnumerateAsync(context).CountAsync());
+ 
+             // x | where: "Missing", false
++            // 0 since a NumberValue is never equal to a boolean
+ 
+             var arguments2 = new FilterArguments()
+                 .Add(new StringValue("Missing"))
+                 .Add(BooleanValue.False);
+ 
+             var result2 = await ArrayFilters.Where(input, arguments2, context);
+-            Assert.Single(await result2.EnumerateAsync(context).ToListAsync());
++            Assert.Empty(await result2.EnumerateAsync(context).ToListAsync());
+ 
+             // x | where: "Title"
+ 
+@@ -472,11 +474,11 @@ namespace Fluid.Tests
+             var result3 = await ArrayFilters.Where(input, arguments3, context);
+             Assert.Equal(3, await result3.EnumerateAsync(context).CountAsync());
+ 
+-            // x | where: "Missing", true
++            // x | where: "Missing", 1
+ 
+             var arguments4 = new FilterArguments()
+                 .Add(new StringValue("Missing"))
+-                .Add(BooleanValue.True);
++                .Add(NumberValue.Create(1));
+ 
+             var result4 = await ArrayFilters.Where(input, arguments4, context);
+             Assert.Equal(2, await result4.EnumerateAsync(context).CountAsync());
+diff --git a/Fluid.Tests/BinaryExpressionTests.cs b/Fluid.Tests/BinaryExpressionTests.cs
+index 5b52dc1..ec5937c 100644
+--- a/Fluid.Tests/BinaryExpressionTests.cs
++++ b/Fluid.Tests/BinaryExpressionTests.cs
+@@ -300,7 +300,7 @@ namespace Fluid.Tests
+             context.SetValue("obj2", obj2);
+ 
+             var result = await template.RenderAsync(context);
+-            
++
+             // obj1.Equals(obj2) returns true, so the comparison should return "equal"
+             Assert.Equal("equal", result);
+         }
+@@ -319,7 +319,7 @@ namespace Fluid.Tests
+             context.SetValue("obj2", obj2);
+ 
+             var result = await template.RenderAsync(context);
+-            
++
+             // obj1.Equals(obj2) returns true, so contains should return "found"
+             Assert.Equal("found", result);
+         }
+@@ -354,6 +354,55 @@ namespace Fluid.Tests
+             return CheckAsync(source, expected);
+         }
+ 
++        [Theory]
++        [InlineData("'1' == '1'", "true")]
++        [InlineData("'1' == '01'", "false")]        
++        [InlineData("'1' != '1'", "false")]
++        [InlineData("'1' != '01'", "true")]
++        [InlineData("'1' == 1", "false")]        
++        [InlineData("'1' != 1", "true")]
++        [InlineData("'1' == true", "false")]
++        [InlineData("'1' != false", "true")]
++        [InlineData("'1' == false", "false")]
++        [InlineData("'0' == true", "false")]
++        [InlineData("'0' == false", "false")]
++        public Task StringEquality(string source, string expected)
++        {
++            return CheckAsync(source, expected);
++        }
++
++        [Theory]
++        [InlineData("1 == 1", "true")]
++        [InlineData("1 != 1", "false")]
++        [InlineData("1 == 01", "true")]
++        [InlineData("1 == '1'", "false")]
++        [InlineData("1 != '1'", "true")]
++        [InlineData("1 == true", "false")]
++        [InlineData("1 != true", "true")]
++        [InlineData("1 == false", "false")]
++        [InlineData("0 == true", "false")]
++        [InlineData("0 == false", "false")]
++        public Task NumberEquality(string source, string expected)
++        {
++            return CheckAsync(source, expected);
++        }        
++
++        [Theory]
++        [InlineData("true == true", "true")]
++        [InlineData("false == false", "true")]
++        [InlineData("true == false", "false")]
++        [InlineData("true != true", "false")]
++        [InlineData("false != false", "false")]
++        [InlineData("true != false", "true")]
++        [InlineData("true == '1'", "false")]
++        [InlineData("true == 1", "false")]        
++        [InlineData("false == '1'", "false")]
++        [InlineData("false == 1", "false")]
++        public Task BooleanEquality(string source, string expected)
++        {
++            return CheckAsync(source, expected);
++        }   
++
+         [Fact]
+         public async Task ContainsShouldSupportAsyncWithContext()
+         {
+@@ -366,7 +415,7 @@ namespace Fluid.Tests
+             context.SetValue("custom", customValue);
+ 
+             var result = await template.RenderAsync(context);
+-            
++
+             // The custom value should use ContainsAsync and find 'b'
+             Assert.Equal("found", result);
+         }
+diff --git a/Fluid/Ast/BinaryExpressions/EndsWithBinaryExpression.cs b/Fluid/Ast/BinaryExpressions/EndsWithBinaryExpression.cs
+index 61aa9a9..53bcbf6 100644
+--- a/Fluid/Ast/BinaryExpressions/EndsWithBinaryExpression.cs
++++ b/Fluid/Ast/BinaryExpressions/EndsWithBinaryExpression.cs
+@@ -16,8 +16,8 @@ namespace Fluid.Ast.BinaryExpressions
+             bool comparisonResult;
+             if (leftValue is ArrayValue)
+             {
+-                var first = await leftValue.GetValueAsync("last", context);
+-                comparisonResult = first.Equals(rightValue);
++                var last = await leftValue.GetValueAsync("last", context);
++                comparisonResult = last.Equals(rightValue);
+             }
+             else
+             {
+diff --git a/Fluid/Filters/ArrayFilters.cs b/Fluid/Filters/ArrayFilters.cs
+index 25bea11..4049a52 100644
+--- a/Fluid/Filters/ArrayFilters.cs
++++ b/Fluid/Filters/ArrayFilters.cs
+@@ -146,19 +146,28 @@ namespace Fluid.Filters
+ 
+             // Second argument is the value to match, or 'true' if none is defined
+             var targetValue = arguments.At(1);
+-            if (targetValue.IsNil()) 
+-            { 
+-                targetValue = BooleanValue.True; 
+-            }
+ 
+-            var list = new List<FluidValue>();
++            List<FluidValue> list = null;
+ 
+             await foreach (var item in input.EnumerateAsync(context))
+             {
+                 var itemValue = await item.GetValueAsync(member, context);
+ 
+-                if (targetValue.Equals(itemValue))
++                var match = false;
++
++                // If not target value is defined, check truthiness of item
++                if (targetValue.IsNil()) 
++                { 
++                    match = itemValue.ToBooleanValue(context); 
++                }
++                else if (targetValue.Equals(itemValue))
++                {
++                    match = true;
++                }
++
++                if (match)
+                 {
++                    list ??= [];
+                     list.Add(item);
+                 }
+             }
+diff --git a/Fluid/Values/BooleanValue.cs b/Fluid/Values/BooleanValue.cs
+index 1691b5b..b5e5572 100644
+--- a/Fluid/Values/BooleanValue.cs
++++ b/Fluid/Values/BooleanValue.cs
+@@ -31,6 +31,11 @@ namespace Fluid.Values
+             // blank == false -> true
+             if (other.Type == FluidValues.Blank) return !_value;
+ 
++            if (other.Type != FluidValues.Boolean)
++            {
++                return false;
++            }
++
+             return _value == other.ToBooleanValue();
+         }
+ 
+diff --git a/Fluid/Values/NumberValue.cs b/Fluid/Values/NumberValue.cs
+index 71c7f27..e71a8fa 100644
+--- a/Fluid/Values/NumberValue.cs
++++ b/Fluid/Values/NumberValue.cs
+@@ -34,12 +34,17 @@ namespace Fluid.Values
+ 
+         public override bool Equals(FluidValue other)
+         {
+-            // Delegating other types 
++            // Delegating special cases to other types
+             if (other == BlankValue.Instance || other == NilValue.Instance || other == EmptyValue.Instance)
+             {
+                 return false;
+             }
+ 
++            if (other.Type != FluidValues.Number)
++            {
++                return false;
++            }
++
+             return _value == other.ToNumberValue();
+         }
+ 
+diff --git a/Fluid/Values/StringValue.cs b/Fluid/Values/StringValue.cs
+index 30970c3..685634f 100644
+--- a/Fluid/Values/StringValue.cs
++++ b/Fluid/Values/StringValue.cs
+@@ -98,18 +98,18 @@ namespace Fluid.Values
+ 
+         public override bool Equals(FluidValue other)
+         {
+-            if (other.Type == FluidValues.String)
++            // Delegating special cases to other types
++            if (other == BlankValue.Instance || other == NilValue.Instance || other == EmptyValue.Instance)
+             {
+-                return _value == other.ToStringValue();
++                return other.Equals(this);
+             }
+ 
+-            // Delegating other types
+-            if (other == BlankValue.Instance || other == NilValue.Instance || other == EmptyValue.Instance)
++            if (other.Type != FluidValues.String)
+             {
+-                return other.Equals(this);
++                return false;
+             }
+ 
+-            return false;
++            return _value == other.ToStringValue();
+         }
+ 
+         public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
+-- 
+2.52.0
+
