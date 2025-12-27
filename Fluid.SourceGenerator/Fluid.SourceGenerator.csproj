@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>true</ImplicitUsings>
+
+    <!-- Analyzer / source generator -->
+    <IsPackable>true</IsPackable>
+    <OutputItemType>Analyzer</OutputItemType>
+
+    <NoWarn>$(NoWarn);NU1604;RS1036;RS2008</NoWarn>
+
+    <!-- Keep build output so this can be referenced from tests in this repo -->
+    <IncludeBuildOutput>true</IncludeBuildOutput>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fluid\Fluid.csproj" />
+  </ItemGroup>
+
+</Project>

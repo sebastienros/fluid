@@ -1,8 +1,9 @@
 ﻿using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class ElseIfStatement : TagStatement
+    public sealed class ElseIfStatement : TagStatement, ISourceable
     {
         public ElseIfStatement(Expression condition, IReadOnlyList<Statement> statements) : base(statements)
         {
@@ -67,5 +68,18 @@ namespace Fluid.Ast
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitElseIfStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                context.WriteLine($"{context.ContextName}.IncrementSteps();");
+                var stmtMethod = context.GetStatementMethodName(Statements[i]);
+                context.WriteLine($"var completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                context.WriteLine("if (completion != Completion.Normal) return completion;");
+            }
+
+            context.WriteLine("return Completion.Normal;");
+        }
     }
 }

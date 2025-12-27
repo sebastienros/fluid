@@ -1,8 +1,9 @@
 ﻿using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class WhenStatement : TagStatement
+    public sealed class WhenStatement : TagStatement, ISourceable
     {
         public WhenStatement(IReadOnlyList<Expression> options, IReadOnlyList<Statement> statements) : base(statements)
         {
@@ -30,5 +31,17 @@ namespace Fluid.Ast
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitWhenStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                var stmtMethod = context.GetStatementMethodName(Statements[i]);
+                context.WriteLine($"var completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                context.WriteLine("if (completion != Completion.Normal) return completion;");
+            }
+
+            context.WriteLine("return Completion.Normal;");
+        }
     }
 }

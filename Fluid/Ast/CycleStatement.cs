@@ -1,9 +1,10 @@
 ﻿using Fluid.Values;
 using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class CycleStatement : Statement
+    public sealed class CycleStatement : Statement, ISourceable
     {
         public IReadOnlyList<Expression> Values;
 
@@ -38,5 +39,43 @@ namespace Fluid.Ast
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitCycleStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+
+            if (Group is null)
+            {
+                context.WriteLine("var groupValue = \"$cycle_\";");
+            }
+            else
+            {
+                var groupExpr = context.GetExpressionMethodName(Group);
+                context.WriteLine($"var groupValue = \"$cycle_\" + (await {groupExpr}({context.ContextName})).ToStringValue();");
+            }
+
+            context.WriteLine($"var currentValue = {context.ContextName}.GetValue(groupValue);");
+            context.WriteLine("if (currentValue.IsNil()) currentValue = NumberValue.Zero;");
+            context.WriteLine($"var index = (uint)currentValue.ToNumberValue() % {Values.Count};");
+
+            // Values[index]
+            context.WriteLine("FluidValue value;");
+            context.WriteLine("switch ((int)index)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                for (var i = 0; i < Values.Count; i++)
+                {
+                    var vExpr = context.GetExpressionMethodName(Values[i]);
+                    context.WriteLine($"case {i}: value = await {vExpr}({context.ContextName}); break;");
+                }
+                context.WriteLine("default: value = NilValue.Instance; break;");
+            }
+            context.WriteLine("}");
+
+            context.WriteLine($"{context.ContextName}.SetValue(groupValue, NumberValue.Create(index + 1));");
+            context.WriteLine($"await value.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName}.CultureInfo);");
+            context.WriteLine("return Completion.Normal;");
+        }
     }
 }

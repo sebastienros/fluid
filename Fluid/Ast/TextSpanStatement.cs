@@ -1,10 +1,11 @@
 ﻿using Fluid.Utils;
 using Parlot;
 using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class TextSpanStatement : Statement
+    public sealed class TextSpanStatement : Statement, ISourceable
     {
         private bool _isBufferPrepared;
         private readonly Lock _synLock = new();
@@ -176,6 +177,23 @@ namespace Fluid.Ast
             }
 
             return new ValueTask<Completion>(Completion.Normal);
+        }
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            // NOTE: This currently embeds the raw (untrimmed) text span.
+            // Trimming behavior depends on TemplateOptions and is not replicated here yet.
+            var text = _text.ToString();
+
+            if (string.IsNullOrEmpty(text))
+            {
+                context.WriteLine("return Completion.Normal;");
+                return;
+            }
+
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+            context.WriteLine($"{context.WriterName}.Write({SourceGenerationContext.ToCSharpStringLiteral(text)});");
+            context.WriteLine("return Completion.Normal;");
         }
     }
 }

@@ -1,9 +1,10 @@
 ﻿using System.Text.Encodings.Web;
 using Fluid.Values;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class OutputStatement : Statement
+    public sealed class OutputStatement : Statement, ISourceable
     {
         public OutputStatement(Expression expression)
         {
@@ -52,5 +53,15 @@ namespace Fluid.Ast
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitOutputStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            var exprMethod = context.GetExpressionMethodName(Expression);
+
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+            context.WriteLine($"var value = await {exprMethod}({context.ContextName});");
+            context.WriteLine($"await value.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName}.CultureInfo);");
+            context.WriteLine("return Completion.Normal;");
+        }
     }
 }

@@ -1,9 +1,10 @@
 using System.Text.Encodings.Web;
 using Fluid.Values;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class AssignStatement : Statement
+    public sealed class AssignStatement : Statement, ISourceable
     {
         public AssignStatement(string identifier, Expression value)
         {
@@ -44,5 +45,23 @@ namespace Fluid.Ast
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitAssignStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            var valueExpr = context.GetExpressionMethodName(Value);
+            var identifierLiteral = SourceGenerationContext.ToCSharpStringLiteral(Identifier);
+
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+            context.WriteLine($"var value = await {valueExpr}({context.ContextName});");
+            context.WriteLine($"if ({context.ContextName}.Assigned != null)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"value = await {context.ContextName}.Assigned.Invoke({identifierLiteral}, value, {context.ContextName});");
+            }
+            context.WriteLine("}");
+            context.WriteLine($"{context.ContextName}.SetValue({identifierLiteral}, value);");
+            context.WriteLine("return Completion.Normal;");
+        }
     }
 }
