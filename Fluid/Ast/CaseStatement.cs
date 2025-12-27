@@ -1,8 +1,9 @@
 ﻿using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class CaseStatement : TagStatement
+    public sealed class CaseStatement : TagStatement, ISourceable
     {
         private readonly IReadOnlyList<CaseBlock> _blocks;
 
@@ -70,5 +71,62 @@ namespace Fluid.Ast
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitCaseStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            var exprMethod = context.GetExpressionMethodName(Expression);
+
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+            context.WriteLine($"var value = await {exprMethod}({context.ContextName});");
+            context.WriteLine("var hasMatched = false;");
+
+            for (var b = 0; b < _blocks.Count; b++)
+            {
+                var block = _blocks[b];
+                if (block is WhenBlock whenBlock)
+                {
+                    for (var o = 0; o < whenBlock.Options.Count; o++)
+                    {
+                        var optionExpr = context.GetExpressionMethodName(whenBlock.Options[o]);
+                        context.WriteLine($"if (value.Equals(await {optionExpr}({context.ContextName})))");
+                        context.WriteLine("{");
+                        using (context.Indent())
+                        {
+                            context.WriteLine("hasMatched = true;");
+                            context.WriteLine("var completion = Completion.Normal;");
+                            for (var s = 0; s < whenBlock.Statements.Count; s++)
+                            {
+                                var stmtMethod = context.GetStatementMethodName(whenBlock.Statements[s]);
+                                context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                                context.WriteLine("if (completion != Completion.Normal) return completion;");
+                            }
+                        }
+                        context.WriteLine("}");
+                    }
+                }
+                else if (block is ElseBlock elseBlock)
+                {
+                    context.WriteLine("if (!hasMatched)");
+                    context.WriteLine("{");
+                    using (context.Indent())
+                    {
+                        context.WriteLine("var completion = Completion.Normal;");
+                        for (var s = 0; s < elseBlock.Statements.Count; s++)
+                        {
+                            var stmtMethod = context.GetStatementMethodName(elseBlock.Statements[s]);
+                            context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                            context.WriteLine("if (completion != Completion.Normal) return completion;");
+                        }
+                    }
+                    context.WriteLine("}");
+                }
+                else
+                {
+                    SourceGenerationContext.ThrowNotSourceable(block);
+                }
+            }
+
+            context.WriteLine("return Completion.Normal;");
+        }
     }
 }

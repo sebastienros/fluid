@@ -1,9 +1,10 @@
 ﻿using System;
 using Fluid.Values;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class FilterExpression : Expression
+    public sealed class FilterExpression : Expression, ISourceable
     {
         public FilterExpression(Expression input, string name, IReadOnlyList<FilterArgument> parameters)
         {
@@ -62,5 +63,37 @@ namespace Fluid.Ast
         }
 
         protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitFilterExpression(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            var inputExpr = context.GetExpressionMethodName(Input);
+
+            context.WriteLine("var arguments = new FilterArguments();");
+            for (var i = 0; i < Parameters.Count; i++)
+            {
+                var p = Parameters[i];
+                var name = SourceGenerationContext.ToCSharpStringLiteral(p.Name);
+                var expr = context.GetExpressionMethodName(p.Expression);
+                context.WriteLine($"arguments.Add({name}, await {expr}({context.ContextName}));");
+            }
+
+            context.WriteLine($"var input = await {inputExpr}({context.ContextName});");
+            context.WriteLine($"if (!{context.ContextName}.Options.Filters.TryGetValue({SourceGenerationContext.ToCSharpStringLiteral(Name)}, out var filter))");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"if ({context.ContextName}.Options.StrictFilters)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine($"throw new FluidException(\"Undefined filter '{Name}'\");");
+                }
+                context.WriteLine("}");
+                context.WriteLine("return input;");
+            }
+            context.WriteLine("}");
+
+            context.WriteLine("return await filter(input, arguments, context);");
+        }
     }
 }
