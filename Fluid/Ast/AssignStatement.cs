@@ -52,16 +52,33 @@ namespace Fluid.Ast
             var identifierLiteral = SourceGenerationContext.ToCSharpStringLiteral(Identifier);
 
             context.WriteLine($"{context.ContextName}.IncrementSteps();");
-            context.WriteLine($"var value = await {valueExpr}({context.ContextName});");
-            context.WriteLine($"if ({context.ContextName}.Assigned != null)");
+            context.WriteLine($"var task = {valueExpr}({context.ContextName});");
+            context.WriteLine($"if (task.IsCompletedSuccessfully && {context.ContextName}.Assigned is null)");
             context.WriteLine("{");
             using (context.Indent())
             {
-                context.WriteLine($"value = await {context.ContextName}.Assigned.Invoke({identifierLiteral}, value, {context.ContextName});");
+                context.WriteLine($"{context.ContextName}.SetValue({identifierLiteral}, task.Result);");
+                context.WriteLine("return Completion.Normal;");
             }
             context.WriteLine("}");
-            context.WriteLine($"{context.ContextName}.SetValue({identifierLiteral}, value);");
-            context.WriteLine("return Completion.Normal;");
+            context.WriteLine($"return await Awaited(task, {context.ContextName});");
+            context.WriteLine();
+            context.WriteLine($"static async ValueTask<Completion> Awaited(ValueTask<FluidValue> task, TemplateContext context)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("var value = await task;");
+                context.WriteLine($"if (context.Assigned != null)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine($"value = await context.Assigned.Invoke({identifierLiteral}, value, context);");
+                }
+                context.WriteLine("}");
+                context.WriteLine($"context.SetValue({identifierLiteral}, value);");
+                context.WriteLine("return Completion.Normal;");
+            }
+            context.WriteLine("}");
         }
     }
 }

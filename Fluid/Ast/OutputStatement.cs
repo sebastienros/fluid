@@ -59,9 +59,45 @@ namespace Fluid.Ast
             var exprMethod = context.GetExpressionMethodName(Expression);
 
             context.WriteLine($"{context.ContextName}.IncrementSteps();");
-            context.WriteLine($"var value = await {exprMethod}({context.ContextName});");
-            context.WriteLine($"await value.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName}.CultureInfo);");
-            context.WriteLine("return Completion.Normal;");
+
+            context.WriteLine($"var task = {exprMethod}({context.ContextName});");
+            context.WriteLine("if (task.IsCompletedSuccessfully)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"var valueTask = task.Result.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName}.CultureInfo);");
+                context.WriteLine("if (valueTask.IsCompletedSuccessfully)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("return Completion.Normal;");
+                }
+                context.WriteLine("}");
+
+                context.WriteLine("return await AwaitedWriteTo(valueTask);");
+                context.WriteLine();
+                context.WriteLine("static async ValueTask<Completion> AwaitedWriteTo(ValueTask t)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("await t;");
+                    context.WriteLine("return Completion.Normal;");
+                }
+                context.WriteLine("}");
+            }
+            context.WriteLine("}");
+
+            context.WriteLine($"return await Awaited(task, {context.WriterName}, {context.EncoderName}, {context.ContextName});");
+            context.WriteLine();
+            context.WriteLine("static async ValueTask<Completion> Awaited(ValueTask<FluidValue> t, TextWriter w, TextEncoder enc, TemplateContext ctx)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("var value = await t;");
+                context.WriteLine("await value.WriteToAsync(w, enc, ctx.CultureInfo);");
+                context.WriteLine("return Completion.Normal;");
+            }
+            context.WriteLine("}");
         }
     }
 }

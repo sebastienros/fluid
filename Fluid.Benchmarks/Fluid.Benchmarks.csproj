@@ -8,6 +8,8 @@
     <NoWarn>$(NoWarn);NU1903</NoWarn>
     <IsPackable>false</IsPackable>
     <SignAssembly>false</SignAssembly>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>obj\$(Configuration)\$(TargetFramework)</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,6 +40,26 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Fluid\Fluid.csproj" />
+    <ProjectReference Include="..\Fluid.SourceGenerator\Fluid.SourceGenerator.csproj"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Analyzer Include="..\Fluid.SourceGenerator\bin\$(Configuration)\netstandard2.0\Fluid.SourceGenerator.dll" />
+    <Analyzer Include="..\Fluid.SourceGenerator\bin\$(Configuration)\netstandard2.0\*.dll" />
+  </ItemGroup>
+
+  <Target Name="PreferNet10FluidRuntime" AfterTargets="Build">
+    <ItemGroup>
+      <_RuntimeOverrides Include="..\Fluid\bin\$(Configuration)\net10.0\Fluid.dll" />
+      <_RuntimeOverrides Include="..\Fluid\bin\$(Configuration)\net10.0\Parlot.dll" Condition="Exists('..\Fluid\bin\$(Configuration)\net10.0\Parlot.dll')" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_RuntimeOverrides)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <ItemGroup>
+    <AdditionalFiles Include="*.liquid" />
   </ItemGroup>
 
 </Project>

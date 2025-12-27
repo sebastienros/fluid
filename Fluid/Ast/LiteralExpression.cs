@@ -41,7 +41,7 @@ namespace Fluid.Ast
             if (Value is StringValue)
             {
                 var s = Value.ToStringValue();
-                context.WriteLine($"return new StringValue({SourceGenerationContext.ToCSharpStringLiteral(s)});");
+                context.WriteLine($"return {context.GetOrAddStaticStringValue(s)};");
                 return;
             }
 

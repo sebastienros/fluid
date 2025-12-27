@@ -93,10 +93,11 @@ namespace Fluid.Ast
                         using (context.Indent())
                         {
                             context.WriteLine("hasMatched = true;");
+                            context.WriteLine("var completion = Completion.Normal;");
                             for (var s = 0; s < whenBlock.Statements.Count; s++)
                             {
                                 var stmtMethod = context.GetStatementMethodName(whenBlock.Statements[s]);
-                                context.WriteLine($"var completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                                context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
                                 context.WriteLine("if (completion != Completion.Normal) return completion;");
                             }
                         }
@@ -109,10 +110,11 @@ namespace Fluid.Ast
                     context.WriteLine("{");
                     using (context.Indent())
                     {
+                        context.WriteLine("var completion = Completion.Normal;");
                         for (var s = 0; s < elseBlock.Statements.Count; s++)
                         {
                             var stmtMethod = context.GetStatementMethodName(elseBlock.Statements[s]);
-                            context.WriteLine($"var completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                            context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
                             context.WriteLine("if (completion != Completion.Normal) return completion;");
                         }
                     }

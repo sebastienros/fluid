@@ -95,6 +95,21 @@ namespace Fluid.SourceGeneration
 
                         foreach (var statement in statementList.Statements)
                         {
+                            // Avoid generating and invoking an extra method for pure text spans.
+                            // Source generation assumes TemplateOptions.Trimming == TrimmingFlags.None.
+                            if (statement is TextSpanStatement textSpan)
+                            {
+                                if (textSpan.Text.Length == 0)
+                                {
+                                    continue;
+                                }
+
+                                var textField = ctx.GetOrAddStaticString(textSpan.Text.Buffer, textSpan.Text.Offset, textSpan.Text.Length);
+                                ctx.WriteLine("context.IncrementSteps();");
+                                ctx.WriteLine($"writer.Write({textField});");
+                                continue;
+                            }
+
                             var methodName = ctx.GetStatementMethodName(statement);
                             ctx.WriteLine($"_ = await {methodName}(writer, encoder, context);");
                         }
@@ -151,6 +166,8 @@ namespace Fluid.SourceGeneration
                             ctx.WriteLine("}");
                         }
                     }
+
+                    ctx.WriteStaticMembers();
                 }
                 ctx.WriteLine("}");
             }

@@ -71,11 +71,12 @@ namespace Fluid.Ast
 
         public void WriteTo(SourceGenerationContext context)
         {
+            context.WriteLine("var completion = Completion.Normal;");
             for (var i = 0; i < Statements.Count; i++)
             {
                 context.WriteLine($"{context.ContextName}.IncrementSteps();");
                 var stmtMethod = context.GetStatementMethodName(Statements[i]);
-                context.WriteLine($"var completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
                 context.WriteLine("if (completion != Completion.Normal) return completion;");
             }
 

@@ -12,6 +12,9 @@
 
     <NoWarn>$(NoWarn);NU1604;RS1036;RS2008</NoWarn>
 
+    <!-- Required so the analyzer can load its dependencies at compile-time -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+
     <!-- Keep build output so this can be referenced from tests in this repo -->
     <IncludeBuildOutput>true</IncludeBuildOutput>
   </PropertyGroup>
@@ -23,5 +26,28 @@
   <ItemGroup>
     <ProjectReference Include="..\Fluid\Fluid.csproj" />
   </ItemGroup>
+
+  <Target Name="EmbedAnalyzerRuntimeDependencies" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
+                         Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'Fluid'" />
+      <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
+                         Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'Parlot'" />
+      <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
+                         Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'Microsoft.Extensions.FileProviders.Abstractions'" />
+      <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
+                         Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'Microsoft.Extensions.Primitives'" />
+      <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
+                         Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'Microsoft.Bcl.AsyncInterfaces'" />
+      <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
+                         Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'System.Linq.Async'" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Include="@(_EmbedAnalyzerDep)">
+        <LogicalName>Fluid.SourceGenerator.Dependencies.%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+  </Target>
 
 </Project>

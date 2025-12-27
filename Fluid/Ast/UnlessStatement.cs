@@ -59,10 +59,11 @@ namespace Fluid.Ast
             context.WriteLine("{");
             using (context.Indent())
             {
+                context.WriteLine("var completion = Completion.Normal;");
                 for (var i = 0; i < Statements.Count; i++)
                 {
                     var stmtMethod = context.GetStatementMethodName(Statements[i]);
-                    context.WriteLine($"var completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                    context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
                     context.WriteLine("if (completion != Completion.Normal) return completion;");
                 }
                 context.WriteLine("return Completion.Normal;");

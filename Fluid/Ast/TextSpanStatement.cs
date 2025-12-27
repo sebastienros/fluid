@@ -181,18 +181,17 @@ namespace Fluid.Ast
 
         public void WriteTo(SourceGenerationContext context)
         {
-            // NOTE: This currently embeds the raw (untrimmed) text span.
-            // Trimming behavior depends on TemplateOptions and is not replicated here yet.
-            var text = _text.ToString();
-
-            if (string.IsNullOrEmpty(text))
+            // Source generation assumes TemplateOptions.Trimming == TrimmingFlags.None.
+            // Emit the raw text span as a cached static string without allocating _text.ToString().
+            if (_text.Length == 0)
             {
                 context.WriteLine("return Completion.Normal;");
                 return;
             }
 
+            var textField = context.GetOrAddStaticString(_text.Buffer, _text.Offset, _text.Length);
             context.WriteLine($"{context.ContextName}.IncrementSteps();");
-            context.WriteLine($"{context.WriterName}.Write({SourceGenerationContext.ToCSharpStringLiteral(text)});");
+            context.WriteLine($"{context.WriterName}.Write({textField});");
             context.WriteLine("return Completion.Normal;");
         }
     }

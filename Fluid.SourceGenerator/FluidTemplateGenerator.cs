@@ -17,6 +17,8 @@ namespace Fluid.SourceGenerator
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
+            EmbeddedDependencyResolver.EnsureRegistered();
+
             context.RegisterPostInitializationOutput(static ctx =>
             {
                 ctx.AddSource("FluidTemplatesAttribute.g.cs", AttributeSource);
