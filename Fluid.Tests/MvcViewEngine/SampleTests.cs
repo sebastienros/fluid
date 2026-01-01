@@ -34,7 +34,7 @@ This is the footer
             parser.RegisterEmptyTag("mytag", static (o, e, c) =>
             {
                 o.Write("Hello from MyTag");
-                return new ValueTask<Completion>(Completion.Normal);
+                return Statement.NormalCompletion;
             });
 
             var result = parser.TryParse(index, out var template, out var error);

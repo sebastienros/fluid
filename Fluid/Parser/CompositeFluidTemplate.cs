@@ -23,20 +23,9 @@ namespace Fluid.Parser
 
         public ValueTask RenderAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
-            if (output == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(output));
-            }
-
-            if (encoder == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
-            }
-
-            if (context == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(context));
-            }
+            ArgumentNullException.ThrowIfNull(output);
+            ArgumentNullException.ThrowIfNull(encoder);
+            ArgumentNullException.ThrowIfNull(context);
 
             var count = Statements.Count;
             for (var i = 0; i < count; i++)

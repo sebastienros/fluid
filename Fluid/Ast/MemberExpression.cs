@@ -20,7 +20,7 @@ namespace Fluid.Ast
 
             if (_segments.Length == 0)
             {
-                ExceptionHelper.ThrowArgumentNullException(nameof(segments), "At least one segment is required in a MemberExpression");
+                ExceptionHelper.ThrowArgumentException(nameof(segments), "At least one segment is required in a MemberExpression");
             }
         }
 

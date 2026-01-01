@@ -38,7 +38,7 @@ namespace Fluid.Ast
 
             var task = value.WriteToAsync(output, encoder, context.CultureInfo);
             return task.IsCompletedSuccessfully
-                ? new ValueTask<Completion>(Completion.Normal)
+                ? Statement.NormalCompletion
                 : Awaited(task);
 
             static async ValueTask<Completion> Awaited(ValueTask t)

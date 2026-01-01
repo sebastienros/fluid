@@ -21,20 +21,9 @@ namespace Fluid.Values
         [Conditional("DEBUG")]
         protected static void AssertWriteToParameters(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            if (output == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(output));
-            }
-
-            if (encoder == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
-            }
-
-            if (cultureInfo == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(cultureInfo));
-            }
+            ArgumentNullException.ThrowIfNull(output);
+            ArgumentNullException.ThrowIfNull(encoder);
+            ArgumentNullException.ThrowIfNull(cultureInfo);
         }
 
         public abstract bool Equals(FluidValue other);

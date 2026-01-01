@@ -27,10 +27,7 @@ namespace Fluid
         /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
         public TemplateContext(object model, TemplateOptions options, bool allowModelMembers = true) : this(options)
         {
-            if (model == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(model));
-            }
+            ArgumentNullException.ThrowIfNull(model);
 
             if (model is FluidValue fluidValue)
             {
@@ -74,10 +71,7 @@ namespace Fluid
         /// <param name="modelNamesComparer">An optional <see cref="StringComparer"/> instance used when comparing model names.</param>
         public TemplateContext(object model, bool allowModelMembers = true, StringComparer? modelNamesComparer = null) : this(TemplateOptions.Default, modelNamesComparer)
         {
-            if (model == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(model));
-            }
+            ArgumentNullException.ThrowIfNull(model);
 
             if (model is FluidValue fluidValue)
             {

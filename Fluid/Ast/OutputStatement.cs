@@ -36,7 +36,7 @@ namespace Fluid.Ast
 
                 if (valueTask.IsCompletedSuccessfully)
                 {
-                    return new ValueTask<Completion>(Completion.Normal);
+                    return Statement.NormalCompletion;
                 }
 
                 return AwaitedWriteTo(valueTask);

@@ -45,7 +45,7 @@ namespace Fluid.ViewEngine
                     throw new ParseException("Could not render body, Layouts can't be evaluated directly.");
                 }
 
-                return new ValueTask<Completion>(Completion.Normal);
+                return Statement.NormalCompletion;
             });
 
             RegisterIdentifierBlock("section", static (identifier, statements, output, encoder, context) =>
@@ -65,7 +65,7 @@ namespace Fluid.ViewEngine
                     dictionary[identifier] = statements;
                 }
 
-                return new ValueTask<Completion>(Completion.Normal);
+                return Statement.NormalCompletion;
             });
 
 

@@ -11,7 +11,7 @@ namespace Fluid.MvcSample
             RegisterEmptyTag("mytag", static (o, e, c) =>
             {
                 o.Write("Hello from MyTag");
-                return new ValueTask<Completion>(Completion.Normal);
+                return Statement.NormalCompletion;
             });
         }
     }

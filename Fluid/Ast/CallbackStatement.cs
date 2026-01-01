@@ -18,7 +18,7 @@ namespace Fluid.Ast
         {
             context.IncrementSteps();
 
-            return Action?.Invoke(output, encoder, context) ?? new ValueTask<Completion>(Completion.Normal);
+            return Action?.Invoke(output, encoder, context) ?? Statement.NormalCompletion;
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitCallbackStatement(this);

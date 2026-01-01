@@ -107,11 +107,11 @@ namespace Fluid
                 {
                     // Stop processing the block statements
                     // We return the completion to flow it to the outer loop
-                    return new ValueTask<Completion>(completion);
+                    return Statement.FromCompletion(completion);
                 }
             }
 
-            return new ValueTask<Completion>(Completion.Normal);
+            return Statement.NormalCompletion;
         }
     }
 }

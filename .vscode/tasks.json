@@ -23,6 +23,7 @@
 			"command": "dotnet",
 			"args": [
 				"test",
+				"--project",
 				"${workspaceRoot}/Fluid.Tests/Fluid.Tests.csproj"
 			],
 			"problemMatcher": "$msCompile",

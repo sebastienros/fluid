@@ -12,10 +12,7 @@ namespace Fluid.Utils
 
         public TextWriterFluidOutput(TextWriter writer, int bufferSize, bool leaveOpen = false, ArrayPool<char> pool = null)
         {
-            if (writer == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
-            }
+            ArgumentNullException.ThrowIfNull(writer);
 
             #if NET8_0_OR_GREATER
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
@@ -121,10 +118,7 @@ namespace Fluid.Utils
 
         public void Write(char[] buffer, int index, int count)
         {
-            if (buffer == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(buffer));
-            }
+            ArgumentNullException.ThrowIfNull(buffer);
 
             if (count == 0)
             {
@@ -207,30 +201,14 @@ namespace Fluid.Utils
 
         private void Ensure(int sizeHint)
         {
-            #if NET8_0_OR_GREATER
             ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
-            #else
-            if (sizeHint < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(sizeHint));
-            }
-            #endif
 
             if (sizeHint == 0)
             {
                 return;
             }
 
-            #if NET8_0_OR_GREATER
             ArgumentOutOfRangeException.ThrowIfGreaterThan(sizeHint, _buffer.Length);
-            #else
-            if (sizeHint > _buffer.Length)
-            {
-                // Oversize requests aren't supported by this bounded-buffer implementation.
-                // Producers should fall back to Write(string) for large payloads.
-                throw new ArgumentOutOfRangeException(nameof(sizeHint));
-            }
-            #endif
 
             if (_buffer.Length - _index < sizeHint)
             {

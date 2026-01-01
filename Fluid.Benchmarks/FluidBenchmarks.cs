@@ -5,7 +5,7 @@ namespace Fluid.Benchmarks
     [MemoryDiagnoser]
     public class FluidBenchmarks : BaseBenchmarks
     {
-        private readonly TemplateOptions _options = new TemplateOptions();
+        private readonly TemplateOptions _options = new TemplateOptions(){ OutputBufferSize = 40 * 1024};
         private readonly FluidParser _parser  = new FluidParser();
         private readonly IFluidTemplate _fluidTemplate;
         private readonly FluidParser _compiledParser = new FluidParser().Compile();

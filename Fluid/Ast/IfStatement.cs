@@ -45,11 +45,11 @@ namespace Fluid.Ast
                         {
                             // Stop processing the block statements
                             // We return the completion to flow it to the outer loop
-                            return new ValueTask<Completion>(completion);
+                            return Statement.FromCompletion(completion);
                         }
                     }
 
-                    return new ValueTask<Completion>(Completion.Normal);
+                    return Statement.NormalCompletion;
                 }
                 else
                 {
@@ -70,7 +70,7 @@ namespace Fluid.Ast
                                 return AwaitedElseBranch(elseIf, elseIfConditionTask, writeTask, output, encoder, context, i + 1);
                             }
 
-                            return new ValueTask<Completion>(writeTask.Result);
+                            return Statement.FromCompletion(writeTask.Result);
                         }
                     }
 
@@ -80,13 +80,13 @@ namespace Fluid.Ast
                     }
                 }
 
-                return new ValueTask<Completion>(Completion.Normal);
+                return Statement.NormalCompletion;
             }
             else
             {
                 return Awaited(
                     conditionTask,
-                    incompleteStatementTask: new ValueTask<Completion>(Completion.Normal), // normal won't change processing
+                    incompleteStatementTask: Statement.NormalCompletion, // normal won't change processing
                     output,
                     encoder,
                     context,

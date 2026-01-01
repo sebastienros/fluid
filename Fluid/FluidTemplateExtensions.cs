@@ -44,20 +44,9 @@ namespace Fluid
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static async ValueTask RenderAsync(this IFluidTemplate template, TextWriter textWriter, TemplateContext context, TextEncoder encoder, bool isolateContext = true)
         {
-            if (textWriter == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(textWriter));
-            }
-
-            if (context == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(context));
-            }
-
-            if (template == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(template));
-            }
+            ArgumentNullException.ThrowIfNull(textWriter);
+            ArgumentNullException.ThrowIfNull(context);
+            ArgumentNullException.ThrowIfNull(template);
 
             // A template is evaluated in a child scope such that the provided TemplateContext is immutable
             if (isolateContext)

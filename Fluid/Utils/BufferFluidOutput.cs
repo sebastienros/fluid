@@ -68,10 +68,7 @@ namespace Fluid.Utils
 
         public void Write(char[] buffer, int index, int count)
         {
-            if (buffer == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(buffer));
-            }
+            ArgumentNullException.ThrowIfNull(buffer);
 
             if (count == 0)
             {

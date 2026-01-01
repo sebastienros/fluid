@@ -292,7 +292,7 @@ namespace Fluid.ViewEngine
                     var callbackTemplate = new FluidTemplate(new CallbackStatement((writer, encoder, context) =>
                     {
                         context.AmbientValues[Constants.ViewPathIndex] = viewStartPath;
-                        return new ValueTask<Completion>(Completion.Normal);
+                        return Statement.NormalCompletion;
                     }));
 
                     var viewStartTemplate = await GetFluidTemplateAsync(viewStartPath, fileProvider, false);

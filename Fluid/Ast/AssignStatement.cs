@@ -40,7 +40,7 @@ namespace Fluid.Ast
             }
 
             context.SetValue(Identifier, task.Result);
-            return new ValueTask<Completion>(Completion.Normal);
+            return Statement.NormalCompletion;
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitAssignStatement(this);

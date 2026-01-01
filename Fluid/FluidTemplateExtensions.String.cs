@@ -40,11 +40,36 @@ namespace Fluid
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static async ValueTask<string> RenderAsync(this IFluidTemplate template, TemplateContext context, TextEncoder encoder, bool isolateContext = true)
         {
-            using var sb = StringBuilderPool.GetInstance();
-            using var writer = new StringWriter(sb.Builder);
+            ArgumentNullException.ThrowIfNull(context);
+            ArgumentNullException.ThrowIfNull(template);
+            ArgumentNullException.ThrowIfNull(encoder);
 
-            await RenderAsync(template, writer, context, encoder, isolateContext);
-            return sb.ToString();
+            // Mirror the TextWriter-based overload: evaluate in a child scope so the provided TemplateContext is immutable.
+            if (isolateContext)
+            {
+                context.EnterChildScope();
+            }
+
+            try
+            {
+                var initialCapacity = context.Options?.OutputBufferSize ?? 0;
+                if (initialCapacity <= 0)
+                {
+                    initialCapacity = 16 * 1024;
+                }
+
+                using var output = new BufferFluidOutput(initialCapacity);
+                await template.RenderAsync(output, encoder, context);
+                await output.FlushAsync();
+                return output.ToString();
+            }
+            finally
+            {
+                if (isolateContext)
+                {
+                    context.ReleaseScope();
+                }
+            }
         }
     }
 }

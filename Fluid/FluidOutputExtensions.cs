@@ -15,25 +15,10 @@ namespace Fluid
     {
         public static async ValueTask<Completion> WriteToAsync(this Statement statement, TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            if (statement == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(statement));
-            }
-
-            if (writer == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
-            }
-
-            if (encoder == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
-            }
-
-            if (context == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(context));
-            }
+            ArgumentNullException.ThrowIfNull(statement);
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(encoder);
+            ArgumentNullException.ThrowIfNull(context);
 
             var bufferSize = context.Options?.OutputBufferSize ?? 16 * 1024;
             if (bufferSize <= 0)
@@ -49,25 +34,10 @@ namespace Fluid
 
         public static async ValueTask RenderAsync(this IFluidTemplate template, TextWriter writer, TextEncoder encoder, TemplateContext context)
         {
-            if (template == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(template));
-            }
-
-            if (writer == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
-            }
-
-            if (encoder == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
-            }
-
-            if (context == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(context));
-            }
+            ArgumentNullException.ThrowIfNull(template);
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(encoder);
+            ArgumentNullException.ThrowIfNull(context);
 
             var bufferSize = context.Options?.OutputBufferSize ?? 16 * 1024;
             if (bufferSize <= 0)
@@ -82,25 +52,10 @@ namespace Fluid
 
         public static async ValueTask WriteToAsync(this FluidValue value, TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            if (value == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(value));
-            }
-
-            if (writer == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
-            }
-
-            if (encoder == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
-            }
-
-            if (cultureInfo == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(cultureInfo));
-            }
+            ArgumentNullException.ThrowIfNull(value);
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(encoder);
+            ArgumentNullException.ThrowIfNull(cultureInfo);
 
             using var output = new TextWriterFluidOutput(writer, bufferSize: 16 * 1024, leaveOpen: true);
             await value.WriteToAsync(output, encoder, cultureInfo);

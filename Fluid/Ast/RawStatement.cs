@@ -20,7 +20,7 @@ namespace Fluid.Ast
             context.IncrementSteps();
 
             output.Write(_text.ToString());
-            return new ValueTask<Completion>(Completion.Normal);
+            return Statement.NormalCompletion;
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitRawStatement(this);

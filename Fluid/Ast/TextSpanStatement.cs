@@ -154,7 +154,7 @@ namespace Fluid.Ast
 
             if (_preparedBuffer == "")
             {
-                return new ValueTask<Completion>(Completion.Normal);
+                return Statement.NormalCompletion;
             }
 
             context.IncrementSteps();
@@ -163,7 +163,7 @@ namespace Fluid.Ast
 
             output.Write(_preparedBuffer);
 
-            return new ValueTask<Completion>(Completion.Normal);
+            return Statement.NormalCompletion;
         }
     }
 }
