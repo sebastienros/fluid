@@ -7,7 +7,7 @@ namespace Fluid.Ast
     {
         public DecrementStatement(string identifier)
         {
-            Identifier = identifier;
+            Identifier = identifier ?? "";
         }
 
         public string Identifier { get; }
