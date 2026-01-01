@@ -1,35 +1,65 @@
 {
-    "version": "2.0.0",
-    "command": "dotnet",
-    "args": [],
-    "tasks": [
-        {
-            "label": "build",
-            "type": "shell",
-            "command": "dotnet",
-            "args": [
-                "build",
-                "${workspaceRoot}/Fluid/Fluid.csproj"
-            ],
-            "problemMatcher": "$msCompile",
-            "group": {
-                "_id": "build",
-                "isDefault": false
-            }
-        },
-        {
-            "label": "test",
-            "type": "shell",
-            "command": "dotnet",
-            "args": [
-                "test",
-                "${workspaceRoot}/Fluid.Tests/Fluid.Tests.csproj"
-            ],
-            "problemMatcher": "$msCompile",
-            "group": {
-                "_id": "test",
-                "isDefault": false
-            }
-        }
-    ]
+	"version": "2.0.0",
+	"command": "dotnet",
+	"args": [],
+	"tasks": [
+		{
+			"label": "build",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"${workspaceRoot}/Fluid/Fluid.csproj"
+			],
+			"problemMatcher": "$msCompile",
+			"group": {
+				"_id": "build",
+				"isDefault": false
+			}
+		},
+		{
+			"label": "test",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"test",
+				"${workspaceRoot}/Fluid.Tests/Fluid.Tests.csproj"
+			],
+			"problemMatcher": "$msCompile",
+			"group": {
+				"_id": "test",
+				"isDefault": false
+			}
+		},
+		{
+			"label": "profile benchmarks (cpu)",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-lc",
+				"cd Fluid.Benchmarks && asynkron-profiler --cpu -- dotnet ./bin/Release/net10.0/Fluid.Benchmarks.dll"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "profile benchmarks (cpu) -> file",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-lc",
+				"cd Fluid.Benchmarks && asynkron-profiler --cpu -- dotnet ./bin/Release/net10.0/Fluid.Benchmarks.dll > ../profile-cpu.txt 2>&1 && echo WROTE:../profile-cpu.txt"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "profile benchmarks (cpu) -> file (post-encode-fastpath)",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-lc",
+				"dotnet build Fluid.Benchmarks/Fluid.Benchmarks.csproj -c Release -f net10.0 >/dev/null && cd Fluid.Benchmarks && asynkron-profiler --cpu -- dotnet ./bin/Release/net10.0/Fluid.Benchmarks.dll > ../profile-cpu-2.txt 2>&1 && echo WROTE:../profile-cpu-2.txt"
+			],
+			"isBackground": false
+		}
+	]
 }

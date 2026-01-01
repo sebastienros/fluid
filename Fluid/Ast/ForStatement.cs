@@ -39,7 +39,13 @@ namespace Fluid.Ast
 
         public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
-            var source = await (await Source.EvaluateAsync(context)).EnumerateAsync(context).ToListAsync();
+            var evaluatedSource = await Source.EvaluateAsync(context);
+
+            // Fast-path: FluidValue.Create(IEnumerable) and many array-like values already materialize as ArrayValue.
+            // Avoid re-enumerating and allocating a new List<T> in this very hot path.
+            IReadOnlyList<FluidValue> source = evaluatedSource is ArrayValue array
+                ? array.Values
+                : await evaluatedSource.EnumerateAsync(context).ToListAsync();
 
             if (source.Count == 0)
             {
@@ -93,11 +99,6 @@ namespace Fluid.Ast
                 return Completion.Normal;
             }
 
-            if (Reversed)
-            {
-                source.Reverse(startIndex, count);
-            }
-
             var parentLoop = context.LocalScope.GetValue("forloop");
 
             context.EnterForLoopScope();
@@ -119,7 +120,9 @@ namespace Fluid.Ast
                 {
                     context.IncrementSteps();
 
-                    var item = source[i];
+                    // When reversed, iterate the slice in reverse without mutating the underlying list.
+                    var itemIndex = Reversed ? startIndex + length - 1 - i : i;
+                    var item = source[itemIndex];
 
                     context.LocalScope.SetOwnValue(Identifier, item);
 

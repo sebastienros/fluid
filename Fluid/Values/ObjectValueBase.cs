@@ -165,7 +165,7 @@ namespace Fluid.Values
                 return default;
             }
 
-            output.Write(encoder.Encode(value));
+            output.Write(encoder, value);
             return default;
         }
 

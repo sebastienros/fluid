@@ -1,56 +1,50 @@
 using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace Fluid.Utils
 {
+    /// <summary>
+    /// A pooled, growable character buffer that implements <see cref="IFluidOutput"/>.
+    /// Accumulates output and produces a final string via <see cref="ToString"/>.
+    /// </summary>
     internal sealed class BufferFluidOutput : IFluidOutput, IDisposable
     {
-        private readonly ArrayPool<char> _pool;
         private char[] _buffer;
-        private int _written;
+        private int _index;
 
         public BufferFluidOutput(int initialCapacity = 256)
         {
-            #if NET8_0_OR_GREATER
-            ArgumentOutOfRangeException.ThrowIfNegative(initialCapacity);
-            #else
             if (initialCapacity < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(initialCapacity));
+                ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(initialCapacity), "Value must be non-negative.");
             }
-            #endif
 
-            _pool = ArrayPool<char>.Shared;
-            _buffer = _pool.Rent(Math.Max(1, initialCapacity));
+            _buffer = ArrayPool<char>.Shared.Rent(Math.Max(initialCapacity, 1));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Advance(int count)
         {
-            #if NET8_0_OR_GREATER
-            ArgumentOutOfRangeException.ThrowIfNegative(count);
-            #else
-            if (count < 0)
+            if ((uint)count > (uint)(_buffer.Length - _index))
             {
-                throw new ArgumentOutOfRangeException(nameof(count));
+                ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(count), "Cannot advance beyond the buffer.");
             }
-            #endif
 
-            _written += count;
-            if (_written > _buffer.Length)
-            {
-                throw new InvalidOperationException("Advanced beyond the end of the buffer.");
-            }
+            _index += count;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Memory<char> GetMemory(int sizeHint = 0)
         {
             EnsureCapacity(sizeHint);
-            return _buffer.AsMemory(_written);
+            return _buffer.AsMemory(_index);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<char> GetSpan(int sizeHint = 0)
         {
             EnsureCapacity(sizeHint);
-            return _buffer.AsSpan(_written);
+            return _buffer.AsSpan(_index);
         }
 
         public void Write(string value)
@@ -61,15 +55,15 @@ namespace Fluid.Utils
             }
 
             EnsureCapacity(value.Length);
-
-            value.CopyTo(0, _buffer, _written, value.Length);
-            _written += value.Length;
+            value.CopyTo(0, _buffer, _index, value.Length);
+            _index += value.Length;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(char value)
         {
             EnsureCapacity(1);
-            _buffer[_written++] = value;
+            _buffer[_index++] = value;
         }
 
         public void Write(char[] buffer, int index, int count)
@@ -85,50 +79,56 @@ namespace Fluid.Utils
             }
 
             EnsureCapacity(count);
-            Array.Copy(buffer, index, _buffer, _written, count);
-            _written += count;
+            buffer.AsSpan(index, count).CopyTo(_buffer.AsSpan(_index));
+            _index += count;
         }
 
         public ValueTask FlushAsync() => default;
 
         public void Dispose()
         {
-            if (_buffer != null)
+            var buffer = _buffer;
+            if (buffer != null)
             {
-                var toReturn = _buffer;
                 _buffer = null;
-                _pool.Return(toReturn);
+                ArrayPool<char>.Shared.Return(buffer);
             }
         }
 
-        public override string ToString() => _written == 0 ? string.Empty : new string(_buffer, 0, _written);
-
-        private void EnsureCapacity(int sizeHint)
+        public override string ToString()
         {
-            #if NET8_0_OR_GREATER
-            ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
-            #else
-            if (sizeHint < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(sizeHint));
-            }
-            #endif
+            return _index == 0 ? string.Empty : new string(_buffer, 0, _index);
+        }
 
-            if (sizeHint == 0)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void EnsureCapacity(int additionalCapacity)
+        {
+            if (additionalCapacity < 0)
             {
-                sizeHint = 1;
+                ExceptionHelper.ThrowArgumentOutOfRangeException(nameof(additionalCapacity), "Value must be non-negative.");
             }
 
-            var available = _buffer.Length - _written;
-            if (available >= sizeHint)
+            if (additionalCapacity == 0)
             {
-                return;
+                additionalCapacity = 1;
             }
 
-            var newSize = Math.Max(_buffer.Length * 2, _written + sizeHint);
-            var newBuffer = _pool.Rent(newSize);
-            Array.Copy(_buffer, 0, newBuffer, 0, _written);
-            _pool.Return(_buffer);
+            if (_buffer.Length - _index < additionalCapacity)
+            {
+                Grow(additionalCapacity);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void Grow(int additionalCapacity)
+        {
+            // At least double, or enough for the requested capacity
+            var newCapacity = Math.Max(_buffer.Length * 2, _index + additionalCapacity);
+
+            var newBuffer = ArrayPool<char>.Shared.Rent(newCapacity);
+            _buffer.AsSpan(0, _index).CopyTo(newBuffer);
+
+            ArrayPool<char>.Shared.Return(_buffer);
             _buffer = newBuffer;
         }
     }

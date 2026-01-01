@@ -120,7 +120,12 @@ namespace Fluid.Ast
                     {
                         var forloop = new ForLoopValue();
 
-                        var list = await (await For.EvaluateAsync(context)).EnumerateAsync(context).ToListAsync();
+                        var evaluatedFor = await For.EvaluateAsync(context);
+
+                        // Fast-path: avoid re-enumerating already materialized arrays.
+                        IReadOnlyList<FluidValue> list = evaluatedFor is ArrayValue array
+                            ? array.Values
+                            : await evaluatedFor.EnumerateAsync(context).ToListAsync();
 
                         context.LocalScope = new Scope(context.RootScope);
                         previousScope.CopyTo(context.LocalScope);

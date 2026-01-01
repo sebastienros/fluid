@@ -1,4 +1,5 @@
 using Fluid.Utils;
+using System.Buffers;
 using System.Globalization;
 using System.Text.Encodings.Web;
 
@@ -68,21 +69,76 @@ namespace Fluid.Values
             AssertWriteToParameters(output, encoder, cultureInfo);
 
             var scale = GetScale(_value);
+
+            #if NET8_0_OR_GREATER
+            ReadOnlySpan<char> format = default;
+
             if (scale == 0)
             {
-                // If the scale is zero, we can write the value directly without formatting
-                output.Write(encoder.Encode(_value.ToString(cultureInfo)));
+                // Default format.
             }
             else if (_value * (10 * scale) % (10 * scale) == 0)
             {
                 // If the decimal part is zero(s), write one only
-                output.Write(encoder.Encode(_value.ToString("F1", cultureInfo)));
+                format = "F1";
             }
             else
             {
                 // For larger scales, we use G29 to avoid trailing zeros
-                output.Write(encoder.Encode(_value.ToString("G29", cultureInfo)));
+                format = "G29";
             }
+
+            Span<char> scratch = stackalloc char[64];
+            if (_value.TryFormat(scratch, out var written, format, cultureInfo))
+            {
+                output.Write(encoder, scratch.Slice(0, written));
+                return default;
+            }
+
+            // Extremely defensive fallback (very unlikely for decimal): rent a larger buffer.
+            // Keep allocation-free in the common case.
+            var pool = ArrayPool<char>.Shared;
+            var rented = pool.Rent(256);
+            try
+            {
+                var span = rented.AsSpan();
+                if (_value.TryFormat(span, out written, format, cultureInfo))
+                {
+                    output.Write(encoder, span.Slice(0, written));
+                    return default;
+                }
+
+                // Last resort: string formatting.
+                if (format.IsEmpty)
+                {
+                    output.Write(encoder, _value.ToString(cultureInfo));
+                }
+                else
+                {
+                    output.Write(encoder, _value.ToString(format.ToString(), cultureInfo));
+                }
+            }
+            finally
+            {
+                pool.Return(rented);
+            }
+            #else
+            if (scale == 0)
+            {
+                // If the scale is zero, we can write the value directly without formatting
+                output.Write(encoder, _value.ToString(cultureInfo));
+            }
+            else if (_value * (10 * scale) % (10 * scale) == 0)
+            {
+                // If the decimal part is zero(s), write one only
+                output.Write(encoder, _value.ToString("F1", cultureInfo));
+            }
+            else
+            {
+                // For larger scales, we use G29 to avoid trailing zeros
+                output.Write(encoder, _value.ToString("G29", cultureInfo));
+            }
+            #endif
 
             return default;
         }
