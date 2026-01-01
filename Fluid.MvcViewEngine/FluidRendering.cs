@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Options;
 using System.IO;
 using System.Threading.Tasks;
+using Fluid.Utils;
 
 namespace Fluid.MvcViewEngine
 {
@@ -45,7 +46,15 @@ namespace Fluid.MvcViewEngine
                 await _options.RenderingViewAsync.Invoke(path, viewContext, context);
             }
 
-            await _fluidViewRenderer.RenderViewAsync(writer, path, context);
+            var bufferSize = context.Options?.OutputBufferSize ?? 16 * 1024;
+            if (bufferSize <= 0)
+            {
+                bufferSize = 16 * 1024;
+            }
+
+            using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true);
+            await _fluidViewRenderer.RenderViewAsync(output, path, context);
+            await output.FlushAsync();
         }
     }
 }

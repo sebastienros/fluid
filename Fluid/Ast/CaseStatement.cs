@@ -19,7 +19,7 @@ namespace Fluid.Ast
 
         public IReadOnlyList<CaseBlock> Blocks => _blocks;
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
@@ -39,7 +39,7 @@ namespace Fluid.Ast
                             // Execute all statements in the when block
                             foreach (var statement in whenBlock.Statements)
                             {
-                                var completion = await statement.WriteToAsync(writer, encoder, context);
+                                var completion = await statement.WriteToAsync(output, encoder, context);
                                 if (completion != Completion.Normal)
                                 {
                                     return completion;
@@ -56,7 +56,7 @@ namespace Fluid.Ast
                     {
                         foreach (var statement in elseBlock.Statements)
                         {
-                            var completion = await statement.WriteToAsync(writer, encoder, context);
+                            var completion = await statement.WriteToAsync(output, encoder, context);
                             if (completion != Completion.Normal)
                             {
                                 return completion;

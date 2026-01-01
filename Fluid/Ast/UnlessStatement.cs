@@ -16,7 +16,7 @@ namespace Fluid.Ast
         public Expression Condition { get; }
         public ElseStatement Else { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             var result = (await Condition.EvaluateAsync(context)).ToBooleanValue();
 
@@ -25,7 +25,7 @@ namespace Fluid.Ast
                 for (var i = 0; i < Statements.Count; i++)
                 {
                     var statement = Statements[i];
-                    var completion = await statement.WriteToAsync(writer, encoder, context);
+                    var completion = await statement.WriteToAsync(output, encoder, context);
 
                     if (completion != Completion.Normal)
                     {
@@ -41,7 +41,7 @@ namespace Fluid.Ast
             {
                 if (Else != null)
                 {
-                    await Else.WriteToAsync(writer, encoder, context);
+                    await Else.WriteToAsync(output, encoder, context);
                 }
             }
 

@@ -13,15 +13,14 @@ namespace Fluid.Ast
 
         public string Identifier { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             var completion = Completion.Normal;
 
-            using var sb = StringBuilderPool.GetInstance();
-            using var sw = new StringWriter(sb.Builder);
+            using var captureOutput = new BufferFluidOutput();
             for (var i = 0; i < Statements.Count; i++)
             {
-                completion = await Statements[i].WriteToAsync(sw, encoder, context);
+                completion = await Statements[i].WriteToAsync(captureOutput, encoder, context);
 
                 if (completion != Completion.Normal)
                 {
@@ -31,7 +30,7 @@ namespace Fluid.Ast
                 }
             }
 
-            FluidValue result = new StringValue(sw.ToString(), false);
+            FluidValue result = new StringValue(captureOutput.ToString(), false);
 
             // Substitute the result if a custom callback is provided
             if (context.Captured != null)

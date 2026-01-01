@@ -54,23 +54,11 @@ namespace Fluid.Values
             return _value ? "true" : "false";
         }
 
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-            var task = writer.WriteAsync(encoder.Encode(ToStringValue()));
-
-            if (task.IsCompletedSuccessfully())
-            {
-                return default;
-            }
-
-            return Awaited(task);
-
-            static async ValueTask Awaited(Task t)
-            {
-                await t;
-                return;
-            }
+            AssertWriteToParameters(output, encoder, cultureInfo);
+            output.Write(encoder, ToStringValue());
+            return default;
         }
 
         public override object ToObjectValue()

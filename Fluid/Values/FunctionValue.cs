@@ -55,7 +55,7 @@ namespace Fluid.Values
             return false;
         }
 
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
             // A function value should be invoked and its result used instead.
             // Calling write to is equivalent to rendering {{ alert }} instead of {{ alert() }}

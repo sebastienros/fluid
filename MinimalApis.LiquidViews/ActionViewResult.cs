@@ -7,6 +7,7 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Threading.Tasks;
+using Fluid.Utils;
 
 namespace MinimalApis.LiquidViews
 {
@@ -51,7 +52,15 @@ namespace MinimalApis.LiquidViews
             context.Options.FileProvider = options.PartialsFileProvider;
 
             await using var sw = new StreamWriter(httpContext.Response.Body);
-            await fluidViewRenderer.RenderViewAsync(sw, viewPath, context);
+            var bufferSize = context.Options.OutputBufferSize;
+            if (bufferSize <= 0)
+            {
+                bufferSize = 16 * 1024;
+            }
+
+            using var output = new TextWriterFluidOutput(sw, bufferSize, leaveOpen: true);
+            await fluidViewRenderer.RenderViewAsync(output, viewPath, context);
+            await output.FlushAsync();
         }
 
         private static string LocatePageFromViewLocations(string viewName, FluidViewEngineOptions options)

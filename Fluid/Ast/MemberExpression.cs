@@ -20,7 +20,7 @@ namespace Fluid.Ast
 
             if (_segments.Length == 0)
             {
-                ExceptionHelper.ThrowArgumentNullException(nameof(segments), "At least one segment is required in a MemberExpression");
+                ExceptionHelper.ThrowArgumentException(nameof(segments), "At least one segment is required in a MemberExpression");
             }
         }
 
@@ -42,7 +42,9 @@ namespace Fluid.Ast
 
             if (value.IsNil())
             {
-                if (context.Model == null)
+                // A context created without an explicit model uses NilValue.Instance.
+                // Treat this as "no model" so undefined variables can be tracked / handled.
+                if (context.Model.IsNil())
                 {
                     // Check equality as IsNil() is also true for UndefinedValue
                     if (context.Undefined is not null && value == UndefinedValue.Instance)

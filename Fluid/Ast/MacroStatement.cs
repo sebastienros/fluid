@@ -15,7 +15,7 @@ namespace Fluid.Ast
         public string Identifier { get; }
         public IReadOnlyList<FunctionCallArgument> Arguments { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             // Evaluate all default values only once
             var defaultValues = new Dictionary<string, FluidValue>();
@@ -28,8 +28,7 @@ namespace Fluid.Ast
 
             var f = new FunctionValue(async (args, c) =>
             {
-                using var sb = StringBuilderPool.GetInstance();
-                using var sw = new StringWriter(sb.Builder);
+                using var macroOutput = new BufferFluidOutput();
 
                 context.EnterChildScope();
 
@@ -64,7 +63,7 @@ namespace Fluid.Ast
 
                     for (var i = 0; i < Statements.Count; i++)
                     {
-                        var completion = await Statements[i].WriteToAsync(sw, encoder, context);
+                        var completion = await Statements[i].WriteToAsync(macroOutput, encoder, context);
 
                         if (completion != Completion.Normal)
                         {
@@ -74,7 +73,7 @@ namespace Fluid.Ast
                         }
                     }
 
-                    var result = sw.ToString();
+                    var result = macroOutput.ToString();
 
                     // Don't encode the result
                     return new StringValue(result, false);

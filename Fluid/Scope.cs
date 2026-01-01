@@ -19,7 +19,7 @@ namespace Fluid
 
         public Scope(Scope parent, bool forLoopScope, StringComparer stringComparer = null)
         {
-            if (forLoopScope && parent == null) ExceptionHelper.ThrowArgumentNullException(nameof(parent));
+            if (forLoopScope) ArgumentNullException.ThrowIfNull(parent);
 
             // For loops are also ordinal by default
             _stringComparer = stringComparer ?? StringComparer.Ordinal;
@@ -49,11 +49,8 @@ namespace Fluid
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public FluidValue GetValue(string name)
         {
-            if (name == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(name));
-            }
-
+            ArgumentNullException.ThrowIfNull(name);
+    
             if (_properties != null && _properties.TryGetValue(name, out var result))
             {
                 return result;

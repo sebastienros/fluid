@@ -11,12 +11,12 @@ namespace Fluid.Ast
 
         public IReadOnlyList<Expression> Options { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             // Process statements until next block or end of statements
             for (var index = 0; index < Statements.Count; index++)
             {
-                var completion = await Statements[index].WriteToAsync(writer, encoder, context);
+            var completion = await Statements[index].WriteToAsync(output, encoder, context);
 
                 if (completion != Completion.Normal)
                 {
