@@ -449,6 +449,7 @@ namespace Fluid.Tests
             var context = new TemplateContext(options);
 
             // x | where: "Missing"
+            // No comparand so check for truthiness, 1 is truthy so both items with Missing=1 are returned
 
             var arguments1 = new FilterArguments().Add(new StringValue("Missing"));
             var result1 = await ArrayFilters.Where(input, arguments1, context);
@@ -456,13 +457,14 @@ namespace Fluid.Tests
             Assert.Equal(2, await result1.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
 
             // x | where: "Missing", false
+            // 0 since a NumberValue is never equal to a boolean
 
             var arguments2 = new FilterArguments()
                 .Add(new StringValue("Missing"))
                 .Add(BooleanValue.False);
 
             var result2 = await ArrayFilters.Where(input, arguments2, context);
-            Assert.Single(await result2.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Empty(await result2.EnumerateAsync(context).ToListAsync());
 
             // x | where: "Title"
 
@@ -472,11 +474,11 @@ namespace Fluid.Tests
             var result3 = await ArrayFilters.Where(input, arguments3, context);
             Assert.Equal(3, await result3.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
 
-            // x | where: "Missing", true
+            // x | where: "Missing", 1
 
             var arguments4 = new FilterArguments()
                 .Add(new StringValue("Missing"))
-                .Add(BooleanValue.True);
+                .Add(NumberValue.Create(1));
 
             var result4 = await ArrayFilters.Where(input, arguments4, context);
             Assert.Equal(2, await result4.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));

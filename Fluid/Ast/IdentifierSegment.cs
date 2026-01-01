@@ -17,5 +17,10 @@ namespace Fluid.Ast
         {
             return value.GetValueAsync(Identifier, context);
         }
+
+        public override string GetSegmentName()
+        {
+            return Identifier;
+        }
     }
 }

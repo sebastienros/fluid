@@ -1,5 +1,6 @@
 using System.Text.Encodings.Web;
 using Fluid.Values;
+using Fluid.Utils;
 
 namespace Fluid.Ast
 {
@@ -22,7 +23,7 @@ namespace Fluid.Ast
         public Expression Path { get; }
         public IReadOnlyList<string> Functions { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
             if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))
@@ -65,7 +66,7 @@ namespace Fluid.Ast
 
             try
             {
-                await cachedTemplate.Template.RenderAsync(TextWriter.Null, encoder, context);
+                await cachedTemplate.Template.RenderAsync(NullFluidOutput.Instance, encoder, context);
 
                 if (Functions.Count > 0)
                 {

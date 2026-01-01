@@ -15,7 +15,7 @@ namespace Fluid.Ast
             Values = values;
         }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
@@ -32,7 +32,7 @@ namespace Fluid.Ast
             var value = await Values[(int)index].EvaluateAsync(context);
             context.SetValue(groupValue, NumberValue.Create(index + 1));
 
-            await value.WriteToAsync(writer, encoder, context.CultureInfo);
+            await value.WriteToAsync(output, encoder, context.CultureInfo);
 
             return Completion.Normal;
         }

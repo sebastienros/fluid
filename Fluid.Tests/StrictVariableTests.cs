@@ -494,6 +494,41 @@ public class StrictVariableTests
         Assert.Equal("[missing not found] [another not found]", result);
     }
 
+    [Fact]
+    public async Task StrictVariables_ExceptionMessage_ContainsPropertyName()
+    {
+        // This test verifies that the exception message contains the actual property name
+        // rather than the type name like "Fluid.Ast.IdentifierSegment"
+        _parser.TryParse("{{ event.userId }}", out var template, out var _);
+        var options = new TemplateOptions { StrictVariables = true };
+        var context = new TemplateContext(options);
+        
+        // Set event but without userId property
+        context.SetValue("event", new { email = "test@example.com" });
+        
+        var exception = await Assert.ThrowsAsync<FluidException>(() => template.RenderAsync(context).AsTask());
+        
+        // The exception message should contain "userId"
+        Assert.Contains("userId", exception.Message);
+    }
+
+    [Fact]
+    public async Task StrictVariables_ExceptionMessage_WithNestedProperty()
+    {
+        // Test that nested property access also shows the correct property name
+        _parser.TryParse("{{ user.profile.avatar }}", out var template, out var _);
+        var options = new TemplateOptions { StrictVariables = true };
+        var context = new TemplateContext(options);
+        
+        // Set user with profile but without avatar property
+        context.SetValue("user", new { profile = new { name = "John" } });
+        
+        var exception = await Assert.ThrowsAsync<FluidException>(() => template.RenderAsync(context).AsTask());
+        
+        // The exception message should contain "avatar"
+        Assert.Contains("avatar", exception.Message);
+    }
+
     private (TemplateOptions, List<string>) CreateStrictOptions()
     {
         var missingVariables = new List<string>();

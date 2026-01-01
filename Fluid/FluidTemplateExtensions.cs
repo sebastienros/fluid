@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
+using Fluid.Utils;
 
 namespace Fluid
 {
@@ -43,20 +44,9 @@ namespace Fluid
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static async ValueTask RenderAsync(this IFluidTemplate template, TextWriter textWriter, TemplateContext context, TextEncoder encoder, bool isolateContext = true)
         {
-            if (textWriter == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(textWriter));
-            }
-
-            if (context == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(context));
-            }
-
-            if (template == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(template));
-            }
+            ArgumentNullException.ThrowIfNull(textWriter);
+            ArgumentNullException.ThrowIfNull(context);
+            ArgumentNullException.ThrowIfNull(template);
 
             // A template is evaluated in a child scope such that the provided TemplateContext is immutable
             if (isolateContext)
@@ -64,16 +54,22 @@ namespace Fluid
                 context.EnterChildScope();
             }
 
+            var bufferSize = context.Options?.OutputBufferSize ?? 0;
+            if (bufferSize <= 0)
+            {
+                bufferSize = 16 * 1024;
+            }
+
+            using var output = new TextWriterFluidOutput(textWriter, bufferSize, leaveOpen: true);
+
             try
             {
-                await template.RenderAsync(textWriter, encoder, context);
-
-                textWriter.Flush();
+                await template.RenderAsync(output, encoder, context);
+                await output.FlushAsync();
+                await textWriter.FlushAsync();
             }
             finally
             {
-                textWriter.Dispose();
-
                 if (isolateContext)
                 {
                     context.ReleaseScope();

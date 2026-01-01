@@ -48,10 +48,10 @@ namespace Fluid.Values
             return _leftOperand.ToObjectValue();
         }
 
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
             // Delegate rendering to the left operand
-            return _leftOperand.WriteToAsync(writer, encoder, cultureInfo);
+            return _leftOperand.WriteToAsync(output, encoder, cultureInfo);
         }
 
         public override bool IsNil()

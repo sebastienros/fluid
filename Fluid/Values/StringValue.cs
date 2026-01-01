@@ -99,18 +99,18 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other)
         {
-            if (other.Type == FluidValues.String)
-            {
-                return _value == other.ToStringValue();
-            }
-
-            // Delegating other types
+            // Delegating special cases to other types
             if (other == BlankValue.Instance || other == NilValue.Instance || other == EmptyValue.Instance)
             {
                 return other.Equals(this);
             }
 
-            return false;
+            if (other.Type != FluidValues.String)
+            {
+                return false;
+            }
+
+            return _value == other.ToStringValue();
         }
 
         public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
@@ -153,44 +153,24 @@ namespace Fluid.Values
             return _value;
         }
 
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
+            AssertWriteToParameters(output, encoder, cultureInfo);
             if (string.IsNullOrEmpty(_value))
             {
                 return default;
             }
 
-            Task task;
-
             if (Encode)
             {
-                // perf: Don't use this overload
-                // encoder.Encode(writer, _value);
-
-                // Use a transient string instead of calling
-                // encoder.Encode(TextWriter) since it would
-                // call writer.Write on each char if the string
-                // has even a single char to encode
-                task = writer.WriteAsync(encoder.Encode(_value));
+                output.Write(encoder, _value);
             }
             else
             {
-                task = writer.WriteAsync(_value);
+                output.Write(_value);
             }
 
-            if (task.IsCompletedSuccessfully())
-            {
-                return default;
-            }
-
-            return Awaited(task);
-
-            static async ValueTask Awaited(Task t)
-            {
-                await t;
-                return;
-            }
+            return default;
         }
 
         public override object ToObjectValue()

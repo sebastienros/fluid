@@ -53,5 +53,11 @@ namespace Fluid.Ast
 
             return await value.InvokeAsync(arguments, context);
         }
+
+        public override string GetSegmentName()
+        {
+            // For function call segments, return a generic representation
+            return "()";
+        }
     }
 }

@@ -46,7 +46,7 @@ namespace Fluid.Values
 
         public override bool IsNil() => _inner.IsNil();
 
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo) 
-            => _inner.WriteToAsync(writer, encoder, cultureInfo);
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo) 
+            => _inner.WriteToAsync(output, encoder, cultureInfo);
     }
 }

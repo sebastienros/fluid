@@ -11,7 +11,7 @@ namespace Fluid.Values
     public abstract class FluidValue : IEquatable<FluidValue>
 #pragma warning restore CA1067
     {
-        public virtual ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public virtual ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
             return default;
         }
@@ -19,22 +19,11 @@ namespace Fluid.Values
         private static Dictionary<Type, Type> _genericDictionaryTypeCache = new();
 
         [Conditional("DEBUG")]
-        protected static void AssertWriteToParameters(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        protected static void AssertWriteToParameters(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            if (writer == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
-            }
-
-            if (encoder == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
-            }
-
-            if (cultureInfo == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(cultureInfo));
-            }
+            ArgumentNullException.ThrowIfNull(output);
+            ArgumentNullException.ThrowIfNull(encoder);
+            ArgumentNullException.ThrowIfNull(cultureInfo);
         }
 
         public abstract bool Equals(FluidValue other);

@@ -31,10 +31,12 @@ namespace Fluid.Values
             // blank == false -> true
             if (other.Type == FluidValues.Blank) return !_value;
 
-            // Numbers should not equal booleans in Liquid (0 != false, 1 != true)
-            if (other.Type == FluidValues.Number) return false;
+            if (other.Type != FluidValues.Boolean)
+            {
+                return false;
+            }
 
-            return other.Type == FluidValues.Boolean && _value == other.ToBooleanValue();
+            return _value == other.ToBooleanValue();
         }
 
         public override bool ToBooleanValue()
@@ -52,23 +54,11 @@ namespace Fluid.Values
             return _value ? "true" : "false";
         }
 
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-            var task = writer.WriteAsync(encoder.Encode(ToStringValue()));
-
-            if (task.IsCompletedSuccessfully())
-            {
-                return default;
-            }
-
-            return Awaited(task);
-
-            static async ValueTask Awaited(Task t)
-            {
-                await t;
-                return;
-            }
+            AssertWriteToParameters(output, encoder, cultureInfo);
+            output.Write(encoder, ToStringValue());
+            return default;
         }
 
         public override IEnumerable<FluidValue> Enumerate(TemplateContext context)

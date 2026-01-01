@@ -11,17 +11,17 @@ namespace Fluid.Ast
 
         public Expression Condition { get; }
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             // Process statements until next block or end of statements
             for (var i = 0; i < Statements.Count; i++)
             {
                 context.IncrementSteps();
 
-                var task = Statements[i].WriteToAsync(writer, encoder, context);
+                var task = Statements[i].WriteToAsync(output, encoder, context);
                 if (!task.IsCompletedSuccessfully)
                 {
-                    return Awaited(task, i + 1, writer, encoder, context);
+                    return Awaited(task, i + 1, output, encoder, context);
                 }
 
                 var completion = task.Result;
@@ -29,17 +29,17 @@ namespace Fluid.Ast
                 {
                     // Stop processing the block statements
                     // We return the completion to flow it to the outer loop
-                    return new ValueTask<Completion>(completion);
+                    return Statement.FromCompletion(completion);
                 }
             }
 
-            return new ValueTask<Completion>(Completion.Normal);
+            return Statement.NormalCompletion;
         }
 
         private async ValueTask<Completion> Awaited(
             ValueTask<Completion> task,
             int startIndex,
-            TextWriter writer,
+            IFluidOutput output,
             TextEncoder encoder,
             TemplateContext context)
         {
@@ -54,7 +54,7 @@ namespace Fluid.Ast
             for (var index = startIndex; index < Statements.Count; index++)
             {
                 context.IncrementSteps();
-                completion = await Statements[index].WriteToAsync(writer, encoder, context);
+                completion = await Statements[index].WriteToAsync(output, encoder, context);
                 if (completion != Completion.Normal)
                 {
                     // Stop processing the block statements

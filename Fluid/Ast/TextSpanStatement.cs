@@ -145,7 +145,7 @@ namespace Fluid.Ast
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitTextSpanStatement(this);
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             if (!_isBufferPrepared)
             {
@@ -154,28 +154,16 @@ namespace Fluid.Ast
 
             if (_preparedBuffer == "")
             {
-                return new ValueTask<Completion>(Completion.Normal);
+                return Statement.NormalCompletion;
             }
 
             context.IncrementSteps();
 
             // The Text fragments are not encoded, but kept as-is
 
-            // Since WriteAsync needs an actual buffer, we created and reused _buffer
+            output.Write(_preparedBuffer);
 
-            static async ValueTask<Completion> Awaited(Task task)
-            {
-                await task;
-                return Completion.Normal;
-            }
-
-            var task = writer.WriteAsync(_preparedBuffer);
-            if (!task.IsCompletedSuccessfully())
-            {
-                return Awaited(task);
-            }
-
-            return new ValueTask<Completion>(Completion.Normal);
+            return Statement.NormalCompletion;
         }
     }
 }

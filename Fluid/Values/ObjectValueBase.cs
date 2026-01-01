@@ -161,9 +161,9 @@ namespace Fluid.Values
             }
         }
 
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
+            AssertWriteToParameters(output, encoder, cultureInfo);
 
             var value = ToStringValue();
 
@@ -172,20 +172,8 @@ namespace Fluid.Values
                 return default;
             }
 
-            var task = writer.WriteAsync(encoder.Encode(value));
-
-            if (task.IsCompletedSuccessfully())
-            {
-                return default;
-            }
-
-            return Awaited(task);
-
-            static async ValueTask Awaited(Task t)
-            {
-                await t;
-                return;
-            }
+            output.Write(encoder, value);
+            return default;
         }
 
         public override IEnumerable<FluidValue> Enumerate(TemplateContext context)

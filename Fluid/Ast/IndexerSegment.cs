@@ -16,5 +16,12 @@ namespace Fluid.Ast
             var index = await Expression.EvaluateAsync(context);
             return await value.GetIndexAsync(index, context);
         }
+
+        public override string GetSegmentName()
+        {
+            // For indexer segments, return a representation like [index]
+            // Since we don't have the evaluated value here, we return a generic representation
+            return "[index]";
+        }
     }
 }

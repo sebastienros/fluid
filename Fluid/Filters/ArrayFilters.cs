@@ -178,26 +178,28 @@ namespace Fluid.Filters
 
             // Second argument is the value to match, or 'true' if none is defined
             var targetValue = arguments.At(1);
-            if (targetValue.IsNil()) 
-            { 
-                targetValue = BooleanValue.True; 
-            }
 
-            var list = new List<FluidValue>();
+            List<FluidValue> list = null;
 
             await foreach (var item in input.EnumerateAsync(context))
             {
                 var itemValue = await item.GetValueAsync(member, context);
 
-                if (targetValue.Type != FluidValues.Boolean)
-                {
-                    if (itemValue.Equals(targetValue))
-                    {
-                        list.Add(item);
-                    }
+                var match = false;
+
+                // If not target value is defined, check truthiness of item
+                if (targetValue.IsNil()) 
+                { 
+                    match = itemValue.ToBooleanValue(context); 
                 }
-                else if (itemValue.ToBooleanValue() == targetValue.ToBooleanValue())
+                else if (targetValue.Equals(itemValue))
                 {
+                    match = true;
+                }
+
+                if (match)
+                {
+                    list ??= [];
                     list.Add(item);
                 }
             }

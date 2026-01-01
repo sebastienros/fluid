@@ -84,23 +84,11 @@ namespace Fluid.Values
             return _value.ToString("u", CultureInfo.InvariantCulture);
         }
 
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-            var task = writer.WriteAsync(_value.ToString("u", cultureInfo));
-
-            if (task.IsCompletedSuccessfully())
-            {
-                return default;
-            }
-
-            return Awaited(task);
-
-            static async ValueTask Awaited(Task t)
-            {
-                await t;
-                return;
-            }
+            AssertWriteToParameters(output, encoder, cultureInfo);
+            output.Write(_value.ToString("u", cultureInfo));
+            return default;
         }
 
         public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
