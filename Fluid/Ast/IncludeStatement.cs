@@ -26,7 +26,7 @@ namespace Fluid.Ast
         public Expression For { get; }
         public string Alias { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
@@ -95,17 +95,17 @@ namespace Fluid.Ast
 
                     context.SetValue(Alias ?? identifier, with);
 
-                    await template.RenderAsync(writer, encoder, context);
+                    await template.RenderAsync(output, encoder, context);
                 }
                 else if (AssignStatements.Count > 0)
                 {
                     var length = AssignStatements.Count;
                     for (var i = 0; i < length; i++)
                     {
-                        await AssignStatements[i].WriteToAsync(writer, encoder, context);
+                        await AssignStatements[i].WriteToAsync(output, encoder, context);
                     }
 
-                    await template.RenderAsync(writer, encoder, context);
+                    await template.RenderAsync(output, encoder, context);
                 }
                 else if (For != null)
                 {
@@ -135,7 +135,7 @@ namespace Fluid.Ast
                             forloop.First = i == 0;
                             forloop.Last = i == length - 1;
 
-                            await template.RenderAsync(writer, encoder, context);
+                            await template.RenderAsync(output, encoder, context);
 
                             // Restore the forloop property after every statement in case it replaced it,
                             // for instance if it contains a nested for loop
@@ -150,7 +150,7 @@ namespace Fluid.Ast
                 else
                 {
                     // no with, for or assignments, e.g. {% include 'products' %}
-                    await template.RenderAsync(writer, encoder, context);
+                    await template.RenderAsync(output, encoder, context);
                 }
             }
             finally

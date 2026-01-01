@@ -8,7 +8,7 @@ namespace Fluid.Ast
         public static ValueTask<Completion> Normal() => new(Completion.Normal);
         public static ValueTask<Completion> Continue() => new(Completion.Continue);
 
-        public abstract ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context);
+        public abstract ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context);
 
         protected internal virtual Statement Accept(AstVisitor visitor) => visitor.VisitOtherStatement(this);
     }

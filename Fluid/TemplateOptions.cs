@@ -9,6 +9,16 @@ namespace Fluid
     public class TemplateOptions
     {
         /// <summary>
+        /// Gets or sets the size (in chars) of the internal output buffer used when rendering to a <see cref="TextWriter"/>.
+        /// When the buffer is full, content is written to the underlying writer and the buffer is reused.
+        /// Set to 0 to disable buffering.
+        /// </summary>
+        /// <remarks>
+        /// Default is 16KB.
+        /// </remarks>
+        public int OutputBufferSize { get; set; } = 16 * 1024;
+
+        /// <summary>
         /// When set to <c>true</c>, any access to an undefined variable during template rendering will
         /// immediately throw an <see cref="InvalidOperationException"/>. The default is <c>false</c>, which
         /// renders undefined variables as empty strings (unless an <see cref="Undefined"/> delegate is provided).

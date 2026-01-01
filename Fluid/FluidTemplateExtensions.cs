@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
+using Fluid.Utils;
 
 namespace Fluid
 {
@@ -64,16 +65,22 @@ namespace Fluid
                 context.EnterChildScope();
             }
 
+            var bufferSize = context.Options?.OutputBufferSize ?? 0;
+            if (bufferSize <= 0)
+            {
+                bufferSize = 16 * 1024;
+            }
+
+            using var output = new TextWriterFluidOutput(textWriter, bufferSize, leaveOpen: true);
+
             try
             {
-                await template.RenderAsync(textWriter, encoder, context);
-
-                textWriter.Flush();
+                await template.RenderAsync(output, encoder, context);
+                await output.FlushAsync();
+                await textWriter.FlushAsync();
             }
             finally
             {
-                textWriter.Dispose();
-
                 if (isolateContext)
                 {
                     context.ReleaseScope();

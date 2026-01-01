@@ -29,7 +29,7 @@ namespace Fluid.Ast
         public Expression For { get; }
         public string Alias { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
@@ -108,11 +108,11 @@ namespace Fluid.Ast
                         var length = AssignStatements.Count;
                         for (var i = 0; i < length; i++)
                         {
-                            await AssignStatements[i].WriteToAsync(writer, encoder, context);
+                            await AssignStatements[i].WriteToAsync(output, encoder, context);
                         }
                     }
 
-                    await template.RenderAsync(writer, encoder, context);
+                    await template.RenderAsync(output, encoder, context);
                 }
                 else if (For != null)
                 {
@@ -131,7 +131,7 @@ namespace Fluid.Ast
                             var assignLength = AssignStatements.Count;
                             for (var j = 0; j < assignLength; j++)
                             {
-                                await AssignStatements[j].WriteToAsync(writer, encoder, context);
+                                await AssignStatements[j].WriteToAsync(output, encoder, context);
                             }
                         }
 
@@ -155,7 +155,7 @@ namespace Fluid.Ast
                             forloop.First = i == 0;
                             forloop.Last = i == length - 1;
 
-                            await template.RenderAsync(writer, encoder, context);
+                            await template.RenderAsync(output, encoder, context);
 
                             // Restore the forloop property after every statement in case it replaced it,
                             // for instance if it contains a nested for loop
@@ -172,20 +172,20 @@ namespace Fluid.Ast
                     var length = AssignStatements.Count;
                     for (var i = 0; i < length; i++)
                     {
-                        await AssignStatements[i].WriteToAsync(writer, encoder, context);
+                        await AssignStatements[i].WriteToAsync(output, encoder, context);
                     }
 
                     context.LocalScope = new Scope(context.RootScope);
                     previousScope.CopyTo(context.LocalScope);
 
-                    await template.RenderAsync(writer, encoder, context);
+                    await template.RenderAsync(output, encoder, context);
                 }
                 else
                 {
                     context.LocalScope = new Scope(context.RootScope);
                     previousScope.CopyTo(context.LocalScope);
 
-                    await template.RenderAsync(writer, encoder, context);
+                    await template.RenderAsync(output, encoder, context);
                 }
             }
             finally

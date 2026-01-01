@@ -21,11 +21,11 @@ namespace Fluid.Parser
 
         public IReadOnlyList<Statement> Statements { get; }
 
-        public ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public ValueTask RenderAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
-            if (writer == null)
+            if (output == null)
             {
-                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
+                ExceptionHelper.ThrowArgumentNullException(nameof(output));
             }
 
             if (encoder == null)
@@ -41,12 +41,12 @@ namespace Fluid.Parser
             var count = Statements.Count;
             for (var i = 0; i < count; i++)
             {
-                var task = Statements[i].WriteToAsync(writer, encoder, context);
+                var task = Statements[i].WriteToAsync(output, encoder, context);
                 if (!task.IsCompletedSuccessfully)
                 {
                     return Awaited(
                         task,
-                        writer,
+                        output,
                         encoder,
                         context,
                         Statements,
@@ -54,12 +54,12 @@ namespace Fluid.Parser
                 }
             }
 
-            return new ValueTask();
+            return output.FlushAsync();
         }
 
         private static async ValueTask Awaited(
             ValueTask<Completion> task,
-            TextWriter writer,
+            IFluidOutput output,
             TextEncoder encoder,
             TemplateContext context,
             IReadOnlyList<Statement> statements,
@@ -68,8 +68,10 @@ namespace Fluid.Parser
             await task;
             for (var i = startIndex; i < statements.Count; i++)
             {
-                await statements[i].WriteToAsync(writer, encoder, context);
+                await statements[i].WriteToAsync(output, encoder, context);
             }
+
+            await output.FlushAsync();
         }
 
         private static List<Statement> CollectStatements(IEnumerable<IFluidTemplate> templates)

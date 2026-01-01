@@ -14,7 +14,7 @@ namespace Fluid.ViewEngine
 
         public FluidViewParser(FluidParserOptions parserOptions) : base(parserOptions)
         {
-            RegisterIdentifierTag("rendersection", static async (identifier, writer, encoder, context) =>
+            RegisterIdentifierTag("rendersection", static async (identifier, output, encoder, context) =>
             {
                 if (context.AmbientValues.TryGetValue(Constants.SectionsIndex, out var sections))
                 {
@@ -26,7 +26,7 @@ namespace Fluid.ViewEngine
                     {
                         foreach (var statement in section)
                         {
-                            await statement.WriteToAsync(writer, encoder, context);
+                            await statement.WriteToAsync(output, encoder, context);
                         }
                     }
                 }
@@ -34,21 +34,21 @@ namespace Fluid.ViewEngine
                 return Completion.Normal;
             });
 
-            RegisterEmptyTag("renderbody", static async (writer, encoder, context) =>
+            RegisterEmptyTag("renderbody", static (output, encoder, context) =>
             {
                 if (context.AmbientValues.TryGetValue(Constants.BodyIndex, out var body))
                 {
-                    await writer.WriteAsync((string)body);
+                    output.Write((string)body);
                 }
                 else
                 {
                     throw new ParseException("Could not render body, Layouts can't be evaluated directly.");
                 }
 
-                return Completion.Normal;
+                return new ValueTask<Completion>(Completion.Normal);
             });
 
-            RegisterIdentifierBlock("section", static (identifier, statements, writer, encoder, context) =>
+            RegisterIdentifierBlock("section", static (identifier, statements, output, encoder, context) =>
             {
                 if (context.AmbientValues.TryGetValue(Constants.SectionsIndex, out var sections))
                 {
@@ -69,7 +69,7 @@ namespace Fluid.ViewEngine
             });
 
 
-            RegisterExpressionTag("layout", static async (pathExpression, writer, encoder, context) =>
+            RegisterExpressionTag("layout", static async (pathExpression, output, encoder, context) =>
             {
                 var layoutPath = (await pathExpression.EvaluateAsync(context)).ToStringValue();
 
@@ -90,7 +90,7 @@ namespace Fluid.ViewEngine
                         Primary.Then(x => new { Expression = x, Assignments = (IReadOnlyList<AssignStatement>)[] })
                         ).ElseError("Invalid 'partial' tag");
 
-            RegisterParserTag("partial", partialExpression, static async (partialStatement, writer, encoder, context) =>
+            RegisterParserTag("partial", partialExpression, static async (partialStatement, output, encoder, context) =>
             {
                 var relativePartialPath = (await partialStatement.Expression.EvaluateAsync(context)).ToStringValue();
 
@@ -111,11 +111,11 @@ namespace Fluid.ViewEngine
                     {
                         foreach (var assignStatement in partialStatement.Assignments)
                         {
-                            await assignStatement.WriteToAsync(writer, encoder, context);
+                            await assignStatement.WriteToAsync(output, encoder, context);
                         }
                     }
 
-                    await renderer.RenderPartialAsync(writer, relativePartialPath, context);
+                    await renderer.RenderPartialAsync(output, relativePartialPath, context);
                 }
                 finally
                 {

@@ -99,14 +99,16 @@ namespace Fluid.Values
 
         public IReadOnlyList<FluidValue> Values { get; }
 
-        public override async ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
+            AssertWriteToParameters(output, encoder, cultureInfo);
 
             foreach (var v in Values)
             {
-                await writer.WriteAsync(v.ToStringValue());
+                output.Write(v.ToStringValue());
             }
+
+            return default;
         }
 
         public override string ToStringValue()

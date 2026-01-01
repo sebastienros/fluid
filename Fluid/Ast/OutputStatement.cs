@@ -14,16 +14,16 @@ namespace Fluid.Ast
 
         public IReadOnlyList<FilterExpression> Filters { get; }
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             static async ValueTask<Completion> Awaited(
                 ValueTask<FluidValue> t,
-                TextWriter w,
+                IFluidOutput o,
                 TextEncoder enc,
                 TemplateContext ctx)
             {
                 var value = await t;
-                await value.WriteToAsync(w, enc, ctx.CultureInfo);
+                await value.WriteToAsync(o, enc, ctx.CultureInfo);
                 return Completion.Normal;
             }
 
@@ -32,7 +32,7 @@ namespace Fluid.Ast
             var task = Expression.EvaluateAsync(context);
             if (task.IsCompletedSuccessfully)
             {
-                var valueTask = task.Result.WriteToAsync(writer, encoder, context.CultureInfo);
+                var valueTask = task.Result.WriteToAsync(output, encoder, context.CultureInfo);
 
                 if (valueTask.IsCompletedSuccessfully)
                 {
@@ -48,7 +48,7 @@ namespace Fluid.Ast
                 }
             }
 
-            return Awaited(task, writer, encoder, context);
+            return Awaited(task, output, encoder, context);
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitOutputStatement(this);

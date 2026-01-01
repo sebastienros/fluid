@@ -1,5 +1,6 @@
 ﻿using Fluid.Ast;
 using Fluid.Parser;
+using Fluid.Utils;
 using Microsoft.Extensions.FileProviders;
 using System;
 using System.Collections.Concurrent;
@@ -38,6 +39,24 @@ namespace Fluid.ViewEngine
 
         public virtual async Task RenderViewAsync(TextWriter writer, string relativePath, TemplateContext context)
         {
+            if (writer == null)
+            {
+                throw new ArgumentNullException(nameof(writer));
+            }
+
+            var bufferSize = context?.Options?.OutputBufferSize ?? 16 * 1024;
+            if (bufferSize <= 0)
+            {
+                bufferSize = 16 * 1024;
+            }
+
+            using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true);
+            await RenderViewAsync(output, relativePath, context);
+            await output.FlushAsync();
+        }
+
+        public virtual async Task RenderViewAsync(IFluidOutput output, string relativePath, TemplateContext context)
+        {
             // Provide some services to all statements
             context.AmbientValues[Constants.ViewPathIndex] = relativePath;
             context.AmbientValues[Constants.SectionsIndex] = null; // it is lazily initialized when first used
@@ -68,15 +87,33 @@ namespace Fluid.ViewEngine
                 // Parse the Layout file but ignore viewstarts
                 var layoutTemplate = await GetFluidTemplateAsync(layoutPathString, _fluidViewEngineOptions.ViewsFileProvider, includeViewStarts: false);
 
-                await layoutTemplate.RenderAsync(writer, _fluidViewEngineOptions.TextEncoder, context);
+                await layoutTemplate.RenderAsync(output, _fluidViewEngineOptions.TextEncoder, context);
             }
             else
             {
-                await writer.WriteAsync(body);
+                output.Write(body);
             }
         }
 
         public virtual async Task RenderPartialAsync(TextWriter writer, string relativePath, TemplateContext context)
+        {
+            if (writer == null)
+            {
+                throw new ArgumentNullException(nameof(writer));
+            }
+
+            var bufferSize = context?.Options?.OutputBufferSize ?? 16 * 1024;
+            if (bufferSize <= 0)
+            {
+                bufferSize = 16 * 1024;
+            }
+
+            using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true);
+            await RenderPartialAsync(output, relativePath, context);
+            await output.FlushAsync();
+        }
+
+        public virtual async Task RenderPartialAsync(IFluidOutput output, string relativePath, TemplateContext context)
         {
             // Substitute View Path
             context.AmbientValues[Constants.ViewPathIndex] = relativePath;
@@ -88,7 +125,7 @@ namespace Fluid.ViewEngine
 
             var template = await GetFluidTemplateAsync(relativePath, _fluidViewEngineOptions.PartialsFileProvider, false);
 
-            await template.RenderAsync(writer, _fluidViewEngineOptions.TextEncoder, context);
+            await template.RenderAsync(output, _fluidViewEngineOptions.TextEncoder, context);
         }
 
         protected virtual List<string> FindViewStarts(string viewPath, IFileProvider fileProvider)

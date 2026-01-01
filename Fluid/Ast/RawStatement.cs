@@ -15,20 +15,12 @@ namespace Fluid.Ast
 
         public ref readonly TextSpan Text => ref _text;
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
-            static async ValueTask<Completion> Awaited(Task task)
-            {
-                await task;
-                return Completion.Normal;
-            }
-
             context.IncrementSteps();
 
-            var task = writer.WriteAsync(_text.ToString());
-            return task.IsCompletedSuccessfully()
-                ? new ValueTask<Completion>(Completion.Normal)
-                : Awaited(task);
+            output.Write(_text.ToString());
+            return new ValueTask<Completion>(Completion.Normal);
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitRawStatement(this);

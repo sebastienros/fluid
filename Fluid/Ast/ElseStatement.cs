@@ -8,17 +8,17 @@ namespace Fluid.Ast
         {
         }
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             for (var i = 0; i < Statements.Count; i++)
             {
                 context.IncrementSteps();
 
-                var task = Statements[i].WriteToAsync(writer, encoder, context);
+            var task = Statements[i].WriteToAsync(output, encoder, context);
 
                 if (!task.IsCompletedSuccessfully)
                 {
-                    return Awaited(task, i + 1, writer, encoder, context);
+                    return Awaited(task, i + 1, output, encoder, context);
                 }
 
                 var completion = task.Result;
@@ -37,7 +37,7 @@ namespace Fluid.Ast
         private async ValueTask<Completion> Awaited(
             ValueTask<Completion> task,
             int startIndex,
-            TextWriter writer,
+            IFluidOutput output,
             TextEncoder encoder,
             TemplateContext context)
         {
@@ -54,7 +54,7 @@ namespace Fluid.Ast
             {
                 context.IncrementSteps();
 
-                completion = await Statements[i].WriteToAsync(writer, encoder, context);
+                completion = await Statements[i].WriteToAsync(output, encoder, context);
 
                 if (completion != Completion.Normal)
                 {

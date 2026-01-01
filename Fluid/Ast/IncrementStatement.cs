@@ -13,7 +13,7 @@ namespace Fluid.Ast
 
         public string Identifier { get; }
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
@@ -36,14 +36,10 @@ namespace Fluid.Ast
 
             context.SetValue(prefixedIdentifier, value);
 
-            var task = value.WriteToAsync(writer, encoder, context.CultureInfo);
-
-            if (task.IsCompletedSuccessfully)
-            {
-                return new ValueTask<Completion>(Completion.Normal);
-            }
-
-            return Awaited(task);
+            var task = value.WriteToAsync(output, encoder, context.CultureInfo);
+            return task.IsCompletedSuccessfully
+                ? new ValueTask<Completion>(Completion.Normal)
+                : Awaited(task);
 
             static async ValueTask<Completion> Awaited(ValueTask t)
             {

@@ -1,6 +1,7 @@
 ﻿#if !NETCOREAPP2_1
 using Fluid.Ast;
 using Fluid.ViewEngine;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Fluid.Tests.MvcViewEngine
@@ -30,11 +31,10 @@ This is the footer
 ";
             var parser = new FluidViewParser(new FluidParserOptions());
 
-            parser.RegisterEmptyTag("mytag", static async (w, e, c) =>
+            parser.RegisterEmptyTag("mytag", static (o, e, c) =>
             {
-                await w.WriteAsync("Hello from MyTag");
-
-                return Completion.Normal;
+                o.Write("Hello from MyTag");
+                return new ValueTask<Completion>(Completion.Normal);
             });
 
             var result = parser.TryParse(index, out var template, out var error);

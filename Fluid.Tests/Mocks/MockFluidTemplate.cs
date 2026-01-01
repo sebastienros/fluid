@@ -13,9 +13,9 @@ public class MockFluidTemplate : IFluidTemplate
         _content = content;
     }
 
-    public ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+    public ValueTask RenderAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        writer.Write(_content);
+        output.Write(_content);
 
         return ValueTask.CompletedTask;
     }

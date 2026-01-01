@@ -37,7 +37,7 @@ namespace Fluid.Ast
         public ElseStatement Else { get; }
         public bool OffsetIsContinue { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             var source = await (await Source.EvaluateAsync(context)).EnumerateAsync(context).ToListAsync();
 
@@ -45,7 +45,7 @@ namespace Fluid.Ast
             {
                 if (Else != null)
                 {
-                    await Else.WriteToAsync(writer, encoder, context);
+                    await Else.WriteToAsync(output, encoder, context);
                 }
 
                 return Completion.Normal;
@@ -87,7 +87,7 @@ namespace Fluid.Ast
             {
                 if (Else != null)
                 {
-                    await Else.WriteToAsync(writer, encoder, context);
+                    await Else.WriteToAsync(output, encoder, context);
                 }
 
                 return Completion.Normal;
@@ -141,7 +141,7 @@ namespace Fluid.Ast
                     for (var index = 0; index < Statements.Count; index++)
                     {
                         var statement = Statements[index];
-                        completion = await statement.WriteToAsync(writer, encoder, context);
+                        completion = await statement.WriteToAsync(output, encoder, context);
 
                         //// Restore the forloop property after every statement in case it replaced it,
                         //// for instance if it contains a nested for loop

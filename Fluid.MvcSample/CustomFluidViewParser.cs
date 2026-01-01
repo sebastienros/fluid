@@ -1,5 +1,6 @@
 ﻿using Fluid.Ast;
 using Fluid.ViewEngine;
+using System.Threading.Tasks;
 
 namespace Fluid.MvcSample
 {
@@ -7,11 +8,10 @@ namespace Fluid.MvcSample
     {
         public CustomFluidViewParser(FluidParserOptions options) : base(options)
         {
-            RegisterEmptyTag("mytag", static async (w, e, c) =>
+            RegisterEmptyTag("mytag", static (o, e, c) =>
             {
-                await w.WriteAsync("Hello from MyTag");
-
-                return Completion.Normal;
+                o.Write("Hello from MyTag");
+                return new ValueTask<Completion>(Completion.Normal);
             });
         }
     }

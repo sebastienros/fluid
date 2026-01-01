@@ -154,15 +154,13 @@ namespace Fluid.Values
             return _value;
         }
 
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
+            AssertWriteToParameters(output, encoder, cultureInfo);
             if (string.IsNullOrEmpty(_value))
             {
                 return default;
             }
-
-            Task task;
 
             if (Encode)
             {
@@ -173,25 +171,14 @@ namespace Fluid.Values
                 // encoder.Encode(TextWriter) since it would
                 // call writer.Write on each char if the string
                 // has even a single char to encode
-                task = writer.WriteAsync(encoder.Encode(_value));
+                output.Write(encoder.Encode(_value));
             }
             else
             {
-                task = writer.WriteAsync(_value);
+                output.Write(_value);
             }
 
-            if (task.IsCompletedSuccessfully())
-            {
-                return default;
-            }
-
-            return Awaited(task);
-
-            static async ValueTask Awaited(Task t)
-            {
-                await t;
-                return;
-            }
+            return default;
         }
 
         public override object ToObjectValue()
