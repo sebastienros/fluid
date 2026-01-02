@@ -278,9 +278,126 @@ namespace Fluid.Filters
 
         public static async ValueTask<FluidValue> Has(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var result = await Find(input, arguments, context);
+            LiquidException.ThrowFilterArgumentsCount("has", min: 1, max: 2, arguments);
 
-            return result.Equals(NilValue.Instance) ? BooleanValue.False : BooleanValue.True;
+            var firstArg = arguments.At(0);
+
+            // Single argument case
+            if (arguments.Count == 1)
+            {
+                // For arrays: check if value is contained in array
+                if (input.Type == FluidValues.Array)
+                {
+                    // When checking array with a string argument
+                    if (firstArg.Type == FluidValues.String)
+                    {
+                        var searchStr = firstArg.ToStringValue();
+                        var hasNonString = false;
+                        
+                        await foreach (var item in input.EnumerateAsync(context))
+                        {
+                            // Nil items cause error
+                            if (item.IsNil())
+                            {
+                                return NilValue.Instance;
+                            }
+                            
+                            if (item.Type == FluidValues.String)
+                            {
+                                var itemStr = item.ToStringValue();
+                                
+                                // Check for substring match
+                                if (itemStr.Contains(searchStr))
+                                {
+                                    return BooleanValue.True;
+                                }
+                            }
+                            else
+                            {
+                                hasNonString = true;
+                            }
+                        }
+                        
+                        // If array contains non-strings and we're searching with string, throw error
+                        if (hasNonString)
+                        {
+                            throw new LiquidException("has: cannot search for string in non-string array");
+                        }
+                        
+                        return BooleanValue.False;
+                    }
+
+                    // For non-string arguments, check for direct equality
+                    await foreach (var item in input.EnumerateAsync(context))
+                    {
+                        if (firstArg.Equals(item))
+                        {
+                            return BooleanValue.True;
+                        }
+                    }
+                    return BooleanValue.False;
+                }
+                // For objects/hashes: check if key exists
+                else if (input.Type == FluidValues.Object || input.Type == FluidValues.Dictionary)
+                {
+                    var key = firstArg.ToStringValue();
+                    var value = await input.GetValueAsync(key, context);
+                    return value.IsNil() ? BooleanValue.False : BooleanValue.True;
+                }
+                // For strings: check if substring exists
+                else if (input.Type == FluidValues.String)
+                {
+                    var str = input.ToStringValue();
+                    var search = firstArg.ToStringValue();
+                    return str.Contains(search) ? BooleanValue.True : BooleanValue.False;
+                }
+                
+                return BooleanValue.False;
+            }
+            // Two arguments case: property name and value to match
+            else
+            {
+                var propertyName = firstArg.ToStringValue();
+                var targetValue = arguments.At(1);
+
+                // For arrays: check if any item has property with matching value
+                if (input.Type == FluidValues.Array)
+                {
+                    await foreach (var item in input.EnumerateAsync(context))
+                    {
+                        // Skip nil items - they should cause the filter to return nil (error)
+                        if (item.IsNil())
+                        {
+                            return NilValue.Instance;
+                        }
+
+                        var itemValue = await item.GetValueAsync(propertyName, context);
+                        
+                        if (targetValue.Equals(itemValue))
+                        {
+                            return BooleanValue.True;
+                        }
+                    }
+                    return BooleanValue.False;
+                }
+                // For objects/hashes: check if key exists
+                else if (input.Type == FluidValues.Object || input.Type == FluidValues.Dictionary)
+                {
+                    var value = await input.GetValueAsync(propertyName, context);
+                    
+                    // When explicitly checking for nil with a hash
+                    // Return false if key has nil value, true if key exists with non-nil value
+                    if (targetValue.IsNil())
+                    {
+                        return value.IsNil() ? BooleanValue.False : BooleanValue.True;
+                    }
+                    
+                    // For non-nil target values, check exact equality
+                    return targetValue.Equals(value) ? BooleanValue.True : BooleanValue.False;
+                }
+                
+                return BooleanValue.False;
+            }
         }
 
         public static async ValueTask<FluidValue> Reject(FluidValue input, FilterArguments arguments, TemplateContext context)
