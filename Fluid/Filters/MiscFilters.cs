@@ -167,7 +167,7 @@ namespace Fluid.Filters
 
             if (input.Type != FluidValues.Array)
             {
-                return input;
+                return input.IsNil() ? ArrayValue.Empty : new ArrayValue([input]);
             }
 
             var member = arguments.At(0);
@@ -266,7 +266,7 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("base64_url_safe_decode", expected: 0, arguments);
 
-            if (input is not StringValue and not NilValue)
+            if (input is not StringValue and not NilValue and not UndefinedValue)
             {
                 throw new LiquidException("base64_url_safe_decode expects a string");
             }

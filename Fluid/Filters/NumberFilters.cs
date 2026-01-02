@@ -136,7 +136,18 @@ namespace Fluid.Filters
             LiquidException.ThrowFilterArgumentsCount("round", min: 0, max: 1, arguments);
 
             var digits = Convert.ToInt32(arguments.At(0).Or(NumberValue.Zero).ToNumberValue());
-            return NumberValue.Create(Math.Round(input.ToNumberValue(), digits));
+
+            var value = input.ToNumberValue();
+
+            if (digits < 0)
+            {
+                var factor = (decimal)Math.Pow(10, -digits);
+                var scaled = value / factor;
+                var rounded = Math.Round(scaled, 0) * factor;
+                return NumberValue.Create(rounded);
+            }
+
+            return NumberValue.Create(Math.Round(value, digits));
         }
 
         public static ValueTask<FluidValue> Times(FluidValue input, FilterArguments arguments, TemplateContext context)

@@ -1,3 +1,10 @@
+
+## Reference Implementation
+
+The reference implementation of the Liquid template language in Ruby can be found at https://github.com/Shopify/liquid
+
+Refer to this implementation when the specification is unclear.
+
 ## Testing
 
 When running test use a single TFM (net10.0) to improve dev loop time.

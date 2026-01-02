@@ -157,9 +157,12 @@ namespace Fluid.Tests
             }
             else
             {
-                if (test.Tags.Any(tag => _skippedTests.TryGetValue($"tag:{tag}", out var reason)))
+                foreach (var tag in test.Tags)
                 {
-                    throw SkipException.ForSkip(reason);
+                    if (_skippedTests.TryGetValue($"tag:{tag}", out reason))
+                    {
+                        throw SkipException.ForSkip(reason);
+                    }
                 }
             }
         }

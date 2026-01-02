@@ -148,15 +148,12 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> ReplaceFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            LiquidException.ThrowFilterArgumentsCount("replace_first", expected: 2, arguments);
+            LiquidException.ThrowFilterArgumentsCount("replace_first", min: 1, max: 2, arguments);
 
-#if NET6_0_OR_GREATER
-            var value = input.ToStringValue().AsSpan();
-            var remove = arguments.At(0).ToStringValue().AsSpan();
-#else
             var value = input.ToStringValue();
             var remove = arguments.At(0).ToStringValue();
-#endif
+            var insert = arguments.Count > 1 ? arguments.At(1).ToStringValue() : "";
+
             var index = value.IndexOf(remove);
 
             if (index == -1)
@@ -164,11 +161,7 @@ namespace Fluid.Filters
                 return input;
             }
 
-#if NET6_0_OR_GREATER
-            var concat = string.Concat(value.Slice(0, index), arguments.At(1).ToStringValue(), value.Slice(index + remove.Length));
-#else
-            var concat = string.Concat(value.Substring(0, index), arguments.At(1).ToStringValue(), value.Substring(index + remove.Length));
-#endif
+            var concat = string.Concat(value.Substring(0, index), insert, value.Substring(index + remove.Length));
             return new StringValue(concat);
         }
 
@@ -176,7 +169,30 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("replace", min: 1, max: 2, arguments);
 
-            return new StringValue(input.ToStringValue().Replace(arguments.At(0).ToStringValue(), arguments.At(1).ToStringValue()));
+            var value = input.ToStringValue();
+            var oldValue = arguments.At(0).ToStringValue();
+            var newValue = arguments.At(1).ToStringValue();
+
+            // .NET throws when oldValue is empty, but Liquid treats this as an insertion between every character.
+            if (oldValue.Length == 0)
+            {
+                if (value.Length == 0)
+                {
+                    return new StringValue(newValue + newValue);
+                }
+
+                var sb = new System.Text.StringBuilder(value.Length + (newValue.Length * (value.Length + 1)));
+                sb.Append(newValue);
+                for (var i = 0; i < value.Length; i++)
+                {
+                    sb.Append(value[i]);
+                    sb.Append(newValue);
+                }
+
+                return new StringValue(sb.ToString());
+            }
+
+            return new StringValue(value.Replace(oldValue, newValue));
         }
 
         public static ValueTask<FluidValue> ReplaceLast(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -285,6 +301,18 @@ namespace Fluid.Filters
             var stringInput = input.ToStringValue();
             var separator = arguments.At(0).ToStringValue();
 
+            // Golden Liquid: splitting an empty string yields an empty array
+            if (stringInput.Length == 0)
+            {
+                return ArrayValue.Empty;
+            }
+
+            // Golden Liquid: if the input exactly matches the separator, the result is empty
+            if (separator.Length != 0 && stringInput == separator)
+            {
+                return ArrayValue.Empty;
+            }
+
             if (separator == "")
             {
                 strings = new string[stringInput.Length];
@@ -293,6 +321,35 @@ namespace Fluid.Filters
                 {
                     strings[i] = stringInput[i].ToString();
                 }
+            }
+            else if (separator == " ")
+            {
+                // Golden Liquid: a single-space separator splits on any whitespace
+                var parts = new List<string>();
+                var start = -1;
+
+                for (var i = 0; i < stringInput.Length; i++)
+                {
+                    if (char.IsWhiteSpace(stringInput[i]))
+                    {
+                        if (start != -1)
+                        {
+                            parts.Add(stringInput.Substring(start, i - start));
+                            start = -1;
+                        }
+                    }
+                    else if (start == -1)
+                    {
+                        start = i;
+                    }
+                }
+
+                if (start != -1)
+                {
+                    parts.Add(stringInput.Substring(start));
+                }
+
+                strings = parts.ToArray();
             }
             else
             {

@@ -102,6 +102,15 @@ namespace Fluid.Values
 
         public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
+            AssertWriteToParameters(output, encoder, cultureInfo);
+
+            var value = ToStringValue();
+            if (string.IsNullOrEmpty(value))
+            {
+                return default;
+            }
+
+            output.Write(encoder, value);
             return default;
         }
 

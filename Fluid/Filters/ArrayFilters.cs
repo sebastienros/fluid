@@ -35,23 +35,92 @@ namespace Fluid.Filters
             }
 
             var separator = arguments.Count > 0 ? arguments.At(0).ToStringValue() : " ";
-            var values = input.EnumerateAsync(context).Select(x => x.ToStringValue()).Where(x => x != "");
-            var joined = string.Join(separator, await values.ToListAsync());
-            return new StringValue(joined);
+
+            var list = new List<string>();
+            await foreach (var item in input.EnumerateAsync(context))
+            {
+                // Preserve nil/undefined items as empty strings (so separators remain)
+                if (item.IsNil())
+                {
+                    list.Add(string.Empty);
+                    continue;
+                }
+
+                var s = item.ToStringValue();
+
+                // Skip non-string items that stringify to empty (e.g., empty arrays)
+                if (s.Length == 0 && item.Type != FluidValues.String)
+                {
+                    continue;
+                }
+
+                list.Add(s);
+            }
+
+            return new StringValue(string.Join(separator, list));
         }
 
         public static ValueTask<FluidValue> First(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             LiquidException.ThrowFilterArgumentsCount("first", expected: 0, arguments);
 
-            return input.GetValueAsync("first", context);
+            if (input.Type == FluidValues.Array)
+            {
+                return GetFirstFromArrayAsync(input, context);
+            }
+
+            if (input.Type == FluidValues.Dictionary)
+            {
+                return input.GetValueAsync("first", context);
+            }
+
+            if (input.Type == FluidValues.String)
+            {
+                var value = input.ToStringValue();
+                return value.Length == 0 ? StringValue.Empty : new StringValue(value[0].ToString());
+            }
+
+            return NilValue.Instance;
         }
 
         public static ValueTask<FluidValue> Last(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             LiquidException.ThrowFilterArgumentsCount("last", expected: 0, arguments);
 
-            return input.GetValueAsync("last", context);
+            if (input.Type == FluidValues.Array)
+            {
+                return GetLastFromArrayAsync(input, context);
+            }
+
+            if (input.Type == FluidValues.String)
+            {
+                var value = input.ToStringValue();
+                return value.Length == 0 ? StringValue.Empty : new StringValue(value[^1].ToString());
+            }
+
+            return NilValue.Instance;
+        }
+
+        private static async ValueTask<FluidValue> GetFirstFromArrayAsync(FluidValue input, TemplateContext context)
+        {
+            await foreach (var item in input.EnumerateAsync(context))
+            {
+                return item;
+            }
+
+            return NilValue.Instance;
+        }
+
+        private static async ValueTask<FluidValue> GetLastFromArrayAsync(FluidValue input, TemplateContext context)
+        {
+            FluidValue last = NilValue.Instance;
+
+            await foreach (var item in input.EnumerateAsync(context))
+            {
+                last = item;
+            }
+
+            return last;
         }
 
         public static async ValueTask<FluidValue> Concat(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -209,10 +278,16 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("where", min: 1, max: 2, arguments);
 
-            // If input is not an array, return empty array
-            if (input.Type != FluidValues.Array)
+            // Golden Liquid: undefined/nil left values yield an empty array
+            if (input.IsNil())
             {
                 return ArrayValue.Empty;
+            }
+
+            // Golden Liquid expects where to throw if input is not an array
+            if (input.Type != FluidValues.Array)
+            {
+                throw new LiquidException("where expects an array");
             }
 
             // First argument is the property name to match
@@ -228,7 +303,7 @@ namespace Fluid.Filters
 
             // Second argument is the value to match
             var targetValue = arguments.At(1);
-            var hasExplicitTarget = arguments.Count > 1;
+            var hasExplicitTarget = arguments.Count > 1 && !targetValue.IsNil();
 
             List<FluidValue> list = null;
 
@@ -619,15 +694,12 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("reject", min: 1, max: 2, arguments);
 
-            // Determine if input is a dictionary (to skip flattening logic for key-value pairs)
-            var isDictionary = input.Type == FluidValues.Dictionary;
-
-            // Convert non-array/dictionary inputs to arrays
-            if (input.Type == FluidValues.String)
+            // Golden Liquid treats strings and hashes as single items, not enumerables
+            if (input.Type == FluidValues.String || input.Type == FluidValues.Object || input.Type == FluidValues.Dictionary)
             {
                 input = new ArrayValue([input]);
             }
-            else if (input.Type != FluidValues.Array && input.Type != FluidValues.Dictionary)
+            else if (input.Type != FluidValues.Array)
             {
                 return input;
             }
@@ -650,8 +722,8 @@ namespace Fluid.Filters
 
             await foreach (var item in input.EnumerateAsync(context))
             {
-                // Flatten nested arrays only for Array inputs, not for Dictionary
-                if (!isDictionary && item.Type == FluidValues.Array)
+                // Flatten nested arrays only for Array inputs
+                if (item.Type == FluidValues.Array)
                 {
                     await foreach (var nestedItem in item.EnumerateAsync(context))
                     {
@@ -943,9 +1015,6 @@ namespace Fluid.Filters
             {
                 switch (item)
                 {
-                    case ArrayValue:
-                        sumList.Add(Sum(item, arguments, context).Result.ToNumberValue());
-                        break;
                     case ObjectValue:
                     case DictionaryValue:
                         {
@@ -954,9 +1023,8 @@ namespace Fluid.Filters
                             break;
                         }
                     default:
-                        // Non-hash items contribute 0 when property argument is provided
-                        sumList.Add(0);
-                        break;
+                        // Golden Liquid expects non-hash items to be an error when summing properties
+                        throw new LiquidException("sum: when a property is provided, all items must be hashes");
                 }
             }
 
