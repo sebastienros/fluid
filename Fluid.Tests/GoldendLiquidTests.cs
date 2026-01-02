@@ -168,7 +168,7 @@ namespace Fluid.Tests
 
     class GoldenClassData : TheoryData<GoldenTest>
     {
-        private readonly string _goldenGitHash = "68da2e73f2393fa7dd596e9a99b564365f315b2e";
+        private readonly string _goldenGitHash = "b6386e7adf964517546fec6564ef36e12c4b498e";
         private readonly string _testsFilePath;
 
         public GoldenClassData()
