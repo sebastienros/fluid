@@ -296,7 +296,7 @@ namespace Fluid.Filters
             }
             else
             {
-                strings = stringInput.Split(separator, StringSplitOptions.RemoveEmptyEntries);
+                strings = stringInput.Split(separator, StringSplitOptions.None);
             }
 
             var values = new FluidValue[strings.Length];

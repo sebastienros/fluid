@@ -953,6 +953,10 @@ namespace Fluid.Filters
                             sumList.Add(value.ToNumberValue());
                             break;
                         }
+                    default:
+                        // Non-hash items contribute 0 when property argument is provided
+                        sumList.Add(0);
+                        break;
                 }
             }
 
