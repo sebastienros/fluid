@@ -209,30 +209,41 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("where", min: 1, max: 2, arguments);
 
+            // If input is not an array, return empty array
             if (input.Type != FluidValues.Array)
             {
-                return input;
+                return ArrayValue.Empty;
             }
 
             // First argument is the property name to match
-            var member = arguments.At(0).ToStringValue();
+            var member = arguments.At(0);
+            
+            // If first argument is nil/undefined, return empty array
+            if (member.IsNil())
+            {
+                return ArrayValue.Empty;
+            }
+            
+            var memberName = member.ToStringValue();
 
-            // Second argument is the value to match, or 'true' if none is defined
+            // Second argument is the value to match
             var targetValue = arguments.At(1);
+            var hasExplicitTarget = arguments.Count > 1;
 
             List<FluidValue> list = null;
 
             await foreach (var item in input.EnumerateAsync(context))
             {
-                var itemValue = await item.GetValueAsync(member, context);
+                var itemValue = await item.GetValueAsync(memberName, context);
 
                 var match = false;
 
-                // If not target value is defined, check truthiness of item
-                if (targetValue.IsNil()) 
+                // If no second argument provided, check truthiness of property value
+                if (!hasExplicitTarget) 
                 { 
                     match = itemValue.ToBooleanValue(context); 
                 }
+                // If second argument is explicitly provided, check equality (including nil)
                 else if (targetValue.Equals(itemValue))
                 {
                     match = true;
@@ -245,7 +256,7 @@ namespace Fluid.Filters
                 }
             }
 
-            return new ArrayValue(list);
+            return list != null ? new ArrayValue(list) : ArrayValue.Empty;
         }
 
         public static async ValueTask<FluidValue> Find(FluidValue input, FilterArguments arguments, TemplateContext context)
