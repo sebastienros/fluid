@@ -471,11 +471,11 @@ def", "at (")]
         [Fact]
         public void ShouldBeAbleToCompareNilValues()
         {
-            // [1, 2, 3] | map will return [nil, nil, nil] then | uniq will try to call NilValue.GetHashCode()
+            // [(), (), ()] | map: `title` will return [nil, nil, nil] then | uniq will try to call NilValue.GetHashCode()
 
             var model = new
             {
-                Doubles = new List<double> { 1.1, 2.2, 3.3 }
+                Doubles = new List<object> { new(), new(), new() }
             };
 
             var template = "{{Doubles |map: 'title' |uniq}}";
