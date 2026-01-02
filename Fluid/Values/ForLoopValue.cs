@@ -15,6 +15,8 @@ namespace Fluid.Values
         public string Identifier { get; set; }
         public string Source { get; set; }
 
+        public ForLoopValue ParentLoop { get; set; }
+
         public int Count => Length;
 
         public override FluidValues Type => FluidValues.Dictionary;
@@ -55,6 +57,7 @@ namespace Fluid.Values
                 "rindex0" => NumberValue.Create(RIndex0),
                 "first" => BooleanValue.Create(First),
                 "last" => BooleanValue.Create(Last),
+                "parentloop" => ParentLoop is null ? NilValue.Instance : ParentLoop,
                 "name" => !string.IsNullOrEmpty(Identifier) && !string.IsNullOrEmpty(Source) 
                     ? new StringValue(Identifier + "-" + Source) 
                     : NilValue.Instance,

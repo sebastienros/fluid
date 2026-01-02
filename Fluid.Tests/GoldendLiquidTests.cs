@@ -59,6 +59,7 @@ namespace Fluid.Tests
             }
 
             _options.ValueConverters.Add(x => x is JsonElement ? ConvertJsonElement((JsonElement)x, _options) : null);                
+
         }
 
         public GoldenLiquidTests(ITestOutputHelper testOutputHelper)
