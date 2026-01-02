@@ -165,6 +165,11 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("compact", min: 0, max: 1, arguments);
 
+            if (input.Type != FluidValues.Array)
+            {
+                return input;
+            }
+
             var member = arguments.At(0);
 
             var compacted = new List<FluidValue>();

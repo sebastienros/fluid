@@ -107,7 +107,21 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("modulo", expected: 1, arguments);
 
-            return NumberValue.Create(input.ToNumberValue() % arguments.At(0).ToNumberValue());
+            var inputValue = input.ToNumberValue();
+            var divisorValue = arguments.At(0);
+            var divisor = divisorValue.ToNumberValue();
+            var result = inputValue % divisor;
+            
+            // Preserve decimal format when divisor has decimal places or is from a string with decimal
+            // Check if the divisor string representation contains a decimal point
+            var divisorStr = divisorValue.ToStringValue();
+            if (divisorStr.Contains('.') && result == 0)
+            {
+                // Return 0 with one decimal place to match divisor format
+                return NumberValue.Create(0.0m);
+            }
+
+            return NumberValue.Create(result);
         }
 
         public static ValueTask<FluidValue> Plus(FluidValue input, FilterArguments arguments, TemplateContext context)

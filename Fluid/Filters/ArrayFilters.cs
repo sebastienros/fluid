@@ -891,9 +891,32 @@ namespace Fluid.Filters
 
         public static async ValueTask<FluidValue> Uniq(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            LiquidException.ThrowFilterArgumentsCount("uniq", expected: 0, arguments);
+            LiquidException.ThrowFilterArgumentsCount("uniq", min: 0, max: 1, arguments);
 
-            return new ArrayValue(await input.EnumerateAsync(context).Distinct().ToArrayAsync());
+            if (input.Type != FluidValues.Array)
+            {
+                return input;
+            }
+
+            if (arguments.Count == 0)
+            {
+                return new ArrayValue(await input.EnumerateAsync(context).Distinct().ToArrayAsync());
+            }
+
+            var property = arguments.At(0).ToStringValue();
+            var seen = new HashSet<FluidValue>();
+            var result = new List<FluidValue>();
+
+            await foreach (var item in input.EnumerateAsync(context))
+            {
+                var value = await item.GetValueAsync(property, context);
+                if (seen.Add(value))
+                {
+                    result.Add(item);
+                }
+            }
+
+            return new ArrayValue(result);
         }
 
         public static async ValueTask<FluidValue> Sum(FluidValue input, FilterArguments arguments, TemplateContext context)
