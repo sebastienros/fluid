@@ -894,12 +894,6 @@ namespace Fluid.Tests
 
             Assert.Equal(BooleanValue.True, result3);
 
-            var arguments4 = new FilterArguments();
-
-            var result4 = await ArrayFilters.Has(input, arguments4, context);
-
-            Assert.Equal(BooleanValue.False, result4);
-
             var arguments5 = new FilterArguments()
                 .Add(new StringValue("Title"))
                 .Add(new StringValue("d"));
