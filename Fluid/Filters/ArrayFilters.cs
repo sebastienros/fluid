@@ -250,71 +250,234 @@ namespace Fluid.Filters
 
         public static async ValueTask<FluidValue> Find(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (input.Type != FluidValues.Array)
-            {
-                return input;
-            }
-
-            // First argument is the property name to match
+            // First argument is the property name or substring to match
             var member = arguments.At(0).ToStringValue();
 
-            // Second argument is the value to match
+            // Second argument is the value to match (optional)
             var targetValue = arguments.At(1);
-            if (targetValue.IsNil())
+            var hasTargetValue = !targetValue.IsNil();
+
+            // Handle string input - check for substring match
+            if (input.Type == FluidValues.String)
             {
+                var inputString = input.ToStringValue();
+                
+                if (hasTargetValue)
+                {
+                    // When target value is specified, check if input contains both member and target as substrings
+                    if (inputString.Contains(member) && inputString.Contains(targetValue.ToStringValue()))
+                    {
+                        return input;
+                    }
+                }
+                else
+                {
+                    // When no target value, check if input contains the member as substring
+                    if (inputString.Contains(member))
+                    {
+                        return input;
+                    }
+                }
+                
                 return NilValue.Instance;
             }
 
-            FluidValue result = NilValue.Instance;
+            // Handle non-array, non-string input (e.g., hash/object)
+            if (input.Type != FluidValues.Array)
+            {
+                // Treat object as single-element array
+                var itemValue = await input.GetValueAsync(member, context);
+                
+                if (hasTargetValue)
+                {
+                    if (targetValue.Equals(itemValue))
+                    {
+                        return input;
+                    }
+                }
+                else
+                {
+                    // No target value: check if property exists and is truthy
+                    if (!itemValue.IsNil() && itemValue.ToBooleanValue(context))
+                    {
+                        return input;
+                    }
+                }
+                
+                return NilValue.Instance;
+            }
 
+            // Handle array input
             await foreach (var item in input.EnumerateAsync(context))
             {
-                var itemValue = await item.GetValueAsync(member, context);
-
-                if (targetValue.Equals(itemValue))
+                // If array contains nil, return nil immediately
+                if (item.IsNil())
                 {
-                    result = item;
-                    break;
+                    return NilValue.Instance;
+                }
+
+                if (item.Type == FluidValues.String)
+                {
+                    var itemString = item.ToStringValue();
+                    
+                    if (hasTargetValue)
+                    {
+                        // For strings in array with target value, do exact match
+                        if (targetValue.Type == FluidValues.String && itemString == targetValue.ToStringValue())
+                        {
+                            return item;
+                        }
+                    }
+                    else
+                    {
+                        // For strings in array without target value, do substring match
+                        if (itemString.Contains(member))
+                        {
+                            return item;
+                        }
+                    }
+                }
+                else
+                {
+                    var itemValue = await item.GetValueAsync(member, context);
+
+                    if (hasTargetValue)
+                    {
+                        if (targetValue.Equals(itemValue))
+                        {
+                            return item;
+                        }
+                    }
+                    else
+                    {
+                        // No target value: check if property exists and is truthy
+                        if (!itemValue.IsNil() && itemValue.ToBooleanValue(context))
+                        {
+                            return item;
+                        }
+                    }
                 }
             }
 
-            return result;
+            return NilValue.Instance;
         }
 
         public static async ValueTask<FluidValue> FindIndex(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (input.Type != FluidValues.Array)
-            {
-                return input;
-            }
-
-            // First argument is the property name to match
+            // First argument is the property name or substring to match
             var member = arguments.At(0).ToStringValue();
 
-            // Second argument is the value to match
+            // Second argument is the value to match (optional)
             var targetValue = arguments.At(1);
-            if (targetValue.IsNil())
+            var hasTargetValue = !targetValue.IsNil();
+
+            // Handle string input - check for substring match
+            if (input.Type == FluidValues.String)
             {
+                var inputString = input.ToStringValue();
+                
+                if (hasTargetValue)
+                {
+                    // When target value is specified, check if input contains both member and target as substrings
+                    if (inputString.Contains(member) && inputString.Contains(targetValue.ToStringValue()))
+                    {
+                        return NumberValue.Create(0);
+                    }
+                }
+                else
+                {
+                    // When no target value, check if input contains the member as substring
+                    if (inputString.Contains(member))
+                    {
+                        return NumberValue.Create(0);
+                    }
+                }
+                
                 return NilValue.Instance;
             }
 
-            FluidValue result = NilValue.Instance;
+            // Handle non-array, non-string input (e.g., hash/object)
+            if (input.Type != FluidValues.Array)
+            {
+                // Treat object as single-element array
+                var itemValue = await input.GetValueAsync(member, context);
+                
+                if (hasTargetValue)
+                {
+                    if (targetValue.Equals(itemValue))
+                    {
+                        return NumberValue.Create(0);
+                    }
+                }
+                else
+                {
+                    // No target value: check if property exists and is truthy
+                    if (!itemValue.IsNil() && itemValue.ToBooleanValue(context))
+                    {
+                        return NumberValue.Create(0);
+                    }
+                }
+                
+                return NilValue.Instance;
+            }
+
+            // Handle array input
             var index = 0;
 
             await foreach (var item in input.EnumerateAsync(context))
             {
-                var itemValue = await item.GetValueAsync(member, context);
-
-                if (targetValue.Equals(itemValue))
+                // If array contains nil, return nil immediately
+                if (item.IsNil())
                 {
-                    result = NumberValue.Create(index);
-                    break;
+                    return NilValue.Instance;
+                }
+
+                if (item.Type == FluidValues.String)
+                {
+                    var itemString = item.ToStringValue();
+                    
+                    if (hasTargetValue)
+                    {
+                        // For strings in array with target value, do exact match
+                        if (targetValue.Type == FluidValues.String && itemString == targetValue.ToStringValue())
+                        {
+                            return NumberValue.Create(index);
+                        }
+                    }
+                    else
+                    {
+                        // For strings in array without target value, do substring match
+                        if (itemString.Contains(member))
+                        {
+                            return NumberValue.Create(index);
+                        }
+                    }
+                }
+                else
+                {
+                    var itemValue = await item.GetValueAsync(member, context);
+
+                    if (hasTargetValue)
+                    {
+                        if (targetValue.Equals(itemValue))
+                        {
+                            return NumberValue.Create(index);
+                        }
+                    }
+                    else
+                    {
+                        // No target value: check if property exists and is truthy
+                        if (!itemValue.IsNil() && itemValue.ToBooleanValue(context))
+                        {
+                            return NumberValue.Create(index);
+                        }
+                    }
                 }
 
                 index++;
             }
 
-            return result;
+            return NilValue.Instance;
         }
 
         public static async ValueTask<FluidValue> Has(FluidValue input, FilterArguments arguments, TemplateContext context)
