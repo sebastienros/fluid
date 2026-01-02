@@ -84,8 +84,11 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("newline_to_br", expected: 0, arguments);
 
-            // Replace \r\n first, then \n alone (order matters to avoid double replacement)
-            return new StringValue(input.ToStringValue().Replace("\r\n", "<br />\n").Replace("\r", "<br />\n").Replace("\n", "<br />\n"));
+            // Normalize line endings first, then replace with <br />
+            return new StringValue(input.ToStringValue()
+                .Replace("\r\n", "\n")      // Windows -> Unix
+                .Replace("\r", "\n")         // Mac -> Unix
+                .Replace("\n", "<br />\n")); // Unix -> <br /> + newline
         }
 
         public static ValueTask<FluidValue> Prepend(FluidValue input, FilterArguments arguments, TemplateContext context)

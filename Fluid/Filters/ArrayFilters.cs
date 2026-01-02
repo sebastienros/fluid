@@ -35,7 +35,7 @@ namespace Fluid.Filters
             }
 
             var separator = arguments.Count > 0 ? arguments.At(0).ToStringValue() : " ";
-            var values = input.EnumerateAsync(context).Select(x => x.ToStringValue());
+            var values = input.EnumerateAsync(context).Select(x => x.ToStringValue()).Where(x => x != "");
             var joined = string.Join(separator, await values.ToListAsync());
             return new StringValue(joined);
         }
