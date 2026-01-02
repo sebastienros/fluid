@@ -13,6 +13,14 @@ namespace Fluid.Ast.BinaryExpressions
             var leftValue = await Left.EvaluateAsync(context);
             var rightValue = await Right.EvaluateAsync(context);
 
+            // Shopify Liquid behavior: `contains` returns false if either operand is nil/false.
+            // (see Liquid::Condition operators['contains'] guard: `if left && right && left.respond_to?(:include?)`).
+            if (leftValue.IsNil() || (leftValue.Type == FluidValues.Boolean && !leftValue.ToBooleanValue())
+                || rightValue.IsNil() || (rightValue.Type == FluidValues.Boolean && !rightValue.ToBooleanValue()))
+            {
+                return new BinaryExpressionFluidValue(leftValue, false);
+            }
+
             var comparisonResult = await leftValue.ContainsAsync(rightValue, context);
             return new BinaryExpressionFluidValue(leftValue, comparisonResult);
         }
