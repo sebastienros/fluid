@@ -285,34 +285,163 @@ namespace Fluid.Filters
 
         public static async ValueTask<FluidValue> Reject(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (input.Type != FluidValues.Array)
+            LiquidException.ThrowFilterArgumentsCount("reject", min: 1, max: 2, arguments);
+
+            // Determine if input is a dictionary (to skip flattening logic for key-value pairs)
+            var isDictionary = input.Type == FluidValues.Dictionary;
+
+            // Convert non-array/dictionary inputs to arrays
+            if (input.Type == FluidValues.String)
+            {
+                input = new ArrayValue([input]);
+            }
+            else if (input.Type != FluidValues.Array && input.Type != FluidValues.Dictionary)
             {
                 return input;
             }
 
             // First argument is the property name to match
-            var member = arguments.At(0).ToStringValue();
-
-            // Second argument is the value to not match, or 'true' if none is defined
-            var targetValue = arguments.At(1);
-            if (targetValue.IsNil())
+            var member = arguments.At(0);
+            if (member.IsNil())
             {
-                targetValue = BooleanValue.True;
+                return new ArrayValue([]);
             }
+            
+            var memberStr = member.ToStringValue();
+
+            // Second argument is the value to reject
+            var targetValue = arguments.At(1);
+            var hasTargetValue = !targetValue.IsNil();
 
             var list = new List<FluidValue>();
+            var hasNilError = false;
 
             await foreach (var item in input.EnumerateAsync(context))
             {
-                var itemValue = await item.GetValueAsync(member, context);
+                // Flatten nested arrays only for Array inputs, not for Dictionary
+                if (!isDictionary && item.Type == FluidValues.Array)
+                {
+                    await foreach (var nestedItem in item.EnumerateAsync(context))
+                    {
+                        if (nestedItem.Type == FluidValues.Array)
+                        {
+                            await foreach (var deepItem in nestedItem.EnumerateAsync(context))
+                            {
+                                var shouldReject = await ShouldRejectItem(deepItem, memberStr, targetValue, hasTargetValue, context);
+                                if (shouldReject.hasError)
+                                {
+                                    if (shouldReject.isNilError)
+                                    {
+                                        hasNilError = true;
+                                        break;
+                                    }
+                                    throw new InvalidOperationException($"Cannot access property '{memberStr}' on {deepItem.Type}");
+                                }
+                                if (!shouldReject.reject)
+                                {
+                                    list.Add(deepItem);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            var shouldReject = await ShouldRejectItem(nestedItem, memberStr, targetValue, hasTargetValue, context);
+                            if (shouldReject.hasError)
+                            {
+                                if (shouldReject.isNilError)
+                                {
+                                    hasNilError = true;
+                                    break;
+                                }
+                                throw new InvalidOperationException($"Cannot access property '{memberStr}' on {nestedItem.Type}");
+                            }
+                            if (!shouldReject.reject)
+                            {
+                                list.Add(nestedItem);
+                            }
+                        }
+                    }
+                    if (hasNilError) break;
+                    continue;
+                }
 
-                if (!targetValue.Equals(itemValue))
+                var result = await ShouldRejectItem(item, memberStr, targetValue, hasTargetValue, context);
+                if (result.hasError)
+                {
+                    if (result.isNilError)
+                    {
+                        hasNilError = true;
+                        break;
+                    }
+                    throw new InvalidOperationException($"Cannot access property '{memberStr}' on {item.Type}");
+                }
+                
+                if (!result.reject)
                 {
                     list.Add(item);
                 }
             }
 
+            // If we encountered nil error, return empty array
+            if (hasNilError)
+            {
+                return new ArrayValue([]);
+            }
+
             return new ArrayValue(list);
+        }
+
+        private static async ValueTask<(bool reject, bool hasError, bool isNilError)> ShouldRejectItem(
+            FluidValue item,
+            string memberStr,
+            FluidValue targetValue,
+            bool hasTargetValue,
+            TemplateContext context)
+        {
+            FluidValue itemValue;
+
+            // Special handling for string items: check substring match
+            if (item.Type == FluidValues.String)
+            {
+                var stringValue = item.ToStringValue();
+                if (stringValue.Contains(memberStr))
+                {
+                    // Substring found - treat as truthy
+                    itemValue = BooleanValue.True;
+                }
+                else
+                {
+                    itemValue = NilValue.Instance;
+                }
+            }
+            else if (item.Type == FluidValues.Nil)
+            {
+                // Nil doesn't have properties - return nil error (non-throwing)
+                return (false, true, true);
+            }
+            else if (item.Type == FluidValues.Number)
+            {
+                // Numbers don't have properties, so accessing any property should throw
+                return (false, true, false);
+            }
+            else
+            {
+                itemValue = await item.GetValueAsync(memberStr, context);
+            }
+
+            bool reject;
+            if (hasTargetValue)
+            {
+                // Explicit target value: reject if it matches
+                reject = targetValue.Equals(itemValue);
+            }
+            else
+            {
+                // No target value: reject if property is truthy
+                reject = itemValue.ToBooleanValue(context);
+            }
+
+            return (reject, false, false);
         }
 
         public static ValueTask<FluidValue> Size(FluidValue input, FilterArguments arguments, TemplateContext context)
