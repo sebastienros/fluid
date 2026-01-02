@@ -319,6 +319,14 @@ namespace Fluid
                         ;
             InlineCommentTag.Name = "InlineCommentTag";
 
+            var DocTag = TagEnd
+                        .SkipAnd(AnyCharBefore(CreateTag("enddoc"), canBeEmpty: true))
+                        .AndSkip(CreateTag("enddoc").ElseError($"'{{% enddoc %}}' was expected"))
+                        .Then<Statement>(x => new DocStatement(x))
+                        .ElseError("Invalid 'doc' tag")
+                        ;
+            DocTag.Name = "DocTag";
+
             var CaptureTag = Identifier.ElseError(string.Format(ErrorMessages.IdentifierAfterTag, "capture"))
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
@@ -514,6 +522,7 @@ namespace Fluid
             RegisteredTags["continue"] = ContinueTag;
             RegisteredTags["comment"] = CommentTag;
             RegisteredTags["#"] = InlineCommentTag;
+            RegisteredTags["doc"] = DocTag;
             RegisteredTags["capture"] = CaptureTag;
             RegisteredTags["cycle"] = CycleTag;
             RegisteredTags["decrement"] = DecrementTag;
