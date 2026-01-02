@@ -42,28 +42,37 @@ namespace Fluid.Ast
 
             if (value.IsNil())
             {
-                // A context created without an explicit model uses NilValue.Instance.
-                // Treat this as "no model" so undefined variables can be tracked / handled.
-                if (context.Model.IsNil())
+                // Check if there's an increment/decrement counter with this name (Golden Liquid compatibility)
+                var incDecValue = context.LocalScope.GetValue(IncrementStatement.Prefix + initial.Identifier);
+                if (!incDecValue.IsNil())
                 {
-                    // Check equality as IsNil() is also true for UndefinedValue
-                    if (context.Undefined is not null && value == UndefinedValue.Instance)
+                    value = incDecValue;
+                }
+                else
+                {
+                    // A context created without an explicit model uses NilValue.Instance.
+                    // Treat this as "no model" so undefined variables can be tracked / handled.
+                    if (context.Model.IsNil())
                     {
+                        // Check equality as IsNil() is also true for UndefinedValue
+                        if (context.Undefined is not null && value == UndefinedValue.Instance)
+                        {
+                            if (context.Options.StrictVariables)
+                            {
+                                throw new FluidException($"Undefined variable '{initial.Identifier}'");
+                            }
+                            return context.Undefined.Invoke(initial.Identifier);
+                        }
                         if (context.Options.StrictVariables)
                         {
                             throw new FluidException($"Undefined variable '{initial.Identifier}'");
                         }
-                        return context.Undefined.Invoke(initial.Identifier);
+                        return value;
                     }
-                    if (context.Options.StrictVariables)
-                    {
-                        throw new FluidException($"Undefined variable '{initial.Identifier}'");
-                    }
-                    return value;
-                }
 
-                start = 0;
-                value = context.Model;
+                    start = 0;
+                    value = context.Model;
+                }
             }
 
             for (var i = start; i < _segments.Length; i++)
