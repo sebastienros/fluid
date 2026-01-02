@@ -4,12 +4,17 @@ namespace Fluid.Ast
 {
     public sealed class ElseIfStatement : TagStatement
     {
+        private readonly bool _isWhitespaceOrCommentOnly;
+
         public ElseIfStatement(Expression condition, IReadOnlyList<Statement> statements) : base(statements)
         {
             Condition = condition;
+            _isWhitespaceOrCommentOnly = StatementListHelper.IsWhitespaceOrCommentOnly(Statements);
         }
 
         public Expression Condition { get; }
+
+        internal bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
 
         public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {

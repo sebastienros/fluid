@@ -4,9 +4,14 @@ namespace Fluid.Ast
 {
     public sealed class ElseStatement : TagStatement
     {
+        private readonly bool _isWhitespaceOrCommentOnly;
+
         public ElseStatement(IReadOnlyList<Statement> statements) : base(statements)
         {
+            _isWhitespaceOrCommentOnly = StatementListHelper.IsWhitespaceOrCommentOnly(Statements);
         }
+
+        internal bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
 
         public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {

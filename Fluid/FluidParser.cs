@@ -360,11 +360,16 @@ namespace Fluid
                         ;
             IncrementTag.Name = "IncrementTag";
 
+            var IncludeAssignStatement = Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2));
+            IncludeAssignStatement.Name = "IncludeAssignStatement";
+
             var IncludeTag = OneOf(
-                        Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new IncludeStatement(this, x.Item1, null, null, null, x.Item2)),
                         Primary.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3)),
                         Primary.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, @for: x.Item2, alias: x.Item3)),
-                        Primary.Then(x => new IncludeStatement(this, x))
+                        Primary
+                            .And(ZeroOrOne(ZeroOrOne(Comma).SkipAnd(Separated(Comma, IncludeAssignStatement))))
+                            .AndSkip(ZeroOrOne(Comma))
+                            .Then(x => new IncludeStatement(this, x.Item1, null, null, null, x.Item2 ?? []))
                         ).AndSkip(TagEnd)
                         .Then<Statement>(x => x)
                         .ElseError("Invalid 'include' tag")

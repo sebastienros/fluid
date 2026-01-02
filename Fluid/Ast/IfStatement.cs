@@ -5,6 +5,8 @@ namespace Fluid.Ast
 {
     public sealed class IfStatement : TagStatement
     {
+        private readonly bool _isWhitespaceOrCommentOnly;
+
         public IfStatement(
             Expression condition,
             IReadOnlyList<Statement> statements,
@@ -15,6 +17,8 @@ namespace Fluid.Ast
             Condition = condition;
             Else = elseStatement;
             ElseIfs = elseIfStatements ?? [];
+
+            _isWhitespaceOrCommentOnly = StatementListHelper.IsWhitespaceOrCommentOnly(Statements);
         }
 
         public Expression Condition { get; }
@@ -30,6 +34,11 @@ namespace Fluid.Ast
 
                 if (result)
                 {
+                    if (_isWhitespaceOrCommentOnly)
+                    {
+                        return Statement.NormalCompletion;
+                    }
+
                     for (var i = 0; i < Statements.Count; i++)
                     {
                         var statement = Statements[i];
@@ -64,6 +73,11 @@ namespace Fluid.Ast
 
                         if (elseIfConditionTask.Result.ToBooleanValue())
                         {
+                            if (elseIf.IsWhitespaceOrCommentOnly)
+                            {
+                                return Statement.NormalCompletion;
+                            }
+
                             var writeTask = elseIf.WriteToAsync(output, encoder, context);
                             if (!writeTask.IsCompletedSuccessfully)
                             {
@@ -76,6 +90,11 @@ namespace Fluid.Ast
 
                     if (Else != null)
                     {
+                        if (Else.IsWhitespaceOrCommentOnly)
+                        {
+                            return Statement.NormalCompletion;
+                        }
+
                         return Else.WriteToAsync(output, encoder, context);
                     }
                 }
