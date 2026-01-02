@@ -138,14 +138,14 @@ namespace Fluid.Filters
             {
                 if (input.IsNil() || EmptyValue.Instance.Equals(input))
                 {
-                    return arguments.At(0);
+                    return arguments.GetFirstPositional();
                 }
             }
             else
             {
                 if (input.IsNil() || input == BooleanValue.False || EmptyValue.Instance.Equals(input))
                 {
-                    return arguments.At(0);
+                    return arguments.GetFirstPositional();
                 }
             }
 
@@ -324,24 +324,42 @@ namespace Fluid.Filters
             {
                 var cursor = 0;
                 var inside = false;
-                for (var i = 0; i < html.Length; i++)
+                var i = 0;
+                while (i < html.Length)
                 {
                     var current = html[i];
 
-                    switch (current)
+                    if (current == '<')
                     {
-                        case '<':
-                            inside = true;
+                        // Check if this is a script or style tag that we should skip entirely
+                        if (IsStartOfSpecialTag(html, i, "script"))
+                        {
+                            i = SkipToEndOfTag(html, i, "script");
                             continue;
-                        case '>':
-                            inside = false;
+                        }
+                        else if (IsStartOfSpecialTag(html, i, "style"))
+                        {
+                            i = SkipToEndOfTag(html, i, "style");
                             continue;
+                        }
+                        inside = true;
+                        i++;
+                        continue;
+                    }
+
+                    if (current == '>')
+                    {
+                        inside = false;
+                        i++;
+                        continue;
                     }
 
                     if (!inside)
                     {
                         result[cursor++] = current;
                     }
+
+                    i++;
                 }
 
                 return new StringValue(new string(result, 0, cursor));
@@ -353,6 +371,66 @@ namespace Fluid.Filters
             finally
             {
                 ArrayPool<char>.Shared.Return(result);
+            }
+
+            static bool IsStartOfSpecialTag(string html, int startIndex, string tagName)
+            {
+                if (startIndex + tagName.Length + 2 > html.Length)
+                {
+                    return false;
+                }
+
+                if (html[startIndex] != '<')
+                {
+                    return false;
+                }
+
+                var nextIndex = startIndex + 1;
+                
+                // Check for the tag name (case-insensitive)
+                for (int j = 0; j < tagName.Length; j++)
+                {
+                    if (char.ToLowerInvariant(html[nextIndex + j]) != tagName[j])
+                    {
+                        return false;
+                    }
+                }
+
+                // Make sure next char after tag name is whitespace or '>'
+                var charAfterTag = nextIndex + tagName.Length;
+                if (charAfterTag < html.Length)
+                {
+                    var ch = html[charAfterTag];
+                    return char.IsWhiteSpace(ch) || ch == '>';
+                }
+
+                return false;
+            }
+
+            static int SkipToEndOfTag(string html, int startIndex, string tagName)
+            {
+                var endTagStart = $"</{tagName}";
+                var searchStart = startIndex + 1;
+
+                while (searchStart < html.Length)
+                {
+                    var index = html.IndexOf(endTagStart, searchStart, StringComparison.OrdinalIgnoreCase);
+                    if (index == -1)
+                    {
+                        return html.Length;
+                    }
+
+                    // Find the closing >
+                    var closeIndex = html.IndexOf('>', index);
+                    if (closeIndex != -1)
+                    {
+                        return closeIndex + 1;
+                    }
+
+                    searchStart = index + 1;
+                }
+
+                return html.Length;
             }
         }
 

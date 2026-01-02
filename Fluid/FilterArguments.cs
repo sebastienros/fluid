@@ -79,6 +79,28 @@ namespace Fluid
 
         public IEnumerable<FluidValue> Values => _positional;
 
+        public FluidValue GetFirstPositional()
+        {
+            if (_positional == null || _positional.Count == 0)
+            {
+                return NilValue.Instance;
+            }
+
+            // Get the set of values that are named arguments
+            var namedValues = new HashSet<FluidValue>(_named?.Values ?? Enumerable.Empty<FluidValue>());
+            
+            // Find the first positional value that is not a named argument
+            foreach (var value in _positional)
+            {
+                if (!namedValues.Contains(value))
+                {
+                    return value;
+                }
+            }
+
+            return NilValue.Instance;
+        }
+
         internal object[] ValuesToObjectArray()
         {
             var array = new object[_positional.Count];

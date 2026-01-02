@@ -61,25 +61,18 @@ namespace Fluid.Values
                 return NumberValue.Create(_value.Count);
             }
 
-            // Check if the actual property exists first before using synthetic first/last
+            // Check if the actual property exists first before using synthetic first
             if (_value.TryGetValue(name, out var fluidValue))
             {
                 return fluidValue;
             }
 
-            // Only use synthetic first/last if the property doesn't exist
+            // Only .first is a synthetic property for dictionaries (not .last)
             if (name == "first" && _value.Count > 0)
             {
                 var firstKey = _value.Keys.First();
                 _value.TryGetValue(firstKey, out var firstValue);
                 return new ArrayValue(new[] { new StringValue(firstKey), firstValue });
-            }
-
-            if (name == "last" && _value.Count > 0)
-            {
-                var lastKey = _value.Keys.Last();
-                _value.TryGetValue(lastKey, out var lastValue);
-                return new ArrayValue(new[] { new StringValue(lastKey), lastValue });
             }
 
             return NilValue.Instance;
@@ -104,7 +97,7 @@ namespace Fluid.Values
 
         public override decimal ToNumberValue()
         {
-            return 0;
+            return _value.Count;
         }
 
         public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
