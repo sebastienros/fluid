@@ -116,21 +116,62 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("map", expected: 1, arguments);
 
-            if (input.Type != FluidValues.Array)
+            var member = arguments.At(0);
+
+            // If the member argument is nil or undefined, return empty array
+            if (member.IsNil())
             {
-                return input;
+                return ArrayValue.Empty;
             }
 
-            var member = arguments.At(0).ToStringValue();
+            var memberName = member.ToStringValue();
+
+            // Handle objects/hashes: treat them as single-element arrays
+            if (input.Type == FluidValues.Object || input.Type == FluidValues.Dictionary)
+            {
+                var value = await input.GetValueAsync(memberName, context);
+                return new ArrayValue([value]);
+            }
+
+            // Non-array, non-object inputs should throw an error
+            if (input.Type != FluidValues.Array)
+            {
+                throw new LiquidException("map filter: input must be an array or object");
+            }
 
             var list = new List<FluidValue>();
 
-            await foreach (var item in input.EnumerateAsync(context))
+            await foreach (var item in FlattenForMap(input, context))
             {
-                list.Add(await item.GetValueAsync(member, context));
+                // Each item must be an object or hash to extract properties from
+                if (item.Type != FluidValues.Object && item.Type != FluidValues.Dictionary)
+                {
+                    throw new LiquidException("map filter: all items in the array must be objects");
+                }
+
+                list.Add(await item.GetValueAsync(memberName, context));
             }
 
             return new ArrayValue(list);
+
+            // Flatten nested arrays within the input array for map filter
+            static async IAsyncEnumerable<FluidValue> FlattenForMap(FluidValue value, TemplateContext context)
+            {
+                await foreach (var item in value.EnumerateAsync(context))
+                {
+                    if (item.Type == FluidValues.Array)
+                    {
+                        await foreach (var subItem in FlattenForMap(item, context))
+                        {
+                            yield return subItem;
+                        }
+                    }
+                    else
+                    {
+                        yield return item;
+                    }
+                }
+            }
         }
 
         public static async ValueTask<FluidValue> Reverse(FluidValue input, FilterArguments arguments, TemplateContext context)
