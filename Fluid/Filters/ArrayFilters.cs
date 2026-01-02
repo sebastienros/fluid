@@ -776,20 +776,27 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("sort", min: 0, max: 1, arguments);
 
+            if (input.Type != FluidValues.Array)
+            {
+                return input;
+            }
+
             // If argument is provided but is nil, treat as no argument
             if (arguments.Count > 0 && !arguments.At(0).IsNil())
             {
                 var member = arguments.At(0).ToStringValue();
 
-                var values = new List<KeyValuePair<FluidValue, object>>();
+                var values = new List<KeyValuePair<FluidValue, FluidValue>>();
 
                 await foreach (var item in input.EnumerateAsync(context))
                 {
-                    values.Add(new KeyValuePair<FluidValue, object>(item, (await item.GetValueAsync(member, context)).ToObjectValue()));
+                    values.Add(new KeyValuePair<FluidValue, FluidValue>(item, await item.GetValueAsync(member, context)));
                 }
 
+                // Sort with case-sensitive comparison, placing items with missing keys at the end
                 var orderedValues = values
-                    .OrderBy(x => x.Value)
+                    .OrderBy(x => x.Value.IsNil() ? 1 : 0)
+                    .ThenBy(x => x.Value, new LiquidSortComparer(caseSensitive: true, compareNumbersAsStrings: true))
                     .Select(x => x.Key)
                     .ToArray();
 
@@ -797,28 +804,52 @@ namespace Fluid.Filters
             }
             else
             {
-                return new ArrayValue(await input.EnumerateAsync(context).OrderBy(x => x.ToStringValue(), StringComparer.Ordinal).ToArrayAsync());
+                var values = await input.EnumerateAsync(context).ToListAsync();
+                
+                // Check for incompatible types
+                bool hasArray = false, hasObject = false, hasNumber = false, hasString = false;
+                foreach (var v in values)
+                {
+                    if (v.Type == FluidValues.Array) hasArray = true;
+                    else if (v.Type == FluidValues.Object) hasObject = true;
+                    else if (v.Type == FluidValues.Number) hasNumber = true;
+                    else if (v.Type == FluidValues.String) hasString = true;
+                }
+                
+                if ((hasArray || hasObject) && (hasNumber || hasString))
+                {
+                    throw new InvalidOperationException("Cannot sort array with incompatible types");
+                }
+                
+                return new ArrayValue(values.OrderBy(x => x, new LiquidSortComparer(caseSensitive: true, compareNumbersAsStrings: false)).ToArray());
             }
         }
 
         public static async ValueTask<FluidValue> SortNatural(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            LiquidException.ThrowFilterArgumentsCount("sort_natural", min: 0, max: 2, arguments);
+            LiquidException.ThrowFilterArgumentsCount("sort_natural", min: 0, max: 1, arguments);
+
+            if (input.Type != FluidValues.Array)
+            {
+                return input;
+            }
 
             // If argument is provided but is nil, treat as no argument
             if (arguments.Count > 0 && !arguments.At(0).IsNil())
             {
                 var member = arguments.At(0).ToStringValue();
 
-                var values = new List<KeyValuePair<FluidValue, object>>();
+                var values = new List<KeyValuePair<FluidValue, FluidValue>>();
 
                 await foreach (var item in input.EnumerateAsync(context))
                 {
-                    values.Add(new KeyValuePair<FluidValue, object>(item, (await item.GetValueAsync(member, context)).ToObjectValue()));
+                    values.Add(new KeyValuePair<FluidValue, FluidValue>(item, await item.GetValueAsync(member, context)));
                 }
 
+                // Sort with case-insensitive comparison, placing items with missing keys at the end
                 var orderedValues = values
-                    .OrderBy(x => x.Value)
+                    .OrderBy(x => x.Value.IsNil() ? 1 : 0)
+                    .ThenBy(x => x.Value, new LiquidSortComparer(caseSensitive: false, compareNumbersAsStrings: true))
                     .Select(x => x.Key)
                     .ToArray();
 
@@ -826,7 +857,24 @@ namespace Fluid.Filters
             }
             else
             {
-                return new ArrayValue(await input.EnumerateAsync(context).OrderBy(x => x.ToStringValue(), StringComparer.OrdinalIgnoreCase).ToArrayAsync());
+                var values = await input.EnumerateAsync(context).ToListAsync();
+                
+                // Check for incompatible types
+                bool hasArray = false, hasObject = false, hasNumber = false, hasString = false;
+                foreach (var v in values)
+                {
+                    if (v.Type == FluidValues.Array) hasArray = true;
+                    else if (v.Type == FluidValues.Object) hasObject = true;
+                    else if (v.Type == FluidValues.Number) hasNumber = true;
+                    else if (v.Type == FluidValues.String) hasString = true;
+                }
+                
+                if ((hasArray || hasObject) && (hasNumber || hasString))
+                {
+                    throw new InvalidOperationException("Cannot sort array with incompatible types");
+                }
+                
+                return new ArrayValue(values.OrderBy(x => x, new LiquidSortComparer(caseSensitive: false, compareNumbersAsStrings: false)).ToArray());
             }
         }
 
@@ -875,6 +923,47 @@ namespace Fluid.Filters
             }
 
             return NumberValue.Create(sumList.Sum());
+        }
+    }
+
+    internal sealed class LiquidSortComparer : IComparer<FluidValue>
+    {
+        private readonly bool _caseSensitive;
+        private readonly bool _compareNumbersAsStrings;
+
+        public LiquidSortComparer(bool caseSensitive, bool compareNumbersAsStrings)
+        {
+            _caseSensitive = caseSensitive;
+            _compareNumbersAsStrings = compareNumbersAsStrings;
+        }
+
+        public int Compare(FluidValue x, FluidValue y)
+        {
+            // Nil values come last
+            if (x.IsNil() && y.IsNil()) return 0;
+            if (x.IsNil()) return 1;
+            if (y.IsNil()) return -1;
+
+            // If both are numbers and we should compare them numerically
+            if (!_compareNumbersAsStrings && x.Type == FluidValues.Number && y.Type == FluidValues.Number)
+            {
+                var xNum = x.ToNumberValue();
+                var yNum = y.ToNumberValue();
+                return xNum.CompareTo(yNum);
+            }
+
+            // Otherwise, compare as strings
+            var xStr = x.ToStringValue();
+            var yStr = y.ToStringValue();
+
+            if (_caseSensitive)
+            {
+                return string.Compare(xStr, yStr, StringComparison.Ordinal);
+            }
+            else
+            {
+                return string.Compare(xStr, yStr, StringComparison.OrdinalIgnoreCase);
+            }
         }
     }
 }
