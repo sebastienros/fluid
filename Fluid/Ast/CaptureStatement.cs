@@ -11,10 +11,21 @@ namespace Fluid.Ast
         public CaptureStatement(string identifier, IReadOnlyList<Statement> statements) : base(statements)
         {
             Identifier = identifier;
-            _isWhitespaceOrCommentOnly = StatementListHelper.IsWhitespaceOrCommentOnly(Statements);
+            
+            _isWhitespaceOrCommentOnly = true;
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                if (!Statements[i].IsWhitespaceOrCommentOnly)
+                {
+                    _isWhitespaceOrCommentOnly = false;
+                    break;
+                }
+            }
         }
 
         public string Identifier { get; }
+
+        public override bool IsWhitespaceOrCommentOnly => true;
 
         public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {

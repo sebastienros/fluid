@@ -10,15 +10,21 @@ namespace Fluid.Ast
         private readonly Lock _synLock = new();
         private TextSpan _text;
         internal string _preparedBuffer;
+        private readonly bool _isWhitespaceOrCommentOnly;
 
         public TextSpanStatement(in TextSpan text)
         {
             _text = text;
+
+            #if NET6_0_OR_GREATER
+                _isWhitespaceOrCommentOnly = _text.Span.IsWhiteSpace();
+            #else
+                _isWhitespaceOrCommentOnly = string.IsNullOrWhiteSpace(_text.ToString());
+            #endif
         }
 
-        public TextSpanStatement(string text)
+        public TextSpanStatement(string text) : this(new TextSpan(text))
         {
-            _text = new TextSpan(text);
         }
 
         public bool StripLeft { get; set; }
@@ -33,6 +39,7 @@ namespace Fluid.Ast
 
         public string Buffer => _preparedBuffer;
 
+        public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
         public void PrepareBuffer(TemplateOptions options)
         {
             if (_isBufferPrepared)

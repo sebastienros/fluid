@@ -8,7 +8,17 @@ namespace Fluid.Ast
         protected CaseBlock(IReadOnlyList<Statement> statements)
         {
             Statements = statements ?? [];
-            IsWhitespaceOrCommentOnly = StatementListHelper.IsWhitespaceOrCommentOnly(Statements);
+            
+            var isWhitespaceOrCommentOnly = true;
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                if (!Statements[i].IsWhitespaceOrCommentOnly)
+                {
+                    isWhitespaceOrCommentOnly = false;
+                    break;
+                }
+            }
+            IsWhitespaceOrCommentOnly = isWhitespaceOrCommentOnly;
         }
 
         public IReadOnlyList<Statement> Statements { get; }

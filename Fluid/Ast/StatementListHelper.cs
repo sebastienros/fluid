@@ -24,6 +24,13 @@ namespace Fluid.Ast
                     case IncrementStatement:
                     case DecrementStatement:
                     case CycleStatement:
+                    case CaptureStatement:
+                    case MacroStatement:
+                    case FromStatement:
+                        break;
+
+                    case LiquidStatement liquidStatement:
+                        if (!IsWhitespaceOrCommentOnly(liquidStatement.Statements)) return false;
                         break;
 
                     case IfStatement ifStatement:

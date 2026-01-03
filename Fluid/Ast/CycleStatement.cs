@@ -31,6 +31,8 @@ namespace Fluid.Ast
             }
         }
 
+        public override bool IsWhitespaceOrCommentOnly => true;
+
         public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();

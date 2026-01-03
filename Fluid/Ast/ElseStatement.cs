@@ -8,10 +8,18 @@ namespace Fluid.Ast
 
         public ElseStatement(IReadOnlyList<Statement> statements) : base(statements)
         {
-            _isWhitespaceOrCommentOnly = StatementListHelper.IsWhitespaceOrCommentOnly(Statements);
+            _isWhitespaceOrCommentOnly = true;
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                if (!Statements[i].IsWhitespaceOrCommentOnly)
+                {
+                    _isWhitespaceOrCommentOnly = false;
+                    break;
+                }
+            }
         }
 
-        internal bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
+        public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
 
         public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {

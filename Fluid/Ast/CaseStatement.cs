@@ -5,6 +5,7 @@ namespace Fluid.Ast
     public sealed class CaseStatement : TagStatement
     {
         private readonly IReadOnlyList<CaseBlock> _blocks;
+        private readonly bool _isWhitespaceOrCommentOnly;
 
         public CaseStatement(
             Expression expression,
@@ -13,7 +14,21 @@ namespace Fluid.Ast
         {
             Expression = expression;
             _blocks = blocks ?? [];
+
+            var isWhitespaceOrCommentOnly = true;
+            foreach (var block in _blocks)
+            {
+                if (!block.IsWhitespaceOrCommentOnly)
+                {
+                    isWhitespaceOrCommentOnly = false;
+                    break;
+                }
+            }
+
+            _isWhitespaceOrCommentOnly = isWhitespaceOrCommentOnly;
         }
+
+        public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
 
         public Expression Expression { get; }
 
@@ -37,8 +52,25 @@ namespace Fluid.Ast
                         {
                             hasMatched = true;
 
-                            if (whenBlock.IsWhitespaceOrCommentOnly)
+                            if (_isWhitespaceOrCommentOnly)
                             {
+                                // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
+                                for (var i = 0; i < whenBlock.Statements.Count; i++)
+                                {
+                                    var statement = whenBlock.Statements[i];
+                                    
+                                    // Skip writing TextSpanStatements (whitespace)
+                                    if (statement is TextSpanStatement)
+                                    {
+                                        continue;
+                                    }
+
+                                    var completion = await statement.WriteToAsync(output, encoder, context);
+                                    if (completion != Completion.Normal)
+                                    {
+                                        return completion;
+                                    }
+                                }
                                 continue;
                             }
 
@@ -60,8 +92,25 @@ namespace Fluid.Ast
                     // Only execute else if we haven't matched yet
                     if (!hasMatched)
                     {
-                        if (elseBlock.IsWhitespaceOrCommentOnly)
+                        if (_isWhitespaceOrCommentOnly)
                         {
+                            // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
+                            for (var i = 0; i < elseBlock.Statements.Count; i++)
+                            {
+                                var statement = elseBlock.Statements[i];
+                                
+                                // Skip writing TextSpanStatements (whitespace)
+                                if (statement is TextSpanStatement)
+                                {
+                                    continue;
+                                }
+
+                                var completion = await statement.WriteToAsync(output, encoder, context);
+                                if (completion != Completion.Normal)
+                                {
+                                    return completion;
+                                }
+                            }
                             continue;
                         }
 

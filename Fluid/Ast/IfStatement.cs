@@ -18,8 +18,38 @@ namespace Fluid.Ast
             Else = elseStatement;
             ElseIfs = elseIfStatements ?? [];
 
-            _isWhitespaceOrCommentOnly = StatementListHelper.IsWhitespaceOrCommentOnly(Statements);
+            _isWhitespaceOrCommentOnly = true;
+
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                if (!Statements[i].IsWhitespaceOrCommentOnly)
+                {
+                    _isWhitespaceOrCommentOnly = false;
+                    break;
+                }
+            }
+
+            if (_isWhitespaceOrCommentOnly)
+            {
+                if (Else != null && !Else.IsWhitespaceOrCommentOnly)
+                {
+                    _isWhitespaceOrCommentOnly = false;
+                }
+                else
+                {
+                    for (var i = 0; i < ElseIfs.Count; i++)
+                    {
+                        if (!ElseIfs[i].IsWhitespaceOrCommentOnly)
+                        {
+                            _isWhitespaceOrCommentOnly = false;
+                            break;
+                        }
+                    }
+                }
+            }
         }
+
+        public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
 
         public Expression Condition { get; }
         public ElseStatement Else { get; }

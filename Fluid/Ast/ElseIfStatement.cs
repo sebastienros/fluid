@@ -9,12 +9,21 @@ namespace Fluid.Ast
         public ElseIfStatement(Expression condition, IReadOnlyList<Statement> statements) : base(statements)
         {
             Condition = condition;
-            _isWhitespaceOrCommentOnly = StatementListHelper.IsWhitespaceOrCommentOnly(Statements);
+            
+            _isWhitespaceOrCommentOnly = true;
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                if (!Statements[i].IsWhitespaceOrCommentOnly)
+                {
+                    _isWhitespaceOrCommentOnly = false;
+                    break;
+                }
+            }
         }
 
         public Expression Condition { get; }
 
-        internal bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
+        public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
 
         public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
