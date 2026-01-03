@@ -31,6 +31,24 @@ namespace Fluid.Ast
                 // Unless condition is false, execute the main block
                 if (_isWhitespaceOrCommentOnly)
                 {
+                    // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
+                    for (var i = 0; i < Statements.Count; i++)
+                    {
+                        var statement = Statements[i];
+                        
+                        // Skip writing TextSpanStatements (whitespace)
+                        if (statement is TextSpanStatement)
+                        {
+                            continue;
+                        }
+
+                        var completion = await statement.WriteToAsync(output, encoder, context);
+
+                        if (completion != Completion.Normal)
+                        {
+                            return completion;
+                        }
+                    }
                     return Completion.Normal;
                 }
 
@@ -61,7 +79,8 @@ namespace Fluid.Ast
                     {
                         if (elseIf.IsWhitespaceOrCommentOnly)
                         {
-                            return Completion.Normal;
+                            // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
+                            // ElseIfStatement.WriteToAsync handles this logic internally now
                         }
 
                         return await elseIf.WriteToAsync(output, encoder, context);
@@ -71,10 +90,7 @@ namespace Fluid.Ast
                 // No elsif matched, execute else if present
                 if (Else != null)
                 {
-                    if (!Else.IsWhitespaceOrCommentOnly)
-                    {
-                        await Else.WriteToAsync(output, encoder, context);
-                    }
+                    await Else.WriteToAsync(output, encoder, context);
                 }
             }
 

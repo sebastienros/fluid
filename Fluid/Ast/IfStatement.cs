@@ -36,6 +36,30 @@ namespace Fluid.Ast
                 {
                     if (_isWhitespaceOrCommentOnly)
                     {
+                        // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
+                        for (var i = 0; i < Statements.Count; i++)
+                        {
+                            var statement = Statements[i];
+                            
+                            // Skip writing TextSpanStatements (whitespace)
+                            if (statement is TextSpanStatement)
+                            {
+                                continue;
+                            }
+
+                            var task = statement.WriteToAsync(output, encoder, context);
+                            if (!task.IsCompletedSuccessfully)
+                            {
+                                return Awaited(conditionTask, task, output, encoder, context, i + 1);
+                            }
+
+                            var completion = task.Result;
+
+                            if (completion != Completion.Normal)
+                            {
+                                return Statement.FromCompletion(completion);
+                            }
+                        }
                         return Statement.NormalCompletion;
                     }
 

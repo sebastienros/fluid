@@ -18,6 +18,36 @@ namespace Fluid.Ast
 
         public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
+            if (_isWhitespaceOrCommentOnly)
+            {
+                // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
+                for (var i = 0; i < Statements.Count; i++)
+                {
+                    var statement = Statements[i];
+                    
+                    // Skip writing TextSpanStatements (whitespace)
+                    if (statement is TextSpanStatement)
+                    {
+                        continue;
+                    }
+
+                    context.IncrementSteps();
+
+                    var task = statement.WriteToAsync(output, encoder, context);
+                    if (!task.IsCompletedSuccessfully)
+                    {
+                        return Awaited(task, i + 1, output, encoder, context);
+                    }
+
+                    var completion = task.Result;
+                    if (completion != Completion.Normal)
+                    {
+                        return Statement.FromCompletion(completion);
+                    }
+                }
+                return Statement.NormalCompletion;
+            }
+
             // Process statements until next block or end of statements
             for (var i = 0; i < Statements.Count; i++)
             {

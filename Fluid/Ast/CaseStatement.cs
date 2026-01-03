@@ -36,6 +36,12 @@ namespace Fluid.Ast
                         if (value.Equals(await option.EvaluateAsync(context)))
                         {
                             hasMatched = true;
+
+                            if (whenBlock.IsWhitespaceOrCommentOnly)
+                            {
+                                continue;
+                            }
+
                             // Execute all statements in the when block
                             foreach (var statement in whenBlock.Statements)
                             {
@@ -54,6 +60,11 @@ namespace Fluid.Ast
                     // Only execute else if we haven't matched yet
                     if (!hasMatched)
                     {
+                        if (elseBlock.IsWhitespaceOrCommentOnly)
+                        {
+                            continue;
+                        }
+
                         foreach (var statement in elseBlock.Statements)
                         {
                             var completion = await statement.WriteToAsync(output, encoder, context);
