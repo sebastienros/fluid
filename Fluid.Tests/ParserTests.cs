@@ -1363,5 +1363,38 @@ class  {
             // Assert
             Assert.Equal(expectedOutput, result.Trim());
         }
+
+        [Fact]
+        public async Task ShouldParseBracketedAccessWithNestedMember()
+        {
+            var parser = new FluidParser();
+            
+            // First test: simple bracketed access with string literal
+            parser.TryParse("{{ ['foo'] }}", out var t1, out var e1);
+            Assert.Null(e1);
+            
+            // Second test: bracketed access with member
+            parser.TryParse("{{ [something] }}", out var t2, out var e2);
+            Assert.Null(e2);
+            
+            var context = new TemplateContext();
+            context.SetValue("something", "hello");
+            context.SetValue("hello", "goodbye");
+            
+            var result = await t2.RenderAsync(context);
+            Assert.Equal("goodbye", result);
+            
+            // Third test: nested bracketed access
+            parser.TryParse("{{ [list[settings.zero]] }}", out var t3, out var e3);
+            Assert.Null(e3);
+            
+            var context2 = new TemplateContext();
+            context2.SetValue("list", new[] { "foo" });
+            context2.SetValue("settings", new { zero = 0 });
+            context2.SetValue("foo", "bar");
+            
+            var result2 = await t3.RenderAsync(context2);
+            Assert.Equal("bar", result2);
+        }
     }
 }

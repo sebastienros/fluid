@@ -44,6 +44,7 @@ namespace Fluid
         protected static readonly Parser<string> BinaryAnd = Terms.Text("and");
 
         protected readonly Parser<string> Identifier;
+        protected readonly Parser<string> VariableSignature;
 
         protected readonly Parser<IReadOnlyList<FilterArgument>> ArgumentsList;
         protected readonly Parser<IReadOnlyList<FunctionCallArgument>> FunctionCallArgumentsList;
@@ -95,6 +96,7 @@ namespace Fluid
             }
 
             Identifier = SkipWhiteSpace(new IdentifierParser(parserOptions.AllowTrailingQuestionMark)).Then(x => x.ToString());
+            VariableSignature = SkipWhiteSpace(new VariableSignatureParser()).Then(x => x.ToString());
 
             String.Name = "String";
 
@@ -156,9 +158,30 @@ namespace Fluid
                 ;
             Group.Name = "Group";
 
+            // Bracketed access: [expr] followed by optional member accessors (e.g., [123] or ["foo"].bar or ['foo']['bar'])
+            // This allows accessing scope by computed key, compatible with Shopify Liquid's variable signature behavior
+            // Uses Terms.Char to skip leading whitespace (unlike LBracket which is Literals.Char)
+            // Also allows chained brackets like ['foo']['bar'] with whitespace between them
+            // Creates a MemberExpression with an IndexerSegment as the first segment
+            var ChainedIndexer = Terms.Char('[').SkipAnd(Primary).AndSkip(RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
+            ChainedIndexer.Name = "ChainedIndexer";
+            
+            var BracketedAccess = Terms.Char('[').SkipAnd(Primary).AndSkip(RBracket).Then<MemberSegment>(x => new IndexerSegment(x))
+                .And(ZeroOrMany(
+                    Dot.SkipAnd(
+                        Identifier.Or(Terms.Integer(NumberOptions.None).Then(x => x.ToString(CultureInfo.InvariantCulture)))
+                            .Then<MemberSegment>(x => new IdentifierSegment(x))
+                    )
+                    .Or(ChainedIndexer)
+                    .Or(Indexer)
+                    .Or(Call)))
+                .Then<Expression>(x => new MemberExpression([x.Item1, .. x.Item2]));
+            BracketedAccess.Name = "BracketedAccess";
+
             // primary => NUMBER | STRING | property
             Primary.Parser = 
                 String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x)))
+                .Or(BracketedAccess)
                 .Or(Member.Then<Expression>(static x =>
                 {
                     if (x.Segments.Count == 1)
@@ -327,7 +350,7 @@ namespace Fluid
                         ;
             DocTag.Name = "DocTag";
 
-            var CaptureTag = Identifier.ElseError(string.Format(ErrorMessages.IdentifierAfterTag, "capture"))
+            var CaptureTag = VariableSignature.ElseError(string.Format(ErrorMessages.IdentifierAfterTag, "capture"))
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
                         .AndSkip(CreateTag("endcapture").ElseError($"'{{% endcapture %}}' was expected"))
@@ -356,13 +379,13 @@ namespace Fluid
                         ;
             CycleTag.Name = "CycleTag";
 
-            var DecrementTag = ZeroOrOne(Identifier).AndSkip(TagEnd)
+            var DecrementTag = ZeroOrOne(VariableSignature).AndSkip(TagEnd)
                         .Then<Statement>(x => new DecrementStatement(x))
                         .ElseError("Invalid 'decrement' tag")
                         ;
             DecrementTag.Name = "DecrementTag";
 
-            var IncrementTag = ZeroOrOne(Identifier).AndSkip(TagEnd)
+            var IncrementTag = ZeroOrOne(VariableSignature).AndSkip(TagEnd)
                         .Then<Statement>(x => new IncrementStatement(x))
                         .ElseError("Invalid 'increment' tag")
                         ;
@@ -406,7 +429,7 @@ namespace Fluid
             var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), canBeEmpty: true, consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
             RawTag.Name = "RawTag";
 
-            var AssignTag = Identifier.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter)).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
+            var AssignTag = VariableSignature.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter)).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
             AssignTag.Name = "AssignTag";
 
             // Lenient else tag: matches {% else %} or {% else anything %} (extra content is ignored)
