@@ -463,6 +463,12 @@ namespace Fluid.Ast
         protected internal virtual Statement VisitUnlessStatement(UnlessStatement unlessStatement)
         {
             Visit(unlessStatement.Condition);
+
+            foreach (var elseIf in unlessStatement.ElseIfs)
+            {
+                Visit(elseIf);
+            }
+
             Visit(unlessStatement.Else);
 
             foreach (var statement in unlessStatement.Statements)

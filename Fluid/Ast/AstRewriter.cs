@@ -573,11 +573,14 @@ namespace Fluid.Ast
 
         protected internal override Statement VisitUnlessStatement(UnlessStatement unlessStatement)
         {
+            var rewriteElseIfs = TryRewriteStatements<ElseIfStatement>(unlessStatement.ElseIfs, out var newElseIfs);
+
             if (TryRewriteExpression(unlessStatement.Condition, out var newCondition) |
                 TryRewriteStatement(unlessStatement.Else, out var newElse) |
-                TryRewriteStatements(unlessStatement.Statements, out var newStatements))
+                TryRewriteStatements(unlessStatement.Statements, out var newStatements) |
+                rewriteElseIfs)
             {
-                return new UnlessStatement(newCondition, newStatements.ToList(), newElse);
+                return new UnlessStatement(newCondition, newStatements.ToList(), newElse, newElseIfs?.ToList());
             }
             return unlessStatement;
         }

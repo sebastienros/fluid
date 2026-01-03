@@ -9,15 +9,18 @@ namespace Fluid.Ast
         public UnlessStatement(
             Expression condition,
             IReadOnlyList<Statement> statements,
-            ElseStatement elseStatement = null) : base(statements)
+            ElseStatement elseStatement = null,
+            IReadOnlyList<ElseIfStatement> elseIfStatements = null) : base(statements)
         {
             Condition = condition;
             Else = elseStatement;
+            ElseIfs = elseIfStatements ?? [];
             _isWhitespaceOrCommentOnly = StatementListHelper.IsWhitespaceOrCommentOnly(Statements);
         }
 
         public Expression Condition { get; }
         public ElseStatement Else { get; }
+        public IReadOnlyList<ElseIfStatement> ElseIfs { get; }
 
         public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
@@ -25,6 +28,7 @@ namespace Fluid.Ast
 
             if (!result)
             {
+                // Unless condition is false, execute the main block
                 if (_isWhitespaceOrCommentOnly)
                 {
                     return Completion.Normal;
@@ -47,11 +51,29 @@ namespace Fluid.Ast
             }
             else
             {
+                // Unless condition is true, check elsif branches (which use normal if logic)
+                for (var i = 0; i < ElseIfs.Count; i++)
+                {
+                    var elseIf = ElseIfs[i];
+                    var elseIfResult = (await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue();
+
+                    if (elseIfResult)
+                    {
+                        if (elseIf.IsWhitespaceOrCommentOnly)
+                        {
+                            return Completion.Normal;
+                        }
+
+                        return await elseIf.WriteToAsync(output, encoder, context);
+                    }
+                }
+
+                // No elsif matched, execute else if present
                 if (Else != null)
                 {
                     if (!Else.IsWhitespaceOrCommentOnly)
                     {
-                    await Else.WriteToAsync(output, encoder, context);
+                        await Else.WriteToAsync(output, encoder, context);
                     }
                 }
             }

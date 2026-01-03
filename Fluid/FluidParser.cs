@@ -409,15 +409,35 @@ namespace Fluid
             var AssignTag = Identifier.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
             AssignTag.Name = "AssignTag";
 
+            // Lenient else tag: matches {% else %} or {% else anything %} (extra content is ignored)
+            var ElseTagLenient = TagStart.SkipAnd(Terms.Text("else")).SkipAnd(AnyCharBefore(TagEnd, canBeEmpty: true)).AndSkip(TagEnd);
+            
+            // Elsif tag for capturing stray elsif blocks (after else, they should be ignored)
+            var ElsifTagCapture = TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(AnyCharBefore(TagEnd, canBeEmpty: true)).AndSkip(TagEnd);
+
+            // Content that can follow an else block - includes regular content plus any stray else/elsif blocks
+            // This ensures that {% else %}content{% elsif %}more{% else %}even_more is all captured, 
+            // with only the first else block's content being used
+            var ElseContent = AnyTagsList;
+            
+            // Parser for else blocks that also consumes any trailing elsif/else blocks
+            // Multiple else blocks: only first is used. Elsif after else: ignored.
+            var ElseBlocksWithTrailing = ZeroOrMany(
+                OneOf(
+                    ElseTagLenient.SkipAnd(AnyTagsList).Then(x => (IReadOnlyList<Statement>)x),
+                    ElsifTagCapture.SkipAnd(AnyTagsList).Then(x => (IReadOnlyList<Statement>)null) // elsif after else is ignored
+                )).Then(x => {
+                    // Find first non-null (first else block content)
+                    return new ElseStatement(x.FirstOrDefault(e => e != null)) ?? null;
+                });
+
             var IfTag = LogicalExpression
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
                         .And(ZeroOrMany(
                             TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(AnyTagsList))
                             .Then(x => x.Select(e => new ElseIfStatement(e.Item1, e.Item2)).ToList()))
-                        .And(ZeroOrOne(
-                            CreateTag("else").SkipAnd(AnyTagsList))
-                            .Then(x => x != null ? new ElseStatement(x) : null))
+                        .And(ElseBlocksWithTrailing)
                         .AndSkip(CreateTag("endif").ElseError($"'{{% endif %}}' was expected"))
                         .Then<Statement>(x => new IfStatement(x.Item1, x.Item2, x.Item4, x.Item3))
                         .ElseError("Invalid 'if' tag");
@@ -426,11 +446,12 @@ namespace Fluid
             var UnlessTag = LogicalExpression
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
-                        .And(ZeroOrOne(
-                            CreateTag("else").SkipAnd(AnyTagsList))
-                            .Then(x => x != null ? new ElseStatement(x) : null))
+                        .And(ZeroOrMany(
+                            TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(AnyTagsList))
+                            .Then(x => x.Select(e => new ElseIfStatement(e.Item1, e.Item2)).ToList()))
+                        .And(ElseBlocksWithTrailing)
                         .AndSkip(CreateTag("endunless").ElseError($"'{{% endunless %}}' was expected"))
-                        .Then<Statement>(x => new UnlessStatement(x.Item1, x.Item2, x.Item3))
+                        .Then<Statement>(x => new UnlessStatement(x.Item1, x.Item2, x.Item4, x.Item3))
                         .ElseError("Invalid 'unless' tag");
             UnlessTag.Name = "UnlessTag";
 
