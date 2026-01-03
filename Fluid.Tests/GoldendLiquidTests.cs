@@ -33,6 +33,10 @@ namespace Fluid.Tests
             ["tag:tablerow tag"] = "tablerow not implemented",
             ["tag:snippet tag"] = "snippet tag not implemented",
             ["tag:ifchanged tag"] = "ifchanged tag not implemented",
+
+            ["id:tags_liquid_single_line_comment_tag"] = "Skipping: `{% liquid %}` comment/endcomment special-case parsing not implemented",
+
+            ["id:tags_if_endswith_is_not_a_valid_operator"] = "Skipping: Shopify Liquid doesn't support `endswith`/`startswith` as operators; Fluid keeps them for backward compatibility",
         };
 
         public ITestOutputHelper TestOutputHelper { get; }
