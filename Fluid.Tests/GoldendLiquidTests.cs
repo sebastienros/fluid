@@ -19,8 +19,6 @@ namespace Fluid.Tests
     {
         private static readonly TimeZoneInfo Pacific = TZConvert.GetTimeZoneInfo("America/Los_Angeles");
         private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-        private static readonly FluidParser _parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true, AllowLiquidTag = true });
-        private static readonly TemplateOptions _options = new TemplateOptions();
         private static readonly Dictionary<string, string> _skippedTests = new()
         {
             // e.g. ["id:negative_float"] = "reason for skipping single test",
@@ -41,29 +39,35 @@ namespace Fluid.Tests
 
         public ITestOutputHelper TestOutputHelper { get; }
 
-        static GoldenLiquidTests()
+        private static FluidValue ConvertJsonElement(JsonElement value, TemplateOptions options)
         {
-            FluidValue ConvertJsonElement(JsonElement value, TemplateOptions options)
+            if (value is JsonElement jsonElement)
             {
-                if (value is JsonElement jsonElement)
+                return jsonElement.ValueKind switch
                 {
-                    return jsonElement.ValueKind switch
-                    {
-                        JsonValueKind.Array => ArrayValue.Create(jsonElement.EnumerateArray().Select(x => ConvertJsonElement(x, options)), options),
-                        JsonValueKind.Object => ObjectValue.Create(jsonElement.EnumerateObject().ToDictionary(x => x.Name, x => ConvertJsonElement(x.Value, options)), options),
-                        JsonValueKind.String => StringValue.Create(jsonElement.GetString()),
-                        JsonValueKind.Number when jsonElement.TryGetInt32(out int i) => NumberValue.Create(i),
-                        JsonValueKind.Number when jsonElement.TryGetDecimal(out decimal d) => NumberValue.Create(d),
-                        JsonValueKind.True => BooleanValue.True,
-                        JsonValueKind.False => BooleanValue.False,
-                        _ => NilValue.Instance
-                    };
-                }
-                return null;
+                    JsonValueKind.Array => ArrayValue.Create(jsonElement.EnumerateArray().Select(x => ConvertJsonElement(x, options)), options),
+                    JsonValueKind.Object => ObjectValue.Create(jsonElement.EnumerateObject().ToDictionary(x => x.Name, x => ConvertJsonElement(x.Value, options)), options),
+                    JsonValueKind.String => StringValue.Create(jsonElement.GetString()),
+                    JsonValueKind.Number when jsonElement.TryGetInt32(out int i) => NumberValue.Create(i),
+                    JsonValueKind.Number when jsonElement.TryGetDecimal(out decimal d) => NumberValue.Create(d),
+                    JsonValueKind.True => BooleanValue.True,
+                    JsonValueKind.False => BooleanValue.False,
+                    _ => NilValue.Instance
+                };
             }
+            return null;
+        }
 
-            _options.ValueConverters.Add(x => x is JsonElement ? ConvertJsonElement((JsonElement)x, _options) : null);                
+        private static TemplateOptions CreateOptions()
+        {
+            var options = new TemplateOptions();
+            options.ValueConverters.Add(x => x is JsonElement ? ConvertJsonElement((JsonElement)x, options) : null);
+            return options;
+        }
 
+        private static FluidParser CreateParser()
+        {
+            return new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true, AllowLiquidTag = true });
         }
 
         public GoldenLiquidTests(ITestOutputHelper testOutputHelper)
@@ -77,7 +81,8 @@ namespace Fluid.Tests
         {
             CheckNotSkippedTest(test);
 
-            var parseResult = _parser.TryParse(test.Template, out var template, out var error);
+            var parser = CreateParser();
+            var parseResult = parser.TryParse(test.Template, out var template, out var error);
 
             if (parseResult == false)
             {
@@ -92,7 +97,7 @@ namespace Fluid.Tests
 
             Assert.True(parseResult, error?.ToString());
 
-            var context = new TemplateContext(_options);
+            var context = new TemplateContext(CreateOptions());
 
             context.TimeZone = test.Tags.Contains("utc") ? TimeZoneInfo.Utc : Pacific;
 

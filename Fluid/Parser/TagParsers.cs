@@ -47,7 +47,7 @@ namespace Fluid.Parser
 
                 var p = (FluidParseContext)context;
 
-                if (p.InsideLiquidTag)
+                if (p.LiquidTagDepth > 0)
                 {
                     result.Set(start.Offset, context.Scanner.Cursor.Offset, TagResult.TagOpen);
 
@@ -108,7 +108,7 @@ namespace Fluid.Parser
 
                 if (SkipWhitespace)
                 {
-                    if (p.InsideLiquidTag)
+                    if (p.LiquidTagDepth > 0)
                     {
                         var cursor = context.Scanner.Cursor;
 
@@ -134,7 +134,7 @@ namespace Fluid.Parser
 
                 bool trim;
 
-                if (p.InsideLiquidTag)
+                if (p.LiquidTagDepth > 0)
                 {
                     if (newLineIsPresent)
                     {

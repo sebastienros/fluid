@@ -246,7 +246,7 @@ namespace Fluid
             ArgumentsList.Name = "ArgumentsList";
 
             // Primary ( | identifier ( ':' ArgumentsList )! ] )*
-            FilterExpression.Parser = LogicalExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter)
+            FilterExpression.Parser = LogicalExpression
                 .And(ZeroOrMany(
                     Pipe
                     .SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterPipe))
@@ -269,7 +269,7 @@ namespace Fluid
                     });
             FilterExpression.Name = "FilterExpression";
 
-            var Output = OutputStart.SkipAnd(FilterExpression.And(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd))
+            var Output = OutputStart.SkipAnd(FilterExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter).And(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd))
                 .Then<Statement>(static x => new OutputStatement(x.Item1))
                 );
             Output.Name = "Output";
@@ -406,7 +406,7 @@ namespace Fluid
             var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), canBeEmpty: true, consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
             RawTag.Name = "RawTag";
 
-            var AssignTag = Identifier.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
+            var AssignTag = Identifier.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter)).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
             AssignTag.Name = "AssignTag";
 
             // Lenient else tag: matches {% else %} or {% else anything %} (extra content is ignored)
@@ -510,8 +510,12 @@ namespace Fluid
             ForTag.Name = "ForTag";
 
             var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
-                .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = true; return x; })
-                .SkipAnd(OneOrMany(OneOf(
+                .Then((context, x) => {
+                    var ctx = (FluidParseContext)context;
+                    ctx.LiquidTagDepth++;
+                    return x;
+                })
+                .SkipAnd(ZeroOrMany(OneOf(
                     Terms.Char('#').Then(x => "#"),
                     Identifier
                 ).Switch((context, previous) =>
@@ -530,12 +534,20 @@ namespace Fluid
                     throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
                 }
             })))
-                .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = false; return x; })
-                .AndSkip(TagEnd).Then<Statement>(x => new LiquidStatement(x))
+                .Then((context, x) => {
+                    var ctx = (FluidParseContext)context;
+                    ctx.LiquidTagDepth--;
+                    return x;
+                })
+                .AndSkip(OneOf(
+                    TagEnd.When((context, result) => ((FluidParseContext)context).LiquidTagDepth == 0),
+                    ZeroOrOne(TagEnd.When((c, r) => false)).When((context, result) => ((FluidParseContext)context).LiquidTagDepth > 0)
+                ))
+                .Then<Statement>(x => new LiquidStatement(x))
                 ;
             LiquidTag.Name = "LiquidTag";
 
-            var EchoTag = FilterExpression.AndSkip(TagEnd).Then<Statement>(x => new OutputStatement(x));
+            var EchoTag = ZeroOrOne(FilterExpression).AndSkip(TagEnd).Then<Statement>(x => new OutputStatement(x ?? EmptyKeyword));
             EchoTag.Name = "EchoTag";
 
             RegisteredTags["break"] = BreakTag;
