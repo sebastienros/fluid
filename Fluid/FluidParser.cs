@@ -130,12 +130,11 @@ namespace Fluid
             Call.Name = "Call";
 
             // An Identifier followed by a list of MemberSegments (dot accessor, indexer or arguments list)
+            // Note: Numeric index with dot notation (e.g., products.0) is not allowed per Shopify Liquid standard.
+            // Use bracket notation instead: products[0]
             var Member = Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)).And(
                 ZeroOrMany(
-                    Dot.SkipAnd(
-                        Identifier.Or(Terms.Integer(NumberOptions.None).Then(x => x.ToString(CultureInfo.InvariantCulture)))
-                            .Then<MemberSegment>(x => new IdentifierSegment(x))
-                    )
+                    Dot.SkipAnd(Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)))
                     .Or(Indexer)
                     .Or(Call)))
                 .Then(x => new MemberExpression([x.Item1, .. x.Item2]));
@@ -168,10 +167,7 @@ namespace Fluid
             
             var BracketedAccess = Terms.Char('[').SkipAnd(Primary).AndSkip(RBracket).Then<MemberSegment>(x => new IndexerSegment(x))
                 .And(ZeroOrMany(
-                    Dot.SkipAnd(
-                        Identifier.Or(Terms.Integer(NumberOptions.None).Then(x => x.ToString(CultureInfo.InvariantCulture)))
-                            .Then<MemberSegment>(x => new IdentifierSegment(x))
-                    )
+                    Dot.SkipAnd(Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)))
                     .Or(ChainedIndexer)
                     .Or(Indexer)
                     .Or(Call)))

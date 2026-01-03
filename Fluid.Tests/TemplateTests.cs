@@ -840,8 +840,7 @@ turtle
         [InlineData("{{ dic['1'] }}", "/1/")]
         [InlineData("{{ dic[10] }}", "/10/")]
         [InlineData("{{ dic['10'] }}", "/10/")]
-        [InlineData("{{ dic.2_ }}", "/2_/")]
-        [InlineData("{{ dic.10 }}", "/10/")]
+        [InlineData("{{ dic.2_ }}", "/2_/")] // Note: dic.10 is not valid per Shopify Liquid standard, use bracket notation
         public Task PropertiesCanBeDigits(string source, string expected)
         {
             return CheckAsync(source, expected, ctx =>
