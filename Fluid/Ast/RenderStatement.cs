@@ -118,7 +118,7 @@ namespace Fluid.Ast
                 {
                     try
                     {
-                        var forloop = new ForLoopValue();
+                        var forloop = new ForLoopValue { IsRenderLoop = true };
 
                         var evaluatedFor = await For.EvaluateAsync(context);
 

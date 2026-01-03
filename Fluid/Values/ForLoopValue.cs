@@ -17,6 +17,12 @@ namespace Fluid.Values
 
         public ForLoopValue ParentLoop { get; set; }
 
+        /// <summary>
+        /// Gets or sets whether this forloop is from a render tag.
+        /// Render tag forloops should not be accessible as parentloop from nested for loops.
+        /// </summary>
+        public bool IsRenderLoop { get; set; }
+
         public int Count => Length;
 
         public override FluidValues Type => FluidValues.Dictionary;

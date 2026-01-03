@@ -149,7 +149,9 @@ namespace Fluid.Ast
 
                 context.LocalScope.SetOwnValue("forloop", forloop);
 
-                if (!parentLoop.IsNil() && parentLoop is ForLoopValue parentForLoop)
+                // Render tag forloops should not be accessible as parentloop from nested for loops
+                // (render creates an isolated scope where parent relationships don't cross boundaries)
+                if (!parentLoop.IsNil() && parentLoop is ForLoopValue parentForLoop && !parentForLoop.IsRenderLoop)
                 {
                     forloop.ParentLoop = parentForLoop;
 
