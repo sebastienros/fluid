@@ -79,13 +79,12 @@ namespace Fluid.Values
         {
             var i = (int)index.ToNumberValue();
 
-            if (i < 0 )
+            if (i < 0)
             {
-                // Negative values cycle through valid indexes
-                i %= Values.Count;
+                i = Values.Count + i;
             }
 
-            if (i < Values.Count)
+            if (i >= 0 && i < Values.Count)
             {
                 return Create(Values[i], context.Options);
             }
