@@ -35,6 +35,12 @@ namespace Fluid.Tests
             ["id:tags_liquid_single_line_comment_tag"] = "Skipping: `{% liquid %}` comment/endcomment special-case parsing not implemented",
 
             ["id:tags_if_endswith_is_not_a_valid_operator"] = "Skipping: Shopify Liquid doesn't support `endswith`/`startswith` as operators; Fluid keeps them for backward compatibility",
+
+            // Trailing question mark tests: Ruby supports '?' in identifiers (e.g., 'foo?' maps to hash["foo?"]),
+            // but .NET doesn't support '?' in property names. Fluid strips the '?' to allow Ruby-style syntax
+            // like 'product.empty?' to map to .NET properties like 'product.empty'.
+            ["id:identifiers_trailing_question_mark_output"] = "Fluid strips trailing '?' for .NET compatibility; Ruby keeps it as part of the identifier",
+            ["id:identifiers_trailing_question_mark_in_for_loop_target"] = "Fluid strips trailing '?' for .NET compatibility; Ruby keeps it as part of the identifier",
         };
 
         public ITestOutputHelper TestOutputHelper { get; }
@@ -298,6 +304,7 @@ namespace Fluid.Tests
             Name = info.GetValue<string>(nameof(Name));
             Id = info.GetValue<string>(nameof(Id));
             Template = info.GetValue<string>(nameof(Template));
+            Result = info.GetValue<string>(nameof(Result));
             Results = JsonSerializer.Deserialize<string[]>(info.GetValue<string>(nameof(Results))) ?? [];
             Tags = JsonSerializer.Deserialize<List<string>>(info.GetValue<string>(nameof(Tags))) ?? new List<string>();
             Data = JsonSerializer.Deserialize<Dictionary<string, object>>(info.GetValue<string>(nameof(Data))) ?? [];
@@ -312,6 +319,7 @@ namespace Fluid.Tests
         {
             info.AddValue(nameof(Name), Name);
             info.AddValue(nameof(Template), Template);
+            info.AddValue(nameof(Result), Result);
             info.AddValue(nameof(Results), JsonSerializer.Serialize(Results));
             info.AddValue(nameof(Tags), JsonSerializer.Serialize(Tags));
             info.AddValue(nameof(Data), JsonSerializer.Serialize(Data));
