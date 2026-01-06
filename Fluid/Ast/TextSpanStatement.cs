@@ -1,10 +1,11 @@
 ﻿using Fluid.Utils;
 using Parlot;
 using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class TextSpanStatement : Statement
+    public sealed class TextSpanStatement : Statement, ISourceable
     {
         private bool _isBufferPrepared;
         private readonly Lock _synLock = new();
@@ -164,6 +165,22 @@ namespace Fluid.Ast
             output.Write(_preparedBuffer);
 
             return Statement.NormalCompletion;
+        }
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            // Source generation assumes TemplateOptions.Trimming == TrimmingFlags.None.
+            // Emit the raw text span as a cached static string without allocating _text.ToString().
+            if (_text.Length == 0)
+            {
+                context.WriteLine("return Completion.Normal;");
+                return;
+            }
+
+            var textField = context.GetOrAddStaticString(_text.Buffer, _text.Offset, _text.Length);
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+            context.WriteLine($"{context.WriterName}.Write({textField});");
+            context.WriteLine("return Completion.Normal;");
         }
     }
 }

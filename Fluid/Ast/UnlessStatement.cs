@@ -1,8 +1,9 @@
 ﻿using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class UnlessStatement : TagStatement
+    public sealed class UnlessStatement : TagStatement, ISourceable
     {
         public UnlessStatement(
             Expression condition,
@@ -49,5 +50,35 @@ namespace Fluid.Ast
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitUnlessStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            var conditionExpr = context.GetExpressionMethodName(Condition);
+            context.WriteLine($"var result = (await {conditionExpr}({context.ContextName})).ToBooleanValue();");
+            context.WriteLine("if (!result)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("var completion = Completion.Normal;");
+                for (var i = 0; i < Statements.Count; i++)
+                {
+                    var stmtMethod = context.GetStatementMethodName(Statements[i]);
+                    context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                    context.WriteLine("if (completion != Completion.Normal) return completion;");
+                }
+                context.WriteLine("return Completion.Normal;");
+            }
+            context.WriteLine("}");
+
+            if (Else != null)
+            {
+                var elseStmt = context.GetStatementMethodName(Else);
+                context.WriteLine($"return await {elseStmt}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+            }
+            else
+            {
+                context.WriteLine("return Completion.Normal;");
+            }
+        }
     }
 }

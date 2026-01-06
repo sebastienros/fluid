@@ -1,9 +1,10 @@
 ﻿using System.Text.Encodings.Web;
 using Fluid.Values;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class OutputStatement : Statement
+    public sealed class OutputStatement : Statement, ISourceable
     {
         public OutputStatement(Expression expression)
         {
@@ -52,5 +53,51 @@ namespace Fluid.Ast
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitOutputStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            var exprMethod = context.GetExpressionMethodName(Expression);
+
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+
+            context.WriteLine($"var task = {exprMethod}({context.ContextName});");
+            context.WriteLine("if (task.IsCompletedSuccessfully)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"var valueTask = task.Result.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName}.CultureInfo);");
+                context.WriteLine("if (valueTask.IsCompletedSuccessfully)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("return Completion.Normal;");
+                }
+                context.WriteLine("}");
+
+                context.WriteLine("return await AwaitedWriteTo(valueTask);");
+                context.WriteLine();
+                context.WriteLine("static async ValueTask<Completion> AwaitedWriteTo(ValueTask t)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("await t;");
+                    context.WriteLine("return Completion.Normal;");
+                }
+                context.WriteLine("}");
+            }
+            context.WriteLine("}");
+
+            context.WriteLine($"return await Awaited(task, {context.WriterName}, {context.EncoderName}, {context.ContextName});");
+            context.WriteLine();
+            context.WriteLine("static async ValueTask<Completion> Awaited(ValueTask<FluidValue> t, TextWriter w, TextEncoder enc, TemplateContext ctx)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("var value = await t;");
+                context.WriteLine("await value.WriteToAsync(w, enc, ctx.CultureInfo);");
+                context.WriteLine("return Completion.Normal;");
+            }
+            context.WriteLine("}");
+        }
     }
 }

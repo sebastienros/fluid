@@ -1,8 +1,9 @@
 ﻿using Fluid.Values;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class MemberExpression : Expression
+    public sealed class MemberExpression : Expression, ISourceable
     {
         private readonly MemberSegment[] _segments;
 
@@ -119,5 +120,151 @@ namespace Fluid.Ast
         }
 
         protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitMemberExpression(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            var initial = (IdentifierSegment)_segments[0];
+            var initialIdentifierLiteral = SourceGenerationContext.ToCSharpStringLiteral(initial.Identifier);
+
+            context.WriteLine($"var value = {context.ContextName}.LocalScope.GetValue({initialIdentifierLiteral});");
+            context.WriteLine("var start = 1;");
+            context.WriteLine();
+            context.WriteLine("if (value.IsNil())");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"if ({context.ContextName}.Model == null)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("// Check equality as IsNil() is also true for UndefinedValue");
+                    context.WriteLine($"if ({context.ContextName}.Undefined is not null && value == UndefinedValue.Instance)");
+                    context.WriteLine("{");
+                    using (context.Indent())
+                    {
+                        context.WriteLine($"if ({context.ContextName}.Options.StrictVariables)");
+                        context.WriteLine("{");
+                        using (context.Indent())
+                        {
+                            context.WriteLine($"throw new FluidException(\"Undefined variable '{initial.Identifier}'\");");
+                        }
+                        context.WriteLine("}");
+                        context.WriteLine($"return await {context.ContextName}.Undefined.Invoke({initialIdentifierLiteral});");
+                    }
+                    context.WriteLine("}");
+
+                    context.WriteLine($"if ({context.ContextName}.Options.StrictVariables)");
+                    context.WriteLine("{");
+                    using (context.Indent())
+                    {
+                        context.WriteLine($"throw new FluidException(\"Undefined variable '{initial.Identifier}'\");");
+                    }
+                    context.WriteLine("}");
+
+                    context.WriteLine("return value;");
+                }
+                context.WriteLine("}");
+
+                context.WriteLine("start = 0;");
+                context.WriteLine($"value = {context.ContextName}.Model;");
+            }
+            context.WriteLine("}");
+
+            context.WriteLine();
+            context.WriteLine($"for (var i = start; i < {_segments.Length}; i++)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                for (var i = 0; i < _segments.Length; i++)
+                {
+                    var segment = _segments[i];
+                    context.WriteLine($"if (i == {i})");
+                    context.WriteLine("{");
+                    using (context.Indent())
+                    {
+                        if (segment is IdentifierSegment id)
+                        {
+                            var nameLit = SourceGenerationContext.ToCSharpStringLiteral(id.Identifier);
+                            context.WriteLine($"value = await value.GetValueAsync({nameLit}, {context.ContextName});");
+                            context.WriteLine("if (value.IsNil())");
+                            context.WriteLine("{");
+                            using (context.Indent())
+                            {
+                                context.WriteLine($"if ({context.ContextName}.Options.StrictVariables)");
+                                context.WriteLine("{");
+                                using (context.Indent())
+                                {
+                                    context.WriteLine($"throw new FluidException(\"Undefined variable '{id.Identifier}'\");");
+                                }
+                                context.WriteLine("}");
+                                context.WriteLine("return value;");
+                            }
+                            context.WriteLine("}");
+                        }
+                        else if (segment is IndexerSegment idx)
+                        {
+                            var indexExpr = context.GetExpressionMethodName(idx.Expression);
+                            context.WriteLine($"var indexValue = await {indexExpr}({context.ContextName});");
+                            context.WriteLine($"value = await value.GetIndexAsync(indexValue, {context.ContextName});");
+                            context.WriteLine("if (value.IsNil())");
+                            context.WriteLine("{");
+                            using (context.Indent())
+                            {
+                                context.WriteLine($"if ({context.ContextName}.Options.StrictVariables)");
+                                context.WriteLine("{");
+                                using (context.Indent())
+                                {
+                                    context.WriteLine("throw new FluidException(\"Undefined variable '[index]'\");");
+                                }
+                                context.WriteLine("}");
+                                context.WriteLine("return value;");
+                            }
+                            context.WriteLine("}");
+                        }
+                        else if (segment is FunctionCallSegment call)
+                        {
+                            context.WriteLine("var arguments = new FunctionArguments();");
+                            for (var a = 0; a < call.Arguments.Count; a++)
+                            {
+                                var arg = call.Arguments[a];
+                                var argName = SourceGenerationContext.ToCSharpStringLiteral(arg.Name);
+                                if (arg.Expression is null)
+                                {
+                                    context.WriteLine($"arguments.Add({argName}, NilValue.Instance);");
+                                }
+                                else
+                                {
+                                    var argExpr = context.GetExpressionMethodName(arg.Expression);
+                                    context.WriteLine($"arguments.Add({argName}, await {argExpr}({context.ContextName}));");
+                                }
+                            }
+                            context.WriteLine($"value = await value.InvokeAsync(arguments, {context.ContextName});");
+                            context.WriteLine("if (value.IsNil())");
+                            context.WriteLine("{");
+                            using (context.Indent())
+                            {
+                                context.WriteLine($"if ({context.ContextName}.Options.StrictVariables)");
+                                context.WriteLine("{");
+                                using (context.Indent())
+                                {
+                                    context.WriteLine("throw new FluidException(\"Undefined variable '()'\");");
+                                }
+                                context.WriteLine("}");
+                                context.WriteLine("return value;");
+                            }
+                            context.WriteLine("}");
+                        }
+                        else
+                        {
+                            SourceGenerationContext.ThrowNotSourceable(segment);
+                        }
+                    }
+                    context.WriteLine("}");
+                }
+            }
+            context.WriteLine("}");
+            context.WriteLine();
+            context.WriteLine("return value;");
+        }
     }
 }
