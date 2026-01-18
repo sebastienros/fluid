@@ -424,6 +424,20 @@ namespace Fluid.Ast
             return forStatement;
         }
 
+        protected internal override Statement VisitTableRowStatement(TableRowStatement tableRowStatement)
+        {
+            if (TryRewriteExpression(tableRowStatement.Source, out var newSource) |
+                TryRewriteExpression(tableRowStatement.Limit, out var newLimit) |
+                TryRewriteExpression(tableRowStatement.Offset, out var newOffset) |
+                TryRewriteExpression(tableRowStatement.Cols, out var newCols) |
+                TryRewriteStatements(tableRowStatement.Statements, out var newStatements))
+            {
+                return new TableRowStatement(newStatements.ToList(), tableRowStatement.Identifier, newSource, newLimit, newOffset, newCols);
+            }
+
+            return tableRowStatement;
+        }
+
         protected internal override Statement VisitFromStatement(FromStatement fromStatement)
         {
             if (TryRewriteExpression(fromStatement.Path, out var newPath))

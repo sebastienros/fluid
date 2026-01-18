@@ -492,6 +492,49 @@ namespace Fluid
                         ).ElseError("Invalid 'for' tag");
             ForTag.Name = "ForTag";
 
+            var TableRowTag = OneOf(
+                            Identifier
+                            .AndSkip(Terms.Text("in"))
+                            .And(Member)
+                            .And(ZeroOrMany(OneOf(
+                                Terms.Text("cols").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsCols = true, Value = x }),
+                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsLimit = true, Value = x }),
+                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsOffset = true, Value = x })
+                                )))
+                            .AndSkip(TagEnd)
+                            .And(AnyTagsList)
+                            .AndSkip(CreateTag("endtablerow").ElseError($"'{{% endtablerow %}}' was expected"))
+                            .Then<Statement>(x =>
+                            {
+                                var identifier = x.Item1;
+                                var member = x.Item2;
+                                var statements = x.Item4;
+                                var (colsResult, limitResult, offsetResult) = ReadTableRowStatementConfiguration(x.Item3);
+                                return new TableRowStatement(statements, identifier, member, limitResult, offsetResult, colsResult);
+                            }),
+
+                            Identifier
+                            .AndSkip(Terms.Text("in"))
+                            .And(Range)
+                            .And(ZeroOrMany(OneOf(
+                                Terms.Text("cols").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsCols = true, Value = x }),
+                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsLimit = true, Value = x }),
+                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsOffset = true, Value = x })
+                                )))
+                            .AndSkip(TagEnd)
+                            .And(AnyTagsList)
+                            .AndSkip(CreateTag("endtablerow").ElseError($"'{{% endtablerow %}}' was expected"))
+                            .Then<Statement>(x =>
+                            {
+                                var identifier = x.Item1;
+                                var range = x.Item2;
+                                var statements = x.Item4;
+                                var (colsResult, limitResult, offsetResult) = ReadTableRowStatementConfiguration(x.Item3);
+                                return new TableRowStatement(statements, identifier, range, limitResult, offsetResult, colsResult);
+                            })
+                        ).ElseError("Invalid 'tablerow' tag");
+            TableRowTag.Name = "TableRowTag";
+
             var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
                 .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = true; return x; })
                 .SkipAnd(OneOrMany(OneOf(
@@ -537,6 +580,7 @@ namespace Fluid
             RegisteredTags["unless"] = UnlessTag;
             RegisteredTags["case"] = CaseTag;
             RegisteredTags["for"] = ForTag;
+            RegisteredTags["tablerow"] = TableRowTag;
             RegisteredTags["liquid"] = LiquidTag;
             RegisteredTags["echo"] = EchoTag;
 
@@ -579,6 +623,44 @@ namespace Fluid
                     return (limitResult, offsetResult, reversed);
                 }
 
+
+                return ReadFromList(modifiers);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static (Expression colsResult, Expression limitResult, Expression offsetResult) ReadTableRowStatementConfiguration(IReadOnlyList<TableRowModifier> modifiers)
+            {
+                if (modifiers.Count == 0)
+                {
+                    return (null, null, null);
+                }
+
+                static (Expression colsResult, Expression limitResult, Expression offsetResult) ReadFromList(IReadOnlyList<TableRowModifier> modifiers)
+                {
+                    Expression colsResult = null;
+                    Expression limitResult = null;
+                    Expression offsetResult = null;
+                    for (var i = modifiers.Count - 1; i > -1; --i)
+                    {
+                        var l = modifiers[i];
+                        if (l.IsCols && colsResult is null)
+                        {
+                            colsResult = l.Value;
+                        }
+
+                        if (l.IsLimit && limitResult is null)
+                        {
+                            limitResult = l.Value;
+                        }
+
+                        if (l.IsOffset && offsetResult is null)
+                        {
+                            offsetResult = l.Value;
+                        }
+                    }
+
+                    return (colsResult, limitResult, offsetResult);
+                }
 
                 return ReadFromList(modifiers);
             }

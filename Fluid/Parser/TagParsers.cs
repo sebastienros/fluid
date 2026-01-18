@@ -13,6 +13,14 @@ namespace Fluid.Parser
         public Expression Value;
     }
 
+    public struct TableRowModifier
+    {
+        public bool IsCols;
+        public bool IsLimit;
+        public bool IsOffset;
+        public Expression Value;
+    }
+
     public readonly struct TagResult
     {
         public static readonly TagResult TagOpen = new(true, false);
