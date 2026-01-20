@@ -28,7 +28,6 @@ namespace Fluid.Tests
             ["id:filters_date_missing_argument"] = "test expects error but Shopify parses date",
             ["id:filters_date_undefined_argument"] = "test expects error but Shopify parses date",
 
-            ["tag:tablerow tag"] = "tablerow not implemented",
             ["tag:snippet tag"] = "snippet tag not implemented",
             ["tag:ifchanged tag"] = "ifchanged tag not implemented",
 
