@@ -26,7 +26,7 @@ namespace Fluid
         protected static readonly Parser<char> Equal = Terms.Char('=');
         protected static readonly Parser<char> Colon = Terms.Char(':');
         protected static readonly Parser<char> Comma = Terms.Char(',');
-        protected static readonly Parser<char> Dot = Literals.Char('.');
+        protected static readonly Parser<char> Dot = Terms.Char('.'); // Terms.Char skips leading whitespace to allow `foo .bar`
         protected static readonly Parser<char> Pipe = Terms.Char('|');
 
         protected static readonly Parser<TextSpan> String = Terms.String(StringLiteralQuotes.SingleOrDouble);
@@ -484,7 +484,9 @@ namespace Fluid
             OptionalComments.Name = "OptionalComments";
 
             // Parse a single when or else block
-            var WhenBlock = TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList)
+            // After parsing the case value list, skip any unexpected content until %} (like 'and' which is not valid in when)
+            // This matches Shopify Liquid's behavior where unexpected tokens are ignored
+            var WhenBlock = TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(AnyCharBefore(TagEnd, canBeEmpty: true)).AndSkip(TagEnd).And(AnyTagsList)
                 .Then<CaseBlock>(x => new Ast.WhenBlock(x.Item2, x.Item3));
             
             var ElseBlock = CreateTag("else").SkipAnd(AnyTagsList)

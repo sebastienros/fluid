@@ -30,10 +30,12 @@ namespace Fluid.Tests
 
             ["tag:snippet tag"] = "snippet tag not implemented",
             ["tag:ifchanged tag"] = "ifchanged tag not implemented",
+            ["tag:strict2"] = "Fluid uses lenient parsing mode; strict2 mode not implemented",
 
             ["id:tags_liquid_single_line_comment_tag"] = "Skipping: `{% liquid %}` comment/endcomment special-case parsing not implemented",
 
             ["id:tags_if_endswith_is_not_a_valid_operator"] = "Skipping: Shopify Liquid doesn't support `endswith`/`startswith` as operators; Fluid keeps them for backward compatibility",
+            ["id:tags_if_startswith_is_not_a_valid_operator"] = "Skipping: Shopify Liquid doesn't support `endswith`/`startswith` as operators; Fluid keeps them for backward compatibility",
 
             // Trailing question mark tests: Ruby supports '?' in identifiers (e.g., 'foo?' maps to hash["foo?"]),
             // but .NET doesn't support '?' in property names. Fluid strips the '?' to allow Ruby-style syntax

@@ -56,15 +56,15 @@ namespace Fluid.Values
 
         public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
-            if (name == "size")
-            {
-                return NumberValue.Create(_value.Count);
-            }
-
-            // Check if the actual property exists first before using synthetic first
+            // Check if the actual property exists first before using synthetic properties
             if (_value.TryGetValue(name, out var fluidValue))
             {
                 return fluidValue;
+            }
+
+            if (name == "size")
+            {
+                return NumberValue.Create(_value.Count);
             }
 
             // Only .first is a synthetic property for dictionaries (not .last)
