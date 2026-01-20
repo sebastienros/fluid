@@ -1,0 +1,83 @@
+name: Update Golden Liquid Tests
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  check-and-update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get current hash from version file
+        id: current
+        run: |
+          CURRENT_HASH=$(cat .github/golden-liquid-version.txt | tr -d '\n')
+          echo "hash=$CURRENT_HASH" >> $GITHUB_OUTPUT
+          echo "Current hash: $CURRENT_HASH"
+
+      - name: Get latest hash from golden-liquid repo
+        id: latest
+        run: |
+          LATEST_HASH=$(curl -s "https://api.github.com/repos/jg-rp/golden-liquid/commits?per_page=1" | jq -r '.[0].sha')
+          echo "hash=$LATEST_HASH" >> $GITHUB_OUTPUT
+          echo "Latest hash: $LATEST_HASH"
+
+      - name: Check if update is needed
+        id: check
+        run: |
+          if [ "${{ steps.current.outputs.hash }}" = "${{ steps.latest.outputs.hash }}" ]; then
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+            echo "Already up to date!"
+          else
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "Update needed: ${{ steps.current.outputs.hash }} -> ${{ steps.latest.outputs.hash }}"
+          fi
+
+      - name: Update hash in version file
+        if: steps.check.outputs.needs_update == 'true'
+        run: |
+          echo "${{ steps.latest.outputs.hash }}" > .github/golden-liquid-version.txt
+          echo "Updated .github/golden-liquid-version.txt"
+
+      - name: Delete cached golden liquid file
+        if: steps.check.outputs.needs_update == 'true'
+        run: |
+          # The test file caches the JSON locally, so we need to ensure it gets re-downloaded
+          # This is handled automatically since the filename includes the hash
+          echo "Cache will be refreshed automatically (filename includes hash)"
+
+      - name: Create Pull Request
+        if: steps.check.outputs.needs_update == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update Golden Liquid tests to ${{ steps.latest.outputs.hash }}"
+          title: "Update Golden Liquid tests"
+          body: |
+            This PR updates the Golden Liquid test suite to the latest version.
+
+            **Changes:**
+            - Updated from `${{ steps.current.outputs.hash }}` to `${{ steps.latest.outputs.hash }}`
+
+            **Golden Liquid Repository:**
+            https://github.com/jg-rp/golden-liquid
+
+            **Latest Commit:**
+            https://github.com/jg-rp/golden-liquid/commit/${{ steps.latest.outputs.hash }}
+
+            ---
+            *This PR was automatically created by the update-golden-liquid workflow.*
+          branch: update-golden-liquid-${{ steps.latest.outputs.hash }}
+          delete-branch: true
+          labels: |
+            dependencies
+            automated

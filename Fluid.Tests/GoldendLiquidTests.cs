@@ -200,15 +200,33 @@ namespace Fluid.Tests
 
     class GoldenClassData : TheoryData<GoldenTest>
     {
-        private readonly string _goldenGitHash = "b6386e7adf964517546fec6564ef36e12c4b498e";
         private readonly string _testsFilePath;
+
+        private static string GetGoldenGitHash()
+        {
+            // Read the hash from the version file in the .github directory
+            var versionFilePath = Path.Combine(GetRepositoryRoot(), ".github", "golden-liquid-version.txt");
+            return File.ReadAllText(versionFilePath).Trim();
+        }
+
+        private static string GetRepositoryRoot()
+        {
+            // Navigate up from the test assembly location to find the repository root
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Fluid.sln")))
+            {
+                dir = dir.Parent;
+            }
+            return dir?.FullName ?? throw new InvalidOperationException("Could not find repository root");
+        }
 
         public GoldenClassData()
         {
             // Download the test specs locally if it doesn't exist
-            var _goldenLiquidUrl = $"https://raw.githubusercontent.com/jg-rp/golden-liquid/{_goldenGitHash}/golden_liquid.json";
+            var goldenGitHash = GetGoldenGitHash();
+            var _goldenLiquidUrl = $"https://raw.githubusercontent.com/jg-rp/golden-liquid/{goldenGitHash}/golden_liquid.json";
 
-            _testsFilePath = Path.Combine(Path.GetTempPath(), $"golden_liquid.{_goldenGitHash}.json");
+            _testsFilePath = Path.Combine(Path.GetTempPath(), $"golden_liquid.{goldenGitHash}.json");
 
             if (!File.Exists(_testsFilePath))
             {
