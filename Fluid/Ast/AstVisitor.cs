@@ -321,6 +321,21 @@ namespace Fluid.Ast
             return forStatement;
         }
 
+        protected internal virtual Statement VisitTableRowStatement(TableRowStatement tableRowStatement)
+        {
+            Visit(tableRowStatement.Source);
+            Visit(tableRowStatement.Limit);
+            Visit(tableRowStatement.Offset);
+            Visit(tableRowStatement.Cols);
+
+            foreach (var statement in tableRowStatement.Statements)
+            {
+                Visit(statement);
+            }
+
+            return tableRowStatement;
+        }
+
         protected internal virtual Statement VisitFromStatement(FromStatement fromStatement)
         {
             Visit(fromStatement.Path);
