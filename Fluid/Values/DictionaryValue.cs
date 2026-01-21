@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Linq;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -55,17 +56,26 @@ namespace Fluid.Values
 
         public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
+            // Check if the actual property exists first before using synthetic properties
+            if (_value.TryGetValue(name, out var fluidValue))
+            {
+                return fluidValue;
+            }
+
             if (name == "size")
             {
                 return NumberValue.Create(_value.Count);
             }
 
-            if (!_value.TryGetValue(name, out var fluidValue))
+            // Only .first is a synthetic property for dictionaries (not .last)
+            if (name == "first" && _value.Count > 0)
             {
-                return NilValue.Instance;
+                var firstKey = _value.Keys.First();
+                _value.TryGetValue(firstKey, out var firstValue);
+                return new ArrayValue(new[] { new StringValue(firstKey), firstValue });
             }
 
-            return fluidValue;
+            return NilValue.Instance;
         }
 
         public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
@@ -87,17 +97,39 @@ namespace Fluid.Values
 
         public override decimal ToNumberValue()
         {
-            return 0;
+            return _value.Count;
         }
 
         public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
+            AssertWriteToParameters(output, encoder, cultureInfo);
+
+            var value = ToStringValue();
+            if (string.IsNullOrEmpty(value))
+            {
+                return default;
+            }
+
+            output.Write(encoder, value);
             return default;
         }
 
         public override string ToStringValue()
         {
-            return "";
+            if (_value.Count == 0)
+            {
+                return "{}";
+            }
+            
+            var items = new List<string>();
+            foreach (var key in _value.Keys)
+            {
+                if (_value.TryGetValue(key, out var value))
+                {
+                    items.Add($"\"{key}\":{value.ToStringValue()}");
+                }
+            }
+            return "{" + string.Join(",", items) + "}";
         }
 
         public override object ToObjectValue()

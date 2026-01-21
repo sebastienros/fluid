@@ -54,6 +54,13 @@ namespace Fluid.Ast
             return await value.InvokeAsync(arguments, context);
         }
 
+        public override ValueTask<(FluidValue Value, bool UseModelFallback)> ResolveFromScopeAsync(TemplateContext context)
+        {
+            // FunctionCallSegment cannot be the first segment in a member expression
+            // It's always preceded by an identifier or indexer
+            throw new NotSupportedException("FunctionCallSegment cannot be the first segment in a member expression");
+        }
+
         public override string GetSegmentName()
         {
             // For function call segments, return a generic representation

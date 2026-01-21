@@ -1,4 +1,4 @@
-﻿using Fluid.Utils;
+using Fluid.Utils;
 using System.Globalization;
 using System.Text.Encodings.Web;
 
@@ -89,6 +89,11 @@ namespace Fluid.Values
             AssertWriteToParameters(output, encoder, cultureInfo);
             output.Write(_value.ToString("u", cultureInfo));
             return default;
+        }
+
+        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        {
+            return [this];
         }
 
         public override object ToObjectValue()

@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -79,9 +79,14 @@ namespace Fluid.Values
         {
             var i = (int)index.ToNumberValue();
 
+            if (i < 0)
+            {
+                i = Values.Count + i;
+            }
+
             if (i >= 0 && i < Values.Count)
             {
-                return FluidValue.Create(Values[i], context.Options);
+                return Create(Values[i], context.Options);
             }
 
             return NilValue.Instance;

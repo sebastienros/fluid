@@ -23,6 +23,8 @@ namespace Fluid.Ast
         public Expression Path { get; }
         public IReadOnlyList<string> Functions { get; }
 
+        public override bool IsWhitespaceOrCommentOnly => true;
+
         public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();

@@ -545,18 +545,6 @@ namespace Fluid.Tests
             Assert.Equal("Bill 1 Bill blah", result);
         }
 
-        [Fact]
-        public async Task FirstLastSizeShouldUseGetValue()
-        {
-            var options = new TemplateOptions();
-            var context = new TemplateContext(options);
-            context.SetValue("p", new PersonValue(new Person()));
-
-            _parser.TryParse("{{ p | size }} {{ p | first }} {{ p | last }}", out var template, out var error);
-            var result = await template.RenderAsync(context);
-            Assert.Equal("123 456 789", result);
-        }
-
         private sealed class NullStringContainer
         {
             public string Value => null;
@@ -580,8 +568,6 @@ namespace Fluid.Tests
                 return name switch
                 {
                     "size" => NumberValue.Create(123),
-                    "first" => NumberValue.Create(456),
-                    "last" => NumberValue.Create(789),
                     _ => NilValue.Instance
                 };
             }
@@ -629,7 +615,7 @@ namespace Fluid.Tests
         [InlineData(@"{%cycle 'a', 'b'%}{%cycle 'a', 'b'%}{%cycle 'a', 'b'%}", "aba")]
         [InlineData(@"{%cycle x:'a', 'b'%}{%cycle 'a', 'b'%}{%cycle x:'a', 'b'%}", "aab")]
         [InlineData(@"{%cycle 2:'a', 'b'%}{%cycle '2': 'a', 'b'%}", "ab")]
-        [InlineData(@"{%cycle 'a', 'b'%}{%cycle foo: 'a', 'b'%}", "ab")]
+        [InlineData(@"{%cycle 'a', 'b'%}{%cycle foo: 'a', 'b'%}", "aa")]
         public Task ShouldEvaluateCycleStatement(string source, string expected)
         {
             return CheckAsync(source, expected, ctx => { ctx.SetValue("x", 3); });
@@ -779,7 +765,7 @@ turtle
 
         [Theory]
         [InlineData("{% assign var = 10 %}{% increment var %}{% increment var %}{{ var }}", "0110")]
-        [InlineData("{% assign var = 10 %}{% decrement var %}{% decrement var %}{{ var }}", "0-110")]
+        [InlineData("{% assign var = 10 %}{% decrement var %}{% decrement var %}{{ var }}", "-1-210")]
         public Task IncrementDoesntAffectVariable(string source, string expected)
         {
             return CheckAsync(source, expected);
@@ -787,8 +773,8 @@ turtle
 
         [Theory]
         [InlineData("{% increment %}{% increment %}{% increment %}", "012")]
-        [InlineData("{% decrement %}{% decrement %}{% decrement %}", "0-1-2")]
-        [InlineData("{% increment %}{% decrement %}{% increment %}", "0-10")]
+        [InlineData("{% decrement %}{% decrement %}{% decrement %}", "-1-2-3")]
+        [InlineData("{% increment %}{% decrement %}{% increment %}", "000")]
         public Task IncrementCanBeUsedWithoutIdentifier(string source, string expected)
         {
             return CheckAsync(source, expected);
@@ -854,8 +840,7 @@ turtle
         [InlineData("{{ dic['1'] }}", "/1/")]
         [InlineData("{{ dic[10] }}", "/10/")]
         [InlineData("{{ dic['10'] }}", "/10/")]
-        [InlineData("{{ dic.2_ }}", "/2_/")]
-        [InlineData("{{ dic.10 }}", "/10/")]
+        [InlineData("{{ dic.2_ }}", "/2_/")] // Note: dic.10 is not valid per Shopify Liquid standard, use bracket notation
         public Task PropertiesCanBeDigits(string source, string expected)
         {
             return CheckAsync(source, expected, ctx =>

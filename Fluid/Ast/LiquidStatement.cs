@@ -8,6 +8,21 @@ namespace Fluid.Ast
         {
         }
 
+        public override bool IsWhitespaceOrCommentOnly
+        {
+            get
+            {
+                for (var i = 0; i < Statements.Count; i++)
+                {
+                    if (!Statements[i].IsWhitespaceOrCommentOnly)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+
         public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();

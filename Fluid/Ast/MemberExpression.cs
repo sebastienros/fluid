@@ -28,22 +28,20 @@ namespace Fluid.Ast
 
         public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
-            // The first segment can only be an IdentifierSegment
+            var firstSegment = _segments[0];
+            var task = firstSegment.ResolveFromScopeAsync(context);
 
-            var initial = _segments[0] as IdentifierSegment;
+            if (!task.IsCompletedSuccessfully)
+            {
+                return AwaitedFromScope(task, context, _segments);
+            }
 
-            // Search the initial segment in the local scope first
-
-            var value = context.LocalScope.GetValue(initial.Identifier);
-
-            // If it was not successful, try again with a member of the model
-
+            var (value, useModelFallback) = task.Result;
             var start = 1;
 
-            if (value.IsNil())
+            // Handle model fallback for IdentifierSegment when value is nil
+            if (useModelFallback)
             {
-                // A context created without an explicit model uses NilValue.Instance.
-                // Treat this as "no model" so undefined variables can be tracked / handled.
                 if (context.Model.IsNil())
                 {
                     // Check equality as IsNil() is also true for UndefinedValue
@@ -51,15 +49,15 @@ namespace Fluid.Ast
                     {
                         if (context.Options.StrictVariables)
                         {
-                            throw new FluidException($"Undefined variable '{initial.Identifier}'");
+                            throw new FluidException($"Undefined variable '{firstSegment.GetSegmentName()}'");
                         }
-                        return context.Undefined.Invoke(initial.Identifier);
+                        return context.Undefined.Invoke(firstSegment.GetSegmentName());
                     }
                     if (context.Options.StrictVariables)
                     {
-                        throw new FluidException($"Undefined variable '{initial.Identifier}'");
+                        throw new FluidException($"Undefined variable '{firstSegment.GetSegmentName()}'");
                     }
-                    return value;
+                    return new ValueTask<FluidValue>(value);
                 }
 
                 start = 0;
@@ -69,16 +67,66 @@ namespace Fluid.Ast
             for (var i = start; i < _segments.Length; i++)
             {
                 var s = _segments[i];
-                var task = s.ResolveAsync(value, context);
+                var resolveTask = s.ResolveAsync(value, context);
 
-                if (!task.IsCompletedSuccessfully)
+                if (!resolveTask.IsCompletedSuccessfully)
                 {
-                    return Awaited(task, context, _segments, i + 1);
+                    return Awaited(resolveTask, context, _segments, i + 1);
                 }
 
-                value = task.Result;
+                value = resolveTask.Result;
 
                 // Stop processing as soon as a member returns nothing
+                if (value.IsNil())
+                {
+                    if (context.Options.StrictVariables)
+                    {
+                        throw new FluidException($"Undefined variable '{s.GetSegmentName()}'");
+                    }
+                    return new ValueTask<FluidValue>(value);
+                }
+            }
+
+            return new ValueTask<FluidValue>(value);
+        }
+
+        private static async ValueTask<FluidValue> AwaitedFromScope(
+            ValueTask<(FluidValue Value, bool UseModelFallback)> task,
+            TemplateContext context,
+            MemberSegment[] segments)
+        {
+            var (value, useModelFallback) = await task;
+            var start = 1;
+
+            // Handle model fallback for IdentifierSegment when value is nil
+            if (useModelFallback)
+            {
+                if (context.Model.IsNil())
+                {
+                    if (context.Undefined is not null && value == UndefinedValue.Instance)
+                    {
+                        if (context.Options.StrictVariables)
+                        {
+                            throw new FluidException($"Undefined variable '{segments[0].GetSegmentName()}'");
+                        }
+                        return await context.Undefined.Invoke(segments[0].GetSegmentName());
+                    }
+                    if (context.Options.StrictVariables)
+                    {
+                        throw new FluidException($"Undefined variable '{segments[0].GetSegmentName()}'");
+                    }
+                    return value;
+                }
+
+                start = 0;
+                value = context.Model;
+            }
+
+            for (var i = start; i < segments.Length; i++)
+            {
+                var s = segments[i];
+                value = await s.ResolveAsync(value, context);
+
                 if (value.IsNil())
                 {
                     if (context.Options.StrictVariables)

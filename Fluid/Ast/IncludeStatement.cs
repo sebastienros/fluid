@@ -85,7 +85,13 @@ namespace Fluid.Ast
 
             var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
 
-            context.EnterChildScope();
+            // Unlike render, include shares scope with the parent template.
+            // Use a for-loop scope which passes through variable assignments to the parent.
+            // This allows variables assigned inside the include to persist in the outer scope.
+            context.EnterForLoopScope();
+
+            // Track keyword argument names so we can clean them up after
+            List<string> keywordArgNames = null;
 
             try
             {
@@ -93,19 +99,35 @@ namespace Fluid.Ast
                 {
                     var with = await With.EvaluateAsync(context);
 
-                    context.SetValue(Alias ?? identifier, with);
+                    // The bound variable is local to this include
+                    context.LocalScope.SetOwnValue(Alias ?? identifier, with);
 
-                    await template.RenderAsync(output, encoder, context);
+                    // Keyword arguments are local to the include
+                    if (AssignStatements.Count > 0)
+                    {
+                        keywordArgNames = new List<string>(AssignStatements.Count);
+                        for (var i = 0; i < AssignStatements.Count; i++)
+                        {
+                            var stmt = AssignStatements[i];
+                            keywordArgNames.Add(stmt.Identifier);
+                            context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
+                        }
+                    }
+
+                    return await RenderStatementsAsync(template, output, encoder, context);
                 }
                 else if (AssignStatements.Count > 0)
                 {
-                    var length = AssignStatements.Count;
-                    for (var i = 0; i < length; i++)
+                    // Keyword arguments are local to the include - they should go out of scope after
+                    keywordArgNames = new List<string>(AssignStatements.Count);
+                    for (var i = 0; i < AssignStatements.Count; i++)
                     {
-                        await AssignStatements[i].WriteToAsync(output, encoder, context);
+                        var stmt = AssignStatements[i];
+                        keywordArgNames.Add(stmt.Identifier);
+                        context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
                     }
 
-                    await template.RenderAsync(output, encoder, context);
+                    return await RenderStatementsAsync(template, output, encoder, context);
                 }
                 else if (For != null)
                 {
@@ -122,7 +144,7 @@ namespace Fluid.Ast
 
                         var length = forloop.Length = list.Count;
 
-                        context.SetValue("forloop", forloop);
+                        context.LocalScope.SetOwnValue("forloop", forloop);
 
                         for (var i = 0; i < length; i++)
                         {
@@ -130,7 +152,7 @@ namespace Fluid.Ast
 
                             var item = list[i];
 
-                            context.SetValue(Alias ?? identifier, item);
+                            context.LocalScope.SetOwnValue(Alias ?? identifier, item);
 
                             // Set helper variables
                             forloop.Index = i + 1;
@@ -140,29 +162,73 @@ namespace Fluid.Ast
                             forloop.First = i == 0;
                             forloop.Last = i == length - 1;
 
-                            await template.RenderAsync(output, encoder, context);
+                            var completion = await RenderStatementsAsync(template, output, encoder, context);
+
+                            if (completion == Completion.Break)
+                            {
+                                break;
+                            }
 
                             // Restore the forloop property after every statement in case it replaced it,
                             // for instance if it contains a nested for loop
-                            context.SetValue("forloop", forloop);
+                            context.LocalScope.SetOwnValue("forloop", forloop);
                         }
                     }
                     finally
                     {
-                        context.LocalScope.Delete("forloop");
+                        context.LocalScope.DeleteOwn("forloop");
                     }
+
+                    return Completion.Normal;
                 }
                 else
                 {
                     // no with, for or assignments, e.g. {% include 'products' %}
-                    await template.RenderAsync(output, encoder, context);
+                    return await RenderStatementsAsync(template, output, encoder, context);
                 }
             }
             finally
             {
+                // Clean up keyword arguments from local scope
+                if (keywordArgNames != null)
+                {
+                    foreach (var name in keywordArgNames)
+                    {
+                        context.LocalScope.DeleteOwn(name);
+                    }
+                }
+
                 context.ReleaseScope();
             }
+        }
 
+        /// <summary>
+        /// Renders template statements and returns the completion status.
+        /// This allows break/continue signals to propagate from included templates.
+        /// </summary>
+        private static async ValueTask<Completion> RenderStatementsAsync(IFluidTemplate template, IFluidOutput output, TextEncoder encoder, TemplateContext context)
+        {
+            if (template is IStatementList statementList)
+            {
+                var statements = statementList.Statements;
+                var count = statements.Count;
+                for (var i = 0; i < count; i++)
+                {
+                    var completion = await statements[i].WriteToAsync(output, encoder, context);
+
+                    if (completion != Completion.Normal)
+                    {
+                        return completion;
+                    }
+                }
+            }
+            else
+            {
+                // Fallback for non-standard template implementations
+                await template.RenderAsync(output, encoder, context);
+            }
+
+            await output.FlushAsync();
             return Completion.Normal;
         }
 

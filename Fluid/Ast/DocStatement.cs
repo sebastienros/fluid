@@ -1,13 +1,13 @@
-﻿using Parlot;
+using Parlot;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
 {
-    public sealed class CommentStatement : Statement
+    public sealed class DocStatement : Statement
     {
         private readonly TextSpan _text;
 
-        public CommentStatement(in TextSpan text)
+        public DocStatement(in TextSpan text)
         {
             _text = text;
         }
@@ -19,10 +19,9 @@ namespace Fluid.Ast
         public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
-
             return Normal();
         }
 
-        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitCommentStatement(this);
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitOtherStatement(this);
     }
 }

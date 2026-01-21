@@ -55,7 +55,7 @@ namespace Fluid.Parser
 
                 var p = (FluidParseContext)context;
 
-                if (p.InsideLiquidTag)
+                if (p.LiquidTagDepth > 0)
                 {
                     result.Set(start.Offset, context.Scanner.Cursor.Offset, TagResult.TagOpen);
 
@@ -101,6 +101,7 @@ namespace Fluid.Parser
         /// <summary>
         /// Search for `%}`, `-%}` to close a tag.
         /// Also, if the tag is inside a `liquid` tag, it will only look for a new line to close the tag.
+        /// Note: In {% liquid %} tags, only \n (or \r\n) is valid for line termination, not \r alone.
         /// </summary>
         private sealed class TagEndParser : Parser<TagResult>
         {
@@ -116,7 +117,7 @@ namespace Fluid.Parser
 
                 if (SkipWhitespace)
                 {
-                    if (p.InsideLiquidTag)
+                    if (p.LiquidTagDepth > 0)
                     {
                         var cursor = context.Scanner.Cursor;
 
@@ -125,12 +126,35 @@ namespace Fluid.Parser
                             cursor.Advance();
                         }
 
-                        if (Character.IsNewLine(cursor.Current))
+                        // In liquid tags, only \n is a valid line terminator (not \r alone)
+                        // \r\n is handled by first consuming \r as whitespace would fail, but \n will be found
+                        // Actually \r is not whitespace per Parlot, so we need to handle \r\n specially:
+                        // Skip \r if followed by \n (CRLF), then check for \n
+                        if (cursor.Current == '\r' && cursor.PeekNext() == '\n')
+                        {
+                            cursor.Advance(); // skip \r
+                        }
+
+                        if (cursor.Current == '\n')
                         {
                             newLineIsPresent = true;
-                            while (Character.IsNewLine(cursor.Current))
+                            cursor.Advance(); // consume the \n
+                            
+                            // Continue consuming any additional newlines (\n or \r\n)
+                            while (cursor.Current == '\r' || cursor.Current == '\n')
                             {
-                                cursor.Advance();
+                                if (cursor.Current == '\r' && cursor.PeekNext() == '\n')
+                                {
+                                    cursor.Advance(); // skip \r of \r\n
+                                }
+                                if (cursor.Current == '\n')
+                                {
+                                    cursor.Advance();
+                                }
+                                else
+                                {
+                                    break; // standalone \r is not a valid line terminator
+                                }
                             }
                         }
                     }
@@ -142,7 +166,7 @@ namespace Fluid.Parser
 
                 bool trim;
 
-                if (p.InsideLiquidTag)
+                if (p.LiquidTagDepth > 0)
                 {
                     if (newLineIsPresent)
                     {

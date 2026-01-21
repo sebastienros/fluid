@@ -15,6 +15,8 @@ namespace Fluid.Ast
 
         public Expression Value { get; }
 
+        public override bool IsWhitespaceOrCommentOnly => true;
+
         public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             static async ValueTask<Completion> Awaited(ValueTask<FluidValue> task, TemplateContext context, string identifier)

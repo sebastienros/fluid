@@ -1,4 +1,4 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
@@ -7,10 +7,12 @@ namespace Fluid.Ast
     {
         public DecrementStatement(string identifier)
         {
-            Identifier = identifier;
+            Identifier = identifier ?? "";
         }
 
         public string Identifier { get; }
+
+        public override bool IsWhitespaceOrCommentOnly => true;
 
         public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
@@ -26,7 +28,7 @@ namespace Fluid.Ast
 
             if (value.IsNil())
             {
-                value = NumberValue.Zero;
+                value = NumberValue.Create(-1);
             }
             else
             {

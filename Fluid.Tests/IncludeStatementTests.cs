@@ -388,10 +388,10 @@ shape: ''";
                 }
             })).ToArray();
 
-            await Task.Delay(1000);
+            await Task.Delay(1000, TestContext.Current.CancellationToken);
 
             stopped = true;
-            Task.WaitAll(tasks);
+            Task.WaitAll(tasks, TestContext.Current.CancellationToken);
         }
 
         [Theory]
@@ -679,7 +679,7 @@ shape: ''";
             // Check that the For expression evaluates correctly
             Assert.IsType<MemberExpression>(renderStmt.For);
             var forValue = await renderStmt.For.EvaluateAsync(context);
-            var items = await forValue.EnumerateAsync(context).ToListAsync();
+            var items = await forValue.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(2, items.Count);  // Should have 2 items
             
             // Also check that For is really the "products" variable

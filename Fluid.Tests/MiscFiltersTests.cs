@@ -49,7 +49,7 @@ namespace Fluid.Tests
         public async Task DefaultReturnsDefaultIfNotDefinedOrEmptyOrFalse(object expected, object input, object @default, bool allowFalse)
         {
             var arguments = new FilterArguments()
-                .Add("default", FluidValue.Create(@default, TemplateOptions.Default))
+                .Add(FluidValue.Create(@default, TemplateOptions.Default))
                 .Add("allow_false", FluidValue.Create(allowFalse, TemplateOptions.Default));
 
             var context = new TemplateContext();
@@ -73,7 +73,7 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Compact(input, arguments, context);
 
-            Assert.Equal(3, await result.EnumerateAsync(context).CountAsync());
+            Assert.Equal(3, await result.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
 

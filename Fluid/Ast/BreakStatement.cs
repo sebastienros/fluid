@@ -4,6 +4,8 @@ namespace Fluid.Ast
 {
     public sealed class BreakStatement : Statement
     {
+        public override bool IsWhitespaceOrCommentOnly => true;
+
         public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             return Break();

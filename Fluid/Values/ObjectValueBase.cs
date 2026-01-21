@@ -151,7 +151,14 @@ namespace Fluid.Values
 
         public override decimal ToNumberValue()
         {
-            return Convert.ToDecimal(Value);
+            try
+            {
+                return Convert.ToDecimal(Value);
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
@@ -167,6 +174,11 @@ namespace Fluid.Values
 
             output.Write(encoder, value);
             return default;
+        }
+
+        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        {
+            return [this];
         }
 
         public override string ToStringValue()

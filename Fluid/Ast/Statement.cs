@@ -20,6 +20,12 @@ namespace Fluid.Ast
         public static ValueTask<Completion> Normal() => NormalCompletion;
         public static ValueTask<Completion> Continue() => ContinueCompletion;
 
+        /// <summary>
+        /// Whether the statement doesn't output any text.
+        /// In Liquid a block is suppressed only if it contains no output tokens, considering the entire control flow structure.
+        /// </summary>
+        public virtual bool IsWhitespaceOrCommentOnly => false;
+
         public abstract ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context);
 
         protected internal virtual Statement Accept(AstVisitor visitor) => visitor.VisitOtherStatement(this);

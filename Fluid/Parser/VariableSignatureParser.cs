@@ -4,21 +4,24 @@ using Parlot.Rewriting;
 
 namespace Fluid.Parser
 {
-    public sealed class IdentifierParser : Parser<TextSpan>, ISeekable
+    /// <summary>
+    /// A parser for variable signatures as defined in Shopify Liquid.
+    /// This parser is more permissive than IdentifierParser and allows:
+    /// - Digit-only identifiers (e.g., "123")
+    /// - Identifiers starting with digits (e.g., "2foo")
+    /// - Regular identifiers with letters, digits, underscores, and hyphens
+    /// 
+    /// This is used by capture, assign, increment, and decrement tags.
+    /// </summary>
+    public sealed class VariableSignatureParser : Parser<TextSpan>, ISeekable
     {
         public const string StartChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
-        private readonly bool _stripTrailingQuestion;
 
         public bool CanSeek => true;
 
         public char[] ExpectedChars { get; } = StartChars.ToCharArray();
 
         public bool SkipWhitespace => false;
-
-        public IdentifierParser(bool stripTrailingQuestion = false)
-        {
-            _stripTrailingQuestion = stripTrailingQuestion;
-        }
 
         public override bool Parse(ParseContext context, ref ParseResult<TextSpan> result)
         {
@@ -27,58 +30,38 @@ namespace Fluid.Parser
 
             var current = cursor.Current;
 
-            var nonDigits = 0;
-            var lastIsDash = false;
-
             var start = cursor.Position;
             var lastDashPosition = cursor.Position;
+            var lastIsDash = false;
+            var hasAnyChar = false;
 
-            if (IsNonDigitStart(current))
+            // Must start with a letter, digit, or underscore
+            if (IsValidStartChar(current))
             {
-                nonDigits++;
-            }
-            else if (char.IsDigit(current))
-            {
+                hasAnyChar = true;
             }
             else
             {
-                // Doesn't start with a letter or a digit
-
+                // Doesn't start with a valid character
                 context.ExitParser(this);
                 return false;
             }
 
-            // Read while it's an identifier part. and ensure we have at least a letter or it's a number
-
             cursor.Advance();
 
-            var hasTrailingQuestion = false;
-
+            // Read while it's a valid identifier part
             while (!cursor.Eof)
             {
                 current = cursor.Current;
 
-                if (IsNonDigitStart(current))
+                if (IsValidStartChar(current))
                 {
-                    nonDigits++;
                     lastIsDash = false;
                 }
                 else if (current == '-')
                 {
                     lastDashPosition = cursor.Position;
-                    nonDigits++;
                     lastIsDash = true;
-                }
-                else if (char.IsDigit(current))
-                {
-                    lastIsDash = false;
-                }
-                else if (_stripTrailingQuestion && current == '?' && !hasTrailingQuestion)
-                {
-                    // Allow one trailing '?' if the option is enabled
-                    hasTrailingQuestion = true;
-                    nonDigits++;
-                    lastIsDash = false;
                 }
                 else
                 {
@@ -96,40 +79,28 @@ namespace Fluid.Parser
 
             if (lastIsDash && !cursor.Eof && (current == '%' || current == '}'))
             {
-                nonDigits--;
                 end--;
                 cursor.ResetPosition(lastDashPosition);
             }
 
-            // Strip trailing '?' from the result if enabled and present.
-            // This allows Ruby-style method names like 'empty?' to map to .NET properties like 'empty'.
-            if (_stripTrailingQuestion && hasTrailingQuestion)
+            if (!hasAnyChar)
             {
-                nonDigits--;
-                end--;
-            }
-
-            if (nonDigits == 0)
-            {
-                // Invalid identifier, only digits
+                // Invalid identifier - no characters found
                 cursor.ResetPosition(start);
-
                 context.ExitParser(this);
                 return false;
             }
 
             result.Set(start.Offset, end, new TextSpan(context.Scanner.Buffer, start.Offset, end - start.Offset));
 
-
             context.ExitParser(this);
             return true;
         }
 
-        private static bool IsNonDigitStart(char ch)
-            =>
-               (ch >= 'a' && ch <= 'z') ||
+        private static bool IsValidStartChar(char ch)
+            => (ch >= 'a' && ch <= 'z') ||
                (ch >= 'A' && ch <= 'Z') ||
-                (ch == '_')
-            ;
+               (ch >= '0' && ch <= '9') ||
+               (ch == '_');
     }
 }

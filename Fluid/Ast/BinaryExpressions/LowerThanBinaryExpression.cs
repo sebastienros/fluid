@@ -28,6 +28,11 @@ namespace Fluid.Ast.BinaryExpressions
             }
             else if (leftValue is NumberValue)
             {
+                if (rightValue is not NumberValue)
+                {
+                    throw new LiquidException("comparison of Integer with String failed");
+                }
+
                 if (Strict)
                 {
                     comparisonResult = leftValue.ToNumberValue() < rightValue.ToNumberValue();
@@ -39,6 +44,11 @@ namespace Fluid.Ast.BinaryExpressions
             }
             else if (leftValue is StringValue)
             {
+                if (rightValue is not StringValue)
+                {
+                    throw new LiquidException("comparison of String with Integer failed");
+                }
+
                 // Use standard C# string comparison for strings
                 var comparison = string.Compare(leftValue.ToStringValue(), rightValue.ToStringValue(), StringComparison.Ordinal);
                 if (Strict)

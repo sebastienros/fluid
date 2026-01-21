@@ -15,6 +15,8 @@ namespace Fluid.Ast
         public string Identifier { get; }
         public IReadOnlyList<FunctionCallArgument> Arguments { get; }
 
+        public override bool IsWhitespaceOrCommentOnly => true;
+
         public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             // Evaluate all default values only once

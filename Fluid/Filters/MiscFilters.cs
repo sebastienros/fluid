@@ -52,8 +52,10 @@ namespace Fluid.Filters
         /// </summary>
         public static ValueTask<FluidValue> Handleize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("handleize", expected: 0, arguments);
+
             var value = input.ToStringValue();
-            var result = new StringBuilder();
+            var result = new ValueStringBuilder(stackalloc char[Math.Max(512, value.Length * 2)]);
             var lastIndex = value.Length - 1;
 
             for (var i = 0; i < value.Length; i++)
@@ -89,9 +91,8 @@ namespace Fluid.Filters
                         }
                         else
                         {
-                            result
-                                .Append(currentChar)
-                                .Append(KebabCaseSeparator);
+                            result.Append(currentChar);
+                            result.Append(KebabCaseSeparator);
                         }
                     }
                 }
@@ -119,20 +120,32 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("default", min: 0, max: 2, arguments);
+
+            if (arguments.Count == 0)
+            {
+                // When called with no arguments, return empty string for nil/false/empty
+                if (input.IsNil() || input == BooleanValue.False || EmptyValue.Instance.Equals(input))
+                {
+                    return StringValue.Empty;
+                }
+                return input;
+            }
+
             var falseCheck = arguments.HasNamed("allow_false") && arguments["allow_false"] == BooleanValue.True;
 
             if (falseCheck)
             {
                 if (input.IsNil() || EmptyValue.Instance.Equals(input))
                 {
-                    return arguments.At(0);
+                    return arguments.GetFirstPositional();
                 }
             }
             else
             {
                 if (input.IsNil() || input == BooleanValue.False || EmptyValue.Instance.Equals(input))
                 {
-                    return arguments.At(0);
+                    return arguments.GetFirstPositional();
                 }
             }
 
@@ -141,6 +154,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Raw(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("raw", expected: 0, arguments);
+
             var stringValue = new StringValue(input.ToStringValue(), false);
 
             return stringValue;
@@ -148,13 +163,29 @@ namespace Fluid.Filters
 
         public static async ValueTask<FluidValue> Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("compact", min: 0, max: 1, arguments);
+
+            if (input.Type != FluidValues.Array)
+            {
+                return input.IsNil() ? ArrayValue.Empty : new ArrayValue([input]);
+            }
+
+            var member = arguments.At(0);
+
             var compacted = new List<FluidValue>();
             await foreach (var value in input.EnumerateAsync(context))
             {
-                if (!value.IsNil())
+                if (value.IsNil())
                 {
-                    compacted.Add(value);
+                    continue;
                 }
+
+                if (!member.IsNil() && (await value.GetValueAsync(member.ToStringValue(), context)).IsNil())
+                {
+                    continue;
+                }
+
+                compacted.Add(value);
             }
 
             return new ArrayValue(compacted);
@@ -162,16 +193,25 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> UrlEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(WebUtility.UrlEncode(input.ToStringValue()));
+            LiquidException.ThrowFilterArgumentsCount("url_encode", expected: 0, arguments);
+
+            var encoded = WebUtility.UrlEncode(input.ToStringValue());
+            // WebUtility.UrlEncode doesn't encode ! but Shopify's Liquid does
+            encoded = encoded?.Replace("!", "%21");
+            return new StringValue(encoded);
         }
 
         public static ValueTask<FluidValue> UrlDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("url_decode", expected: 0, arguments);
+
             return new StringValue(WebUtility.UrlDecode(input.ToStringValue()));
         }
 
         public static ValueTask<FluidValue> Base64Encode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("base64_encode", expected: 0, arguments);
+
             var value = input.ToStringValue();
 
             return String.IsNullOrEmpty(value)
@@ -181,6 +221,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Base64Decode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("base64_decode", expected: 0, arguments);
+
             var value = input.ToStringValue();
 
             return String.IsNullOrEmpty(value)
@@ -190,6 +232,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Base64UrlSafeEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("base64_url_safe_encode", expected: 0, arguments);
+
             var value = input.ToStringValue();
             if (String.IsNullOrEmpty(value))
             {
@@ -220,6 +264,13 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Base64UrlSafeDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("base64_url_safe_decode", expected: 0, arguments);
+
+            if (input is not StringValue and not NilValue and not UndefinedValue)
+            {
+                throw new LiquidException("base64_url_safe_decode expects a string");
+            }
+
             var value = input.ToStringValue();
             if (String.IsNullOrEmpty(value))
             {
@@ -264,6 +315,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> StripHtml(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("strip_html", expected: 0, arguments);
+
             var html = input.ToStringValue();
             if (String.IsNullOrEmpty(html))
             {
@@ -276,24 +329,42 @@ namespace Fluid.Filters
             {
                 var cursor = 0;
                 var inside = false;
-                for (var i = 0; i < html.Length; i++)
+                var i = 0;
+                while (i < html.Length)
                 {
                     var current = html[i];
 
-                    switch (current)
+                    if (current == '<')
                     {
-                        case '<':
-                            inside = true;
+                        // Check if this is a script or style tag that we should skip entirely
+                        if (IsStartOfSpecialTag(html, i, "script"))
+                        {
+                            i = SkipToEndOfTag(html, i, "script");
                             continue;
-                        case '>':
-                            inside = false;
+                        }
+                        else if (IsStartOfSpecialTag(html, i, "style"))
+                        {
+                            i = SkipToEndOfTag(html, i, "style");
                             continue;
+                        }
+                        inside = true;
+                        i++;
+                        continue;
+                    }
+
+                    if (current == '>')
+                    {
+                        inside = false;
+                        i++;
+                        continue;
                     }
 
                     if (!inside)
                     {
                         result[cursor++] = current;
                     }
+
+                    i++;
                 }
 
                 return new StringValue(new string(result, 0, cursor));
@@ -306,20 +377,86 @@ namespace Fluid.Filters
             {
                 ArrayPool<char>.Shared.Return(result);
             }
+
+            static bool IsStartOfSpecialTag(string html, int startIndex, string tagName)
+            {
+                if (startIndex + tagName.Length + 2 > html.Length)
+                {
+                    return false;
+                }
+
+                if (html[startIndex] != '<')
+                {
+                    return false;
+                }
+
+                var nextIndex = startIndex + 1;
+                
+                // Check for the tag name (case-insensitive)
+                for (int j = 0; j < tagName.Length; j++)
+                {
+                    if (char.ToLowerInvariant(html[nextIndex + j]) != tagName[j])
+                    {
+                        return false;
+                    }
+                }
+
+                // Make sure next char after tag name is whitespace or '>'
+                var charAfterTag = nextIndex + tagName.Length;
+                if (charAfterTag < html.Length)
+                {
+                    var ch = html[charAfterTag];
+                    return char.IsWhiteSpace(ch) || ch == '>';
+                }
+
+                return false;
+            }
+
+            static int SkipToEndOfTag(string html, int startIndex, string tagName)
+            {
+                var endTagStart = $"</{tagName}";
+                var searchStart = startIndex + 1;
+
+                while (searchStart < html.Length)
+                {
+                    var index = html.IndexOf(endTagStart, searchStart, StringComparison.OrdinalIgnoreCase);
+                    if (index == -1)
+                    {
+                        return html.Length;
+                    }
+
+                    // Find the closing >
+                    var closeIndex = html.IndexOf('>', index);
+                    if (closeIndex != -1)
+                    {
+                        return closeIndex + 1;
+                    }
+
+                    searchStart = index + 1;
+                }
+
+                return html.Length;
+            }
         }
 
         public static ValueTask<FluidValue> Escape(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("escape", expected: 0, arguments);
+
             return new StringValue(WebUtility.HtmlEncode(input.ToStringValue()), encode: false);
         }
 
         public static ValueTask<FluidValue> EscapeOnce(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("escape", expected: 0, arguments);
+
             return new StringValue(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())), encode: false);
         }
 
         public static ValueTask<FluidValue> ChangeTimeZone(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("timezone", min: 0, max: 1, arguments);
+
             if (!input.TryGetDateTimeInput(context, out var value))
             {
                 return NilValue.Instance;
@@ -350,25 +487,29 @@ namespace Fluid.Filters
         // https://docs.ruby-lang.org/en/master/strftime_formatting_rdoc.html
         public static ValueTask<FluidValue> Date(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("date", min: 0, max: 1, arguments);
+
             if (!input.TryGetDateTimeInput(context, out var value))
             {
-                return NilValue.Instance;
+                // return input unchanged if it can't be parsed as a date
+                return input;
             }
 
             if (arguments.At(0).IsNil())
             {
+                // An absent format argument returns the input parsed as date
                 return new DateTimeValue(value);
             }
 
             var format = arguments.At(0).ToStringValue();
 
-            var result = new StringBuilder(64);
+            var result = new ValueStringBuilder(stackalloc char[128]);
 
-            ForStrf(value, format, result);
+            ForStrf(value, format, ref result);
 
             return new StringValue(result.ToString());
 
-            void ForStrf(DateTimeOffset value, string format, StringBuilder result)
+            void ForStrf(DateTimeOffset value, string format, ref ValueStringBuilder result)
             {
                 var percent = false;
 
@@ -451,8 +592,8 @@ namespace Fluid.Filters
                             case 'd': result.Append(Format(value.Day, 2)); break;
                             case 'D':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%m/%d/%y", sb);
+                                    var sb = new ValueStringBuilder(stackalloc char[16]);
+                                    ForStrf(value, "%m/%d/%y", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
@@ -461,8 +602,8 @@ namespace Fluid.Filters
                                 break;
                             case 'F':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%Y-%m-%d", sb);
+                                    var sb = new ValueStringBuilder(stackalloc char[16]);
+                                    ForStrf(value, "%Y-%m-%d", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
@@ -481,7 +622,7 @@ namespace Fluid.Filters
                                     break;
                                 }
                             case 'h':
-                                ForStrf(value, "%b", result);
+                                ForStrf(value, "%b", ref result);
                                 break;
                             case 'H':
                                 result.Append(value.ToString("HH"));
@@ -499,7 +640,7 @@ namespace Fluid.Filters
                                     break;
                                 }
                             case 'j': result.Append(Format(value.DayOfYear, 3)); break;
-                            case 'k': result.Append(value.Hour); break;
+                            case 'k': result.Append(value.Hour.ToString(CultureInfo.InvariantCulture)); break;
                             case 'l':
                                 {
                                     useSpaceForPaddingFlag = true;
@@ -528,15 +669,15 @@ namespace Fluid.Filters
                             case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLower(context.CultureInfo)); break;
                             case 'r':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%I:%M:%S %p", sb);
+                                    var sb = new ValueStringBuilder(stackalloc char[32]);
+                                    ForStrf(value, "%I:%M:%S %p", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
                             case 'R':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%H:%M", sb);
+                                    var sb = new ValueStringBuilder(stackalloc char[16]);
+                                    ForStrf(value, "%H:%M", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
@@ -547,12 +688,15 @@ namespace Fluid.Filters
                             case 't': result.Append(new String('\t', width ?? 1)); break;
                             case 'T':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%H:%M:%S", sb);
+                                    var sb = new ValueStringBuilder(stackalloc char[32]);
+                                    ForStrf(value, "%H:%M:%S", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
-                            case 'u': result.Append(value.DayOfWeek switch { DayOfWeek.Sunday => 7, _ => (int)value.DayOfWeek }); break;
+                            case 'u':
+                                var dayOfWeek = ((int)value.DayOfWeek) == 0 ? 7 : (int)value.DayOfWeek;
+                                result.Append(dayOfWeek.ToString(CultureInfo.InvariantCulture));  
+                                break;
                             case 'U':
                                 {
                                     var week = context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstFullWeek, DayOfWeek.Sunday);
@@ -565,8 +709,8 @@ namespace Fluid.Filters
                                 }
                             case 'v':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%e-%b-%Y", sb);
+                                    var sb = new ValueStringBuilder(stackalloc char[32]);
+                                    ForStrf(value, "%e-%b-%Y", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
@@ -616,12 +760,15 @@ namespace Fluid.Filters
                             case '%': result.Append('%'); break;
                             case '+':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%a %b %e %H:%M:%S %Z %Y", sb);
+                                    var sb = new ValueStringBuilder(stackalloc char[128]);
+                                    ForStrf(value, "%a %b %e %H:%M:%S %Z %Y", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
-                            default: result.Append('%').Append(c); break;
+                            default: 
+                                result.Append('%');
+                                result.Append(c); 
+                                break;
                         }
 
                         percent = false;
@@ -649,6 +796,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> FormatDate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("format_date", min: 0, max: 2, arguments);
+
             if (!input.TryGetDateTimeInput(context, out var value))
             {
                 return NilValue.Instance;
@@ -723,6 +872,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> MD5(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("md5", expected: 0, arguments);
+
             var value = input.ToStringValue();
             if (string.IsNullOrEmpty(value))
             {
@@ -741,7 +892,7 @@ namespace Fluid.Filters
 #pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
             using var provider = System.Security.Cryptography.MD5.Create();
 #pragma warning restore CA5351
-            var builder = new StringBuilder(32);
+            var builder = new ValueStringBuilder(stackalloc char[32]);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
@@ -772,7 +923,7 @@ namespace Fluid.Filters
 #pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
             using var provider = System.Security.Cryptography.SHA1.Create();
 #pragma warning restore CA5350
-            var builder = new StringBuilder(40);
+            var builder = new ValueStringBuilder(stackalloc char[40]);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
@@ -786,6 +937,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Sha256(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("sha256", expected: 0, arguments);
+
             var value = input.ToStringValue();
             if (string.IsNullOrEmpty(value))
             {
@@ -799,7 +952,7 @@ namespace Fluid.Filters
             return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
 #else
             using var provider = System.Security.Cryptography.SHA256.Create();
-            var builder = new StringBuilder(64);
+            var builder = new ValueStringBuilder(stackalloc char[64]);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.SHA256.HashData' method over 'ComputeHash'
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850
@@ -840,7 +993,7 @@ namespace Fluid.Filters
 #else
             using var provider = HMAC.Create(algorithm); 
             provider.Key = keyBytes;
-            var builder = new StringBuilder(64);
+            var builder = new ValueStringBuilder(stackalloc char[64]);
 #pragma warning disable CA1850
             foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
 #pragma warning restore CA1850

@@ -143,6 +143,11 @@ namespace Fluid.Values
             return default;
         }
 
+        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        {
+            return [this];
+        }
+
         public override object ToObjectValue()
         {
             return _value;

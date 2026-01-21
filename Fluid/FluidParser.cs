@@ -26,12 +26,10 @@ namespace Fluid
         protected static readonly Parser<char> Equal = Terms.Char('=');
         protected static readonly Parser<char> Colon = Terms.Char(':');
         protected static readonly Parser<char> Comma = Terms.Char(',');
-        protected static readonly Parser<char> Dot = Literals.Char('.');
+        protected static readonly Parser<char> Dot = Terms.Char('.'); // Terms.Char skips leading whitespace to allow `foo .bar`
         protected static readonly Parser<char> Pipe = Terms.Char('|');
 
         protected static readonly Parser<TextSpan> String = Terms.String(StringLiteralQuotes.SingleOrDouble);
-        protected static readonly Parser<decimal> Number = Terms.Decimal();
-
         protected static readonly Parser<string> DoubleEquals = Terms.Text("==");
         protected static readonly Parser<string> NotEquals = Terms.Text("!=");
         protected static readonly Parser<string> Different = Terms.Text("<>");
@@ -46,6 +44,7 @@ namespace Fluid
         protected static readonly Parser<string> BinaryAnd = Terms.Text("and");
 
         protected readonly Parser<string> Identifier;
+        protected readonly Parser<string> VariableSignature;
 
         protected readonly Parser<IReadOnlyList<FilterArgument>> ArgumentsList;
         protected readonly Parser<IReadOnlyList<FunctionCallArgument>> FunctionCallArgumentsList;
@@ -97,12 +96,15 @@ namespace Fluid
             }
 
             Identifier = SkipWhiteSpace(new IdentifierParser(parserOptions.AllowTrailingQuestionMark)).Then(x => x.ToString());
+            VariableSignature = SkipWhiteSpace(new VariableSignatureParser()).Then(x => x.ToString());
 
             String.Name = "String";
-            Number.Name = "Number";
 
             var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)));
             Integer.Name = "Integer";
+
+            var Number = Terms.Decimal().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)));
+            Number.Name = "Number";
 
             // Member expressions
             var Indexer = Between(LBracket, Primary, RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
@@ -128,21 +130,23 @@ namespace Fluid
             Call.Name = "Call";
 
             // An Identifier followed by a list of MemberSegments (dot accessor, indexer or arguments list)
+            // Note: Numeric index with dot notation (e.g., products.0) is not allowed per Shopify Liquid standard.
+            // Use bracket notation instead: products[0]
             var Member = Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)).And(
                 ZeroOrMany(
-                    Dot.SkipAnd(
-                        Identifier.Or(Terms.Integer(NumberOptions.None).Then(x => x.ToString(CultureInfo.InvariantCulture)))
-                            .Then<MemberSegment>(x => new IdentifierSegment(x))
-                    )
+                    Dot.SkipAnd(Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)))
                     .Or(Indexer)
                     .Or(Call)))
                 .Then(x => new MemberExpression([x.Item1, .. x.Item2]));
             Member.Name = "Member";
 
             var Range = LParen
-                .SkipAnd(OneOf(Integer, Member.Then<Expression>(x => x)))
-                .AndSkip(Terms.Text(".."))
-                .And(OneOf(Integer, Member.Then<Expression>(x => x)))
+                .SkipAnd(OneOf(
+                    Member.AndSkip(Terms.Text("..")),
+                    Integer.AndSkip(Terms.Text("..")),
+                    Number.AndSkip(Terms.Text(".."))
+                ))
+                .And(OneOf(Number, Member.Then<Expression>(x => x)))
                 .AndSkip(RParen)
                 .Then<Expression>(x => new RangeExpression(x.Item1, x.Item2));
             Range.Name = "Range";
@@ -153,9 +157,27 @@ namespace Fluid
                 ;
             Group.Name = "Group";
 
+            // Bracketed access: [expr] followed by optional member accessors (e.g., [123] or ["foo"].bar or ['foo']['bar'])
+            // This allows accessing scope by computed key, compatible with Shopify Liquid's variable signature behavior
+            // Uses Terms.Char to skip leading whitespace (unlike LBracket which is Literals.Char)
+            // Also allows chained brackets like ['foo']['bar'] with whitespace between them
+            // Creates a MemberExpression with an IndexerSegment as the first segment
+            var ChainedIndexer = Terms.Char('[').SkipAnd(Primary).AndSkip(RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
+            ChainedIndexer.Name = "ChainedIndexer";
+            
+            var BracketedAccess = Terms.Char('[').SkipAnd(Primary).AndSkip(RBracket).Then<MemberSegment>(x => new IndexerSegment(x))
+                .And(ZeroOrMany(
+                    Dot.SkipAnd(Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)))
+                    .Or(ChainedIndexer)
+                    .Or(Indexer)
+                    .Or(Call)))
+                .Then<Expression>(x => new MemberExpression([x.Item1, .. x.Item2]));
+            BracketedAccess.Name = "BracketedAccess";
+
             // primary => NUMBER | STRING | property
-            Primary.Parser =
+            Primary.Parser = 
                 String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x)))
+                .Or(BracketedAccess)
                 .Or(Member.Then<Expression>(static x =>
                 {
                     if (x.Segments.Count == 1)
@@ -173,10 +195,10 @@ namespace Fluid
 
                     return x;
                 }))
-                .Or(Number.Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))))
-                .Or(Group)
+                .Or(Number)
                 .Or(Range)
-                ;
+                .Or(Group)
+            ;
             Primary.Name = "Primary";
 
             RegisteredOperators["contains"] = (a, b) => new ContainsBinaryExpression(a, b);
@@ -243,7 +265,7 @@ namespace Fluid
             ArgumentsList.Name = "ArgumentsList";
 
             // Primary ( | identifier ( ':' ArgumentsList )! ] )*
-            FilterExpression.Parser = LogicalExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter)
+            FilterExpression.Parser = LogicalExpression
                 .And(ZeroOrMany(
                     Pipe
                     .SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterPipe))
@@ -266,7 +288,7 @@ namespace Fluid
                     });
             FilterExpression.Name = "FilterExpression";
 
-            var Output = OutputStart.SkipAnd(FilterExpression.And(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd))
+            var Output = OutputStart.SkipAnd(FilterExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter).And(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd))
                 .Then<Statement>(static x => new OutputStatement(x.Item1))
                 );
             Output.Name = "Output";
@@ -316,7 +338,15 @@ namespace Fluid
                         ;
             InlineCommentTag.Name = "InlineCommentTag";
 
-            var CaptureTag = Identifier.ElseError(string.Format(ErrorMessages.IdentifierAfterTag, "capture"))
+            var DocTag = TagEnd
+                        .SkipAnd(AnyCharBefore(CreateTag("enddoc"), canBeEmpty: true))
+                        .AndSkip(CreateTag("enddoc").ElseError($"'{{% enddoc %}}' was expected"))
+                        .Then<Statement>(x => new DocStatement(x))
+                        .ElseError("Invalid 'doc' tag")
+                        ;
+            DocTag.Name = "DocTag";
+
+            var CaptureTag = VariableSignature.ElseError(string.Format(ErrorMessages.IdentifierAfterTag, "capture"))
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
                         .AndSkip(CreateTag("endcapture").ElseError($"'{{% endcapture %}}' was expected"))
@@ -345,23 +375,28 @@ namespace Fluid
                         ;
             CycleTag.Name = "CycleTag";
 
-            var DecrementTag = ZeroOrOne(Identifier).AndSkip(TagEnd)
+            var DecrementTag = ZeroOrOne(VariableSignature).AndSkip(TagEnd)
                         .Then<Statement>(x => new DecrementStatement(x))
                         .ElseError("Invalid 'decrement' tag")
                         ;
             DecrementTag.Name = "DecrementTag";
 
-            var IncrementTag = ZeroOrOne(Identifier).AndSkip(TagEnd)
+            var IncrementTag = ZeroOrOne(VariableSignature).AndSkip(TagEnd)
                         .Then<Statement>(x => new IncrementStatement(x))
                         .ElseError("Invalid 'increment' tag")
                         ;
             IncrementTag.Name = "IncrementTag";
 
+            var IncludeAssignStatement = Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2));
+            IncludeAssignStatement.Name = "IncludeAssignStatement";
+
             var IncludeTag = OneOf(
-                        Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new IncludeStatement(this, x.Item1, null, null, null, x.Item2)),
                         Primary.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3)),
                         Primary.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, @for: x.Item2, alias: x.Item3)),
-                        Primary.Then(x => new IncludeStatement(this, x))
+                        Primary
+                            .And(ZeroOrOne(ZeroOrOne(Comma).SkipAnd(Separated(Comma, IncludeAssignStatement))))
+                            .AndSkip(ZeroOrOne(Comma))
+                            .Then(x => new IncludeStatement(this, x.Item1, null, null, null, x.Item2 ?? []))
                         ).AndSkip(TagEnd)
                         .Then<Statement>(x => x)
                         .ElseError("Invalid 'include' tag")
@@ -378,10 +413,9 @@ namespace Fluid
             FromTag.Name = "FromTag";
 
             var RenderTag = OneOf(
-                        String.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).And(ZeroOrOne(Comma.SkipAnd(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))))).Then(x => new RenderStatement(this, x.Item1.ToString(), with: x.Item2, alias: x.Item3, assignStatements: x.Item4 ?? [])),
-                        String.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).And(ZeroOrOne(Comma.SkipAnd(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))))).Then(x => new RenderStatement(this, x.Item1.ToString(), @for: x.Item2, alias: x.Item3, assignStatements: x.Item4 ?? [])),
-                        String.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new RenderStatement(this, x.Item1.ToString(), null, null, null, x.Item2)),
-                        String.Then(x => new RenderStatement(this, x.ToString()))
+                        String.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).And(ZeroOrOne(ZeroOrOne(Comma).SkipAnd(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))))).Then(x => new RenderStatement(this, x.Item1.ToString(), with: x.Item2, alias: x.Item3, assignStatements: x.Item4 ?? [])),
+                        String.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).And(ZeroOrOne(ZeroOrOne(Comma).SkipAnd(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))))).Then(x => new RenderStatement(this, x.Item1.ToString(), @for: x.Item2, alias: x.Item3, assignStatements: x.Item4 ?? [])),
+                        String.And(ZeroOrOne(ZeroOrOne(Comma).SkipAnd(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))))).Then(x => new RenderStatement(this, x.Item1.ToString(), null, null, null, x.Item2 ?? []))
                         ).ElseError(ErrorMessages.ExpectedStringRender).AndSkip(TagEnd)
                         .Then<Statement>(x => x)
                         .ElseError("Invalid 'render' tag")
@@ -391,8 +425,30 @@ namespace Fluid
             var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), canBeEmpty: true, consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
             RawTag.Name = "RawTag";
 
-            var AssignTag = Identifier.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
+            var AssignTag = VariableSignature.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter)).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
             AssignTag.Name = "AssignTag";
+
+            // Lenient else tag: matches {% else %} or {% else anything %} (extra content is ignored)
+            var ElseTagLenient = TagStart.SkipAnd(Terms.Text("else")).SkipAnd(AnyCharBefore(TagEnd, canBeEmpty: true)).AndSkip(TagEnd);
+            
+            // Elsif tag for capturing stray elsif blocks (after else, they should be ignored)
+            var ElsifTagCapture = TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(AnyCharBefore(TagEnd, canBeEmpty: true)).AndSkip(TagEnd);
+
+            // Content that can follow an else block - includes regular content plus any stray else/elsif blocks
+            // This ensures that {% else %}content{% elsif %}more{% else %}even_more is all captured, 
+            // with only the first else block's content being used
+            var ElseContent = AnyTagsList;
+            
+            // Parser for else blocks that also consumes any trailing elsif/else blocks
+            // Multiple else blocks: only first is used. Elsif after else: ignored.
+            var ElseBlocksWithTrailing = ZeroOrMany(
+                OneOf(
+                    ElseTagLenient.SkipAnd(AnyTagsList).Then(x => (IReadOnlyList<Statement>)x),
+                    ElsifTagCapture.SkipAnd(AnyTagsList).Then(x => (IReadOnlyList<Statement>)null) // elsif after else is ignored
+                )).Then(x => {
+                    // Find first non-null (first else block content)
+                    return new ElseStatement(x.FirstOrDefault(e => e != null)) ?? null;
+                });
 
             var IfTag = LogicalExpression
                         .AndSkip(TagEnd)
@@ -400,9 +456,7 @@ namespace Fluid
                         .And(ZeroOrMany(
                             TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(AnyTagsList))
                             .Then(x => x.Select(e => new ElseIfStatement(e.Item1, e.Item2)).ToList()))
-                        .And(ZeroOrOne(
-                            CreateTag("else").SkipAnd(AnyTagsList))
-                            .Then(x => x != null ? new ElseStatement(x) : null))
+                        .And(ElseBlocksWithTrailing)
                         .AndSkip(CreateTag("endif").ElseError($"'{{% endif %}}' was expected"))
                         .Then<Statement>(x => new IfStatement(x.Item1, x.Item2, x.Item4, x.Item3))
                         .ElseError("Invalid 'if' tag");
@@ -411,11 +465,12 @@ namespace Fluid
             var UnlessTag = LogicalExpression
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
-                        .And(ZeroOrOne(
-                            CreateTag("else").SkipAnd(AnyTagsList))
-                            .Then(x => x != null ? new ElseStatement(x) : null))
+                        .And(ZeroOrMany(
+                            TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(AnyTagsList))
+                            .Then(x => x.Select(e => new ElseIfStatement(e.Item1, e.Item2)).ToList()))
+                        .And(ElseBlocksWithTrailing)
                         .AndSkip(CreateTag("endunless").ElseError($"'{{% endunless %}}' was expected"))
-                        .Then<Statement>(x => new UnlessStatement(x.Item1, x.Item2, x.Item3))
+                        .Then<Statement>(x => new UnlessStatement(x.Item1, x.Item2, x.Item4, x.Item3))
                         .ElseError("Invalid 'unless' tag");
             UnlessTag.Name = "UnlessTag";
 
@@ -429,7 +484,9 @@ namespace Fluid
             OptionalComments.Name = "OptionalComments";
 
             // Parse a single when or else block
-            var WhenBlock = TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(TagEnd).And(AnyTagsList)
+            // After parsing the case value list, skip any unexpected content until %} (like 'and' which is not valid in when)
+            // This matches Shopify Liquid's behavior where unexpected tokens are ignored
+            var WhenBlock = TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(AnyCharBefore(TagEnd, canBeEmpty: true)).AndSkip(TagEnd).And(AnyTagsList)
                 .Then<CaseBlock>(x => new Ast.WhenBlock(x.Item2, x.Item3));
             
             var ElseBlock = CreateTag("else").SkipAnd(AnyTagsList)
@@ -444,15 +501,17 @@ namespace Fluid
                        .ElseError("Invalid 'case' tag");
             CaseTag.Name = "CaseTag";
 
-            var ForTag = OneOf(
-                            Identifier
+            var ForTag = Identifier
                             .AndSkip(Terms.Text("in"))
-                            .And(Member)
-                            .And(ZeroOrMany(OneOf( // Use * since each can appear in any order. Validation is done once it's parsed
-                                Terms.Text("reversed").Then(x => new ForModifier { IsReversed = true }),
-                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsLimit = true, Value = x }),
-                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
-                                )))
+                            .And(Primary)
+                            .And(ZeroOrMany(
+                                ZeroOrOne(Comma)
+                                .SkipAnd(OneOf( // Use * since each can appear in any order. Validation is done once it's parsed
+                                    Terms.Text("reversed").Then(x => new ForModifier { IsReversed = true }),
+                                    Terms.Text("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsLimit = true, Value = x }),
+                                    Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
+                                ))))
+                            .AndSkip(ZeroOrOne(Comma))
                             .AndSkip(TagEnd)
                             .And(AnyTagsList)
                             .And(ZeroOrOne(
@@ -462,34 +521,13 @@ namespace Fluid
                             .Then<Statement>(x =>
                             {
                                 var identifier = x.Item1;
-                                var member = x.Item2;
+                                var source = x.Item2;
                                 var statements = x.Item4;
                                 var elseStatement = x.Item5;
                                 var (limitResult, offsetResult, reversed) = ReadForStatementConfiguration(x.Item3);
-                                return new ForStatement(statements, identifier, member, limitResult, offsetResult, reversed, elseStatement);
-                            }),
-
-                            Identifier
-                            .AndSkip(Terms.Text("in"))
-                            .And(Range)
-                            .And(ZeroOrMany(OneOf( // Use * since each can appear in any order. Validation is done once it's parsed
-                                Terms.Text("reversed").Then(x => new ForModifier { IsReversed = true }),
-                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsLimit = true, Value = x }),
-                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
-                                )))
-                            .AndSkip(TagEnd)
-                            .And(AnyTagsList)
-                            .AndSkip(CreateTag("endfor").ElseError($"'{{% endfor %}}' was expected"))
-                            .Then<Statement>(x =>
-                            {
-                                var identifier = x.Item1;
-                                var range = x.Item2;
-                                var statements = x.Item4;
-                                var (limitResult, offsetResult, reversed) = ReadForStatementConfiguration(x.Item3);
-                                return new ForStatement(statements, identifier, range, limitResult, offsetResult, reversed, null);
-
+                                return new ForStatement(statements, identifier, source, limitResult, offsetResult, reversed, elseStatement);
                             })
-                        ).ElseError("Invalid 'for' tag");
+                        .ElseError("Invalid 'for' tag");
             ForTag.Name = "ForTag";
 
             var TableRowTag = OneOf(
@@ -536,8 +574,12 @@ namespace Fluid
             TableRowTag.Name = "TableRowTag";
 
             var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
-                .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = true; return x; })
-                .SkipAnd(OneOrMany(OneOf(
+                .Then((context, x) => {
+                    var ctx = (FluidParseContext)context;
+                    ctx.LiquidTagDepth++;
+                    return x;
+                })
+                .SkipAnd(ZeroOrMany(OneOf(
                     Terms.Char('#').Then(x => "#"),
                     Identifier
                 ).Switch((context, previous) =>
@@ -556,18 +598,27 @@ namespace Fluid
                     throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
                 }
             })))
-                .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = false; return x; })
-                .AndSkip(TagEnd).Then<Statement>(x => new LiquidStatement(x))
+                .Then((context, x) => {
+                    var ctx = (FluidParseContext)context;
+                    ctx.LiquidTagDepth--;
+                    return x;
+                })
+                .AndSkip(OneOf(
+                    TagEnd.When((context, result) => ((FluidParseContext)context).LiquidTagDepth == 0),
+                    ZeroOrOne(TagEnd.When((c, r) => false)).When((context, result) => ((FluidParseContext)context).LiquidTagDepth > 0)
+                ))
+                .Then<Statement>(x => new LiquidStatement(x))
                 ;
             LiquidTag.Name = "LiquidTag";
 
-            var EchoTag = FilterExpression.AndSkip(TagEnd).Then<Statement>(x => new OutputStatement(x));
+            var EchoTag = ZeroOrOne(FilterExpression).AndSkip(TagEnd).Then<Statement>(x => new OutputStatement(x ?? EmptyKeyword));
             EchoTag.Name = "EchoTag";
 
             RegisteredTags["break"] = BreakTag;
             RegisteredTags["continue"] = ContinueTag;
             RegisteredTags["comment"] = CommentTag;
             RegisteredTags["#"] = InlineCommentTag;
+            RegisteredTags["doc"] = DocTag;
             RegisteredTags["capture"] = CaptureTag;
             RegisteredTags["cycle"] = CycleTag;
             RegisteredTags["decrement"] = DecrementTag;

@@ -9,6 +9,7 @@ namespace Fluid.Values
     public sealed class StringValue : FluidValue, IEquatable<StringValue>
     {
         public static readonly StringValue Empty = new StringValue("");
+        public static readonly StringValue Space = new StringValue(" ");
 
         private static readonly StringValue[] CharToString = new StringValue[256];
 
@@ -123,8 +124,6 @@ namespace Fluid.Values
             return name switch
             {
                 "size" => NumberValue.Create(_value.Length),
-                "first" => _value.Length > 0 ? Create(_value[0]) : NilValue.Instance,
-                "last" => _value.Length > 0 ? Create(_value[^1]) : NilValue.Instance,
                 _ => NilValue.Instance,
             };
         }

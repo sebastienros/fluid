@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
