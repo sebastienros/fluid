@@ -461,6 +461,16 @@ namespace Fluid.Ast
             return ifStatement;
         }
 
+        protected internal override Statement VisitIfChangedStatement(IfChangedStatement ifChangedStatement)
+        {
+            if (TryRewriteStatements(ifChangedStatement.Statements, out var newStatements))
+            {
+                return new IfChangedStatement(newStatements.ToList());
+            }
+
+            return ifChangedStatement;
+        }
+
         protected internal override Statement VisitIncludeStatement(IncludeStatement includeStatement)
         {
             if (TryRewriteExpression(includeStatement.For, out var newFor) |

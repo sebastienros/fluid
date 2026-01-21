@@ -361,6 +361,16 @@ namespace Fluid.Ast
             return ifStatement;
         }
 
+        protected internal virtual Statement VisitIfChangedStatement(IfChangedStatement ifChangedStatement)
+        {
+            foreach (var statement in ifChangedStatement.Statements)
+            {
+                Visit(statement);
+            }
+
+            return ifChangedStatement;
+        }
+
         protected internal virtual Statement VisitIncludeStatement(IncludeStatement includeStatement)
         {
             Visit(includeStatement.For);

@@ -375,6 +375,14 @@ namespace Fluid
                         ;
             CycleTag.Name = "CycleTag";
 
+            var IfChangedTag = TagEnd
+                        .And(AnyTagsList)
+                        .AndSkip(CreateTag("endifchanged").ElseError($"'{{% endifchanged %}}' was expected"))
+                        .Then<Statement>(x => new IfChangedStatement(x.Item2))
+                        .ElseError("Invalid 'ifchanged' tag")
+                        ;
+            IfChangedTag.Name = "IfChangedTag";
+
             var DecrementTag = ZeroOrOne(VariableSignature).AndSkip(TagEnd)
                         .Then<Statement>(x => new DecrementStatement(x))
                         .ElseError("Invalid 'decrement' tag")
@@ -622,6 +630,7 @@ namespace Fluid
             RegisteredTags["capture"] = CaptureTag;
             RegisteredTags["cycle"] = CycleTag;
             RegisteredTags["decrement"] = DecrementTag;
+            RegisteredTags["ifchanged"] = IfChangedTag;
             RegisteredTags["include"] = IncludeTag;
             RegisteredTags["render"] = RenderTag;
             RegisteredTags["increment"] = IncrementTag;
