@@ -29,7 +29,6 @@ namespace Fluid.Tests
             ["id:filters_date_undefined_argument"] = "test expects error but Shopify parses date",
 
             ["tag:snippet tag"] = "snippet tag not implemented",
-            ["tag:ifchanged tag"] = "ifchanged tag not implemented",
             ["tag:strict2"] = "Fluid uses lenient parsing mode; strict2 mode not implemented",
 
             ["id:tags_liquid_single_line_comment_tag"] = "Skipping: `{% liquid %}` comment/endcomment special-case parsing not implemented",
