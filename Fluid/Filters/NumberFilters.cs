@@ -17,6 +17,7 @@ namespace Fluid.Filters
             filters.AddFilter("plus", Plus);
             filters.AddFilter("round", Round);
             filters.AddFilter("times", Times);
+            filters.AddFilter("random", Random);
 
             return filters;
         }
@@ -157,6 +158,19 @@ namespace Fluid.Filters
             var first = arguments.At(0);
 
             return NumberValue.Create(input.ToNumberValue() * first.ToNumberValue());
+        }
+
+        public static ValueTask<FluidValue> Random(FluidValue input, FilterArguments arguments, TemplateContext context)
+        {
+            LiquidException.ThrowFilterArgumentsCount("random", expected: 2, arguments);
+
+            var min = arguments.At(0).ToNumberValue();
+            var max = arguments.At(1).ToNumberValue();
+
+            var random = new Random();
+            var value = random.Next((int)min, (int)max + 1);
+
+            return NumberValue.Create(value);
         }
     }
 }

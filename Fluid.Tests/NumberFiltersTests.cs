@@ -247,5 +247,22 @@ namespace Fluid.Tests
             Assert.Equal(6, result.Result.ToNumberValue());
             Assert.Equal("6.0", result.Result.ToStringValue());
         }
+
+        [Theory]
+        [InlineData(1, 10)]
+        [InlineData(-10, -1)]
+        [InlineData(1.5, 10.5)]
+        [InlineData(-10.5, -1.5)]
+        public void Random(decimal min, decimal max)
+        {
+            var input = NumberValue.Create(0);
+
+            var arguments = new FilterArguments([NumberValue.Create(min), NumberValue.Create(max)]);
+            var context = new TemplateContext();
+
+            var result = NumberFilters.Random(input, arguments, context);
+
+            Assert.InRange(result.Result.ToNumberValue(), min, max);
+        }
     }
 }
