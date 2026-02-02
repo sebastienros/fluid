@@ -52,7 +52,7 @@ namespace Fluid.MvcViewEngine
                 bufferSize = 16 * 1024;
             }
 
-            using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true);
+            await using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true);
             await _fluidViewRenderer.RenderViewAsync(output, path, context);
             await output.FlushAsync();
         }

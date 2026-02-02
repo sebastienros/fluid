@@ -26,7 +26,7 @@ namespace Fluid
                 bufferSize = 16 * 1024;
             }
 
-            using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true);
+            await using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true);
             var completion = await statement.WriteToAsync(output, encoder, context);
             await output.FlushAsync();
             return completion;
@@ -45,7 +45,7 @@ namespace Fluid
                 bufferSize = 16 * 1024;
             }
 
-            using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true);
+            await using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true);
             await template.RenderAsync(output, encoder, context);
             await output.FlushAsync();
         }
@@ -57,7 +57,7 @@ namespace Fluid
             ArgumentNullException.ThrowIfNull(encoder);
             ArgumentNullException.ThrowIfNull(cultureInfo);
 
-            using var output = new TextWriterFluidOutput(writer, bufferSize: 16 * 1024, leaveOpen: true);
+            await using var output = new TextWriterFluidOutput(writer, bufferSize: 16 * 1024, leaveOpen: true);
             await value.WriteToAsync(output, encoder, cultureInfo);
             await output.FlushAsync();
         }

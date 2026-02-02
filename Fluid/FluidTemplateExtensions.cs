@@ -60,7 +60,7 @@ namespace Fluid
                 bufferSize = 16 * 1024;
             }
 
-            using var output = new TextWriterFluidOutput(textWriter, bufferSize, leaveOpen: true);
+            await using var output = new TextWriterFluidOutput(textWriter, bufferSize, leaveOpen: true);
 
             try
             {
