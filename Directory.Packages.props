@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <!-- Global Package References -->
-    <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
+    <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.102" PrivateAssets="all" />
     <GlobalPackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" />
     <!-- TFM specific reference since they could lift some framework dependencies -->
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Abstractions" Version="$(MicrosoftExtensionsFileProvidersAbstractionsPackageVersion)" />
