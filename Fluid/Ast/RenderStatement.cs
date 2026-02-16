@@ -105,11 +105,7 @@ namespace Fluid.Ast
                     // Evaluate assign statements in the new scope if present
                     if (AssignStatements.Count > 0)
                     {
-                        var length = AssignStatements.Count;
-                        for (var i = 0; i < length; i++)
-                        {
-                            await AssignStatements[i].WriteToAsync(writer, encoder, context);
-                        }
+                        await EvaluateAssignStatementsAsync(AssignStatements, context);
                     }
 
                     await template.RenderAsync(writer, encoder, context);
@@ -128,11 +124,7 @@ namespace Fluid.Ast
                         // Evaluate assign statements in the new scope before the loop if present
                         if (AssignStatements.Count > 0)
                         {
-                            var assignLength = AssignStatements.Count;
-                            for (var j = 0; j < assignLength; j++)
-                            {
-                                await AssignStatements[j].WriteToAsync(writer, encoder, context);
-                            }
+                            await EvaluateAssignStatementsAsync(AssignStatements, context);
                         }
 
                         var length = forloop.Length = list.Count;
@@ -169,11 +161,7 @@ namespace Fluid.Ast
                 }
                 else if (AssignStatements.Count > 0)
                 {
-                    var length = AssignStatements.Count;
-                    for (var i = 0; i < length; i++)
-                    {
-                        await AssignStatements[i].WriteToAsync(writer, encoder, context);
-                    }
+                    await EvaluateAssignStatementsAsync(AssignStatements, context);
 
                     context.LocalScope = new Scope(context.RootScope);
                     previousScope.CopyTo(context.LocalScope);
@@ -198,6 +186,33 @@ namespace Fluid.Ast
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitRenderStatement(this);
+
+        private static async ValueTask EvaluateAssignStatementsAsync(IReadOnlyList<AssignStatement> assignStatements, TemplateContext context)
+        {
+            var length = assignStatements.Count;
+            var evaluatedValues = new KeyValuePair<string, FluidValue>[length];
+
+            for (var i = 0; i < length; i++)
+            {
+                context.IncrementSteps();
+
+                var assignStatement = assignStatements[i];
+                var value = await assignStatement.Value.EvaluateAsync(context);
+
+                if (context.Assigned != null)
+                {
+                    value = await context.Assigned.Invoke(assignStatement.Identifier, value, context);
+                }
+
+                evaluatedValues[i] = new KeyValuePair<string, FluidValue>(assignStatement.Identifier, value);
+            }
+
+            for (var i = 0; i < length; i++)
+            {
+                var entry = evaluatedValues[i];
+                context.SetValue(entry.Key, entry.Value);
+            }
+        }
 
         private sealed record CachedTemplate(IFluidTemplate Template, string Name);
     }
