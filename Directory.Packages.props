@@ -4,7 +4,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>
+    <MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>9.0.13</MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <!-- Global Package References -->
-    <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.102" PrivateAssets="all" />
+    <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.103" PrivateAssets="all" />
     <GlobalPackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" />
     <!-- TFM specific reference since they could lift some framework dependencies -->
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Abstractions" Version="$(MicrosoftExtensionsFileProvidersAbstractionsPackageVersion)" />
@@ -31,7 +31,7 @@
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageVersion Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
     <PackageVersion Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
-    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.3" />
     <!-- Common to all TFMs -->
     <PackageVersion Include="Parlot" Version="1.5.7" />
     <PackageVersion Include="TimeZoneConverter" Version="7.2.0" />
