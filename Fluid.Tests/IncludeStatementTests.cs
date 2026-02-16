@@ -656,6 +656,22 @@ shape: ''";
         }
 
         [Fact]
+        public void RenderTag_NamedArguments_AreEvaluatedBeforeAssignment()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("file.liquid", "{{ value }} {{ key }}");
+
+            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var context = new TemplateContext(options);
+            context.SetValue("value", new { f1 = "Hello", f2 = "World" });
+            _parser.TryParse("{% render 'file', value: value.f1, key: value.f2 %}", out var template);
+
+            var result = template.Render(context);
+
+            Assert.Equal("Hello World", result);
+        }
+
+        [Fact]
         public async Task RenderTag_For_And_NamedArguments()
         {
             var fileProvider = new MockFileProvider();
