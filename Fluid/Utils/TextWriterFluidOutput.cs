@@ -2,7 +2,7 @@ using System.Buffers;
 
 namespace Fluid.Utils
 {
-    public sealed class TextWriterFluidOutput : IFluidOutput, IDisposable
+    public sealed class TextWriterFluidOutput : IFluidOutput, IDisposable, IAsyncDisposable
     {
         private readonly TextWriter _writer;
         private readonly bool _leaveOpen;
@@ -196,6 +196,27 @@ namespace Fluid.Utils
             if (!_leaveOpen)
             {
                 _writer.Dispose();
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_buffer != null)
+            {
+                await FlushAsync();
+
+                var toReturn = _buffer;
+                _buffer = null;
+                _pool.Return(toReturn);
+            }
+
+            if (!_leaveOpen)
+            {
+#if NETSTANDARD2_0
+                _writer.Dispose();
+#else
+                await _writer.DisposeAsync();
+#endif
             }
         }
 
