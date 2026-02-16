@@ -170,6 +170,21 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task ReplaceShouldPreserveStringValueEncodeState()
+        {
+            const string source = "{{ obj.html | replace: 'test', 'content' }}";
+
+            _parser.TryParse(source, out var template, out var error);
+
+            var context = new TemplateContext();
+            context.SetValue("obj", new { html = new StringValue("<div>test</div>", false) });
+
+            var result = await template.RenderAsync(context, HtmlEncoder.Default);
+
+            Assert.Equal("<div>content</div>", result);
+        }
+
+        [Fact]
         public async Task EscapeFilterShouldNotDoubleEncode()
         {
             // Using escape filter with HtmlEncoder should not double-encode
