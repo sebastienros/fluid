@@ -127,11 +127,6 @@ namespace Fluid.Ast
 
                         if (elseIfConditionTask.Result.ToBooleanValue())
                         {
-                            if (elseIf.IsWhitespaceOrCommentOnly)
-                            {
-                                return Statement.NormalCompletion;
-                            }
-
                             var writeTask = elseIf.WriteToAsync(output, encoder, context);
                             if (!writeTask.IsCompletedSuccessfully)
                             {
@@ -144,11 +139,6 @@ namespace Fluid.Ast
 
                     if (Else != null)
                     {
-                        if (Else.IsWhitespaceOrCommentOnly)
-                        {
-                            return Statement.NormalCompletion;
-                        }
-
                         return Else.WriteToAsync(output, encoder, context);
                     }
                 }
