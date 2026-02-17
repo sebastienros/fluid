@@ -231,7 +231,7 @@ Fluid evaluates members lazily, so undefined identifiers can be detected precise
 
 ### Tracking undefined values
 
-To track missing values during template rendering, assign a delegate to `TemplateOptions.Undefined` or `TemplateContext.Undefined`. This delegate is called each time an undefined variable is accessed and receives the variable path and parent object type.
+To track missing values during template rendering, assign a delegate to `TemplateOptions.Undefined` or `TemplateContext.Undefined`. This delegate is called each time an undefined variable is accessed and receives the variable path and parent object type. The `type` argument is `null` when there is no target object (for example, when a global value is missing).
 
 ```csharp
 var missingVariables = new List<string>();

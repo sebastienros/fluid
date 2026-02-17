@@ -104,6 +104,30 @@ public class StrictVariableTests
     }
 
     [Fact]
+    public async Task UndefinedDelegate_ReceivesNestedParentType()
+    {
+        _parser.TryParse("{{ company.Director.Occupation }}", out var template, out var _);
+
+        Type missingType = null;
+        var options = new TemplateOptions
+        {
+            Undefined = (name, type) =>
+            {
+                Assert.Equal("Occupation", name);
+                missingType = type;
+                return ValueTask.FromResult<FluidValue>(NilValue.Instance);
+            }
+        };
+
+        var context = new TemplateContext(options);
+        context.SetValue("company", new Company { Director = new Employee { Firstname = "John" } });
+
+        await template.RenderAsync(context);
+
+        Assert.Equal(typeof(Employee), missingType);
+    }
+
+    [Fact]
     public async Task MultipleMissingVariables_AllCollected()
     {
         _parser.TryParse("{{ var1 }} {{ var2 }} {{ var3 }}", out var template, out var _);
