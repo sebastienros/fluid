@@ -53,9 +53,10 @@ public class StrictVariableTests
         var options = new TemplateOptions();
         var context = new TemplateContext(options);
         var detected = false;
-        context.Undefined = (path) =>
+        context.Undefined = (path, type) =>
         {
             Assert.Equal("nonExistingProperty", path);
+            Assert.Null(type);
             detected = true;
             return ValueTask.FromResult<FluidValue>(NilValue.Instance);
         };
@@ -76,6 +77,54 @@ public class StrictVariableTests
 
         await template.RenderAsync(context);
         Assert.Contains("nonExistingProperty", missingVariables);
+    }
+
+    [Fact]
+    public async Task UndefinedDelegate_ReceivesParentType()
+    {
+        _parser.TryParse("{{ user.nonExistingProperty }}", out var template, out var _);
+
+        Type missingType = null;
+        var options = new TemplateOptions
+        {
+            Undefined = (name, type) =>
+            {
+                Assert.Equal("nonExistingProperty", name);
+                missingType = type;
+                return ValueTask.FromResult<FluidValue>(NilValue.Instance);
+            }
+        };
+
+        var context = new TemplateContext(options);
+        context.SetValue("user", new Person { Firstname = "John" });
+
+        await template.RenderAsync(context);
+
+        Assert.Equal(typeof(Person), missingType);
+    }
+
+    [Fact]
+    public async Task UndefinedDelegate_ReceivesNestedParentType()
+    {
+        _parser.TryParse("{{ company.Director.Occupation }}", out var template, out var _);
+
+        Type missingType = null;
+        var options = new TemplateOptions
+        {
+            Undefined = (name, type) =>
+            {
+                Assert.Equal("Occupation", name);
+                missingType = type;
+                return ValueTask.FromResult<FluidValue>(NilValue.Instance);
+            }
+        };
+
+        var context = new TemplateContext(options);
+        context.SetValue("company", new Company { Director = new Employee { Firstname = "John" } });
+
+        await template.RenderAsync(context);
+
+        Assert.Equal(typeof(Employee), missingType);
     }
 
     [Fact]
@@ -433,9 +482,10 @@ public class StrictVariableTests
         var paths = new List<string>();
         var options = new TemplateOptions
         {
-            Undefined = name =>
+            Undefined = (name, type) =>
             {
                 paths.Add(name);
+                Assert.Null(type);
                 return ValueTask.FromResult<FluidValue>(NilValue.Instance);
             }
         };
@@ -459,9 +509,10 @@ public class StrictVariableTests
         var paths = new List<string>();
         var options = new TemplateOptions
         {
-            Undefined = name =>
+            Undefined = (name, type) =>
             {
                 paths.Add(name);
+                Assert.Null(type);
                 return ValueTask.FromResult<FluidValue>(NilValue.Instance);
             }
         };
@@ -481,7 +532,7 @@ public class StrictVariableTests
 
         var options = new TemplateOptions
         {
-            Undefined = name =>
+            Undefined = (name, type) =>
             {
                 // Return a custom default value for undefined variables
                 return ValueTask.FromResult<FluidValue>(new StringValue($"[{name} not found]"));
@@ -535,7 +586,7 @@ public class StrictVariableTests
 
         var options = new TemplateOptions
         {
-            Undefined = name =>
+            Undefined = (name, type) =>
             {
                 missingVariables.Add(name);
                 return ValueTask.FromResult<FluidValue>(NilValue.Instance);
@@ -545,4 +596,3 @@ public class StrictVariableTests
         return (options, missingVariables);
     }
 }
-
