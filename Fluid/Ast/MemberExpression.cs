@@ -51,7 +51,7 @@ namespace Fluid.Ast
                         {
                             throw new FluidException($"Undefined variable '{firstSegment.GetSegmentName()}'");
                         }
-                        return context.Undefined.Invoke(firstSegment.GetSegmentName());
+                        return context.Undefined.Invoke(firstSegment.GetSegmentName(), null);
                     }
                     if (context.Options.StrictVariables)
                     {
@@ -109,7 +109,7 @@ namespace Fluid.Ast
                         {
                             throw new FluidException($"Undefined variable '{segments[0].GetSegmentName()}'");
                         }
-                        return await context.Undefined.Invoke(segments[0].GetSegmentName());
+                        return await context.Undefined.Invoke(segments[0].GetSegmentName(), null);
                     }
                     if (context.Options.StrictVariables)
                     {

@@ -78,7 +78,7 @@ namespace Fluid.Values
             }
             if (context.Undefined is not null)
             {
-                return context.Undefined.Invoke(name);
+                return context.Undefined.Invoke(name, Value.GetType());
             }
             return NilValue.Instance;
 
@@ -121,7 +121,7 @@ namespace Fluid.Values
                     }
                     if (context.Undefined is not null)
                     {
-                        return await context.Undefined.Invoke(string.Join(".", segments));
+                        return await context.Undefined.Invoke(string.Join(".", segments), target.GetType());
                     }
                     return UndefinedValue.Instance;
                 }

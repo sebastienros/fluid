@@ -231,13 +231,13 @@ Fluid evaluates members lazily, so undefined identifiers can be detected precise
 
 ### Tracking undefined values
 
-To track missing values during template rendering, assign a delegate to `TemplateOptions.Undefined` or `TemplateContext.Undefined`. This delegate is called each time an undefined variable is accessed and receives the variable path as a string parameter.
+To track missing values during template rendering, assign a delegate to `TemplateOptions.Undefined` or `TemplateContext.Undefined`. This delegate is called each time an undefined variable is accessed and receives the variable path and parent object type.
 
 ```csharp
 var missingVariables = new List<string>();
 
 var context = new TemplateContext();
-context.Undefined = name =>
+context.Undefined = (name, type) =>
     {
         missingVariables.Add(name);
         return ValueTask.FromResult<FluidValue>(NilValue.Instance);
@@ -302,7 +302,7 @@ The `Undefined` delegate can return a custom `FluidValue` to provide fallback va
 ```csharp
 var options = new TemplateOptions
 {
-    Undefined = name =>
+    Undefined = (name, type) =>
     {
         // Return a custom default value for undefined variables
         return ValueTask.FromResult<FluidValue>(new StringValue($"[{name} not found]"));
@@ -323,9 +323,9 @@ You can use the `Undefined` delegate to log missing values for debugging or moni
 ```csharp
 var options = new TemplateOptions
 {
-    Undefined = path =>
+    Undefined = (path, type) =>
     {
-        Console.WriteLine($"Missing variable: {path}");
+        Console.WriteLine($"Missing variable: {path}, parent type: {type?.Name ?? "<none>"}");
         return ValueTask.FromResult<FluidValue>(NilValue.Instance);
     }
 };

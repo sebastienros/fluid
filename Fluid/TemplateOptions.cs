@@ -47,8 +47,9 @@ namespace Fluid
         public delegate ValueTask<FluidValue> CapturedDelegate(string identifier, FluidValue value, TemplateContext context);
 
         /// <param name="name">The name of the value that is undefined.</param>
+        /// <param name="type">The type of the parent object whose member is undefined, if any.</param>
         /// <returns>The value to use for the undefined value.</returns>
-        public delegate ValueTask<FluidValue> UndefinedDelegate(string name);
+        public delegate ValueTask<FluidValue> UndefinedDelegate(string name, Type type);
 
         /// <summary>
         /// Represents the method that will handle the template parsed event.
