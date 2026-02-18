@@ -58,7 +58,7 @@ namespace MinimalApis.LiquidViews
                 bufferSize = 16 * 1024;
             }
 
-            await using var output = new TextWriterFluidOutput(sw, bufferSize, leaveOpen: true);
+            await using var output = new TextWriterFluidOutput(sw, bufferSize, leaveOpen: true, allowSynchronousIO: false);
             await fluidViewRenderer.RenderViewAsync(output, viewPath, context);
             await output.FlushAsync();
         }

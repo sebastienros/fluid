@@ -50,7 +50,7 @@ namespace Fluid.ViewEngine
                 bufferSize = 16 * 1024;
             }
 
-            await using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true);
+            await using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true, allowSynchronousIO: false);
             await RenderViewAsync(output, relativePath, context);
             await output.FlushAsync();
         }
@@ -108,7 +108,7 @@ namespace Fluid.ViewEngine
                 bufferSize = 16 * 1024;
             }
 
-            await using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true);
+            await using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true, allowSynchronousIO: false);
             await RenderPartialAsync(output, relativePath, context);
             await output.FlushAsync();
         }

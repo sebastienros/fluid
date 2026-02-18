@@ -6,11 +6,12 @@ namespace Fluid.Utils
     {
         private readonly TextWriter _writer;
         private readonly bool _leaveOpen;
+        private readonly bool _allowSynchronousIO;
         private readonly ArrayPool<char> _pool;
         private char[] _buffer;
         private int _index;
 
-        public TextWriterFluidOutput(TextWriter writer, int bufferSize, bool leaveOpen = false, ArrayPool<char> pool = null)
+        public TextWriterFluidOutput(TextWriter writer, int bufferSize, bool leaveOpen = false, ArrayPool<char> pool = null, bool allowSynchronousIO = true)
         {
             ArgumentNullException.ThrowIfNull(writer);
 
@@ -25,6 +26,7 @@ namespace Fluid.Utils
 
             _writer = writer;
             _leaveOpen = leaveOpen;
+            _allowSynchronousIO = allowSynchronousIO;
             _pool = pool ?? ArrayPool<char>.Shared;
             _buffer = _pool.Rent(bufferSize);
         }
@@ -44,7 +46,7 @@ namespace Fluid.Utils
 
             if (_index >= _buffer.Length)
             {
-                FlushCore();
+                FlushCoreWithPolicy();
             }
         }
 
@@ -60,21 +62,6 @@ namespace Fluid.Utils
             return _buffer.AsSpan(_index);
         }
 
-        public void Write(char value)
-        {
-            if (_index == _buffer.Length)
-            {
-                FlushCore();
-            }
-
-            _buffer[_index++] = value;
-
-            if (_index == _buffer.Length)
-            {
-                FlushCore();
-            }
-        }
-
         public void Write(string value)
         {
             if (string.IsNullOrEmpty(value))
@@ -85,35 +72,12 @@ namespace Fluid.Utils
             // If the payload is larger than the buffer, flush current and write directly.
             if (value.Length >= _buffer.Length)
             {
-                FlushCore();
-                _writer.Write(value);
+                FlushCoreWithPolicy();
+                WriteDirect(value);
                 return;
             }
 
-            var remaining = value.Length;
-            var sourceIndex = 0;
-
-            while (remaining > 0)
-            {
-                var writable = _buffer.Length - _index;
-                if (writable == 0)
-                {
-                    FlushCore();
-                    writable = _buffer.Length;
-                }
-
-                var toCopy = remaining < writable ? remaining : writable;
-                value.CopyTo(sourceIndex, _buffer, _index, toCopy);
-
-                _index += toCopy;
-                sourceIndex += toCopy;
-                remaining -= toCopy;
-
-                if (_index == _buffer.Length)
-                {
-                    FlushCore();
-                }
-            }
+            WriteBuffered(value.AsSpan());
         }
 
         public void Write(char[] buffer, int index, int count)
@@ -128,35 +92,12 @@ namespace Fluid.Utils
             // If the payload is larger than the buffer, flush current and write directly.
             if (count >= _buffer.Length)
             {
-                FlushCore();
-                _writer.Write(buffer, index, count);
+                FlushCoreWithPolicy();
+                WriteDirect(buffer, index, count);
                 return;
             }
 
-            var remaining = count;
-            var sourceIndex = index;
-
-            while (remaining > 0)
-            {
-                var writable = _buffer.Length - _index;
-                if (writable == 0)
-                {
-                    FlushCore();
-                    writable = _buffer.Length;
-                }
-
-                var toCopy = remaining < writable ? remaining : writable;
-                Array.Copy(buffer, sourceIndex, _buffer, _index, toCopy);
-
-                _index += toCopy;
-                sourceIndex += toCopy;
-                remaining -= toCopy;
-
-                if (_index == _buffer.Length)
-                {
-                    FlushCore();
-                }
-            }
+            WriteBuffered(buffer.AsSpan(index, count));
         }
 
         public ValueTask FlushAsync()
@@ -186,7 +127,7 @@ namespace Fluid.Utils
         {
             if (_buffer != null)
             {
-                FlushCore();
+                FlushCoreSync();
 
                 var toReturn = _buffer;
                 _buffer = null;
@@ -233,11 +174,66 @@ namespace Fluid.Utils
 
             if (_buffer.Length - _index < sizeHint)
             {
-                FlushCore();
+                FlushCoreWithPolicy();
             }
         }
 
-        private void FlushCore()
+        // Copies source chars into the internal buffer and flushes when full.
+        // This is the common buffered write path used by string and char[] overloads.
+        private void WriteBuffered(ReadOnlySpan<char> source)
+        {
+            while (!source.IsEmpty)
+            {
+                if (_index == _buffer.Length)
+                {
+                    FlushCoreWithPolicy();
+                }
+
+                var writable = Math.Min(_buffer.Length - _index, source.Length);
+                source.Slice(0, writable).CopyTo(_buffer.AsSpan(_index, writable));
+
+                _index += writable;
+                source = source.Slice(writable);
+            }
+
+            if (_index == _buffer.Length)
+            {
+                FlushCoreWithPolicy();
+            }
+        }
+
+        // Completes an async write from synchronous code paths and preserves original exceptions.
+        private static void CompleteSynchronously(Task task)
+        {
+            if (!task.IsCompletedSuccessfully())
+            {
+                task.GetAwaiter().GetResult();
+            }
+        }
+
+        // Flushes buffered data using the configured IO policy:
+        // sync writes when allowed, async API when synchronous IO is disallowed.
+        private void FlushCoreWithPolicy()
+        {
+            if (_index == 0)
+            {
+                return;
+            }
+
+            if (_allowSynchronousIO)
+            {
+                _writer.Write(_buffer, 0, _index);
+            }
+            else
+            {
+                CompleteSynchronously(_writer.WriteAsync(_buffer, 0, _index));
+            }
+
+            _index = 0;
+        }
+
+        // Always performs a synchronous flush. Used by synchronous Dispose() semantics.
+        private void FlushCoreSync()
         {
             if (_index == 0)
             {
@@ -246,6 +242,32 @@ namespace Fluid.Utils
 
             _writer.Write(_buffer, 0, _index);
             _index = 0;
+        }
+
+        // Writes large string payloads directly to the underlying writer, bypassing the buffer.
+        private void WriteDirect(string value)
+        {
+            if (_allowSynchronousIO)
+            {
+                _writer.Write(value);
+            }
+            else
+            {
+                CompleteSynchronously(_writer.WriteAsync(value));
+            }
+        }
+
+        // Writes large char[] payloads directly to the underlying writer, bypassing the buffer.
+        private void WriteDirect(char[] buffer, int index, int count)
+        {
+            if (_allowSynchronousIO)
+            {
+                _writer.Write(buffer, index, count);
+            }
+            else
+            {
+                CompleteSynchronously(_writer.WriteAsync(buffer, index, count));
+            }
         }
     }
 }

@@ -17,11 +17,6 @@ namespace Fluid
         void Write(string value);
 
         /// <summary>
-        /// Writes a single character to the output.
-        /// </summary>
-        void Write(char value);
-
-        /// <summary>
         /// Writes a range of characters to the output.
         /// </summary>
         void Write(char[] buffer, int index, int count);

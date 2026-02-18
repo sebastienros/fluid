@@ -164,7 +164,7 @@ namespace Fluid.Tests
             using var writer = new StringWriter();
             await using (var output = new TextWriterFluidOutput(writer, bufferSize: 1024, leaveOpen: true))
             {
-                output.Write('A');
+                output.Write("A");
                 await output.FlushAsync();
             }
             
@@ -177,11 +177,11 @@ namespace Fluid.Tests
             using var writer = new StringWriter();
             await using (var output = new TextWriterFluidOutput(writer, bufferSize: 1024, leaveOpen: true))
             {
-                output.Write('H');
-                output.Write('e');
-                output.Write('l');
-                output.Write('l');
-                output.Write('o');
+                output.Write("H");
+                output.Write("e");
+                output.Write("l");
+                output.Write("l");
+                output.Write("o");
                 await output.FlushAsync();
             }
             
@@ -197,7 +197,7 @@ namespace Fluid.Tests
             {
                 for (int i = 0; i < 10; i++)
                 {
-                    output.Write('x');
+                    output.Write("x");
                 }
                 await output.FlushAsync();
             }
@@ -556,6 +556,30 @@ namespace Fluid.Tests
             Assert.True(asyncOnlyWriter.AsyncWriteCount > 0);
         }
 
+        [Fact]
+        public void Write_LargeString_DefaultAllowSynchronousIO_UsesSyncWrite()
+        {
+            var trackingWriter = new TrackingTextWriter();
+            var output = new TextWriterFluidOutput(trackingWriter, bufferSize: 16, leaveOpen: true);
+
+            output.Write(new string('x', 128));
+            output.Dispose();
+
+            Assert.True(trackingWriter.SyncWriteCount > 0);
+        }
+
+        [Fact]
+        public async Task Write_LargeString_WithAllowSynchronousIODisabled_UsesAsyncWrite()
+        {
+            var strictWriter = new StrictAsyncOnlyTextWriter();
+            await using var output = new TextWriterFluidOutput(strictWriter, bufferSize: 16, leaveOpen: true, allowSynchronousIO: false);
+
+            output.Write(new string('x', 128));
+            await output.FlushAsync();
+
+            Assert.Equal(new string('x', 128), strictWriter.ToString());
+        }
+
         /// <summary>
         /// Tests that when content is buffered and sync Dispose is called,
         /// it performs a synchronous flush.
@@ -720,7 +744,7 @@ namespace Fluid.Tests
                 output.Write("Small");
                 output.Write(new string('m', 100)); // Large, direct write
                 output.Write("Tiny");
-                output.Write('!');
+                output.Write("!");
                 await output.FlushAsync();
             }
             

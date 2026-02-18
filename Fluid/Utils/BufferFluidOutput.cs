@@ -59,13 +59,6 @@ namespace Fluid.Utils
             _index += value.Length;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(char value)
-        {
-            EnsureCapacity(1);
-            _buffer[_index++] = value;
-        }
-
         public void Write(char[] buffer, int index, int count)
         {
             ArgumentNullException.ThrowIfNull(buffer);
