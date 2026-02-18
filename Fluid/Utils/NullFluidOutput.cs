@@ -16,8 +16,6 @@ namespace Fluid.Utils
 
         public void Write(string value) { }
 
-        public void Write(char value) { }
-
         public void Write(char[] buffer, int index, int count) { }
 
         public ValueTask FlushAsync() => default;
