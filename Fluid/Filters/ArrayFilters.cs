@@ -193,32 +193,24 @@ namespace Fluid.Filters
                 return ArrayValue.Empty;
             }
 
-            var memberName = member.ToStringValue();
-
-            // Handle objects/hashes: treat them as single-element arrays
-            if (input.Type == FluidValues.Object || input.Type == FluidValues.Dictionary)
+            // Nil/undefined input maps to an empty result.
+            if (input.IsNil())
             {
-                var value = await input.GetValueAsync(memberName, context);
-                return new ArrayValue([value]);
-            }
-
-            // Non-array, non-object inputs should throw an error
-            if (input.Type != FluidValues.Array)
-            {
-                throw new LiquidException("map filter: input must be an array or object");
+                return ArrayValue.Empty;
             }
 
             var list = new List<FluidValue>();
 
-            await foreach (var item in FlattenForMap(input, context))
+            if (input.Type == FluidValues.Array)
             {
-                // Each item must be an object or hash to extract properties from
-                if (item.Type != FluidValues.Object && item.Type != FluidValues.Dictionary)
+                await foreach (var item in FlattenForMap(input, context))
                 {
-                    throw new LiquidException("map filter: all items in the array must be objects");
+                    list.Add(await item.GetIndexAsync(member, context));
                 }
-
-                list.Add(await item.GetValueAsync(memberName, context));
+            }
+            else
+            {
+                list.Add(await input.GetIndexAsync(member, context));
             }
 
             return new ArrayValue(list);

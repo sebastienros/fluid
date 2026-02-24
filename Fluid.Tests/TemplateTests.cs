@@ -894,9 +894,24 @@ turtle
         [Theory]
         [InlineData("{{ products | map: 'price' }}", "123")]
         [InlineData("{{ products | map: 'price' | join: ' ' }}", "1 2 3")]
+        [InlineData("{{ 2 | map: 1 }}", "1")]
+        [InlineData("{{ (1..5) | map: 1 | join: '' }}", "01100")]
+        [InlineData("{{ nosuchthing | map: 'title' | join: '#' }}", "")]
         public Task ShouldProcessMapFilter(string source, string expected)
         {
             return CheckAsync(source, expected, ctx => { ctx.SetValue("products", _products); });
+        }
+
+        [Fact]
+        public async Task MapFilterShouldFailForInvalidNumberSelector()
+        {
+            _parser.TryParse("{{ 2 | map: 'z' }}", out var template, out var error);
+
+            var context = new TemplateContext();
+
+            var exception = await Assert.ThrowsAsync<LiquidException>(async () => await template.RenderAsync(context));
+
+            Assert.Equal("cannot select the property 'z'", exception.Message);
         }
 
         [Theory]
