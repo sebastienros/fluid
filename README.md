@@ -164,12 +164,27 @@ dotnet publish -c Release -r <RID> -p:PublishAot=true
 
 ### Source generation (optional)
 
-When the `Fluid.SourceGenerator` analyzer is enabled, Fluid can generate strongly-typed member accessors from `Register<T...>` calls.
+When the `Fluid.SourceGenerator` analyzer is enabled, Fluid can generate strongly-typed member accessors for explicit profile methods that target a specific `TemplateOptions` instance.
 
-Generated code includes:
+```csharp
+using Fluid;
 
-- A module initializer that registers accessors into `TemplateOptions.Default.MemberAccessStrategy`.
-- An internal `RegisterAll(TemplateOptions options)` helper for custom `TemplateOptions` instances in the same assembly.
+public static partial class FluidProfiles
+{
+    [FluidRegister(typeof(Person))]
+    [FluidRegister(typeof(Address))]
+    public static partial void ApplyPublic(TemplateOptions options);
+}
+```
+
+Use it with any options instance:
+
+```csharp
+var options = new TemplateOptions();
+FluidProfiles.ApplyPublic(options);
+```
+
+This keeps registrations instance-scoped and avoids implicit registration on `TemplateOptions.Default`.
 
 <br>
 

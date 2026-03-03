@@ -4,7 +4,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Xunit;
 
 namespace Fluid.Tests;
@@ -12,7 +11,7 @@ namespace Fluid.Tests;
 public class MemberAccessorGeneratorTests
 {
     [Fact]
-    public void ShouldGenerateMemberAccessRegistrationsFromRegisterInvocation()
+    public void ShouldGenerateProfileMethodImplementationFromFluidRegisterAttributes()
     {
         var source = """
             using Fluid;
@@ -23,15 +22,58 @@ public class MemberAccessorGeneratorTests
                 public int Age;
             }
 
-            public static class Startup
+            public static partial class FluidProfiles
             {
-                public static void Configure(TemplateOptions options)
-                {
-                    options.MemberAccessStrategy.Register<Person, object>((p, name) => p.FirstName);
-                }
+                [FluidRegister(typeof(Person))]
+                public static partial void ApplyPublic(TemplateOptions options);
             }
             """;
 
+        var generated = RunGenerator(source);
+
+        Assert.Contains("internal sealed class FluidRegisterAttribute", generated);
+        Assert.Contains("public static partial void ApplyPublic(global::Fluid.TemplateOptions options)", generated);
+        Assert.Contains("strategy.Register(typeof(global::Person), \"*\", new global::Fluid.SourceGenerated.Person_GeneratedMemberAccessor());", generated);
+        Assert.Contains("comparer.Equals(name, \"FirstName\")", generated);
+        Assert.Contains("comparer.Equals(name, \"Age\")", generated);
+    }
+
+    [Fact]
+    public void ShouldGenerateIndependentProfilesForDifferentTemplateOptionsInstances()
+    {
+        var source = """
+            using Fluid;
+
+            public class PublicModel
+            {
+                public string Title { get; set; } = "";
+            }
+
+            public class AdminModel
+            {
+                public string Secret { get; set; } = "";
+            }
+
+            public static partial class FluidProfiles
+            {
+                [FluidRegister(typeof(PublicModel))]
+                public static partial void ApplyPublic(TemplateOptions options);
+
+                [FluidRegister(typeof(AdminModel))]
+                public static partial void ApplyAdmin(TemplateOptions options);
+            }
+            """;
+
+        var generated = RunGenerator(source);
+
+        Assert.Contains("public static partial void ApplyPublic(global::Fluid.TemplateOptions options)", generated);
+        Assert.Contains("public static partial void ApplyAdmin(global::Fluid.TemplateOptions options)", generated);
+        Assert.Contains("strategy.Register(typeof(global::PublicModel), \"*\", new global::Fluid.SourceGenerated.PublicModel_GeneratedMemberAccessor());", generated);
+        Assert.Contains("strategy.Register(typeof(global::AdminModel), \"*\", new global::Fluid.SourceGenerated.AdminModel_GeneratedMemberAccessor());", generated);
+    }
+
+    private static string RunGenerator(string source)
+    {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
         var compilation = CSharpCompilation.Create(
             "GeneratorInput",
@@ -43,14 +85,8 @@ public class MemberAccessorGeneratorTests
         var driver = CSharpGeneratorDriver.Create(generator).RunGenerators(compilation);
         var runResult = driver.GetRunResult();
 
-        Assert.Single(runResult.GeneratedTrees);
-        var generated = runResult.GeneratedTrees[0].GetText().ToString();
-
-        Assert.Contains("GeneratedMemberAccessRegistrations", generated);
-        Assert.Contains("RegisterAll(global::Fluid.TemplateOptions options)", generated);
-        Assert.Contains("Person_GeneratedMemberAccessor", generated);
-        Assert.Contains("comparer.Equals(name, \"FirstName\")", generated);
-        Assert.Contains("comparer.Equals(name, \"Age\")", generated);
+        Assert.Equal(2, runResult.GeneratedTrees.Length);
+        return string.Join(Environment.NewLine, runResult.GeneratedTrees.Select(static x => x.GetText().ToString()));
     }
 
     private static IEnumerable<MetadataReference> GetMetadataReferences()
