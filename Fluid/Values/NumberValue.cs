@@ -49,6 +49,46 @@ namespace Fluid.Values
             return _value == other.ToNumberValue();
         }
 
+        public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
+        {
+            // Integer bit access (e.g. 2[1] == 1). Non-integer numeric values don't support indexers.
+            if (GetScale(_value) != 0)
+            {
+                return NilValue.Instance;
+            }
+
+            if (index.Type != FluidValues.Number || GetScale(index.ToNumberValue(context)) != 0)
+            {
+                throw new LiquidException($"cannot select the property '{index.ToStringValue(context)}'");
+            }
+
+            var bitIndexAsDecimal = index.ToNumberValue(context);
+
+            if (bitIndexAsDecimal < 0 || bitIndexAsDecimal > int.MaxValue)
+            {
+                return Zero;
+            }
+
+            var bitIndex = (int)bitIndexAsDecimal;
+
+            long number;
+            try
+            {
+                number = decimal.ToInt64(_value);
+            }
+            catch (OverflowException)
+            {
+                return Zero;
+            }
+
+            if (bitIndex >= 63)
+            {
+                return number < 0 ? Create(1) : Zero;
+            }
+
+            return Create((number >> bitIndex) & 1L);
+        }
+
         public override bool ToBooleanValue()
         {
             return true;
