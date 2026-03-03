@@ -88,18 +88,30 @@ namespace Fluid.Filters
 
         public static async ValueTask<FluidValue> Map(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            if (input.Type != FluidValues.Array)
+            var member = arguments.At(0);
+
+            if (member.IsNil())
             {
-                return input;
+                return ArrayValue.Empty;
             }
 
-            var member = arguments.At(0).ToStringValue();
+            if (input.IsNil())
+            {
+                return ArrayValue.Empty;
+            }
 
             var list = new List<FluidValue>();
 
-            foreach (var item in input.Enumerate(context))
+            if (input.Type == FluidValues.Array)
             {
-                list.Add(await item.GetValueAsync(member, context));
+                foreach (var item in input.Enumerate(context))
+                {
+                    list.Add(await item.GetIndexAsync(member, context));
+                }
+            }
+            else
+            {
+                list.Add(await input.GetIndexAsync(member, context));
             }
 
             return new ArrayValue(list);
