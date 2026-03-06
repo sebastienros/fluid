@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -37,6 +38,38 @@ namespace Fluid.Tests
             Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property2), StringComparer.Ordinal));
 
             Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateProperty), StringComparer.Ordinal));
+        }
+
+        [Fact]
+        public void RegisterByTypeUsesAotSafePropertyAccessorWhenDynamicCodeIsUnavailable()
+        {
+            var strategy = new DefaultMemberAccessStrategy();
+            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal);
+
+            if (RuntimeFeature.IsDynamicCodeSupported)
+            {
+                Assert.IsType<PropertyInfoAccessor>(accessor, exactMatch: false);
+            }
+            else
+            {
+                Assert.Equal("ReflectionPropertyInfoAccessor", accessor.GetType().Name);
+            }
+        }
+
+        [Fact]
+        public void RegisterByTypeUsesAotSafeFieldAccessorWhenDynamicCodeIsUnavailable()
+        {
+            var strategy = new DefaultMemberAccessStrategy();
+            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Field1), StringComparer.Ordinal);
+
+            if (RuntimeFeature.IsDynamicCodeSupported)
+            {
+                Assert.IsType<FieldInfoAccessor>(accessor, exactMatch: false);
+            }
+            else
+            {
+                Assert.Equal("ReflectionFieldInfoAccessor", accessor.GetType().Name);
+            }
         }
 
         [Fact]
