@@ -54,7 +54,7 @@ namespace Fluid.Filters
 
             var source = input.ToStringValue().ToCharArray();
 
-            if (char.IsLetter(source[0]))
+            if (source.Length > 0 && char.IsLetter(source[0]))
             {
                 source[0] = char.ToUpper(source[0], context.CultureInfo);
             }
