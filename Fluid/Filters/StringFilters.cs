@@ -54,13 +54,9 @@ namespace Fluid.Filters
 
             var source = input.ToStringValue().ToCharArray();
 
-            for (var i = 0; i < source.Length; i++)
+            if (char.IsLetter(source[0]))
             {
-                char c;
-                if (i == 0 || char.IsWhiteSpace(c = source[i - 1]) || c == '-' || c == '.')
-                {
-                    source[i] = char.ToUpper(source[i], context.CultureInfo);
-                }
+                source[0] = char.ToUpper(source[0], context.CultureInfo);
             }
 
             return CreateStringValue(new string(source), input);
