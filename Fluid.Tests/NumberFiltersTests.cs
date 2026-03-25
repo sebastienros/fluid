@@ -1,6 +1,7 @@
 using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
+using System;
 
 namespace Fluid.Tests
 {
@@ -251,8 +252,6 @@ namespace Fluid.Tests
         [Theory]
         [InlineData(1, 10)]
         [InlineData(-10, -1)]
-        [InlineData(1.5, 10.5)]
-        [InlineData(-10.5, -1.5)]
         public void Random(decimal min, decimal max)
         {
             var input = NumberValue.Create(0);
@@ -263,6 +262,21 @@ namespace Fluid.Tests
             var result = NumberFilters.Random(input, arguments, context);
 
             Assert.InRange(result.Result.ToNumberValue(), min, max);
+        }
+
+        [Theory]
+        [InlineData(10, 1)]
+        [InlineData(-1, -10)]
+        public void Random_ThrowsException_IfMinimumIsGreaterThanMaximum(decimal min, decimal max)
+        {
+            var input = NumberValue.Create(0);
+
+            var arguments = new FilterArguments([NumberValue.Create(min), NumberValue.Create(max)]);
+            var context = new TemplateContext();
+
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => NumberFilters.Random(input, arguments, context));
+
+            Assert.Equal("'minValue' cannot be greater than maxValue. (Parameter 'minValue')", exception.Message);
         }
     }
 }
