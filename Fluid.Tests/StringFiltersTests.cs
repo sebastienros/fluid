@@ -31,7 +31,7 @@ namespace Fluid.Tests
 
             var result = StringFilters.Capitalize(input, arguments, context);
 
-            Assert.Equal("Hello World", result.Result.ToStringValue());
+            Assert.Equal("Hello world", result.Result.ToStringValue());
         }
 
         [Fact]
