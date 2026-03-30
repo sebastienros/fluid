@@ -39,7 +39,7 @@
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="DotLiquid" Version="2.3.197" />
     <PackageVersion Include="Liquid.NET" Version="0.10.0" />
-    <PackageVersion Include="Scriban" Version="7.0.0" />
+    <PackageVersion Include="Scriban" Version="7.0.6" />
     <PackageVersion Include="Handlebars.Net" Version="2.1.6" />
     <!-- Testing -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
