@@ -34,6 +34,7 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 ## Contents
 - [Features](#features)
 - [Using Fluid in your project](#using-fluid-in-your-project)
+- [NativeAOT and trimming](#nativeaot-and-trimming)
 - [Allow-listing object members](#allow-listing-object-members)
 - [Handling undefined variables](#handling-undefined-variables)
 - [Execution limits](#execution-limits)
@@ -140,6 +141,50 @@ A `FluidParser` instance is thread-safe and should be shared by the whole applic
 An `IFluidTemplate` instance is thread-safe and can be cached and reused by multiple threads concurrently.
 
 A `TemplateContext` instance is __not__ thread-safe, and a new instance should be created every time an `IFluidTemplate` instance is used.
+
+<br>
+
+## NativeAOT and trimming
+
+Fluid works when targeting NativeAOT and trimmed deployments.
+
+- If dynamic code is not supported at runtime, Fluid automatically switches to reflection-based member accessors.
+- Existing `MemberAccessStrategy.Register<T...>` APIs are preserved.
+- No interceptor setup is required.
+
+### Recommended usage when targeting NativeAOT
+
+1. Reuse `TemplateOptions` instances (for example, at app startup).
+2. Keep your `MemberAccessStrategy.Register<T...>` calls in reachable startup code.
+3. Validate your app with AOT/trim publish settings:
+
+```shell
+dotnet publish -c Release -r <RID> -p:PublishAot=true
+```
+
+### Source generation (optional)
+
+When the `Fluid.SourceGenerator` analyzer is enabled, Fluid can generate strongly-typed member accessors for explicit profile methods that target a specific `TemplateOptions` instance.
+
+```csharp
+using Fluid;
+
+public static partial class FluidProfiles
+{
+    [FluidRegister(typeof(Person))]
+    [FluidRegister(typeof(Address))]
+    public static partial void ApplyPublic(TemplateOptions options);
+}
+```
+
+Use it with any options instance:
+
+```csharp
+var options = new TemplateOptions();
+FluidProfiles.ApplyPublic(options);
+```
+
+This keeps registrations instance-scoped and avoids implicit registration on `TemplateOptions.Default`.
 
 <br>
 
