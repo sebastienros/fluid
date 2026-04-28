@@ -29,8 +29,10 @@ jobs:
 
       - name: Get latest hash from golden-liquid repo
         id: latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LATEST_HASH=$(curl -s "https://api.github.com/repos/jg-rp/golden-liquid/commits?per_page=1" | jq -r '.[0].sha')
+          LATEST_HASH=$(gh api repos/jg-rp/golden-liquid/commits -f per_page=1 --jq '.[0].sha')
           echo "hash=$LATEST_HASH" >> $GITHUB_OUTPUT
           echo "Latest hash: $LATEST_HASH"
 
@@ -91,125 +93,51 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          dispatch_status=$(jq -n --arg ref "${{ steps.create-pr.outputs.pull-request-branch }}" '{ ref: $ref }' | \
-            curl --silent --show-error \
-              --output /tmp/pr-check-dispatch-response.txt \
-              --write-out "%{http_code}" \
-              -X POST \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              -H "Content-Type: application/json" \
-              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/${PR_CHECKS_WORKFLOW}/dispatches" \
-              --data @-)
-
-          if [ "$dispatch_status" != "204" ]; then
-            echo "Failed to dispatch PR checks workflow (HTTP $dispatch_status)."
-            cat /tmp/pr-check-dispatch-response.txt
-            exit 1
-          fi
+          gh workflow run "$PR_CHECKS_WORKFLOW" \
+            --repo "${{ github.repository }}" \
+            --ref "${{ steps.create-pr.outputs.pull-request-branch }}"
 
       - name: Enable auto-merge
         if: steps.check.outputs.needs_update == 'true' && steps.create-pr.outputs.pull-request-number
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          query='
-            query($owner: String!, $repo: String!, $number: Int!) {
-              repository(owner: $owner, name: $repo) {
-                mergeCommitAllowed
-                rebaseMergeAllowed
-                squashMergeAllowed
-                pullRequest(number: $number) {
-                  id
-                  autoMergeRequest {
-                    enabledAt
-                  }
-                }
-              }
-            }
-          '
-
-          variables=$(jq -n \
-            --arg owner "${{ github.repository_owner }}" \
-            --arg repo "${{ github.event.repository.name }}" \
-            --argjson number "${{ steps.create-pr.outputs.pull-request-number }}" \
-            '{ owner: $owner, repo: $repo, number: $number }')
-
-          graphql_status=$(jq -n --arg query "$query" --argjson variables "$variables" '{ query: $query, variables: $variables }' | \
-            curl --silent --show-error \
-              --output /tmp/auto-merge-query-response.json \
-              --write-out "%{http_code}" \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              -H "Content-Type: application/json" \
-              https://api.github.com/graphql \
-              --data @-)
-
-          if [ "$graphql_status" != "200" ]; then
-            echo "Failed to query pull request metadata for auto-merge (HTTP $graphql_status)."
-            cat /tmp/auto-merge-query-response.json
-            exit 1
-          fi
-
-          response=$(cat /tmp/auto-merge-query-response.json)
-
-          if [ "$(echo "$response" | jq -r 'has("errors")')" = "true" ]; then
-            echo "Failed to query pull request metadata for auto-merge."
-            echo "$response" | jq '.errors'
-            exit 1
-          fi
-
-          if [ "$(echo "$response" | jq -r '.data.repository.pullRequest.autoMergeRequest != null')" = "true" ]; then
+          if [ "$(gh pr view "${{ steps.create-pr.outputs.pull-request-number }}" --repo "${{ github.repository }}" --json autoMergeRequest --jq '.autoMergeRequest != null')" = "true" ]; then
             echo "Auto-merge is already enabled."
             exit 0
           fi
 
-          pull_request_id=$(echo "$response" | jq -r '.data.repository.pullRequest.id')
-          merge_method=$(echo "$response" | jq -r '
-            if .data.repository.squashMergeAllowed then "SQUASH"
-            elif .data.repository.rebaseMergeAllowed then "REBASE"
-            elif .data.repository.mergeCommitAllowed then "MERGE"
-            else empty
-            end')
+          merge_method=$(gh repo view "${{ github.repository }}" \
+            --json viewerDefaultMergeMethod,squashMergeAllowed,rebaseMergeAllowed,mergeCommitAllowed \
+            --jq '
+              if (.viewerDefaultMergeMethod // "") != "" then .viewerDefaultMergeMethod
+              elif .squashMergeAllowed then "SQUASH"
+              elif .rebaseMergeAllowed then "REBASE"
+              elif .mergeCommitAllowed then "MERGE"
+              else ""
+              end')
 
-          if [ -z "$pull_request_id" ] || [ -z "$merge_method" ]; then
-            echo "Unable to determine PR id or allowed merge method."
-            exit 1
-          fi
+          case "$merge_method" in
+            SQUASH)
+              merge_flag="--squash"
+              ;;
+            REBASE)
+              merge_flag="--rebase"
+              ;;
+            MERGE)
+              merge_flag="--merge"
+              ;;
+            "")
+              echo "Unable to determine an allowed merge method."
+              exit 1
+              ;;
+            *)
+              echo "Unsupported merge method: $merge_method"
+              exit 1
+              ;;
+          esac
 
-          mutation='
-            mutation($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
-              enablePullRequestAutoMerge(input: { pullRequestId: $pullRequestId, mergeMethod: $mergeMethod }) {
-                clientMutationId
-              }
-            }
-          '
-
-          mutation_variables=$(jq -n \
-            --arg pullRequestId "$pull_request_id" \
-            --arg mergeMethod "$merge_method" \
-            '{ pullRequestId: $pullRequestId, mergeMethod: $mergeMethod }')
-
-          mutation_status=$(jq -n --arg query "$mutation" --argjson variables "$mutation_variables" '{ query: $query, variables: $variables }' | \
-            curl --silent --show-error \
-              --output /tmp/auto-merge-mutation-response.json \
-              --write-out "%{http_code}" \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              -H "Content-Type: application/json" \
-              https://api.github.com/graphql \
-              --data @-)
-
-          if [ "$mutation_status" != "200" ]; then
-            echo "Failed to enable auto-merge for the pull request (HTTP $mutation_status)."
-            cat /tmp/auto-merge-mutation-response.json
-            exit 1
-          fi
-
-          mutation_response=$(cat /tmp/auto-merge-mutation-response.json)
-
-          if [ "$(echo "$mutation_response" | jq -r 'has("errors")')" = "true" ]; then
-            echo "Failed to enable auto-merge for the pull request."
-            echo "$mutation_response" | jq '.errors'
-            exit 1
-          fi
+          gh pr merge "${{ steps.create-pr.outputs.pull-request-number }}" \
+            --repo "${{ github.repository }}" \
+            --auto \
+            "$merge_flag"
