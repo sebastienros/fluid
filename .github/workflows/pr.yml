@@ -7,6 +7,7 @@ on:
     paths-ignore:
     - 'doc/**'
     - 'readme.md'
+  workflow_dispatch:
 
 jobs:
   build:

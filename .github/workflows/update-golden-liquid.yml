@@ -10,6 +10,7 @@ jobs:
   check-and-update:
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
       pull-requests: write
 
@@ -56,6 +57,7 @@ jobs:
           echo "Cache will be refreshed automatically (filename includes hash)"
 
       - name: Create Pull Request
+        id: create-pr
         if: steps.check.outputs.needs_update == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
@@ -81,3 +83,91 @@ jobs:
           labels: |
             dependencies
             automated
+
+      - name: Trigger PR checks
+        if: steps.check.outputs.needs_update == 'true' && steps.create-pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          jq -n --arg ref "${{ steps.create-pr.outputs.pull-request-branch }}" '{ ref: $ref }' | \
+            curl --fail --silent --show-error \
+              -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Content-Type: application/json" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/pr.yml/dispatches" \
+              --data @-
+
+      - name: Enable auto-merge
+        if: steps.check.outputs.needs_update == 'true' && steps.create-pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          query='
+            query($owner: String!, $repo: String!, $number: Int!) {
+              repository(owner: $owner, name: $repo) {
+                mergeCommitAllowed
+                rebaseMergeAllowed
+                squashMergeAllowed
+                pullRequest(number: $number) {
+                  id
+                  autoMergeRequest {
+                    enabledAt
+                  }
+                }
+              }
+            }
+          '
+
+          variables=$(jq -n \
+            --arg owner "${{ github.repository_owner }}" \
+            --arg repo "${{ github.event.repository.name }}" \
+            --argjson number "${{ steps.create-pr.outputs.pull-request-number }}" \
+            '{ owner: $owner, repo: $repo, number: $number }')
+
+          response=$(jq -n --arg query "$query" --argjson variables "$variables" '{ query: $query, variables: $variables }' | \
+            curl --fail --silent --show-error \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Content-Type: application/json" \
+              https://api.github.com/graphql \
+              --data @-)
+
+          if [ "$(echo "$response" | jq -r '.data.repository.pullRequest.autoMergeRequest != null')" = "true" ]; then
+            echo "Auto-merge is already enabled."
+            exit 0
+          fi
+
+          pull_request_id=$(echo "$response" | jq -r '.data.repository.pullRequest.id')
+          merge_method=$(echo "$response" | jq -r '
+            if .data.repository.squashMergeAllowed then "SQUASH"
+            elif .data.repository.rebaseMergeAllowed then "REBASE"
+            elif .data.repository.mergeCommitAllowed then "MERGE"
+            else empty
+            end')
+
+          if [ -z "$pull_request_id" ] || [ -z "$merge_method" ]; then
+            echo "Unable to determine PR id or allowed merge method."
+            exit 1
+          fi
+
+          mutation='
+            mutation($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
+              enablePullRequestAutoMerge(input: { pullRequestId: $pullRequestId, mergeMethod: $mergeMethod }) {
+                clientMutationId
+              }
+            }
+          '
+
+          mutation_variables=$(jq -n \
+            --arg pullRequestId "$pull_request_id" \
+            --arg mergeMethod "$merge_method" \
+            '{ pullRequestId: $pullRequestId, mergeMethod: $mergeMethod }')
+
+          jq -n --arg query "$mutation" --argjson variables "$mutation_variables" '{ query: $query, variables: $variables }' | \
+            curl --fail --silent --show-error \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Content-Type: application/json" \
+              https://api.github.com/graphql \
+              --data @-
