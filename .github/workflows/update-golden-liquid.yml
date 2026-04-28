@@ -108,10 +108,9 @@ jobs:
           fi
 
           merge_method=$(gh repo view "${{ github.repository }}" \
-            --json viewerDefaultMergeMethod,squashMergeAllowed,rebaseMergeAllowed,mergeCommitAllowed \
+            --json squashMergeAllowed,rebaseMergeAllowed,mergeCommitAllowed \
             --jq '
-              if (.viewerDefaultMergeMethod // "") != "" then .viewerDefaultMergeMethod
-              elif .squashMergeAllowed then "SQUASH"
+              if .squashMergeAllowed then "SQUASH"
               elif .rebaseMergeAllowed then "REBASE"
               elif .mergeCommitAllowed then "MERGE"
               else ""
