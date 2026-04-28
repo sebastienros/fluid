@@ -10,8 +10,11 @@ jobs:
   check-and-update:
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
       pull-requests: write
+    env:
+      PR_CHECKS_WORKFLOW: pr.yml
 
     steps:
       - name: Checkout repository
@@ -26,8 +29,10 @@ jobs:
 
       - name: Get latest hash from golden-liquid repo
         id: latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LATEST_HASH=$(curl -s "https://api.github.com/repos/jg-rp/golden-liquid/commits?per_page=1" | jq -r '.[0].sha')
+          LATEST_HASH=$(gh api repos/jg-rp/golden-liquid/commits -f per_page=1 --jq '.[0].sha')
           echo "hash=$LATEST_HASH" >> $GITHUB_OUTPUT
           echo "Latest hash: $LATEST_HASH"
 
@@ -56,6 +61,7 @@ jobs:
           echo "Cache will be refreshed automatically (filename includes hash)"
 
       - name: Create Pull Request
+        id: create-pr
         if: steps.check.outputs.needs_update == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
@@ -81,3 +87,62 @@ jobs:
           labels: |
             dependencies
             automated
+
+      - name: Trigger PR checks
+        if: steps.check.outputs.needs_update == 'true' && steps.create-pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run "$PR_CHECKS_WORKFLOW" \
+            --repo "${{ github.repository }}" \
+            --ref "${{ steps.create-pr.outputs.pull-request-branch }}"
+
+      - name: Enable auto-merge
+        if: steps.check.outputs.needs_update == 'true' && steps.create-pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          auto_merge_request=$(gh pr view "${{ steps.create-pr.outputs.pull-request-number }}" \
+            --repo "${{ github.repository }}" \
+            --json autoMergeRequest \
+            --jq '.autoMergeRequest // empty')
+
+          if [ -n "$auto_merge_request" ]; then
+            echo "Auto-merge is already enabled."
+            exit 0
+          fi
+
+          merge_method=$(gh repo view "${{ github.repository }}" \
+            --json squashMergeAllowed,rebaseMergeAllowed,mergeCommitAllowed \
+            --jq '
+              # Priority order: SQUASH > REBASE > MERGE.
+              if .squashMergeAllowed then "SQUASH"
+              elif .rebaseMergeAllowed then "REBASE"
+              elif .mergeCommitAllowed then "MERGE"
+              else ""
+              end')
+
+          case "$merge_method" in
+            SQUASH)
+              merge_flag="--squash"
+              ;;
+            REBASE)
+              merge_flag="--rebase"
+              ;;
+            MERGE)
+              merge_flag="--merge"
+              ;;
+            "")
+              echo "Unable to determine an allowed merge method."
+              exit 1
+              ;;
+            *)
+              echo "Unsupported merge method: $merge_method"
+              exit 1
+              ;;
+          esac
+
+          gh pr merge "${{ steps.create-pr.outputs.pull-request-number }}" \
+            --repo "${{ github.repository }}" \
+            --auto \
+            "$merge_flag"
