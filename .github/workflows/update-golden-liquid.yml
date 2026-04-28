@@ -89,14 +89,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          jq -n --arg ref "${{ steps.create-pr.outputs.pull-request-branch }}" '{ ref: $ref }' | \
-            curl --fail --silent --show-error \
+          dispatch_status=$(jq -n --arg ref "${{ steps.create-pr.outputs.pull-request-branch }}" '{ ref: $ref }' | \
+            curl --silent --show-error \
+              --output /tmp/pr-check-dispatch-response.txt \
+              --write-out "%{http_code}" \
               -X POST \
               -H "Authorization: Bearer $GH_TOKEN" \
               -H "Accept: application/vnd.github+json" \
               -H "Content-Type: application/json" \
               "https://api.github.com/repos/${{ github.repository }}/actions/workflows/pr.yml/dispatches" \
-              --data @-
+              --data @-)
+
+          if [ "$dispatch_status" != "204" ]; then
+            echo "Failed to dispatch PR checks workflow (HTTP $dispatch_status)."
+            cat /tmp/pr-check-dispatch-response.txt
+            exit 1
+          fi
 
       - name: Enable auto-merge
         if: steps.check.outputs.needs_update == 'true' && steps.create-pr.outputs.pull-request-number
@@ -133,6 +141,12 @@ jobs:
               https://api.github.com/graphql \
               --data @-)
 
+          if [ "$(echo "$response" | jq -r 'has("errors")')" = "true" ]; then
+            echo "Failed to query pull request metadata for auto-merge."
+            echo "$response" | jq '.errors'
+            exit 1
+          fi
+
           if [ "$(echo "$response" | jq -r '.data.repository.pullRequest.autoMergeRequest != null')" = "true" ]; then
             echo "Auto-merge is already enabled."
             exit 0
@@ -164,10 +178,16 @@ jobs:
             --arg mergeMethod "$merge_method" \
             '{ pullRequestId: $pullRequestId, mergeMethod: $mergeMethod }')
 
-          jq -n --arg query "$mutation" --argjson variables "$mutation_variables" '{ query: $query, variables: $variables }' | \
+          mutation_response=$(jq -n --arg query "$mutation" --argjson variables "$mutation_variables" '{ query: $query, variables: $variables }' | \
             curl --fail --silent --show-error \
               -H "Authorization: Bearer $GH_TOKEN" \
               -H "Accept: application/vnd.github+json" \
               -H "Content-Type: application/json" \
               https://api.github.com/graphql \
-              --data @-
+              --data @-)
+
+          if [ "$(echo "$mutation_response" | jq -r 'has("errors")')" = "true" ]; then
+            echo "Failed to enable auto-merge for the pull request."
+            echo "$mutation_response" | jq '.errors'
+            exit 1
+          fi
