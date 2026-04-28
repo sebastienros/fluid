@@ -102,7 +102,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "$(gh pr view "${{ steps.create-pr.outputs.pull-request-number }}" --repo "${{ github.repository }}" --json autoMergeRequest --jq '.autoMergeRequest != null')" = "true" ]; then
+          if [ -n "$(gh pr view "${{ steps.create-pr.outputs.pull-request-number }}" --repo "${{ github.repository }}" --json autoMergeRequest --jq '.autoMergeRequest // empty')" ]; then
             echo "Auto-merge is already enabled."
             exit 0
           fi
@@ -110,6 +110,7 @@ jobs:
           merge_method=$(gh repo view "${{ github.repository }}" \
             --json squashMergeAllowed,rebaseMergeAllowed,mergeCommitAllowed \
             --jq '
+              # Prefer non-merge-commit strategies when multiple merge methods are allowed.
               if .squashMergeAllowed then "SQUASH"
               elif .rebaseMergeAllowed then "REBASE"
               elif .mergeCommitAllowed then "MERGE"
