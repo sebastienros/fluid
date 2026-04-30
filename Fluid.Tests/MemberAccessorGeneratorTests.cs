@@ -20,6 +20,8 @@ public class MemberAccessorGeneratorTests
             {
                 public string FirstName { get; set; } = "";
                 public int Age;
+                public System.Threading.Tasks.Task Loaded() => System.Threading.Tasks.Task.CompletedTask;
+                public System.Threading.Tasks.ValueTask Initialized() => System.Threading.Tasks.ValueTask.CompletedTask;
             }
 
             public static partial class FluidProfiles
@@ -36,6 +38,11 @@ public class MemberAccessorGeneratorTests
         Assert.Contains("strategy.Register(typeof(global::Person), \"*\", new global::Fluid.SourceGenerated.Person_GeneratedMemberAccessor());", generated);
         Assert.Contains("comparer.Equals(name, \"FirstName\")", generated);
         Assert.Contains("comparer.Equals(name, \"Age\")", generated);
+        Assert.Contains("var task = typed.Loaded();", generated);
+        Assert.Contains("await task.ConfigureAwait(false);", generated);
+        Assert.Contains("var valueTask = typed.Initialized();", generated);
+        Assert.Contains("await valueTask.ConfigureAwait(false);", generated);
+        Assert.Contains("return null;", generated);
     }
 
     [Fact]

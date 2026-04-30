@@ -526,6 +526,16 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
                     source.Append("                var valueTask = ").Append(member.Expression).AppendLine(";");
                     source.AppendLine("                return await valueTask.ConfigureAwait(false);");
                     break;
+                case AsyncKind.TaskWithoutResult:
+                    source.Append("                var task = ").Append(member.Expression).AppendLine(";");
+                    source.AppendLine("                await task.ConfigureAwait(false);");
+                    source.AppendLine("                return null;");
+                    break;
+                case AsyncKind.ValueTaskWithoutResult:
+                    source.Append("                var valueTask = ").Append(member.Expression).AppendLine(";");
+                    source.AppendLine("                await valueTask.ConfigureAwait(false);");
+                    source.AppendLine("                return null;");
+                    break;
                 default:
                     source.Append("                return ").Append(member.Expression).AppendLine(";");
                     break;
@@ -693,7 +703,7 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
 
     private static AsyncKind GetAsyncKind(ITypeSymbol type)
     {
-        if (type is not INamedTypeSymbol namedType || !namedType.IsGenericType)
+        if (type is not INamedTypeSymbol namedType)
         {
             return AsyncKind.None;
         }
@@ -706,8 +716,10 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
 
         return namedType.Name switch
         {
-            "Task" => AsyncKind.Task,
-            "ValueTask" => AsyncKind.ValueTask,
+            "Task" when namedType.IsGenericType => AsyncKind.Task,
+            "Task" => AsyncKind.TaskWithoutResult,
+            "ValueTask" when namedType.IsGenericType => AsyncKind.ValueTask,
+            "ValueTask" => AsyncKind.ValueTaskWithoutResult,
             _ => AsyncKind.None
         };
     }
@@ -791,7 +803,9 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
     {
         None,
         Task,
-        ValueTask
+        ValueTask,
+        TaskWithoutResult,
+        ValueTaskWithoutResult
     }
 
     private static readonly string AttributeSource = """
