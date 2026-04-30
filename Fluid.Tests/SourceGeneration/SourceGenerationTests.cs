@@ -140,7 +140,7 @@ namespace Fluid.Tests
 
         private sealed class CustomStatement : Statement
         {
-            public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+            public override ValueTask<Completion> WriteToAsync(IFluidOutput writer, TextEncoder encoder, TemplateContext context)
             {
                 return Normal();
             }

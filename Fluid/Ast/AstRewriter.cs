@@ -424,6 +424,20 @@ namespace Fluid.Ast
             return forStatement;
         }
 
+        protected internal override Statement VisitTableRowStatement(TableRowStatement tableRowStatement)
+        {
+            if (TryRewriteExpression(tableRowStatement.Source, out var newSource) |
+                TryRewriteExpression(tableRowStatement.Limit, out var newLimit) |
+                TryRewriteExpression(tableRowStatement.Offset, out var newOffset) |
+                TryRewriteExpression(tableRowStatement.Cols, out var newCols) |
+                TryRewriteStatements(tableRowStatement.Statements, out var newStatements))
+            {
+                return new TableRowStatement(newStatements.ToList(), tableRowStatement.Identifier, newSource, newLimit, newOffset, newCols);
+            }
+
+            return tableRowStatement;
+        }
+
         protected internal override Statement VisitFromStatement(FromStatement fromStatement)
         {
             if (TryRewriteExpression(fromStatement.Path, out var newPath))
@@ -445,6 +459,16 @@ namespace Fluid.Ast
             }
 
             return ifStatement;
+        }
+
+        protected internal override Statement VisitIfChangedStatement(IfChangedStatement ifChangedStatement)
+        {
+            if (TryRewriteStatements(ifChangedStatement.Statements, out var newStatements))
+            {
+                return new IfChangedStatement(newStatements.ToList());
+            }
+
+            return ifChangedStatement;
         }
 
         protected internal override Statement VisitIncludeStatement(IncludeStatement includeStatement)
@@ -573,11 +597,14 @@ namespace Fluid.Ast
 
         protected internal override Statement VisitUnlessStatement(UnlessStatement unlessStatement)
         {
+            var rewriteElseIfs = TryRewriteStatements<ElseIfStatement>(unlessStatement.ElseIfs, out var newElseIfs);
+
             if (TryRewriteExpression(unlessStatement.Condition, out var newCondition) |
                 TryRewriteStatement(unlessStatement.Else, out var newElse) |
-                TryRewriteStatements(unlessStatement.Statements, out var newStatements))
+                TryRewriteStatements(unlessStatement.Statements, out var newStatements) |
+                rewriteElseIfs)
             {
-                return new UnlessStatement(newCondition, newStatements.ToList(), newElse);
+                return new UnlessStatement(newCondition, newStatements.ToList(), newElse, newElseIfs?.ToList());
             }
             return unlessStatement;
         }

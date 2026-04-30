@@ -548,17 +548,17 @@ namespace Fluid.Filters
             {
                 if (!IsHexadecimal(red))
                 {
-                    ExceptionHelper.ThrowArgumentNullException(nameof(red), "The red value is not hexadecimal");
+                    ExceptionHelper.ThrowArgumentException(nameof(red), "The red value is not hexadecimal");
                 }
 
                 if (!IsHexadecimal(green))
                 {
-                    ExceptionHelper.ThrowArgumentNullException(nameof(green), "The green value is not hexadecimal");
+                    ExceptionHelper.ThrowArgumentException(nameof(green), "The green value is not hexadecimal");
                 }
 
                 if (!IsHexadecimal(blue))
                 {
-                    ExceptionHelper.ThrowArgumentNullException(nameof(blue), "The blue value is not hexadecimal");
+                    ExceptionHelper.ThrowArgumentException(nameof(blue), "The blue value is not hexadecimal");
                 }
 
                 R = red;

@@ -8,9 +8,21 @@ namespace Fluid.Ast
         protected CaseBlock(IReadOnlyList<Statement> statements)
         {
             Statements = statements ?? [];
+            
+            var isWhitespaceOrCommentOnly = true;
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                if (!Statements[i].IsWhitespaceOrCommentOnly)
+                {
+                    isWhitespaceOrCommentOnly = false;
+                    break;
+                }
+            }
+            IsWhitespaceOrCommentOnly = isWhitespaceOrCommentOnly;
         }
 
         public IReadOnlyList<Statement> Statements { get; }
+        public bool IsWhitespaceOrCommentOnly { get; }
     }
 
     /// <summary>

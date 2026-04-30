@@ -11,15 +11,21 @@ namespace Fluid.Ast
         private readonly Lock _synLock = new();
         private TextSpan _text;
         internal string _preparedBuffer;
+        private readonly bool _isWhitespaceOrCommentOnly;
 
         public TextSpanStatement(in TextSpan text)
         {
             _text = text;
+
+            #if NET6_0_OR_GREATER
+                _isWhitespaceOrCommentOnly = _text.Span.IsWhiteSpace();
+            #else
+                _isWhitespaceOrCommentOnly = string.IsNullOrWhiteSpace(_text.ToString());
+            #endif
         }
 
-        public TextSpanStatement(string text)
+        public TextSpanStatement(string text) : this(new TextSpan(text))
         {
-            _text = new TextSpan(text);
         }
 
         public bool StripLeft { get; set; }
@@ -34,6 +40,7 @@ namespace Fluid.Ast
 
         public string Buffer => _preparedBuffer;
 
+        public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
         public void PrepareBuffer(TemplateOptions options)
         {
             if (_isBufferPrepared)
@@ -146,7 +153,7 @@ namespace Fluid.Ast
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitTextSpanStatement(this);
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             if (!_isBufferPrepared)
             {
@@ -155,28 +162,16 @@ namespace Fluid.Ast
 
             if (_preparedBuffer == "")
             {
-                return new ValueTask<Completion>(Completion.Normal);
+                return Statement.NormalCompletion;
             }
 
             context.IncrementSteps();
 
             // The Text fragments are not encoded, but kept as-is
 
-            // Since WriteAsync needs an actual buffer, we created and reused _buffer
+            output.Write(_preparedBuffer);
 
-            static async ValueTask<Completion> Awaited(Task task)
-            {
-                await task;
-                return Completion.Normal;
-            }
-
-            var task = writer.WriteAsync(_preparedBuffer);
-            if (!task.IsCompletedSuccessfully())
-            {
-                return Awaited(task);
-            }
-
-            return new ValueTask<Completion>(Completion.Normal);
+            return Statement.NormalCompletion;
         }
 
         public void WriteTo(SourceGenerationContext context)

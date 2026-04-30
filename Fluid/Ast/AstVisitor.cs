@@ -321,6 +321,21 @@ namespace Fluid.Ast
             return forStatement;
         }
 
+        protected internal virtual Statement VisitTableRowStatement(TableRowStatement tableRowStatement)
+        {
+            Visit(tableRowStatement.Source);
+            Visit(tableRowStatement.Limit);
+            Visit(tableRowStatement.Offset);
+            Visit(tableRowStatement.Cols);
+
+            foreach (var statement in tableRowStatement.Statements)
+            {
+                Visit(statement);
+            }
+
+            return tableRowStatement;
+        }
+
         protected internal virtual Statement VisitFromStatement(FromStatement fromStatement)
         {
             Visit(fromStatement.Path);
@@ -344,6 +359,16 @@ namespace Fluid.Ast
             }
 
             return ifStatement;
+        }
+
+        protected internal virtual Statement VisitIfChangedStatement(IfChangedStatement ifChangedStatement)
+        {
+            foreach (var statement in ifChangedStatement.Statements)
+            {
+                Visit(statement);
+            }
+
+            return ifChangedStatement;
         }
 
         protected internal virtual Statement VisitIncludeStatement(IncludeStatement includeStatement)
@@ -463,6 +488,12 @@ namespace Fluid.Ast
         protected internal virtual Statement VisitUnlessStatement(UnlessStatement unlessStatement)
         {
             Visit(unlessStatement.Condition);
+
+            foreach (var elseIf in unlessStatement.ElseIfs)
+            {
+                Visit(elseIf);
+            }
+
             Visit(unlessStatement.Else);
 
             foreach (var statement in unlessStatement.Statements)

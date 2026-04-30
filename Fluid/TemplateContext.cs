@@ -3,6 +3,8 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Fluid.Values;
 
+#nullable enable
+
 namespace Fluid
 {
     public class TemplateContext
@@ -25,10 +27,7 @@ namespace Fluid
         /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
         public TemplateContext(object model, TemplateOptions options, bool allowModelMembers = true) : this(options)
         {
-            if (model == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(model));
-            }
+            ArgumentNullException.ThrowIfNull(model);
 
             if (model is FluidValue fluidValue)
             {
@@ -46,7 +45,7 @@ namespace Fluid
         /// </summary>
         /// <param name="options">The template options.</param>
         /// <param name="modelNamesComparer">An optional <see cref="StringComparer"/> instance used when comparing model names.</param>
-        public TemplateContext(TemplateOptions options, StringComparer modelNamesComparer = null)
+        public TemplateContext(TemplateOptions options, StringComparer? modelNamesComparer = null)
         {
             modelNamesComparer ??= options.ModelNamesComparer;
 
@@ -70,12 +69,9 @@ namespace Fluid
         /// <param name="model">The model.</param>
         /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
         /// <param name="modelNamesComparer">An optional <see cref="StringComparer"/> instance used when comparing model names.</param>
-        public TemplateContext(object model, bool allowModelMembers = true, StringComparer modelNamesComparer = null) : this(TemplateOptions.Default, modelNamesComparer)
+        public TemplateContext(object model, bool allowModelMembers = true, StringComparer? modelNamesComparer = null) : this(TemplateOptions.Default, modelNamesComparer)
         {
-            if (model == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(model));
-            }
+            ArgumentNullException.ThrowIfNull(model);
 
             if (model is FluidValue fluidValue)
             {
@@ -155,7 +151,7 @@ namespace Fluid
         /// Gets or sets a model object that is used to resolve properties in a template. This object is used if local and
         /// global scopes are unsuccessful.
         /// </summary>
-        public FluidValue Model { get; }
+        public FluidValue Model { get; } = NilValue.Instance;
 
         /// <summary>
         /// Whether the direct properties of the Model can be accessed without being registered. Default is <code>true</code>.

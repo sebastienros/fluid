@@ -84,7 +84,7 @@ namespace Fluid.SourceGeneration
                 ctx.WriteLine("{");
                 using (ctx.Indent())
                 {
-                    ctx.WriteLine("public async ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)");
+                    ctx.WriteLine("public async ValueTask RenderAsync(IFluidOutput writer, TextEncoder encoder, TemplateContext context)");
                     ctx.WriteLine("{");
                     using (ctx.Indent())
                     {
@@ -150,7 +150,7 @@ namespace Fluid.SourceGeneration
                             var methodName = ctx.GetStatementMethodName(statement);
 
                             ctx.WriteLine();
-                            ctx.WriteLine($"private static async ValueTask<Completion> {methodName}(TextWriter writer, TextEncoder encoder, TemplateContext context)");
+                            ctx.WriteLine($"private static async ValueTask<Completion> {methodName}(IFluidOutput writer, TextEncoder encoder, TemplateContext context)");
                             ctx.WriteLine("{");
                             using (ctx.Indent())
                             {

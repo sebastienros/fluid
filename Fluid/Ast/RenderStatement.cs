@@ -30,7 +30,7 @@ namespace Fluid.Ast
         public Expression For { get; }
         public string Alias { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
@@ -106,22 +106,23 @@ namespace Fluid.Ast
                     // Evaluate assign statements in the new scope if present
                     if (AssignStatements.Count > 0)
                     {
-                        var length = AssignStatements.Count;
-                        for (var i = 0; i < length; i++)
-                        {
-                            await AssignStatements[i].WriteToAsync(writer, encoder, context);
-                        }
+                        await EvaluateAssignStatementsAsync(AssignStatements, context);
                     }
 
-                    await template.RenderAsync(writer, encoder, context);
+                    await template.RenderAsync(output, encoder, context);
                 }
                 else if (For != null)
                 {
                     try
                     {
-                        var forloop = new ForLoopValue();
+                        var forloop = new ForLoopValue { IsRenderLoop = true };
 
-                        var list = await (await For.EvaluateAsync(context)).EnumerateAsync(context).ToListAsync();
+                        var evaluatedFor = await For.EvaluateAsync(context);
+
+                        // Fast-path: avoid re-enumerating already materialized arrays.
+                        IReadOnlyList<FluidValue> list = evaluatedFor is ArrayValue array
+                            ? array.Values
+                            : await evaluatedFor.EnumerateAsync(context).ToListAsync();
 
                         context.LocalScope = new Scope(context.RootScope);
                         previousScope.CopyTo(context.LocalScope);
@@ -129,11 +130,7 @@ namespace Fluid.Ast
                         // Evaluate assign statements in the new scope before the loop if present
                         if (AssignStatements.Count > 0)
                         {
-                            var assignLength = AssignStatements.Count;
-                            for (var j = 0; j < assignLength; j++)
-                            {
-                                await AssignStatements[j].WriteToAsync(writer, encoder, context);
-                            }
+                            await EvaluateAssignStatementsAsync(AssignStatements, context);
                         }
 
                         var length = forloop.Length = list.Count;
@@ -156,7 +153,7 @@ namespace Fluid.Ast
                             forloop.First = i == 0;
                             forloop.Last = i == length - 1;
 
-                            await template.RenderAsync(writer, encoder, context);
+                            await template.RenderAsync(output, encoder, context);
 
                             // Restore the forloop property after every statement in case it replaced it,
                             // for instance if it contains a nested for loop
@@ -170,23 +167,19 @@ namespace Fluid.Ast
                 }
                 else if (AssignStatements.Count > 0)
                 {
-                    var length = AssignStatements.Count;
-                    for (var i = 0; i < length; i++)
-                    {
-                        await AssignStatements[i].WriteToAsync(writer, encoder, context);
-                    }
+                    await EvaluateAssignStatementsAsync(AssignStatements, context);
 
                     context.LocalScope = new Scope(context.RootScope);
                     previousScope.CopyTo(context.LocalScope);
 
-                    await template.RenderAsync(writer, encoder, context);
+                    await template.RenderAsync(output, encoder, context);
                 }
                 else
                 {
                     context.LocalScope = new Scope(context.RootScope);
                     previousScope.CopyTo(context.LocalScope);
 
-                    await template.RenderAsync(writer, encoder, context);
+                    await template.RenderAsync(output, encoder, context);
                 }
             }
             finally
@@ -202,6 +195,35 @@ namespace Fluid.Ast
 
         public void WriteTo(SourceGenerationContext context)
         {
+            void EmitEvaluateAssignStatements()
+            {
+                var assignedValueNames = new string[AssignStatements.Count];
+
+                for (var i = 0; i < AssignStatements.Count; i++)
+                {
+                    var assignStatement = AssignStatements[i];
+                    var valueExpr = context.GetExpressionMethodName(assignStatement.Value);
+                    var valueName = context.GetUniqueId("assignedValue");
+                    assignedValueNames[i] = valueName;
+
+                    context.WriteLine($"{context.ContextName}.IncrementSteps();");
+                    context.WriteLine($"var {valueName} = await {valueExpr}({context.ContextName});");
+                    context.WriteLine($"if ({context.ContextName}.Assigned != null)");
+                    context.WriteLine("{");
+                    using (context.Indent())
+                    {
+                        context.WriteLine($"{valueName} = await {context.ContextName}.Assigned.Invoke({SourceGenerationContext.ToCSharpStringLiteral(assignStatement.Identifier)}, {valueName}, {context.ContextName});");
+                    }
+                    context.WriteLine("}");
+                }
+
+                for (var i = 0; i < AssignStatements.Count; i++)
+                {
+                    var assignStatement = AssignStatements[i];
+                    context.WriteLine($"{context.ContextName}.SetValue({SourceGenerationContext.ToCSharpStringLiteral(assignStatement.Identifier)}, {assignedValueNames[i]});");
+                }
+            }
+
             // The referenced template is compiled ahead-of-time and resolved by path.
             var templateTypeName = context.GetRenderTemplateTypeName(Path);
 
@@ -213,6 +235,14 @@ namespace Fluid.Ast
 
             context.WriteLine($"{context.ContextName}.EnterChildScope();");
             context.WriteLine($"var previousScope = {context.ContextName}.LocalScope;");
+            context.WriteLine("var rootScope = previousScope;");
+            context.WriteLine("while (rootScope.Parent != null)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("rootScope = rootScope.Parent;");
+            }
+            context.WriteLine("}");
 
             context.WriteLine("try");
             context.WriteLine("{");
@@ -223,7 +253,7 @@ namespace Fluid.Ast
                     var withExpr = context.GetExpressionMethodName(With);
                     context.WriteLine($"var withValue = await {withExpr}({context.ContextName});");
 
-                    context.WriteLine($"{context.ContextName}.LocalScope = new Scope({context.ContextName}.Options.Scope, false, {context.ContextName}.ModelNamesComparer);");
+                    context.WriteLine($"{context.ContextName}.LocalScope = new Scope(rootScope);");
                     context.WriteLine($"previousScope.CopyTo({context.ContextName}.LocalScope);");
 
                     if (!string.IsNullOrEmpty(Alias))
@@ -237,11 +267,7 @@ namespace Fluid.Ast
 
                     if (AssignStatements.Count > 0)
                     {
-                        for (var i = 0; i < AssignStatements.Count; i++)
-                        {
-                            var assignStmt = context.GetStatementMethodName(AssignStatements[i]);
-                            context.WriteLine($"await {assignStmt}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-                        }
+                        EmitEvaluateAssignStatements();
                     }
 
                     context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
@@ -254,19 +280,21 @@ namespace Fluid.Ast
                     context.WriteLine("{");
                     using (context.Indent())
                     {
-                        context.WriteLine("var forloop = new ForLoopValue();");
-                        context.WriteLine($"var list = await (await {forExpr}({context.ContextName})).EnumerateAsync({context.ContextName}).ToListAsync();");
+                        context.WriteLine("var forloop = new ForLoopValue { IsRenderLoop = true };");
+                        context.WriteLine($"var evaluatedFor = await {forExpr}({context.ContextName});");
+                        context.WriteLine("IReadOnlyList<FluidValue> list = evaluatedFor is ArrayValue array");
+                        using (context.Indent())
+                        {
+                            context.WriteLine("? array.Values");
+                            context.WriteLine($": await evaluatedFor.EnumerateAsync({context.ContextName}).ToListAsync();");
+                        }
 
-                        context.WriteLine($"{context.ContextName}.LocalScope = new Scope({context.ContextName}.Options.Scope, false, {context.ContextName}.ModelNamesComparer);");
+                        context.WriteLine($"{context.ContextName}.LocalScope = new Scope(rootScope);");
                         context.WriteLine($"previousScope.CopyTo({context.ContextName}.LocalScope);");
 
                         if (AssignStatements.Count > 0)
                         {
-                            for (var j = 0; j < AssignStatements.Count; j++)
-                            {
-                                var assignStmt = context.GetStatementMethodName(AssignStatements[j]);
-                                context.WriteLine($"await {assignStmt}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-                            }
+                            EmitEvaluateAssignStatements();
                         }
 
                         context.WriteLine("var length = forloop.Length = list.Count;");
@@ -311,19 +339,15 @@ namespace Fluid.Ast
                 }
                 else if (AssignStatements.Count > 0)
                 {
-                    for (var i = 0; i < AssignStatements.Count; i++)
-                    {
-                        var assignStmt = context.GetStatementMethodName(AssignStatements[i]);
-                        context.WriteLine($"await {assignStmt}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-                    }
+                    EmitEvaluateAssignStatements();
 
-                    context.WriteLine($"{context.ContextName}.LocalScope = new Scope({context.ContextName}.Options.Scope, false, {context.ContextName}.ModelNamesComparer);");
+                    context.WriteLine($"{context.ContextName}.LocalScope = new Scope(rootScope);");
                     context.WriteLine($"previousScope.CopyTo({context.ContextName}.LocalScope);");
                     context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
                 }
                 else
                 {
-                    context.WriteLine($"{context.ContextName}.LocalScope = new Scope({context.ContextName}.Options.Scope, false, {context.ContextName}.ModelNamesComparer);");
+                    context.WriteLine($"{context.ContextName}.LocalScope = new Scope(rootScope);");
                     context.WriteLine($"previousScope.CopyTo({context.ContextName}.LocalScope);");
                     context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
                 }
@@ -339,6 +363,33 @@ namespace Fluid.Ast
             context.WriteLine("}");
 
             context.WriteLine("return Completion.Normal;");
+        }
+
+        private static async ValueTask EvaluateAssignStatementsAsync(IReadOnlyList<AssignStatement> assignStatements, TemplateContext context)
+        {
+            var length = assignStatements.Count;
+            var evaluatedValues = new KeyValuePair<string, FluidValue>[length];
+
+            for (var i = 0; i < length; i++)
+            {
+                context.IncrementSteps();
+
+                var assignStatement = assignStatements[i];
+                var value = await assignStatement.Value.EvaluateAsync(context);
+
+                if (context.Assigned != null)
+                {
+                    value = await context.Assigned.Invoke(assignStatement.Identifier, value, context);
+                }
+
+                evaluatedValues[i] = new KeyValuePair<string, FluidValue>(assignStatement.Identifier, value);
+            }
+
+            for (var i = 0; i < length; i++)
+            {
+                var entry = evaluatedValues[i];
+                context.SetValue(entry.Key, entry.Value);
+            }
         }
 
         private sealed record CachedTemplate(IFluidTemplate Template, string Name);

@@ -79,23 +79,10 @@ namespace Fluid.Values
             return _factory.Value.ToStringValue();
         }
 
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-            var task = _factory.Value.WriteToAsync(writer, encoder, cultureInfo);
-
-            if (task.IsCompletedSuccessfully)
-            {
-                return default;
-            }
-
-            return Awaited(task);
-
-            static async ValueTask Awaited(ValueTask t)
-            {
-                await t;
-                return;
-            }
+            AssertWriteToParameters(output, encoder, cultureInfo);
+            return _factory.Value.WriteToAsync(output, encoder, cultureInfo);
         }
     }
 }

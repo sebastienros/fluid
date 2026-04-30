@@ -5,21 +5,64 @@ namespace Fluid.Ast
 {
     public sealed class ElseStatement : TagStatement, ISourceable
     {
+        private readonly bool _isWhitespaceOrCommentOnly;
+
         public ElseStatement(IReadOnlyList<Statement> statements) : base(statements)
         {
+            _isWhitespaceOrCommentOnly = true;
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                if (!Statements[i].IsWhitespaceOrCommentOnly)
+                {
+                    _isWhitespaceOrCommentOnly = false;
+                    break;
+                }
+            }
         }
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
+
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
+            if (_isWhitespaceOrCommentOnly)
+            {
+                // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
+                for (var i = 0; i < Statements.Count; i++)
+                {
+                    var statement = Statements[i];
+                    
+                    // Skip writing TextSpanStatements (whitespace)
+                    if (statement is TextSpanStatement)
+                    {
+                        continue;
+                    }
+
+                    context.IncrementSteps();
+
+                    var task = statement.WriteToAsync(output, encoder, context);
+                    if (!task.IsCompletedSuccessfully)
+                    {
+                        return Awaited(task, i + 1, output, encoder, context);
+                    }
+
+                    var completion = task.Result;
+                    if (completion != Completion.Normal)
+                    {
+                        return Statement.FromCompletion(completion);
+                    }
+                }
+                return Statement.NormalCompletion;
+            }
+
             for (var i = 0; i < Statements.Count; i++)
             {
                 context.IncrementSteps();
 
-                var task = Statements[i].WriteToAsync(writer, encoder, context);
+            var task = Statements[i].WriteToAsync(output, encoder, context);
 
                 if (!task.IsCompletedSuccessfully)
                 {
-                    return Awaited(task, i + 1, writer, encoder, context);
+                    return Awaited(task, i + 1, output, encoder, context);
                 }
 
                 var completion = task.Result;
@@ -28,17 +71,17 @@ namespace Fluid.Ast
                 {
                     // Stop processing the block statements
                     // We return the completion to flow it to the outer loop
-                    return new ValueTask<Completion>(completion);
+                    return Statement.FromCompletion(completion);
                 }
             }
 
-            return new ValueTask<Completion>(Completion.Normal);
+            return Statement.NormalCompletion;
         }
 
         private async ValueTask<Completion> Awaited(
             ValueTask<Completion> task,
             int startIndex,
-            TextWriter writer,
+            IFluidOutput output,
             TextEncoder encoder,
             TemplateContext context)
         {
@@ -55,7 +98,7 @@ namespace Fluid.Ast
             {
                 context.IncrementSteps();
 
-                completion = await Statements[i].WriteToAsync(writer, encoder, context);
+                completion = await Statements[i].WriteToAsync(output, encoder, context);
 
                 if (completion != Completion.Normal)
                 {

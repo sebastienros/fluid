@@ -9,6 +9,7 @@ namespace Fluid.Values
     public sealed class StringValue : FluidValue, IEquatable<StringValue>
     {
         public static readonly StringValue Empty = new StringValue("");
+        public static readonly StringValue Space = new StringValue(" ");
 
         private static readonly StringValue[] CharToString = new StringValue[256];
 
@@ -123,8 +124,6 @@ namespace Fluid.Values
             return name switch
             {
                 "size" => NumberValue.Create(_value.Length),
-                "first" => _value.Length > 0 ? Create(_value[0]) : NilValue.Instance,
-                "last" => _value.Length > 0 ? Create(_value[^1]) : NilValue.Instance,
                 _ => NilValue.Instance,
             };
         }
@@ -154,44 +153,24 @@ namespace Fluid.Values
             return _value;
         }
 
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
+            AssertWriteToParameters(output, encoder, cultureInfo);
             if (string.IsNullOrEmpty(_value))
             {
                 return default;
             }
 
-            Task task;
-
             if (Encode)
             {
-                // perf: Don't use this overload
-                // encoder.Encode(writer, _value);
-
-                // Use a transient string instead of calling
-                // encoder.Encode(TextWriter) since it would
-                // call writer.Write on each char if the string
-                // has even a single char to encode
-                task = writer.WriteAsync(encoder.Encode(_value));
+                output.Write(encoder, _value);
             }
             else
             {
-                task = writer.WriteAsync(_value);
+                output.Write(_value);
             }
 
-            if (task.IsCompletedSuccessfully())
-            {
-                return default;
-            }
-
-            return Awaited(task);
-
-            static async ValueTask Awaited(Task t)
-            {
-                await t;
-                return;
-            }
+            return default;
         }
 
         public override object ToObjectValue()

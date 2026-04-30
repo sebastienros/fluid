@@ -288,7 +288,11 @@ namespace Fluid.Tests.MvcViewEngine
             await using var sw = new StreamWriter(new NoSyncStream(), bufferSize: 10);
             var template = new TemplateContext(new { BigString = new string(Enumerable.Range(0, 129).Select(x => 'b').ToArray()) });
             await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+#if NET8_0_OR_GREATER
+            await sw.FlushAsync(TestContext.Current.CancellationToken);
+#else
             await sw.FlushAsync();
+#endif
         }
 
         [Fact]
@@ -300,7 +304,31 @@ namespace Fluid.Tests.MvcViewEngine
             await using var sw = new StreamWriter(new NoSyncStream());
             var template = new TemplateContext(new { BigString = new string(Enumerable.Range(0, 1500).Select(_ => 'b').ToArray()) });
             await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+#if NET8_0_OR_GREATER
+            await sw.FlushAsync(TestContext.Current.CancellationToken);
+#else
             await sw.FlushAsync();
+#endif
+        }
+
+        [Fact]
+        public async Task RenderViewOnlyAsyncStream_LargePropertyValue_SmallOutputBuffer()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{{ BigString }}");
+
+            var options = new TemplateOptions
+            {
+                OutputBufferSize = 16
+            };
+
+            await using var sw = new StreamWriter(new NoSyncStream(), bufferSize: 10);
+            var template = new TemplateContext(new { BigString = new string('b', 4096) }, options);
+            await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+#if NET8_0_OR_GREATER
+            await sw.FlushAsync(TestContext.Current.CancellationToken);
+#else
+            await sw.FlushAsync();
+#endif
         }
 
         [Fact]

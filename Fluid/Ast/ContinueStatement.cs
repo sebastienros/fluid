@@ -5,7 +5,9 @@ namespace Fluid.Ast
 {
     public sealed class ContinueStatement : Statement, ISourceable
     {
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override bool IsWhitespaceOrCommentOnly => true;
+
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             return Continue();
         }

@@ -1,0 +1,148 @@
+name: Update Golden Liquid Tests
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  check-and-update:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    env:
+      PR_CHECKS_WORKFLOW: pr.yml
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Get current hash from version file
+        id: current
+        run: |
+          CURRENT_HASH=$(cat .github/golden-liquid-version.txt | tr -d '\n')
+          echo "hash=$CURRENT_HASH" >> $GITHUB_OUTPUT
+          echo "Current hash: $CURRENT_HASH"
+
+      - name: Get latest hash from golden-liquid repo
+        id: latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LATEST_HASH=$(gh api repos/jg-rp/golden-liquid/commits -f per_page=1 --jq '.[0].sha')
+          echo "hash=$LATEST_HASH" >> $GITHUB_OUTPUT
+          echo "Latest hash: $LATEST_HASH"
+
+      - name: Check if update is needed
+        id: check
+        run: |
+          if [ "${{ steps.current.outputs.hash }}" = "${{ steps.latest.outputs.hash }}" ]; then
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+            echo "Already up to date!"
+          else
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "Update needed: ${{ steps.current.outputs.hash }} -> ${{ steps.latest.outputs.hash }}"
+          fi
+
+      - name: Update hash in version file
+        if: steps.check.outputs.needs_update == 'true'
+        run: |
+          echo "${{ steps.latest.outputs.hash }}" > .github/golden-liquid-version.txt
+          echo "Updated .github/golden-liquid-version.txt"
+
+      - name: Delete cached golden liquid file
+        if: steps.check.outputs.needs_update == 'true'
+        run: |
+          # The test file caches the JSON locally, so we need to ensure it gets re-downloaded
+          # This is handled automatically since the filename includes the hash
+          echo "Cache will be refreshed automatically (filename includes hash)"
+
+      - name: Create Pull Request
+        id: create-pr
+        if: steps.check.outputs.needs_update == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update Golden Liquid tests to ${{ steps.latest.outputs.hash }}"
+          title: "Update Golden Liquid tests"
+          body: |
+            This PR updates the Golden Liquid test suite to the latest version.
+
+            **Changes:**
+            - Updated from `${{ steps.current.outputs.hash }}` to `${{ steps.latest.outputs.hash }}`
+
+            **Golden Liquid Repository:**
+            https://github.com/jg-rp/golden-liquid
+
+            **Latest Commit:**
+            https://github.com/jg-rp/golden-liquid/commit/${{ steps.latest.outputs.hash }}
+
+            ---
+            *This PR was automatically created by the update-golden-liquid workflow.*
+          branch: update-golden-liquid-${{ steps.latest.outputs.hash }}
+          delete-branch: true
+          labels: |
+            dependencies
+            automated
+
+      - name: Trigger PR checks
+        if: steps.check.outputs.needs_update == 'true' && steps.create-pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run "$PR_CHECKS_WORKFLOW" \
+            --repo "${{ github.repository }}" \
+            --ref "${{ steps.create-pr.outputs.pull-request-branch }}"
+
+      - name: Enable auto-merge
+        if: steps.check.outputs.needs_update == 'true' && steps.create-pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          auto_merge_request=$(gh pr view "${{ steps.create-pr.outputs.pull-request-number }}" \
+            --repo "${{ github.repository }}" \
+            --json autoMergeRequest \
+            --jq '.autoMergeRequest // empty')
+
+          if [ -n "$auto_merge_request" ]; then
+            echo "Auto-merge is already enabled."
+            exit 0
+          fi
+
+          merge_method=$(gh repo view "${{ github.repository }}" \
+            --json squashMergeAllowed,rebaseMergeAllowed,mergeCommitAllowed \
+            --jq '
+              # Priority order: SQUASH > REBASE > MERGE.
+              if .squashMergeAllowed then "SQUASH"
+              elif .rebaseMergeAllowed then "REBASE"
+              elif .mergeCommitAllowed then "MERGE"
+              else ""
+              end')
+
+          case "$merge_method" in
+            SQUASH)
+              merge_flag="--squash"
+              ;;
+            REBASE)
+              merge_flag="--rebase"
+              ;;
+            MERGE)
+              merge_flag="--merge"
+              ;;
+            "")
+              echo "Unable to determine an allowed merge method."
+              exit 1
+              ;;
+            *)
+              echo "Unsupported merge method: $merge_method"
+              exit 1
+              ;;
+          esac
+
+          gh pr merge "${{ steps.create-pr.outputs.pull-request-number }}" \
+            --repo "${{ github.repository }}" \
+            --auto \
+            "$merge_flag"

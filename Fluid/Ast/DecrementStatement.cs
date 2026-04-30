@@ -1,4 +1,4 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 using System.Text.Encodings.Web;
 using Fluid.SourceGeneration;
 
@@ -8,12 +8,14 @@ namespace Fluid.Ast
     {
         public DecrementStatement(string identifier)
         {
-            Identifier = identifier;
+            Identifier = identifier ?? "";
         }
 
         public string Identifier { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override bool IsWhitespaceOrCommentOnly => true;
+
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
@@ -27,7 +29,7 @@ namespace Fluid.Ast
 
             if (value.IsNil())
             {
-                value = NumberValue.Zero;
+                value = NumberValue.Create(-1);
             }
             else
             {
@@ -36,7 +38,7 @@ namespace Fluid.Ast
 
             context.SetValue(prefixedIdentifier, value);
 
-            await value.WriteToAsync(writer, encoder, context.CultureInfo);
+            await value.WriteToAsync(output, encoder, context.CultureInfo);
 
             return Completion.Normal;
         }

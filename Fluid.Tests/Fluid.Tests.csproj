@@ -1,11 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net10.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <DefineConstants Condition="'$(Compiled)' == 'true'">$(DefineConstants);COMPILED</DefineConstants>
     <IsPackable>false</IsPackable>
     <SignAssembly>false</SignAssembly>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,6 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
     <ProjectReference Include="..\Fluid.MvcViewEngine\Fluid.MvcViewEngine.csproj" />
     <ProjectReference Include="..\Fluid.ViewEngine\Fluid.ViewEngine.csproj" />
     <ProjectReference Include="..\Fluid\Fluid.csproj" />

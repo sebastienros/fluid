@@ -210,6 +210,48 @@ namespace Fluid.Tests
 
             Assert.Equal("c", sw.ToString());
         }
+
+        [Fact]
+        public async Task IfExecutesAssignInElseBranchWhenWhitespaceOrCommentOnly()
+        {
+            var e = new IfStatement(
+                BooleanExpression(false, async: false),
+                TEXT("a"),
+                new ElseStatement(new List<Statement>
+                {
+                    new AssignStatement("x", new LiteralExpression(new StringValue("value")))
+                })
+            );
+
+            var context = new TemplateContext();
+
+            await e.WriteToAsync(new StringWriter(), HtmlEncoder.Default, context);
+
+            Assert.Equal("value", context.GetValue("x").ToStringValue());
+        }
+
+        [Fact]
+        public async Task IfExecutesAssignInElseIfBranchWhenWhitespaceOrCommentOnly()
+        {
+            var e = new IfStatement(
+                BooleanExpression(false, async: false),
+                TEXT("a"),
+                null,
+                new List<ElseIfStatement>
+                {
+                    new ElseIfStatement(BooleanExpression(true, async: false), new List<Statement>
+                    {
+                        new AssignStatement("x", new LiteralExpression(new StringValue("value")))
+                    })
+                }
+            );
+
+            var context = new TemplateContext();
+
+            await e.WriteToAsync(new StringWriter(), HtmlEncoder.Default, context);
+
+            Assert.Equal("value", context.GetValue("x").ToStringValue());
+        }
     }
 
     sealed class AwaitedExpression : Expression

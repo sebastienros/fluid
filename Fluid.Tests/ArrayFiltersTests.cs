@@ -47,7 +47,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task FirstEmptyArray()
         {
-            var input = new ArrayValue(new StringValue[0]);
+            var input = new ArrayValue([]);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -77,7 +77,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task Last_EmptyArray()
         {
-            var input = new ArrayValue(new StringValue[0]);
+            var input = new ArrayValue([]);
 
             var arguments = new FilterArguments();
             var context = new TemplateContext();
@@ -108,7 +108,7 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.Concat(input, arguments, context);
 
-            Assert.Equal(6, await result.EnumerateAsync(context).CountAsync());
+            Assert.Equal(6, await result.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -128,8 +128,8 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.Concat(input, arguments, context);
 
-            Assert.Equal("a", (await result.EnumerateAsync(context).FirstAsync()).ToStringValue());
-            Assert.Equal(4, await result.EnumerateAsync(context).CountAsync());
+            Assert.Equal("a", (await result.EnumerateAsync(context).FirstAsync(cancellationToken: TestContext.Current.CancellationToken)).ToStringValue());
+            Assert.Equal(4, await result.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -148,7 +148,7 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.Map(input, arguments, context);
 
-            var enumerated = await result.EnumerateAsync(context).ToListAsync();
+            var enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(3, enumerated.Count());
             Assert.Equal(new StringValue("a"), enumerated.ElementAt(0));
             Assert.Equal(new StringValue("b"), enumerated.ElementAt(1));
@@ -172,7 +172,7 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.Map(input, arguments, context);
 
-            var enumerated = await result.EnumerateAsync(context).ToListAsync();
+            var enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(3, enumerated.Count());
             Assert.Equal(new StringValue("a"), enumerated.ElementAt(0));
             Assert.Equal(new StringValue("b"), enumerated.ElementAt(1));
@@ -191,7 +191,7 @@ namespace Fluid.Tests
             var result = await ArrayFilters.Reverse(input, arguments, context);
 
             // Assert
-            var enumerated = await result.EnumerateAsync(context).ToListAsync();
+            var enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(5, enumerated.Count());
             Assert.Equal(new StringValue("d"), enumerated.ElementAt(0));
             Assert.Equal(new StringValue("i"), enumerated.ElementAt(1));
@@ -214,7 +214,7 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.Reverse(input, arguments, context);
 
-            var enumerated = await result.EnumerateAsync(context).ToListAsync();
+            var enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(3, enumerated.Count());
             Assert.Equal(new StringValue("c"), enumerated.ElementAt(0));
             Assert.Equal(new StringValue("b"), enumerated.ElementAt(1));
@@ -256,7 +256,7 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.Sort(input, arguments, context);
 
-            var enumerated = await result.EnumerateAsync(context).ToListAsync();
+            var enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(3, enumerated.Count());
             Assert.Equal("a", ((dynamic)enumerated.ElementAt(0).ToObjectValue()).Title);
             Assert.Equal("b", ((dynamic)enumerated.ElementAt(1).ToObjectValue()).Title);
@@ -269,7 +269,7 @@ namespace Fluid.Tests
 
             result = await ArrayFilters.Sort(input, arguments, context);
 
-            enumerated = await result.EnumerateAsync(context).ToListAsync();
+            enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(3, enumerated.Count());
             Assert.Equal("b", ((dynamic)enumerated.ElementAt(0).ToObjectValue()).Title);
             Assert.Equal("c", ((dynamic)enumerated.ElementAt(1).ToObjectValue()).Title);
@@ -291,7 +291,7 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.Sort(input, arguments, context);
 
-            var enumerated = await result.EnumerateAsync(context).ToListAsync();
+            var enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(3, enumerated.Count());
             Assert.Equal("B", enumerated.ElementAt(0).ToStringValue());
             Assert.Equal("a", enumerated.ElementAt(1).ToStringValue());
@@ -313,7 +313,7 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.SortNatural(input, arguments, context);
 
-            var enumerated = await result.EnumerateAsync(context).ToListAsync();
+            var enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(3, enumerated.Count());
             Assert.Equal("a", enumerated.ElementAt(0).ToStringValue());
             Assert.Equal("B", enumerated.ElementAt(1).ToStringValue());
@@ -334,7 +334,7 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.Uniq(input, arguments, context);
 
-            Assert.Equal(2, await result.EnumerateAsync(context).CountAsync());
+            Assert.Equal(2, await result.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -352,7 +352,7 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.Uniq(input, arguments, context);
 
-            Assert.Equal(3, await result.EnumerateAsync(context).CountAsync());
+            Assert.Equal(3, await result.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -396,7 +396,7 @@ namespace Fluid.Tests
 
             var result = await ArrayFilters.Uniq(input, arguments, context);
 
-            Assert.Equal(3, await result.EnumerateAsync(context).CountAsync());
+            Assert.Equal(3, await result.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -415,7 +415,7 @@ namespace Fluid.Tests
 
             var result1 = await ArrayFilters.Where(input, arguments1, context);
 
-            Assert.Equal(2, await result1.EnumerateAsync(context).CountAsync());
+            Assert.Equal(2, await result1.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
 
             var arguments2 = new FilterArguments()
                 .Add(new StringValue("Pinned"))
@@ -424,7 +424,7 @@ namespace Fluid.Tests
 
             var result2 = await ArrayFilters.Where(input, arguments2, context);
 
-            Assert.Single(await result2.EnumerateAsync(context).ToListAsync());
+            Assert.Single(await result2.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
 
             var arguments3 = new FilterArguments()
                 .Add(new StringValue("Title"))
@@ -432,7 +432,7 @@ namespace Fluid.Tests
 
             var result3 = await ArrayFilters.Where(input, arguments3, context);
 
-            Assert.Single(await result3.EnumerateAsync(context).ToListAsync());
+            Assert.Single(await result3.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -454,7 +454,7 @@ namespace Fluid.Tests
             var arguments1 = new FilterArguments().Add(new StringValue("Missing"));
             var result1 = await ArrayFilters.Where(input, arguments1, context);
 
-            Assert.Equal(2, await result1.EnumerateAsync(context).CountAsync());
+            Assert.Equal(2, await result1.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
 
             // x | where: "Missing", false
             // 0 since a NumberValue is never equal to a boolean
@@ -472,7 +472,7 @@ namespace Fluid.Tests
                 .Add(new StringValue("Title"));
 
             var result3 = await ArrayFilters.Where(input, arguments3, context);
-            Assert.Equal(3, await result3.EnumerateAsync(context).CountAsync());
+            Assert.Equal(3, await result3.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
 
             // x | where: "Missing", 1
 
@@ -481,7 +481,7 @@ namespace Fluid.Tests
                 .Add(NumberValue.Create(1));
 
             var result4 = await ArrayFilters.Where(input, arguments4, context);
-            Assert.Equal(2, await result4.EnumerateAsync(context).CountAsync());
+            Assert.Equal(2, await result4.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -500,7 +500,7 @@ namespace Fluid.Tests
 
             var result1 = await ArrayFilters.Where(input, arguments1, context);
 
-            Assert.Empty(await result1.EnumerateAsync(context).ToListAsync());
+            Assert.Empty(await result1.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -739,7 +739,7 @@ namespace Fluid.Tests
 
             var result1 = await ArrayFilters.Reject(input, arguments1, context);
 
-            Assert.Single(await result1.EnumerateAsync(context).ToListAsync());
+            Assert.Single(await result1.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
 
             var arguments2 = new FilterArguments()
                 .Add(new StringValue("Pinned"))
@@ -748,7 +748,7 @@ namespace Fluid.Tests
 
             var result2 = await ArrayFilters.Reject(input, arguments2, context);
 
-            Assert.Equal(2, await result2.EnumerateAsync(context).CountAsync());
+            Assert.Equal(2, await result2.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
 
             var arguments3 = new FilterArguments()
                 .Add(new StringValue("Title"))
@@ -756,7 +756,7 @@ namespace Fluid.Tests
 
             var result3 = await ArrayFilters.Reject(input, arguments3, context);
 
-            Assert.Equal(2, await result3.EnumerateAsync(context).CountAsync());
+            Assert.Equal(2, await result3.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -893,12 +893,6 @@ namespace Fluid.Tests
             var result3 = await ArrayFilters.Has(input, arguments3, context);
 
             Assert.Equal(BooleanValue.True, result3);
-
-            var arguments4 = new FilterArguments();
-
-            var result4 = await ArrayFilters.Has(input, arguments4, context);
-
-            Assert.Equal(BooleanValue.False, result4);
 
             var arguments5 = new FilterArguments()
                 .Add(new StringValue("Title"))

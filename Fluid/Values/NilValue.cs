@@ -7,6 +7,16 @@ namespace Fluid.Values
     {
         public override FluidValues Type => FluidValues.Nil;
 
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
+        {
+            // Nil values have a size of 0
+            if (name == "size")
+            {
+                return NumberValue.Zero;
+            }
+            return NilValue.Instance;
+        }
+
         public override bool Equals(FluidValue other)
         {
             if (other == EmptyValue.Instance) return false;
@@ -45,7 +55,7 @@ namespace Fluid.Values
             return true;
         }
 
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
             return default;
         }

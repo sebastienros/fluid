@@ -12,6 +12,16 @@ namespace Fluid.Values
         public int RIndex0 { get; set; }
         public bool First { get; set; }
         public bool Last { get; set; }
+        public string Identifier { get; set; }
+        public string Source { get; set; }
+
+        public ForLoopValue ParentLoop { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether this forloop is from a render tag.
+        /// Render tag forloops should not be accessible as parentloop from nested for loops.
+        /// </summary>
+        public bool IsRenderLoop { get; set; }
 
         public int Count => Length;
 
@@ -53,11 +63,15 @@ namespace Fluid.Values
                 "rindex0" => NumberValue.Create(RIndex0),
                 "first" => BooleanValue.Create(First),
                 "last" => BooleanValue.Create(Last),
+                "parentloop" => ParentLoop is null ? NilValue.Instance : ParentLoop,
+                "name" => !string.IsNullOrEmpty(Identifier) && !string.IsNullOrEmpty(Source) 
+                    ? new StringValue(Identifier + "-" + Source) 
+                    : NilValue.Instance,
                 _ => NilValue.Instance,
             };
         }
 
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
             return default;
         }

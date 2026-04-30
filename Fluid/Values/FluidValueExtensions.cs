@@ -51,8 +51,6 @@ namespace Fluid.Values
 
         public static bool TryGetDateTimeInput(this FluidValue input, TemplateContext context, out DateTimeOffset result)
         {
-            result = context.Now();
-
             if (input.Type == FluidValues.String)
             {
                 var timeZoneProvided = false;
@@ -61,7 +59,25 @@ namespace Fluid.Values
 
                 if (stringValue == Now || stringValue == Today)
                 {
+                    result = context.Now();
+
                     return true;
+                }
+                // Try to parse as Unix timestamp (seconds since epoch)
+                // Golden Liquid only supports positive Unix timestamps
+                else if (long.TryParse(stringValue, NumberStyles.None, CultureInfo.InvariantCulture, out var timestamp))
+                {
+                    try
+                    {
+                        var dateTime = DateTimeOffset.FromUnixTimeSeconds(timestamp);
+                        result = dateTime.ToOffset(context.TimeZone.GetUtcOffset(dateTime));
+                        return true;
+                    }
+                    catch
+                    {
+                        result = default;
+                        return false;
+                    }
                 }
                 else
                 {
@@ -122,8 +138,17 @@ namespace Fluid.Values
             else if (input.Type == FluidValues.Number)
             {
                 var milliseconds = input.ToNumberValue() * 1000;
-                var dateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)milliseconds);
-                result = dateTime.ToOffset(context.TimeZone.GetUtcOffset(dateTime));
+                try
+                {
+                    var dateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)milliseconds);
+                    result = dateTime.ToOffset(context.TimeZone.GetUtcOffset(dateTime));
+                    return true;
+                }
+                catch
+                {
+                    result = default;
+                    return false;
+                }
             }
             else if (input.Type == FluidValues.DateTime)
             {
@@ -142,6 +167,7 @@ namespace Fluid.Values
                         break;
 
                     default:
+                        result = default;
                         return false;
                 }
             }

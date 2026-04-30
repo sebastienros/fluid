@@ -5,7 +5,7 @@ namespace Fluid.Parser
 {
     public sealed class EmptyBlockStatement : Statement
     {
-        public EmptyBlockStatement(string tagName, IReadOnlyList<Statement> statements, Func<IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
+        public EmptyBlockStatement(string tagName, IReadOnlyList<Statement> statements, Func<IReadOnlyList<Statement>, IFluidOutput, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
             TagName = tagName ?? throw new ArgumentNullException(nameof(tagName));
             Render = render ?? throw new ArgumentNullException(nameof(render));
@@ -16,11 +16,11 @@ namespace Fluid.Parser
 
         public IReadOnlyList<Statement> Statements { get; }
 
-        public Func<IReadOnlyList<Statement>, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> Render { get; }
+        public Func<IReadOnlyList<Statement>, IFluidOutput, TextEncoder, TemplateContext, ValueTask<Completion>> Render { get; }
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
-            return Render(Statements, writer, encoder, context);
+            return Render(Statements, output, encoder, context);
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitEmptyBlockStatement(this);

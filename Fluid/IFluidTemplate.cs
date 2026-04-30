@@ -4,6 +4,6 @@ namespace Fluid
 {
     public interface IFluidTemplate
     {
-        ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context);
+        ValueTask RenderAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context);
     }
 }

@@ -78,7 +78,7 @@ namespace Fluid.Values
             }
             if (context.Undefined is not null)
             {
-                return context.Undefined.Invoke(name);
+                return context.Undefined.Invoke(name, Value.GetType());
             }
             return NilValue.Instance;
 
@@ -121,7 +121,7 @@ namespace Fluid.Values
                     }
                     if (context.Undefined is not null)
                     {
-                        return await context.Undefined.Invoke(string.Join(".", segments));
+                        return await context.Undefined.Invoke(string.Join(".", segments), target.GetType());
                     }
                     return UndefinedValue.Instance;
                 }
@@ -151,12 +151,19 @@ namespace Fluid.Values
 
         public override decimal ToNumberValue()
         {
-            return Convert.ToDecimal(Value);
+            try
+            {
+                return Convert.ToDecimal(Value);
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
-        public override ValueTask WriteToAsync(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
+            AssertWriteToParameters(output, encoder, cultureInfo);
 
             var value = ToStringValue();
 
@@ -165,20 +172,13 @@ namespace Fluid.Values
                 return default;
             }
 
-            var task = writer.WriteAsync(encoder.Encode(value));
+            output.Write(encoder, value);
+            return default;
+        }
 
-            if (task.IsCompletedSuccessfully())
-            {
-                return default;
-            }
-
-            return Awaited(task);
-
-            static async ValueTask Awaited(Task t)
-            {
-                await t;
-                return;
-            }
+        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        {
+            return [this];
         }
 
         public override string ToStringValue()

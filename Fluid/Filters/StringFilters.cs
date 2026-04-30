@@ -8,6 +8,13 @@ namespace Fluid.Filters
         private static readonly StringValue Ellipsis = new StringValue(EllipsisString);
         private static readonly NumberValue DefaultTruncateLength = NumberValue.Create(50);
 
+        private static StringValue CreateStringValue(string value, FluidValue input)
+        {
+            return input is StringValue stringValue
+                ? new StringValue(value, stringValue.Encode)
+                : new StringValue(value);
+        }
+
         public static FilterCollection WithStringFilters(this FilterCollection filters)
         {
             filters.AddFilter("append", Append);
@@ -36,52 +43,68 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Append(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue() + arguments.At(0).ToStringValue());
+            LiquidException.ThrowFilterArgumentsCount("append", expected: 1, arguments);
+
+            return CreateStringValue(input.ToStringValue() + arguments.At(0).ToStringValue(), input);
         }
 
         public static ValueTask<FluidValue> Capitalize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("capitalize", expected: 0, arguments);
+
             var source = input.ToStringValue().ToCharArray();
 
-            for (var i = 0; i < source.Length; i++)
+            if (source.Length > 0 && char.IsLetter(source[0]))
             {
-                char c;
-                if (i == 0 || char.IsWhiteSpace(c = source[i - 1]) || c == '-' || c == '.')
-                {
-                    source[i] = char.ToUpper(source[i], context.CultureInfo);
-                }
+                source[0] = char.ToUpper(source[0], context.CultureInfo);
             }
 
-            return new StringValue(new string(source));
+            return CreateStringValue(new string(source), input);
         }
 
         public static ValueTask<FluidValue> Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().ToLower(context.CultureInfo));
+            LiquidException.ThrowFilterArgumentsCount("downcase", expected: 0, arguments);
+
+            return CreateStringValue(input.ToStringValue().ToLower(context.CultureInfo), input);
         }
 
         public static ValueTask<FluidValue> LStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().TrimStart());
+            LiquidException.ThrowFilterArgumentsCount("lstrip", expected: 0, arguments);
+
+            return CreateStringValue(input.ToStringValue().TrimStart(), input);
         }
 
         public static ValueTask<FluidValue> RStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().TrimEnd());
+            LiquidException.ThrowFilterArgumentsCount("rstrip", expected: 0, arguments);
+
+            return CreateStringValue(input.ToStringValue().TrimEnd(), input);
         }
 
         public static ValueTask<FluidValue> NewLineToBr(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().Replace("\r\n", "<br />").Replace("\n", "<br />"));
+            LiquidException.ThrowFilterArgumentsCount("newline_to_br", expected: 0, arguments);
+
+            // Normalize line endings first, then replace with <br />
+            return CreateStringValue(input.ToStringValue()
+                .Replace("\r\n", "\n")      // Windows -> Unix
+                .Replace("\r", "\n")         // Mac -> Unix
+                .Replace("\n", "<br />\n"), input); // Unix -> <br /> + newline
         }
 
         public static ValueTask<FluidValue> Prepend(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(arguments.At(0).ToStringValue() + input.ToStringValue());
+            LiquidException.ThrowFilterArgumentsCount("prepend", expected: 1, arguments);
+
+            return CreateStringValue(arguments.At(0).ToStringValue() + input.ToStringValue(), input);
         }
 
         public static ValueTask<FluidValue> RemoveFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("remove_first", expected: 1, arguments);
+
             var remove = arguments.At(0).ToStringValue();
             var value = input.ToStringValue();
 
@@ -89,7 +112,7 @@ namespace Fluid.Filters
 
             if (index != -1)
             {
-                return new StringValue(value.Remove(index, remove.Length));
+                return CreateStringValue(value.Remove(index, remove.Length), input);
             }
 
             return input;
@@ -97,18 +120,22 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Remove(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("remove", expected: 1, arguments);
+
             var argument = arguments.At(0).ToStringValue();
 
             if (String.IsNullOrEmpty(argument))
             {
-                return new StringValue(input.ToStringValue());
+                return CreateStringValue(input.ToStringValue(), input);
             }
 
-            return new StringValue(input.ToStringValue().Replace(argument, ""));
+            return CreateStringValue(input.ToStringValue().Replace(argument, ""), input);
         }
 
         public static ValueTask<FluidValue> RemoveLast(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("remove_last", expected: 1, arguments);
+
             var remove = arguments.At(0).ToStringValue();
             var value = input.ToStringValue();
 
@@ -116,7 +143,7 @@ namespace Fluid.Filters
 
             if (index != -1)
             {
-                return new StringValue(value.Remove(index, remove.Length));
+                return CreateStringValue(value.Remove(index, remove.Length), input);
             }
 
             return input;
@@ -124,13 +151,12 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> ReplaceFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-#if NET6_0_OR_GREATER
-            var value = input.ToStringValue().AsSpan();
-            var remove = arguments.At(0).ToStringValue().AsSpan();
-#else
+            LiquidException.ThrowFilterArgumentsCount("replace_first", min: 1, max: 2, arguments);
+
             var value = input.ToStringValue();
             var remove = arguments.At(0).ToStringValue();
-#endif
+            var insert = arguments.Count > 1 ? arguments.At(1).ToStringValue() : "";
+
             var index = value.IndexOf(remove);
 
             if (index == -1)
@@ -138,21 +164,44 @@ namespace Fluid.Filters
                 return input;
             }
 
-#if NET6_0_OR_GREATER
-            var concat = string.Concat(value.Slice(0, index), arguments.At(1).ToStringValue(), value.Slice(index + remove.Length));
-#else
-            var concat = string.Concat(value.Substring(0, index), arguments.At(1).ToStringValue(), value.Substring(index + remove.Length));
-#endif
-            return new StringValue(concat);
+            var concat = string.Concat(value.Substring(0, index), insert, value.Substring(index + remove.Length));
+            return CreateStringValue(concat, input);
         }
 
         public static ValueTask<FluidValue> Replace(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().Replace(arguments.At(0).ToStringValue(), arguments.At(1).ToStringValue()));
+            LiquidException.ThrowFilterArgumentsCount("replace", min: 1, max: 2, arguments);
+
+            var value = input.ToStringValue();
+            var oldValue = arguments.At(0).ToStringValue();
+            var newValue = arguments.At(1).ToStringValue();
+
+            // .NET throws when oldValue is empty, but Liquid treats this as an insertion between every character.
+            if (oldValue.Length == 0)
+            {
+                if (value.Length == 0)
+                {
+                    return CreateStringValue(newValue + newValue, input);
+                }
+
+                var sb = new System.Text.StringBuilder(value.Length + (newValue.Length * (value.Length + 1)));
+                sb.Append(newValue);
+                for (var i = 0; i < value.Length; i++)
+                {
+                    sb.Append(value[i]);
+                    sb.Append(newValue);
+                }
+
+                return CreateStringValue(sb.ToString(), input);
+            }
+
+            return CreateStringValue(value.Replace(oldValue, newValue), input);
         }
 
         public static ValueTask<FluidValue> ReplaceLast(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("replace_last", expected: 2, arguments);
+
 #if NET6_0_OR_GREATER
             var value = input.ToStringValue().AsSpan();
             var remove = arguments.At(0).ToStringValue().AsSpan();
@@ -172,26 +221,32 @@ namespace Fluid.Filters
 #else
             var concat = string.Concat(value.Substring(0, index), arguments.At(1).ToStringValue(), value.Substring(index + remove.Length));
 #endif
-            return new StringValue(concat);
+            return CreateStringValue(concat, input);
         }
 
         public static ValueTask<FluidValue> Slice(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("slice", min: 1, max: 2, arguments);
+
             var firstArgument = arguments.At(0);
-            var secondArgument = arguments.At(1);
 
             if (!firstArgument.IsInteger())
             {
                 throw new ArgumentException("Slice: offset argument is an invalid number");
             }
 
-            if (arguments.Count > 1 && !secondArgument.IsInteger())
-            {
-                throw new ArgumentException("Slice: length argument is not a number");
-            }
-
             var requestedStartIndex = Convert.ToInt32(firstArgument.ToNumberValue());
-            var requestedLength = Convert.ToInt32(secondArgument.Or(NumberValue.Create(1)).ToNumberValue());
+            var requestedLength = 1;
+
+            if (arguments.Count > 1)
+            {
+                var secondArgument = arguments.At(1);
+                if (!secondArgument.IsNil() && !secondArgument.IsInteger())
+                {
+                    throw new ArgumentException("Slice: length argument is not a number");
+                }
+                requestedLength = secondArgument.IsNil() ? 1 : Convert.ToInt32(secondArgument.ToNumberValue());
+            }
 
             if (input.Type == FluidValues.Array)
             {
@@ -236,16 +291,30 @@ namespace Fluid.Filters
                     ? sourceStringLength - startIndex
                     : requestedLength;
 
-                return new StringValue(sourceString.Substring(startIndex, length));
+                return CreateStringValue(sourceString.Substring(startIndex, length), input);
             }
         }
 
         public static ValueTask<FluidValue> Split(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("split", expected: 1, arguments);
+
             string[] strings;
 
             var stringInput = input.ToStringValue();
             var separator = arguments.At(0).ToStringValue();
+
+            // Golden Liquid: splitting an empty string yields an empty array
+            if (stringInput.Length == 0)
+            {
+                return ArrayValue.Empty;
+            }
+
+            // Golden Liquid: if the input exactly matches the separator, the result is empty
+            if (separator.Length != 0 && stringInput == separator)
+            {
+                return ArrayValue.Empty;
+            }
 
             if (separator == "")
             {
@@ -256,9 +325,38 @@ namespace Fluid.Filters
                     strings[i] = stringInput[i].ToString();
                 }
             }
+            else if (separator == " ")
+            {
+                // Golden Liquid: a single-space separator splits on any whitespace
+                var parts = new List<string>();
+                var start = -1;
+
+                for (var i = 0; i < stringInput.Length; i++)
+                {
+                    if (char.IsWhiteSpace(stringInput[i]))
+                    {
+                        if (start != -1)
+                        {
+                            parts.Add(stringInput.Substring(start, i - start));
+                            start = -1;
+                        }
+                    }
+                    else if (start == -1)
+                    {
+                        start = i;
+                    }
+                }
+
+                if (start != -1)
+                {
+                    parts.Add(stringInput.Substring(start));
+                }
+
+                strings = parts.ToArray();
+            }
             else
             {
-                strings = stringInput.Split(separator, StringSplitOptions.RemoveEmptyEntries);
+                strings = stringInput.Split(separator, StringSplitOptions.None);
             }
 
             var values = new FluidValue[strings.Length];
@@ -272,11 +370,15 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Strip(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().Trim());
+            LiquidException.ThrowFilterArgumentsCount("strip", expected: 0, arguments);
+
+            return CreateStringValue(input.ToStringValue().Trim(), input);
         }
 
         public static ValueTask<FluidValue> StripNewLines(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("strip_newlines", expected: 0, arguments);
+
             var result = input.ToStringValue();
 
             if (result.Contains('\r'))
@@ -288,11 +390,13 @@ namespace Fluid.Filters
                 result = result.Replace("\n", "");
             }
 
-            return new StringValue(result);
+            return CreateStringValue(result, input);
         }
 
         public static ValueTask<FluidValue> Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("truncate", min: 0, max: 2, arguments);
+
             if (input.IsNil())
             {
                 return StringValue.Empty;
@@ -305,14 +409,44 @@ namespace Fluid.Filters
                 return StringValue.Empty;
             }
 
-            var length = Convert.ToInt32(arguments.At(0).Or(DefaultTruncateLength).ToNumberValue());
+            // If first argument is not provided, use default of 50
+            // If first argument is nil (undefined variable), throw error per Golden Liquid spec
+            var firstArg = arguments.At(0);
+            int length;
+            if (arguments.Count == 0)
+            {
+                length = 50; // Default length
+            }
+            else if (firstArg.IsNil())
+            {
+                throw new ArgumentException("truncate: cannot convert nil to number");
+            }
+            else
+            {
+                length = Convert.ToInt32(firstArg.ToNumberValue());
+            }
 
             if (inputStr.Length <= length)
             {
                 return input;
             }
 
-            var ellipsisStr = arguments.At(1).Or(Ellipsis).ToStringValue();
+            // If second argument is not provided, use default "..."
+            // If second argument is nil (undefined variable), use empty string per Golden Liquid spec
+            var secondArg = arguments.At(1);
+            string ellipsisStr;
+            if (arguments.Count < 2)
+            {
+                ellipsisStr = "..."; // Default ellipsis when not provided
+            }
+            else if (secondArg.IsNil())
+            {
+                ellipsisStr = ""; // Undefined variable means no ellipsis
+            }
+            else
+            {
+                ellipsisStr = secondArg.ToStringValue();
+            }
 
             var l = Math.Max(0, length - ellipsisStr.Length);
 
@@ -321,23 +455,53 @@ namespace Fluid.Filters
 #else
             var concat = string.Concat(inputStr.Substring(0, l), ellipsisStr);
 #endif
-            return new StringValue(concat);
+            return CreateStringValue(concat, input);
         }
 
         public static ValueTask<FluidValue> TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("truncate_words", min: 0, max: 2, arguments);
+
             var source = input.ToStringValue();
 
-            // Default value is 15
-            // c.f. https://github.com/Shopify/liquid/blob/81f44e36be5f2110c26b6532fd4ccd22edaf59f2/lib/liquid/standardfilters.rb#L233
-            var size = Convert.ToInt32(arguments.At(0).Or(NumberValue.Create(15)).ToNumberValue());
+            // If first argument is not provided, use default of 15
+            // If first argument is nil (undefined variable), throw error per Golden Liquid spec
+            var firstArg = arguments.At(0);
+            int size;
+            if (arguments.Count == 0)
+            {
+                size = 15; // Default word count
+            }
+            else if (firstArg.IsNil())
+            {
+                throw new ArgumentException("truncatewords: cannot convert nil to number");
+            }
+            else
+            {
+                size = Convert.ToInt32(firstArg.ToNumberValue());
+            }
 
             if (size <= 0)
             {
                 size = 1;
             }
 
-            var ellipsis = arguments.At(1).Or(Ellipsis).ToStringValue();
+            // If second argument is not provided, use default "..."
+            // If second argument is nil (undefined variable), use empty string per Golden Liquid spec
+            var secondArg = arguments.At(1);
+            string ellipsis;
+            if (arguments.Count < 2)
+            {
+                ellipsis = "..."; // Default ellipsis when not provided
+            }
+            else if (secondArg.IsNil())
+            {
+                ellipsis = ""; // Undefined variable means no ellipsis
+            }
+            else
+            {
+                ellipsis = secondArg.ToStringValue();
+            }
 
             var chunks = new List<string>();
 
@@ -355,12 +519,14 @@ namespace Fluid.Filters
                 chunks[^1] += ellipsis;
             }
 
-            return new StringValue(string.Join(" ", chunks));
+            return CreateStringValue(string.Join(" ", chunks), input);
         }
 
         public static ValueTask<FluidValue> Upcase(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(input.ToStringValue().ToUpper(context.CultureInfo));
+            LiquidException.ThrowFilterArgumentsCount("upcase", expected: 0, arguments);
+
+            return CreateStringValue(input.ToStringValue().ToUpper(context.CultureInfo), input);
         }
     }
 }

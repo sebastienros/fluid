@@ -101,7 +101,8 @@ namespace Fluid.Parser
                 cursor.ResetPosition(lastDashPosition);
             }
 
-            // Strip trailing '?' from the result if enabled and present
+            // Strip trailing '?' from the result if enabled and present.
+            // This allows Ruby-style method names like 'empty?' to map to .NET properties like 'empty'.
             if (_stripTrailingQuestion && hasTrailingQuestion)
             {
                 nonDigits--;

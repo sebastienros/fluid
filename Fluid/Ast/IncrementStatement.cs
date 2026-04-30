@@ -1,4 +1,4 @@
-﻿using System.Text.Encodings.Web;
+using System.Text.Encodings.Web;
 using Fluid.Values;
 using Fluid.SourceGeneration;
 
@@ -14,7 +14,9 @@ namespace Fluid.Ast
 
         public string Identifier { get; }
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override bool IsWhitespaceOrCommentOnly => true;
+
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
@@ -26,29 +28,33 @@ namespace Fluid.Ast
 
             var value = context.GetValue(prefixedIdentifier);
 
+            decimal current;
             if (value.IsNil())
             {
+                current = 0;
                 value = NumberValue.Zero;
             }
             else
             {
-                value = NumberValue.Create(value.ToNumberValue() + 1);
+                current = value.ToNumberValue();
             }
 
-            context.SetValue(prefixedIdentifier, value);
+            var nextValue = NumberValue.Create(current + 1);
 
-            var task = value.WriteToAsync(writer, encoder, context.CultureInfo);
-
+            // Increment renders the value before incrementing it.
+            var task = value.WriteToAsync(output, encoder, context.CultureInfo);
             if (task.IsCompletedSuccessfully)
             {
-                return new ValueTask<Completion>(Completion.Normal);
+                context.SetValue(prefixedIdentifier, nextValue);
+                return Statement.NormalCompletion;
             }
 
-            return Awaited(task);
+            return Awaited(task, context, prefixedIdentifier, nextValue);
 
-            static async ValueTask<Completion> Awaited(ValueTask t)
+            static async ValueTask<Completion> Awaited(ValueTask t, TemplateContext ctx, string key, FluidValue next)
             {
                 await t;
+                ctx.SetValue(key, next);
                 return Completion.Normal;
             }
         }

@@ -15,16 +15,16 @@ namespace Fluid.Ast
 
         public IReadOnlyList<FilterExpression> Filters { get; }
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             static async ValueTask<Completion> Awaited(
                 ValueTask<FluidValue> t,
-                TextWriter w,
+                IFluidOutput o,
                 TextEncoder enc,
                 TemplateContext ctx)
             {
                 var value = await t;
-                await value.WriteToAsync(w, enc, ctx.CultureInfo);
+                await value.WriteToAsync(o, enc, ctx.CultureInfo);
                 return Completion.Normal;
             }
 
@@ -33,11 +33,11 @@ namespace Fluid.Ast
             var task = Expression.EvaluateAsync(context);
             if (task.IsCompletedSuccessfully)
             {
-                var valueTask = task.Result.WriteToAsync(writer, encoder, context.CultureInfo);
+                var valueTask = task.Result.WriteToAsync(output, encoder, context.CultureInfo);
 
                 if (valueTask.IsCompletedSuccessfully)
                 {
-                    return new ValueTask<Completion>(Completion.Normal);
+                    return Statement.NormalCompletion;
                 }
 
                 return AwaitedWriteTo(valueTask);
@@ -49,7 +49,7 @@ namespace Fluid.Ast
                 }
             }
 
-            return Awaited(task, writer, encoder, context);
+            return Awaited(task, output, encoder, context);
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitOutputStatement(this);
@@ -89,7 +89,7 @@ namespace Fluid.Ast
 
             context.WriteLine($"return await Awaited(task, {context.WriterName}, {context.EncoderName}, {context.ContextName});");
             context.WriteLine();
-            context.WriteLine("static async ValueTask<Completion> Awaited(ValueTask<FluidValue> t, TextWriter w, TextEncoder enc, TemplateContext ctx)");
+            context.WriteLine("static async ValueTask<Completion> Awaited(ValueTask<FluidValue> t, IFluidOutput w, TextEncoder enc, TemplateContext ctx)");
             context.WriteLine("{");
             using (context.Indent())
             {
