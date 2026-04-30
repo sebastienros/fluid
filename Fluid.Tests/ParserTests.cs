@@ -712,8 +712,8 @@ true
         [InlineData("p == blank", "true")]
         [InlineData("blank == p ", "true")]
 
-        [InlineData("empty == blank", "true")]
-        [InlineData("blank == empty", "true")]
+        [InlineData("empty == blank", "false")]
+        [InlineData("blank == empty", "false")]
 
         [InlineData("nil == blank", "true")]
         [InlineData("blank == nil", "true")]
@@ -800,7 +800,9 @@ true
 
         [Theory]
         [InlineData("blank == false", "true")]
+        [InlineData("false == blank", "true")]
         [InlineData("empty == false", "false")]
+        [InlineData("false == empty", "false")]
         public Task BlankShouldComparesToFalse(string source, string expected)
         {
             return CheckAsync(source, expected, t => t.SetValue("zero", 0).SetValue("one", 1));
