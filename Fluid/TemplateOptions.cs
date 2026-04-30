@@ -9,6 +9,8 @@ namespace Fluid
 {
     public class TemplateOptions
     {
+        private MemberAccessStrategy _memberAccessStrategy = new DefaultMemberAccessStrategy();
+
         /// <summary>
         /// When set to <c>true</c>, any access to an undefined variable during template rendering will
         /// immediately throw an <see cref="InvalidOperationException"/>. The default is <c>false</c>, which
@@ -56,7 +58,20 @@ namespace Fluid
         /// <summary>
         /// Gets ot sets the members than can be accessed in a template.
         /// </summary>
-        public MemberAccessStrategy MemberAccessStrategy { get; set; } = new DefaultMemberAccessStrategy();
+        public MemberAccessStrategy MemberAccessStrategy
+        {
+            get => _memberAccessStrategy;
+            set
+            {
+                if (value is null)
+                {
+                    ExceptionHelper.ThrowArgumentNullException(nameof(value));
+                }
+
+                _memberAccessStrategy = value;
+                RegisterGeneratedMemberAccessors();
+            }
+        }
 
         /// <summary>
         /// Gets or sets the <see cref="IFileProvider"/> used to access files for include and render statements.
@@ -193,6 +208,16 @@ namespace Fluid
                 .WithStringFilters()
                 .WithNumberFilters()
                 .WithMiscFilters();
+
+            RegisterGeneratedMemberAccessors();
+        }
+
+        private void RegisterGeneratedMemberAccessors()
+        {
+            if (this is ITemplateOptionsMemberAccessorRegistrar registrar)
+            {
+                registrar.RegisterMemberAccessors(this);
+            }
         }
     }
 }

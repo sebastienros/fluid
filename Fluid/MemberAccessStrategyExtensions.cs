@@ -1,5 +1,8 @@
 ﻿using Fluid.Accessors;
 using System.Collections.Concurrent;
+#if NET5_0_OR_GREATER
+using System.Diagnostics.CodeAnalysis;
+#endif
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -7,6 +10,12 @@ namespace Fluid
 {
     public static class MemberAccessStrategyExtensions
     {
+#if NET5_0_OR_GREATER
+        private const DynamicallyAccessedMemberTypes RegisteredMemberTypes = DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicMethods;
+#endif
+
+        private static readonly bool _dynamicCodeSupported = IsDynamicCodeSupported();
+
         // A cache of accessors so we don't rebuild them once they are added to global or contextual access strategies
         internal static ConcurrentDictionary<(Type Type, MemberNameStrategy MemberNameStrategy), Dictionary<string, IMemberAccessor>> _typeMembers = new ConcurrentDictionary<(Type, MemberNameStrategy), Dictionary<string, IMemberAccessor>>();
 
@@ -41,7 +50,9 @@ namespace Fluid
                     }
                     else
                     {
-                        list[memberNameStrategy(propertyInfo)] = new PropertyInfoAccessor(propertyInfo);
+                        list[memberNameStrategy(propertyInfo)] = _dynamicCodeSupported
+                            ? new PropertyInfoAccessor(propertyInfo)
+                            : new ReflectionPropertyInfoAccessor(propertyInfo);
                     }
                 }
 
@@ -58,7 +69,9 @@ namespace Fluid
                     }
                     else
                     {
-                        list[memberNameStrategy(fieldInfo)] = new DelegateAccessor((o, n) => fieldInfo.GetValue(o));
+                        list[memberNameStrategy(fieldInfo)] = _dynamicCodeSupported
+                            ? new DelegateAccessor((o, n) => fieldInfo.GetValue(o))
+                            : new ReflectionFieldInfoAccessor(fieldInfo);
                     }
                 }
 
@@ -84,7 +97,11 @@ namespace Fluid
         /// </summary>
         /// <typeparam name="T">The type to register.</typeparam>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
+#if NET5_0_OR_GREATER
+        public static void Register<[DynamicallyAccessedMembers(RegisteredMemberTypes)] T>(this MemberAccessStrategy strategy)
+#else
         public static void Register<T>(this MemberAccessStrategy strategy)
+#endif
         {
             Register(strategy, typeof(T));
         }
@@ -94,7 +111,11 @@ namespace Fluid
         /// </summary>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="type">The type to register.</param>
+#if NET5_0_OR_GREATER
+        public static void Register(this MemberAccessStrategy strategy, [DynamicallyAccessedMembers(RegisteredMemberTypes)] Type type)
+#else
         public static void Register(this MemberAccessStrategy strategy, Type type)
+#endif
         {
             strategy.Register(type, GetTypeMembers(type, strategy.MemberNameStrategy));
         }
@@ -105,7 +126,11 @@ namespace Fluid
         /// <typeparam name="T">The type to register.</typeparam>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="names">The names of the properties in the type to register.</param>
+#if NET5_0_OR_GREATER
+        public static void Register<[DynamicallyAccessedMembers(RegisteredMemberTypes)] T>(this MemberAccessStrategy strategy, params string[] names)
+#else
         public static void Register<T>(this MemberAccessStrategy strategy, params string[] names)
+#endif
         {
             strategy.Register(typeof(T), names);
         }
@@ -116,7 +141,11 @@ namespace Fluid
         /// <typeparam name="T">The type to register.</typeparam>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="names">The property's expressions in the type to register.</param>
+#if NET5_0_OR_GREATER
+        public static void Register<[DynamicallyAccessedMembers(RegisteredMemberTypes)] T>(this MemberAccessStrategy strategy, params Expression<Func<T, object>>[] names)
+#else
         public static void Register<T>(this MemberAccessStrategy strategy, params Expression<Func<T, object>>[] names)
+#endif
         {
             strategy.Register<T>(names.Select(ExpressionHelper.GetPropertyName).ToArray());
         }
@@ -127,7 +156,11 @@ namespace Fluid
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="type">The type to register.</param>
         /// <param name="names">The names of the properties in the type to register.</param>
+#if NET5_0_OR_GREATER
+        public static void Register(this MemberAccessStrategy strategy, [DynamicallyAccessedMembers(RegisteredMemberTypes)] Type type, params string[] names)
+#else
         public static void Register(this MemberAccessStrategy strategy, Type type, params string[] names)
+#endif
         {
             var accessors = new Dictionary<string, IMemberAccessor>();
 
@@ -139,6 +172,34 @@ namespace Fluid
             strategy.Register(type, accessors);
         }
 
+        private static bool IsDynamicCodeSupported()
+        {
+#if NETSTANDARD2_0
+            var runtimeFeatureType = Type.GetType("System.Runtime.CompilerServices.RuntimeFeature, System.Runtime");
+            var property = runtimeFeatureType?.GetProperty("IsDynamicCodeSupported", BindingFlags.Public | BindingFlags.Static);
+
+            return property?.PropertyType != typeof(bool) || (bool)property.GetValue(null);
+#else
+            return System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported;
+#endif
+        }
+
+        /// <summary>
+        /// Registers a named property when accessing a type using an <see cref="IMemberAccessor"/>.
+        /// </summary>
+        /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
+        /// <param name="type">The type to register.</param>
+        /// <param name="name">The name of the property to intercept.</param>
+        /// <param name="getter">The accessor used to retrieve the value.</param>
+#if NET5_0_OR_GREATER
+        public static void Register(this MemberAccessStrategy strategy, [DynamicallyAccessedMembers(RegisteredMemberTypes)] Type type, string name, IMemberAccessor getter)
+#else
+        public static void Register(this MemberAccessStrategy strategy, Type type, string name, IMemberAccessor getter)
+#endif
+        {
+            strategy.Register(type, [new KeyValuePair<string, IMemberAccessor>(name, getter)]);
+        }
+
         /// <summary>
         /// Registers a named property when accessing a type using a <see cref="IMemberAccessor"/>
         /// to retrieve the value. The name of the property doesn't have to exist on the object.
@@ -147,7 +208,11 @@ namespace Fluid
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="name">The name of the property to intercept.</param>
         /// <param name="getter">The <see cref="IMemberAccessor"/> instance used to retrieve the value.</param>
+#if NET5_0_OR_GREATER
+        public static void Register<[DynamicallyAccessedMembers(RegisteredMemberTypes)] T>(this MemberAccessStrategy strategy, string name, IMemberAccessor getter)
+#else
         public static void Register<T>(this MemberAccessStrategy strategy, string name, IMemberAccessor getter)
+#endif
         {
             strategy.Register(typeof(T), [new KeyValuePair<string, IMemberAccessor>(name, getter)]);
         }
@@ -159,7 +224,11 @@ namespace Fluid
         /// <typeparam name="T">The type to register.</typeparam>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="getter">The <see cref="IMemberAccessor"/> instance used to retrieve the value.</param>
+#if NET5_0_OR_GREATER
+        public static void Register<[DynamicallyAccessedMembers(RegisteredMemberTypes)] T>(this MemberAccessStrategy strategy, IMemberAccessor getter)
+#else
         public static void Register<T>(this MemberAccessStrategy strategy, IMemberAccessor getter)
+#endif
         {
             strategy.Register(typeof(T), [new KeyValuePair<string, IMemberAccessor>("*", getter)]);
         }
@@ -171,7 +240,11 @@ namespace Fluid
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="type">The type to register.</param>
         /// <param name="getter">The <see cref="IMemberAccessor"/> instance used to retrieve the value.</param>
+#if NET5_0_OR_GREATER
+        public static void Register(this MemberAccessStrategy strategy, [DynamicallyAccessedMembers(RegisteredMemberTypes)] Type type, IMemberAccessor getter)
+#else
         public static void Register(this MemberAccessStrategy strategy, Type type, IMemberAccessor getter)
+#endif
         {
             strategy.Register(type, [new KeyValuePair<string, IMemberAccessor>("*", getter)]);
         }
@@ -184,7 +257,11 @@ namespace Fluid
         /// <typeparam name="TResult">The type to return.</typeparam>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/> to register.</param>
         /// <param name="accessor">The <see cref="T:Func{T, string, TResult}"/> instance used to retrieve the value.</param>
+#if NET5_0_OR_GREATER
+        public static void Register<[DynamicallyAccessedMembers(RegisteredMemberTypes)] T, TResult>(this MemberAccessStrategy strategy, Func<T, string, TResult> accessor)
+#else
         public static void Register<T, TResult>(this MemberAccessStrategy strategy, Func<T, string, TResult> accessor)
+#endif
         {
             Register<T, TResult>(strategy, (obj, name, ctx) => accessor(obj, name));
         }
@@ -197,7 +274,11 @@ namespace Fluid
         /// <typeparam name="TResult">The type to return.</typeparam>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="accessor">The <see cref="T:Func{T, string, TemplateContext, TResult}"/> instance used to retrieve the value.</param>
+#if NET5_0_OR_GREATER
+        public static void Register<[DynamicallyAccessedMembers(RegisteredMemberTypes)] T, TResult>(this MemberAccessStrategy strategy, Func<T, string, TemplateContext, TResult> accessor)
+#else
         public static void Register<T, TResult>(this MemberAccessStrategy strategy, Func<T, string, TemplateContext, TResult> accessor)
+#endif
         {
             strategy.Register(typeof(T), [new KeyValuePair<string, IMemberAccessor>("*", new DelegateAccessor<T, TResult>(accessor))]);
         }
@@ -208,7 +289,11 @@ namespace Fluid
         /// </summary>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="accessor">The <see cref="T:Func{T, string, Task{Object}}"/> instance used to retrieve the value.</param>
+#if NET5_0_OR_GREATER
+        public static void Register<[DynamicallyAccessedMembers(RegisteredMemberTypes)] T, TResult>(this MemberAccessStrategy strategy, Func<T, string, Task<TResult>> accessor)
+#else
         public static void Register<T, TResult>(this MemberAccessStrategy strategy, Func<T, string, Task<TResult>> accessor)
+#endif
         {
             Register<T, TResult>(strategy, (obj, name, ctx) => accessor(obj, name));
         }
@@ -219,7 +304,11 @@ namespace Fluid
         /// </summary>
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="accessor">The <see cref="T:Func{T, string, TemplateContext, Task{TResult}}"/> instance used to retrieve the value.</param>
+#if NET5_0_OR_GREATER
+        public static void Register<[DynamicallyAccessedMembers(RegisteredMemberTypes)] T, TResult>(this MemberAccessStrategy strategy, Func<T, string, TemplateContext, Task<TResult>> accessor)
+#else
         public static void Register<T, TResult>(this MemberAccessStrategy strategy, Func<T, string, TemplateContext, Task<TResult>> accessor)
+#endif
         {
             strategy.Register(typeof(T), [new KeyValuePair<string, IMemberAccessor>("*", new AsyncDelegateAccessor<T, TResult>(accessor))]);
         }
@@ -230,7 +319,11 @@ namespace Fluid
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="name">The name of the property.</param>
         /// <param name="accessor">The <see cref="T:Func{T, Task{TResult}}"/> instance used to retrieve the value.</param>
+#if NET5_0_OR_GREATER
+        public static void Register<[DynamicallyAccessedMembers(RegisteredMemberTypes)] T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, Task<TResult>> accessor)
+#else
         public static void Register<T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, Task<TResult>> accessor)
+#endif
         {
             Register<T, TResult>(strategy, name, (obj, ctx) => accessor(obj));
         }
@@ -241,7 +334,11 @@ namespace Fluid
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="name">The name of the property.</param>
         /// <param name="accessor">The <see cref="T:Func{T, TemplateContext, Task{Object}}"/> instance used to retrieve the value.</param>
+#if NET5_0_OR_GREATER
+        public static void Register<[DynamicallyAccessedMembers(RegisteredMemberTypes)] T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, TemplateContext, Task<TResult>> accessor)
+#else
         public static void Register<T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, TemplateContext, Task<TResult>> accessor)
+#endif
         {
             strategy.Register(typeof(T), [new KeyValuePair<string, IMemberAccessor>(name, new AsyncDelegateAccessor<T, TResult>((obj, propertyName, ctx) => accessor(obj, ctx)))]);
         }
@@ -252,7 +349,11 @@ namespace Fluid
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="name">The name of the property.</param>
         /// <param name="accessor">The <see cref="Func{T, TResult}"/> instance used to retrieve the value.</param>
+#if NET5_0_OR_GREATER
+        public static void Register<[DynamicallyAccessedMembers(RegisteredMemberTypes)] T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, TResult> accessor)
+#else
         public static void Register<T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, TResult> accessor)
+#endif
         {
             Register<T, TResult>(strategy, name, (obj, ctx) => accessor(obj));
         }
@@ -263,7 +364,11 @@ namespace Fluid
         /// <param name="strategy">The <see cref="MemberAccessStrategy"/>.</param>
         /// <param name="name">The name of the property.</param>
         /// <param name="accessor">The <see cref="Func{T, TemplateContext, TResult}"/> instance used to retrieve the value.</param>
+#if NET5_0_OR_GREATER
+        public static void Register<[DynamicallyAccessedMembers(RegisteredMemberTypes)] T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, TemplateContext, TResult> accessor)
+#else
         public static void Register<T, TResult>(this MemberAccessStrategy strategy, string name, Func<T, TemplateContext, TResult> accessor)
+#endif
         {
             strategy.Register(typeof(T), [new KeyValuePair<string, IMemberAccessor>(name, new DelegateAccessor<T, TResult>((obj, propertyName, ctx) => accessor(obj, ctx)))]);
         }
