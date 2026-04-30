@@ -197,7 +197,7 @@ namespace Fluid.Ast
                             context.WriteLine($"throw new FluidException(\"Undefined variable '{initial.Identifier}'\");");
                         }
                         context.WriteLine("}");
-                        context.WriteLine($"return await {context.ContextName}.Undefined.Invoke({initialIdentifierLiteral});");
+                        context.WriteLine($"return await {context.ContextName}.Undefined.Invoke({initialIdentifierLiteral}, null);");
                     }
                     context.WriteLine("}");
 

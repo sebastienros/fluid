@@ -121,6 +121,7 @@ namespace Fluid.Ast
             using (context.Indent())
             {
                 context.WriteLine("using var sw = new StringWriter();");
+                context.WriteLine("await using var macroOutput = new TextWriterFluidOutput(sw, 16 * 1024, leaveOpen: true);");
                 context.WriteLine($"{context.ContextName}.EnterChildScope();");
                 context.WriteLine("try");
                 context.WriteLine("{");
@@ -178,7 +179,7 @@ namespace Fluid.Ast
                             for (var s = 0; s < Statements.Count; s++)
                             {
                                 var stmtMethod = context.GetStatementMethodName(Statements[s]);
-                                context.WriteLine($"case {s}: completion = await {stmtMethod}(sw, {context.EncoderName}, {context.ContextName}); break;");
+                                context.WriteLine($"case {s}: completion = await {stmtMethod}(macroOutput, {context.EncoderName}, {context.ContextName}); break;");
                             }
                             context.WriteLine("default: completion = Completion.Normal; break;");
                         }
@@ -187,6 +188,7 @@ namespace Fluid.Ast
                     }
                     context.WriteLine("}");
 
+                    context.WriteLine("await macroOutput.FlushAsync();");
                     context.WriteLine("var result = sw.ToString();");
                     context.WriteLine("return new StringValue(result, false);");
                 }

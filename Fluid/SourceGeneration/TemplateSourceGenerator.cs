@@ -9,10 +9,7 @@ namespace Fluid.SourceGeneration
     {
         public static TemplateSource Generate(IFluidTemplate template, SourceGenerationOptions options = null)
         {
-            if (template == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(template));
-            }
+            ArgumentNullException.ThrowIfNull(template);
 
             options ??= new SourceGenerationOptions();
 
@@ -59,12 +56,14 @@ namespace Fluid.SourceGeneration
             sb.AppendLine("#nullable enable");
             sb.AppendLine("using System;");
             sb.AppendLine("using System.Collections.Generic;");
+            sb.AppendLine("using System.Globalization;");
             sb.AppendLine("using System.IO;");
             sb.AppendLine("using System.Linq;");
             sb.AppendLine("using System.Text.Encodings.Web;");
             sb.AppendLine("using System.Threading.Tasks;");
             sb.AppendLine("using Fluid;");
             sb.AppendLine("using Fluid.Ast;");
+            sb.AppendLine("using Fluid.Utils;");
             sb.AppendLine("using Fluid.Values;");
             sb.AppendLine();
         }

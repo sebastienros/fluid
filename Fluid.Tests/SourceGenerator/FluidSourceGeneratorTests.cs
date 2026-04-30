@@ -110,6 +110,7 @@ public static partial class Templates
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(Task).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.Buffers.IBufferWriter<>).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(TextEncoder).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(IFluidTemplate).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(FluidTemplateGenerator).Assembly.Location)

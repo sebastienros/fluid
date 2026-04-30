@@ -73,6 +73,7 @@ namespace Fluid.Ast
 
             context.WriteLine("var completion = Completion.Normal;");
             context.WriteLine("using var sw = new StringWriter();");
+            context.WriteLine("await using var captureOutput = new TextWriterFluidOutput(sw, 16 * 1024, leaveOpen: true);");
 
             context.WriteLine($"for (var i = 0; i < {Statements.Count}; i++)");
             context.WriteLine("{");
@@ -85,7 +86,7 @@ namespace Fluid.Ast
                     for (var i = 0; i < Statements.Count; i++)
                     {
                         var stmtMethod = context.GetStatementMethodName(Statements[i]);
-                        context.WriteLine($"case {i}: completion = await {stmtMethod}(sw, {context.EncoderName}, {context.ContextName}); break;");
+                        context.WriteLine($"case {i}: completion = await {stmtMethod}(captureOutput, {context.EncoderName}, {context.ContextName}); break;");
                     }
                     context.WriteLine("default: completion = Completion.Normal; break;");
                 }
@@ -95,6 +96,7 @@ namespace Fluid.Ast
             }
             context.WriteLine("}");
 
+            context.WriteLine("await captureOutput.FlushAsync();");
             context.WriteLine("FluidValue result = new StringValue(sw.ToString(), false);");
             context.WriteLine($"if ({context.ContextName}.Captured != null)");
             context.WriteLine("{");

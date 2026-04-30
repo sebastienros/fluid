@@ -52,7 +52,7 @@ namespace Fluid.Ast
             context.WriteLine($"{context.ContextName}.IncrementSteps();");
             context.WriteLine($"var prefixedIdentifier = {SourceGenerationContext.ToCSharpStringLiteral(IncrementStatement.Prefix)} + {identifierLit};");
             context.WriteLine($"var value = {context.ContextName}.GetValue(prefixedIdentifier);");
-            context.WriteLine("if (value.IsNil()) value = NumberValue.Zero; else value = NumberValue.Create(value.ToNumberValue() - 1);");
+            context.WriteLine($"if (value.IsNil()) value = NumberValue.Create(-1); else value = NumberValue.Create(value.ToNumberValue({context.ContextName}) - 1);");
             context.WriteLine($"{context.ContextName}.SetValue(prefixedIdentifier, value);");
             context.WriteLine($"await value.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName}.CultureInfo);");
             context.WriteLine("return Completion.Normal;");
