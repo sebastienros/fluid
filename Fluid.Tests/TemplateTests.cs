@@ -686,6 +686,28 @@ turtle
         }
 
         [Theory]
+        [InlineData("{%if x == blank%}true{%else%}false{%endif%} {%if y == blank%}true{%else%}false{%endif%}", "false true")]
+        public Task ArrayCompareBlankValue(string source, string expected)
+        {
+            return CheckAsync(source, expected, ctx =>
+            {
+                ctx.SetValue("x", new[] { 1, 2, 3 });
+                ctx.SetValue("y", new int[0]);
+            });
+        }
+
+        [Theory]
+        [InlineData("{%if x == blank%}true{%else%}false{%endif%} {%if y == blank%}true{%else%}false{%endif%}", "false true")]
+        public Task DictionaryCompareBlankValue(string source, string expected)
+        {
+            return CheckAsync(source, expected, ctx =>
+            {
+                ctx.SetValue("x", new Dictionary<string, int> { { "1", 1 }, { "2", 2 }, { "3", 3 } });
+                ctx.SetValue("y", new Dictionary<string, int>());
+            });
+        }
+
+        [Theory]
         [InlineData("{{x.size}} {{y.size}}", "3 0")]
         public Task ArrayEvaluatesSize(string source, string expected)
         {

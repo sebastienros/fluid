@@ -11,15 +11,17 @@ namespace Fluid.Values
         {
         }
 
-        public override FluidValues Type => FluidValues.Empty;
+        public override FluidValues Type => FluidValues.Blank;
 
         public override bool Equals(FluidValue other)
         {
             if (other == this) return true;
             if (other == BooleanValue.False) return true;
-            if (other == EmptyValue.Instance) return true;
+            if (other == EmptyValue.Instance) return false;
             if (other.ToObjectValue() == null) return true;
             if (other.Type == FluidValues.String && string.IsNullOrWhiteSpace(other.ToStringValue())) return true;
+            if (other.Type == FluidValues.Array && other.ToNumberValue() == 0) return true;
+            if (other.Type == FluidValues.Dictionary && other.ToNumberValue() == 0) return true;
 
             return false;
         }
