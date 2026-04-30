@@ -23,6 +23,14 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor InvalidOptionsType = new(
+        id: "FLUIDSG002",
+        title: "Invalid Fluid template options type",
+        messageFormat: "Type '{0}' must be a partial, non-generic, non-nested class deriving from TemplateOptions",
+        category: "Fluid.SourceGenerator",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         context.RegisterPostInitializationOutput(static output =>
@@ -36,8 +44,14 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
             .Where(static candidate => candidate is not null)
             .Select(static (candidate, _) => candidate!);
 
-        var combined = context.CompilationProvider.Combine(profileMethods.Collect());
-        context.RegisterSourceOutput(combined, static (sourceContext, source) => Execute(sourceContext, source.Right));
+        var optionsTypes = context.SyntaxProvider.CreateSyntaxProvider(
+                predicate: static (node, _) => node is ClassDeclarationSyntax type && type.AttributeLists.Count > 0,
+                transform: static (syntaxContext, _) => GetOptionsType(syntaxContext))
+            .Where(static candidate => candidate is not null)
+            .Select(static (candidate, _) => candidate!);
+
+        var combined = context.CompilationProvider.Combine(profileMethods.Collect()).Combine(optionsTypes.Collect());
+        context.RegisterSourceOutput(combined, static (sourceContext, source) => Execute(sourceContext, source.Left.Right, source.Right));
     }
 
     private static ProfileMethodCandidate? GetProfileMethod(GeneratorSyntaxContext context)
@@ -52,13 +66,65 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
             return null;
         }
 
-        var registerAttributes = methodSymbol.GetAttributes()
+        var registeredTypes = GetRegisteredTypes(methodSymbol);
+        if (registeredTypes.IsDefaultOrEmpty)
+        {
+            return null;
+        }
+
+        var hasPartialModifier = methodSyntax.Modifiers.Any(static m => m.IsKind(SyntaxKind.PartialKeyword));
+        var hasExplicitAccessibility = methodSyntax.Modifiers.Any(static m =>
+            m.IsKind(SyntaxKind.PublicKeyword) ||
+            m.IsKind(SyntaxKind.InternalKeyword) ||
+            m.IsKind(SyntaxKind.PrivateKeyword) ||
+            m.IsKind(SyntaxKind.ProtectedKeyword));
+        var hasBody = methodSyntax.Body is not null || methodSyntax.ExpressionBody is not null;
+
+        return new ProfileMethodCandidate(
+            methodSymbol,
+            registeredTypes.ToImmutableArray(),
+            hasPartialModifier,
+            hasExplicitAccessibility,
+            hasBody,
+            methodSyntax.GetLocation());
+    }
+
+    private static OptionsTypeCandidate? GetOptionsType(GeneratorSyntaxContext context)
+    {
+        if (context.Node is not ClassDeclarationSyntax typeSyntax)
+        {
+            return null;
+        }
+
+        if (context.SemanticModel.GetDeclaredSymbol(typeSyntax) is not INamedTypeSymbol typeSymbol)
+        {
+            return null;
+        }
+
+        var registeredTypes = GetRegisteredTypes(typeSymbol);
+        if (registeredTypes.IsDefaultOrEmpty)
+        {
+            return null;
+        }
+
+        var hasPartialModifier = typeSyntax.Modifiers.Any(static m => m.IsKind(SyntaxKind.PartialKeyword));
+
+        return new OptionsTypeCandidate(
+            typeSymbol,
+            registeredTypes,
+            hasPartialModifier,
+            typeSyntax.GetLocation());
+    }
+
+    private static ImmutableArray<ITypeSymbol> GetRegisteredTypes(ISymbol symbol)
+    {
+        var registerAttributes = symbol.GetAttributes()
             .Where(static x => string.Equals(x.AttributeClass?.ToDisplayString(), RegisterAttributeType, StringComparison.Ordinal))
             .ToImmutableArray();
 
         if (registerAttributes.IsDefaultOrEmpty)
         {
-            return null;
+            return [];
         }
 
         var registeredTypes = new List<ITypeSymbol>(registerAttributes.Length);
@@ -83,39 +149,21 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
             registeredTypes.Add(registeredType);
         }
 
-        if (registeredTypes.Count == 0)
-        {
-            return null;
-        }
-
-        var hasPartialModifier = methodSyntax.Modifiers.Any(static m => m.IsKind(SyntaxKind.PartialKeyword));
-        var hasExplicitAccessibility = methodSyntax.Modifiers.Any(static m =>
-            m.IsKind(SyntaxKind.PublicKeyword) ||
-            m.IsKind(SyntaxKind.InternalKeyword) ||
-            m.IsKind(SyntaxKind.PrivateKeyword) ||
-            m.IsKind(SyntaxKind.ProtectedKeyword));
-        var hasBody = methodSyntax.Body is not null || methodSyntax.ExpressionBody is not null;
-
-        return new ProfileMethodCandidate(
-            methodSymbol,
-            registeredTypes.ToImmutableArray(),
-            hasPartialModifier,
-            hasExplicitAccessibility,
-            hasBody,
-            methodSyntax.GetLocation());
+        return registeredTypes.ToImmutableArray();
     }
 
-    private static void Execute(SourceProductionContext context, ImmutableArray<ProfileMethodCandidate> candidates)
+    private static void Execute(SourceProductionContext context, ImmutableArray<ProfileMethodCandidate> methodCandidates, ImmutableArray<OptionsTypeCandidate> optionsTypeCandidates)
     {
-        if (candidates.IsDefaultOrEmpty)
+        if (methodCandidates.IsDefaultOrEmpty && optionsTypeCandidates.IsDefaultOrEmpty)
         {
             return;
         }
 
         var validMethods = new List<ProfileMethodRegistration>();
+        var validOptionsTypes = new List<OptionsTypeRegistration>();
         var allRegisteredTypes = new Dictionary<string, ITypeSymbol>(StringComparer.Ordinal);
 
-        foreach (var candidate in candidates)
+        foreach (var candidate in methodCandidates)
         {
             if (!TryValidateProfileMethod(candidate, context, out var methodRegistration))
             {
@@ -131,7 +179,23 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
             }
         }
 
-        if (validMethods.Count == 0 || allRegisteredTypes.Count == 0)
+        foreach (var candidate in optionsTypeCandidates)
+        {
+            if (!TryValidateOptionsType(candidate, context, out var optionsTypeRegistration))
+            {
+                continue;
+            }
+
+            validOptionsTypes.Add(optionsTypeRegistration);
+
+            foreach (var registeredType in optionsTypeRegistration.RegisteredTypes)
+            {
+                var typeExpression = registeredType.ToDisplayString(TypeExpressionFormat);
+                allRegisteredTypes[typeExpression] = registeredType;
+            }
+        }
+
+        if ((validMethods.Count == 0 && validOptionsTypes.Count == 0) || allRegisteredTypes.Count == 0)
         {
             return;
         }
@@ -171,7 +235,21 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
             .ThenBy(static x => x.Method.Name, StringComparer.Ordinal)
             .ToList();
 
-        if (methodRegistrations.Count == 0)
+        var optionsTypeRegistrations = validOptionsTypes
+            .Select(optionsType => new GeneratedOptionsTypeRegistration(
+                optionsType.OptionsType,
+                optionsType.RegisteredTypes
+                    .Select(type => type.ToDisplayString(TypeExpressionFormat))
+                    .Where(typeExpression => accessorsByType.ContainsKey(typeExpression))
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(static x => x, StringComparer.Ordinal)
+                    .Select(typeExpression => accessorsByType[typeExpression])
+                    .ToImmutableArray()))
+            .Where(static optionsType => !optionsType.Accessors.IsDefaultOrEmpty)
+            .OrderBy(static x => x.OptionsType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), StringComparer.Ordinal)
+            .ToList();
+
+        if (methodRegistrations.Count == 0 && optionsTypeRegistrations.Count == 0)
         {
             return;
         }
@@ -195,6 +273,12 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
         foreach (var containingTypeGroup in methodRegistrations.GroupBy(static x => x.Method.ContainingType, SymbolEqualityComparer.Default))
         {
             AppendProfileType(source, (INamedTypeSymbol)containingTypeGroup.Key!, containingTypeGroup.ToImmutableArray());
+            source.AppendLine();
+        }
+
+        foreach (var optionsType in optionsTypeRegistrations)
+        {
+            AppendOptionsType(source, optionsType.OptionsType, optionsType.Accessors);
             source.AppendLine();
         }
 
@@ -232,6 +316,42 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
 
         registration = new ProfileMethodRegistration(method, candidate.RegisteredTypes);
         return true;
+    }
+
+    private static bool TryValidateOptionsType(OptionsTypeCandidate candidate, SourceProductionContext context, out OptionsTypeRegistration registration)
+    {
+        registration = default!;
+
+        var type = candidate.OptionsType;
+
+        var isValid =
+            candidate.HasPartialModifier &&
+            type.TypeKind == TypeKind.Class &&
+            type.Arity == 0 &&
+            type.ContainingType is null &&
+            InheritsFromTemplateOptions(type);
+
+        if (!isValid)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(InvalidOptionsType, candidate.Location, type.ToDisplayString()));
+            return false;
+        }
+
+        registration = new OptionsTypeRegistration(type, candidate.RegisteredTypes);
+        return true;
+    }
+
+    private static bool InheritsFromTemplateOptions(INamedTypeSymbol typeSymbol)
+    {
+        for (var current = typeSymbol.BaseType; current is not null; current = current.BaseType)
+        {
+            if (string.Equals(current.ToDisplayString(), TemplateOptionsType, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsPartialType(INamedTypeSymbol typeSymbol)
@@ -294,6 +414,48 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
             source.AppendLine();
         }
 
+        source.AppendLine("    }");
+
+        if (namespaceName is not null)
+        {
+            source.AppendLine("}");
+        }
+    }
+
+    private static void AppendOptionsType(StringBuilder source, INamedTypeSymbol optionsType, ImmutableArray<AccessorRegistration> accessors)
+    {
+        var namespaceName = optionsType.ContainingNamespace?.IsGlobalNamespace == false
+            ? optionsType.ContainingNamespace.ToDisplayString()
+            : null;
+
+        if (namespaceName is not null)
+        {
+            source.Append("namespace ").Append(namespaceName).AppendLine();
+            source.AppendLine("{");
+        }
+
+        source.Append("    ")
+            .Append(GetAccessibilityKeyword(optionsType.DeclaredAccessibility))
+            .Append(" partial class ")
+            .Append(optionsType.Name)
+            .AppendLine(" : global::Fluid.ITemplateOptionsMemberAccessorRegistrar");
+        source.AppendLine("    {");
+        source.AppendLine("        void global::Fluid.ITemplateOptionsMemberAccessorRegistrar.RegisterMemberAccessors(global::Fluid.TemplateOptions options)");
+        source.AppendLine("        {");
+        source.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(options);");
+        source.AppendLine("            var strategy = options.MemberAccessStrategy;");
+        source.AppendLine();
+
+        foreach (var accessor in accessors)
+        {
+            source.Append("            strategy.Register(typeof(")
+                .Append(accessor.TypeExpression)
+                .Append("), \"*\", new global::Fluid.SourceGenerated.")
+                .Append(accessor.AccessorName)
+                .AppendLine("());");
+        }
+
+        source.AppendLine("        }");
         source.AppendLine("    }");
 
         if (namespaceName is not null)
@@ -596,8 +758,18 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
         bool HasBody,
         Location Location);
 
+    private sealed record OptionsTypeCandidate(
+        INamedTypeSymbol OptionsType,
+        ImmutableArray<ITypeSymbol> RegisteredTypes,
+        bool HasPartialModifier,
+        Location Location);
+
     private sealed record ProfileMethodRegistration(
         IMethodSymbol Method,
+        ImmutableArray<ITypeSymbol> RegisteredTypes);
+
+    private sealed record OptionsTypeRegistration(
+        INamedTypeSymbol OptionsType,
         ImmutableArray<ITypeSymbol> RegisteredTypes);
 
     private sealed record AccessorRegistration(
@@ -607,6 +779,10 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
 
     private sealed record MethodRegistration(
         IMethodSymbol Method,
+        ImmutableArray<AccessorRegistration> Accessors);
+
+    private sealed record GeneratedOptionsTypeRegistration(
+        INamedTypeSymbol OptionsType,
         ImmutableArray<AccessorRegistration> Accessors);
 
     private sealed record MemberAccess(string Name, string Expression, AsyncKind AsyncKind);
@@ -623,7 +799,7 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
         #nullable enable
         namespace Fluid
         {
-            [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
+            [global::System.AttributeUsage(global::System.AttributeTargets.Class | global::System.AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
             internal sealed class FluidRegisterAttribute : global::System.Attribute
             {
                 public FluidRegisterAttribute(global::System.Type type)

@@ -155,8 +155,9 @@ Fluid works when targeting NativeAOT and trimmed deployments.
 ### Recommended usage when targeting NativeAOT
 
 1. Reuse `TemplateOptions` instances (for example, at app startup).
-2. Keep your `MemberAccessStrategy.Register<T...>` calls in reachable startup code.
-3. Validate your app with AOT/trim publish settings:
+2. If you use runtime `MemberAccessStrategy.Register<T...>` calls, execute them during application startup before rendering templates.
+3. Prefer `[FluidRegister]` on a custom `TemplateOptions` subclass for model types known at compile time.
+4. Validate your app with AOT/trim publish settings:
 
 ```shell
 dotnet publish -c Release -r <RID> -p:PublishAot=true
@@ -164,11 +165,35 @@ dotnet publish -c Release -r <RID> -p:PublishAot=true
 
 ### Source generation (optional)
 
-When the `Fluid.SourceGenerator` analyzer is enabled, Fluid can generate strongly-typed member accessors for explicit profile methods that target a specific `TemplateOptions` instance.
+When the `Fluid.SourceGenerator` analyzer is enabled, Fluid can generate strongly-typed member accessors for types declared with `FluidRegisterAttribute`.
+
+The recommended pattern is to declare a custom `TemplateOptions` subclass and add one `FluidRegisterAttribute` per model type:
 
 ```csharp
 using Fluid;
 
+[FluidRegister(typeof(Person))]
+[FluidRegister(typeof(Address))]
+public partial class PublicTemplateOptions : TemplateOptions
+{
+}
+```
+
+Use the generated options type like any other `TemplateOptions` instance:
+
+```csharp
+var options = new PublicTemplateOptions();
+```
+
+The generated registrations are instance-scoped and are applied automatically to each `PublicTemplateOptions` instance. Runtime registrations still work and can be added normally:
+
+```csharp
+options.MemberAccessStrategy.Register<Product, object>((product, name) => product.Name);
+```
+
+Alternatively, explicit profile methods can apply generated registrations to any `TemplateOptions` instance:
+
+```csharp
 public static partial class FluidProfiles
 {
     [FluidRegister(typeof(Person))]
@@ -183,8 +208,6 @@ Use it with any options instance:
 var options = new TemplateOptions();
 FluidProfiles.ApplyPublic(options);
 ```
-
-This keeps registrations instance-scoped and avoids implicit registration on `TemplateOptions.Default`.
 
 <br>
 

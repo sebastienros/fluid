@@ -72,6 +72,37 @@ public class MemberAccessorGeneratorTests
         Assert.Contains("strategy.Register(typeof(global::AdminModel), \"*\", new global::Fluid.SourceGenerated.AdminModel_GeneratedMemberAccessor());", generated);
     }
 
+    [Fact]
+    public void ShouldGenerateOptionsSubclassRegistrationFromFluidRegisterAttributes()
+    {
+        var source = """
+            using Fluid;
+
+            public class Person
+            {
+                public string FirstName { get; set; } = "";
+            }
+
+            public class Address
+            {
+                public string City { get; set; } = "";
+            }
+
+            [FluidRegister(typeof(Person))]
+            [FluidRegister(typeof(Address))]
+            public partial class PublicTemplateOptions : TemplateOptions
+            {
+            }
+            """;
+
+        var generated = RunGenerator(source);
+
+        Assert.Contains("public partial class PublicTemplateOptions : global::Fluid.ITemplateOptionsMemberAccessorRegistrar", generated);
+        Assert.Contains("void global::Fluid.ITemplateOptionsMemberAccessorRegistrar.RegisterMemberAccessors(global::Fluid.TemplateOptions options)", generated);
+        Assert.Contains("strategy.Register(typeof(global::Person), \"*\", new global::Fluid.SourceGenerated.Person_GeneratedMemberAccessor());", generated);
+        Assert.Contains("strategy.Register(typeof(global::Address), \"*\", new global::Fluid.SourceGenerated.Address_GeneratedMemberAccessor());", generated);
+    }
+
     private static string RunGenerator(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
@@ -86,6 +117,11 @@ public class MemberAccessorGeneratorTests
         var runResult = driver.GetRunResult();
 
         Assert.Equal(2, runResult.GeneratedTrees.Length);
+        Assert.Empty(runResult.Diagnostics.Where(static x => x.Severity == DiagnosticSeverity.Error));
+
+        var outputCompilation = compilation.AddSyntaxTrees(runResult.GeneratedTrees);
+        Assert.Empty(outputCompilation.GetDiagnostics().Where(static x => x.Severity == DiagnosticSeverity.Error));
+
         return string.Join(Environment.NewLine, runResult.GeneratedTrees.Select(static x => x.GetText().ToString()));
     }
 
