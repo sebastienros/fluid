@@ -8,6 +8,8 @@ namespace Fluid
     {
         internal record struct AccessorKey(Type Type, string Name);
 
+        private static readonly bool _dynamicCodeSupported = IsDynamicCodeSupported();
+
         private Dictionary<AccessorKey, IMemberAccessor> _map = [];
 
         public override IMemberAccessor GetAccessor(Type type, string name, StringComparer stringComparer)
@@ -66,7 +68,9 @@ namespace Fluid
                 }
                 else
                 {
-                    return new PropertyInfoAccessor(propertyInfo);
+                    return _dynamicCodeSupported
+                        ? new PropertyInfoAccessor(propertyInfo)
+                        : new ReflectionPropertyInfoAccessor(propertyInfo);
                 }
             }
 
@@ -94,11 +98,30 @@ namespace Fluid
                 }
                 else
                 {
-                    return new FieldInfoAccessor(fieldInfo);
+                    return _dynamicCodeSupported
+                        ? new FieldInfoAccessor(fieldInfo)
+                        : new ReflectionFieldInfoAccessor(fieldInfo);
                 }
             }            
 
             return null;
+        }
+
+        private static bool IsDynamicCodeSupported()
+        {
+#if NETSTANDARD2_0
+            var runtimeFeatureType = Type.GetType("System.Runtime.CompilerServices.RuntimeFeature, System.Runtime");
+            var property = runtimeFeatureType?.GetProperty("IsDynamicCodeSupported", BindingFlags.Public | BindingFlags.Static);
+
+            if (property?.PropertyType == typeof(bool))
+            {
+                return (bool)property.GetValue(null);
+            }
+
+            return true;
+#else
+            return RuntimeFeature.IsDynamicCodeSupported;
+#endif
         }
 
         // Creates accessors based on base types and interfaces

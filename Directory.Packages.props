@@ -35,6 +35,7 @@
     <!-- Common to all TFMs -->
     <PackageVersion Include="Parlot" Version="1.5.7" />
     <PackageVersion Include="TimeZoneConverter" Version="7.2.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
     <!-- Benchmarks -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="DotLiquid" Version="2.3.197" />
