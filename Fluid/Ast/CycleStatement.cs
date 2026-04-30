@@ -1,10 +1,11 @@
 ﻿using Fluid.Values;
 using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 using System.Runtime.CompilerServices;
 
 namespace Fluid.Ast
 {
-    public sealed class CycleStatement : Statement
+    public sealed class CycleStatement : Statement, ISourceable
     {
         private const string CycleRegisterKey = "$$cycle$$";
 
@@ -86,5 +87,58 @@ namespace Fluid.Ast
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitCycleStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+
+            if (Group is null)
+            {
+                context.WriteLine($"var key = {SourceGenerationContext.ToCSharpStringLiteral(_unnamedKey ?? "cycle_")};");
+            }
+            else
+            {
+                var groupExpr = context.GetExpressionMethodName(Group);
+                context.WriteLine($"var groupValue = await {groupExpr}({context.ContextName});");
+                context.WriteLine("var key = \"named_\" + (groupValue.IsNil() ? string.Empty : groupValue.ToStringValue());");
+            }
+
+            context.WriteLine($"if (!{context.ContextName}.AmbientValues.TryGetValue(\"{CycleRegisterKey}\", out var registerObj) || registerObj is not Dictionary<string, int> register)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("register = new Dictionary<string, int>();");
+                context.WriteLine($"{context.ContextName}.AmbientValues[\"{CycleRegisterKey}\"] = register;");
+            }
+            context.WriteLine("}");
+            context.WriteLine();
+            context.WriteLine("register.TryGetValue(key, out var iteration);");
+
+            context.WriteLine("FluidValue value;");
+            context.WriteLine("switch (iteration)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                for (var i = 0; i < Values.Count; i++)
+                {
+                    var vExpr = context.GetExpressionMethodName(Values[i]);
+                    context.WriteLine($"case {i}: value = await {vExpr}({context.ContextName}); break;");
+                }
+                context.WriteLine("default: value = NilValue.Instance; break;");
+            }
+            context.WriteLine("}");
+
+            context.WriteLine("iteration++;");
+            context.WriteLine($"if ({Values.Count} == 0 || iteration >= {Values.Count})");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("iteration = 0;");
+            }
+            context.WriteLine("}");
+            context.WriteLine("register[key] = iteration;");
+            context.WriteLine($"await value.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName}.CultureInfo);");
+            context.WriteLine("return Completion.Normal;");
+        }
     }
 }

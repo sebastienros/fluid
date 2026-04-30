@@ -1,10 +1,11 @@
 ﻿using Fluid.Values;
 using System.Globalization;
 using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class ForStatement : TagStatement
+    public sealed class ForStatement : TagStatement, ISourceable
     {
         private readonly string _continueSourceLiteral;
 
@@ -275,5 +276,182 @@ namespace Fluid.Ast
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitForStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            var sourceExpr = context.GetExpressionMethodName(Source);
+            var identifierLit = SourceGenerationContext.ToCSharpStringLiteral(Identifier);
+            var continueOffsetLiteralName = context.GetUniqueId("continueOffsetLiteral");
+            string continueOffsetLit = null;
+
+            if (!string.IsNullOrEmpty(_continueSourceLiteral))
+            {
+                continueOffsetLit = SourceGenerationContext.ToCSharpStringLiteral($"for_continue_{Identifier}-{_continueSourceLiteral}");
+                context.WriteLine($"var {continueOffsetLiteralName} = {continueOffsetLit};");
+            }
+            else if (Source is RangeExpression range)
+            {
+                var fromExpr = context.GetExpressionMethodName(range.From);
+                var toExpr = context.GetExpressionMethodName(range.To);
+                context.WriteLine($"var {continueOffsetLiteralName} = \"for_continue_{Identifier}-(\" + Convert.ToInt32((await {fromExpr}({context.ContextName})).ToNumberValue({context.ContextName})).ToString(CultureInfo.InvariantCulture) + \"..\" + Convert.ToInt32((await {toExpr}({context.ContextName})).ToNumberValue({context.ContextName})).ToString(CultureInfo.InvariantCulture) + \")\";");
+            }
+            else
+            {
+                continueOffsetLit = SourceGenerationContext.ToCSharpStringLiteral($"for_continue_{Identifier}-stmt_{System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this).ToString(CultureInfo.InvariantCulture)}");
+                context.WriteLine($"var {continueOffsetLiteralName} = {continueOffsetLit};");
+            }
+
+            context.WriteLine($"var evaluatedSource = await {sourceExpr}({context.ContextName});");
+            context.WriteLine("if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue()))");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                if (Else != null)
+                {
+                    var elseStmt = context.GetStatementMethodName(Else);
+                    context.WriteLine($"await {elseStmt}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                }
+                context.WriteLine("return Completion.Normal;");
+            }
+            context.WriteLine("}");
+            context.WriteLine();
+            context.WriteLine("IReadOnlyList<FluidValue> source = evaluatedSource is ArrayValue array");
+            using (context.Indent())
+            {
+                context.WriteLine("? array.Values");
+                context.WriteLine($": await evaluatedSource.EnumerateAsync({context.ContextName}).ToListAsync();");
+            }
+            context.WriteLine("if (source.Count == 0)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                if (Else != null)
+                {
+                    var elseStmt = context.GetStatementMethodName(Else);
+                    context.WriteLine($"await {elseStmt}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                }
+                context.WriteLine("return Completion.Normal;");
+            }
+            context.WriteLine("}");
+
+            context.WriteLine("var startIndex = 0;");
+            if (Offset is not null)
+            {
+                if (OffsetIsContinue)
+                {
+                    context.WriteLine($"startIndex = (int){context.ContextName}.GetValue({continueOffsetLiteralName}).ToNumberValue({context.ContextName});");
+                }
+                else
+                {
+                    var offsetExpr = context.GetExpressionMethodName(Offset);
+                    context.WriteLine($"startIndex = (int)(await {offsetExpr}({context.ContextName})).ToNumberValue({context.ContextName});");
+                }
+            }
+
+            context.WriteLine("var count = Math.Max(0, source.Count - startIndex);");
+            if (Limit is not null)
+            {
+                var limitExpr = context.GetExpressionMethodName(Limit);
+                context.WriteLine($"var limit = (int)(await {limitExpr}({context.ContextName})).ToNumberValue({context.ContextName});");
+                context.WriteLine("if (limit >= 0)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("count = Math.Min(count, limit);");
+                }
+                context.WriteLine("}");
+                context.WriteLine("else");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("count = Math.Max(0, count + limit);");
+                }
+                context.WriteLine("}");
+            }
+
+            context.WriteLine("if (count == 0)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                if (Else != null)
+                {
+                    var elseStmt = context.GetStatementMethodName(Else);
+                    context.WriteLine($"await {elseStmt}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                }
+                context.WriteLine("return Completion.Normal;");
+            }
+            context.WriteLine("}");
+
+            context.WriteLine($"var parentLoop = {context.ContextName}.LocalScope.GetValue(\"forloop\");");
+            context.WriteLine($"{context.ContextName}.EnterForLoopScope();");
+            context.WriteLine("try");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                var sourceLiteral = _continueSourceLiteral != null
+                    ? SourceGenerationContext.ToCSharpStringLiteral(_continueSourceLiteral)
+                    : "null";
+
+                context.WriteLine("var endIndexExclusive = startIndex + count;");
+                context.WriteLine("var forloop = new ForLoopValue");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine($"Identifier = {identifierLit},");
+                    context.WriteLine($"Source = {sourceLiteral}");
+                }
+                context.WriteLine("};");
+                context.WriteLine("var length = forloop.Length = count;");
+                context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue(\"forloop\", forloop);");
+                context.WriteLine("if (!parentLoop.IsNil() && parentLoop is ForLoopValue parentForLoop && !parentForLoop.IsRenderLoop)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("forloop.ParentLoop = parentForLoop;");
+                    context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue(\"parentloop\", parentForLoop);");
+                }
+                context.WriteLine("}");
+
+                context.WriteLine("for (var iteration = 0; iteration < count; iteration++)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine($"{context.ContextName}.IncrementSteps();");
+                    context.WriteLine($"var itemIndex = {(Reversed ? "endIndexExclusive - 1 - iteration" : "startIndex + iteration")};");
+                    context.WriteLine("var item = source[itemIndex];");
+                    context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue({identifierLit}, item);");
+                    context.WriteLine("// Set helper variables");
+                    context.WriteLine("forloop.Index = iteration + 1;");
+                    context.WriteLine("forloop.Index0 = iteration;");
+                    context.WriteLine("forloop.RIndex = count - iteration;");
+                    context.WriteLine("forloop.RIndex0 = count - iteration - 1;");
+                    context.WriteLine("forloop.First = iteration == 0;");
+                    context.WriteLine("forloop.Last = iteration == count - 1;");
+
+                    context.WriteLine("var completion = Completion.Normal;");
+                    for (var s = 0; s < Statements.Count; s++)
+                    {
+                        var stmtMethod = context.GetStatementMethodName(Statements[s]);
+                        context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                        context.WriteLine("if (completion != Completion.Normal) break;");
+                    }
+
+                    context.WriteLine("if (completion == Completion.Continue) continue;");
+                    context.WriteLine("if (completion == Completion.Break) break;");
+                }
+                context.WriteLine("}");
+                context.WriteLine($"{context.ContextName}.SetValue({continueOffsetLiteralName}, endIndexExclusive);");
+            }
+            context.WriteLine("}");
+            context.WriteLine("finally");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"{context.ContextName}.ReleaseScope();");
+            }
+            context.WriteLine("}");
+
+            context.WriteLine("return Completion.Normal;");
+        }
     }
 }

@@ -1,8 +1,9 @@
 ﻿using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class ElseStatement : TagStatement
+    public sealed class ElseStatement : TagStatement, ISourceable
     {
         private readonly bool _isWhitespaceOrCommentOnly;
 
@@ -111,5 +112,19 @@ namespace Fluid.Ast
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitElseStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            context.WriteLine("var completion = Completion.Normal;");
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                context.WriteLine($"{context.ContextName}.IncrementSteps();");
+                var stmtMethod = context.GetStatementMethodName(Statements[i]);
+                context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                context.WriteLine("if (completion != Completion.Normal) return completion;");
+            }
+
+            context.WriteLine("return Completion.Normal;");
+        }
     }
 }

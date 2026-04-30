@@ -1,5 +1,6 @@
 using Fluid.Values;
 using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
@@ -7,7 +8,7 @@ namespace Fluid.Ast
     /// The render tag can only access immutable environments, which means the scope of the context that was passed to the main template, the options' scope, and the model.
     /// </summary>
 #pragma warning disable CA1001 // Types that own disposable fields should be disposable
-    public sealed class RenderStatement : Statement
+    public sealed class RenderStatement : Statement, ISourceable
 #pragma warning restore CA1001
     {
         public const string ViewExtension = ".liquid";
@@ -191,6 +192,178 @@ namespace Fluid.Ast
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitRenderStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            void EmitEvaluateAssignStatements()
+            {
+                var assignedValueNames = new string[AssignStatements.Count];
+
+                for (var i = 0; i < AssignStatements.Count; i++)
+                {
+                    var assignStatement = AssignStatements[i];
+                    var valueExpr = context.GetExpressionMethodName(assignStatement.Value);
+                    var valueName = context.GetUniqueId("assignedValue");
+                    assignedValueNames[i] = valueName;
+
+                    context.WriteLine($"{context.ContextName}.IncrementSteps();");
+                    context.WriteLine($"var {valueName} = await {valueExpr}({context.ContextName});");
+                    context.WriteLine($"if ({context.ContextName}.Assigned != null)");
+                    context.WriteLine("{");
+                    using (context.Indent())
+                    {
+                        context.WriteLine($"{valueName} = await {context.ContextName}.Assigned.Invoke({SourceGenerationContext.ToCSharpStringLiteral(assignStatement.Identifier)}, {valueName}, {context.ContextName});");
+                    }
+                    context.WriteLine("}");
+                }
+
+                for (var i = 0; i < AssignStatements.Count; i++)
+                {
+                    var assignStatement = AssignStatements[i];
+                    context.WriteLine($"{context.ContextName}.SetValue({SourceGenerationContext.ToCSharpStringLiteral(assignStatement.Identifier)}, {assignedValueNames[i]});");
+                }
+            }
+
+            // The referenced template is compiled ahead-of-time and resolved by path.
+            var templateTypeName = context.GetRenderTemplateTypeName(Path);
+
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+            context.WriteLine($"var template = new {templateTypeName}();");
+
+            // Use the same default identifier logic as runtime (file name without extension).
+            context.WriteLine($"var identifier = System.IO.Path.GetFileNameWithoutExtension({SourceGenerationContext.ToCSharpStringLiteral(Path)});");
+
+            context.WriteLine($"{context.ContextName}.EnterChildScope();");
+            context.WriteLine($"var previousScope = {context.ContextName}.LocalScope;");
+            context.WriteLine("var rootScope = previousScope;");
+            context.WriteLine("while (rootScope.Parent != null)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("rootScope = rootScope.Parent;");
+            }
+            context.WriteLine("}");
+
+            context.WriteLine("try");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                if (With != null)
+                {
+                    var withExpr = context.GetExpressionMethodName(With);
+                    context.WriteLine($"var withValue = await {withExpr}({context.ContextName});");
+
+                    context.WriteLine($"{context.ContextName}.LocalScope = new Scope(rootScope);");
+                    context.WriteLine($"previousScope.CopyTo({context.ContextName}.LocalScope);");
+
+                    if (!string.IsNullOrEmpty(Alias))
+                    {
+                        context.WriteLine($"{context.ContextName}.SetValue({SourceGenerationContext.ToCSharpStringLiteral(Alias)}, withValue);");
+                    }
+                    else
+                    {
+                        context.WriteLine($"{context.ContextName}.SetValue(identifier, withValue);");
+                    }
+
+                    if (AssignStatements.Count > 0)
+                    {
+                        EmitEvaluateAssignStatements();
+                    }
+
+                    context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                }
+                else if (For != null)
+                {
+                    var forExpr = context.GetExpressionMethodName(For);
+
+                    context.WriteLine("try");
+                    context.WriteLine("{");
+                    using (context.Indent())
+                    {
+                        context.WriteLine("var forloop = new ForLoopValue { IsRenderLoop = true };");
+                        context.WriteLine($"var evaluatedFor = await {forExpr}({context.ContextName});");
+                        context.WriteLine("IReadOnlyList<FluidValue> list = evaluatedFor is ArrayValue array");
+                        using (context.Indent())
+                        {
+                            context.WriteLine("? array.Values");
+                            context.WriteLine($": await evaluatedFor.EnumerateAsync({context.ContextName}).ToListAsync();");
+                        }
+
+                        context.WriteLine($"{context.ContextName}.LocalScope = new Scope(rootScope);");
+                        context.WriteLine($"previousScope.CopyTo({context.ContextName}.LocalScope);");
+
+                        if (AssignStatements.Count > 0)
+                        {
+                            EmitEvaluateAssignStatements();
+                        }
+
+                        context.WriteLine("var length = forloop.Length = list.Count;");
+                        context.WriteLine($"{context.ContextName}.SetValue(\"forloop\", forloop);");
+
+                        context.WriteLine("for (var i = 0; i < length; i++)");
+                        context.WriteLine("{");
+                        using (context.Indent())
+                        {
+                            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+                            context.WriteLine("var item = list[i];");
+
+                            if (!string.IsNullOrEmpty(Alias))
+                            {
+                                context.WriteLine($"{context.ContextName}.SetValue({SourceGenerationContext.ToCSharpStringLiteral(Alias)}, item);");
+                            }
+                            else
+                            {
+                                context.WriteLine($"{context.ContextName}.SetValue(identifier, item);");
+                            }
+
+                            context.WriteLine("forloop.Index = i + 1;");
+                            context.WriteLine("forloop.Index0 = i;");
+                            context.WriteLine("forloop.RIndex = length - i;");
+                            context.WriteLine("forloop.RIndex0 = length - i - 1;");
+                            context.WriteLine("forloop.First = i == 0;");
+                            context.WriteLine("forloop.Last = i == length - 1;");
+
+                            context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                            context.WriteLine($"{context.ContextName}.SetValue(\"forloop\", forloop);");
+                        }
+                        context.WriteLine("}");
+                    }
+                    context.WriteLine("}");
+                    context.WriteLine("finally");
+                    context.WriteLine("{");
+                    using (context.Indent())
+                    {
+                        context.WriteLine($"{context.ContextName}.LocalScope.Delete(\"forloop\");");
+                    }
+                    context.WriteLine("}");
+                }
+                else if (AssignStatements.Count > 0)
+                {
+                    EmitEvaluateAssignStatements();
+
+                    context.WriteLine($"{context.ContextName}.LocalScope = new Scope(rootScope);");
+                    context.WriteLine($"previousScope.CopyTo({context.ContextName}.LocalScope);");
+                    context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                }
+                else
+                {
+                    context.WriteLine($"{context.ContextName}.LocalScope = new Scope(rootScope);");
+                    context.WriteLine($"previousScope.CopyTo({context.ContextName}.LocalScope);");
+                    context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                }
+            }
+            context.WriteLine("}");
+            context.WriteLine("finally");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"{context.ContextName}.LocalScope = previousScope;");
+                context.WriteLine($"{context.ContextName}.ReleaseScope();");
+            }
+            context.WriteLine("}");
+
+            context.WriteLine("return Completion.Normal;");
+        }
 
         private static async ValueTask EvaluateAssignStatementsAsync(IReadOnlyList<AssignStatement> assignStatements, TemplateContext context)
         {
