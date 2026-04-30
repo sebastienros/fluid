@@ -181,7 +181,15 @@ namespace Fluid.Ast
             context.WriteLine("{");
             using (context.Indent())
             {
-                context.WriteLine($"if ({context.ContextName}.Model == null)");
+                context.WriteLine($"var incDecValue = {context.ContextName}.LocalScope.GetValue({SourceGenerationContext.ToCSharpStringLiteral(IncrementStatement.Prefix + initial.Identifier)});");
+                context.WriteLine("if (!incDecValue.IsNil())");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("value = incDecValue;");
+                }
+                context.WriteLine("}");
+                context.WriteLine($"else if ({context.ContextName}.Model.IsNil())");
                 context.WriteLine("{");
                 using (context.Indent())
                 {
@@ -213,8 +221,14 @@ namespace Fluid.Ast
                 }
                 context.WriteLine("}");
 
-                context.WriteLine("start = 0;");
-                context.WriteLine($"value = {context.ContextName}.Model;");
+                context.WriteLine("else");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("start = 0;");
+                    context.WriteLine($"value = {context.ContextName}.Model;");
+                }
+                context.WriteLine("}");
             }
             context.WriteLine("}");
 

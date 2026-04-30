@@ -29,6 +29,7 @@ namespace Fluid.Tests
         [InlineData("{% capture x %}hi{% endcapture %}{{ x }}", "hi")]
         [InlineData("{% cycle 'a','b' %}{% cycle 'a','b' %}{% cycle 'a','b' %}", "aba")]
         [InlineData("{% increment x %}{% increment x %}{% decrement x %}", "011")]
+        [InlineData("{% increment x %}{{ x }}", "01")]
         [InlineData("{% case 2 %}{% when 1 %}a{% when 2 %}b{% else %}c{% endcase %}", "b")]
         public async Task GeneratedTemplate_MatchesRuntime(string liquid, string expected)
         {
@@ -54,6 +55,28 @@ namespace Fluid.Tests
 
             Assert.Equal(expected, runtimeWriter.ToString());
             Assert.Equal(expected, generatedWriter.ToString());
+        }
+
+        [Fact]
+        public async Task GeneratedTemplate_StrictVariables_ThrowsOnMissingVariable()
+        {
+            var parser = new FluidParser();
+            var template = parser.Parse("{{ missing }}");
+
+            var source = template.Compile(new SourceGenerationOptions
+            {
+                Namespace = "Fluid.Tests.Generated",
+                ClassName = "T" + Guid.NewGuid().ToString("N")
+            });
+
+            var generated = CompileToAssembly(source.SourceCode);
+            var type = generated.GetType(source.FullTypeName, throwOnError: true);
+            var instance = (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
+            var context = new TemplateContext(new TemplateOptions { StrictVariables = true });
+
+            var ex = await Assert.ThrowsAsync<FluidException>(() => instance.RenderAsync(new StringWriter(), HtmlEncoder.Default, context).AsTask());
+
+            Assert.Contains("missing", ex.Message, StringComparison.Ordinal);
         }
 
         [Fact]
