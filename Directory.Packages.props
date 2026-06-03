@@ -21,8 +21,8 @@
 
   <ItemGroup>
     <!-- Global Package References -->
-    <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.203" PrivateAssets="all" />
-    <GlobalPackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" />
+    <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.300" PrivateAssets="all" />
+    <GlobalPackageReference Include="PolySharp" Version="1.16.0" PrivateAssets="all" />
     <!-- TFM specific reference since they could lift some framework dependencies -->
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Abstractions" Version="$(MicrosoftExtensionsFileProvidersAbstractionsPackageVersion)" />
     <!-- Only used with netstandard2.0 -->
@@ -31,7 +31,7 @@
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageVersion Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
     <PackageVersion Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
-    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.8" />
     <!-- Common to all TFMs -->
     <PackageVersion Include="Parlot" Version="1.5.7" />
     <PackageVersion Include="TimeZoneConverter" Version="7.2.0" />
@@ -40,7 +40,7 @@
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="DotLiquid" Version="2.3.197" />
     <PackageVersion Include="Liquid.NET" Version="0.10.0" />
-    <PackageVersion Include="Scriban" Version="7.1.0" />
+    <PackageVersion Include="Scriban" Version="7.2.3" />
     <PackageVersion Include="Handlebars.Net" Version="2.1.6" />
     <!-- Testing -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
