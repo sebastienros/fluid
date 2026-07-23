@@ -261,10 +261,15 @@ namespace Fluid.Values
             // common shape of number flowing through a template (loop counters, sizes, quantities, prices)
             // and lets them render from precomputed text instead of formatting a decimal.
             // The scale is part of a number's identity in Liquid (1.0 * 2.0 == 2.00), so only scale 0 qualifies.
-            if (GetScale(value) == 0 && value >= 0m && value < InternedLimit)
+#if NET8_0_OR_GREATER
+            // Range first, because it is a pair of comparisons; the scale read is free on this target.
+            // Not done on netstandard2.0, where GetScale goes through decimal.GetBits and allocates an
+            // int[4] per call -- that would cost more than the allocation interning saves.
+            if (value >= 0m && value < InternedLimit && GetScale(value) == 0)
             {
                 return IntToString[(int)value];
             }
+#endif
 
             return new NumberValue(value);
         }

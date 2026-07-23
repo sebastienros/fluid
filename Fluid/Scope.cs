@@ -25,10 +25,12 @@ namespace Fluid
         // previous behaviour of creating the dictionary with the parent's comparer when it has one.
         private StringComparer _storageComparer;
 
-        // Ordinal is the default for every scope whose chain never reaches a custom ModelNamesComparer.
-        // Calling string.Equals directly for it keeps the slot scan free of a virtual call, which matters
-        // most on a miss, where every occupied slot is compared before moving to the parent scope.
-        private bool _storageComparerIsOrdinal;
+        // Both built-in comparers can be compared without a virtual call, which matters most on a miss,
+        // where every occupied slot is compared before moving to the parent scope. OrdinalIgnoreCase is
+        // what TemplateOptions.ModelNamesComparer defaults to, and Ordinal is what a scope falls back to
+        // when nothing in its chain sets one, so between them they cover the common configurations.
+        private StringComparison _storageComparison;
+        private bool _storageComparisonIsDirect;
 
         private readonly bool _forLoopScope;
         private readonly StringComparer _stringComparer;
@@ -210,6 +212,10 @@ namespace Fluid
         /// </summary>
         public void SetOwnValue(string name, FluidValue value)
         {
+            // The Dictionary this used to delegate to rejected a null key, and callers relied on being
+            // told at the offending call rather than when the name later surfaced somewhere else.
+            ArgumentNullException.ThrowIfNull(name);
+
             value ??= NilValue.Instance;
 
             if (_properties != null)
@@ -223,16 +229,25 @@ namespace Fluid
             if (comparer is null)
             {
                 _storageComparer = comparer = Parent?._storageComparer ?? _stringComparer;
-                _storageComparerIsOrdinal = ReferenceEquals(comparer, StringComparer.Ordinal);
+
+                if (ReferenceEquals(comparer, StringComparer.Ordinal))
+                {
+                    _storageComparison = StringComparison.Ordinal;
+                    _storageComparisonIsDirect = true;
+                }
+                else if (ReferenceEquals(comparer, StringComparer.OrdinalIgnoreCase))
+                {
+                    _storageComparison = StringComparison.OrdinalIgnoreCase;
+                    _storageComparisonIsDirect = true;
+                }
             }
 
             for (var i = 0; i < _inlineCount; i++)
             {
-                var slotName = GetInlineName(i);
-
-                if (NameEquals(name, slotName))
+                if (NameEquals(name, GetInlineName(i)))
                 {
-                    SetInline(i, slotName, value);
+                    // Only the value changes; the slot already holds an equal name.
+                    SetInlineValue(i, value);
                     return;
                 }
             }
@@ -244,7 +259,10 @@ namespace Fluid
                 return;
             }
 
-            // Overflow: switch to a dictionary and keep using it from now on.
+            // Overflow: switch to a dictionary and keep using it from now on. Publish the dictionary
+            // before retiring the slots, and leave the slot fields populated -- a reader that still sees
+            // the old _inlineCount then resolves from slots that are still valid, instead of finding
+            // neither store and reporting a name that is present as undefined.
             var properties = new Dictionary<string, FluidValue>(comparer);
             for (var i = 0; i < _inlineCount; i++)
             {
@@ -255,8 +273,6 @@ namespace Fluid
 
             _properties = properties;
             _inlineCount = 0;
-            _name0 = _name1 = _name2 = null;
-            _value0 = _value1 = _value2 = null;
         }
 
         /// <summary>
@@ -299,8 +315,8 @@ namespace Fluid
                 return false;
             }
 
-            return _storageComparerIsOrdinal
-                ? string.Equals(name, slotName, StringComparison.Ordinal)
+            return _storageComparisonIsDirect
+                ? string.Equals(name, slotName, _storageComparison)
                 : _storageComparer.Equals(name, slotName);
         }
 
@@ -328,6 +344,21 @@ namespace Fluid
                 case 0: _name0 = name; _value0 = value; break;
                 case 1: _name1 = name; _value1 = value; break;
                 default: _name2 = name; _value2 = value; break;
+            }
+        }
+
+        /// <summary>
+        /// Overwrites the value of an occupied slot. The loop variable is rewritten once per iteration,
+        /// so this avoids re-storing a name the slot already holds.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SetInlineValue(int index, FluidValue value)
+        {
+            switch (index)
+            {
+                case 0: _value0 = value; break;
+                case 1: _value1 = value; break;
+                default: _value2 = value; break;
             }
         }
     }

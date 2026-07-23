@@ -25,10 +25,23 @@ namespace Fluid.Ast
         // instance or its version changes, so filters registered after the first render are still picked up.
         private sealed class FilterCacheEntry
         {
+            /// <summary>
+            /// Marks a call site that misses too often to be worth caching -- typically one template
+            /// rendered against several sets of options. Without it such a site would allocate a
+            /// replacement entry on every filter invocation.
+            /// </summary>
+            public static readonly FilterCacheEntry Disabled = new();
+
             public FilterCollection Collection;
             public int Version;
             public FilterDelegate Filter;
+            public int Misses;
         }
+
+        /// <summary>
+        /// How many times a call site may re-resolve its filter before it stops caching.
+        /// </summary>
+        private const int MaxMisses = 4;
 
         private volatile FilterCacheEntry _filterCache;
 
@@ -89,7 +102,11 @@ namespace Fluid.Ast
 
             FilterDelegate filter;
 
-            if (cache is not null && ReferenceEquals(cache.Collection, filters) && cache.Version == filters.Version)
+            if (ReferenceEquals(cache, FilterCacheEntry.Disabled))
+            {
+                filters.TryGetValue(Name, out filter);
+            }
+            else if (cache is not null && ReferenceEquals(cache.Collection, filters) && cache.Version == filters.Version)
             {
                 filter = cache.Filter;
             }
@@ -99,7 +116,12 @@ namespace Fluid.Ast
                 // on the next evaluation instead of being silently baked in.
                 var version = filters.Version;
                 filters.TryGetValue(Name, out filter);
-                _filterCache = new FilterCacheEntry { Collection = filters, Version = version, Filter = filter };
+
+                var misses = (cache?.Misses ?? 0) + 1;
+
+                _filterCache = misses > MaxMisses
+                    ? FilterCacheEntry.Disabled
+                    : new FilterCacheEntry { Collection = filters, Version = version, Filter = filter, Misses = misses };
             }
 
             if (filter is null)
@@ -107,13 +129,28 @@ namespace Fluid.Ast
                 // When a filter is not defined, return the input unless strict filters are enabled
                 if (context.Options.StrictFilters)
                 {
-                    throw new FluidException($"Undefined filter '{Name}'");
+                    // Faulted rather than thrown: this method is no longer async, and callers that start
+                    // a render and await it later would otherwise see the throw escape at the call site.
+                    return Faulted(new FluidException($"Undefined filter '{Name}'"));
                 }
 
                 return new ValueTask<FluidValue>(input);
             }
 
-            return filter(input, arguments, context);
+            try
+            {
+                return filter(input, arguments, context);
+            }
+            catch (Exception e)
+            {
+                // Same reason: a filter that throws before its first await used to fault the task.
+                return Faulted(e);
+            }
+        }
+
+        private static ValueTask<FluidValue> Faulted(Exception exception)
+        {
+            return new ValueTask<FluidValue>(Task.FromException<FluidValue>(exception));
         }
 
         protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitFilterExpression(this);

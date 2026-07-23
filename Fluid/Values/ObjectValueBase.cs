@@ -51,19 +51,20 @@ namespace Fluid.Values
         internal sealed class AccessorCacheEntry
         {
             /// <summary>
-            /// Marks a call site that has seen too many distinct types to be worth caching, such as a
-            /// loop over a heterogeneous collection. Without it such a site would miss every time and
-            /// allocate a replacement entry per access, which is worse than not caching at all.
+            /// Marks a call site that misses too often to be worth caching -- a loop over a
+            /// heterogeneous collection, or a template rendered against several sets of options.
+            /// Without it such a site would allocate a replacement entry on every access, which is
+            /// worse than not caching at all.
             /// </summary>
             public static readonly AccessorCacheEntry Disabled = new(null, null, null, null, 0);
 
-            public AccessorCacheEntry(object token, Type type, StringComparer comparer, IMemberAccessor accessor, int shapeMisses)
+            public AccessorCacheEntry(object token, Type type, StringComparer comparer, IMemberAccessor accessor, int misses)
             {
                 Token = token;
                 Type = type;
                 Comparer = comparer;
                 Accessor = accessor;
-                ShapeMisses = shapeMisses;
+                Misses = misses;
             }
 
             public readonly object Token;
@@ -72,18 +73,18 @@ namespace Fluid.Values
             public readonly IMemberAccessor Accessor;
 
             /// <summary>
-            /// How often this site resolved against a different type or comparer. Counted on the entry
-            /// rather than the segment so that tracking it costs no extra field per parsed segment.
+            /// How often this site had to re-resolve. Counted on the entry rather than the segment so
+            /// that tracking it costs no extra field per parsed segment.
             /// </summary>
-            public readonly int ShapeMisses;
+            public readonly int Misses;
         }
 
         /// <summary>
-        /// How many times a call site may change shape before it stops caching. A monomorphic site
-        /// misses once when cold, so this only has to stay clear of the handful of misses that
-        /// registering accessors for new types causes while an application warms up.
+        /// How many times a call site may re-resolve before it stops caching. A site that settles misses
+        /// only while warming up, so this only has to clear the handful of misses that resolving the
+        /// first accessors for a model type costs.
         /// </summary>
-        private const int MaxShapeMisses = 4;
+        private const int MaxMisses = 4;
 
         public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
@@ -131,16 +132,15 @@ namespace Fluid.Values
                 return accessor;
             }
 
-            // Only a change of shape counts towards the budget. Missing because the strategy registered
-            // an accessor elsewhere says nothing about how many types this site sees, and would
-            // otherwise disable caching everywhere during warm-up.
-            var shapeMisses = entry is null || (ReferenceEquals(entry.Type, type) && ReferenceEquals(entry.Comparer, comparer))
-                ? entry?.ShapeMisses ?? 0
-                : entry.ShapeMisses + 1;
+            // Every miss counts, whatever the cause. A site that keeps missing is one whose entry never
+            // pays for itself, and it would otherwise allocate a replacement on every single access --
+            // which is what a template rendered alternately against two TemplateOptions does, since the
+            // type and comparer match every time and only the token differs.
+            var misses = (entry?.Misses ?? 0) + 1;
 
-            cache = shapeMisses > MaxShapeMisses
+            cache = misses > MaxMisses
                 ? AccessorCacheEntry.Disabled
-                : new AccessorCacheEntry(token, type, comparer, accessor, shapeMisses);
+                : new AccessorCacheEntry(token, type, comparer, accessor, misses);
 
             return accessor;
         }

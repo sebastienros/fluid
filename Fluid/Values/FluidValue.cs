@@ -159,12 +159,6 @@ namespace Fluid.Values
 
             var typeOfValue = value.GetType();
 
-            // A type already known to be none of the special cases below goes straight to the wrapper.
-            if (_plainObjectTypeCache.Contains(typeOfValue))
-            {
-                return new ObjectValue(value);
-            }
-
             // Check if the value is an enum and convert to string
             if (typeOfValue.IsEnum)
             {
@@ -200,6 +194,13 @@ namespace Fluid.Values
                 case TypeCode.Empty:
                     return NilValue.Instance;
                 case TypeCode.Object:
+
+                    // Only object-typed values ever reach the fallback, so the memo is probed here
+                    // rather than up front, where every string and number would pay for it and miss.
+                    if (_plainObjectTypeCache.Contains(typeOfValue))
+                    {
+                        return new ObjectValue(value);
+                    }
 
                     switch (value)
                     {
