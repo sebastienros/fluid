@@ -18,6 +18,14 @@ namespace Fluid.Values
 
         private static Dictionary<Type, Type> _genericDictionaryTypeCache = new();
 
+        /// <summary>
+        /// Types that <see cref="Create(object, TemplateOptions)"/> has already found to be plain objects.
+        /// Converting a model means running the same enum check, type code lookup and dozen-odd pattern
+        /// matches for every item of a list; remembering the outcome per type reduces that to one lookup.
+        /// Replaced wholesale rather than mutated, so readers never see a partially updated table.
+        /// </summary>
+        private static HashSet<Type> _plainObjectTypeCache = [];
+
         [Conditional("DEBUG")]
         protected static void AssertWriteToParameters(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
@@ -150,6 +158,12 @@ namespace Fluid.Values
             }
 
             var typeOfValue = value.GetType();
+
+            // A type already known to be none of the special cases below goes straight to the wrapper.
+            if (_plainObjectTypeCache.Contains(typeOfValue))
+            {
+                return new ObjectValue(value);
+            }
 
             // Check if the value is an enum and convert to string
             if (typeOfValue.IsEnum)
@@ -305,6 +319,16 @@ namespace Fluid.Values
                             return fluidValues != null
                                 ? new ArrayValue(fluidValues)
                                 : ArrayValue.Empty;
+                    }
+
+                    // Nothing above matched, so every value of this type is a plain object. Swap in a
+                    // copy with the type added, unless another thread got there first -- in which case
+                    // its table is just as valid and this one is dropped.
+                    var plainTypes = _plainObjectTypeCache;
+
+                    if (!plainTypes.Contains(typeOfValue))
+                    {
+                        Interlocked.CompareExchange(ref _plainObjectTypeCache, new HashSet<Type>(plainTypes) { typeOfValue }, plainTypes);
                     }
 
                     return new ObjectValue(value);
