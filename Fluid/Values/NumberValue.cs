@@ -12,23 +12,44 @@ namespace Fluid.Values
     /// 1.0 * 2.0 = 2.00
     public sealed class NumberValue : FluidValue, IEquatable<NumberValue>
     {
-        public static readonly NumberValue Zero = new NumberValue(0M);
+        /// <summary>
+        /// The largest value (exclusive) kept as a shared instance with precomputed text.
+        /// </summary>
+        private const int InternedLimit = 1024;
 
-        private static readonly NumberValue[] IntToString = new NumberValue[1024];
+        public static readonly NumberValue Zero;
+
+        private static readonly NumberValue[] IntToString = new NumberValue[InternedLimit];
 
         private readonly decimal _value;
+
+        /// <summary>
+        /// The rendered form of the value, when it is known to be culture-independent. Non-negative
+        /// integers below <see cref="IntToString"/>'s length format as plain ASCII digits in every
+        /// culture, so their text can be precomputed and written without formatting the decimal.
+        /// </summary>
+        private readonly string _text;
 
         static NumberValue()
         {
             for (var i = 0; i < IntToString.Length; ++i)
             {
-                IntToString[i] = new NumberValue(i);
+                IntToString[i] = new NumberValue(i, i.ToString(CultureInfo.InvariantCulture));
             }
+
+            // Share the instance Create(0) hands out, so there is only ever one canonical zero.
+            Zero = IntToString[0];
         }
 
         private NumberValue(decimal value)
         {
             _value = value;
+        }
+
+        private NumberValue(int value, string text)
+        {
+            _value = value;
+            _text = text;
         }
 
         public override FluidValues Type => FluidValues.Number;
@@ -101,12 +122,18 @@ namespace Fluid.Values
 
         public override string ToStringValue()
         {
-            return _value.ToString(CultureInfo.InvariantCulture);
+            return _text ?? _value.ToString(CultureInfo.InvariantCulture);
         }
 
         public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
             AssertWriteToParameters(output, encoder, cultureInfo);
+
+            if (_text is not null)
+            {
+                output.Write(encoder, _text);
+                return default;
+            }
 
             var scale = GetScale(_value);
 
@@ -230,6 +257,15 @@ namespace Fluid.Values
 
         public static NumberValue Create(decimal value)
         {
+            // Reuse the interned instances for small non-negative whole numbers. That is by far the most
+            // common shape of number flowing through a template (loop counters, sizes, quantities, prices)
+            // and lets them render from precomputed text instead of formatting a decimal.
+            // The scale is part of a number's identity in Liquid (1.0 * 2.0 == 2.00), so only scale 0 qualifies.
+            if (GetScale(value) == 0 && value >= 0m && value < InternedLimit)
+            {
+                return IntToString[(int)value];
+            }
+
             return new NumberValue(value);
         }
 

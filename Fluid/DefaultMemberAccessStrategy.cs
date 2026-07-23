@@ -10,7 +10,27 @@ namespace Fluid
 
         private static readonly bool _dynamicCodeSupported = IsDynamicCodeSupported();
 
-        private Dictionary<AccessorKey, IMemberAccessor> _map = [];
+        // Volatile so that reading it as the cache token is an acquire, which keeps the map read that
+        // follows in GetAccessor from being reordered before it. Without that, a call site could pair a
+        // token from after a registration with an accessor resolved from the map before it, and then
+        // never re-resolve.
+        private volatile Dictionary<AccessorKey, IMemberAccessor> _map = [];
+
+        // Only the exact type opts in. A derived strategy may override GetAccessor to resolve from its
+        // own source, which this map -- and therefore the token -- would not reflect; it would then serve
+        // a stale accessor forever. Subclasses give up the caching, not correctness.
+        private readonly bool _accessorCachingSupported;
+
+        public DefaultMemberAccessStrategy()
+        {
+            _accessorCachingSupported = GetType() == typeof(DefaultMemberAccessStrategy);
+        }
+
+        /// <summary>
+        /// The map itself is the token: <see cref="Register"/> replaces it with a new instance on every
+        /// mutation, so it invalidates cached accessors without a separate version counter to maintain.
+        /// </summary>
+        protected internal override object AccessorCacheToken => _accessorCachingSupported ? _map : null;
 
         public override IMemberAccessor GetAccessor(Type type, string name, StringComparer stringComparer)
         {
@@ -157,6 +177,9 @@ namespace Fluid
         {
             var map = new Dictionary<AccessorKey, IMemberAccessor>(_map);
             map[new AccessorKey(type, name)] = accessor;
+
+            // Publishing the new map also invalidates every accessor cached by a call site, since the
+            // map doubles as the cache token.
             _map = map;
         }
     }

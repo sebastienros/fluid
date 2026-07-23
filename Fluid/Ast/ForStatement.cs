@@ -1,5 +1,6 @@
 ﻿using Fluid.Values;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast
@@ -7,6 +8,15 @@ namespace Fluid.Ast
     public sealed class ForStatement : TagStatement
     {
         private readonly string _continueSourceLiteral;
+
+        // Precomputed for every source shape but a range. Both `forloop.name` and the `offset: continue`
+        // key are then constant for the lifetime of the statement, so they don't need to be rebuilt
+        // (with LINQ and string.Join) on every execution of the loop.
+        private readonly string _staticContinueOffsetLiteral;
+
+        // Statements never change after construction, and PrepareBuffer can only shrink a TextSpanStatement
+        // by trimming whitespace, so a whitespace-only body stays whitespace-only.
+        private readonly bool _suppressWhitespaceBody;
 
         public ForStatement(
             IReadOnlyList<Statement> statements,
@@ -29,6 +39,18 @@ namespace Fluid.Ast
             _continueSourceLiteral = source is MemberExpression m
                 ? string.Join(".", m.Segments.Select(s => (s as IdentifierSegment)?.Identifier).Where(s => s != null))
                 : null;
+
+            if (!string.IsNullOrEmpty(_continueSourceLiteral))
+            {
+                _staticContinueOffsetLiteral = $"for_continue_{Identifier}-{_continueSourceLiteral}";
+            }
+            else if (source is not RangeExpression)
+            {
+                // Fallback: stable within the current render (statement instance).
+                _staticContinueOffsetLiteral = $"for_continue_{Identifier}-stmt_" + RuntimeHelpers.GetHashCode(this).ToString(CultureInfo.InvariantCulture);
+            }
+
+            _suppressWhitespaceBody = Statements.Count == 1 && Statements[0] is TextSpanStatement t && t.IsWhitespaceOrCommentOnly;
         }
 
         public string Identifier { get; }
@@ -47,7 +69,7 @@ namespace Fluid.Ast
             // The `offset: continue` feature uses a per-source key to store the absolute index
             // of the next item to render. In Liquid, this state is updated by every `for` loop
             // over the same source, even if the loop itself doesn't specify `offset: continue`.
-            var continueOffsetLiteral = await BuildContinueOffsetLiteralAsync(context);
+            var continueOffsetLiteral = _staticContinueOffsetLiteral ?? await BuildRangeContinueOffsetLiteralAsync((RangeExpression)Source, context);
 
             // Golden Liquid: empty strings are treated as empty collections
             if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue()))
@@ -65,14 +87,6 @@ namespace Fluid.Ast
             IReadOnlyList<FluidValue> source = evaluatedSource is ArrayValue array
                 ? array.Values
                 : await evaluatedSource.EnumerateAsync(context).ToListAsync();
-
-            var suppressWhitespaceBody = Statements.Count == 1
-                && Statements[0] is TextSpanStatement t
-#if NET6_0_OR_GREATER
-                && t.Text.Span.IsWhiteSpace();
-#else
-                && string.IsNullOrWhiteSpace(t.Text.ToString());
-#endif
 
             if (source.Count == 0)
             {
@@ -138,8 +152,8 @@ namespace Fluid.Ast
                 var forloop = new ForLoopValue
                 {
                     Identifier = Identifier,
-                    Source = Source is MemberExpression m
-                        ? string.Join(".", m.Segments.Select(s => (s as IdentifierSegment)?.Identifier).Where(s => s != null))
+                    Source = _continueSourceLiteral is not null
+                        ? _continueSourceLiteral
                         : Source is RangeExpression r
                             ? $"({Convert.ToInt32((await r.From.EvaluateAsync(context)).ToNumberValue())}..{Convert.ToInt32((await r.To.EvaluateAsync(context)).ToNumberValue())})"
                             : null
@@ -179,7 +193,7 @@ namespace Fluid.Ast
 
                     var completion = Completion.Normal;
 
-                    if (!suppressWhitespaceBody)
+                    if (!_suppressWhitespaceBody)
                     {
                         for (var index = 0; index < Statements.Count; index++)
                         {
@@ -225,30 +239,17 @@ namespace Fluid.Ast
             return Completion.Normal;
         }
 
-        private async ValueTask<string> BuildContinueOffsetLiteralAsync(TemplateContext context)
+        /// <summary>
+        /// Builds the key holding the `offset: continue` cursor for a range source, the only shape whose
+        /// `forloop.name` isn't known until the loop runs. Every other shape is precomputed in the constructor.
+        /// </summary>
+        private async ValueTask<string> BuildRangeContinueOffsetLiteralAsync(RangeExpression r, TemplateContext context)
         {
             // Key is based on Liquid's `forloop.name`: "{identifier}-{source}".
             // This means changing the loop variable changes the key.
-
-            string source;
-
-            if (!string.IsNullOrEmpty(_continueSourceLiteral))
-            {
-                source = _continueSourceLiteral;
-            }
-            else if (Source is RangeExpression r)
-            {
-                var from = Convert.ToInt32((await r.From.EvaluateAsync(context)).ToNumberValue());
-                var to = Convert.ToInt32((await r.To.EvaluateAsync(context)).ToNumberValue());
-                source = $"({from}..{to})";
-            }
-            else
-            {
-                // Fallback: stable within the current render (statement instance).
-                source = "stmt_" + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this).ToString(CultureInfo.InvariantCulture);
-            }
-
-            return $"for_continue_{Identifier}-{source}";
+            var from = Convert.ToInt32((await r.From.EvaluateAsync(context)).ToNumberValue());
+            var to = Convert.ToInt32((await r.To.EvaluateAsync(context)).ToNumberValue());
+            return $"for_continue_{Identifier}-({from}..{to})";
         }
 
         private static async ValueTask<int> EvaluateIntegerArgumentAsync(string name, Expression expression, TemplateContext context)
