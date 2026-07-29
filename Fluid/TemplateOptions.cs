@@ -100,6 +100,12 @@ namespace Fluid
         public CultureInfo CultureInfo { get; set; } = CultureInfo.InvariantCulture;
 
         /// <summary>
+        /// Gets or sets the options used by the money filters. These filters are not registered by default,
+        /// use <see cref="MoneyFilters.WithMoneyFilters(FilterCollection)"/> to add them to <see cref="Filters"/>.
+        /// </summary>
+        public MoneyOptions MoneyOptions { get; set; } = new MoneyOptions();
+
+        /// <summary>
         /// Gets or sets the value returned by the "now" keyword.
         /// </summary>
         public Func<DateTimeOffset> Now { get; set; } = static () => DateTimeOffset.Now;
