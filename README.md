@@ -35,6 +35,7 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 - [Features](#features)
 - [Using Fluid in your project](#using-fluid-in-your-project)
 - [NativeAOT and trimming](#nativeaot-and-trimming)
+- [Source generator](#source-generator)
 - [Allow-listing object members](#allow-listing-object-members)
 - [Handling undefined variables](#handling-undefined-variables)
 - [Execution limits](#execution-limits)
@@ -209,6 +210,97 @@ Use it with any options instance:
 var options = new TemplateOptions();
 FluidProfiles.ApplyPublic(options);
 ```
+
+<br>
+
+## Source generator
+
+Fluid includes a Roslyn source generator (project: `Fluid.SourceGenerator`) that can compile Liquid templates at build time and expose them as strongly-typed static properties.
+
+This is useful when you want:
+
+- Parse errors to fail the build.
+- Startup-time and runtime parsing eliminated.
+- Easy access to templates via generated members.
+
+### MSBuild setup
+
+1) Reference the generator as an analyzer.
+
+If you use a project reference:
+
+```xml
+<ItemGroup>
+  <ProjectReference Include="../Fluid.SourceGenerator/Fluid.SourceGenerator.csproj"
+                    OutputItemType="Analyzer"
+                    ReferenceOutputAssembly="false" />
+</ItemGroup>
+```
+
+2) Provide templates to the generator using `AdditionalFiles`.
+
+```xml
+<ItemGroup>
+  <AdditionalFiles Include="Templates/**/*.liquid" />
+</ItemGroup>
+```
+
+3) (Optional) Set the templates root folder.
+
+When set, the generator:
+
+- Only considers `AdditionalFiles` under this folder.
+- Matches glob patterns relative to that folder.
+
+```xml
+<PropertyGroup>
+  <FluidTemplatesFolder>Templates</FluidTemplatesFolder>
+</PropertyGroup>
+```
+
+### Usage
+
+Annotate a `partial` class with `FluidTemplates`, using include and optional exclude glob patterns. Each matching file generates a dedicated static property returning an `IFluidTemplate`.
+
+```csharp
+using Fluid.SourceGenerator;
+
+namespace MyApp;
+
+[FluidTemplates("**/*.liquid", Exclude = new[] { "_*.liquid" })]
+public static partial class Templates
+{
+}
+```
+
+With templates like:
+
+- `Templates/hello.liquid`
+- `Templates/_layout.liquid`
+
+The generator will create:
+
+- `Templates.Hello` (compiled from `hello.liquid`)
+
+### Glob patterns
+
+The generator supports a simple glob syntax:
+
+- `*` matches within a path segment.
+- `?` matches a single character within a path segment.
+- `**` matches across directories (e.g. `**/*.liquid`).
+
+Multiple include patterns are supported via the attribute constructor:
+
+```csharp
+[FluidTemplates("**/*.liquid", "**/*.txt")]
+```
+
+### Notes
+
+- Property names are derived from the file name (without extension) and converted to PascalCase. If multiple files would produce the same property name, a numeric suffix is appended.
+- `{% render %}` dependencies are resolved against the same set of `AdditionalFiles` (the generator also registers `.liquid` templates without the extension for convenience).
+- Source-generated templates currently require `TemplateOptions.Trimming` to be `TrimmingFlags.None`.
 
 <br>
 

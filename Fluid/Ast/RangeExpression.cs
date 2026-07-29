@@ -1,9 +1,10 @@
 ﻿using Fluid.Values;
 using System.Runtime.CompilerServices;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class RangeExpression : Expression
+    public sealed class RangeExpression : Expression, ISourceable
     {
         public RangeExpression(Expression from, Expression to)
         {
@@ -60,5 +61,24 @@ namespace Fluid.Ast
         }
 
         protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitRangeExpression(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            var fromMethod = context.GetExpressionMethodName(From);
+            var toMethod = context.GetExpressionMethodName(To);
+
+            context.WriteLine($"var start = Convert.ToInt32((await {fromMethod}({context.ContextName})).ToNumberValue());");
+            context.WriteLine($"var end = Convert.ToInt32((await {toMethod}({context.ContextName})).ToNumberValue());");
+            context.WriteLine("// If end < start, we create an empty array");
+            context.WriteLine("var list = new FluidValue[Math.Max(0, end - start + 1)];");
+            context.WriteLine("for (var i = 0; i < list.Length; i++)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("list[i] = NumberValue.Create(start + i);");
+            }
+            context.WriteLine("}");
+            context.WriteLine("return new ArrayValue(list);");
+        }
     }
 }
