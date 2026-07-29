@@ -59,6 +59,15 @@ public static partial class Templates
         }
 
         [Fact]
+        public void GeneratorAssembly_EmbedsTemplateCompilerDependencies()
+        {
+            var resources = typeof(FluidTemplateGenerator).Assembly.GetManifestResourceNames();
+
+            Assert.Contains("Fluid.SourceGenerator.Dependencies.Fluid.dll", resources);
+            Assert.Contains("Fluid.SourceGenerator.Dependencies.Parlot.dll", resources);
+        }
+
+        [Fact]
         public async Task TemplatesAttribute_ExcludePattern_Skips_Matches()
         {
             var userSource = @"

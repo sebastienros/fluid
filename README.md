@@ -300,6 +300,7 @@ Multiple include patterns are supported via the attribute constructor:
 
 - Property names are derived from the file name (without extension) and converted to PascalCase. If multiple files would produce the same property name, a numeric suffix is appended.
 - `{% render %}` dependencies are resolved against the same set of `AdditionalFiles` (the generator also registers `.liquid` templates without the extension for convenience).
+- Source-generated templates currently require `TemplateOptions.Trimming` to be `TrimmingFlags.None`.
 
 <br>
 

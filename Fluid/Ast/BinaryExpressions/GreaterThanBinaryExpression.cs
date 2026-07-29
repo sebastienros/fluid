@@ -76,6 +76,7 @@ namespace Fluid.Ast.BinaryExpressions
         {
             var leftExpr = context.GetExpressionMethodName(Left);
             var rightExpr = context.GetExpressionMethodName(Right);
+            var strict = Strict ? "true" : "false";
 
             context.WriteLine($"var leftValue = await {leftExpr}({context.ContextName});");
             context.WriteLine($"var rightValue = await {rightExpr}({context.ContextName});");
@@ -85,22 +86,36 @@ namespace Fluid.Ast.BinaryExpressions
             context.WriteLine("{");
             using (context.Indent())
             {
-                context.WriteLine("comparisonResult = Strict ? false : leftValue.IsNil() && rightValue.IsNil();");
+                context.WriteLine($"comparisonResult = {strict} ? false : leftValue.IsNil() && rightValue.IsNil();");
             }
             context.WriteLine("}");
             context.WriteLine("else if (leftValue is NumberValue)");
             context.WriteLine("{");
             using (context.Indent())
             {
-                context.WriteLine("comparisonResult = Strict ? leftValue.ToNumberValue() > rightValue.ToNumberValue() : leftValue.ToNumberValue() >= rightValue.ToNumberValue();");
+                context.WriteLine("if (rightValue is not NumberValue)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("throw new LiquidException(\"comparison of Integer with other type failed\");");
+                }
+                context.WriteLine("}");
+                context.WriteLine($"comparisonResult = {strict} ? leftValue.ToNumberValue({context.ContextName}) > rightValue.ToNumberValue({context.ContextName}) : leftValue.ToNumberValue({context.ContextName}) >= rightValue.ToNumberValue({context.ContextName});");
             }
             context.WriteLine("}");
             context.WriteLine("else if (leftValue is StringValue)");
             context.WriteLine("{");
             using (context.Indent())
             {
+                context.WriteLine("if (rightValue is not StringValue)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("throw new LiquidException(\"comparison of String with other type failed\");");
+                }
+                context.WriteLine("}");
                 context.WriteLine("var comparison = string.Compare(leftValue.ToStringValue(), rightValue.ToStringValue(), StringComparison.Ordinal);");
-                context.WriteLine("comparisonResult = Strict ? comparison > 0 : comparison >= 0;");
+                context.WriteLine($"comparisonResult = {strict} ? comparison > 0 : comparison >= 0;");
             }
             context.WriteLine("}");
             context.WriteLine("else");

@@ -150,6 +150,20 @@ namespace Fluid.Ast
             }
             context.WriteLine("}");
 
+            for (var i = 0; i < ElseIfs.Count; i++)
+            {
+                var elseIf = ElseIfs[i];
+                var elseIfCondition = context.GetExpressionMethodName(elseIf.Condition);
+                var elseIfStatement = context.GetStatementMethodName(elseIf);
+                context.WriteLine($"if ((await {elseIfCondition}({context.ContextName})).ToBooleanValue())");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine($"return await {elseIfStatement}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                }
+                context.WriteLine("}");
+            }
+
             if (Else != null)
             {
                 var elseStmt = context.GetStatementMethodName(Else);

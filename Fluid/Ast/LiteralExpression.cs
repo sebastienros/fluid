@@ -25,6 +25,18 @@ namespace Fluid.Ast
                 return;
             }
 
+            if (Value is EmptyValue)
+            {
+                context.WriteLine("return EmptyValue.Instance;");
+                return;
+            }
+
+            if (Value is BlankValue)
+            {
+                context.WriteLine("return BlankValue.Instance;");
+                return;
+            }
+
             if (Value is BooleanValue b)
             {
                 context.WriteLine(b.ToBooleanValue() ? "return BooleanValue.True;" : "return BooleanValue.False;");

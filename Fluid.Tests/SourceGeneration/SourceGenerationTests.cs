@@ -24,6 +24,7 @@ namespace Fluid.Tests
         [InlineData("{% assign x = 1 %}{{ x }}", "1")]
         [InlineData("{% if true %}a{% else %}b{% endif %}", "a")]
         [InlineData("{% unless false %}a{% endunless %}", "a")]
+        [InlineData("{% unless true %}a{% elsif true %}b{% else %}c{% endunless %}", "b")]
         [InlineData("{% for i in (1..3) %}{{ i }}{% endfor %}", "123")]
         [InlineData("{% for i in (1..3) %}{% if i == 2 %}{% break %}{% endif %}{{ i }}{% endfor %}", "1")]
         [InlineData("{% capture x %}hi{% endcapture %}{{ x }}", "hi")]
@@ -31,6 +32,9 @@ namespace Fluid.Tests
         [InlineData("{% increment x %}{% increment x %}{% decrement x %}", "011")]
         [InlineData("{% increment x %}{{ x }}", "01")]
         [InlineData("{% case 2 %}{% when 1 %}a{% when 2 %}b{% else %}c{% endcase %}", "b")]
+        [InlineData("{% if 2 > 1 and 2 >= 2 and 1 < 2 and 2 <= 2 %}yes{% endif %}", "yes")]
+        [InlineData("{% if '' == empty and '' == blank %}yes{% endif %}", "yes")]
+        [InlineData("{% if 'x' contains nil %}yes{% else %}no{% endif %}", "no")]
         public async Task GeneratedTemplate_MatchesRuntime(string liquid, string expected)
         {
             var parser = new FluidParser();
@@ -77,6 +81,48 @@ namespace Fluid.Tests
             var ex = await Assert.ThrowsAsync<FluidException>(() => instance.RenderAsync(new StringWriter(), HtmlEncoder.Default, context).AsTask());
 
             Assert.Contains("missing", ex.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public async Task GeneratedTemplate_FlushesOutput()
+        {
+            var parser = new FluidParser();
+            var template = parser.Parse("Hello");
+            var source = template.Compile(new SourceGenerationOptions
+            {
+                Namespace = "Fluid.Tests.Generated",
+                ClassName = "T" + Guid.NewGuid().ToString("N")
+            });
+
+            var generated = CompileToAssembly(source.SourceCode);
+            var type = generated.GetType(source.FullTypeName, throwOnError: true);
+            var instance = (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
+            var output = new FlushTrackingOutput();
+
+            await instance.RenderAsync(output, HtmlEncoder.Default, new TemplateContext());
+
+            Assert.True(output.Flushed);
+        }
+
+        [Fact]
+        public async Task GeneratedTemplate_RejectsTrimming()
+        {
+            var parser = new FluidParser();
+            var template = parser.Parse("Hello {{ name }}");
+            var source = template.Compile(new SourceGenerationOptions
+            {
+                Namespace = "Fluid.Tests.Generated",
+                ClassName = "T" + Guid.NewGuid().ToString("N")
+            });
+
+            var generated = CompileToAssembly(source.SourceCode);
+            var type = generated.GetType(source.FullTypeName, throwOnError: true);
+            var instance = (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
+            var context = new TemplateContext(new TemplateOptions { Trimming = TrimmingFlags.OutputLeft });
+
+            var ex = await Assert.ThrowsAsync<NotSupportedException>(() => instance.RenderAsync(new FlushTrackingOutput(), HtmlEncoder.Default, context).AsTask());
+
+            Assert.Contains("Trimming", ex.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -166,6 +212,38 @@ namespace Fluid.Tests
             public override ValueTask<Completion> WriteToAsync(IFluidOutput writer, TextEncoder encoder, TemplateContext context)
             {
                 return Normal();
+            }
+        }
+
+        private sealed class FlushTrackingOutput : IFluidOutput
+        {
+            private char[] _buffer = new char[256];
+            private int _index;
+
+            public bool Flushed { get; private set; }
+
+            public void Advance(int count) => _index += count;
+
+            public Memory<char> GetMemory(int sizeHint = 0) => _buffer.AsMemory(_index);
+
+            public Span<char> GetSpan(int sizeHint = 0) => _buffer.AsSpan(_index);
+
+            public void Write(string value)
+            {
+                value.CopyTo(0, _buffer, _index, value.Length);
+                _index += value.Length;
+            }
+
+            public void Write(char[] buffer, int index, int count)
+            {
+                buffer.AsSpan(index, count).CopyTo(_buffer.AsSpan(_index));
+                _index += count;
+            }
+
+            public ValueTask FlushAsync()
+            {
+                Flushed = true;
+                return default;
             }
         }
     }

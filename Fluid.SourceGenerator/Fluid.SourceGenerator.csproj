@@ -27,7 +27,7 @@
     <ProjectReference Include="..\Fluid\Fluid.csproj" />
   </ItemGroup>
 
-  <Target Name="EmbedAnalyzerRuntimeDependencies" BeforeTargets="CoreCompile">
+  <Target Name="EmbedAnalyzerRuntimeDependencies" AfterTargets="ResolveReferences" BeforeTargets="PrepareResources">
     <ItemGroup>
       <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
                          Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'Fluid'" />

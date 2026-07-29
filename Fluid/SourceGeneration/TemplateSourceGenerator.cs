@@ -90,6 +90,7 @@ namespace Fluid.SourceGeneration
                         ctx.WriteLine("if (writer == null) throw new ArgumentNullException(nameof(writer));");
                         ctx.WriteLine("if (encoder == null) throw new ArgumentNullException(nameof(encoder));");
                         ctx.WriteLine("if (context == null) throw new ArgumentNullException(nameof(context));");
+                        ctx.WriteLine("if (context.Options.Trimming != TrimmingFlags.None) throw new NotSupportedException(\"Source-generated templates do not support TemplateOptions.Trimming.\");");
                         ctx.WriteLine();
 
                         foreach (var statement in statementList.Statements)
@@ -112,6 +113,8 @@ namespace Fluid.SourceGeneration
                             var methodName = ctx.GetStatementMethodName(statement);
                             ctx.WriteLine($"_ = await {methodName}(writer, encoder, context);");
                         }
+
+                        ctx.WriteLine("await writer.FlushAsync();");
                     }
                     ctx.WriteLine("}");
 
