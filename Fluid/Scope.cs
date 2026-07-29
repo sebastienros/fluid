@@ -172,6 +172,13 @@ namespace Fluid
                 return;
             }
 
+            if (_storageComparer != null)
+            {
+                // Once initialized, the dictionary-backed implementation rejected null keys even when
+                // the scope was empty after deleting its last value.
+                ArgumentNullException.ThrowIfNull(name);
+            }
+
             for (var i = 0; i < _inlineCount; i++)
             {
                 var slotName = GetInlineName(i);

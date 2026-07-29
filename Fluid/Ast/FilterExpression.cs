@@ -55,7 +55,17 @@ namespace Fluid.Ast
                 return EvaluateWithArgumentsAsync(context);
             }
 
-            var inputTask = Input.EvaluateAsync(context);
+            ValueTask<FluidValue> inputTask;
+
+            try
+            {
+                inputTask = Input.EvaluateAsync(context);
+            }
+            catch (Exception e)
+            {
+                // EvaluateAsync used to be async, so even a synchronous input failure faulted its task.
+                return Faulted(e);
+            }
 
             if (!inputTask.IsCompletedSuccessfully)
             {

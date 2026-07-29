@@ -1,4 +1,5 @@
 using Fluid.Accessors;
+using Fluid.Ast;
 using Fluid.Values;
 using System;
 using System.Collections.Generic;
@@ -30,6 +31,14 @@ namespace Fluid.Tests
         private sealed class Other
         {
             public string Name { get; set; }
+        }
+
+        private sealed class ThrowingExpression : Expression
+        {
+            public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
+            {
+                throw new InvalidOperationException("input");
+            }
         }
 
         [Fact]
@@ -294,6 +303,17 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void DeletingANullNameFromAnInitializedScopeThrows()
+        {
+            var scope = new Scope();
+            scope.SetOwnValue("name", StringValue.Empty);
+            scope.DeleteOwn("name");
+
+            Assert.Throws<ArgumentNullException>(() => scope.DeleteOwn(null));
+            Assert.Throws<ArgumentNullException>(() => scope.Delete(null));
+        }
+
+        [Fact]
         public async Task UndefinedFilterUnderStrictFiltersFaultsTheTaskRatherThanThrowingSynchronously()
         {
             // Callers may start a render and await it later; the error has to arrive on the task.
@@ -324,6 +344,24 @@ namespace Fluid.Tests
                 var task = template.RenderAsync(new TemplateContext(options));
                 await Assert.ThrowsAsync<InvalidOperationException>(async () => await task);
             }
+        }
+
+        [Fact]
+        public async Task FilterInputThrowingSynchronouslyFaultsTheTask()
+        {
+            var expression = new FilterExpression(new ThrowingExpression(), "identity", []);
+            var options = new TemplateOptions();
+            options.Filters.AddFilter("identity", (input, args, ctx) => input);
+            var context = new TemplateContext(options);
+
+            // The first evaluation populates the literal-argument cache through the async path.
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await expression.EvaluateAsync(context));
+
+            ValueTask<FluidValue> task = default;
+            var exception = Record.Exception(() => task = expression.EvaluateAsync(context));
+
+            Assert.Null(exception);
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await task);
         }
 
         [Fact]
