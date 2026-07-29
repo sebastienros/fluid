@@ -10,14 +10,34 @@ namespace Fluid
 
         private static readonly bool _dynamicCodeSupported = IsDynamicCodeSupported();
 
-        private Dictionary<AccessorKey, IMemberAccessor> _map = [];
+        private volatile Dictionary<AccessorKey, IMemberAccessor> _map = [];
+
+        // A standalone token rather than the map itself. Using the map would mean every cached accessor
+        // pinned the superseded copy it was resolved against, and would churn on every cold resolution,
+        // because GetAccessor registers what it resolves. Volatile so reading it is an acquire, keeping
+        // the map read that follows from being reordered before it.
+        private volatile object _accessorCacheToken = new();
+
+        // Only the exact type opts in. A derived strategy may override GetAccessor to resolve from its
+        // own source, which this map -- and therefore the token -- would not reflect; it would then serve
+        // a stale accessor forever. Subclasses give up the caching, not correctness.
+        private readonly bool _accessorCachingSupported;
+
+        public DefaultMemberAccessStrategy()
+        {
+            _accessorCachingSupported = GetType() == typeof(DefaultMemberAccessStrategy);
+        }
+
+        protected internal override object AccessorCacheToken => _accessorCachingSupported ? _accessorCacheToken : null;
 
         public override IMemberAccessor GetAccessor(Type type, string name, StringComparer stringComparer)
         {
             if (!TryGetAccessor(type, name, stringComparer, out var accessor))
             {
-                Register(type, name, accessor = GetMemberAccessor(type, name, stringComparer) ?? GetAccessorUnlikely(type, name, stringComparer));
-            }            
+                // Memoize what was resolved, but without invalidating cached accessors: this only fills
+                // in a pair that had no entry, so it cannot change what any other pair resolves to.
+                AddToMap(type, name, accessor = GetMemberAccessor(type, name, stringComparer) ?? GetAccessorUnlikely(type, name, stringComparer));
+            }
 
             return accessor;
         }
@@ -154,6 +174,15 @@ namespace Fluid
         }
 
         public override void Register(Type type, string name, IMemberAccessor accessor)
+        {
+            AddToMap(type, name, accessor);
+
+            // A registration can replace what an already-resolved pair maps to, so retire the token and
+            // make every call site re-resolve.
+            _accessorCacheToken = new object();
+        }
+
+        private void AddToMap(Type type, string name, IMemberAccessor accessor)
         {
             var map = new Dictionary<AccessorKey, IMemberAccessor>(_map);
             map[new AccessorKey(type, name)] = accessor;
