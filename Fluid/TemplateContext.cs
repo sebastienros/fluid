@@ -54,6 +54,7 @@ namespace Fluid
             LocalScope = new Scope(options.Scope, forLoopScope: false, modelNamesComparer);
             RootScope = LocalScope;
             CultureInfo = options.CultureInfo;
+            MoneyOptions = options.MoneyOptions;
             TimeZone = options.TimeZone;
             Captured = options.Captured;
             Assigned = options.Assigned;
@@ -107,6 +108,12 @@ namespace Fluid
         /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
         /// </summary>
         public CultureInfo CultureInfo { get; set; } = TemplateOptions.Default.CultureInfo;
+
+        /// <summary>
+        /// Gets or sets the options used by the money filters. Assigning a different instance allows
+        /// a currency to be selected per rendering, for example based on the current request.
+        /// </summary>
+        public MoneyOptions MoneyOptions { get; set; } = TemplateOptions.Default.MoneyOptions;
 
         /// <summary>
         /// Gets or sets the value to returned by the "now" keyword.
