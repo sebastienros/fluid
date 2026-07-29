@@ -19,6 +19,29 @@ namespace Fluid
 
         public override bool Equals(string x, string y)
         {
+            // Converting a name allocates whenever it isn't already camel-cased, and two names that are
+            // ordinally equal always convert to the same result, so settle those without converting.
+            if (ReferenceEquals(x, y))
+            {
+                return true;
+            }
+
+            if (x is null || y is null)
+            {
+                return false;
+            }
+
+            if (string.Equals(x, y, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            // Camel-casing never changes the length of a name.
+            if (x.Length != y.Length)
+            {
+                return false;
+            }
+
             var cx = JsonNamingPolicy.CamelCase.ConvertName(x);
             var cy = JsonNamingPolicy.CamelCase.ConvertName(y);
             return string.Equals(cx, cy, StringComparison.Ordinal);
@@ -41,6 +64,23 @@ namespace Fluid
 
         public override bool Equals(string x, string y)
         {
+            // Two ordinally equal names always convert to the same result, so skip the conversion,
+            // which allocates.
+            if (ReferenceEquals(x, y))
+            {
+                return true;
+            }
+
+            if (x is null || y is null)
+            {
+                return false;
+            }
+
+            if (string.Equals(x, y, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
             var cx = JsonNamingPolicy.SnakeCaseLower.ConvertName(x);
             var cy = JsonNamingPolicy.SnakeCaseLower.ConvertName(y);
             return string.Equals(cx, cy, StringComparison.Ordinal);

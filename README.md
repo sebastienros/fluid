@@ -34,6 +34,7 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 ## Contents
 - [Features](#features)
 - [Using Fluid in your project](#using-fluid-in-your-project)
+- [NativeAOT and trimming](#nativeaot-and-trimming)
 - [Source generator](#source-generator)
 - [Allow-listing object members](#allow-listing-object-members)
 - [Handling undefined variables](#handling-undefined-variables)
@@ -41,6 +42,7 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
 - [Localization](#localization)
+- [Money filters](#money-filters)
 - [Time zones](#time-zones)
 - [Customizing tags and blocks](#customizing-tags-and-blocks)
 - [ASP.NET MVC View Engine](#aspnet-mvc-view-engine)
@@ -141,6 +143,73 @@ A `FluidParser` instance is thread-safe and should be shared by the whole applic
 An `IFluidTemplate` instance is thread-safe and can be cached and reused by multiple threads concurrently.
 
 A `TemplateContext` instance is __not__ thread-safe, and a new instance should be created every time an `IFluidTemplate` instance is used.
+
+<br>
+
+## NativeAOT and trimming
+
+Fluid works when targeting NativeAOT and trimmed deployments.
+
+- If dynamic code is not supported at runtime, Fluid automatically switches to reflection-based member accessors.
+- Existing `MemberAccessStrategy.Register<T...>` APIs are preserved.
+- No interceptor setup is required.
+
+### Recommended usage when targeting NativeAOT
+
+1. Reuse `TemplateOptions` instances (for example, at app startup).
+2. If you use runtime `MemberAccessStrategy.Register<T...>` calls, execute them during application startup before rendering templates.
+3. Prefer `[FluidRegister]` on a custom `TemplateOptions` subclass for model types known at compile time.
+4. Validate your app with AOT/trim publish settings:
+
+```shell
+dotnet publish -c Release -r <RID> -p:PublishAot=true
+```
+
+### Source generation (optional)
+
+When the `Fluid.SourceGenerator` analyzer is enabled, Fluid can generate strongly-typed member accessors for types declared with `FluidRegisterAttribute`.
+
+The recommended pattern is to declare a custom `TemplateOptions` subclass and add one `FluidRegisterAttribute` per model type:
+
+```csharp
+using Fluid;
+
+[FluidRegister(typeof(Person))]
+[FluidRegister(typeof(Address))]
+public partial class PublicTemplateOptions : TemplateOptions
+{
+}
+```
+
+Use the generated options type like any other `TemplateOptions` instance:
+
+```csharp
+var options = new PublicTemplateOptions();
+```
+
+The generated registrations are instance-scoped and are applied automatically to each `PublicTemplateOptions` instance. Runtime registrations still work and can be added normally:
+
+```csharp
+options.MemberAccessStrategy.Register<Product, object>((product, name) => product.Name);
+```
+
+Alternatively, explicit profile methods can apply generated registrations to any `TemplateOptions` instance:
+
+```csharp
+public static partial class FluidProfiles
+{
+    [FluidRegister(typeof(Person))]
+    [FluidRegister(typeof(Address))]
+    public static partial void ApplyPublic(TemplateOptions options);
+}
+```
+
+Use it with any options instance:
+
+```csharp
+var options = new TemplateOptions();
+FluidProfiles.ApplyPublic(options);
+```
 
 <br>
 
@@ -623,6 +692,126 @@ var result = template.Render(context);
 ```html
 1234.56
 Tuesday, August 1, 2017
+```
+
+<br>
+
+## Money filters
+
+Fluid implements the [Shopify money filters](https://shopify.dev/docs/api/liquid/filters/money). They are not registered by default, add them to the filters of the `TemplateOptions` instance.
+
+```csharp
+var options = new TemplateOptions();
+options.Filters.WithMoneyFilters();
+```
+
+| Filter | Source | Result |
+| --- | --- | --- |
+| `money` | `{{ 1134.65 \| money }}` | `$1,134.65` |
+| `money_with_currency` | `{{ 1134.65 \| money_with_currency }}` | `$1,134.65 USD` |
+| `money_without_currency` | `{{ 1134.65 \| money_without_currency }}` | `1,134.65` |
+| `money_without_trailing_zeros` | `{{ 10.00 \| money_without_trailing_zeros }}` | `$10` |
+
+Amounts are rounded away from zero, so `10.005` is rendered as `$10.01`.
+
+### Cultures and currencies
+
+By default, the currency and the way amounts are formatted are derived from `TemplateOptions.CultureInfo`. The default culture is the invariant one, which has no currency, in which case `USD` is used.
+
+```csharp
+options.CultureInfo = new CultureInfo("de-DE");
+```
+
+```Liquid
+{{ 1134.65 | money_with_currency }}
+```
+
+```html
+1.134,65 € EUR
+```
+
+A specific currency can be set with `MoneyOptions.Currency`, using its [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217) code. It is also accepted as an argument of every money filter, which is useful when a single template renders multiple currencies.
+
+```csharp
+options.MoneyOptions.Currency = "EUR";
+```
+
+```Liquid
+{{ 10 | money }}
+{{ 10 | money: 'GBP' }}
+{{ 10 | money: currency: 'JPY' }}
+```
+
+```html
+€10.00
+£10.00
+¥10
+```
+
+The symbol and the number of decimal digits of the most common currencies are known to Fluid. Others can be added, or replaced, in `MoneyOptions.Currencies`. A currency that is not registered is rendered using its code as the symbol.
+
+```csharp
+options.MoneyOptions.Currencies["BTC"] = new MoneyCurrency("BTC", "₿", decimalDigits: 8);
+```
+
+### Amounts stored in cents
+
+Shopify stores prices as integers representing cents. Set `MoneyOptions.AmountsInCents` to divide the input of the money filters by 100, which makes it possible to reuse Shopify templates as-is.
+
+```csharp
+options.MoneyOptions.AmountsInCents = true;
+```
+
+```Liquid
+{{ 1450 | money }}
+```
+
+```html
+$14.50
+```
+
+### Custom formats
+
+`MoneyOptions.MoneyFormat` and `MoneyOptions.MoneyWithCurrencyFormat` override the culture based formatting, using the same placeholders as the [Shopify currency formatting settings](https://help.shopify.com/en/manual/payments/currency-formatting). These placeholders are culture independent.
+
+| Placeholder | Result for `1134.65` |
+| --- | --- |
+| `{{amount}}` | `1,134.65` |
+| `{{amount_no_decimals}}` | `1,135` |
+| `{{amount_with_comma_separator}}` | `1.134,65` |
+| `{{amount_no_decimals_with_comma_separator}}` | `1.135` |
+| `{{amount_with_apostrophe_separator}}` | `1'134.65` |
+| `{{amount_no_decimals_with_space_separator}}` | `1 135` |
+| `{{amount_with_space_separator}}` | `1 134,65` |
+| `{{amount_with_period_and_space_separator}}` | `1 134.65` |
+| `{{currency}}` | the ISO 4217 code of the currency, e.g. `USD` |
+| `{{currency_symbol}}` | the symbol of the currency, e.g. `$` |
+
+`{{currency}}` and `{{currency_symbol}}` are specific to Fluid, and let a single format be used with the currency that is resolved when the template is rendered. Unknown placeholders are rendered verbatim.
+
+```csharp
+options.MoneyOptions.MoneyFormat = "{{amount_with_comma_separator}} kr";
+```
+
+```Liquid
+{{ 1134.65 | money }}
+```
+
+```html
+1.134,65 kr
+```
+
+`money_without_currency` always renders the amount on its own and ignores these formats. When `MoneyWithCurrencyFormat` is not set, `money_with_currency` uses `MoneyFormat` followed by the currency code.
+
+### Rendering a different currency per request
+
+`MoneyOptions` is application-wide configuration and is expected to be configured once. To use a different currency for a single rendering, assign a `MoneyOptions` instance on the `TemplateContext`.
+
+```csharp
+var context = new TemplateContext(options)
+{
+    MoneyOptions = new MoneyOptions { Currency = "EUR" }
+};
 ```
 
 <br>

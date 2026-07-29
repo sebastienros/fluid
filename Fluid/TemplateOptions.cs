@@ -8,6 +8,8 @@ namespace Fluid
 {
     public class TemplateOptions
     {
+        private MemberAccessStrategy _memberAccessStrategy = new DefaultMemberAccessStrategy();
+
         /// <summary>
         /// Gets or sets the size (in chars) of the internal output buffer used when rendering to a <see cref="TextWriter"/>.
         /// When the buffer is full, content is written to the underlying writer and the buffer is reused.
@@ -64,7 +66,17 @@ namespace Fluid
         /// <summary>
         /// Gets ot sets the members than can be accessed in a template.
         /// </summary>
-        public MemberAccessStrategy MemberAccessStrategy { get; set; } = new DefaultMemberAccessStrategy();
+        public MemberAccessStrategy MemberAccessStrategy
+        {
+            get => _memberAccessStrategy;
+            set
+            {
+                ArgumentNullException.ThrowIfNull(value);
+
+                _memberAccessStrategy = value;
+                RegisterGeneratedMemberAccessors();
+            }
+        }
 
         /// <summary>
         /// Gets or sets the <see cref="IFileProvider"/> used to access files for include and render statements.
@@ -106,6 +118,12 @@ namespace Fluid
         /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
         /// </summary>
         public CultureInfo CultureInfo { get; set; } = CultureInfo.InvariantCulture;
+
+        /// <summary>
+        /// Gets or sets the options used by the money filters. These filters are not registered by default,
+        /// use <see cref="MoneyFilters.WithMoneyFilters(FilterCollection)"/> to add them to <see cref="Filters"/>.
+        /// </summary>
+        public MoneyOptions MoneyOptions { get; set; } = new MoneyOptions();
 
         /// <summary>
         /// Gets or sets the value returned by the "now" keyword.
@@ -182,6 +200,16 @@ namespace Fluid
                 .WithStringFilters()
                 .WithNumberFilters()
                 .WithMiscFilters();
+
+            RegisterGeneratedMemberAccessors();
+        }
+
+        private void RegisterGeneratedMemberAccessors()
+        {
+            if (this is ITemplateOptionsMemberAccessorRegistrar registrar)
+            {
+                registrar.RegisterMemberAccessors(this);
+            }
         }
     }
 }

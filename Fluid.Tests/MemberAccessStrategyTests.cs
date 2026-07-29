@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -37,6 +38,38 @@ namespace Fluid.Tests
             Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property2), StringComparer.Ordinal));
 
             Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateProperty), StringComparer.Ordinal));
+        }
+
+        [Fact]
+        public void RegisterByTypeUsesAotSafePropertyAccessorWhenDynamicCodeIsUnavailable()
+        {
+            var strategy = new DefaultMemberAccessStrategy();
+            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal);
+
+            if (RuntimeFeature.IsDynamicCodeSupported)
+            {
+                Assert.IsType<PropertyInfoAccessor>(accessor, exactMatch: false);
+            }
+            else
+            {
+                Assert.Equal("ReflectionPropertyInfoAccessor", accessor.GetType().Name);
+            }
+        }
+
+        [Fact]
+        public void RegisterByTypeUsesAotSafeFieldAccessorWhenDynamicCodeIsUnavailable()
+        {
+            var strategy = new DefaultMemberAccessStrategy();
+            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Field1), StringComparer.Ordinal);
+
+            if (RuntimeFeature.IsDynamicCodeSupported)
+            {
+                Assert.IsType<FieldInfoAccessor>(accessor, exactMatch: false);
+            }
+            else
+            {
+                Assert.Equal("ReflectionFieldInfoAccessor", accessor.GetType().Name);
+            }
         }
 
         [Fact]
@@ -253,6 +286,43 @@ namespace Fluid.Tests
             
             Assert.Equal("Not found", template.Render(new TemplateContext(model, options)));
         }
+
+        [Fact]
+        public void ShouldApplyGeneratedMemberAccessorsFromTemplateOptionsSubclass()
+        {
+            var options = new GeneratedTemplateOptions();
+            var model = new GeneratedModel();
+
+            var template = _parser.Parse("{{Generated}}");
+
+            Assert.Equal("generated", template.Render(new TemplateContext(model, options)));
+        }
+
+        [Fact]
+        public void ShouldReapplyGeneratedMemberAccessorsWhenStrategyIsReplaced()
+        {
+            var options = new GeneratedTemplateOptions
+            {
+                MemberAccessStrategy = new DefaultMemberAccessStrategy()
+            };
+            var model = new GeneratedModel();
+
+            var template = _parser.Parse("{{Generated}}");
+
+            Assert.Equal("generated", template.Render(new TemplateContext(model, options)));
+        }
+
+        [Fact]
+        public void ShouldAllowRuntimeRegistrationsToOverrideGeneratedMemberAccessors()
+        {
+            var options = new GeneratedTemplateOptions();
+            options.MemberAccessStrategy.Register(typeof(GeneratedModel), nameof(GeneratedModel.Generated), new FixedMemberAccessor("runtime"));
+            var model = new GeneratedModel();
+
+            var template = _parser.Parse("{{Generated}}");
+
+            Assert.Equal("runtime", template.Render(new TemplateContext(model, options)));
+        }
     }
 
     public class ModelWithStaticNull
@@ -274,5 +344,30 @@ namespace Fluid.Tests
         public int Property2 { get; set; }
         public Task<string> Property3 { get; set; }
         public string WriteOnlyProperty { private get; set; }
+    }
+
+    public sealed class GeneratedModel
+    {
+        public string Generated { get; set; } = "model";
+    }
+
+    public sealed class GeneratedTemplateOptions : TemplateOptions, ITemplateOptionsMemberAccessorRegistrar
+    {
+        void ITemplateOptionsMemberAccessorRegistrar.RegisterMemberAccessors(TemplateOptions options)
+        {
+            options.MemberAccessStrategy.Register(typeof(GeneratedModel), "*", new FixedMemberAccessor("generated"));
+        }
+    }
+
+    public sealed class FixedMemberAccessor : IMemberAccessor
+    {
+        private readonly string _value;
+
+        public FixedMemberAccessor(string value)
+        {
+            _value = value;
+        }
+
+        public object Get(object obj, string name, TemplateContext ctx) => _value;
     }
 }
