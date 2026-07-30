@@ -64,5 +64,8 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\Assets\benchmark-parse.png" Pack="true" PackagePath="Assets\" />
+    <None Include="..\Assets\benchmark-parse-big.png" Pack="true" PackagePath="Assets\" />
+    <None Include="..\Assets\benchmark-render.png" Pack="true" PackagePath="Assets\" />
   </ItemGroup>
 </Project>
