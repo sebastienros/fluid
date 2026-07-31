@@ -398,6 +398,22 @@ namespace Fluid.Tests
         [InlineData("true == 1", "false")]        
         [InlineData("false == '1'", "false")]
         [InlineData("false == 1", "false")]
+        [InlineData("true == null", "false")]
+        [InlineData("true != null", "true")]
+        [InlineData("false == null", "false")]
+        [InlineData("false != null", "true")]
+        [InlineData("null == true", "false")]
+        [InlineData("null != true", "true")]
+        [InlineData("null == false", "false")]
+        [InlineData("null != false", "true")]
+        [InlineData("true == nil", "false")]
+        [InlineData("true != nil", "true")]
+        [InlineData("false == nil", "false")]
+        [InlineData("false != nil", "true")]
+        [InlineData("nil == true", "false")]
+        [InlineData("nil != true", "true")]
+        [InlineData("nil == false", "false")]
+        [InlineData("nil != false", "true")]
         public Task BooleanEquality(string source, string expected)
         {
             return CheckAsync(source, expected);
