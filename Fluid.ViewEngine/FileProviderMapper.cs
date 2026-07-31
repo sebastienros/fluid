@@ -1,10 +1,12 @@
 ﻿using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Primitives;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Fluid.ViewEngine
 {
-    public class FileProviderMapper : IFileProvider
+    public class FileProviderMapper : IFileProvider, ITemplateFileProvider
     {
         private readonly IFileProvider _fileProvider;
         private readonly string _mappedFolder;
@@ -30,6 +32,25 @@ namespace Fluid.ViewEngine
         {
             var path = _mappedFolder + subpath;
             return _fileProvider.GetFileInfo(path);
+        }
+
+        public ValueTask<TemplateSourceInfo> GetFileInfoAsync(
+            string subpath,
+            TemplateContext context,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var fileInfo = GetFileInfo(subpath);
+            if (fileInfo == null || !fileInfo.Exists || fileInfo.IsDirectory)
+            {
+                return default;
+            }
+
+            return new ValueTask<TemplateSourceInfo>(
+                new TemplateSourceInfo(
+                    fileInfo.LastModified,
+                    _ => new ValueTask<Stream>(fileInfo.CreateReadStream())));
         }
 
         public IChangeToken Watch(string filter)

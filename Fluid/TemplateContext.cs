@@ -127,11 +127,18 @@ namespace Fluid
         public JsonSerializerOptions JsonSerializerOptions { get; set; } = TemplateOptions.Default.JsonSerializerOptions;
 
         /// <summary>
+        /// Gets or sets the token used to cancel asynchronous template operations.
+        /// </summary>
+        public CancellationToken CancellationToken { get; set; }
+
+        /// <summary>
         /// Increments the number of statements the current template is processing.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void IncrementSteps()
         {
+            CancellationToken.ThrowIfCancellationRequested();
+
             if (MaxSteps > 0 && _steps++ > MaxSteps)
             {
                 ExceptionHelper.ThrowMaximumRecursionException();

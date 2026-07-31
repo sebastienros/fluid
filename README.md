@@ -520,6 +520,51 @@ With this setting, both model properties and context properties are accessible u
 {{ firstName }} {{ lastName }}
 ```
 
+### Loading templates asynchronously
+
+`TemplateOptions.FileProvider` uses the asynchronous `ITemplateFileProvider` contract. Templates stored in a remote service can be loaded without blocking:
+
+```csharp
+var options = new TemplateOptions
+{
+    FileProvider = new DelegateTemplateFileProvider(async (path, context, cancellationToken) =>
+    {
+        var metadata = await templateStore.GetMetadataAsync(path, cancellationToken);
+        if (metadata is null)
+        {
+            return null;
+        }
+
+        return new TemplateSourceInfo(
+            metadata.LastModified,
+            async cancellationToken => await templateStore.OpenReadAsync(path, cancellationToken),
+            cacheKey: $"{tenantId}:{path}");
+    })
+};
+
+var context = new TemplateContext(options)
+{
+    CancellationToken = requestAborted
+};
+var result = await template.RenderAsync(context);
+```
+
+The provider returns `null` when a path does not exist. Fluid tries the requested path first, then appends `DefaultFileExtension` when necessary.
+
+Fluid calls the provider to obtain the source version before checking its parsed-template cache. The stream is opened only on a cache miss. `LastModified` must advance whenever the content changes; remote implementations can cache metadata themselves if checking it requires a network request. When a provider can return different content for the same path in different contexts, set `TemplateSourceInfo.CacheKey` to a stable value that includes the tenant or other source identity.
+
+Existing `Microsoft.Extensions.FileProviders.IFileProvider` implementations can be adapted:
+
+```csharp
+options.FileProvider = new FileProviderTemplateFileProvider(existingFileProvider);
+```
+
+`FluidViewEngineOptions.ViewsFileProvider` and `PartialsFileProvider` use the same asynchronous contract for views, layouts, `_ViewStart` files, and partials. ASP.NET Core MVC view-name discovery remains synchronous because `IViewEngine.FindView` has no asynchronous contract; configure `FluidMvcViewOptions.ViewLocationFileProvider` with an `IFileProvider` for that lookup.
+
+Always use `RenderAsync` with an asynchronous provider. The synchronous `Render` APIs must block if the provider suspends.
+
+`TemplateContext.CancellationToken` is also checked at render entry, between statements, on loop iterations and built-in array enumeration, and before buffered output is flushed. Custom filters and `FluidValue` implementations receive the context and should check the token during long-running work.
+
 <br>
 
 ## Execution limits
@@ -1531,7 +1576,10 @@ Console.WriteLine(result); // writes -1
 You can apply visitors and rewriters to templates that are parsed before they are cached by using the `TemplateParsed` callback on `TemplateOptions`. This works for all template parsing scenarios including the ViewEngine, `include` and `render` statements.
 
 ```c#
-var options = new TemplateOptions { FileProvider = fileProvider };
+var options = new TemplateOptions
+{
+    FileProvider = new FileProviderTemplateFileProvider(fileProvider)
+};
 options.TemplateParsed = (path, template) =>
 {
     var visitor = new MyCustomVisitor();

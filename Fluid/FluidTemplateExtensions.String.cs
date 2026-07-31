@@ -44,6 +44,8 @@ namespace Fluid
             ArgumentNullException.ThrowIfNull(template);
             ArgumentNullException.ThrowIfNull(encoder);
 
+            context.CancellationToken.ThrowIfCancellationRequested();
+
             // Mirror the TextWriter-based overload: evaluate in a child scope so the provided TemplateContext is immutable.
             if (isolateContext)
             {
@@ -60,6 +62,7 @@ namespace Fluid
 
                 using var output = new BufferFluidOutput(initialCapacity);
                 await template.RenderAsync(output, encoder, context);
+                context.CancellationToken.ThrowIfCancellationRequested();
                 await output.FlushAsync();
                 return output.ToString();
             }

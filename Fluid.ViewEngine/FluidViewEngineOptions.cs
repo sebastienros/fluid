@@ -1,4 +1,3 @@
-﻿using Microsoft.Extensions.FileProviders;
 using System.Collections.Generic;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -26,14 +25,14 @@ namespace Fluid.ViewEngine
         public TemplateOptions TemplateOptions { get; } = new TemplateOptions();
 
         /// <summary>
-        /// Gets or sets the <see cref="IFileProvider"/> used to access views.
+        /// Gets or sets the <see cref="ITemplateFileProvider"/> used to access views.
         /// </summary>
-        public IFileProvider ViewsFileProvider { get; set; }
+        public ITemplateFileProvider ViewsFileProvider { get; set; }
 
         /// <summary>
-        /// Gets or sets the <see cref="IFileProvider"/> used to access includes.
+        /// Gets or sets the <see cref="ITemplateFileProvider"/> used to access includes.
         /// </summary>
-        public IFileProvider PartialsFileProvider { get; set; }
+        public ITemplateFileProvider PartialsFileProvider { get; set; }
 
         /// <summary>
         /// Gets the list of view location format strings. The formatting arguments can differ for each implementation of <see cref="IFluidViewRenderer"/>.

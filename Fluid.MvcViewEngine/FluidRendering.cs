@@ -24,11 +24,14 @@ namespace Fluid.MvcViewEngine
             _hostingEnvironment = hostingEnvironment;
             _options = optionsAccessor.Value;
 
-            _options.TemplateOptions.FileProvider = _options.PartialsFileProvider ?? _hostingEnvironment.ContentRootFileProvider;
+            _options.TemplateOptions.FileProvider =
+                _options.PartialsFileProvider ??
+                new FileProviderTemplateFileProvider(_hostingEnvironment.ContentRootFileProvider);
+
+            _options.ViewsFileProvider ??=
+                new FileProviderTemplateFileProvider(_hostingEnvironment.ContentRootFileProvider);
 
             _fluidViewRenderer = new FluidViewRenderer(_options);
-
-            _options.ViewsFileProvider ??= _hostingEnvironment.ContentRootFileProvider;
         }
 
         private readonly IWebHostEnvironment _hostingEnvironment;
@@ -36,7 +39,10 @@ namespace Fluid.MvcViewEngine
 
         public async Task RenderAsync(TextWriter writer, string path, ViewContext viewContext)
         {
-            var context = new TemplateContext(_options.TemplateOptions);
+            var context = new TemplateContext(_options.TemplateOptions)
+            {
+                CancellationToken = viewContext.HttpContext.RequestAborted
+            };
             context.SetValue("ViewData", viewContext.ViewData);
             context.SetValue("ModelState", viewContext.ModelState);
             context.SetValue("Model", viewContext.ViewData.Model);
@@ -52,7 +58,12 @@ namespace Fluid.MvcViewEngine
                 bufferSize = 16 * 1024;
             }
 
-            await using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true, allowSynchronousIO: false);
+            await using var output = new TextWriterFluidOutput(
+                writer,
+                bufferSize,
+                leaveOpen: true,
+                allowSynchronousIO: false,
+                cancellationToken: context.CancellationToken);
             await _fluidViewRenderer.RenderViewAsync(output, path, context);
             await output.FlushAsync();
         }

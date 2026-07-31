@@ -48,7 +48,7 @@ namespace Fluid.MvcViewEngine
                 return ViewEngineResult.Found(viewName, fluidView);
             }
 
-            var fileProvider = _options.ViewsFileProvider ?? _hostingEnvironment.ContentRootFileProvider;
+            var fileProvider = _options.ViewLocationFileProvider ?? _hostingEnvironment.ContentRootFileProvider;
 
             List<string> checkedLocations = null;
 

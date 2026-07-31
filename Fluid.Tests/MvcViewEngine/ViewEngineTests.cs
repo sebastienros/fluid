@@ -1,5 +1,6 @@
 using Fluid.Tests.Mocks;
 using Fluid.ViewEngine;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -394,6 +395,175 @@ namespace Fluid.Tests.MvcViewEngine
             Assert.Equal("5 Hello", sw.ToString());
 
             _options.TemplateOptions.TemplateParsed = null;
+        }
+
+        [Fact]
+        public async Task ShouldLoadViewsPartialsViewStartsAndLayoutsAsynchronously()
+        {
+            var sourceLoader = new AsyncTemplateFileProvider()
+                .Add("Home/Index.liquid", "{% layout '_Layout' %}View {% partial 'Part' %}")
+                .Add("_ViewStart.liquid", "Root ")
+                .Add("Home/_ViewStart.liquid", "Home ")
+                .Add("Home/_Layout.liquid", "Layout [{% renderbody %}]")
+                .Add("Part.liquid", "Partial");
+            var options = CreateAsyncOptions(sourceLoader);
+            var renderer = new FluidViewRenderer(options);
+            var writer = new StringWriter();
+
+            await renderer.RenderViewAsync(writer, "Home/Index.liquid", new TemplateContext());
+
+            Assert.Equal("Layout [Root Home View Partial]", writer.ToString());
+            Assert.Equal(1, sourceLoader.GetReadCount("Home/Index.liquid"));
+            Assert.Equal(1, sourceLoader.GetReadCount("_ViewStart.liquid"));
+            Assert.Equal(1, sourceLoader.GetReadCount("Home/_ViewStart.liquid"));
+            Assert.Equal(1, sourceLoader.GetReadCount("Home/_Layout.liquid"));
+            Assert.Equal(1, sourceLoader.GetReadCount("Part.liquid"));
+        }
+
+        [Fact]
+        public async Task ShouldReuseAndInvalidateAsynchronouslyLoadedViews()
+        {
+            var sourceLoader = new AsyncTemplateFileProvider()
+                .Add("Index.liquid", "first");
+            var renderer = new FluidViewRenderer(CreateAsyncOptions(sourceLoader));
+
+            var first = new StringWriter();
+            await renderer.RenderViewAsync(first, "Index.liquid", new TemplateContext());
+
+            var cached = new StringWriter();
+            await renderer.RenderViewAsync(cached, "Index.liquid", new TemplateContext());
+
+            sourceLoader.Add("Index.liquid", "second");
+
+            var updated = new StringWriter();
+            await renderer.RenderViewAsync(updated, "Index.liquid", new TemplateContext());
+
+            Assert.Equal("first", first.ToString());
+            Assert.Equal("first", cached.ToString());
+            Assert.Equal("second", updated.ToString());
+            Assert.Equal(2, sourceLoader.GetReadCount("Index.liquid"));
+        }
+
+        [Fact]
+        public async Task ViewsFileProvider_ShouldNotReplacePartialsFileProvider()
+        {
+            var sourceLoader = new AsyncTemplateFileProvider()
+                .Add("Index.liquid", "View {% partial 'Part' %}");
+            var partialsFileProvider = new MockFileProvider()
+                .Add("Part.liquid", "Partial");
+            var options = new FluidViewEngineOptions
+            {
+                ViewsFileProvider = sourceLoader,
+                PartialsFileProvider = partialsFileProvider
+            };
+            var renderer = new FluidViewRenderer(options);
+            var writer = new StringWriter();
+
+            await renderer.RenderViewAsync(writer, "Index.liquid", new TemplateContext());
+
+            Assert.Equal("View Partial", writer.ToString());
+        }
+
+        [Fact]
+        public async Task PartialsFileProvider_ShouldFallBackToViewsFileProvider()
+        {
+            var sourceLoader = new AsyncTemplateFileProvider()
+                .Add("Index.liquid", "View {% include 'Part' %}")
+                .Add("Part.liquid", "Partial");
+            var options = new FluidViewEngineOptions
+            {
+                ViewsFileProvider = sourceLoader
+            };
+            var renderer = new FluidViewRenderer(options);
+            var writer = new StringWriter();
+
+            await renderer.RenderViewAsync(
+                writer,
+                "Index.liquid",
+                new TemplateContext(options.TemplateOptions));
+
+            Assert.Equal("View Partial", writer.ToString());
+        }
+
+        [Fact]
+        public async Task DisabledChangeTracking_ShouldStillIsolateViewStartCacheKeys()
+        {
+            var lastModified = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
+            var sourceLoader = new DelegateTemplateFileProvider(async (path, context, cancellationToken) =>
+            {
+                await Task.Yield();
+                path = path.Replace('\\', '/').TrimStart('/');
+
+                if (path == "Home/Index.liquid")
+                {
+                    return new TemplateSourceInfo(
+                        lastModified,
+                        _ => new ValueTask<Stream>(
+                            new MemoryStream(System.Text.Encoding.UTF8.GetBytes("View"))),
+                        cacheKey: "shared-view");
+                }
+
+                if (path == "Home/_ViewStart.liquid")
+                {
+                    var tenant = context.GetValue("tenant").ToStringValue();
+                    return new TemplateSourceInfo(
+                        lastModified,
+                        _ => new ValueTask<Stream>(
+                            new MemoryStream(System.Text.Encoding.UTF8.GetBytes(tenant + " "))),
+                        cacheKey: tenant + ":view-start");
+                }
+
+                return null;
+            });
+            var options = new FluidViewEngineOptions
+            {
+                ViewsFileProvider = sourceLoader,
+                TrackFileChanges = false
+            };
+            var renderer = new FluidViewRenderer(options);
+
+            var tenantAWriter = new StringWriter();
+            var tenantAContext = new TemplateContext(options.TemplateOptions).SetValue("tenant", "A");
+            await renderer.RenderViewAsync(tenantAWriter, "Home/Index.liquid", tenantAContext);
+
+            var tenantBWriter = new StringWriter();
+            var tenantBContext = new TemplateContext(options.TemplateOptions).SetValue("tenant", "B");
+            await renderer.RenderViewAsync(tenantBWriter, "Home/Index.liquid", tenantBContext);
+
+            Assert.Equal("A View", tenantAWriter.ToString());
+            Assert.Equal("B View", tenantBWriter.ToString());
+        }
+
+        [Fact]
+        public async Task ShouldReevaluateAsyncLayoutLocations()
+        {
+            var sourceLoader = new AsyncTemplateFileProvider()
+                .Add("Home/Index.liquid", "{% layout '_Layout' %}View")
+                .Add("Shared/_Layout.liquid", "Shared [{% renderbody %}]");
+            var options = CreateAsyncOptions(sourceLoader);
+            var renderer = new FluidViewRenderer(options);
+            var first = new StringWriter();
+
+            await renderer.RenderViewAsync(first, "Home/Index.liquid", new TemplateContext());
+
+            sourceLoader.Add("Home/_Layout.liquid", "Local [{% renderbody %}]");
+
+            var second = new StringWriter();
+            await renderer.RenderViewAsync(second, "Home/Index.liquid", new TemplateContext());
+
+            Assert.Equal("Shared [View]", first.ToString());
+            Assert.Equal("Local [View]", second.ToString());
+        }
+
+        private static FluidViewEngineOptions CreateAsyncOptions(AsyncTemplateFileProvider sourceLoader)
+        {
+            var options = new FluidViewEngineOptions
+            {
+                ViewsFileProvider = sourceLoader,
+                PartialsFileProvider = sourceLoader
+            };
+            options.LayoutsLocationFormats.Add("/Shared/{0}" + Constants.ViewExtension);
+            return options;
         }
 
         [Fact]

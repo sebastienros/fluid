@@ -43,7 +43,7 @@ namespace Fluid.Ast
 
             IReadOnlyList<FluidValue> source = evaluatedSource is ArrayValue array
                 ? array.Values
-                : await evaluatedSource.EnumerateAsync(context).ToListAsync();
+                : await evaluatedSource.EnumerateAsync(context).ToListAsync(context.CancellationToken);
 
             if (source.Count == 0)
             {

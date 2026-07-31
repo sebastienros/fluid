@@ -87,7 +87,7 @@ namespace Fluid.Ast
             // Avoid re-enumerating and allocating a new List<T> in this very hot path.
             IReadOnlyList<FluidValue> source = evaluatedSource is ArrayValue array
                 ? array.Values
-                : await evaluatedSource.EnumerateAsync(context).ToListAsync();
+                : await evaluatedSource.EnumerateAsync(context).ToListAsync(context.CancellationToken);
 
             if (source.Count == 0)
             {
@@ -320,7 +320,7 @@ namespace Fluid.Ast
             using (context.Indent())
             {
                 context.WriteLine("? array.Values");
-                context.WriteLine($": await evaluatedSource.EnumerateAsync({context.ContextName}).ToListAsync();");
+                context.WriteLine($": await evaluatedSource.EnumerateAsync({context.ContextName}).ToListAsync({context.ContextName}.CancellationToken);");
             }
             context.WriteLine("if (source.Count == 0)");
             context.WriteLine("{");
