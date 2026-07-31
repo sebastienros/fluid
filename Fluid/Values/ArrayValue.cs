@@ -135,6 +135,7 @@ namespace Fluid.Values
         {
             foreach (var value in Values)
             {
+                context?.CancellationToken.ThrowIfCancellationRequested();
                 yield return value;
             }
 

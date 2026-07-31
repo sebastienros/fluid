@@ -54,7 +54,10 @@ Partials: '{{ Partials }}'
 color: '{{ color }}'
 shape: '{{ shape }}'");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptions()
+            {
+                FileProvider = new FileProviderTemplateFileProvider(fileProvider)
+            };
             var context = new TemplateContext(options);
             var expectedResult = @"Partial Content
 Partials: ''
@@ -85,7 +88,10 @@ shape_Two: '{{ shape }}'");
 
             var model = new Domain.Person { Firstname = "_First.liquid" };
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptions()
+            {
+                FileProvider = new FileProviderTemplateFileProvider(fileProvider)
+            };
             var context = new TemplateContext(model, options);
             var expectedResultFirstCall = @"Partial Content One
 Partials_One: ''
@@ -128,7 +134,10 @@ Partials: '{{ Partials }}'
 color: '{{ color }}'
 shape: '{{ shape }}'");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptions()
+            {
+                FileProvider = new FileProviderTemplateFileProvider(fileProvider)
+            };
             var context = new TemplateContext(options);
             var expectedResult = @"Partial Content
 Partials: ''
@@ -456,7 +465,10 @@ shape: ''";
 
             var fileInfos = templates.ToDictionary(t => t.Key, t => fileProvider.GetFileInfo(t.Key));
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptions()
+            {
+                FileProvider = new FileProviderTemplateFileProvider(fileProvider)
+            };
             _parser.TryParse("{%- include file -%}", out var template);
 
             // The first time a template is included it will be read from the file provider
@@ -541,7 +553,10 @@ shape: ''";
             File.WriteAllText(tempPath + "/this-folder/this_file.liquid", "content1");
             File.WriteAllText(tempPath + "/this-folder/that-folder/this_file.liquid", "content2");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptions()
+            {
+                FileProvider = new FileProviderTemplateFileProvider(fileProvider)
+            };
             _parser.TryParse("{%- include file -%}", out var template);
 
             var context = new TemplateContext(options);
@@ -580,7 +595,10 @@ shape: ''";
             File.WriteAllText(tempPath + "/this_file.liquid", "content1");
             File.WriteAllText(tempPath + "/This_file.liquid", "content2");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptions()
+            {
+                FileProvider = new FileProviderTemplateFileProvider(fileProvider)
+            };
             _parser.TryParse("{%- include file -%}", out var template);
 
             var context = new TemplateContext(options);
@@ -1019,6 +1037,126 @@ shape: ''";
             var result2 = await template.RenderAsync(context);
             Assert.Equal("8", result2);
             Assert.Equal(1, callbackCount); // Callback count should still be 1
+        }
+
+        [Theory]
+        [InlineData("{% include 'inner' %}")]
+        [InlineData("{% render 'inner' %}")]
+        public async Task TemplateFileProvider_ShouldLoadAndCacheTemplatesAsynchronously(string source)
+        {
+            var sourceLoader = new AsyncTemplateFileProvider()
+                .Add("inner.liquid", "{{ value }}");
+            var options = new TemplateOptions
+            {
+                FileProvider = sourceLoader
+            };
+            var context = new TemplateContext(options).SetValue("value", "loaded");
+            _parser.TryParse(source, out var template);
+
+            var renderTask = template.RenderAsync(context);
+            Assert.False(renderTask.IsCompletedSuccessfully);
+            Assert.Equal("loaded", await renderTask);
+
+            Assert.Equal("loaded", await template.RenderAsync(context));
+            Assert.Equal(1, sourceLoader.GetReadCount("inner.liquid"));
+            Assert.Contains("inner", sourceLoader.RequestedPaths);
+            Assert.Contains("inner.liquid", sourceLoader.RequestedPaths);
+        }
+
+        [Theory]
+        [InlineData("{% include 'inner' %}")]
+        [InlineData("{% render 'inner' %}")]
+        public async Task TemplateFileProvider_ShouldInvalidateCachedTemplatesWhenVersionChanges(string source)
+        {
+            var sourceLoader = new AsyncTemplateFileProvider()
+                .Add("inner.liquid", "first");
+            var options = new TemplateOptions { FileProvider = sourceLoader };
+            var context = new TemplateContext(options);
+            _parser.TryParse(source, out var template);
+
+            Assert.Equal("first", await template.RenderAsync(context));
+
+            sourceLoader.Add("inner.liquid", "second");
+
+            Assert.Equal("second", await template.RenderAsync(context));
+            Assert.Equal(2, sourceLoader.GetReadCount("inner.liquid"));
+        }
+
+        [Fact]
+        public async Task TemplateFileProvider_ShouldCacheTemplateParsedResult()
+        {
+            var sourceLoader = new AsyncTemplateFileProvider()
+                .Add("inner.liquid", "{{ 2 | plus: 2 }}");
+            var callbackCount = 0;
+            var options = new TemplateOptions { FileProvider = sourceLoader };
+            options.TemplateParsed = (path, template) =>
+            {
+                callbackCount++;
+                var visitor = new Visitors.ReplaceTwosVisitor(NumberValue.Create(4));
+                return visitor.VisitTemplate(template);
+            };
+            _parser.TryParse("{% include 'inner' %}", out var template);
+
+            Assert.Equal("8", await template.RenderAsync(new TemplateContext(options)));
+            Assert.Equal("8", await template.RenderAsync(new TemplateContext(options)));
+            Assert.Equal(1, callbackCount);
+            Assert.Equal(1, sourceLoader.GetReadCount("inner.liquid"));
+        }
+
+        [Fact]
+        public async Task TemplateFileProvider_ShouldThrowWhenTemplateIsMissing()
+        {
+            var sourceLoader = new AsyncTemplateFileProvider();
+            var options = new TemplateOptions { FileProvider = sourceLoader };
+            _parser.TryParse("{% include 'missing' %}", out var template);
+
+            await Assert.ThrowsAsync<FileNotFoundException>(
+                () => template.RenderAsync(new TemplateContext(options)).AsTask());
+        }
+
+        [Fact]
+        public async Task TemplateFileProvider_ShouldReceiveTheContextCancellationToken()
+        {
+            var sourceLoader = new AsyncTemplateFileProvider()
+                .Add("inner.liquid", "content");
+            var options = new TemplateOptions { FileProvider = sourceLoader };
+            using var cancellationTokenSource = new CancellationTokenSource();
+            var context = new TemplateContext(options)
+            {
+                CancellationToken = cancellationTokenSource.Token
+            };
+            _parser.TryParse("{% include 'inner' %}", out var template);
+
+            Assert.Equal("content", await template.RenderAsync(context));
+            Assert.Equal(cancellationTokenSource.Token, sourceLoader.LastCancellationToken);
+            Assert.Equal(1, sourceLoader.GetReadCount("inner.liquid"));
+        }
+
+        [Fact]
+        public async Task TemplateFileProvider_ShouldIsolateCachedTemplatesBySourceCacheKey()
+        {
+            var lastModified = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
+            var options = new TemplateOptions
+            {
+                FileProvider = new DelegateTemplateFileProvider(async (path, context, cancellationToken) =>
+                {
+                    await Task.Yield();
+                    var tenant = context.GetValue("tenant").ToStringValue();
+                    return new TemplateSourceInfo(
+                        lastModified,
+                        cancellationToken => new ValueTask<Stream>(
+                            new MemoryStream(System.Text.Encoding.UTF8.GetBytes(tenant))),
+                        cacheKey: $"{tenant}:{path}");
+                })
+            };
+            _parser.TryParse("{% include 'inner.liquid' %}", out var template);
+
+            var tenantA = new TemplateContext(options).SetValue("tenant", "A");
+            var tenantB = new TemplateContext(options).SetValue("tenant", "B");
+
+            Assert.Equal("A", await template.RenderAsync(tenantA));
+            Assert.Equal("B", await template.RenderAsync(tenantB));
+            Assert.Equal("A", await template.RenderAsync(tenantA));
         }
     }
 }

@@ -79,9 +79,10 @@ namespace Fluid
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="IFileProvider"/> used to access files for include and render statements.
+        /// Gets or sets the <see cref="ITemplateFileProvider"/> used to access files for include, render, and from statements.
         /// </summary>
-        public IFileProvider FileProvider { get; set; } = new NullFileProvider();
+        public ITemplateFileProvider FileProvider { get; set; } =
+            new FileProviderTemplateFileProvider(new NullFileProvider());
 
         /// <summary>
         /// Gets or sets the <see cref="ITemplateCache"/> used to cache templates loaded from <see cref="FileProvider"/>.

@@ -10,8 +10,6 @@ namespace Fluid.Ast
     {
         public const string ViewExtension = ".liquid";
 
-        private volatile CachedTemplate _cachedTemplate;
-
         public FromStatement(FluidParser parser, Expression path, IReadOnlyList<string> functions = null)
         {
             Parser = parser;
@@ -33,33 +31,8 @@ namespace Fluid.Ast
                 relativePath += ViewExtension;
             }
 
-            var cachedTemplate = _cachedTemplate;
-
-            if (cachedTemplate == null || !string.Equals(cachedTemplate.Name, System.IO.Path.GetFileNameWithoutExtension(relativePath), StringComparison.Ordinal))
-            {
-                var fileProvider = context.Options.FileProvider;
-                var fileInfo = fileProvider.GetFileInfo(relativePath);
-                if (fileInfo == null || !fileInfo.Exists)
-                {
-                    throw new FileNotFoundException(relativePath);
-                }
-
-                var content = "";
-
-                using (var stream = fileInfo.CreateReadStream())
-                using (var streamReader = new StreamReader(stream))
-                {
-                    content = await streamReader.ReadToEndAsync();
-                }
-
-                if (!Parser.TryParse(content, out var template, out var errors))
-                {
-                    throw new ParseException(errors);
-                }
-
-                var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
-                _cachedTemplate = cachedTemplate = new CachedTemplate(template, identifier);
-            }
+            var loadedTemplate = await TemplateLoader.LoadAsync(Parser, relativePath, context, defaultFileExtension: null);
+            var template = loadedTemplate.Template;
 
             var parentScope = context.LocalScope;
 
@@ -68,7 +41,7 @@ namespace Fluid.Ast
 
             try
             {
-                await cachedTemplate.Template.RenderAsync(NullFluidOutput.Instance, encoder, context);
+                await template.RenderAsync(NullFluidOutput.Instance, encoder, context);
 
                 if (Functions.Count > 0)
                 {
@@ -102,7 +75,5 @@ namespace Fluid.Ast
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitFromStatement(this);
-
-        private sealed record CachedTemplate(IFluidTemplate Template, string Name);
     }
 }

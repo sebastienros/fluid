@@ -26,8 +26,13 @@ namespace Fluid
                 bufferSize = 16 * 1024;
             }
 
-            await using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true);
+            await using var output = new TextWriterFluidOutput(
+                writer,
+                bufferSize,
+                leaveOpen: true,
+                cancellationToken: context.CancellationToken);
             var completion = await statement.WriteToAsync(output, encoder, context);
+            context.CancellationToken.ThrowIfCancellationRequested();
             await output.FlushAsync();
             return completion;
         }
@@ -45,8 +50,13 @@ namespace Fluid
                 bufferSize = 16 * 1024;
             }
 
-            await using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true);
+            await using var output = new TextWriterFluidOutput(
+                writer,
+                bufferSize,
+                leaveOpen: true,
+                cancellationToken: context.CancellationToken);
             await template.RenderAsync(output, encoder, context);
+            context.CancellationToken.ThrowIfCancellationRequested();
             await output.FlushAsync();
         }
 

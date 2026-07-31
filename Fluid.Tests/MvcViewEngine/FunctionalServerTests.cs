@@ -31,6 +31,7 @@ namespace Fluid.Tests.MvcViewEngine
                 options.TemplateOptions.OutputBufferSize = 16;
                 options.ViewsFileProvider = mockFileProvider;
                 options.PartialsFileProvider = mockFileProvider;
+                options.ViewLocationFileProvider = mockFileProvider;
             });
 
             builder.Services

@@ -48,6 +48,8 @@ namespace Fluid
             ArgumentNullException.ThrowIfNull(context);
             ArgumentNullException.ThrowIfNull(template);
 
+            context.CancellationToken.ThrowIfCancellationRequested();
+
             // A template is evaluated in a child scope such that the provided TemplateContext is immutable
             if (isolateContext)
             {
@@ -60,11 +62,16 @@ namespace Fluid
                 bufferSize = 16 * 1024;
             }
 
-            await using var output = new TextWriterFluidOutput(textWriter, bufferSize, leaveOpen: true);
+            await using var output = new TextWriterFluidOutput(
+                textWriter,
+                bufferSize,
+                leaveOpen: true,
+                cancellationToken: context.CancellationToken);
 
             try
             {
                 await template.RenderAsync(output, encoder, context);
+                context.CancellationToken.ThrowIfCancellationRequested();
                 await output.FlushAsync();
                 await textWriter.FlushAsync();
             }

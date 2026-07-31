@@ -35,57 +35,13 @@ namespace Fluid.Ast
             context.IncrementSteps();
 
             var relativePath = Path;
-            var fileProvider = context.Options.FileProvider;
-
-            // First, try to get the file with the exact path provided
-            var fileInfo = fileProvider.GetFileInfo(relativePath);
-
-            // If the file doesn't exist and a default extension is configured
-            if ((fileInfo == null || !fileInfo.Exists || fileInfo.IsDirectory) && !string.IsNullOrEmpty(context.Options.DefaultFileExtension))
-            {
-                // Check if the path already ends with the default extension
-                if (!relativePath.EndsWith(context.Options.DefaultFileExtension, StringComparison.OrdinalIgnoreCase))
-                {
-                    // Try adding the default extension
-                    var pathWithExtension = relativePath + context.Options.DefaultFileExtension;
-                    var fileInfoWithExtension = fileProvider.GetFileInfo(pathWithExtension);
-
-                    if (fileInfoWithExtension != null && fileInfoWithExtension.Exists && !fileInfoWithExtension.IsDirectory)
-                    {
-                        relativePath = pathWithExtension;
-                        fileInfo = fileInfoWithExtension;
-                    }
-                }
-            }
-
-            if (fileInfo == null || !fileInfo.Exists || fileInfo.IsDirectory)
-            {
-                throw new FileNotFoundException(relativePath);
-            }
-
-            if (context.Options.TemplateCache == null || !context.Options.TemplateCache.TryGetTemplate(relativePath, fileInfo.LastModified, out var template))
-            {
-                var content = "";
-
-                using (var stream = fileInfo.CreateReadStream())
-                using (var streamReader = new StreamReader(stream))
-                {
-                    content = await streamReader.ReadToEndAsync();
-                }
-
-                if (!Parser.TryParse(content, out template, out var errors))
-                {
-                    throw new ParseException(errors);
-                }
-
-                // Allow user to modify the template before caching (e.g., apply visitors/rewriters)
-                if (context.Options.TemplateParsed != null)
-                {
-                    template = context.Options.TemplateParsed(relativePath, template);
-                }
-
-                context.Options.TemplateCache?.SetTemplate(relativePath, fileInfo.LastModified, template);
-            }
+            var loadedTemplate = await TemplateLoader.LoadAsync(
+                Parser,
+                relativePath,
+                context,
+                context.Options.DefaultFileExtension);
+            relativePath = loadedTemplate.Path;
+            var template = loadedTemplate.Template;
 
             var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
 
@@ -122,7 +78,7 @@ namespace Fluid.Ast
                         // Fast-path: avoid re-enumerating already materialized arrays.
                         IReadOnlyList<FluidValue> list = evaluatedFor is ArrayValue array
                             ? array.Values
-                            : await evaluatedFor.EnumerateAsync(context).ToListAsync();
+                            : await evaluatedFor.EnumerateAsync(context).ToListAsync(context.CancellationToken);
 
                         context.LocalScope = new Scope(context.RootScope);
                         previousScope.CopyTo(context.LocalScope);
@@ -286,7 +242,7 @@ namespace Fluid.Ast
                         using (context.Indent())
                         {
                             context.WriteLine("? array.Values");
-                            context.WriteLine($": await evaluatedFor.EnumerateAsync({context.ContextName}).ToListAsync();");
+                            context.WriteLine($": await evaluatedFor.EnumerateAsync({context.ContextName}).ToListAsync({context.ContextName}.CancellationToken);");
                         }
 
                         context.WriteLine($"{context.ContextName}.LocalScope = new Scope(rootScope);");

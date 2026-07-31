@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using System.Text.Encodings.Web;
+using System.Threading;
 using System.Threading.Tasks;
 using Fluid.Parser;
 using Fluid.Tests.Domain;
@@ -55,6 +56,61 @@ namespace Fluid.Tests
         public Task ShouldRenderText(string source, string expected)
         {
             return CheckAsync(source, expected);
+        }
+
+        [Fact]
+        public async Task RenderAsync_ShouldObserveAPreCanceledContext()
+        {
+            _parser.TryParse("", out var template);
+            using var cancellationTokenSource = new CancellationTokenSource();
+            cancellationTokenSource.Cancel();
+            var context = new TemplateContext
+            {
+                CancellationToken = cancellationTokenSource.Token
+            };
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => template.RenderAsync(context).AsTask());
+        }
+
+        [Fact]
+        public async Task RenderAsync_ShouldObserveCancellationBetweenStatements()
+        {
+            using var cancellationTokenSource = new CancellationTokenSource();
+            var options = new TemplateOptions();
+            options.Filters.AddFilter("cancel", (input, arguments, context) =>
+            {
+                cancellationTokenSource.Cancel();
+                return input;
+            });
+            var context = new TemplateContext(options)
+            {
+                CancellationToken = cancellationTokenSource.Token
+            };
+            _parser.TryParse("{{ '' | cancel }}{{ 'unreachable' }}", out var template);
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => template.RenderAsync(context).AsTask());
+        }
+
+        [Fact]
+        public async Task RenderAsync_ShouldObserveCancellationAfterTheLastStatement()
+        {
+            using var cancellationTokenSource = new CancellationTokenSource();
+            var options = new TemplateOptions();
+            options.Filters.AddFilter("cancel", (input, arguments, context) =>
+            {
+                cancellationTokenSource.Cancel();
+                return input;
+            });
+            var context = new TemplateContext(options)
+            {
+                CancellationToken = cancellationTokenSource.Token
+            };
+            _parser.TryParse("{{ '' | cancel }}", out var template);
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => template.RenderAsync(context).AsTask());
         }
 
         [Theory]

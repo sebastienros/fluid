@@ -7,11 +7,28 @@ namespace Fluid.Utils
         private readonly TextWriter _writer;
         private readonly bool _leaveOpen;
         private readonly bool _allowSynchronousIO;
+        private readonly CancellationToken _cancellationToken;
         private readonly ArrayPool<char> _pool;
         private char[] _buffer;
         private int _index;
 
-        public TextWriterFluidOutput(TextWriter writer, int bufferSize, bool leaveOpen = false, ArrayPool<char> pool = null, bool allowSynchronousIO = true)
+        public TextWriterFluidOutput(
+            TextWriter writer,
+            int bufferSize,
+            bool leaveOpen = false,
+            ArrayPool<char> pool = null,
+            bool allowSynchronousIO = true)
+            : this(writer, bufferSize, default, leaveOpen, pool, allowSynchronousIO)
+        {
+        }
+
+        public TextWriterFluidOutput(
+            TextWriter writer,
+            int bufferSize,
+            CancellationToken cancellationToken,
+            bool leaveOpen = false,
+            ArrayPool<char> pool = null,
+            bool allowSynchronousIO = true)
         {
             ArgumentNullException.ThrowIfNull(writer);
 
@@ -27,6 +44,7 @@ namespace Fluid.Utils
             _writer = writer;
             _leaveOpen = leaveOpen;
             _allowSynchronousIO = allowSynchronousIO;
+            _cancellationToken = cancellationToken;
             _pool = pool ?? ArrayPool<char>.Shared;
             _buffer = _pool.Rent(bufferSize);
         }
@@ -102,14 +120,17 @@ namespace Fluid.Utils
 
         public ValueTask FlushAsync()
         {
+            _cancellationToken.ThrowIfCancellationRequested();
+
             if (_index == 0)
             {
                 return default;
             }
 
-            var task = _writer.WriteAsync(_buffer, 0, _index);
+            var task = WriteAsync(_buffer, 0, _index);
             if (task.IsCompletedSuccessfully())
             {
+                _cancellationToken.ThrowIfCancellationRequested();
                 _index = 0;
                 return default;
             }
@@ -119,6 +140,7 @@ namespace Fluid.Utils
             static async ValueTask Awaited(Task t, TextWriterFluidOutput output)
             {
                 await t.ConfigureAwait(false);
+                output._cancellationToken.ThrowIfCancellationRequested();
                 output._index = 0;
             }
         }
@@ -127,7 +149,10 @@ namespace Fluid.Utils
         {
             if (_buffer != null)
             {
-                FlushCoreSync();
+                if (!_cancellationToken.IsCancellationRequested)
+                {
+                    FlushCoreSync();
+                }
 
                 var toReturn = _buffer;
                 _buffer = null;
@@ -144,7 +169,10 @@ namespace Fluid.Utils
         {
             if (_buffer != null)
             {
-                await FlushAsync();
+                if (!_cancellationToken.IsCancellationRequested)
+                {
+                    await FlushAsync();
+                }
 
                 var toReturn = _buffer;
                 _buffer = null;
@@ -215,6 +243,8 @@ namespace Fluid.Utils
         // sync writes when allowed, async API when synchronous IO is disallowed.
         private void FlushCoreWithPolicy()
         {
+            _cancellationToken.ThrowIfCancellationRequested();
+
             if (_index == 0)
             {
                 return;
@@ -226,7 +256,8 @@ namespace Fluid.Utils
             }
             else
             {
-                CompleteSynchronously(_writer.WriteAsync(_buffer, 0, _index));
+                CompleteSynchronously(WriteAsync(_buffer, 0, _index));
+                _cancellationToken.ThrowIfCancellationRequested();
             }
 
             _index = 0;
@@ -247,27 +278,55 @@ namespace Fluid.Utils
         // Writes large string payloads directly to the underlying writer, bypassing the buffer.
         private void WriteDirect(string value)
         {
+            _cancellationToken.ThrowIfCancellationRequested();
+
             if (_allowSynchronousIO)
             {
                 _writer.Write(value);
             }
             else
             {
-                CompleteSynchronously(_writer.WriteAsync(value));
+                CompleteSynchronously(WriteAsync(value));
+                _cancellationToken.ThrowIfCancellationRequested();
             }
         }
 
         // Writes large char[] payloads directly to the underlying writer, bypassing the buffer.
         private void WriteDirect(char[] buffer, int index, int count)
         {
+            _cancellationToken.ThrowIfCancellationRequested();
+
             if (_allowSynchronousIO)
             {
                 _writer.Write(buffer, index, count);
             }
             else
             {
-                CompleteSynchronously(_writer.WriteAsync(buffer, index, count));
+                CompleteSynchronously(WriteAsync(buffer, index, count));
+                _cancellationToken.ThrowIfCancellationRequested();
             }
+        }
+
+        private Task WriteAsync(char[] buffer, int index, int count)
+        {
+#if NET8_0_OR_GREATER
+            if (_cancellationToken.CanBeCanceled)
+            {
+                return _writer.WriteAsync(buffer.AsMemory(index, count), _cancellationToken);
+            }
+#endif
+            return _writer.WriteAsync(buffer, index, count);
+        }
+
+        private Task WriteAsync(string value)
+        {
+#if NET8_0_OR_GREATER
+            if (_cancellationToken.CanBeCanceled)
+            {
+                return _writer.WriteAsync(value.AsMemory(), _cancellationToken);
+            }
+#endif
+            return _writer.WriteAsync(value);
         }
     }
 }

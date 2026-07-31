@@ -23,6 +23,8 @@ namespace Fluid.Parser
             ArgumentNullException.ThrowIfNull(encoder);
             ArgumentNullException.ThrowIfNull(context);
 
+            context.CancellationToken.ThrowIfCancellationRequested();
+
             var count = Statements.Count;
             for (var i = 0; i < count; i++)
             {
@@ -39,6 +41,7 @@ namespace Fluid.Parser
                 }
             }
 
+            context.CancellationToken.ThrowIfCancellationRequested();
             return output.FlushAsync();
         }
 
@@ -56,6 +59,7 @@ namespace Fluid.Parser
                 await statements[i].WriteToAsync(output, encoder, context);
             }
 
+            context.CancellationToken.ThrowIfCancellationRequested();
             await output.FlushAsync();
         }
     }

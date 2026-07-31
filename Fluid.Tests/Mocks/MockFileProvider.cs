@@ -3,10 +3,12 @@ using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Fluid.Tests.Mocks
 {
-    public class MockFileProvider : IFileProvider
+    public class MockFileProvider : IFileProvider, ITemplateFileProvider
     {
         private Dictionary<string, MockFileInfo> _files = new Dictionary<string, MockFileInfo>();
         private readonly bool _caseSensitive;
@@ -33,6 +35,25 @@ namespace Fluid.Tests.Mocks
             {
                 return MockFileInfo.Null;
             }
+        }
+
+        public ValueTask<TemplateSourceInfo> GetFileInfoAsync(
+            string path,
+            TemplateContext context,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var fileInfo = GetFileInfo(path);
+            if (!fileInfo.Exists)
+            {
+                return default;
+            }
+
+            return new ValueTask<TemplateSourceInfo>(
+                new TemplateSourceInfo(
+                    fileInfo.LastModified,
+                    _ => new ValueTask<Stream>(fileInfo.CreateReadStream())));
         }
 
         public MockFileProvider Add(string path, string content)
