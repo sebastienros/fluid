@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <None Remove="blogpost.liquid" />
+    <None Remove="blogpost.mustache" />
     <None Remove="product.liquid" />
     <None Remove="product.mustache" />
   </ItemGroup>
@@ -28,6 +29,7 @@
     <EmbeddedResource Include="product.mustache" />
     <EmbeddedResource Include="product.liquid" />
     <EmbeddedResource Include="blogpost.liquid" />
+    <EmbeddedResource Include="blogpost.mustache" />
   </ItemGroup>
 
   <ItemGroup>

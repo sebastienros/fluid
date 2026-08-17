@@ -40,7 +40,7 @@ namespace Fluid.Benchmarks
 
         public override object ParseBig()
         {
-            throw new NotSupportedException();
+            return Handlebars.Compile(BlogPostTemplateMustache);
         }
 
         public override string Render()
