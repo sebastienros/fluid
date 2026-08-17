@@ -38,7 +38,8 @@ namespace Fluid.Ast
 
             var completion = Completion.Normal;
 
-            using var captureOutput = new BufferFluidOutput();
+            using var captureBuffer = new BufferFluidOutput();
+            var captureOutput = LimitedFluidOutput.Create(captureBuffer, context.MaxOutputSize);
             for (var i = 0; i < Statements.Count; i++)
             {
                 completion = await Statements[i].WriteToAsync(captureOutput, encoder, context);
@@ -51,7 +52,7 @@ namespace Fluid.Ast
                 }
             }
 
-            FluidValue result = new StringValue(captureOutput.ToString(), false);
+            FluidValue result = new StringValue(captureBuffer.ToString(), false);
 
             // Substitute the result if a custom callback is provided
             if (context.Captured != null)
@@ -73,7 +74,8 @@ namespace Fluid.Ast
 
             context.WriteLine("var completion = Completion.Normal;");
             context.WriteLine("using var sw = new StringWriter();");
-            context.WriteLine("await using var captureOutput = new TextWriterFluidOutput(sw, 16 * 1024, leaveOpen: true);");
+            context.WriteLine("await using var captureBuffer = new TextWriterFluidOutput(sw, 16 * 1024, leaveOpen: true);");
+            context.WriteLine($"var captureOutput = LimitedFluidOutput.Create(captureBuffer, {context.ContextName}.MaxOutputSize);");
 
             context.WriteLine($"for (var i = 0; i < {Statements.Count}; i++)");
             context.WriteLine("{");
@@ -96,7 +98,7 @@ namespace Fluid.Ast
             }
             context.WriteLine("}");
 
-            context.WriteLine("await captureOutput.FlushAsync();");
+            context.WriteLine("await captureBuffer.FlushAsync();");
             context.WriteLine("FluidValue result = new StringValue(sw.ToString(), false);");
             context.WriteLine($"if ({context.ContextName}.Captured != null)");
             context.WriteLine("{");

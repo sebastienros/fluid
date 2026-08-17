@@ -105,6 +105,26 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task GeneratedTemplate_EnforcesMaxOutputSize()
+        {
+            var parser = new FluidParser();
+            var template = parser.Parse("12345");
+            var source = template.Compile(new SourceGenerationOptions
+            {
+                Namespace = "Fluid.Tests.Generated",
+                ClassName = "T" + Guid.NewGuid().ToString("N")
+            });
+
+            var generated = CompileToAssembly(source.SourceCode);
+            var type = generated.GetType(source.FullTypeName, throwOnError: true);
+            var instance = (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
+            var context = new TemplateContext { MaxOutputSize = 4 };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => instance.RenderAsync(new FlushTrackingOutput(), HtmlEncoder.Default, context).AsTask());
+        }
+
+        [Fact]
         public async Task GeneratedTemplate_RejectsTrimming()
         {
             var parser = new FluidParser();

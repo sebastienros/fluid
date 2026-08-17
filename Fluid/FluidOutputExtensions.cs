@@ -31,7 +31,8 @@ namespace Fluid
                 bufferSize,
                 leaveOpen: true,
                 cancellationToken: context.CancellationToken);
-            var completion = await statement.WriteToAsync(output, encoder, context);
+            var limitedOutput = LimitedFluidOutput.Create(output, context.MaxOutputSize);
+            var completion = await statement.WriteToAsync(limitedOutput, encoder, context);
             context.CancellationToken.ThrowIfCancellationRequested();
             await output.FlushAsync();
             return completion;
@@ -115,15 +116,14 @@ namespace Fluid
                 catch
                 {
                     // Some bounded outputs may reject size hints larger than their internal buffer.
-                    // Fall back to allocating the encoded string.
-                    output.Write(encoder.Encode(remaining.ToString()));
+                    EncodeAndWriteByScalar(output, encoder, remaining);
                     return;
                 }
 
                 if (destination.Length < minRequired)
                 {
                     // Can't guarantee progress with span encoding; fall back.
-                    output.Write(encoder.Encode(remaining.ToString()));
+                    EncodeAndWriteByScalar(output, encoder, remaining);
                     return;
                 }
 
@@ -141,7 +141,7 @@ namespace Fluid
                 else if (charsWritten == 0)
                 {
                     // Safety valve: avoid infinite loops if an encoder reports no progress.
-                    output.Write(encoder.Encode(remaining.ToString()));
+                    EncodeAndWriteByScalar(output, encoder, remaining);
                     return;
                 }
 
@@ -153,8 +153,18 @@ namespace Fluid
                 // For DestinationTooSmall, loop and request more space.
             }
             #else
-            output.Write(encoder.Encode(value));
+            EncodeAndWriteByScalar(output, encoder, value.AsSpan());
             #endif
+        }
+
+        private static void EncodeAndWriteByScalar(IFluidOutput output, TextEncoder encoder, ReadOnlySpan<char> value)
+        {
+            while (!value.IsEmpty)
+            {
+                var length = value.Length > 1 && char.IsHighSurrogate(value[0]) && char.IsLowSurrogate(value[1]) ? 2 : 1;
+                output.Write(encoder.Encode(value.Slice(0, length).ToString()));
+                value = value.Slice(length);
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

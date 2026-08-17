@@ -20,7 +20,8 @@ namespace Fluid.Ast
             var previousValue = previousValueObj as string;
 
             // Render inner statements to a buffer
-            using var captureOutput = new BufferFluidOutput();
+            using var captureBuffer = new BufferFluidOutput();
+            var captureOutput = LimitedFluidOutput.Create(captureBuffer, context.MaxOutputSize);
             var completion = Completion.Normal;
 
             for (var i = 0; i < Statements.Count; i++)
@@ -33,7 +34,7 @@ namespace Fluid.Ast
                 }
             }
 
-            var currentValue = captureOutput.ToString();
+            var currentValue = captureBuffer.ToString();
 
             // Output only if content has changed from the last ifchanged output
             if (!string.Equals(previousValue, currentValue, StringComparison.Ordinal))

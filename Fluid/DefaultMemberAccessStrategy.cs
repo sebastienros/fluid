@@ -7,47 +7,75 @@ namespace Fluid
     public class DefaultMemberAccessStrategy : MemberAccessStrategy
     {
         internal record struct AccessorKey(Type Type, string Name);
+        internal record struct ReflectedAccessorKey(Type Type, string Name, StringComparer StringComparer);
+
+        private sealed class ReflectionCache
+        {
+            public ReflectionCache(object registrationToken)
+            {
+                RegistrationToken = registrationToken;
+            }
+
+            public object RegistrationToken { get; }
+            public volatile Dictionary<ReflectedAccessorKey, IMemberAccessor> Accessors = [];
+        }
 
         private static readonly bool _dynamicCodeSupported = IsDynamicCodeSupported();
 
-        private volatile Dictionary<AccessorKey, IMemberAccessor> _map = [];
-
-        // A standalone token rather than the map itself. Using the map would mean every cached accessor
-        // pinned the superseded copy it was resolved against, and would churn on every cold resolution,
-        // because GetAccessor registers what it resolves. Volatile so reading it is an acquire, keeping
-        // the map read that follows from being reordered before it.
-        private volatile object _accessorCacheToken = new();
+        private volatile Dictionary<AccessorKey, IMemberAccessor> _registrations = [];
+        private volatile ReflectionCache _reflectionCache;
 
         // Only the exact type opts in. A derived strategy may override GetAccessor to resolve from its
-        // own source, which this map -- and therefore the token -- would not reflect; it would then serve
+        // own source, which these maps -- and therefore the token -- would not reflect; it would then serve
         // a stale accessor forever. Subclasses give up the caching, not correctness.
         private readonly bool _accessorCachingSupported;
 
         public DefaultMemberAccessStrategy()
         {
             _accessorCachingSupported = GetType() == typeof(DefaultMemberAccessStrategy);
+            _reflectionCache = new ReflectionCache(_registrations);
         }
 
-        protected internal override object AccessorCacheToken => _accessorCachingSupported ? _accessorCacheToken : null;
+        protected internal override object AccessorCacheToken => _accessorCachingSupported ? _registrations : null;
 
         public override IMemberAccessor GetAccessor(Type type, string name, StringComparer stringComparer)
         {
-            if (!TryGetAccessor(type, name, stringComparer, out var accessor))
+            ArgumentNullException.ThrowIfNull(type);
+            ArgumentNullException.ThrowIfNull(name);
+            ArgumentNullException.ThrowIfNull(stringComparer);
+
+            var registrations = _registrations;
+
+            if (TryGetRegisteredAccessor(registrations, type, name, out var accessor))
             {
-                // Memoize what was resolved, but without invalidating cached accessors: this only fills
-                // in a pair that had no entry, so it cannot change what any other pair resolves to.
-                AddToMap(type, name, accessor = GetMemberAccessor(type, name, stringComparer) ?? GetAccessorUnlikely(type, name, stringComparer));
+                return accessor;
             }
 
+            var reflectionCache = GetReflectionCache(registrations);
+            var key = new ReflectedAccessorKey(type, name, stringComparer);
+            var reflectedAccessors = reflectionCache.Accessors;
+
+            if (reflectedAccessors.TryGetValue(key, out accessor))
+            {
+                return accessor;
+            }
+
+            accessor = GetMemberAccessor(type, name, stringComparer)
+                ?? GetAccessorUnlikely(registrations, type, name, stringComparer);
+
+            AddReflectedAccessor(reflectionCache, key, accessor);
             return accessor;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool TryGetAccessor(Type type, string name, StringComparer stringComparer, out IMemberAccessor accessor)
+        private static bool TryGetRegisteredAccessor(
+            Dictionary<AccessorKey, IMemberAccessor> registrations,
+            Type type,
+            string name,
+            out IMemberAccessor accessor)
         {
-            // Search for a specific accessor first, or a wildcard accessor.
-            // A wildcard accessor is only used when an accessor is provided by users.
-            return _map.TryGetValue(new AccessorKey(type, name), out accessor) || _map.TryGetValue(new AccessorKey(type, "*"), out accessor);
+            return registrations.TryGetValue(new AccessorKey(type, name), out accessor)
+                || registrations.TryGetValue(new AccessorKey(type, "*"), out accessor);
         }
 
         private static IMemberAccessor GetMemberAccessor(Type type, string name, StringComparer stringComparer)
@@ -145,13 +173,22 @@ namespace Fluid
         }
 
         // Creates accessors based on base types and interfaces
-        private IMemberAccessor GetAccessorUnlikely(Type type, string name, StringComparer stringComparer)
+        private static IMemberAccessor GetAccessorUnlikely(
+            Dictionary<AccessorKey, IMemberAccessor> registrations,
+            Type type,
+            string name,
+            StringComparer stringComparer)
         {
             var currentType = type.GetTypeInfo().BaseType;
             while (currentType != typeof(object) && currentType != null)
             {
-                // Look for specific property map
-                if (TryGetAccessor(currentType, name, stringComparer, out var accessor))
+                if (TryGetRegisteredAccessor(registrations, currentType, name, out var accessor))
+                {
+                    return accessor;
+                }
+
+                accessor = GetMemberAccessor(currentType, name, stringComparer);
+                if (accessor != null)
                 {
                     return accessor;
                 }
@@ -162,9 +199,13 @@ namespace Fluid
             // Search for accessors defined on interfaces
             foreach (var interfaceType in type.GetTypeInfo().GetInterfaces())
             {
-                // NB: Here we could also register this accessor in typeMap[type] such that
-                // next lookup on this type won't need to resolve its interfaces
-                if (TryGetAccessor(interfaceType, name, stringComparer, out var accessor))
+                if (TryGetRegisteredAccessor(registrations, interfaceType, name, out var accessor))
+                {
+                    return accessor;
+                }
+
+                accessor = GetMemberAccessor(interfaceType, name, stringComparer);
+                if (accessor != null)
                 {
                     return accessor;
                 }
@@ -175,18 +216,73 @@ namespace Fluid
 
         public override void Register(Type type, string name, IMemberAccessor accessor)
         {
-            AddToMap(type, name, accessor);
+            ArgumentNullException.ThrowIfNull(type);
+            ArgumentNullException.ThrowIfNull(name);
 
-            // A registration can replace what an already-resolved pair maps to, so retire the token and
-            // make every call site re-resolve.
-            _accessorCacheToken = new object();
+            while (true)
+            {
+                var registrations = _registrations;
+                var updated = new Dictionary<AccessorKey, IMemberAccessor>(registrations)
+                {
+                    [new AccessorKey(type, name)] = accessor
+                };
+
+                if (ReferenceEquals(
+                    Interlocked.CompareExchange(ref _registrations, updated, registrations),
+                    registrations))
+                {
+                    _reflectionCache = new ReflectionCache(updated);
+                    return;
+                }
+            }
         }
 
-        private void AddToMap(Type type, string name, IMemberAccessor accessor)
+        private ReflectionCache GetReflectionCache(object registrationToken)
         {
-            var map = new Dictionary<AccessorKey, IMemberAccessor>(_map);
-            map[new AccessorKey(type, name)] = accessor;
-            _map = map;
+            while (true)
+            {
+                var reflectionCache = _reflectionCache;
+                if (ReferenceEquals(reflectionCache.RegistrationToken, registrationToken))
+                {
+                    return reflectionCache;
+                }
+
+                var updated = new ReflectionCache(registrationToken);
+                if (ReferenceEquals(
+                    Interlocked.CompareExchange(ref _reflectionCache, updated, reflectionCache),
+                    reflectionCache))
+                {
+                    return updated;
+                }
+            }
+        }
+
+        private static void AddReflectedAccessor(
+            ReflectionCache reflectionCache,
+            ReflectedAccessorKey key,
+            IMemberAccessor accessor)
+        {
+            while (true)
+            {
+                var reflectedAccessors = reflectionCache.Accessors;
+
+                if (reflectedAccessors.ContainsKey(key))
+                {
+                    return;
+                }
+
+                var updated = new Dictionary<ReflectedAccessorKey, IMemberAccessor>(reflectedAccessors)
+                {
+                    [key] = accessor
+                };
+
+                if (ReferenceEquals(
+                    Interlocked.CompareExchange(ref reflectionCache.Accessors, updated, reflectedAccessors),
+                    reflectedAccessors))
+                {
+                    return;
+                }
+            }
         }
     }
 }

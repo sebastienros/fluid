@@ -41,6 +41,47 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void ReflectedAccessorsShouldVaryByStringComparer()
+        {
+            var strategy = new DefaultMemberAccessStrategy();
+
+            Assert.NotNull(strategy.GetAccessor(typeof(Class1), "property1", StringComparer.OrdinalIgnoreCase));
+            Assert.Null(strategy.GetAccessor(typeof(Class1), "property1", StringComparer.Ordinal));
+        }
+
+        [Fact]
+        public void WildcardRegistrationShouldOverridePreviouslyReflectedAccessor()
+        {
+            var strategy = new DefaultMemberAccessStrategy();
+            var reflected = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal);
+
+            Assert.NotNull(reflected);
+
+            strategy.Register<Class1, object>((instance, name) =>
+                name == nameof(Class1.Property2) ? instance.Property2 : null);
+
+            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal);
+
+            Assert.NotSame(reflected, accessor);
+            Assert.Null(accessor.Get(new Class1(), nameof(Class1.Property1), new TemplateContext()));
+        }
+
+        [Fact]
+        public void BaseRegistrationChangesShouldInvalidateDerivedAccessors()
+        {
+            var strategy = new DefaultMemberAccessStrategy();
+            strategy.Register<Class1, object>((instance, name) => "first");
+
+            var first = strategy.GetAccessor(typeof(DerivedClass1), "custom", StringComparer.Ordinal);
+            Assert.Equal("first", first.Get(new DerivedClass1(), "custom", new TemplateContext()));
+
+            strategy.Register<Class1, object>((instance, name) => "second");
+
+            var second = strategy.GetAccessor(typeof(DerivedClass1), "custom", StringComparer.Ordinal);
+            Assert.Equal("second", second.Get(new DerivedClass1(), "custom", new TemplateContext()));
+        }
+
+        [Fact]
         public void RegisterByTypeUsesAotSafePropertyAccessorWhenDynamicCodeIsUnavailable()
         {
             var strategy = new DefaultMemberAccessStrategy();
@@ -344,6 +385,10 @@ namespace Fluid.Tests
         public int Property2 { get; set; }
         public Task<string> Property3 { get; set; }
         public string WriteOnlyProperty { private get; set; }
+    }
+
+    public sealed class DerivedClass1 : Class1
+    {
     }
 
     public sealed class GeneratedModel

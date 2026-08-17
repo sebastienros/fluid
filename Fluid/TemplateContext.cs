@@ -24,8 +24,7 @@ namespace Fluid
         /// </summary>
         /// <param name="model">The model.</param>
         /// <param name="options">The template options.</param>
-        /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
-        public TemplateContext(object model, TemplateOptions options, bool allowModelMembers = true) : this(options)
+        public TemplateContext(object model, TemplateOptions options) : this(options)
         {
             ArgumentNullException.ThrowIfNull(model);
 
@@ -36,7 +35,6 @@ namespace Fluid
             else
             {
                 Model = FluidValue.Create(model, options);
-                AllowModelMembers = allowModelMembers;
             }
         }
 
@@ -60,17 +58,18 @@ namespace Fluid
             Undefined = options.Undefined;
             Now = options.Now;
             MaxSteps = options.MaxSteps;
+            MaxOutputSize = options.MaxOutputSize;
+            MaxCollectionSize = options.MaxCollectionSize;
             ModelNamesComparer = modelNamesComparer;
             JsonSerializerOptions = options.JsonSerializerOptions;
         }
 
         /// <summary>
-        /// Initializes a new instance of <see cref="TemplateContext"/> wih a model and option register its properties.
+        /// Initializes a new instance of <see cref="TemplateContext"/> with a model.
         /// </summary>
         /// <param name="model">The model.</param>
-        /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
         /// <param name="modelNamesComparer">An optional <see cref="StringComparer"/> instance used when comparing model names.</param>
-        public TemplateContext(object model, bool allowModelMembers = true, StringComparer? modelNamesComparer = null) : this(TemplateOptions.Default, modelNamesComparer)
+        public TemplateContext(object model, StringComparer? modelNamesComparer = null) : this(TemplateOptions.Default, modelNamesComparer)
         {
             ArgumentNullException.ThrowIfNull(model);
 
@@ -81,7 +80,6 @@ namespace Fluid
             else
             {
                 Model = FluidValue.Create(model, TemplateOptions.Default);
-                AllowModelMembers = allowModelMembers;
             }
         }
 
@@ -94,6 +92,18 @@ namespace Fluid
         /// Gets or sets the maximum number of steps a script can execute. Leave to 0 for unlimited.
         /// </summary>
         public int MaxSteps { get; set; } = TemplateOptions.Default.MaxSteps;
+
+        /// <summary>
+        /// Gets or sets the maximum number of characters a template or captured block can render.
+        /// Leave to 0 for unlimited.
+        /// </summary>
+        public int MaxOutputSize { get; set; } = TemplateOptions.Default.MaxOutputSize;
+
+        /// <summary>
+        /// Gets or sets the maximum number of items a template operation can materialize.
+        /// Leave to 0 for unlimited.
+        /// </summary>
+        public int MaxCollectionSize { get; set; } = TemplateOptions.Default.MaxCollectionSize;
 
         /// <summary>
         /// Gets <see cref="StringComparer"/> used when comparing model names.
@@ -145,6 +155,28 @@ namespace Fluid
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EnsureOutputSize(long size)
+        {
+            CancellationToken.ThrowIfCancellationRequested();
+
+            if (size < 0 || (MaxOutputSize > 0 && size > MaxOutputSize))
+            {
+                ExceptionHelper.ThrowMaximumOutputSizeException(MaxOutputSize);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EnsureCollectionSize(long size)
+        {
+            CancellationToken.ThrowIfCancellationRequested();
+
+            if (size < 0 || (MaxCollectionSize > 0 && size > MaxCollectionSize))
+            {
+                ExceptionHelper.ThrowMaximumCollectionSizeException(MaxCollectionSize);
+            }
+        }
+
         /// <summary>
         /// Gets or sets the current scope.
         /// </summary>
@@ -166,11 +198,6 @@ namespace Fluid
         /// global scopes are unsuccessful.
         /// </summary>
         public FluidValue Model { get; } = NilValue.Instance;
-
-        /// <summary>
-        /// Whether the direct properties of the Model can be accessed without being registered. Default is <code>true</code>.
-        /// </summary>
-        public bool AllowModelMembers { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
