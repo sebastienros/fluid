@@ -1636,20 +1636,20 @@ TL;DR — Fluid is faster and allocates less memory than all other well-known .N
 
 Scriban takes 46% longer to parse and allocates over 3 times as much memory as Fluid.
 
-![Parse benchmark comparison](Assets/benchmark-parse.png)
+![Parse benchmark comparison](Assets/benchmark-parse.png?v=20260817)
 
 **ParseBig: Parses a Blog Post template**
 
 Scriban takes 70% longer to parse and allocates almost 4 times as much memory as Fluid.
 
-![Large template parse benchmark comparison](Assets/benchmark-parse-big.png)
+![Large template parse benchmark comparison](Assets/benchmark-parse-big.png?v=20260817)
 
 **Render: Renders a simple HTML template containing filters and properties, with 100 elements**
 
 DotLiquid takes over 10 times as long to render and allocates 18 times as much memory as Fluid.
 The second best, Handlebars (Mustache), takes 28% longer and allocates over 3 times as much memory.
 
-![Render benchmark comparison](Assets/benchmark-render.png)
+![Render benchmark comparison](Assets/benchmark-render.png?v=20260817)
 
 Tested on 8/17/2026 with
 - Parlot 1.5.8
