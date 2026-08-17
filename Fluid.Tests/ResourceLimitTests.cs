@@ -95,6 +95,42 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task ExactEncodedOutputWithinLimitIsAllowed()
+        {
+            var template = new FluidParser().Parse("{{ value }}");
+            var context = new TemplateContext(new { value = "&" }) { MaxOutputSize = 5 };
+
+            Assert.Equal("&amp;", await template.RenderAsync(context, System.Text.Encodings.Web.HtmlEncoder.Default));
+        }
+
+        [Fact]
+        public async Task MaxOutputSizeDoesNotLimitShrinkingFilterInputs()
+        {
+            var template = new FluidParser().Parse("{{ 'aaaa' | replace: 'aa', '' }}");
+            var context = new TemplateContext { MaxOutputSize = 1 };
+
+            Assert.Equal("", await template.RenderAsync(context));
+        }
+
+        [Fact]
+        public async Task MaxOutputSizeDoesNotLimitSplitInputs()
+        {
+            var template = new FluidParser().Parse("{{ 'aaaa' | split: '' | size }}");
+            var context = new TemplateContext { MaxOutputSize = 1, MaxCollectionSize = 4 };
+
+            Assert.Equal("4", await template.RenderAsync(context));
+        }
+
+        [Fact]
+        public async Task ExactBase64UrlSafeOutputWithinLimitIsAllowed()
+        {
+            var template = new FluidParser().Parse("{{ '1' | base64_url_safe_encode }}");
+            var context = new TemplateContext { MaxOutputSize = 2 };
+
+            Assert.Equal("MQ", await template.RenderAsync(context));
+        }
+
+        [Fact]
         public async Task MaxCollectionSizeLimitsRangesBeforeAllocation()
         {
             var template = new FluidParser().Parse("{{ (1..5) | size }}");
@@ -128,6 +164,21 @@ namespace Fluid.Tests
 
             await Assert.ThrowsAsync<InvalidOperationException>(
                 () => template.RenderAsync(context).AsTask());
+        }
+
+        [Fact]
+        public async Task MaxCollectionSizeDoesNotLimitScalarArrayOperations()
+        {
+            var template = new FluidParser().Parse("{{ values | first }}");
+            var context = new TemplateContext(new
+            {
+                values = new[] { 1, 2, 3, 4, 5 }
+            })
+            {
+                MaxCollectionSize = 2
+            };
+
+            Assert.Equal("1", await template.RenderAsync(context));
         }
 
         [Fact]

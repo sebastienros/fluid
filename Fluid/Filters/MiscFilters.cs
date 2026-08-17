@@ -247,7 +247,7 @@ namespace Fluid.Filters
             else
             {
                 var byteCount = Encoding.UTF8.GetByteCount(value);
-                context.EnsureOutputSize(4L * ((byteCount + 2L) / 3L));
+                context.EnsureOutputSize(((4L * byteCount) + 2L) / 3L);
                 var encodedBase64StringBuilder = new StringBuilder(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
 
                 encodedBase64StringBuilder.Replace('+', '-');

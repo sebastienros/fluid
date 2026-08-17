@@ -143,8 +143,6 @@ namespace Fluid.Values
 
         public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
-            context?.EnsureCollectionSize(Values.Count);
-
             foreach (var value in Values)
             {
                 context?.IncrementSteps();

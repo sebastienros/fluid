@@ -15,13 +15,6 @@ namespace Fluid.Filters
                 : new StringValue(value);
         }
 
-        private static string GetStringValue(FluidValue value, TemplateContext context)
-        {
-            var result = value.ToStringValue();
-            context.EnsureOutputSize(result.Length);
-            return result;
-        }
-
         public static FilterCollection WithStringFilters(this FilterCollection filters)
         {
             filters.AddFilter("append", Append);
@@ -52,8 +45,8 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("append", expected: 1, arguments);
 
-            var left = GetStringValue(input, context);
-            var right = GetStringValue(arguments.At(0), context);
+            var left = input.ToStringValue();
+            var right = arguments.At(0).ToStringValue();
             context.EnsureOutputSize((long)left.Length + right.Length);
             return CreateStringValue(left + right, input);
         }
@@ -62,7 +55,7 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("capitalize", expected: 0, arguments);
 
-            var source = GetStringValue(input, context).ToCharArray();
+            var source = input.ToStringValue().ToCharArray();
 
             if (source.Length > 0 && char.IsLetter(source[0]))
             {
@@ -76,7 +69,7 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("downcase", expected: 0, arguments);
 
-            return CreateStringValue(GetStringValue(input, context).ToLower(context.CultureInfo), input);
+            return CreateStringValue(input.ToStringValue().ToLower(context.CultureInfo), input);
         }
 
         public static ValueTask<FluidValue> LStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -97,7 +90,7 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("newline_to_br", expected: 0, arguments);
 
-            var value = GetStringValue(input, context);
+            var value = input.ToStringValue();
             long resultLength = value.Length;
             for (var i = 0; i < value.Length; i++)
             {
@@ -124,8 +117,8 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("prepend", expected: 1, arguments);
 
-            var left = GetStringValue(arguments.At(0), context);
-            var right = GetStringValue(input, context);
+            var left = arguments.At(0).ToStringValue();
+            var right = input.ToStringValue();
             context.EnsureOutputSize((long)left.Length + right.Length);
             return CreateStringValue(left + right, input);
         }
@@ -202,9 +195,9 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("replace", min: 1, max: 2, arguments);
 
-            var value = GetStringValue(input, context);
-            var oldValue = GetStringValue(arguments.At(0), context);
-            var newValue = GetStringValue(arguments.At(1), context);
+            var value = input.ToStringValue();
+            var oldValue = arguments.At(0).ToStringValue();
+            var newValue = arguments.At(1).ToStringValue();
 
             // .NET throws when oldValue is empty, but Liquid treats this as an insertion between every character.
             if (oldValue.Length == 0)
@@ -249,13 +242,13 @@ namespace Fluid.Filters
             LiquidException.ThrowFilterArgumentsCount("replace_last", expected: 2, arguments);
 
 #if NET6_0_OR_GREATER
-            var valueString = GetStringValue(input, context);
-            var removeString = GetStringValue(arguments.At(0), context);
+            var valueString = input.ToStringValue();
+            var removeString = arguments.At(0).ToStringValue();
             var value = valueString.AsSpan();
             var remove = removeString.AsSpan();
 #else
-            var value = GetStringValue(input, context);
-            var remove = GetStringValue(arguments.At(0), context);
+            var value = input.ToStringValue();
+            var remove = arguments.At(0).ToStringValue();
 #endif
             var index = value.LastIndexOf(remove);
 
@@ -265,11 +258,11 @@ namespace Fluid.Filters
             }
 
 #if NET6_0_OR_GREATER
-            var insert = GetStringValue(arguments.At(1), context);
+            var insert = arguments.At(1).ToStringValue();
             context.EnsureOutputSize((long)value.Length - remove.Length + insert.Length);
             var concat = string.Concat(value.Slice(0, index), insert, value.Slice(index + remove.Length));
 #else
-            var insert = GetStringValue(arguments.At(1), context);
+            var insert = arguments.At(1).ToStringValue();
             context.EnsureOutputSize((long)value.Length - remove.Length + insert.Length);
             var concat = string.Concat(value.Substring(0, index), insert, value.Substring(index + remove.Length));
 #endif
@@ -354,8 +347,8 @@ namespace Fluid.Filters
 
             string[] strings;
 
-            var stringInput = GetStringValue(input, context);
-            var separator = GetStringValue(arguments.At(0), context);
+            var stringInput = input.ToStringValue();
+            var separator = arguments.At(0).ToStringValue();
 
             // Golden Liquid: splitting an empty string yields an empty array
             if (stringInput.Length == 0)
@@ -533,7 +526,7 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("truncate_words", min: 0, max: 2, arguments);
 
-            var source = GetStringValue(input, context);
+            var source = input.ToStringValue();
 
             // If first argument is not provided, use default of 15
             // If first argument is nil (undefined variable), throw error per Golden Liquid spec
@@ -618,7 +611,7 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("upcase", expected: 0, arguments);
 
-            return CreateStringValue(GetStringValue(input, context).ToUpper(context.CultureInfo), input);
+            return CreateStringValue(input.ToStringValue().ToUpper(context.CultureInfo), input);
         }
     }
 }
