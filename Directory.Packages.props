@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <!-- Global Package References -->
-    <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="all" />
+    <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.400" PrivateAssets="all" />
     <GlobalPackageReference Include="PolySharp" Version="1.16.0" PrivateAssets="all" />
     <!-- TFM specific reference since they could lift some framework dependencies -->
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Abstractions" Version="$(MicrosoftExtensionsFileProvidersAbstractionsPackageVersion)" />
@@ -31,7 +31,7 @@
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageVersion Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
     <PackageVersion Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
-    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.11" />
     <!-- Common to all TFMs -->
     <PackageVersion Include="Parlot" Version="1.5.8" />
     <PackageVersion Include="TimeZoneConverter" Version="7.2.0" />
@@ -40,12 +40,12 @@
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="DotLiquid" Version="2.3.197" />
     <PackageVersion Include="Liquid.NET" Version="0.10.0" />
-    <PackageVersion Include="Scriban" Version="7.2.5" />
-    <PackageVersion Include="Handlebars.Net" Version="2.1.6" />
+    <PackageVersion Include="Scriban" Version="7.2.6" />
+    <PackageVersion Include="Handlebars.Net" Version="2.4.3" />
     <!-- Testing -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
-    <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="4.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" />
   </ItemGroup>
 </Project>
