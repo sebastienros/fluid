@@ -194,9 +194,10 @@ namespace Fluid.SourceGeneration
                 return result;
             }
 
-            if (options.FileProvider == null)
+            if (options.TemplateContentResolver == null && options.FileProvider == null)
             {
-                throw new SourceGenerationException("SourceGenerationOptions.FileProvider is required to compile templates that use the 'render' tag.");
+                throw new SourceGenerationException(
+                    "SourceGenerationOptions.TemplateContentResolver or FileProvider is required to compile templates that use the 'render' tag.");
             }
 
             var queue = new Queue<RenderStatement>(visitor.RenderStatements);
@@ -212,7 +213,7 @@ namespace Fluid.SourceGeneration
                     continue;
                 }
 
-                var content = ReadTemplateContent(options.FileProvider, path);
+                var content = ReadTemplateContent(options, path);
 
                 if (!render.Parser.TryParse(content, out var parsedTemplate, out var errors))
                 {
@@ -245,8 +246,20 @@ namespace Fluid.SourceGeneration
             return result;
         }
 
-        private static string ReadTemplateContent(IFileProvider fileProvider, string relativePath)
+        private static string ReadTemplateContent(SourceGenerationOptions options, string relativePath)
         {
+            if (options.TemplateContentResolver != null)
+            {
+                var content = options.TemplateContentResolver(relativePath);
+                if (content == null)
+                {
+                    throw new SourceGenerationException($"Rendered template '{relativePath}' was not found by the provided TemplateContentResolver.");
+                }
+
+                return content;
+            }
+
+            var fileProvider = options.FileProvider;
             var fileInfo = fileProvider.GetFileInfo(relativePath);
             if (fileInfo == null || !fileInfo.Exists || fileInfo.IsDirectory)
             {

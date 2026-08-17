@@ -1,9 +1,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Collections.Immutable;
+using Fluid.SourceGeneration;
 using Microsoft.CodeAnalysis;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Primitives;
 
 namespace Fluid.SourceGenerator
 {
@@ -44,7 +43,7 @@ namespace Fluid.SourceGenerator
             return templates;
         }
 
-        public static IFileProvider BuildFileProvider(IReadOnlyList<Template> templates)
+        public static Func<string, string> BuildTemplateResolver(IReadOnlyList<Template> templates)
         {
             var map = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
 
@@ -66,7 +65,15 @@ namespace Fluid.SourceGenerator
                 }
             }
 
-            return new InMemoryFileProvider(map);
+            return path =>
+            {
+                if (map.TryGetValue(Normalize(path), out var content))
+                {
+                    return content;
+                }
+
+                throw new SourceGenerationException($"Rendered template '{path}' was not found in the provided additional files.");
+            };
         }
 
         private static string? TryGetRelativePath(string fullPath, string? projectDir)
@@ -101,61 +108,5 @@ namespace Fluid.SourceGenerator
 
         private static string Normalize(string? path) => (path ?? string.Empty).Replace('\\', '/').TrimStart('/');
 
-        private sealed class InMemoryFileProvider : IFileProvider
-        {
-            private readonly IReadOnlyDictionary<string, string> _files;
-
-            public InMemoryFileProvider(IReadOnlyDictionary<string, string> files)
-            {
-                _files = files;
-            }
-
-            public IDirectoryContents GetDirectoryContents(string subpath) => EmptyDirectoryContents.Singleton;
-
-            public IFileInfo GetFileInfo(string subpath)
-            {
-                var normalized = Normalize(subpath);
-
-                if (_files.TryGetValue(normalized, out var content))
-                {
-                    return new InMemoryFileInfo(normalized, content);
-                }
-
-                return new NotFoundFileInfo(subpath);
-            }
-
-            public IChangeToken Watch(string filter) => NullChangeToken.Singleton;
-
-            private sealed class InMemoryFileInfo : IFileInfo
-            {
-                private readonly byte[] _bytes;
-
-                public InMemoryFileInfo(string name, string content)
-                {
-                    Name = Path.GetFileName(name);
-                    _bytes = System.Text.Encoding.UTF8.GetBytes(content);
-                }
-
-                public bool Exists => true;
-                public long Length => _bytes.Length;
-                public string? PhysicalPath => null;
-                public string Name { get; }
-                public DateTimeOffset LastModified => DateTimeOffset.MinValue;
-                public bool IsDirectory => false;
-
-                public Stream CreateReadStream() => new MemoryStream(_bytes, writable: false);
-            }
-
-            private sealed class EmptyDirectoryContents : IDirectoryContents
-            {
-                public static readonly EmptyDirectoryContents Singleton = new();
-
-                public bool Exists => false;
-
-                public IEnumerator<IFileInfo> GetEnumerator() => System.Linq.Enumerable.Empty<IFileInfo>().GetEnumerator();
-
-                System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
-            }
-        }
     }
 }

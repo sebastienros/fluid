@@ -15,8 +15,10 @@
     <!-- Required so the analyzer can load its dependencies at compile-time -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 
-    <!-- Keep build output so this can be referenced from tests in this repo -->
-    <IncludeBuildOutput>true</IncludeBuildOutput>
+    <!-- Source generators are consumed as analyzer assets, not library references. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,13 +26,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Fluid\Fluid.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Fluid\Fluid.csproj"
+                      AdditionalProperties="AssemblyName=Fluid.SourceGenerator.Runtime;IntermediateOutputPath=obj\SourceGeneratorRuntime\$(Configuration)\$(TargetFramework)\;OutputPath=bin\SourceGeneratorRuntime\$(Configuration)\$(TargetFramework)\"
+                      Private="false"
+                      PrivateAssets="all" />
   </ItemGroup>
 
   <Target Name="EmbedAnalyzerRuntimeDependencies" AfterTargets="ResolveReferences" BeforeTargets="PrepareResources">
     <ItemGroup>
-      <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
-                         Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'Fluid'" />
+      <_EmbedAnalyzerDep Include="@(ReferencePath)"
+                         Condition="'%(ReferencePath.Filename)' == 'Fluid.SourceGenerator.Runtime'" />
       <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
                          Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'Parlot'" />
       <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
@@ -51,9 +56,9 @@
   </Target>
 
   <ItemGroup>
-  <None Include="$(OutputPath)\*.dll" 
-          Pack="true" 
-          PackagePath="analyzers/dotnet/cs" 
+    <None Include="$(TargetPath)"
+          Pack="true"
+          PackagePath="analyzers/dotnet/cs"
           Visible="false" />
   </ItemGroup>
 

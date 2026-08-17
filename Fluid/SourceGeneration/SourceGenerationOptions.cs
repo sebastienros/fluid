@@ -13,6 +13,11 @@ namespace Fluid.SourceGeneration
         public IFileProvider FileProvider { get; set; }
 
         /// <summary>
+        /// Optional resolver used at compile-time to load sub-template content.
+        /// </summary>
+        public Func<string, string> TemplateContentResolver { get; set; }
+
+        /// <summary>
         /// Optional known model type. When set, code generation can optimize model access.
         /// </summary>
         public Type ModelType { get; set; }
