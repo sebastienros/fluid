@@ -100,6 +100,12 @@ namespace Fluid.Benchmarks
             return _handlebarsBenchmarks.Parse();
         }
 
+        [Benchmark, BenchmarkCategory("ParseBig")]
+        public object Handlebars_ParseBig()
+        {
+            return _handlebarsBenchmarks.ParseBig();
+        }
+
         [Benchmark, BenchmarkCategory("Render")]
         public string Handlebars_Render()
         {

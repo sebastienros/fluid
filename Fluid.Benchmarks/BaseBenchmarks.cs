@@ -15,6 +15,7 @@ namespace Fluid.Benchmarks
         protected readonly static string ProductTemplate;
         protected readonly static string ProductTemplateMustache;
         protected readonly static string BlogPostTemplate;
+        protected readonly static string BlogPostTemplateMustache;
 
         static BaseBenchmarks()
         {
@@ -36,6 +37,12 @@ namespace Fluid.Benchmarks
             {
                 using var streamReader = new StreamReader(stream);
                 BlogPostTemplate = streamReader.ReadToEnd();
+            }
+
+            using (var stream = assembly.GetManifestResourceStream("Fluid.Benchmarks.blogpost.mustache"))
+            {
+                using var streamReader = new StreamReader(stream);
+                BlogPostTemplateMustache = streamReader.ReadToEnd();
             }
         }
 

@@ -1,0 +1,30 @@
+﻿<!-- Page Header -->
+<!-- Set your background image for this header on the line below. -->
+{{#if Model.ContentItem.Content.BlogPost.Image.Paths.first}}
+    <header class="masthead" style="background-image: url('{{ Model.ContentItem.Content.BlogPost.Image.Paths.first }}')">
+{{else}}
+    <header class="masthead" style="background-image: url('~/TheBlogTheme/img/post-bg.jpg')">
+{{/if}}
+    <div class="overlay"></div>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-md-10 mx-auto">
+                <div class="post-heading">
+                    <h1>{{ Model.ContentItem.DisplayText }}</h1>
+                    <h2 class="subheading">{{ Model.ContentItem.Content.BlogPost.Subtitle.Text }}</h2>
+                    <span class="meta">
+                        Posted by <a href="#">{{ Model.ContentItem.Author }}</a> on {{ Model.ContentItem.CreatedUtc }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="collapse navbar-collapse" id="navbarResponsive">
+    <ul class="navbar-nav ml-auto">
+        {{#each Model.Items}}
+        {{ this }}
+        {{/each}}
+    </ul>
+</div>
