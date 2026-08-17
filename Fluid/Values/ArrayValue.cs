@@ -16,6 +16,11 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other)
         {
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
             if (other.IsNil())
             {
                 return Values.Count == 0;
@@ -23,6 +28,8 @@ namespace Fluid.Values
 
             if (other is ArrayValue arrayValue)
             {
+                using var scope = RecursiveComparisonGuard.Enter(this, arrayValue);
+
                 if (Values.Count != arrayValue.Values.Count)
                 {
                     return false;
@@ -108,9 +115,10 @@ namespace Fluid.Values
         {
             AssertWriteToParameters(output, encoder, cultureInfo);
 
-            foreach (var v in Values)
+            using var scope = RecursiveValueGuard.Enter(this);
+            foreach (var item in Values)
             {
-                output.Write(v.ToStringValue());
+                output.Write(item.ToStringValue());
             }
 
             return default;
@@ -118,11 +126,13 @@ namespace Fluid.Values
 
         public override string ToStringValue()
         {
+            using var scope = RecursiveValueGuard.Enter(this);
             return String.Join("", Values.Select(x => x.ToStringValue()));
         }
 
         public override object ToObjectValue()
         {
+            using var scope = RecursiveValueGuard.Enter(this);
             return Values.Select(x => x.ToObjectValue()).ToArray();
         }
 
@@ -133,9 +143,11 @@ namespace Fluid.Values
 
         public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
+            context?.EnsureCollectionSize(Values.Count);
+
             foreach (var value in Values)
             {
-                context?.CancellationToken.ThrowIfCancellationRequested();
+                context?.IncrementSteps();
                 yield return value;
             }
 
@@ -155,6 +167,7 @@ namespace Fluid.Values
 
         public override int GetHashCode()
         {
+            using var scope = RecursiveValueGuard.Enter(this);
             var hc = new HashCode();
 
             IReadOnlyList<FluidValue> values = Values;

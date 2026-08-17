@@ -37,11 +37,18 @@ namespace Fluid.Filters
             var separator = arguments.Count > 0 ? arguments.At(0).ToStringValue() : " ";
 
             var list = new List<string>();
+            long outputLength = 0;
             await foreach (var item in input.EnumerateAsync(context))
             {
                 // Preserve nil/undefined items as empty strings (so separators remain)
                 if (item.IsNil())
                 {
+                    context.EnsureCollectionSize((long)list.Count + 1);
+                    if (list.Count > 0)
+                    {
+                        outputLength += separator.Length;
+                        context.EnsureOutputSize(outputLength);
+                    }
                     list.Add(string.Empty);
                     continue;
                 }
@@ -54,6 +61,13 @@ namespace Fluid.Filters
                     continue;
                 }
 
+                context.EnsureCollectionSize((long)list.Count + 1);
+                outputLength += s.Length;
+                if (list.Count > 0)
+                {
+                    outputLength += separator.Length;
+                }
+                context.EnsureOutputSize(outputLength);
                 list.Add(s);
             }
 
@@ -140,11 +154,13 @@ namespace Fluid.Filters
             {
                 foreach (var item in Flatten(input, context))
                 {
+                    context.EnsureCollectionSize((long)concat.Count + 1);
                     concat.Add(item);
                 }
             }
             else if (input.Type != FluidValues.Nil)
             {
+                context.EnsureCollectionSize(1);
                 concat.Add(input);
             }
 
@@ -152,6 +168,7 @@ namespace Fluid.Filters
             {
                 foreach (var item in Flatten(arg, context))
                 {
+                    context.EnsureCollectionSize((long)concat.Count + 1);
                     concat.Add(item);
                 }
             }
@@ -205,11 +222,13 @@ namespace Fluid.Filters
             {
                 await foreach (var item in FlattenForMap(input, context))
                 {
+                    context.EnsureCollectionSize((long)list.Count + 1);
                     list.Add(await item.GetIndexAsync(member, context));
                 }
             }
             else
             {
+                context.EnsureCollectionSize(1);
                 list.Add(await input.GetIndexAsync(member, context));
             }
 
@@ -252,6 +271,7 @@ namespace Fluid.Filters
                 }
                 else
                 {
+                    context.EnsureCollectionSize(value.Length);
                     var valueAsArray = value.ToCharArray();
 
                     Array.Reverse(valueAsArray);
@@ -735,6 +755,7 @@ namespace Fluid.Filters
                                 }
                                 if (!shouldReject.reject)
                                 {
+                                    context.EnsureCollectionSize((long)list.Count + 1);
                                     list.Add(deepItem);
                                 }
                             }
@@ -753,6 +774,7 @@ namespace Fluid.Filters
                             }
                             if (!shouldReject.reject)
                             {
+                                context.EnsureCollectionSize((long)list.Count + 1);
                                 list.Add(nestedItem);
                             }
                         }
@@ -774,6 +796,7 @@ namespace Fluid.Filters
                 
                 if (!result.reject)
                 {
+                    context.EnsureCollectionSize((long)list.Count + 1);
                     list.Add(item);
                 }
             }

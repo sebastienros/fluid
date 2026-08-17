@@ -108,6 +108,18 @@ namespace Fluid
         public int MaxSteps { get; set; }
 
         /// <summary>
+        /// Gets or sets the maximum number of characters a template or captured block can render.
+        /// Leave to 0 for unlimited.
+        /// </summary>
+        public int MaxOutputSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum number of items a template operation can materialize.
+        /// Leave to 0 for unlimited.
+        /// </summary>
+        public int MaxCollectionSize { get; set; }
+
+        /// <summary>
         /// Gets or sets the <see cref="StringComparer"/> to use when comparing model names.
         /// </summary>
         /// <value>

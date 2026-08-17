@@ -92,6 +92,7 @@ namespace Fluid.SourceGeneration
                         ctx.WriteLine("if (context == null) throw new ArgumentNullException(nameof(context));");
                         ctx.WriteLine("if (context.Options.Trimming != TrimmingFlags.None) throw new NotSupportedException(\"Source-generated templates do not support TemplateOptions.Trimming.\");");
                         ctx.WriteLine("context.CancellationToken.ThrowIfCancellationRequested();");
+                        ctx.WriteLine("writer = LimitedFluidOutput.Create(writer, context.MaxOutputSize);");
                         ctx.WriteLine();
 
                         foreach (var statement in statementList.Statements)

@@ -31,7 +31,8 @@ namespace Fluid
                 bufferSize,
                 leaveOpen: true,
                 cancellationToken: context.CancellationToken);
-            var completion = await statement.WriteToAsync(output, encoder, context);
+            var limitedOutput = LimitedFluidOutput.Create(output, context.MaxOutputSize);
+            var completion = await statement.WriteToAsync(limitedOutput, encoder, context);
             context.CancellationToken.ThrowIfCancellationRequested();
             await output.FlushAsync();
             return completion;

@@ -101,4 +101,25 @@ internal static class ExceptionHelper
     {
         throw new InvalidOperationException("The maximum level of recursion has been reached. Your script must have a cyclic include statement.");
     }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ThrowMaximumOutputSizeException(int maximum)
+    {
+        throw new InvalidOperationException($"The maximum template output size of {maximum} characters has been reached.");
+    }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ThrowMaximumCollectionSizeException(int maximum)
+    {
+        throw new InvalidOperationException($"The maximum materialized collection size of {maximum} items has been reached.");
+    }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ThrowRecursiveValueException()
+    {
+        throw new InvalidOperationException("A circular or excessively deep value cannot be converted.");
+    }
 }

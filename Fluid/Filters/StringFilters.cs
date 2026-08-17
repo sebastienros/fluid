@@ -15,6 +15,13 @@ namespace Fluid.Filters
                 : new StringValue(value);
         }
 
+        private static string GetStringValue(FluidValue value, TemplateContext context)
+        {
+            var result = value.ToStringValue();
+            context.EnsureOutputSize(result.Length);
+            return result;
+        }
+
         public static FilterCollection WithStringFilters(this FilterCollection filters)
         {
             filters.AddFilter("append", Append);
@@ -45,14 +52,17 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("append", expected: 1, arguments);
 
-            return CreateStringValue(input.ToStringValue() + arguments.At(0).ToStringValue(), input);
+            var left = GetStringValue(input, context);
+            var right = GetStringValue(arguments.At(0), context);
+            context.EnsureOutputSize((long)left.Length + right.Length);
+            return CreateStringValue(left + right, input);
         }
 
         public static ValueTask<FluidValue> Capitalize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             LiquidException.ThrowFilterArgumentsCount("capitalize", expected: 0, arguments);
 
-            var source = input.ToStringValue().ToCharArray();
+            var source = GetStringValue(input, context).ToCharArray();
 
             if (source.Length > 0 && char.IsLetter(source[0]))
             {
@@ -66,7 +76,7 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("downcase", expected: 0, arguments);
 
-            return CreateStringValue(input.ToStringValue().ToLower(context.CultureInfo), input);
+            return CreateStringValue(GetStringValue(input, context).ToLower(context.CultureInfo), input);
         }
 
         public static ValueTask<FluidValue> LStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -87,8 +97,24 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("newline_to_br", expected: 0, arguments);
 
+            var value = GetStringValue(input, context);
+            long resultLength = value.Length;
+            for (var i = 0; i < value.Length; i++)
+            {
+                context.IncrementSteps();
+                if (value[i] == '\n')
+                {
+                    resultLength += 6;
+                }
+                else if (value[i] == '\r')
+                {
+                    resultLength += i + 1 < value.Length && value[i + 1] == '\n' ? -1 : 6;
+                }
+            }
+            context.EnsureOutputSize(resultLength);
+
             // Normalize line endings first, then replace with <br />
-            return CreateStringValue(input.ToStringValue()
+            return CreateStringValue(value
                 .Replace("\r\n", "\n")      // Windows -> Unix
                 .Replace("\r", "\n")         // Mac -> Unix
                 .Replace("\n", "<br />\n"), input); // Unix -> <br /> + newline
@@ -98,7 +124,10 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("prepend", expected: 1, arguments);
 
-            return CreateStringValue(arguments.At(0).ToStringValue() + input.ToStringValue(), input);
+            var left = GetStringValue(arguments.At(0), context);
+            var right = GetStringValue(input, context);
+            context.EnsureOutputSize((long)left.Length + right.Length);
+            return CreateStringValue(left + right, input);
         }
 
         public static ValueTask<FluidValue> RemoveFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -164,6 +193,7 @@ namespace Fluid.Filters
                 return input;
             }
 
+            context.EnsureOutputSize((long)value.Length - remove.Length + insert.Length);
             var concat = string.Concat(value.Substring(0, index), insert, value.Substring(index + remove.Length));
             return CreateStringValue(concat, input);
         }
@@ -172,19 +202,21 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("replace", min: 1, max: 2, arguments);
 
-            var value = input.ToStringValue();
-            var oldValue = arguments.At(0).ToStringValue();
-            var newValue = arguments.At(1).ToStringValue();
+            var value = GetStringValue(input, context);
+            var oldValue = GetStringValue(arguments.At(0), context);
+            var newValue = GetStringValue(arguments.At(1), context);
 
             // .NET throws when oldValue is empty, but Liquid treats this as an insertion between every character.
             if (oldValue.Length == 0)
             {
                 if (value.Length == 0)
                 {
+                    context.EnsureOutputSize((long)newValue.Length * 2);
                     return CreateStringValue(newValue + newValue, input);
                 }
 
-                var sb = new System.Text.StringBuilder(value.Length + (newValue.Length * (value.Length + 1)));
+                context.EnsureOutputSize((long)value.Length + ((long)newValue.Length * (value.Length + 1)));
+                var sb = new System.Text.StringBuilder(checked(value.Length + (newValue.Length * (value.Length + 1))));
                 sb.Append(newValue);
                 for (var i = 0; i < value.Length; i++)
                 {
@@ -195,6 +227,20 @@ namespace Fluid.Filters
                 return CreateStringValue(sb.ToString(), input);
             }
 
+            if (newValue.Length > oldValue.Length)
+            {
+                var occurrences = 0;
+                var index = 0;
+                while ((index = value.IndexOf(oldValue, index, StringComparison.Ordinal)) >= 0)
+                {
+                    context.IncrementSteps();
+                    occurrences++;
+                    index += oldValue.Length;
+                }
+
+                context.EnsureOutputSize((long)value.Length + ((long)(newValue.Length - oldValue.Length) * occurrences));
+            }
+
             return CreateStringValue(value.Replace(oldValue, newValue), input);
         }
 
@@ -203,11 +249,13 @@ namespace Fluid.Filters
             LiquidException.ThrowFilterArgumentsCount("replace_last", expected: 2, arguments);
 
 #if NET6_0_OR_GREATER
-            var value = input.ToStringValue().AsSpan();
-            var remove = arguments.At(0).ToStringValue().AsSpan();
+            var valueString = GetStringValue(input, context);
+            var removeString = GetStringValue(arguments.At(0), context);
+            var value = valueString.AsSpan();
+            var remove = removeString.AsSpan();
 #else
-            var value = input.ToStringValue();
-            var remove = arguments.At(0).ToStringValue();
+            var value = GetStringValue(input, context);
+            var remove = GetStringValue(arguments.At(0), context);
 #endif
             var index = value.LastIndexOf(remove);
 
@@ -217,9 +265,13 @@ namespace Fluid.Filters
             }
 
 #if NET6_0_OR_GREATER
-            var concat = string.Concat(value.Slice(0, index), arguments.At(1).ToStringValue(), value.Slice(index + remove.Length));
+            var insert = GetStringValue(arguments.At(1), context);
+            context.EnsureOutputSize((long)value.Length - remove.Length + insert.Length);
+            var concat = string.Concat(value.Slice(0, index), insert, value.Slice(index + remove.Length));
 #else
-            var concat = string.Concat(value.Substring(0, index), arguments.At(1).ToStringValue(), value.Substring(index + remove.Length));
+            var insert = GetStringValue(arguments.At(1), context);
+            context.EnsureOutputSize((long)value.Length - remove.Length + insert.Length);
+            var concat = string.Concat(value.Substring(0, index), insert, value.Substring(index + remove.Length));
 #endif
             return CreateStringValue(concat, input);
         }
@@ -268,6 +320,7 @@ namespace Fluid.Filters
                 var length = requestedLength > sourceLength ? sourceLength : requestedLength;
                 length = startIndex > 0 && length + startIndex > sourceLength ? length - startIndex : length;
 
+                context.EnsureCollectionSize(length);
                 return new ArrayValue(sourceArray.Skip(startIndex).Take(length).ToArray());
             }
             else
@@ -301,8 +354,8 @@ namespace Fluid.Filters
 
             string[] strings;
 
-            var stringInput = input.ToStringValue();
-            var separator = arguments.At(0).ToStringValue();
+            var stringInput = GetStringValue(input, context);
+            var separator = GetStringValue(arguments.At(0), context);
 
             // Golden Liquid: splitting an empty string yields an empty array
             if (stringInput.Length == 0)
@@ -318,10 +371,12 @@ namespace Fluid.Filters
 
             if (separator == "")
             {
+                context.EnsureCollectionSize(stringInput.Length);
                 strings = new string[stringInput.Length];
 
                 for (var i = 0; i < stringInput.Length; i++)
                 {
+                    context.IncrementSteps();
                     strings[i] = stringInput[i].ToString();
                 }
             }
@@ -333,10 +388,12 @@ namespace Fluid.Filters
 
                 for (var i = 0; i < stringInput.Length; i++)
                 {
+                    context.IncrementSteps();
                     if (char.IsWhiteSpace(stringInput[i]))
                     {
                         if (start != -1)
                         {
+                            context.EnsureCollectionSize((long)parts.Count + 1);
                             parts.Add(stringInput.Substring(start, i - start));
                             start = -1;
                         }
@@ -349,6 +406,7 @@ namespace Fluid.Filters
 
                 if (start != -1)
                 {
+                    context.EnsureCollectionSize((long)parts.Count + 1);
                     parts.Add(stringInput.Substring(start));
                 }
 
@@ -356,12 +414,24 @@ namespace Fluid.Filters
             }
             else
             {
+                var parts = 1;
+                var index = 0;
+                while ((index = stringInput.IndexOf(separator, index, StringComparison.Ordinal)) >= 0)
+                {
+                    context.IncrementSteps();
+                    parts++;
+                    context.EnsureCollectionSize(parts);
+                    index += separator.Length;
+                }
+
                 strings = stringInput.Split(separator, StringSplitOptions.None);
             }
 
+            context.EnsureCollectionSize(strings.Length);
             var values = new FluidValue[strings.Length];
             for (var i = 0; i < strings.Length; i++)
             {
+                context.IncrementSteps();
                 values[i] = StringValue.Create(strings[i]);
             }
 
@@ -449,6 +519,7 @@ namespace Fluid.Filters
             }
 
             var l = Math.Max(0, length - ellipsisStr.Length);
+            context.EnsureOutputSize((long)l + ellipsisStr.Length);
 
 #if NET6_0_OR_GREATER
             var concat = string.Concat(inputStr.AsSpan().Slice(0, l), ellipsisStr);
@@ -462,7 +533,7 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("truncate_words", min: 0, max: 2, arguments);
 
-            var source = input.ToStringValue();
+            var source = GetStringValue(input, context);
 
             // If first argument is not provided, use default of 15
             // If first argument is nil (undefined variable), throw error per Golden Liquid spec
@@ -504,18 +575,39 @@ namespace Fluid.Filters
             }
 
             var chunks = new List<string>();
+            long resultLength = 0;
 
             var length = source.Length;
             for (var i = 0; i < length && chunks.Count < size;)
             {
-                while (i < length && char.IsWhiteSpace(source[i++])) ;
-                var start = i - 1;
-                while (i < length && !char.IsWhiteSpace(source[i++])) ;
-                chunks.Add(source.Substring(start, i - start - (i < length ? 1 : 0)));
+                while (i < length && char.IsWhiteSpace(source[i]))
+                {
+                    context.IncrementSteps();
+                    i++;
+                }
+
+                if (i == length)
+                {
+                    break;
+                }
+
+                var start = i;
+                while (i < length && !char.IsWhiteSpace(source[i]))
+                {
+                    context.IncrementSteps();
+                    i++;
+                }
+
+                var chunkLength = i - start;
+                context.EnsureCollectionSize((long)chunks.Count + 1);
+                resultLength += chunkLength + (chunks.Count > 0 ? 1 : 0);
+                context.EnsureOutputSize(resultLength);
+                chunks.Add(source.Substring(start, chunkLength));
             }
 
             if (chunks.Count >= size)
             {
+                context.EnsureOutputSize(resultLength + ellipsis.Length);
                 chunks[^1] += ellipsis;
             }
 
@@ -526,7 +618,7 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("upcase", expected: 0, arguments);
 
-            return CreateStringValue(input.ToStringValue().ToUpper(context.CultureInfo), input);
+            return CreateStringValue(GetStringValue(input, context).ToUpper(context.CultureInfo), input);
         }
     }
 }

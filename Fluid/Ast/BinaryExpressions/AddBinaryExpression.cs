@@ -9,11 +9,14 @@ namespace Fluid.Ast.BinaryExpressions
         {
         }
 
-        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+        internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue, TemplateContext context)
         {
             if (leftValue is StringValue)
             {
-                return new StringValue(leftValue.ToStringValue() + rightValue.ToStringValue());
+                var left = leftValue.ToStringValue();
+                var right = rightValue.ToStringValue();
+                context.EnsureOutputSize((long)left.Length + right.Length);
+                return new StringValue(left + right);
             }
 
             if (leftValue is NumberValue)
@@ -38,7 +41,10 @@ namespace Fluid.Ast.BinaryExpressions
             context.WriteLine("{");
             using (context.Indent())
             {
-                context.WriteLine("return new StringValue(leftValue.ToStringValue() + rightValue.ToStringValue());");
+                context.WriteLine("var left = leftValue.ToStringValue();");
+                context.WriteLine("var right = rightValue.ToStringValue();");
+                context.WriteLine($"{context.ContextName}.EnsureOutputSize((long)left.Length + right.Length);");
+                context.WriteLine("return new StringValue(left + right);");
             }
             context.WriteLine("}");
 

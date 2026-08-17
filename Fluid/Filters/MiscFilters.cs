@@ -214,9 +214,14 @@ namespace Fluid.Filters
 
             var value = input.ToStringValue();
 
-            return String.IsNullOrEmpty(value)
-                ? StringValue.Empty
-                : new StringValue(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
+            if (String.IsNullOrEmpty(value))
+            {
+                return StringValue.Empty;
+            }
+
+            var byteCount = Encoding.UTF8.GetByteCount(value);
+            context.EnsureOutputSize(4L * ((byteCount + 2L) / 3L));
+            return new StringValue(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
         }
 
         public static ValueTask<FluidValue> Base64Decode(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -241,6 +246,8 @@ namespace Fluid.Filters
             }
             else
             {
+                var byteCount = Encoding.UTF8.GetByteCount(value);
+                context.EnsureOutputSize(4L * ((byteCount + 2L) / 3L));
                 var encodedBase64StringBuilder = new StringBuilder(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
 
                 encodedBase64StringBuilder.Replace('+', '-');

@@ -17,6 +17,11 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other)
         {
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
             if (other.IsNil())
             {
                 return _value.Count == 0;
@@ -24,6 +29,8 @@ namespace Fluid.Values
 
             if (other is DictionaryValue otherDictionary)
             {
+                using var scope = RecursiveComparisonGuard.Enter(this, otherDictionary);
+
                 if (_value.Count != otherDictionary._value.Count)
                 {
                     return false;
@@ -116,6 +123,8 @@ namespace Fluid.Values
 
         public override string ToStringValue()
         {
+            using var scope = RecursiveValueGuard.Enter(this);
+
             if (_value.Count == 0)
             {
                 return "{}";
@@ -134,6 +143,7 @@ namespace Fluid.Values
 
         public override object ToObjectValue()
         {
+            using var scope = RecursiveValueGuard.Enter(this);
             return _value;
         }
 
@@ -152,8 +162,11 @@ namespace Fluid.Values
 
         public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
+            context?.EnsureCollectionSize(_value.Count);
+
             foreach (var key in _value.Keys)
             {
+                context?.IncrementSteps();
                 _value.TryGetValue(key, out var value);
                 yield return new ArrayValue([new StringValue(key), value]);
             }
@@ -174,6 +187,7 @@ namespace Fluid.Values
 
         public override int GetHashCode()
         {
+            using var scope = RecursiveValueGuard.Enter(this);
             var hc = new HashCode();
             foreach (var key in _value.Keys.OrderBy(k => k))
             {

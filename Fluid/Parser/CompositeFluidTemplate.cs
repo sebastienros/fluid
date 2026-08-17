@@ -1,4 +1,5 @@
 ﻿using Fluid.Ast;
+using Fluid.Utils;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Parser
@@ -28,6 +29,7 @@ namespace Fluid.Parser
             ArgumentNullException.ThrowIfNull(context);
 
             context.CancellationToken.ThrowIfCancellationRequested();
+            output = LimitedFluidOutput.Create(output, context.MaxOutputSize);
 
             var count = Statements.Count;
             for (var i = 0; i < count; i++)

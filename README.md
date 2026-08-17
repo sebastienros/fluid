@@ -132,6 +132,12 @@ else
 #### Result
 `Hello Bill Gates`
 
+### Model security
+
+Fluid templates can read public properties and fields from the model and from objects reachable through it. This is by design; a model passed to `TemplateContext` should be treated as the template's readable data boundary.
+
+When rendering an untrusted template, pass a dedicated model that contains only the data the template is allowed to read. Do not pass domain entities, service objects, configuration objects, or other object graphs that may expose sensitive data through public members.
+
 ### Thread-safety
 
 A `FluidParser` instance is thread-safe and should be shared by the whole application. A common pattern is to declare the parser in a local static variable:
@@ -576,8 +582,20 @@ To prevent this, the `TemplateOptions` class defines a default `MaxRecursion = 1
 
 ### Limiting template execution
 
-A template can inadvertently create an infinite loop that could block the server by running indefinitely. 
-To prevent this, the `TemplateOptions` class defines a default `MaxSteps`. By default, this value is not set.
+A template can inadvertently perform enough work to block the server. `MaxSteps` limits statements, loop iterations, range construction, and built-in collection enumeration. `MaxOutputSize` limits cumulative rendered output, captured blocks, macro results, and amplified string operations. `MaxCollectionSize` limits ranges and collections materialized by built-in operations.
+
+These limits are unlimited by default to preserve compatibility. Set all of them when rendering untrusted templates:
+
+```csharp
+var options = new TemplateOptions
+{
+    MaxSteps = 10_000,
+    MaxOutputSize = 1_000_000,
+    MaxCollectionSize = 10_000
+};
+```
+
+`TemplateContext.CancellationToken` complements these limits and should also be set for untrusted templates. Custom filters, values, and output implementations are responsible for enforcing equivalent limits for work they perform outside Fluid's built-in operations.
 
 <br>
 

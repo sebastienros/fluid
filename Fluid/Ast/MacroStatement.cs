@@ -31,7 +31,8 @@ namespace Fluid.Ast
 
             var f = new FunctionValue(async (args, c) =>
             {
-                using var macroOutput = new BufferFluidOutput();
+                using var macroBuffer = new BufferFluidOutput();
+                var macroOutput = LimitedFluidOutput.Create(macroBuffer, context.MaxOutputSize);
 
                 context.EnterChildScope();
 
@@ -76,7 +77,7 @@ namespace Fluid.Ast
                         }
                     }
 
-                    var result = macroOutput.ToString();
+                    var result = macroBuffer.ToString();
 
                     // Don't encode the result
                     return new StringValue(result, false);
@@ -121,7 +122,8 @@ namespace Fluid.Ast
             using (context.Indent())
             {
                 context.WriteLine("using var sw = new StringWriter();");
-                context.WriteLine("await using var macroOutput = new TextWriterFluidOutput(sw, 16 * 1024, leaveOpen: true);");
+                context.WriteLine("await using var macroBuffer = new TextWriterFluidOutput(sw, 16 * 1024, leaveOpen: true);");
+                context.WriteLine($"var macroOutput = LimitedFluidOutput.Create(macroBuffer, {context.ContextName}.MaxOutputSize);");
                 context.WriteLine($"{context.ContextName}.EnterChildScope();");
                 context.WriteLine("try");
                 context.WriteLine("{");
