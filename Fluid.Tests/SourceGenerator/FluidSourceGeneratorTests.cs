@@ -59,11 +59,50 @@ public static partial class Templates
         }
 
         [Fact]
+        public async Task TemplatesAttribute_Compiles_Rendered_AdditionalFiles()
+        {
+            var userSource = @"
+using Fluid;
+using Fluid.SourceGenerator;
+
+namespace MyApp;
+
+[FluidTemplates(""**/*.liquid"")]
+public static partial class Templates
+{
+}
+";
+
+            var compilation = CreateCompilation(userSource);
+
+            var additional = ImmutableArray.Create<AdditionalText>(
+                new InMemoryAdditionalText("hello.liquid", "{% render 'partial' %}"),
+                new InMemoryAdditionalText("partial.liquid", "hi"));
+
+            var generator = new FluidTemplateGenerator();
+            GeneratorDriver driver = CSharpGeneratorDriver.Create(new[] { generator.AsSourceGenerator() }, additionalTexts: additional);
+
+            driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+
+            var emit = EmitToAssembly(outputCompilation);
+            var template = (IFluidTemplate)emit.Assembly.GetType("MyApp.Templates")!
+                .GetProperty("Hello", BindingFlags.Public | BindingFlags.Static)!
+                .GetValue(null)!;
+
+            var sw = new StringWriter();
+            await template.RenderAsync(sw, HtmlEncoder.Default, new TemplateContext());
+
+            Assert.Equal("hi", sw.ToString());
+        }
+
+        [Fact]
         public void GeneratorAssembly_EmbedsTemplateCompilerDependencies()
         {
             var resources = typeof(FluidTemplateGenerator).Assembly.GetManifestResourceNames();
 
-            Assert.Contains("Fluid.SourceGenerator.Dependencies.Fluid.dll", resources);
+            Assert.Contains("Fluid.SourceGenerator.Dependencies.Fluid.SourceGenerator.Runtime.dll", resources);
             Assert.Contains("Fluid.SourceGenerator.Dependencies.Parlot.dll", resources);
         }
 

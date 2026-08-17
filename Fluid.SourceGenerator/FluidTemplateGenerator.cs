@@ -139,7 +139,7 @@ namespace Fluid.SourceGenerator
                 return;
             }
 
-            var fileProvider = AdditionalFilesTemplateProvider.BuildFileProvider(templates);
+            var templateResolver = AdditionalFilesTemplateProvider.BuildTemplateResolver(templates);
             var parser = new FluidParser();
 
             // Compiled templates are emitted into a separate namespace to avoid polluting the user type.
@@ -170,7 +170,7 @@ namespace Fluid.SourceGenerator
                 {
                     Namespace = compiledNamespace,
                     ClassName = className,
-                    FileProvider = fileProvider
+                    TemplateContentResolver = templateResolver
                 };
 
                 var compiled = TemplateSourceGenerator.Generate(parsedTemplate, sourceOptions);
