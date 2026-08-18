@@ -46,9 +46,6 @@ namespace Fluid.Ast
             // This allows variables assigned inside the include to persist in the outer scope.
             context.EnterForLoopScope();
 
-            // Track keyword argument names so we can clean them up after
-            List<string> keywordArgNames = null;
-
             try
             {
                 if (With != null)
@@ -61,11 +58,9 @@ namespace Fluid.Ast
                     // Keyword arguments are local to the include
                     if (AssignStatements.Count > 0)
                     {
-                        keywordArgNames = new List<string>(AssignStatements.Count);
                         for (var i = 0; i < AssignStatements.Count; i++)
                         {
                             var stmt = AssignStatements[i];
-                            keywordArgNames.Add(stmt.Identifier);
                             context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
                         }
                     }
@@ -75,11 +70,9 @@ namespace Fluid.Ast
                 else if (AssignStatements.Count > 0)
                 {
                     // Keyword arguments are local to the include - they should go out of scope after
-                    keywordArgNames = new List<string>(AssignStatements.Count);
                     for (var i = 0; i < AssignStatements.Count; i++)
                     {
                         var stmt = AssignStatements[i];
-                        keywordArgNames.Add(stmt.Identifier);
                         context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
                     }
 
@@ -146,12 +139,9 @@ namespace Fluid.Ast
             finally
             {
                 // Clean up keyword arguments from local scope
-                if (keywordArgNames != null)
+                for (var i = 0; i < AssignStatements.Count; i++)
                 {
-                    foreach (var name in keywordArgNames)
-                    {
-                        context.LocalScope.DeleteOwn(name);
-                    }
+                    context.LocalScope.DeleteOwn(AssignStatements[i].Identifier);
                 }
 
                 context.ReleaseScope();
