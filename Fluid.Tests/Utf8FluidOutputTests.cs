@@ -91,11 +91,38 @@ namespace Fluid.Tests
             var template = _parser.Parse("<p>{{ value }}|{{ value | raw }}</p>");
             var context = new TemplateContext().SetValue("value", "<\ud83d\ude80>");
             var writer = new ArrayBufferWriter<byte>();
-            await using var output = new Utf8FluidOutput(writer, minimumCharBufferSize: 4);
 
-            await template.RenderAsync(output, HtmlEncoder.Default, context);
+            await template.RenderAsync(writer, HtmlEncoder.Default, context);
 
             Assert.Equal("<p>&lt;&#x1F680;&gt;|<\ud83d\ude80></p>", Decode(writer));
+        }
+
+        [Fact]
+        public async Task RenderAsyncFinalizesEncodingWithoutOwningDestination()
+        {
+            var template = _parser.Parse("{{ value | raw }}");
+            var writer = new DisposableByteWriter();
+
+            await template.RenderAsync(
+                writer,
+                NullEncoder.Default,
+                new TemplateContext().SetValue("value", "\ud83d"));
+
+            Assert.Equal("\ufffd", writer.ToString());
+            Assert.False(writer.IsDisposed);
+        }
+
+        [Fact]
+        public async Task RenderAsyncReportsCancellationRaisedDuringFinalization()
+        {
+            using var cancellation = new CancellationTokenSource();
+            var writer = new CancellationOnSecondGetSpanWriter(cancellation);
+
+            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                _parser.Parse("value").RenderAsync(
+                    writer,
+                    NullEncoder.Default,
+                    new TemplateContext { CancellationToken = cancellation.Token }).AsTask());
         }
 
         [Fact]
@@ -170,9 +197,8 @@ namespace Fluid.Tests
             context.SetValue("items", new[] { "\ud83d\ude80", "\u4e16\u754c" });
             var template = _parser.Parse("{% render 'item' for items as item %}");
             var writer = new ArrayBufferWriter<byte>();
-            await using var output = new Utf8FluidOutput(writer);
 
-            await template.RenderAsync(output, NullEncoder.Default, context);
+            await template.RenderAsync(writer, NullEncoder.Default, context);
 
             Assert.Equal("[\ud83d\ude80][\u4e16\u754c]", Decode(writer));
         }
@@ -182,17 +208,16 @@ namespace Fluid.Tests
         {
             var template = _parser.Parse("{{ value }}");
             var writer = new ArrayBufferWriter<byte>();
-            await using var output = new Utf8FluidOutput(writer);
 
             await template.RenderAsync(
-                output,
+                writer,
                 NullEncoder.Default,
                 new TemplateContext { MaxOutputSize = 2 }.SetValue("value", "\ud83d\ude80"));
 
             Assert.Equal(4, writer.WrittenCount);
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 template.RenderAsync(
-                    new Utf8FluidOutput(new ArrayBufferWriter<byte>()),
+                    new ArrayBufferWriter<byte>(),
                     NullEncoder.Default,
                     new TemplateContext { MaxOutputSize = 1 }.SetValue("value", "\ud83d\ude80")).AsTask());
         }
@@ -257,6 +282,40 @@ namespace Fluid.Tests
             public bool IsDisposed { get; private set; }
 
             public void Dispose() => IsDisposed = true;
+        }
+
+        private sealed class CancellationOnSecondGetSpanWriter : IBufferWriter<byte>
+        {
+            private readonly ArrayBufferWriter<byte> _inner = new();
+            private readonly CancellationTokenSource _cancellation;
+            private int _getSpanCount;
+
+            public CancellationOnSecondGetSpanWriter(CancellationTokenSource cancellation)
+            {
+                _cancellation = cancellation;
+            }
+
+            public void Advance(int count) => _inner.Advance(count);
+
+            public Memory<byte> GetMemory(int sizeHint = 0)
+            {
+                BeforeGetBuffer();
+                return _inner.GetMemory(sizeHint);
+            }
+
+            public Span<byte> GetSpan(int sizeHint = 0)
+            {
+                BeforeGetBuffer();
+                return _inner.GetSpan(sizeHint);
+            }
+
+            private void BeforeGetBuffer()
+            {
+                if (++_getSpanCount == 2)
+                {
+                    _cancellation.Cancel();
+                }
+            }
         }
     }
 }

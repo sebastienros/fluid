@@ -114,13 +114,10 @@ namespace Fluid.Benchmarks
         {
             _byteWriter.Reset();
 
-            await using (var output = new Utf8FluidOutput(_byteWriter))
-            {
-                await _template.RenderAsync(
-                    output,
-                    BenchmarkScenario.Encoder,
-                    BenchmarkScenario.CreateContext());
-            }
+            await _template.RenderAsync(
+                _byteWriter,
+                BenchmarkScenario.Encoder,
+                BenchmarkScenario.CreateContext());
 
             await _byteWriter.FlushAsync();
             return new RenderMeasurement(_byteWriter.BytesWritten, _byteWriter.FlushCount);

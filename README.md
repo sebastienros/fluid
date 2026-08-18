@@ -1698,18 +1698,13 @@ Instantiating a `FluidParser` instance is expensive, do it once and reuse the in
 On .NET 8 and later, `Utf8FluidOutput` writes directly to an `IBufferWriter<byte>` without accumulating the rendered response as UTF-16 or adding an ASP.NET Core dependency to Fluid:
 
 ```csharp
-await using (var output = new Utf8FluidOutput(
-    response.BodyWriter,
-    cancellationToken: requestAborted))
-{
-    await template.RenderAsync(output, HtmlEncoder.Default, context);
-}
+await template.RenderAsync(response.BodyWriter, HtmlEncoder.Default, context);
 
-// Disposal finalizes UTF-8 encoder state. The destination remains caller-owned.
+// The destination remains caller-owned.
 await response.BodyWriter.FlushAsync(requestAborted);
 ```
 
-`Utf8FluidOutput.FlushAsync` transcodes buffered characters but preserves encoder state so surrogate pairs remain valid across intermediate template flushes. Disposal finalizes that state, including an unmatched surrogate, but does not flush or complete the destination. This keeps pipe backpressure asynchronous and under the transport owner's control. Because `IFluidOutput` writes synchronously, transport flushing is not attempted in the middle of a render. `MaxOutputSize` continues to count UTF-16 characters, not encoded bytes.
+The `RenderAsync` overload creates and disposes `Utf8FluidOutput`, ensuring its UTF-8 encoder state is finalized. The destination remains caller-owned and is not flushed or completed. Create `Utf8FluidOutput` directly when multiple templates need to share one character stream. Its `FlushAsync` method transcodes buffered characters while preserving encoder state so surrogate pairs remain valid across intermediate template flushes. Because `IFluidOutput` writes synchronously, transport flushing is not attempted in the middle of a render. `MaxOutputSize` continues to count UTF-16 characters, not encoded bytes.
 
 ### Benchmarks
 
