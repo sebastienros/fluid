@@ -1,13 +1,20 @@
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using BenchmarkDotNet.Running;
 
 namespace Fluid.Benchmarks
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
+            if (args.Length > 0 && args[0].Equals("utf8-metrics", StringComparison.OrdinalIgnoreCase))
+            {
+                await Utf8OutputBenchmarks.PrintMeasurementsAsync();
+                return;
+            }
+
             // Steady-state loop for sampling profilers (for instance `ultra profile -- Fluid.Benchmarks.exe profile render 25`).
             // BenchmarkDotNet spawns short-lived child processes, which a profiler can't follow.
             if (args.Length > 0 && args[0].Equals("profile", StringComparison.OrdinalIgnoreCase))
