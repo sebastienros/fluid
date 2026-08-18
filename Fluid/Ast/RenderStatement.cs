@@ -65,7 +65,7 @@ namespace Fluid.Ast
                         await EvaluateAssignStatementsAsync(AssignStatements, context);
                     }
 
-                    await template.RenderAsync(output, encoder, context);
+                    await FluidTemplateRenderer.RenderAsync(template, output, encoder, context);
                 }
                 else if (For != null)
                 {
@@ -109,7 +109,7 @@ namespace Fluid.Ast
                             forloop.First = i == 0;
                             forloop.Last = i == length - 1;
 
-                            await template.RenderAsync(output, encoder, context);
+                            await FluidTemplateRenderer.RenderAsync(template, output, encoder, context);
 
                             // Restore the forloop property after every statement in case it replaced it,
                             // for instance if it contains a nested for loop
@@ -128,14 +128,14 @@ namespace Fluid.Ast
                     context.LocalScope = new Scope(context.RootScope);
                     previousScope.CopyTo(context.LocalScope);
 
-                    await template.RenderAsync(output, encoder, context);
+                    await FluidTemplateRenderer.RenderAsync(template, output, encoder, context);
                 }
                 else
                 {
                     context.LocalScope = new Scope(context.RootScope);
                     previousScope.CopyTo(context.LocalScope);
 
-                    await template.RenderAsync(output, encoder, context);
+                    await FluidTemplateRenderer.RenderAsync(template, output, encoder, context);
                 }
             }
             finally
@@ -226,7 +226,7 @@ namespace Fluid.Ast
                         EmitEvaluateAssignStatements();
                     }
 
-                    context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                    context.WriteLine($"await template.RenderInternalAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
                 }
                 else if (For != null)
                 {
@@ -279,7 +279,7 @@ namespace Fluid.Ast
                             context.WriteLine("forloop.First = i == 0;");
                             context.WriteLine("forloop.Last = i == length - 1;");
 
-                            context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                            context.WriteLine($"await template.RenderInternalAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
                             context.WriteLine($"{context.ContextName}.SetValue(\"forloop\", forloop);");
                         }
                         context.WriteLine("}");
@@ -299,13 +299,13 @@ namespace Fluid.Ast
 
                     context.WriteLine($"{context.ContextName}.LocalScope = new Scope(rootScope);");
                     context.WriteLine($"previousScope.CopyTo({context.ContextName}.LocalScope);");
-                    context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                    context.WriteLine($"await template.RenderInternalAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
                 }
                 else
                 {
                     context.WriteLine($"{context.ContextName}.LocalScope = new Scope(rootScope);");
                     context.WriteLine($"previousScope.CopyTo({context.ContextName}.LocalScope);");
-                    context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                    context.WriteLine($"await template.RenderInternalAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
                 }
             }
             context.WriteLine("}");

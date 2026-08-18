@@ -56,7 +56,8 @@ namespace Fluid
                 bufferSize,
                 leaveOpen: true,
                 cancellationToken: context.CancellationToken);
-            await template.RenderAsync(output, encoder, context);
+            var limitedOutput = LimitedFluidOutput.Create(output, context.MaxOutputSize);
+            await FluidTemplateRenderer.RenderAsync(template, limitedOutput, encoder, context);
             context.CancellationToken.ThrowIfCancellationRequested();
             await output.FlushAsync();
         }

@@ -1,5 +1,6 @@
 ﻿using Fluid.Ast;
 using Fluid.Utils;
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Parser
@@ -49,6 +50,45 @@ namespace Fluid.Parser
 
             context.CancellationToken.ThrowIfCancellationRequested();
             return output.FlushAsync();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal ValueTask RenderInternalAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+        {
+            var count = Statements.Count;
+            for (var i = 0; i < count; i++)
+            {
+                var task = Statements[i].WriteToAsync(output, encoder, context);
+                if (!task.IsCompletedSuccessfully)
+                {
+                    return AwaitedInternal(
+                        task,
+                        output,
+                        encoder,
+                        context,
+                        Statements,
+                        startIndex: i + 1);
+                }
+            }
+
+            return default;
+        }
+
+        private static async ValueTask AwaitedInternal(
+            ValueTask<Completion> task,
+            IFluidOutput output,
+            TextEncoder encoder,
+            TemplateContext context,
+            IReadOnlyList<Statement> statements,
+            int startIndex)
+        {
+            await task;
+            for (var i = startIndex; i < statements.Count; i++)
+            {
+                await statements[i].WriteToAsync(output, encoder, context);
+            }
+
+            context.CancellationToken.ThrowIfCancellationRequested();
         }
 
         private static async ValueTask Awaited(

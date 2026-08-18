@@ -47,6 +47,7 @@ namespace Fluid
             ArgumentNullException.ThrowIfNull(textWriter);
             ArgumentNullException.ThrowIfNull(context);
             ArgumentNullException.ThrowIfNull(template);
+            ArgumentNullException.ThrowIfNull(encoder);
 
             context.CancellationToken.ThrowIfCancellationRequested();
 
@@ -70,7 +71,8 @@ namespace Fluid
 
             try
             {
-                await template.RenderAsync(output, encoder, context);
+                var limitedOutput = LimitedFluidOutput.Create(output, context.MaxOutputSize);
+                await FluidTemplateRenderer.RenderAsync(template, limitedOutput, encoder, context);
                 context.CancellationToken.ThrowIfCancellationRequested();
                 await output.FlushAsync();
                 await textWriter.FlushAsync();

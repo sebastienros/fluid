@@ -101,7 +101,33 @@ namespace Fluid.Tests
 
             await instance.RenderAsync(output, HtmlEncoder.Default, new TemplateContext());
 
-            Assert.True(output.Flushed);
+            Assert.Equal(1, output.FlushCount);
+        }
+
+        [Fact]
+        public async Task GeneratedNestedRender_FlushesOnlyAtOuterBoundary()
+        {
+            var provider = new MockFileProvider()
+                .Add("partial", "{{ item }}");
+
+            var parser = new FluidParser();
+            var template = parser.Parse("{% render 'partial' for items as item %}");
+            var source = template.Compile(new SourceGenerationOptions
+            {
+                Namespace = "Fluid.Tests.Generated",
+                ClassName = "T" + Guid.NewGuid().ToString("N"),
+                FileProvider = provider
+            });
+
+            var generated = CompileToAssembly(source.SourceCode);
+            var type = generated.GetType(source.FullTypeName, throwOnError: true);
+            var instance = (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
+            var output = new FlushTrackingOutput();
+            var context = new TemplateContext().SetValue("items", new[] { 1, 2, 3 });
+
+            await instance.RenderAsync(output, HtmlEncoder.Default, context);
+
+            Assert.Equal(1, output.FlushCount);
         }
 
         [Fact]
@@ -240,7 +266,7 @@ namespace Fluid.Tests
             private char[] _buffer = new char[256];
             private int _index;
 
-            public bool Flushed { get; private set; }
+            public int FlushCount { get; private set; }
 
             public void Advance(int count) => _index += count;
 
@@ -262,7 +288,7 @@ namespace Fluid.Tests
 
             public ValueTask FlushAsync()
             {
-                Flushed = true;
+                FlushCount++;
                 return default;
             }
         }

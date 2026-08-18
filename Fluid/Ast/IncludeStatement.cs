@@ -70,7 +70,7 @@ namespace Fluid.Ast
                         }
                     }
 
-                    return await RenderStatementsAsync(template, output, encoder, context);
+                    return await FluidTemplateRenderer.RenderWithCompletionAsync(template, output, encoder, context);
                 }
                 else if (AssignStatements.Count > 0)
                 {
@@ -83,7 +83,7 @@ namespace Fluid.Ast
                         context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
                     }
 
-                    return await RenderStatementsAsync(template, output, encoder, context);
+                    return await FluidTemplateRenderer.RenderWithCompletionAsync(template, output, encoder, context);
                 }
                 else if (For != null)
                 {
@@ -118,7 +118,7 @@ namespace Fluid.Ast
                             forloop.First = i == 0;
                             forloop.Last = i == length - 1;
 
-                            var completion = await RenderStatementsAsync(template, output, encoder, context);
+                            var completion = await FluidTemplateRenderer.RenderWithCompletionAsync(template, output, encoder, context);
 
                             if (completion == Completion.Break)
                             {
@@ -140,7 +140,7 @@ namespace Fluid.Ast
                 else
                 {
                     // no with, for or assignments, e.g. {% include 'products' %}
-                    return await RenderStatementsAsync(template, output, encoder, context);
+                    return await FluidTemplateRenderer.RenderWithCompletionAsync(template, output, encoder, context);
                 }
             }
             finally
@@ -156,37 +156,6 @@ namespace Fluid.Ast
 
                 context.ReleaseScope();
             }
-        }
-
-        /// <summary>
-        /// Renders template statements and returns the completion status.
-        /// This allows break/continue signals to propagate from included templates.
-        /// </summary>
-        private static async ValueTask<Completion> RenderStatementsAsync(IFluidTemplate template, IFluidOutput output, TextEncoder encoder, TemplateContext context)
-        {
-            if (template is IStatementList statementList)
-            {
-                var statements = statementList.Statements;
-                var count = statements.Count;
-                for (var i = 0; i < count; i++)
-                {
-                    var completion = await statements[i].WriteToAsync(output, encoder, context);
-
-                    if (completion != Completion.Normal)
-                    {
-                        return completion;
-                    }
-                }
-            }
-            else
-            {
-                // Fallback for non-standard template implementations
-                await template.RenderAsync(output, encoder, context);
-            }
-
-            context.CancellationToken.ThrowIfCancellationRequested();
-            await output.FlushAsync();
-            return Completion.Normal;
         }
 
         protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIncludeStatement(this);

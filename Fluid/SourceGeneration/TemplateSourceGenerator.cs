@@ -93,6 +93,16 @@ namespace Fluid.SourceGeneration
                         ctx.WriteLine("if (context.Options.Trimming != TrimmingFlags.None) throw new NotSupportedException(\"Source-generated templates do not support TemplateOptions.Trimming.\");");
                         ctx.WriteLine("context.CancellationToken.ThrowIfCancellationRequested();");
                         ctx.WriteLine("writer = LimitedFluidOutput.Create(writer, context.MaxOutputSize);");
+                        ctx.WriteLine("await RenderInternalAsync(writer, encoder, context);");
+                        ctx.WriteLine("context.CancellationToken.ThrowIfCancellationRequested();");
+                        ctx.WriteLine("await writer.FlushAsync();");
+                    }
+                    ctx.WriteLine("}");
+                    ctx.WriteLine();
+                    ctx.WriteLine("internal async ValueTask RenderInternalAsync(IFluidOutput writer, TextEncoder encoder, TemplateContext context)");
+                    ctx.WriteLine("{");
+                    using (ctx.Indent())
+                    {
                         ctx.WriteLine();
 
                         foreach (var statement in statementList.Statements)
@@ -117,7 +127,6 @@ namespace Fluid.SourceGeneration
                         }
 
                         ctx.WriteLine("context.CancellationToken.ThrowIfCancellationRequested();");
-                        ctx.WriteLine("await writer.FlushAsync();");
                     }
                     ctx.WriteLine("}");
 
