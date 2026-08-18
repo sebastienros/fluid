@@ -218,6 +218,58 @@ namespace Fluid.Tests
             Assert.Equal("hi", generatedWriter.ToString());
         }
 
+        [Fact]
+        public async Task GeneratedRender_MatchesRuntimeScopeAndArgumentSemantics()
+        {
+            var provider = new MockFileProvider()
+                .Add("plain", "{{ root }}|{{ local }}")
+                .Add("arguments", "{{ first }}{{ second }}")
+                .Add("value", "{{ item }}{{ suffix }}")
+                .Add("outer", "{% assign hidden = 'hidden' %}{% render 'value' with item as item, suffix: suffix %}");
+            var parser = new FluidParser();
+            var template = parser.Parse(
+                "{% assign local = 'local' %}" +
+                "{% render 'plain' %};" +
+                "{% render 'arguments', first: value, second: first %};" +
+                "{% render 'value' with value as item, suffix: suffix %};" +
+                "{% render 'value' for values as item, suffix: suffix %};" +
+                "{% render 'outer' with value as item %}");
+            var source = template.Compile(new SourceGenerationOptions
+            {
+                Namespace = "Fluid.Tests.Generated",
+                ClassName = "T" + Guid.NewGuid().ToString("N"),
+                FileProvider = provider
+            });
+
+            var generated = CompileToAssembly(source.SourceCode);
+            var type = generated.GetType(source.FullTypeName, throwOnError: true);
+            var instance = (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
+
+            var runtimeContext = CreateContext(provider);
+            var runtimeWriter = new StringWriter();
+            await template.RenderAsync(runtimeWriter, runtimeContext, HtmlEncoder.Default);
+
+            var generatedWriter = new StringWriter();
+            await instance.RenderAsync(generatedWriter, CreateContext(), HtmlEncoder.Default);
+
+            const string Expected = "root|;vouter;v!;a!b!;v!";
+            Assert.Equal(Expected, runtimeWriter.ToString());
+            Assert.Equal(Expected, generatedWriter.ToString());
+
+            static TemplateContext CreateContext(MockFileProvider fileProvider = null)
+            {
+                var options = new TemplateOptions();
+                options.FileProvider = fileProvider;
+
+                return new TemplateContext(options)
+                    .SetValue("root", "root")
+                    .SetValue("first", "outer")
+                    .SetValue("value", "v")
+                    .SetValue("suffix", "!")
+                    .SetValue("values", new[] { "a", "b" });
+            }
+        }
+
         private static Assembly CompileToAssembly(string source)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));

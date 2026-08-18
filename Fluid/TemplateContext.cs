@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -230,6 +231,24 @@ namespace Fluid
         }
 
         /// <summary>
+        /// Isolates the current child scope from its original parent while preserving its own values.
+        /// </summary>
+        /// <remarks>
+        /// This method supports generated render statements. Call it only after <see cref="EnterChildScope"/>.
+        /// </remarks>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void IsolateCurrentScope()
+        {
+            if (ReferenceEquals(LocalScope, RootScope))
+            {
+                ExceptionHelper.ThrowInvalidOperationException("IsolateCurrentScope invoked without a child scope");
+                return;
+            }
+
+            LocalScope.Isolate(RootScope);
+        }
+
+        /// <summary>
         /// Creates a new for loop scope. After than any value added to this content object will be released once
         /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
         /// </summary>
@@ -254,7 +273,7 @@ namespace Fluid
                 _recursion--;
             }
 
-            LocalScope = LocalScope.Parent;
+            LocalScope = LocalScope.ReleaseParent;
 
             if (LocalScope == null)
             {

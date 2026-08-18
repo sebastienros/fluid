@@ -35,6 +35,9 @@ namespace Fluid
         private readonly bool _forLoopScope;
         private readonly StringComparer _stringComparer;
 
+        // Render isolation changes the lookup parent, but release must still unwind to the creating scope.
+        private readonly Scope _releaseParent;
+
         public Scope() : this(null, false, null)
         {
         }
@@ -51,6 +54,7 @@ namespace Fluid
             _stringComparer = stringComparer ?? StringComparer.Ordinal;
 
             Parent = parent;
+            _releaseParent = parent;
 
             // A ForLoop scope reads and writes its values in the parent scope.
             // Internal accessors to the inner properties grant access to the local properties.
@@ -94,6 +98,13 @@ namespace Fluid
         /// Gets the parent scope if any.
         /// </summary>
         public Scope Parent { get; private set; }
+
+        internal Scope ReleaseParent => _releaseParent;
+
+        internal void Isolate(Scope parent)
+        {
+            Parent = parent;
+        }
 
         /// <summary>
         /// Returns the value with the specified name in the chain of scopes, or undefined
