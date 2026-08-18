@@ -30,7 +30,88 @@ namespace Fluid.Ast
         public Expression For { get; }
         public string Alias { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+        {
+            if (With != null || For != null || AssignStatements.Count > 0)
+            {
+                return WriteToAsyncCore(output, encoder, context);
+            }
+
+            context.IncrementSteps();
+
+            var task = TemplateLoader.LoadAsync(
+                Parser,
+                Path,
+                context,
+                context.Options.DefaultFileExtension);
+
+            if (task.IsCompletedSuccessfully)
+            {
+                return RenderLoadedTemplate(task.Result.Template, output, encoder, context);
+            }
+
+            return AwaitedLoad(task, output, encoder, context);
+
+            static async ValueTask<Completion> AwaitedLoad(
+                ValueTask<TemplateLoader.LoadedTemplate> task,
+                IFluidOutput output,
+                TextEncoder encoder,
+                TemplateContext context)
+            {
+                var loadedTemplate = await task;
+                return await RenderLoadedTemplate(loadedTemplate.Template, output, encoder, context);
+            }
+        }
+
+        private static ValueTask<Completion> RenderLoadedTemplate(
+            IFluidTemplate template,
+            IFluidOutput output,
+            TextEncoder encoder,
+            TemplateContext context)
+        {
+            context.EnterChildScope();
+            var previousScope = context.LocalScope;
+
+            try
+            {
+                context.IsolateCurrentScope();
+
+                var task = FluidTemplateRenderer.RenderAsync(template, output, encoder, context);
+                if (task.IsCompletedSuccessfully)
+                {
+                    context.LocalScope = previousScope;
+                    context.ReleaseScope();
+                    return NormalCompletion;
+                }
+
+                return AwaitedRender(task, previousScope, context);
+            }
+            catch
+            {
+                context.LocalScope = previousScope;
+                context.ReleaseScope();
+                throw;
+            }
+
+            static async ValueTask<Completion> AwaitedRender(
+                ValueTask task,
+                Scope previousScope,
+                TemplateContext context)
+            {
+                try
+                {
+                    await task;
+                    return Completion.Normal;
+                }
+                finally
+                {
+                    context.LocalScope = previousScope;
+                    context.ReleaseScope();
+                }
+            }
+        }
+
+        private async ValueTask<Completion> WriteToAsyncCore(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
