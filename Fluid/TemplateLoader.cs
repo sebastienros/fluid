@@ -4,11 +4,26 @@ internal static class TemplateLoader
 {
     internal readonly record struct LoadedTemplate(string Path, IFluidTemplate Template);
 
+    internal sealed class LoadCapture
+    {
+        public string Path { get; private set; }
+        public string CacheKey { get; private set; }
+        public DateTimeOffset LastModified { get; private set; }
+
+        public void Set(string path, string cacheKey, DateTimeOffset lastModified)
+        {
+            Path = path;
+            CacheKey = cacheKey;
+            LastModified = lastModified;
+        }
+    }
+
     public static async ValueTask<LoadedTemplate> LoadAsync(
         FluidParser parser,
         string path,
         TemplateContext context,
-        string defaultFileExtension)
+        string defaultFileExtension,
+        LoadCapture capture = null)
     {
         var resolvedPath = path;
         var source = await GetSourceAsync(resolvedPath, context);
@@ -46,6 +61,7 @@ internal static class TemplateLoader
             context.Options.TemplateCache?.SetTemplate(cacheKey, source.LastModified, template);
         }
 
+        capture?.Set(resolvedPath, cacheKey, source.LastModified);
         return new LoadedTemplate(resolvedPath, template);
     }
 

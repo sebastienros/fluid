@@ -14,10 +14,15 @@ namespace Fluid.Ast
     {
         public const string ViewExtension = ".liquid";
 
+        private readonly string _identifier;
+        private CachedTemplateResolution _firstCachedTemplate;
+        private CachedTemplateResolution _secondCachedTemplate;
+
         public RenderStatement(FluidParser parser, string path, Expression with = null, Expression @for = null, string alias = null, IReadOnlyList<AssignStatement> assignStatements = null)
         {
             Parser = parser;
             Path = path;
+            _identifier = System.IO.Path.GetFileNameWithoutExtension(path);
             With = with;
             For = @for;
             Alias = alias;
@@ -40,11 +45,7 @@ namespace Fluid.Ast
 
             context.IncrementSteps();
 
-            var task = TemplateLoader.LoadAsync(
-                Parser,
-                Path,
-                context,
-                context.Options.DefaultFileExtension);
+            var task = LoadTemplateAsync(context);
 
             if (task.IsCompletedSuccessfully)
             {
@@ -54,7 +55,7 @@ namespace Fluid.Ast
             return AwaitedLoad(task, output, encoder, context);
 
             static async ValueTask<Completion> AwaitedLoad(
-                ValueTask<TemplateLoader.LoadedTemplate> task,
+                ValueTask<LoadedRenderTemplate> task,
                 IFluidOutput output,
                 TextEncoder encoder,
                 TemplateContext context)
@@ -62,6 +63,253 @@ namespace Fluid.Ast
                 var loadedTemplate = await task;
                 return await RenderLoadedTemplate(loadedTemplate.Template, output, encoder, context);
             }
+        }
+
+        private ValueTask<LoadedRenderTemplate> LoadTemplateAsync(TemplateContext context)
+        {
+            var options = context.Options;
+            var provider = options.FileProvider;
+            var templateCache = options.TemplateCache;
+            var defaultFileExtension = options.DefaultFileExtension;
+
+            if (templateCache == null || provider is not IVersionedTemplateFileProvider versionedProvider)
+            {
+                return LoadUncachedTemplateAsync(context, defaultFileExtension);
+            }
+
+            context.CancellationToken.ThrowIfCancellationRequested();
+
+            var resolutionCacheKey = versionedProvider.GetTemplateResolutionCacheKey(context);
+            if (resolutionCacheKey == null)
+            {
+                return LoadUncachedTemplateAsync(context, defaultFileExtension);
+            }
+
+            var version = versionedProvider.Version;
+
+            if (TryGetCachedTemplate(
+                    Volatile.Read(ref _firstCachedTemplate),
+                    provider,
+                    templateCache,
+                    defaultFileExtension,
+                    resolutionCacheKey,
+                    version,
+                    out var loadedTemplate) ||
+                TryGetCachedTemplate(
+                    Volatile.Read(ref _secondCachedTemplate),
+                    provider,
+                    templateCache,
+                    defaultFileExtension,
+                    resolutionCacheKey,
+                    version,
+                    out loadedTemplate))
+            {
+                return new ValueTask<LoadedRenderTemplate>(loadedTemplate);
+            }
+
+            return LoadAndCacheTemplate(
+                context,
+                options,
+                provider,
+                versionedProvider,
+                templateCache,
+                defaultFileExtension,
+                resolutionCacheKey,
+                version);
+        }
+
+        private static bool TryGetCachedTemplate(
+            CachedTemplateResolution cached,
+            ITemplateFileProvider provider,
+            ITemplateCache templateCache,
+            string defaultFileExtension,
+            object resolutionCacheKey,
+            long version,
+            out LoadedRenderTemplate loadedTemplate)
+        {
+            if (cached != null &&
+                cached.Version == version &&
+                cached.Matches(provider, templateCache, defaultFileExtension, resolutionCacheKey) &&
+                templateCache.TryGetTemplate(cached.CacheKey, cached.LastModified, out var template))
+            {
+                loadedTemplate = new LoadedRenderTemplate(
+                    template,
+                    cached.Identifier);
+                return true;
+            }
+
+            loadedTemplate = default;
+            return false;
+        }
+
+        private ValueTask<LoadedRenderTemplate> LoadAndCacheTemplate(
+            TemplateContext context,
+            TemplateOptions options,
+            ITemplateFileProvider provider,
+            IVersionedTemplateFileProvider versionedProvider,
+            ITemplateCache templateCache,
+            string defaultFileExtension,
+            object resolutionCacheKey,
+            long version)
+        {
+            var capture = new TemplateLoader.LoadCapture();
+            var task = TemplateLoader.LoadAsync(
+                Parser,
+                Path,
+                context,
+                defaultFileExtension,
+                capture);
+
+            if (task.IsCompletedSuccessfully)
+            {
+                return new ValueTask<LoadedRenderTemplate>(
+                    CacheLoadedTemplate(
+                        task.Result,
+                        capture,
+                        context,
+                        options,
+                        provider,
+                        versionedProvider,
+                        templateCache,
+                        defaultFileExtension,
+                        resolutionCacheKey,
+                        version));
+            }
+
+            return AwaitedLoadAndCache(
+                this,
+                task,
+                capture,
+                context,
+                options,
+                provider,
+                versionedProvider,
+                templateCache,
+                defaultFileExtension,
+                resolutionCacheKey,
+                version);
+
+            static async ValueTask<LoadedRenderTemplate> AwaitedLoadAndCache(
+                RenderStatement statement,
+                ValueTask<TemplateLoader.LoadedTemplate> task,
+                TemplateLoader.LoadCapture capture,
+                TemplateContext context,
+                TemplateOptions options,
+                ITemplateFileProvider provider,
+                IVersionedTemplateFileProvider versionedProvider,
+                ITemplateCache templateCache,
+                string defaultFileExtension,
+                object resolutionCacheKey,
+                long version)
+            {
+                var loadedTemplate = await task;
+                return statement.CacheLoadedTemplate(
+                    loadedTemplate,
+                    capture,
+                    context,
+                    options,
+                    provider,
+                    versionedProvider,
+                    templateCache,
+                    defaultFileExtension,
+                    resolutionCacheKey,
+                    version);
+            }
+        }
+
+        private LoadedRenderTemplate CacheLoadedTemplate(
+            TemplateLoader.LoadedTemplate loadedTemplate,
+            TemplateLoader.LoadCapture capture,
+            TemplateContext context,
+            TemplateOptions options,
+            ITemplateFileProvider provider,
+            IVersionedTemplateFileProvider versionedProvider,
+            ITemplateCache templateCache,
+            string defaultFileExtension,
+            object resolutionCacheKey,
+            long version)
+        {
+            string identifier = null;
+            if (With != null || For != null)
+            {
+                identifier = string.Equals(capture.Path, Path, StringComparison.Ordinal)
+                    ? _identifier
+                    : System.IO.Path.GetFileNameWithoutExtension(capture.Path);
+            }
+
+            if (versionedProvider.Version == version &&
+                ReferenceEquals(context.Options, options) &&
+                ReferenceEquals(options.FileProvider, provider) &&
+                ReferenceEquals(options.TemplateCache, templateCache) &&
+                string.Equals(options.DefaultFileExtension, defaultFileExtension, StringComparison.Ordinal) &&
+                ReferenceEquals(
+                    versionedProvider.GetTemplateResolutionCacheKey(context),
+                    resolutionCacheKey))
+            {
+                CacheTemplateResolution(
+                    new CachedTemplateResolution(
+                        provider,
+                        templateCache,
+                        defaultFileExtension,
+                        resolutionCacheKey,
+                        version,
+                        capture.CacheKey,
+                        capture.LastModified,
+                        identifier));
+            }
+
+            return new LoadedRenderTemplate(loadedTemplate.Template, identifier);
+        }
+
+        private ValueTask<LoadedRenderTemplate> LoadUncachedTemplateAsync(
+            TemplateContext context,
+            string defaultFileExtension)
+        {
+            var task = TemplateLoader.LoadAsync(Parser, Path, context, defaultFileExtension);
+
+            if (task.IsCompletedSuccessfully)
+            {
+                return new ValueTask<LoadedRenderTemplate>(CreateLoadedRenderTemplate(task.Result));
+            }
+
+            return AwaitedLoad(this, task);
+
+            static async ValueTask<LoadedRenderTemplate> AwaitedLoad(
+                RenderStatement statement,
+                ValueTask<TemplateLoader.LoadedTemplate> task) =>
+                statement.CreateLoadedRenderTemplate(await task);
+        }
+
+        private LoadedRenderTemplate CreateLoadedRenderTemplate(TemplateLoader.LoadedTemplate loadedTemplate)
+        {
+            string identifier = null;
+            if (With != null || For != null)
+            {
+                identifier = string.Equals(loadedTemplate.Path, Path, StringComparison.Ordinal)
+                    ? _identifier
+                    : System.IO.Path.GetFileNameWithoutExtension(loadedTemplate.Path);
+            }
+
+            return new LoadedRenderTemplate(loadedTemplate.Template, identifier);
+        }
+
+        private void CacheTemplateResolution(CachedTemplateResolution cached)
+        {
+            var first = Volatile.Read(ref _firstCachedTemplate);
+            if (first == null || first.MatchesConfiguration(cached))
+            {
+                Volatile.Write(ref _firstCachedTemplate, cached);
+                return;
+            }
+
+            var second = Volatile.Read(ref _secondCachedTemplate);
+            if (second == null || second.MatchesConfiguration(cached))
+            {
+                Volatile.Write(ref _secondCachedTemplate, cached);
+                return;
+            }
+
+            Volatile.Write(ref _firstCachedTemplate, cached);
         }
 
         private static ValueTask<Completion> RenderLoadedTemplate(
@@ -116,16 +364,9 @@ namespace Fluid.Ast
         {
             context.IncrementSteps();
 
-            var relativePath = Path;
-            var loadedTemplate = await TemplateLoader.LoadAsync(
-                Parser,
-                relativePath,
-                context,
-                context.Options.DefaultFileExtension);
-            relativePath = loadedTemplate.Path;
+            var loadedTemplate = await LoadTemplateAsync(context);
             var template = loadedTemplate.Template;
-
-            var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
+            var identifier = loadedTemplate.Identifier;
 
             context.EnterChildScope();
             var previousScope = context.LocalScope;
@@ -264,9 +505,6 @@ namespace Fluid.Ast
             context.WriteLine($"{context.ContextName}.IncrementSteps();");
             context.WriteLine($"var template = new {templateTypeName}();");
 
-            // Use the same default identifier logic as runtime (file name without extension).
-            context.WriteLine($"var identifier = System.IO.Path.GetFileNameWithoutExtension({SourceGenerationContext.ToCSharpStringLiteral(Path)});");
-
             context.WriteLine($"{context.ContextName}.EnterChildScope();");
             context.WriteLine($"var previousScope = {context.ContextName}.LocalScope;");
             context.WriteLine("try");
@@ -286,7 +524,7 @@ namespace Fluid.Ast
                     }
                     else
                     {
-                        context.WriteLine($"{context.ContextName}.SetValue(identifier, withValue);");
+                        context.WriteLine($"{context.ContextName}.SetValue({SourceGenerationContext.ToCSharpStringLiteral(_identifier)}, withValue);");
                     }
 
                     if (AssignStatements.Count > 0)
@@ -336,7 +574,7 @@ namespace Fluid.Ast
                             }
                             else
                             {
-                                context.WriteLine($"{context.ContextName}.SetValue(identifier, item);");
+                                context.WriteLine($"{context.ContextName}.SetValue({SourceGenerationContext.ToCSharpStringLiteral(_identifier)}, item);");
                             }
 
                             context.WriteLine("forloop.Index = i + 1;");
@@ -437,6 +675,36 @@ namespace Fluid.Ast
             }
         }
 
-        private sealed record CachedTemplate(IFluidTemplate Template, string Name);
+        private sealed record CachedTemplateResolution(
+            ITemplateFileProvider Provider,
+            ITemplateCache TemplateCache,
+            string DefaultFileExtension,
+            object ResolutionCacheKey,
+            long Version,
+            string CacheKey,
+            DateTimeOffset LastModified,
+            string Identifier)
+        {
+            public bool Matches(
+                ITemplateFileProvider provider,
+                ITemplateCache templateCache,
+                string defaultFileExtension,
+                object resolutionCacheKey) =>
+                ReferenceEquals(Provider, provider) &&
+                ReferenceEquals(TemplateCache, templateCache) &&
+                string.Equals(DefaultFileExtension, defaultFileExtension, StringComparison.Ordinal) &&
+                ReferenceEquals(ResolutionCacheKey, resolutionCacheKey);
+
+            public bool MatchesConfiguration(CachedTemplateResolution other) =>
+                Matches(
+                    other.Provider,
+                    other.TemplateCache,
+                    other.DefaultFileExtension,
+                    other.ResolutionCacheKey);
+        }
+
+        private readonly record struct LoadedRenderTemplate(
+            IFluidTemplate Template,
+            string Identifier);
     }
 }

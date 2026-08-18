@@ -559,6 +559,8 @@ The provider returns `null` when a path does not exist. Fluid tries the requeste
 
 Fluid calls the provider to obtain the source version before checking its parsed-template cache. The stream is opened only on a cache miss. `LastModified` must advance whenever the content changes; remote implementations can cache metadata themselves if checking it requires a network request. When a provider can return different content for the same path in different contexts, set `TemplateSourceInfo.CacheKey` to a stable value that includes the tenant or other source identity.
 
+Static `{% render %}` paths can skip provider resolution after the first load when the provider also implements `IVersionedTemplateFileProvider`. Publish source changes before incrementing its monotonic `Version` whenever any source's existence, content, `LastModified`, `CacheKey`, or path resolution changes. `GetTemplateResolutionCacheKey` returns a stable object identity for contexts that see the same sources, or `null` to disable this optimization for a context. Fluid still checks `TemplateCache` on every render, so custom cache expiration remains authoritative. Providers without these guarantees, and options with a `null` `TemplateCache`, retain provider resolution on every render.
+
 Existing `Microsoft.Extensions.FileProviders.IFileProvider` implementations can be adapted:
 
 ```csharp
