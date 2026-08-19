@@ -40,14 +40,14 @@
     <line class="grid" x1="62" y1="84" x2="500" y2="84"/><text class="tick" x="52" y="88" text-anchor="end">512</text>
     <line class="axis" x1="62" y1="84" x2="62" y2="342"/><line class="axis" x1="62" y1="342" x2="500" y2="342"/>
 
-    <rect x="88" y="255.1" width="72" height="86.9" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
-    <text class="fluid-value" x="124" y="248">8.167</text>
-    <rect class="competitor" x="193" y="233.2" width="72" height="108.8" rx="1" fill="#ff7f0e"/>
-    <text class="value" x="229" y="226">13.869</text>
+    <rect x="88" y="254.0" width="72" height="88.0" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="124" y="247">8.393</text>
+    <rect class="competitor" x="193" y="233.1" width="72" height="108.9" rx="1" fill="#ff7f0e"/>
+    <text class="value" x="229" y="226">13.928</text>
     <rect class="competitor" x="298" y="217.8" width="72" height="124.2" rx="1" fill="#2ca02c"/>
-    <text class="value" x="334" y="210">20.168</text>
-    <rect class="competitor" x="403" y="98.1" width="72" height="243.9" rx="1" fill="#d62728"/>
-    <text class="value" x="439" y="91">363.796</text>
+    <text class="value" x="334" y="210">20.154</text>
+    <rect class="competitor" x="403" y="98.9" width="72" height="243.1" rx="1" fill="#d62728"/>
+    <text class="value" x="439" y="92">356.951</text>
     <text class="axis-title" x="281" y="381" text-anchor="middle">Duration (Microseconds) · log₂ scale</text>
   </g>
 
@@ -70,7 +70,7 @@
     <rect class="competitor" x="824" y="130.9" width="72" height="211.1" rx="1" fill="#2ca02c"/>
     <text class="value" x="860" y="123">93.46</text>
     <rect class="competitor" x="929" y="112.1" width="72" height="229.9" rx="1" fill="#d62728"/>
-    <text class="value" x="965" y="105">139.81</text>
+    <text class="value" x="965" y="105">139.87</text>
     <text class="axis-title" x="807" y="381" text-anchor="middle">Memory Allocation (Kilobytes) · log₂ scale</text>
   </g>
 </svg>

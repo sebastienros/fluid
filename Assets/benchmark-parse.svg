@@ -41,14 +41,14 @@
     <line class="grid" x1="62" y1="84" x2="500" y2="84"/><text class="tick" x="52" y="88" text-anchor="end">1024</text>
     <line class="axis" x1="62" y1="84" x2="62" y2="342"/><line class="axis" x1="62" y1="342" x2="500" y2="342"/>
 
-    <rect x="88" y="321.4" width="72" height="20.6" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
-    <text class="fluid-value" x="124" y="314">1.737</text>
-    <rect class="competitor" x="193" y="307.4" width="72" height="34.6" rx="1" fill="#ff7f0e"/>
-    <text class="value" x="229" y="300">2.537</text>
-    <rect class="competitor" x="298" y="289.2" width="72" height="52.8" rx="1" fill="#2ca02c"/>
-    <text class="value" x="334" y="282">4.137</text>
-    <rect class="competitor" x="403" y="112.1" width="72" height="229.9" rx="1" fill="#d62728"/>
-    <text class="value" x="439" y="105">480.774</text>
+    <rect x="88" y="322.6" width="72" height="19.4" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="124" y="315">1.685</text>
+    <rect class="competitor" x="193" y="308.4" width="72" height="33.6" rx="1" fill="#ff7f0e"/>
+    <text class="value" x="229" y="301">2.464</text>
+    <rect class="competitor" x="298" y="289.9" width="72" height="52.1" rx="1" fill="#2ca02c"/>
+    <text class="value" x="334" y="283">4.054</text>
+    <rect class="competitor" x="403" y="114.4" width="72" height="227.6" rx="1" fill="#d62728"/>
+    <text class="value" x="439" y="107">452.116</text>
     <text class="axis-title" x="281" y="381" text-anchor="middle">Duration (Microseconds) · log₂ scale</text>
   </g>
 
@@ -70,8 +70,8 @@
     <text class="value" x="755" y="227">10.01</text>
     <rect class="competitor" x="824" y="212.9" width="72" height="129.1" rx="1" fill="#2ca02c"/>
     <text class="value" x="860" y="205">16.05</text>
-    <rect class="competitor" x="929" y="114.4" width="72" height="227.6" rx="1" fill="#d62728"/>
-    <text class="value" x="965" y="107">133.13</text>
+    <rect class="competitor" x="929" y="114.3" width="72" height="227.7" rx="1" fill="#d62728"/>
+    <text class="value" x="965" y="107">133.62</text>
     <text class="axis-title" x="807" y="381" text-anchor="middle">Memory Allocation (Kilobytes) · log₂ scale</text>
   </g>
 </svg>
