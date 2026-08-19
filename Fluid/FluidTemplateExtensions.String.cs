@@ -47,10 +47,9 @@ namespace Fluid
             context.CancellationToken.ThrowIfCancellationRequested();
 
             // Mirror the TextWriter-based overload: evaluate in a child scope so the provided TemplateContext is immutable.
-            if (isolateContext)
-            {
-                context.EnterChildScope();
-            }
+            var scope = isolateContext
+                ? context.EnterScope(ScopeBehavior.Local)
+                : default;
 
             try
             {
@@ -70,7 +69,7 @@ namespace Fluid
             {
                 if (isolateContext)
                 {
-                    context.ReleaseScope();
+                    scope.Dispose();
                 }
             }
         }

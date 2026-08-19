@@ -96,9 +96,8 @@ namespace Fluid.ViewEngine
 
                 context.IncrementSteps();
 
-                try
                 {
-                    context.EnterChildScope();
+                    using var scope = context.EnterScope(ScopeBehavior.Local);
 
                     if (!relativePartialPath.EndsWith(Constants.ViewExtension, StringComparison.OrdinalIgnoreCase))
                     {
@@ -116,10 +115,6 @@ namespace Fluid.ViewEngine
                     }
 
                     await renderer.RenderPartialAsync(output, relativePartialPath, context);
-                }
-                finally
-                {
-                    context.ReleaseScope();
                 }
 
                 return Completion.Normal;

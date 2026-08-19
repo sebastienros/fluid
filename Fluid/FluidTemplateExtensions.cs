@@ -51,10 +51,9 @@ namespace Fluid
             context.CancellationToken.ThrowIfCancellationRequested();
 
             // A template is evaluated in a child scope such that the provided TemplateContext is immutable
-            if (isolateContext)
-            {
-                context.EnterChildScope();
-            }
+            var scope = isolateContext
+                ? context.EnterScope(ScopeBehavior.Local)
+                : default;
 
             var bufferSize = context.Options?.OutputBufferSize ?? 0;
             if (bufferSize <= 0)
@@ -79,7 +78,7 @@ namespace Fluid
             {
                 if (isolateContext)
                 {
-                    context.ReleaseScope();
+                    scope.Dispose();
                 }
             }
         }

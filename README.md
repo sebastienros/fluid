@@ -150,6 +150,15 @@ An `IFluidTemplate` instance is thread-safe and can be cached and reused by mult
 
 A `TemplateContext` instance is __not__ thread-safe, and a new instance should be created every time an `IFluidTemplate` instance is used.
 
+Values registered in `TemplateOptions.GlobalValues` are shared by every context created from those options. Values set directly on a `TemplateContext` belong to that rendering. Custom tags that need temporary values should use a scope lease:
+
+```csharp
+using var scope = context.EnterScope(ScopeBehavior.Local);
+context.SetValue("temporary", value);
+```
+
+`Local` scopes inherit values and keep assignments local. `WriteThrough` scopes keep values assigned with `LocalScope.SetOwnValue` temporary while normal assignments update the caller, which matches `include` and loop behavior. `Isolated` scopes can only read the context's initial values and `GlobalValues`, which matches the `render` tag.
+
 <br>
 
 ## NativeAOT and trimming

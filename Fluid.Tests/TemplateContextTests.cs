@@ -36,8 +36,8 @@ namespace Fluid.Tests
             _parser.TryParse("{{ p.NaMe }}", out var template, out var error);
 
             var options = new TemplateOptions();
-            options.Scope.SetValue("o1", new StringValue("o1"));
-            options.Scope.SetValue("o2", new StringValue("o2"));
+            options.GlobalValues.SetValue("o1", new StringValue("o1"));
+            options.GlobalValues.SetValue("o2", new StringValue("o2"));
 
             var context = new TemplateContext(options);
             context.SetValue("o2", "new o2");
@@ -136,18 +136,17 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task ShouldNotReleaseScopeAsynchronously()
+        public async Task ShouldRestoreScopeAsynchronously()
         {
             var parser = new FluidParser();
 
             parser.RegisterEmptyBlock("sleep", async (statements, writer, encoder, context) =>
             {
-                context.EnterChildScope();
+                using var scope = context.EnterScope(ScopeBehavior.Local);
                 context.IncrementSteps();
                 context.SetValue("id", "0");
                 await Task.Delay(100);
                 await statements.RenderStatementsAsync(writer, encoder, context);
-                context.ReleaseScope();
                 return Completion.Normal;
             });
 
@@ -189,6 +188,67 @@ namespace Fluid.Tests
             context.SetValue("Case", "mixed");
 
             Assert.Equal("lowerupper", context.GetValue("case").ToStringValue() + context.GetValue("CASE").ToStringValue());
+        }
+
+        [Fact]
+        public void ChildScopeShouldInheritComparerFromEmptyParent()
+        {
+            var context = new TemplateContext(new TemplateOptions
+            {
+                ModelNamesComparer = StringComparer.OrdinalIgnoreCase
+            });
+
+            using var scope = context.EnterScope();
+            context.SetValue("PageState", "insert");
+
+            Assert.Equal("insert", context.GetValue("pageState").ToStringValue());
+        }
+
+        [Fact]
+        public void ScopeBehaviorsShouldControlLookupAndAssignment()
+        {
+            var options = new TemplateOptions();
+            options.GlobalValues.SetValue("global", new StringValue("global"));
+
+            var context = new TemplateContext(options);
+            context.SetValue("root", "root");
+
+            using (context.EnterScope(ScopeBehavior.Local))
+            {
+                context.SetValue("outer", "outer");
+
+                using (context.EnterScope(ScopeBehavior.Isolated))
+                {
+                    Assert.Equal("root", context.GetValue("root").ToStringValue());
+                    Assert.Equal("global", context.GetValue("global").ToStringValue());
+                    Assert.True(context.GetValue("outer").IsNil());
+                }
+
+                using (context.EnterScope(ScopeBehavior.WriteThrough))
+                {
+                    context.LocalScope.SetOwnValue("temporary", new StringValue("temporary"));
+                    context.SetValue("persisted", "persisted");
+                }
+
+                Assert.True(context.GetValue("temporary").IsNil());
+                Assert.Equal("persisted", context.GetValue("persisted").ToStringValue());
+            }
+
+            Assert.True(context.GetValue("outer").IsNil());
+            Assert.True(context.GetValue("persisted").IsNil());
+        }
+
+        [Fact]
+        public void ScopeLeasesMustBeDisposedInReverseOrder()
+        {
+            var context = new TemplateContext();
+            var outer = context.EnterScope();
+            var inner = context.EnterScope();
+
+            Assert.Throws<InvalidOperationException>(() => outer.Dispose());
+
+            inner.Dispose();
+            outer.Dispose();
         }
 
         [Fact]

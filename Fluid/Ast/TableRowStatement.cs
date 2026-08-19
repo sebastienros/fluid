@@ -84,9 +84,8 @@ namespace Fluid.Ast
                 }
             }
 
-            context.EnterForLoopScope();
+            using var scope = context.EnterScope(ScopeBehavior.WriteThrough);
 
-            try
             {
                 var tablerowloop = new TableRowLoopValue(count, cols);
                 context.LocalScope.SetOwnValue("tablerowloop", tablerowloop);
@@ -147,10 +146,6 @@ namespace Fluid.Ast
 
                 // Output final row closing
                 output.Write("</tr>\n");
-            }
-            finally
-            {
-                context.ReleaseScope();
             }
 
             return Completion.Normal;

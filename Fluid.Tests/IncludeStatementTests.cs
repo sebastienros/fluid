@@ -360,7 +360,7 @@ shape: ''";
 
             var options = new TemplateOptions() { FileProvider = fileProvider };
             var context = new TemplateContext(options);
-            options.Scope.SetValue("global_variable", new StringValue("global value"));
+            options.GlobalValues.SetValue("global_variable", new StringValue("global value"));
             context.SetValue("product", new { title = "Draft 151cm" });
             _parser.TryParse("{% render 'snippet' %}", out var template);
             var result = template.Render(context);

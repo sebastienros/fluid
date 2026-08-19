@@ -11,6 +11,7 @@ namespace Fluid
     {
         protected int _recursion;
         protected int _steps;
+        private Scope _localScope;
 
         /// <summary>
         /// Initializes a new instance of <see cref="TemplateContext"/>.
@@ -48,8 +49,8 @@ namespace Fluid
             modelNamesComparer ??= options.ModelNamesComparer;
 
             Options = options;
-            LocalScope = new Scope(options.Scope, forLoopScope: false, modelNamesComparer);
-            RootScope = LocalScope;
+            _localScope = new Scope(options.GlobalValues, null, modelNamesComparer, null);
+            RootScope = _localScope;
             CultureInfo = options.CultureInfo;
             MoneyOptions = options.MoneyOptions;
             TimeZone = options.TimeZone;
@@ -178,9 +179,9 @@ namespace Fluid
         }
 
         /// <summary>
-        /// Gets or sets the current scope.
+        /// Gets the current scope.
         /// </summary>
-        public Scope LocalScope { get; set; }
+        public Scope LocalScope => _localScope;
 
         /// <summary>
         /// Gets or sets the root scope.
@@ -215,59 +216,71 @@ namespace Fluid
         public TemplateOptions.UndefinedDelegate Undefined { get; set; }
 
         /// <summary>
-        /// Creates a new isolated child scope. After than any value added to this content object will be released once
-        /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
+        /// Enters a scope with the specified lookup and assignment behavior.
         /// </summary>
-        public void EnterChildScope()
+        public ScopeLease EnterScope(ScopeBehavior behavior = ScopeBehavior.Local)
         {
-            if (Options.MaxRecursion > 0 && _recursion++ > Options.MaxRecursion)
+            return new ScopeLease(this, EnterScopeCore(behavior));
+        }
+
+        private Scope EnterScopeCore(ScopeBehavior behavior)
+        {
+            if (behavior != ScopeBehavior.Local &&
+                behavior != ScopeBehavior.WriteThrough &&
+                behavior != ScopeBehavior.Isolated)
+            {
+                throw new ArgumentOutOfRangeException(nameof(behavior));
+            }
+
+            if (Options.MaxRecursion > 0 && _recursion >= Options.MaxRecursion)
             {
                 ExceptionHelper.ThrowMaximumRecursionException();
-                return;
             }
 
-            LocalScope = new Scope(LocalScope);
+            _recursion++;
+
+            var previous = _localScope;
+            var parent = behavior == ScopeBehavior.Isolated ? RootScope : previous;
+            var assignmentTarget = behavior == ScopeBehavior.WriteThrough
+                ? previous.AssignmentScope
+                : null;
+
+            return _localScope = new Scope(parent, assignmentTarget, ModelNamesComparer, previous);
         }
 
-        /// <summary>
-        /// Creates a new for loop scope. After than any value added to this content object will be released once
-        /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
-        /// </summary>
-        public void EnterForLoopScope()
+        private void ReleaseScopeCore(Scope scope)
         {
-            if (Options.MaxRecursion > 0 && _recursion++ > Options.MaxRecursion)
+            if (!ReferenceEquals(_localScope, scope))
             {
-                ExceptionHelper.ThrowMaximumRecursionException();
-                return;
+                ExceptionHelper.ThrowInvalidOperationException("Scopes must be released in reverse order");
             }
 
-            LocalScope = new Scope(LocalScope, forLoopScope: true);
+            _recursion--;
+            _localScope = scope.Previous;
         }
 
         /// <summary>
-        /// Exits the current scope that has been created by <see cref="EnterChildScope" />
+        /// Restores the previous scope when disposed.
         /// </summary>
-        public void ReleaseScope()
+        public readonly struct ScopeLease : IDisposable
         {
-            if (_recursion > 0)
+            private readonly TemplateContext _context;
+            private readonly Scope _scope;
+
+            internal ScopeLease(TemplateContext context, Scope scope)
             {
-                _recursion--;
+                _context = context;
+                _scope = scope;
             }
 
-            LocalScope = LocalScope.Parent;
-
-            if (LocalScope == null)
+            /// <summary>
+            /// Restores the scope that was active before this lease was created.
+            /// </summary>
+            public void Dispose()
             {
-                ExceptionHelper.ThrowInvalidOperationException("ReleaseScope invoked without corresponding EnterChildScope");
-                return;
+                _context?.ReleaseScopeCore(_scope);
             }
         }
-
-        /// <summary>
-        /// Gets the names of the values.
-        /// </summary>
-        [Obsolete("Use LocalScope.Properties instead.")]
-        public IEnumerable<string> ValueNames => LocalScope.Properties;
 
         /// <summary>
         /// Gets a value from the context.
@@ -275,7 +288,7 @@ namespace Fluid
         /// <param name="name">The name of the value.</param>
         public FluidValue GetValue(string name)
         {
-            return LocalScope.GetValue(name);
+            return _localScope.GetValue(name);
         }
 
         /// <summary>
@@ -286,7 +299,7 @@ namespace Fluid
         /// <returns></returns>
         public TemplateContext SetValue(string name, FluidValue value)
         {
-            LocalScope.SetValue(name, value);
+            _localScope.SetValue(name, value);
             return this;
         }
     }
