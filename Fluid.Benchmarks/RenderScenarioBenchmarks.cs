@@ -32,6 +32,7 @@ namespace Fluid.Benchmarks
         private readonly IFluidTemplate _pascalCaseTemplate;
         private readonly IFluidTemplate _decimalPriceTemplate;
         private readonly IFluidTemplate _renderScopeTemplate;
+        private readonly IFluidTemplate _renderArgumentsTemplate;
         private readonly IFluidTemplate _includeScopeTemplate;
 
         private readonly List<object> _mixedItems = new(ItemCount);
@@ -111,6 +112,7 @@ namespace Fluid.Benchmarks
                     DateTimeOffset.UnixEpoch,
                     _ => new ValueTask<Stream>(new MemoryStream(partialBytes, writable: false)))));
             _parser.TryParse("{% assign outer = 'hidden' %}{% render 'partial', value: root %}", out _renderScopeTemplate);
+            _parser.TryParse("{% render 'partial', value: root, outer: root %}", out _renderArgumentsTemplate);
             _parser.TryParse("{% assign outer = 'hidden' %}{% include 'partial', value: root %}", out _includeScopeTemplate);
 
             CheckAll();
@@ -126,6 +128,7 @@ namespace Fluid.Benchmarks
             Verify(nameof(PascalCaseMemberNames), PascalCaseMemberNames(), "N0");
             Verify(nameof(NonInternedNumbers), NonInternedNumbers(), "19.99");
             Verify(nameof(IsolatedRenderScope), IsolatedRenderScope(), "RR");
+            Verify(nameof(RenderWithArguments), RenderWithArguments(), "RRR");
             Verify(nameof(WriteThroughIncludeScope), WriteThroughIncludeScope(), "RRhidden");
 
             static void Verify(string name, string result, string expected)
@@ -203,6 +206,14 @@ namespace Fluid.Benchmarks
         {
             var context = new TemplateContext(_partialOptions).SetValue("root", "R");
             return _renderScopeTemplate.Render(context);
+        }
+
+        /// <summary>An isolated partial render with two named arguments.</summary>
+        [Benchmark]
+        public string RenderWithArguments()
+        {
+            var context = new TemplateContext(_partialOptions).SetValue("root", "R");
+            return _renderArgumentsTemplate.Render(context);
         }
 
         /// <summary>A write-through include scope with a temporary named argument.</summary>

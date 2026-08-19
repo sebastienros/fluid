@@ -1,3 +1,4 @@
+using System.Buffers;
 using Fluid.Values;
 using System.Text.Encodings.Web;
 using Fluid.SourceGeneration;
@@ -61,19 +62,19 @@ namespace Fluid.Ast
             }
 
             // Liquid evaluates named argument expressions in the caller before creating the isolated context.
-            var assignedValues = await EvaluateAssignStatementsAsync(AssignStatements, context);
+            using var assignedValues = await EvaluateAssignStatementsAsync(AssignStatements, context);
 
             using var scope = context.EnterScope(ScopeBehavior.Isolated);
 
             if (With != null)
             {
                 context.SetValue(Alias ?? identifier, withValue);
-                ApplyAssignStatements(assignedValues, context);
+                ApplyAssignStatements(AssignStatements, assignedValues, context);
                 await template.RenderAsync(output, encoder, context);
             }
             else if (For != null)
             {
-                ApplyAssignStatements(assignedValues, context);
+                ApplyAssignStatements(AssignStatements, assignedValues, context);
                 var forloop = new ForLoopValue { IsRenderLoop = true };
                 var length = forloop.Length = list.Count;
 
@@ -100,7 +101,7 @@ namespace Fluid.Ast
             }
             else
             {
-                ApplyAssignStatements(assignedValues, context);
+                ApplyAssignStatements(AssignStatements, assignedValues, context);
                 await template.RenderAsync(output, encoder, context);
             }
 
@@ -229,44 +230,131 @@ namespace Fluid.Ast
             context.WriteLine("return Completion.Normal;");
         }
 
-        private static async ValueTask<KeyValuePair<string, FluidValue>[]> EvaluateAssignStatementsAsync(
+        private static async ValueTask<EvaluatedArguments> EvaluateAssignStatementsAsync(
             IReadOnlyList<AssignStatement> assignStatements,
             TemplateContext context)
         {
             var length = assignStatements.Count;
             if (length == 0)
             {
-                return [];
+                return default;
             }
 
-            var evaluatedValues = new KeyValuePair<string, FluidValue>[length];
+            context.IncrementSteps();
 
-            for (var i = 0; i < length; i++)
+            var firstStatement = assignStatements[0];
+            var firstValue = await firstStatement.Value.EvaluateAsync(context);
+
+            if (context.Assigned != null)
             {
-                context.IncrementSteps();
+                firstValue = await context.Assigned.Invoke(firstStatement.Identifier, firstValue, context);
+            }
 
-                var assignStatement = assignStatements[i];
-                var value = await assignStatement.Value.EvaluateAsync(context);
+            if (length == 1)
+            {
+                return new EvaluatedArguments(firstValue);
+            }
 
-                if (context.Assigned != null)
+            context.IncrementSteps();
+
+            var secondStatement = assignStatements[1];
+            var secondValue = await secondStatement.Value.EvaluateAsync(context);
+
+            if (context.Assigned != null)
+            {
+                secondValue = await context.Assigned.Invoke(secondStatement.Identifier, secondValue, context);
+            }
+
+            if (length == 2)
+            {
+                return new EvaluatedArguments(firstValue, secondValue);
+            }
+
+            var evaluatedValues = ArrayPool<FluidValue>.Shared.Rent(length);
+            evaluatedValues[0] = firstValue;
+            evaluatedValues[1] = secondValue;
+
+            try
+            {
+                for (var i = 2; i < length; i++)
                 {
-                    value = await context.Assigned.Invoke(assignStatement.Identifier, value, context);
+                    context.IncrementSteps();
+
+                    var assignStatement = assignStatements[i];
+                    var value = await assignStatement.Value.EvaluateAsync(context);
+
+                    if (context.Assigned != null)
+                    {
+                        value = await context.Assigned.Invoke(assignStatement.Identifier, value, context);
+                    }
+
+                    evaluatedValues[i] = value;
                 }
 
-                evaluatedValues[i] = new KeyValuePair<string, FluidValue>(assignStatement.Identifier, value);
+                return new EvaluatedArguments(evaluatedValues, length);
             }
-
-            return evaluatedValues;
+            catch
+            {
+                ArrayPool<FluidValue>.Shared.Return(evaluatedValues, clearArray: true);
+                throw;
+            }
         }
 
         private static void ApplyAssignStatements(
-            KeyValuePair<string, FluidValue>[] assignedValues,
+            IReadOnlyList<AssignStatement> assignStatements,
+            EvaluatedArguments assignedValues,
             TemplateContext context)
         {
-            for (var i = 0; i < assignedValues.Length; i++)
+            for (var i = 0; i < assignedValues.Count; i++)
             {
-                var entry = assignedValues[i];
-                context.SetValue(entry.Key, entry.Value);
+                context.SetValue(assignStatements[i].Identifier, assignedValues[i]);
+            }
+        }
+
+        private readonly struct EvaluatedArguments : IDisposable
+        {
+            private readonly FluidValue _value0;
+            private readonly FluidValue _value1;
+            private readonly FluidValue[] _values;
+
+            public EvaluatedArguments(FluidValue value)
+            {
+                _value0 = value;
+                _value1 = null;
+                _values = null;
+                Count = 1;
+            }
+
+            public EvaluatedArguments(FluidValue value0, FluidValue value1)
+            {
+                _value0 = value0;
+                _value1 = value1;
+                _values = null;
+                Count = 2;
+            }
+
+            public EvaluatedArguments(FluidValue[] values, int count)
+            {
+                _value0 = null;
+                _value1 = null;
+                _values = values;
+                Count = count;
+            }
+
+            public int Count { get; }
+
+            public FluidValue this[int index] => _values is not null
+                ? _values[index]
+                : index == 0
+                    ? _value0
+                    : _value1;
+
+            public void Dispose()
+            {
+                if (_values != null)
+                {
+                    ArrayPool<FluidValue>.Shared.Return(_values, clearArray: true);
+                }
             }
         }
 

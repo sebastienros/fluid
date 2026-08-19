@@ -690,6 +690,40 @@ shape: ''";
         }
 
         [Fact]
+        public async Task RenderTag_AssignedCallbacksCompleteBeforeArgumentsArePublished()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("arguments.liquid", "{{ first }} {{ second }} {{ third }}");
+
+            var options = new TemplateOptions { FileProvider = fileProvider };
+            var callbackCount = 0;
+            options.Assigned = (identifier, value, context) =>
+            {
+                callbackCount++;
+                Assert.IsType<UndefinedValue>(context.GetValue("first"));
+
+                if (identifier == "third")
+                {
+                    throw new InvalidOperationException("assigned failed");
+                }
+
+                return new ValueTask<FluidValue>(value);
+            };
+
+            var context = new TemplateContext(options);
+            var rootScope = context.LocalScope;
+            _parser.TryParse("{% render 'arguments', first: 'a', second: 'b', third: 'c' %}", out var template);
+
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => template.RenderAsync(new StringWriter(), HtmlEncoder.Default, context).AsTask());
+
+            Assert.Equal("assigned failed", exception.Message);
+            Assert.Equal(3, callbackCount);
+            Assert.Same(rootScope, context.LocalScope);
+            Assert.IsType<UndefinedValue>(context.GetValue("first"));
+        }
+
+        [Fact]
         public async Task RenderTag_For_And_NamedArguments()
         {
             var fileProvider = new MockFileProvider();
