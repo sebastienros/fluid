@@ -2,7 +2,6 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
-using Fluid.Accessors;
 using Fluid.Utils;
 
 namespace Fluid.Values
@@ -40,7 +39,7 @@ namespace Fluid.Values
         }
 
         /// <summary>
-        /// A resolved <see cref="IMemberAccessor"/> remembered by a single call site, so that repeatedly
+        /// A resolved <see cref="MemberAccessor"/> remembered by a single call site, so that repeatedly
         /// reading the same member off the same type (a loop body, typically) doesn't hash the member
         /// name into the strategy's dictionary on every iteration.
         /// </summary>
@@ -59,7 +58,7 @@ namespace Fluid.Values
             /// </summary>
             public static readonly AccessorCacheEntry Disabled = new(null, null, null, null, 0);
 
-            public AccessorCacheEntry(object token, Type type, StringComparer comparer, IMemberAccessor accessor, int misses)
+            public AccessorCacheEntry(object token, Type type, StringComparer comparer, MemberAccessor accessor, int misses)
             {
                 Token = token;
                 Type = type;
@@ -71,7 +70,7 @@ namespace Fluid.Values
             public readonly object Token;
             public readonly Type Type;
             public readonly StringComparer Comparer;
-            public readonly IMemberAccessor Accessor;
+            public readonly MemberAccessor Accessor;
 
             /// <summary>
             /// How often this site had to re-resolve. Counted on the entry rather than the segment so
@@ -98,7 +97,7 @@ namespace Fluid.Values
             return GetValueAsync(name, context, nameHasDot, GetAccessorCached(name, context, ref cache));
         }
 
-        private IMemberAccessor GetAccessorCached(string name, TemplateContext context, ref AccessorCacheEntry cache)
+        private MemberAccessor GetAccessorCached(string name, TemplateContext context, ref AccessorCacheEntry cache)
         {
             var type = Value.GetType();
             var strategy = context.Options.MemberAccessStrategy;
@@ -146,22 +145,24 @@ namespace Fluid.Values
             return accessor;
         }
 
-        private ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context, bool nameHasDot, IMemberAccessor accessor)
+        private ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context, bool nameHasDot, MemberAccessor accessor)
         {
             if (nameHasDot)
             {
                 if (accessor != null)
                 {
-                    if (accessor is IAsyncMemberAccessor asyncAccessor)
+                    var task = accessor.GetAsync(Value, name, context);
+
+                    if (!task.IsCompletedSuccessfully)
                     {
-                        return Awaited(asyncAccessor, Value, name, context);
+                        return AwaitedDirect(task, name, context);
                     }
 
-                    var directValue = accessor.Get(Value, name, context);
+                    var directValue = task.Result;
 
                     if (directValue != null)
                     {
-                        return FluidValue.Create(directValue, context.Options);
+                        return new ValueTask<FluidValue>(directValue);
                     }
                 }
 
@@ -170,17 +171,13 @@ namespace Fluid.Values
 
             if (accessor != null)
             {
-                if (accessor is IAsyncMemberAccessor asyncAccessor)
+                var task = accessor.GetAsync(Value, name, context);
+                if (task.IsCompletedSuccessfully)
                 {
-                    return Awaited(asyncAccessor, Value, name, context);
+                    return new ValueTask<FluidValue>(task.Result ?? NilValue.Instance);
                 }
 
-                if (accessor is IFluidValueAccessor fluidValueAccessor)
-                {
-                    return fluidValueAccessor.GetFluidValue(Value, name, context);
-                }
-
-                return Create(accessor.Get(Value, name, context), context.Options);
+                return Awaited(task);
             }
 
             if (context.Options.StrictVariables)
@@ -194,13 +191,18 @@ namespace Fluid.Values
             return NilValue.Instance;
 
 
-            static async ValueTask<FluidValue> Awaited(
-                IAsyncMemberAccessor asyncAccessor,
-                object value,
-                string n,
+            static async ValueTask<FluidValue> Awaited(ValueTask<FluidValue> task)
+            {
+                return await task ?? NilValue.Instance;
+            }
+
+            async ValueTask<FluidValue> AwaitedDirect(
+                ValueTask<FluidValue> task,
+                string memberName,
                 TemplateContext ctx)
             {
-                return Create(await asyncAccessor.GetAsync(value, n, ctx), ctx.Options);
+                var directValue = await task;
+                return directValue ?? await GetNestedValueAsync(memberName, ctx);
             }
         }
 
@@ -208,6 +210,7 @@ namespace Fluid.Values
         {
             var members = name.Split(MemberSeparators);
             var target = Value;
+            FluidValue value = null;
             List<string> segments = context.Undefined is not null ? [] : null;
 
             foreach (var prop in members)
@@ -237,17 +240,11 @@ namespace Fluid.Values
                     return UndefinedValue.Instance;
                 }
 
-                if (accessor is IAsyncMemberAccessor asyncAccessor)
-                {
-                    target = await asyncAccessor.GetAsync(target, prop, context);
-                }
-                else
-                {
-                    target = accessor.Get(target, prop, context);
-                }
+                value = await accessor.GetAsync(target, prop, context);
+                target = value?.ToObjectValue();
             }
 
-            return Create(target, context.Options);
+            return value ?? NilValue.Instance;
         }
 
         public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)

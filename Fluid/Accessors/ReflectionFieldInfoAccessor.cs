@@ -3,7 +3,7 @@ using System.Reflection;
 
 namespace Fluid.Accessors;
 
-internal sealed class ReflectionFieldInfoAccessor : IMemberAccessor, IFluidValueAccessor
+internal sealed class ReflectionFieldInfoAccessor : MemberAccessor
 {
     private readonly FieldInfo _fieldInfo;
     private readonly TypeCode _typeCode;
@@ -16,17 +16,12 @@ internal sealed class ReflectionFieldInfoAccessor : IMemberAccessor, IFluidValue
         _isEnum = fieldInfo.FieldType.IsEnum;
     }
 
-    public object Get(object obj, string name, TemplateContext ctx)
+    public override ValueTask<FluidValue> GetAsync(object obj, string name, TemplateContext context)
     {
-        return AccessorValueConverter.Convert(_fieldInfo.GetValue(obj), _typeCode, _isEnum);
-    }
-
-    public FluidValue GetFluidValue(object obj, string name, TemplateContext context)
-    {
-        return AccessorValueConverter.ConvertToFluidValue(
+        return new(AccessorValueConverter.Convert(
             _fieldInfo.GetValue(obj),
             _typeCode,
             _isEnum,
-            context.Options);
+            context.Options));
     }
 }

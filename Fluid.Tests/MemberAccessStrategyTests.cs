@@ -50,7 +50,7 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void WildcardRegistrationShouldOverridePreviouslyReflectedAccessor()
+        public async Task WildcardRegistrationShouldOverridePreviouslyReflectedAccessor()
         {
             var strategy = new DefaultMemberAccessStrategy();
             var reflected = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal);
@@ -63,7 +63,7 @@ namespace Fluid.Tests
             var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal);
 
             Assert.NotSame(reflected, accessor);
-            Assert.Null(accessor.Get(new Class1(), nameof(Class1.Property1), new TemplateContext()));
+            Assert.Null(await accessor.GetAsync(new Class1(), nameof(Class1.Property1), new TemplateContext()));
         }
 
         [Fact]
@@ -95,18 +95,18 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void BaseRegistrationChangesShouldInvalidateDerivedAccessors()
+        public async Task BaseRegistrationChangesShouldInvalidateDerivedAccessors()
         {
             var strategy = new DefaultMemberAccessStrategy();
             strategy.Register<Class1, object>((instance, name) => "first");
 
             var first = strategy.GetAccessor(typeof(DerivedClass1), "custom", StringComparer.Ordinal);
-            Assert.Equal("first", first.Get(new DerivedClass1(), "custom", new TemplateContext()));
+            Assert.Equal("first", (await first.GetAsync(new DerivedClass1(), "custom", new TemplateContext())).ToObjectValue());
 
             strategy.Register<Class1, object>((instance, name) => "second");
 
             var second = strategy.GetAccessor(typeof(DerivedClass1), "custom", StringComparer.Ordinal);
-            Assert.Equal("second", second.Get(new DerivedClass1(), "custom", new TemplateContext()));
+            Assert.Equal("second", (await second.GetAsync(new DerivedClass1(), "custom", new TemplateContext())).ToObjectValue());
         }
 
         [Fact]
@@ -432,7 +432,7 @@ namespace Fluid.Tests
         }
     }
 
-    public sealed class FixedMemberAccessor : IMemberAccessor
+    public sealed class FixedMemberAccessor : MemberAccessor
     {
         private readonly string _value;
 
@@ -441,6 +441,7 @@ namespace Fluid.Tests
             _value = value;
         }
 
-        public object Get(object obj, string name, TemplateContext ctx) => _value;
+        public override ValueTask<FluidValue> GetAsync(object obj, string name, TemplateContext context)
+            => CreateValueTask(_value, context);
     }
 }

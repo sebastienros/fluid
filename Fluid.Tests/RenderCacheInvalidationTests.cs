@@ -89,7 +89,7 @@ namespace Fluid.Tests
 
             public int GetAccessorCalls;
 
-            public override IMemberAccessor GetAccessor(Type type, string name, StringComparer stringComparer)
+            public override MemberAccessor GetAccessor(Type type, string name, StringComparer stringComparer)
             {
                 GetAccessorCalls++;
 

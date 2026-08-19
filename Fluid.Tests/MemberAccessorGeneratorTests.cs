@@ -36,13 +36,12 @@ public class MemberAccessorGeneratorTests
         Assert.Contains("internal sealed class FluidRegisterAttribute", generated);
         Assert.Contains("public static partial void ApplyPublic(global::Fluid.TemplateOptions options)", generated);
         Assert.Contains("strategy.Register(typeof(global::Person), \"*\", new global::Fluid.SourceGenerated.Person_GeneratedMemberAccessor());", generated);
+        Assert.Contains(": global::Fluid.MemberAccessor", generated);
         Assert.Contains("comparer.Equals(name, \"FirstName\")", generated);
         Assert.Contains("comparer.Equals(name, \"Age\")", generated);
-        Assert.Contains("var task = typed.Loaded();", generated);
-        Assert.Contains("await task.ConfigureAwait(false);", generated);
-        Assert.Contains("var valueTask = typed.Initialized();", generated);
-        Assert.Contains("await valueTask.ConfigureAwait(false);", generated);
-        Assert.Contains("return null;", generated);
+        Assert.Contains("return CreateValueTask(typed.Loaded(), context);", generated);
+        Assert.Contains("return CreateValueTask(typed.Initialized(), context);", generated);
+        Assert.Contains("return default;", generated);
     }
 
     [Fact]

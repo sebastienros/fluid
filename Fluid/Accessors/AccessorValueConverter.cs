@@ -4,11 +4,16 @@ namespace Fluid.Accessors;
 
 internal static class AccessorValueConverter
 {
-    public static object Convert(object value, TypeCode typeCode, bool isEnum)
+    public static FluidValue Convert(object value, TypeCode typeCode, bool isEnum, TemplateOptions options)
     {
-        if (value == null || isEnum)
+        if (value == null)
         {
-            return value;
+            return null;
+        }
+
+        if (isEnum)
+        {
+            return FluidValue.Create(value, options);
         }
 
         return typeCode switch
@@ -27,13 +32,7 @@ internal static class AccessorValueConverter
             TypeCode.Decimal => NumberValue.Create((decimal)value),
             TypeCode.DateTime => new DateTimeValue((DateTime)value),
             TypeCode.String => StringValue.Create((string)value),
-            _ => value,
+            _ => FluidValue.Create(value, options),
         };
-    }
-
-    public static FluidValue ConvertToFluidValue(object value, TypeCode typeCode, bool isEnum, TemplateOptions options)
-    {
-        var converted = Convert(value, typeCode, isEnum);
-        return converted as FluidValue ?? FluidValue.Create(converted, options);
     }
 }
