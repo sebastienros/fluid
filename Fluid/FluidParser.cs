@@ -95,8 +95,14 @@ namespace Fluid
                 TagEnd = NoInlineTagEnd;
             }
 
-            Identifier = SkipWhiteSpace(new IdentifierParser(parserOptions.AllowTrailingQuestionMark)).Then(x => x.ToString());
-            VariableSignature = SkipWhiteSpace(new VariableSignatureParser()).Then(x => x.ToString());
+            Identifier = SkipWhiteSpace(new IdentifierParser(parserOptions.AllowTrailingQuestionMark))
+                .Then((context, x) => context is FluidParseContext fluidContext
+                    ? fluidContext.CanonicalizeIdentifier(x.ToString())
+                    : x.ToString());
+            VariableSignature = SkipWhiteSpace(new VariableSignatureParser())
+                .Then((context, x) => context is FluidParseContext fluidContext
+                    ? fluidContext.CanonicalizeIdentifier(x.ToString())
+                    : x.ToString());
 
             String.Name = "String";
 

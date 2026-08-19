@@ -30,4 +30,10 @@ internal static class AccessorValueConverter
             _ => value,
         };
     }
+
+    public static FluidValue ConvertToFluidValue(object value, TypeCode typeCode, bool isEnum, TemplateOptions options)
+    {
+        var converted = Convert(value, typeCode, isEnum);
+        return converted as FluidValue ?? FluidValue.Create(converted, options);
+    }
 }

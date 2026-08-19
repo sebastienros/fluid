@@ -5,6 +5,8 @@ namespace Fluid.Accessors;
 internal abstract class Invoker
 {
     public abstract object Invoke(object target, TemplateOptions options);
+
+    public abstract FluidValue InvokeFluidValue(object target, TemplateOptions options);
 }
 
 internal sealed class Invoker<T, TResult> : Invoker
@@ -22,5 +24,11 @@ internal sealed class Invoker<T, TResult> : Invoker
     {
         var result = _d((T)target);
         return _converter != null ? _converter(result, options) : result;
+    }
+
+    public override FluidValue InvokeFluidValue(object target, TemplateOptions options)
+    {
+        var result = _d((T)target);
+        return _converter != null ? _converter(result, options) : FluidValue.Create(result, options);
     }
 }

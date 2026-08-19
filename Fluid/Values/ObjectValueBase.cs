@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
+using Fluid.Accessors;
 using Fluid.Utils;
 
 namespace Fluid.Values
@@ -172,6 +173,11 @@ namespace Fluid.Values
                 if (accessor is IAsyncMemberAccessor asyncAccessor)
                 {
                     return Awaited(asyncAccessor, Value, name, context);
+                }
+
+                if (accessor is IFluidValueAccessor fluidValueAccessor)
+                {
+                    return fluidValueAccessor.GetFluidValue(Value, name, context);
                 }
 
                 return Create(accessor.Get(Value, name, context), context.Options);

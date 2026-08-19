@@ -4,7 +4,7 @@ using System.Reflection.Emit;
 
 namespace Fluid.Accessors;
 
-public sealed class PropertyInfoAccessor : IMemberAccessor
+public sealed class PropertyInfoAccessor : IMemberAccessor, IFluidValueAccessor
 {
     private readonly Invoker _invoker;
 
@@ -66,6 +66,9 @@ public sealed class PropertyInfoAccessor : IMemberAccessor
     }
 
     public object Get(object obj, string name, TemplateContext ctx) => _invoker.Invoke(obj, ctx.Options);
+
+    FluidValue IFluidValueAccessor.GetFluidValue(object obj, string name, TemplateContext context)
+        => _invoker.InvokeFluidValue(obj, context.Options);
 
     private static Delegate GetGetter(Type declaringType, string fieldName)
     {

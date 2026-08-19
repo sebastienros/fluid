@@ -67,6 +67,34 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public void RegistrationsShouldInvalidateCachedRenderedAccessors()
+        {
+            var options = new TemplateOptions
+            {
+                ModelNamesComparer = StringComparer.Ordinal
+            };
+            var model = new Class1 { Property1 = "reflected" };
+            var context = new TemplateContext(options).SetValue("item", model);
+            var template = _parser.Parse("{{ item.Property1 }}");
+
+            Assert.Equal("reflected", template.Render(context));
+
+            options.MemberAccessStrategy.Register(
+                typeof(Class1),
+                "*",
+                new FixedMemberAccessor("wildcard"));
+
+            Assert.Equal("wildcard", template.Render(context));
+
+            options.MemberAccessStrategy.Register(
+                typeof(Class1),
+                nameof(Class1.Property1),
+                new FixedMemberAccessor("exact"));
+
+            Assert.Equal("exact", template.Render(context));
+        }
+
+        [Fact]
         public void BaseRegistrationChangesShouldInvalidateDerivedAccessors()
         {
             var strategy = new DefaultMemberAccessStrategy();
