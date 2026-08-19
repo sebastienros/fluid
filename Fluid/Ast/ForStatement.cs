@@ -144,9 +144,8 @@ namespace Fluid.Ast
 
             var parentLoop = context.LocalScope.GetValue("forloop");
 
-            context.EnterForLoopScope();
+            using var scope = context.EnterScope(ScopeBehavior.WriteThrough);
 
-            try
             {
                 var endIndexExclusive = startIndex + count;
 
@@ -231,10 +230,6 @@ namespace Fluid.Ast
                 {
                     context.SetValue(continueOffsetLiteral, endIndexExclusive);
                 }
-            }
-            finally
-            {
-                context.ReleaseScope();
             }
 
             return Completion.Normal;
@@ -384,7 +379,7 @@ namespace Fluid.Ast
             context.WriteLine("}");
 
             context.WriteLine($"var parentLoop = {context.ContextName}.LocalScope.GetValue(\"forloop\");");
-            context.WriteLine($"{context.ContextName}.EnterForLoopScope();");
+            context.WriteLine($"using var scope = {context.ContextName}.EnterScope(ScopeBehavior.WriteThrough);");
             context.WriteLine("try");
             context.WriteLine("{");
             using (context.Indent())
@@ -448,7 +443,6 @@ namespace Fluid.Ast
             context.WriteLine("{");
             using (context.Indent())
             {
-                context.WriteLine($"{context.ContextName}.ReleaseScope();");
             }
             context.WriteLine("}");
 

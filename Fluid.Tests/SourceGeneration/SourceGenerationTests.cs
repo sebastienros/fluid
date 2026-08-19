@@ -192,6 +192,46 @@ namespace Fluid.Tests
             Assert.Equal("hi", generatedWriter.ToString());
         }
 
+        [Fact]
+        public async Task GeneratedRender_UsesContextRootWithoutCallerLocals()
+        {
+            var provider = new MockFileProvider()
+                .Add("partial", "{{ input }}|{{ outer }}|{{ global }}");
+
+            var parser = new FluidParser();
+            var template = parser.Parse("{% assign outer = 'hidden' %}{% render 'partial' %}");
+            var source = template.Compile(new SourceGenerationOptions
+            {
+                Namespace = "Fluid.Tests.Generated",
+                ClassName = "T" + Guid.NewGuid().ToString("N"),
+                FileProvider = provider
+            });
+
+            var generated = CompileToAssembly(source.SourceCode);
+            var type = generated.GetType(source.FullTypeName, throwOnError: true);
+            var instance = (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
+
+            var options = new TemplateOptions { FileProvider = provider };
+            options.GlobalValues.SetValue("global", new Fluid.Values.StringValue("global"));
+
+            var runtimeContext = new TemplateContext(options).SetValue("input", "root");
+            var runtimeWriter = new StringWriter();
+            using (runtimeContext.EnterScope())
+            {
+                await template.RenderAsync(runtimeWriter, HtmlEncoder.Default, runtimeContext);
+            }
+
+            var generatedContext = new TemplateContext(options).SetValue("input", "root");
+            var generatedWriter = new StringWriter();
+            using (generatedContext.EnterScope())
+            {
+                await instance.RenderAsync(generatedWriter, HtmlEncoder.Default, generatedContext);
+            }
+
+            Assert.Equal("root||global", runtimeWriter.ToString());
+            Assert.Equal(runtimeWriter.ToString(), generatedWriter.ToString());
+        }
+
         private static Assembly CompileToAssembly(string source)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));

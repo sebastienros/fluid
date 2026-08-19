@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 
 namespace Fluid.Benchmarks
@@ -19,6 +22,7 @@ namespace Fluid.Benchmarks
 
         private readonly TemplateOptions _ordinalOptions = new TemplateOptions();
         private readonly TemplateOptions _camelCaseOptions = new TemplateOptions();
+        private readonly TemplateOptions _partialOptions = new TemplateOptions();
 
         private readonly IFluidTemplate _polymorphicTemplate;
         private readonly IFluidTemplate _monomorphicTemplate;
@@ -27,6 +31,8 @@ namespace Fluid.Benchmarks
         private readonly IFluidTemplate _wideScopeTemplate;
         private readonly IFluidTemplate _pascalCaseTemplate;
         private readonly IFluidTemplate _decimalPriceTemplate;
+        private readonly IFluidTemplate _renderScopeTemplate;
+        private readonly IFluidTemplate _includeScopeTemplate;
 
         private readonly List<object> _mixedItems = new(ItemCount);
         private readonly List<object> _uniformItems = new(ItemCount);
@@ -99,6 +105,14 @@ namespace Fluid.Benchmarks
 
             _parser.TryParse("{% for p in products %}{{ p.Price }}{% endfor %}", out _decimalPriceTemplate);
 
+            var partialBytes = Encoding.UTF8.GetBytes("{{ value }}{{ root }}{{ outer }}");
+            _partialOptions.FileProvider = new DelegateTemplateFileProvider(
+                (_, _, _) => new ValueTask<TemplateSourceInfo>(new TemplateSourceInfo(
+                    DateTimeOffset.UnixEpoch,
+                    _ => new ValueTask<Stream>(new MemoryStream(partialBytes, writable: false)))));
+            _parser.TryParse("{% assign outer = 'hidden' %}{% render 'partial', value: root %}", out _renderScopeTemplate);
+            _parser.TryParse("{% assign outer = 'hidden' %}{% include 'partial', value: root %}", out _includeScopeTemplate);
+
             CheckAll();
         }
 
@@ -111,6 +125,8 @@ namespace Fluid.Benchmarks
             Verify(nameof(WideScope), WideScope(), "123456");
             Verify(nameof(PascalCaseMemberNames), PascalCaseMemberNames(), "N0");
             Verify(nameof(NonInternedNumbers), NonInternedNumbers(), "19.99");
+            Verify(nameof(IsolatedRenderScope), IsolatedRenderScope(), "RR");
+            Verify(nameof(WriteThroughIncludeScope), WriteThroughIncludeScope(), "RRhidden");
 
             static void Verify(string name, string result, string expected)
             {
@@ -179,6 +195,22 @@ namespace Fluid.Benchmarks
         {
             var context = new TemplateContext(_ordinalOptions).SetValue("products", _pricedProducts);
             return _decimalPriceTemplate.Render(context);
+        }
+
+        /// <summary>An isolated partial render with a caller expression and named argument.</summary>
+        [Benchmark]
+        public string IsolatedRenderScope()
+        {
+            var context = new TemplateContext(_partialOptions).SetValue("root", "R");
+            return _renderScopeTemplate.Render(context);
+        }
+
+        /// <summary>A write-through include scope with a temporary named argument.</summary>
+        [Benchmark]
+        public string WriteThroughIncludeScope()
+        {
+            var context = new TemplateContext(_partialOptions).SetValue("root", "R");
+            return _includeScopeTemplate.Render(context);
         }
     }
 }

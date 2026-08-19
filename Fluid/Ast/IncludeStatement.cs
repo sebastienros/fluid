@@ -44,118 +44,86 @@ namespace Fluid.Ast
             // Unlike render, include shares scope with the parent template.
             // Use a for-loop scope which passes through variable assignments to the parent.
             // This allows variables assigned inside the include to persist in the outer scope.
-            context.EnterForLoopScope();
+            using var scope = context.EnterScope(ScopeBehavior.WriteThrough);
 
-            // Track keyword argument names so we can clean them up after
-            List<string> keywordArgNames = null;
-
-            try
+            if (With != null)
             {
-                if (With != null)
+                var with = await With.EvaluateAsync(context);
+
+                // The bound variable is local to this include
+                context.LocalScope.SetOwnValue(Alias ?? identifier, with);
+
+                // Keyword arguments are local to the include
+                if (AssignStatements.Count > 0)
                 {
-                    var with = await With.EvaluateAsync(context);
-
-                    // The bound variable is local to this include
-                    context.LocalScope.SetOwnValue(Alias ?? identifier, with);
-
-                    // Keyword arguments are local to the include
-                    if (AssignStatements.Count > 0)
-                    {
-                        keywordArgNames = new List<string>(AssignStatements.Count);
-                        for (var i = 0; i < AssignStatements.Count; i++)
-                        {
-                            var stmt = AssignStatements[i];
-                            keywordArgNames.Add(stmt.Identifier);
-                            context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
-                        }
-                    }
-
-                    return await RenderStatementsAsync(template, output, encoder, context);
-                }
-                else if (AssignStatements.Count > 0)
-                {
-                    // Keyword arguments are local to the include - they should go out of scope after
-                    keywordArgNames = new List<string>(AssignStatements.Count);
                     for (var i = 0; i < AssignStatements.Count; i++)
                     {
                         var stmt = AssignStatements[i];
-                        keywordArgNames.Add(stmt.Identifier);
                         context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
                     }
-
-                    return await RenderStatementsAsync(template, output, encoder, context);
                 }
-                else if (For != null)
-                {
-                    try
-                    {
-                        var forloop = new ForLoopValue();
 
-                        var evaluatedFor = await For.EvaluateAsync(context);
-
-                        // Fast-path: avoid re-enumerating already materialized arrays.
-                        IReadOnlyList<FluidValue> list = evaluatedFor is ArrayValue array
-                            ? array.Values
-                            : await evaluatedFor.EnumerateAsync(context).ToListAsync(context.CancellationToken);
-
-                        var length = forloop.Length = list.Count;
-
-                        context.LocalScope.SetOwnValue("forloop", forloop);
-
-                        for (var i = 0; i < length; i++)
-                        {
-                            context.IncrementSteps();
-
-                            var item = list[i];
-
-                            context.LocalScope.SetOwnValue(Alias ?? identifier, item);
-
-                            // Set helper variables
-                            forloop.Index = i + 1;
-                            forloop.Index0 = i;
-                            forloop.RIndex = length - i;
-                            forloop.RIndex0 = length - i - 1;
-                            forloop.First = i == 0;
-                            forloop.Last = i == length - 1;
-
-                            var completion = await RenderStatementsAsync(template, output, encoder, context);
-
-                            if (completion == Completion.Break)
-                            {
-                                break;
-                            }
-
-                            // Restore the forloop property after every statement in case it replaced it,
-                            // for instance if it contains a nested for loop
-                            context.LocalScope.SetOwnValue("forloop", forloop);
-                        }
-                    }
-                    finally
-                    {
-                        context.LocalScope.DeleteOwn("forloop");
-                    }
-
-                    return Completion.Normal;
-                }
-                else
-                {
-                    // no with, for or assignments, e.g. {% include 'products' %}
-                    return await RenderStatementsAsync(template, output, encoder, context);
-                }
+                return await RenderStatementsAsync(template, output, encoder, context);
             }
-            finally
+            else if (AssignStatements.Count > 0)
             {
-                // Clean up keyword arguments from local scope
-                if (keywordArgNames != null)
+                // Keyword arguments are local to the include - they should go out of scope after
+                for (var i = 0; i < AssignStatements.Count; i++)
                 {
-                    foreach (var name in keywordArgNames)
-                    {
-                        context.LocalScope.DeleteOwn(name);
-                    }
+                    var stmt = AssignStatements[i];
+                    context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
                 }
 
-                context.ReleaseScope();
+                return await RenderStatementsAsync(template, output, encoder, context);
             }
+            else if (For != null)
+            {
+                var forloop = new ForLoopValue();
+
+                var evaluatedFor = await For.EvaluateAsync(context);
+
+                // Fast-path: avoid re-enumerating already materialized arrays.
+                IReadOnlyList<FluidValue> list = evaluatedFor is ArrayValue array
+                    ? array.Values
+                    : await evaluatedFor.EnumerateAsync(context).ToListAsync(context.CancellationToken);
+
+                var length = forloop.Length = list.Count;
+
+                context.LocalScope.SetOwnValue("forloop", forloop);
+
+                for (var i = 0; i < length; i++)
+                {
+                    context.IncrementSteps();
+
+                    var item = list[i];
+
+                    context.LocalScope.SetOwnValue(Alias ?? identifier, item);
+
+                    // Set helper variables
+                    forloop.Index = i + 1;
+                    forloop.Index0 = i;
+                    forloop.RIndex = length - i;
+                    forloop.RIndex0 = length - i - 1;
+                    forloop.First = i == 0;
+                    forloop.Last = i == length - 1;
+
+                    var completion = await RenderStatementsAsync(template, output, encoder, context);
+
+                    if (completion == Completion.Break)
+                    {
+                        break;
+                    }
+
+                    // Restore the forloop property after every statement in case it replaced it,
+                    // for instance if it contains a nested for loop
+                    context.LocalScope.SetOwnValue("forloop", forloop);
+                }
+
+                return Completion.Normal;
+            }
+
+            // no with, for or assignments, e.g. {% include 'products' %}
+            return await RenderStatementsAsync(template, output, encoder, context);
         }
 
         /// <summary>

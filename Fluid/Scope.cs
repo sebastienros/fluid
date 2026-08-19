@@ -21,8 +21,7 @@ namespace Fluid
 
         private Dictionary<string, FluidValue> _properties;
 
-        // The comparer this scope's storage uses, or null while the scope is still empty. Mirrors the
-        // previous behaviour of creating the dictionary with the parent's comparer when it has one.
+        // The comparer this scope's storage uses, or null while the scope is still empty.
         private StringComparer _storageComparer;
 
         // Both built-in comparers can be compared without a virtual call, which matters most on a miss,
@@ -32,30 +31,26 @@ namespace Fluid
         private StringComparison _storageComparison;
         private bool _storageComparisonIsDirect;
 
-        private readonly bool _forLoopScope;
         private readonly StringComparer _stringComparer;
+        private readonly Scope _assignmentTarget;
 
-        public Scope() : this(null, false, null)
+        public Scope() : this(null, null, null, null)
         {
         }
 
-        public Scope(Scope parent) : this(parent, false, null)
+        public Scope(Scope parent) : this(parent, null, null, null)
         {
         }
 
-        public Scope(Scope parent, bool forLoopScope, StringComparer stringComparer = null)
+        internal Scope(Scope parent, Scope assignmentTarget, StringComparer stringComparer, Scope previous)
         {
-            if (forLoopScope) ArgumentNullException.ThrowIfNull(parent);
-
-            // For loops are also ordinal by default
-            _stringComparer = stringComparer ?? StringComparer.Ordinal;
-
+            _stringComparer = stringComparer ?? parent?._stringComparer ?? StringComparer.Ordinal;
             Parent = parent;
-
-            // A ForLoop scope reads and writes its values in the parent scope.
-            // Internal accessors to the inner properties grant access to the local properties.
-            _forLoopScope = forLoopScope;
+            Previous = previous;
+            _assignmentTarget = assignmentTarget;
         }
+
+        internal Scope AssignmentScope => _assignmentTarget ?? this;
 
         /// <summary>
         /// Gets the own properties of the scope
@@ -93,7 +88,9 @@ namespace Fluid
         /// <summary>
         /// Gets the parent scope if any.
         /// </summary>
-        public Scope Parent { get; private set; }
+        public Scope Parent { get; }
+
+        internal Scope Previous { get; }
 
         /// <summary>
         /// Returns the value with the specified name in the chain of scopes, or undefined
@@ -150,13 +147,13 @@ namespace Fluid
         /// <param name="name">The name of the value to delete.</param>
         public void Delete(string name)
         {
-            if (!_forLoopScope)
+            if (_assignmentTarget is null)
             {
                 DeleteOwn(name);
             }
             else
             {
-                Parent.Delete(name);
+                _assignmentTarget.DeleteOwn(name);
             }
         }
 
@@ -204,13 +201,13 @@ namespace Fluid
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetValue(string name, FluidValue value)
         {
-            if (!_forLoopScope)
+            if (_assignmentTarget is null)
             {
                 SetOwnValue(name, value);
             }
             else
             {
-                Parent.SetValue(name, value);
+                _assignmentTarget.SetOwnValue(name, value);
             }
         }
 
@@ -235,7 +232,7 @@ namespace Fluid
 
             if (comparer is null)
             {
-                _storageComparer = comparer = Parent?._storageComparer ?? _stringComparer;
+                _storageComparer = comparer = _stringComparer;
 
                 if (ReferenceEquals(comparer, StringComparer.Ordinal))
                 {
@@ -300,6 +297,50 @@ namespace Fluid
             for (var i = 0; i < _inlineCount; i++)
             {
                 scope.SetValue(GetInlineName(i), GetInlineValue(i));
+            }
+        }
+
+        internal OwnValueEnumerator GetOwnValues() => new(this);
+
+        internal struct OwnValueEnumerator
+        {
+            private readonly Scope _scope;
+            private Dictionary<string, FluidValue>.Enumerator _dictionaryEnumerator;
+            private int _index;
+
+            internal OwnValueEnumerator(Scope scope)
+            {
+                _scope = scope;
+                _dictionaryEnumerator = scope._properties?.GetEnumerator() ?? default;
+                _index = -1;
+                Current = default;
+            }
+
+            internal KeyValuePair<string, FluidValue> Current { get; private set; }
+
+            internal bool MoveNext()
+            {
+                if (_scope._properties != null)
+                {
+                    if (_dictionaryEnumerator.MoveNext())
+                    {
+                        Current = _dictionaryEnumerator.Current;
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                _index++;
+                if (_index >= _scope._inlineCount)
+                {
+                    return false;
+                }
+
+                Current = new KeyValuePair<string, FluidValue>(
+                    _scope.GetInlineName(_index),
+                    _scope.GetInlineValue(_index));
+                return true;
             }
         }
 

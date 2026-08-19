@@ -159,9 +159,9 @@ namespace Fluid
         public FilterCollection Filters { get; } = new FilterCollection();
 
         /// <summary>
-        /// Gets a scope that is available in all the templates.
+        /// Gets values that are available in all templates rendered with these options.
         /// </summary>
-        public Scope Scope { get; } = new Scope();
+        public Scope GlobalValues { get; } = new Scope();
 
         /// <summary>
         /// Gets the list of value converters.

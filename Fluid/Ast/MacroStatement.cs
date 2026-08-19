@@ -34,9 +34,8 @@ namespace Fluid.Ast
                 using var macroBuffer = new BufferFluidOutput();
                 var macroOutput = LimitedFluidOutput.Create(macroBuffer, context.MaxOutputSize);
 
-                context.EnterChildScope();
+                using var scope = context.EnterScope(ScopeBehavior.Local);
 
-                try
                 {
                     // Initialize the local context with the default values
                     foreach (var a in defaultValues)
@@ -82,10 +81,6 @@ namespace Fluid.Ast
                     // Don't encode the result
                     return new StringValue(result, false);
                 }
-                finally
-                {
-                    context.ReleaseScope();
-                }
             });
 
             context.SetValue(Identifier, f);
@@ -124,7 +119,7 @@ namespace Fluid.Ast
                 context.WriteLine("using var sw = new StringWriter();");
                 context.WriteLine("await using var macroBuffer = new TextWriterFluidOutput(sw, 16 * 1024, leaveOpen: true);");
                 context.WriteLine($"var macroOutput = LimitedFluidOutput.Create(macroBuffer, {context.ContextName}.MaxOutputSize);");
-                context.WriteLine($"{context.ContextName}.EnterChildScope();");
+                context.WriteLine($"using var scope = {context.ContextName}.EnterScope(ScopeBehavior.Local);");
                 context.WriteLine("try");
                 context.WriteLine("{");
                 using (context.Indent())
@@ -199,7 +194,6 @@ namespace Fluid.Ast
                 context.WriteLine("{");
                 using (context.Indent())
                 {
-                    context.WriteLine($"{context.ContextName}.ReleaseScope();");
                 }
                 context.WriteLine("}");
             }

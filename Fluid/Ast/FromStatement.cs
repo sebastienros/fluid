@@ -37,9 +37,8 @@ namespace Fluid.Ast
             var parentScope = context.LocalScope;
 
             // Create a dedicated scope so we can list all macros defined in this template
-            context.EnterChildScope();
+            using var scope = context.EnterScope(ScopeBehavior.Local);
 
-            try
             {
                 await template.RenderAsync(NullFluidOutput.Instance, encoder, context);
 
@@ -56,19 +55,16 @@ namespace Fluid.Ast
                 }
                 else
                 {
-                    foreach (var property in context.LocalScope.Properties)
+                    var values = context.LocalScope.GetOwnValues();
+                    while (values.MoveNext())
                     {
-                        var value = context.LocalScope.GetValue(property);
-                        if (value is FunctionValue)
+                        var property = values.Current;
+                        if (property.Value is FunctionValue)
                         {
-                            parentScope.SetValue(property, value);
+                            parentScope.SetValue(property.Key, property.Value);
                         }
                     }
                 }
-            }
-            finally
-            {
-                context.ReleaseScope();
             }
 
             return Completion.Normal;
