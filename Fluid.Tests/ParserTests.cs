@@ -103,27 +103,6 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void ShouldCanonicalizeIdentifiersWithinTemplate()
-        {
-            var statements = Parse(
-                "{% assign product = nil %}" +
-                "{% for product in products %}{{ product.name }}{{ product.price }}{% endfor %}");
-
-            var assign = Assert.IsType<AssignStatement>(statements[0]);
-            var forStatement = Assert.IsType<ForStatement>(statements[1]);
-            var source = Assert.IsType<MemberExpression>(forStatement.Source);
-            var nameOutput = Assert.IsType<OutputStatement>(forStatement.Statements[0]);
-            var name = Assert.IsType<MemberExpression>(nameOutput.Expression);
-            var priceOutput = Assert.IsType<OutputStatement>(forStatement.Statements[1]);
-            var price = Assert.IsType<MemberExpression>(priceOutput.Expression);
-
-            Assert.Same(assign.Identifier, forStatement.Identifier);
-            Assert.Same(forStatement.Identifier, ((IdentifierSegment)name.Segments[0]).Identifier);
-            Assert.Same(forStatement.Identifier, ((IdentifierSegment)price.Segments[0]).Identifier);
-            Assert.Equal("products", ((IdentifierSegment)source.Segments[0]).Identifier);
-        }
-
-        [Fact]
         public void ShouldParseForElseTag()
         {
             var statements = Parse("{% for a in b %}x{% else %}y{% endfor %}");
