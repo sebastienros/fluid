@@ -69,34 +69,28 @@ namespace Fluid.Ast
             TextEncoder encoder,
             TemplateContext context)
         {
-            context.EnterChildScope();
-            var previousScope = context.LocalScope;
+            var scope = context.EnterScope(ScopeBehavior.Isolated);
 
             try
             {
-                context.IsolateCurrentScope();
-
-                var task = FluidTemplateRenderer.RenderAsync(template, output, encoder, context);
+                var task = template.RenderAsync(output, encoder, context);
                 if (task.IsCompletedSuccessfully)
                 {
-                    context.LocalScope = previousScope;
-                    context.ReleaseScope();
+                    scope.Dispose();
                     return NormalCompletion;
                 }
 
-                return AwaitedRender(task, previousScope, context);
+                return AwaitedRender(task, scope);
             }
             catch
             {
-                context.LocalScope = previousScope;
-                context.ReleaseScope();
+                scope.Dispose();
                 throw;
             }
 
             static async ValueTask<Completion> AwaitedRender(
                 ValueTask task,
-                Scope previousScope,
-                TemplateContext context)
+                TemplateContext.ScopeLease scope)
             {
                 try
                 {
@@ -105,8 +99,7 @@ namespace Fluid.Ast
                 }
                 finally
                 {
-                    context.LocalScope = previousScope;
-                    context.ReleaseScope();
+                    scope.Dispose();
                 }
             }
         }

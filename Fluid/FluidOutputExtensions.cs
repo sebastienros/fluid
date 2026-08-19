@@ -87,7 +87,7 @@ namespace Fluid
                 cancellationToken: context.CancellationToken))
             {
                 var limitedOutput = LimitedFluidOutput.Create(output, context.MaxOutputSize);
-                await FluidTemplateRenderer.RenderAsync(template, limitedOutput, encoder, context);
+                await template.RenderAsync(limitedOutput, encoder, context);
             }
 
             context.CancellationToken.ThrowIfCancellationRequested();
