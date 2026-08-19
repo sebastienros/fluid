@@ -61,6 +61,39 @@ namespace Fluid
             await output.FlushAsync();
         }
 
+#if NET8_0_OR_GREATER
+        /// <summary>
+        /// Renders a template as UTF-8 directly to a byte buffer writer.
+        /// </summary>
+        /// <remarks>
+        /// The destination remains owned by the caller. This method does not flush or complete
+        /// asynchronous transport destinations such as pipe writers.
+        /// </remarks>
+        public static async ValueTask RenderAsync(
+            this IFluidTemplate template,
+            IBufferWriter<byte> writer,
+            TextEncoder encoder,
+            TemplateContext context)
+        {
+            ArgumentNullException.ThrowIfNull(template);
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(encoder);
+            ArgumentNullException.ThrowIfNull(context);
+
+            context.CancellationToken.ThrowIfCancellationRequested();
+
+            await using (var output = new Utf8FluidOutput(
+                writer,
+                cancellationToken: context.CancellationToken))
+            {
+                var limitedOutput = LimitedFluidOutput.Create(output, context.MaxOutputSize);
+                await template.RenderAsync(limitedOutput, encoder, context);
+            }
+
+            context.CancellationToken.ThrowIfCancellationRequested();
+        }
+#endif
+
         public static async ValueTask WriteToAsync(this FluidValue value, TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
         {
             ArgumentNullException.ThrowIfNull(value);

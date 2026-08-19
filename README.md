@@ -1700,6 +1700,19 @@ These instances are meant to be reused. This is why there is a separation betwee
 
 Instantiating a `FluidParser` instance is expensive, do it once and reuse the instance. This can be registered as a singleton if you use dependency injection, but in most cases a `static` instance makes sense since it's rare to customize these.
 
+### Render directly to UTF-8
+
+On .NET 8 and later, `Utf8FluidOutput` writes directly to an `IBufferWriter<byte>` without accumulating the rendered response as UTF-16 or adding an ASP.NET Core dependency to Fluid:
+
+```csharp
+await template.RenderAsync(response.BodyWriter, HtmlEncoder.Default, context);
+
+// The destination remains caller-owned.
+await response.BodyWriter.FlushAsync(requestAborted);
+```
+
+The `RenderAsync` overload creates and disposes `Utf8FluidOutput`, ensuring its UTF-8 encoder state is finalized. The destination remains caller-owned and is not flushed or completed. Create `Utf8FluidOutput` directly when multiple templates need to share one character stream. Its `FlushAsync` method transcodes buffered characters while preserving encoder state so surrogate pairs remain valid across intermediate template flushes. Because `IFluidOutput` writes synchronously, transport flushing is not attempted in the middle of a render. `MaxOutputSize` continues to count UTF-16 characters, not encoded bytes.
+
 ### Benchmarks
 
 A benchmark application is provided in the source code to compare Fluid, [Scriban](https://github.com/scriban/scriban), [DotLiquid](https://github.com/dotliquid/dotliquid), [Liquid.NET](https://github.com/mikebridge/Liquid.NET), and [Handlebars.NET](https://github.com/Handlebars-Net/Handlebars.Net).
