@@ -36,14 +36,14 @@
     <line class="grid" x1="62" y1="84" x2="500" y2="84"/><text class="tick" x="52" y="88" text-anchor="end">200</text>
     <line class="axis" x1="62" y1="84" x2="62" y2="342"/><line class="axis" x1="62" y1="342" x2="500" y2="342"/>
 
-    <rect x="88" y="320.3" width="72" height="21.7" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
-    <text class="fluid-value" x="124" y="313">16.830</text>
-    <rect class="competitor" x="193" y="314.2" width="72" height="27.8" rx="1" fill="#d62728"/>
-    <text class="value" x="229" y="307">21.572</text>
-    <rect class="competitor" x="298" y="169" width="72" height="173" rx="1" fill="#ff7f0e"/>
-    <text class="value" x="334" y="162">134.138</text>
-    <rect class="competitor" x="403" y="122" width="72" height="220" rx="1" fill="#2ca02c"/>
-    <text class="value" x="439" y="115">170.605</text>
+    <rect x="88" y="320.8" width="72" height="21.2" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="124" y="314">16.426</text>
+    <rect class="competitor" x="193" y="313.7" width="72" height="28.3" rx="1" fill="#d62728"/>
+    <text class="value" x="229" y="307">21.926</text>
+    <rect class="competitor" x="298" y="177.2" width="72" height="164.8" rx="1" fill="#ff7f0e"/>
+    <text class="value" x="334" y="170">127.750</text>
+    <rect class="competitor" x="403" y="126.8" width="72" height="215.2" rx="1" fill="#2ca02c"/>
+    <text class="value" x="439" y="120">166.841</text>
     <text class="axis-title" x="281" y="381" text-anchor="middle">Duration (Microseconds)</text>
   </g>
 
@@ -56,12 +56,12 @@
     <line class="grid" x1="588" y1="84" x2="1026" y2="84"/><text class="tick" x="578" y="88" text-anchor="end">700</text>
     <line class="axis" x1="588" y1="84" x2="588" y2="342"/><line class="axis" x1="588" y1="342" x2="1026" y2="342"/>
 
-    <rect x="614" y="328.7" width="72" height="13.3" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
-    <text class="fluid-value" x="650" y="321">36.20</text>
+    <rect x="614" y="328.6" width="72" height="13.4" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="650" y="321">36.26</text>
     <rect class="competitor" x="719" y="298" width="72" height="44" rx="1" fill="#d62728"/>
     <text class="value" x="755" y="291">119.31</text>
     <rect class="competitor" x="824" y="210" width="72" height="132" rx="1" fill="#ff7f0e"/>
-    <text class="value" x="860" y="203">358.15</text>
+    <text class="value" x="860" y="203">358.12</text>
     <rect class="competitor" x="929" y="99" width="72" height="243" rx="1" fill="#2ca02c"/>
     <text class="value" x="965" y="92">659.18</text>
     <text class="axis-title" x="807" y="381" text-anchor="middle">Memory Allocation (Kilobytes)</text>

@@ -1730,18 +1730,18 @@ Scriban takes 46% longer to parse and allocates over 3 times as much memory as F
 
 **ParseBig: Parses a Blog Post template**
 
-Scriban takes 70% longer to parse and allocates almost 4 times as much memory as Fluid.
+Scriban takes 66% longer to parse and allocates almost 4 times as much memory as Fluid.
 
 ![Large template parse benchmark comparison](Assets/benchmark-parse-big.png)
 
 **Render: Renders a simple HTML template containing filters and properties, with 100 elements**
 
 DotLiquid takes over 10 times as long to render and allocates 18 times as much memory as Fluid.
-The second best, Handlebars (Mustache), takes 28% longer and allocates over 3 times as much memory.
+The second best, Handlebars (Mustache), takes 33% longer and allocates over 3 times as much memory.
 
 ![Render benchmark comparison](Assets/benchmark-render.png)
 
-Tested on 8/17/2026 with
+Tested on 8/18/2026 with
 - Parlot 1.5.8
 - Scriban 7.2.6
 - DotLiquid 2.3.197
@@ -1756,30 +1756,30 @@ Tested on 8/17/2026 with
 ``` text
 BenchmarkDotNet v0.15.8, macOS Sequoia 15.7.9 (24G830) [Darwin 24.6.0]
 Apple M4 Pro, 1 CPU, 14 logical and 14 physical cores
-.NET SDK 10.0.302
-  [Host]   : .NET 10.0.10 (10.0.10, 10.0.1026.32716), Arm64 RyuJIT armv8.0-a
-  ShortRun : .NET 10.0.10 (10.0.10, 10.0.1026.32716), Arm64 RyuJIT armv8.0-a
+.NET SDK 10.0.400
+  [Host]   : .NET 10.0.11 (10.0.11, 10.0.1126.37416), Arm64 RyuJIT armv8.0-a
+  ShortRun : .NET 10.0.11 (10.0.11, 10.0.1126.37416), Arm64 RyuJIT armv8.0-a
 
 Job=ShortRun  IterationCount=3  LaunchCount=1
 WarmupCount=3
 
 | Method                       | Mean       | Error         | StdDev     | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
 |----------------------------- |-----------:|--------------:|-----------:|------:|--------:|--------:|--------:|----------:|------------:|
-| Fluid_Parse                  |   1.737 us |     0.1787 us |  0.0098 us |  1.00 |    0.01 |  0.3910 |  0.0019 |    3.2 KB |        1.00 |
-| Scriban_Parse                |   2.537 us |     0.1974 us |  0.0108 us |  1.46 |    0.01 |  1.2245 |  0.0648 |  10.01 KB |        3.13 |
-| DotLiquid_Parse              |   4.137 us |     0.4264 us |  0.0234 us |  2.38 |    0.02 |  1.9608 |  0.0229 |  16.05 KB |        5.02 |
-| Handlebars_Parse             | 480.774 us |   715.4418 us | 39.2158 us | 276.85 |   19.60 | 15.6250 |  7.8125 | 133.13 KB |       41.66 |
+| Fluid_Parse                  |   1.685 us |     0.1182 us |  0.0065 us |  1.00 |    0.00 |  0.3910 |  0.0019 |    3.2 KB |        1.00 |
+| Scriban_Parse                |   2.464 us |     0.2919 us |  0.0160 us |  1.46 |    0.01 |  1.2245 |  0.0648 |  10.01 KB |        3.13 |
+| DotLiquid_Parse              |   4.054 us |     0.3527 us |  0.0193 us |  2.41 |    0.01 |  1.9608 |  0.0229 |  16.05 KB |        5.02 |
+| Handlebars_Parse             | 452.116 us |   433.5420 us | 23.7639 us | 268.40 |   12.25 | 15.6250 |  7.8125 | 133.62 KB |       41.82 |
 |                              |            |               |            |       |         |         |         |           |             |
-| Fluid_ParseBig               |   8.167 us |     0.8403 us |  0.0461 us |  1.00 |    0.01 |  1.5717 |  0.0458 |  12.86 KB |        1.00 |
-| Scriban_ParseBig             |  13.869 us |     1.2358 us |  0.0677 us |  1.70 |    0.01 |  5.8746 |  1.1749 |  48.07 KB |        3.74 |
-| DotLiquid_ParseBig           |  20.168 us |     0.6354 us |  0.0348 us |  2.47 |    0.01 | 11.4136 |  0.5188 |  93.46 KB |        7.27 |
-| Handlebars_ParseBig          | 363.796 us |   647.1650 us | 35.4733 us | 44.55 |    3.77 | 16.6016 |  7.8125 | 139.81 KB |       10.87 |
+| Fluid_ParseBig               |   8.393 us |     0.5638 us |  0.0309 us |  1.00 |    0.00 |  1.5717 |  0.0458 |  12.86 KB |        1.00 |
+| Scriban_ParseBig             |  13.928 us |     1.0365 us |  0.0568 us |  1.66 |    0.01 |  5.8746 |  1.1749 |  48.07 KB |        3.74 |
+| DotLiquid_ParseBig           |  20.154 us |     2.4570 us |  0.1347 us |  2.40 |    0.02 | 11.4136 |  0.5188 |  93.46 KB |        7.27 |
+| Handlebars_ParseBig          | 356.951 us | 1,331.1202 us | 72.9632 us | 42.53 |    7.53 | 16.6016 |  7.8125 | 139.87 KB |       10.88 |
 |                              |            |               |            |       |         |         |         |           |             |
-| Fluid_Render                 |  16.830 us |     2.9562 us |  0.1620 us |  1.00 |    0.01 |  4.3945 |  0.0305 |   36.2 KB |        1.00 |
-| Fluid_SourceGenerated_Render |  29.627 us |     8.5755 us |  0.4700 us |  1.76 |    0.03 |  5.8594 |  0.0610 |  47.92 KB |        1.32 |
-| Scriban_Render               | 134.138 us |    52.3051 us |  2.8670 us |  7.97 |    0.16 | 42.9688 |  7.8125 | 358.15 KB |        9.89 |
-| DotLiquid_Render             | 170.605 us |     3.9494 us |  0.2165 us | 10.14 |    0.08 | 80.5664 | 15.3809 | 659.18 KB |       18.21 |
-| Handlebars_Render            |  21.572 us |     3.7382 us |  0.2049 us |  1.28 |    0.01 | 14.5874 |       - | 119.31 KB |        3.30 |
+| Fluid_Render                 |  16.426 us |     1.5309 us |  0.0839 us |  1.00 |    0.01 |  4.4250 |  0.0610 |  36.26 KB |        1.00 |
+| Fluid_SourceGenerated_Render |  30.694 us |     6.0248 us |  0.3302 us |  1.87 |    0.02 |  5.8594 |  0.0610 |  47.98 KB |        1.32 |
+| Scriban_Render               | 127.750 us |     7.0525 us |  0.3866 us |  7.78 |    0.04 | 43.7012 |  8.0566 | 358.12 KB |        9.88 |
+| DotLiquid_Render             | 166.841 us |     6.6613 us |  0.3651 us | 10.16 |    0.05 | 80.5664 | 15.3809 | 659.18 KB |       18.18 |
+| Handlebars_Render            |  21.926 us |     1.8049 us |  0.0989 us |  1.33 |    0.01 | 14.5874 |       - | 119.31 KB |        3.29 |
 ```
 
 </details>
