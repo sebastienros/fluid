@@ -1,4 +1,5 @@
 using Fluid.Utils;
+using Fluid.Parser;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 
@@ -53,11 +54,14 @@ namespace Fluid
 
             try
             {
-                var initialCapacity = context.Options?.OutputBufferSize ?? 0;
-                if (initialCapacity <= 0)
-                {
-                    initialCapacity = 16 * 1024;
-                }
+                var configuredCapacity = context.Options?.OutputBufferSize ?? 0;
+                var initialCapacity = template is FluidTemplate fluidTemplate &&
+                    ReferenceEquals(context.Options, TemplateOptions.Default) &&
+                    configuredCapacity == 16 * 1024
+                        ? fluidTemplate.EstimatedOutputSize
+                        : configuredCapacity > 0
+                            ? configuredCapacity
+                            : 16 * 1024;
 
                 using var output = new BufferFluidOutput(initialCapacity);
                 await template.RenderAsync(output, encoder, context);
