@@ -166,7 +166,7 @@ context.SetValue("temporary", value);
 Fluid works when targeting NativeAOT and trimmed deployments.
 
 - If dynamic code is not supported at runtime, Fluid automatically switches to reflection-based member accessors.
-- Delegate-based `MemberAccessStrategy.Register<T...>` APIs remain available.
+- Runtime `MemberAccessStrategy.Register<T...>` APIs are available for custom mappings.
 - No interceptor setup is required.
 
 ### Recommended usage when targeting NativeAOT
@@ -210,7 +210,7 @@ options.MemberAccessStrategy.Register<Product, object>((product, name) => produc
 
 ### Custom member accessors
 
-Custom accessors derive from `MemberAccessor` and return a `ValueTask<FluidValue>` directly. The previous `IMemberAccessor` and `IAsyncMemberAccessor` interfaces are no longer used.
+Custom accessors derive from `MemberAccessor` and return a `ValueTask<FluidValue>` directly.
 
 ```csharp
 private sealed class ProductDisplayNameAccessor : MemberAccessor
