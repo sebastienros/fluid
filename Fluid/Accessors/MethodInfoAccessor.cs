@@ -1,8 +1,9 @@
 ﻿using System.Reflection;
+using Fluid.Values;
 
 namespace Fluid.Accessors
 {
-    public sealed class MethodInfoAccessor : IMemberAccessor
+    public sealed class MethodInfoAccessor : MemberAccessor
     {
         private readonly MethodInfo _methodInfo;
 
@@ -11,9 +12,9 @@ namespace Fluid.Accessors
             _methodInfo = methodInfo;
         }
 
-        public object Get(object obj, string name, TemplateContext ctx)
+        public override ValueTask<FluidValue> GetAsync(object obj, string name, TemplateContext context)
         {
-            return _methodInfo.Invoke(obj, null);
+            return CreateValueTask(_methodInfo.Invoke(obj, null), context);
         }
     }
 

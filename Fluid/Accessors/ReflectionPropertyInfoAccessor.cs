@@ -1,8 +1,9 @@
+using Fluid.Values;
 using System.Reflection;
 
 namespace Fluid.Accessors;
 
-internal sealed class ReflectionPropertyInfoAccessor : IMemberAccessor
+internal sealed class ReflectionPropertyInfoAccessor : MemberAccessor
 {
     private readonly PropertyInfo _propertyInfo;
     private readonly TypeCode _typeCode;
@@ -15,8 +16,12 @@ internal sealed class ReflectionPropertyInfoAccessor : IMemberAccessor
         _isEnum = propertyInfo.PropertyType.IsEnum;
     }
 
-    public object Get(object obj, string name, TemplateContext ctx)
+    public override ValueTask<FluidValue> GetAsync(object obj, string name, TemplateContext context)
     {
-        return AccessorValueConverter.Convert(_propertyInfo.GetValue(obj), _typeCode, _isEnum);
+        return new(AccessorValueConverter.Convert(
+            _propertyInfo.GetValue(obj),
+            _typeCode,
+            _isEnum,
+            context.Options));
     }
 }

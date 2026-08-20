@@ -17,12 +17,12 @@ namespace Fluid
             }
 
             public object RegistrationToken { get; }
-            public volatile Dictionary<ReflectedAccessorKey, IMemberAccessor> Accessors = [];
+            public volatile Dictionary<ReflectedAccessorKey, MemberAccessor> Accessors = [];
         }
 
         private static readonly bool _dynamicCodeSupported = IsDynamicCodeSupported();
 
-        private volatile Dictionary<AccessorKey, IMemberAccessor> _registrations = [];
+        private volatile Dictionary<AccessorKey, MemberAccessor> _registrations = [];
         private volatile ReflectionCache _reflectionCache;
 
         // Only the exact type opts in. A derived strategy may override GetAccessor to resolve from its
@@ -38,7 +38,7 @@ namespace Fluid
 
         protected internal override object AccessorCacheToken => _accessorCachingSupported ? _registrations : null;
 
-        public override IMemberAccessor GetAccessor(Type type, string name, StringComparer stringComparer)
+        public override MemberAccessor GetAccessor(Type type, string name, StringComparer stringComparer)
         {
             ArgumentNullException.ThrowIfNull(type);
             ArgumentNullException.ThrowIfNull(name);
@@ -69,16 +69,16 @@ namespace Fluid
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool TryGetRegisteredAccessor(
-            Dictionary<AccessorKey, IMemberAccessor> registrations,
+            Dictionary<AccessorKey, MemberAccessor> registrations,
             Type type,
             string name,
-            out IMemberAccessor accessor)
+            out MemberAccessor accessor)
         {
             return registrations.TryGetValue(new AccessorKey(type, name), out accessor)
                 || registrations.TryGetValue(new AccessorKey(type, "*"), out accessor);
         }
 
-        private static IMemberAccessor GetMemberAccessor(Type type, string name, StringComparer stringComparer)
+        private static MemberAccessor GetMemberAccessor(Type type, string name, StringComparer stringComparer)
         {
             foreach (var propertyInfo in type.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
             {
@@ -173,8 +173,8 @@ namespace Fluid
         }
 
         // Creates accessors based on base types and interfaces
-        private static IMemberAccessor GetAccessorUnlikely(
-            Dictionary<AccessorKey, IMemberAccessor> registrations,
+        private static MemberAccessor GetAccessorUnlikely(
+            Dictionary<AccessorKey, MemberAccessor> registrations,
             Type type,
             string name,
             StringComparer stringComparer)
@@ -214,7 +214,7 @@ namespace Fluid
             return null;
         }
 
-        public override void Register(Type type, string name, IMemberAccessor accessor)
+        public override void Register(Type type, string name, MemberAccessor accessor)
         {
             ArgumentNullException.ThrowIfNull(type);
             ArgumentNullException.ThrowIfNull(name);
@@ -222,7 +222,7 @@ namespace Fluid
             while (true)
             {
                 var registrations = _registrations;
-                var updated = new Dictionary<AccessorKey, IMemberAccessor>(registrations)
+                var updated = new Dictionary<AccessorKey, MemberAccessor>(registrations)
                 {
                     [new AccessorKey(type, name)] = accessor
                 };
@@ -260,7 +260,7 @@ namespace Fluid
         private static void AddReflectedAccessor(
             ReflectionCache reflectionCache,
             ReflectedAccessorKey key,
-            IMemberAccessor accessor)
+            MemberAccessor accessor)
         {
             while (true)
             {
@@ -271,7 +271,7 @@ namespace Fluid
                     return;
                 }
 
-                var updated = new Dictionary<ReflectedAccessorKey, IMemberAccessor>(reflectedAccessors)
+                var updated = new Dictionary<ReflectedAccessorKey, MemberAccessor>(reflectedAccessors)
                 {
                     [key] = accessor
                 };

@@ -480,12 +480,12 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
 
     private static void AppendAccessor(StringBuilder source, string accessorName, string typeExpression, List<MemberAccess> members)
     {
-        source.Append("    internal sealed class ").Append(accessorName).AppendLine(" : global::Fluid.IAsyncMemberAccessor");
+        source.Append("    internal sealed class ").Append(accessorName).AppendLine(" : global::Fluid.MemberAccessor");
         source.AppendLine("    {");
-        source.AppendLine("        public object Get(object obj, string name, global::Fluid.TemplateContext ctx)");
+        source.AppendLine("        public override global::System.Threading.Tasks.ValueTask<global::Fluid.Values.FluidValue> GetAsync(object obj, string name, global::Fluid.TemplateContext context)");
         source.AppendLine("        {");
         source.Append("            var typed = (").Append(typeExpression).AppendLine(")obj;");
-        source.AppendLine("            var comparer = ctx.Options.ModelNamesComparer;");
+        source.AppendLine("            var comparer = context.Options.ModelNamesComparer;");
         source.AppendLine();
 
         foreach (var member in members)
@@ -494,58 +494,12 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
                 .Append(member.Name)
                 .AppendLine("\"))");
             source.AppendLine("            {");
-            source.Append("                return ").Append(member.Expression).AppendLine(";");
+            source.Append("                return CreateValueTask(").Append(member.Expression).AppendLine(", context);");
             source.AppendLine("            }");
         }
 
         source.AppendLine();
-        source.AppendLine("            return null;");
-        source.AppendLine("        }");
-        source.AppendLine();
-        source.AppendLine("        public async global::System.Threading.Tasks.Task<object> GetAsync(object obj, string name, global::Fluid.TemplateContext ctx)");
-        source.AppendLine("        {");
-        source.Append("            var typed = (").Append(typeExpression).AppendLine(")obj;");
-        source.AppendLine("            var comparer = ctx.Options.ModelNamesComparer;");
-        source.AppendLine();
-
-        foreach (var member in members)
-        {
-            source.Append("            if (comparer.Equals(name, \"")
-                .Append(member.Name)
-                .AppendLine("\"))");
-            source.AppendLine("            {");
-
-            switch (member.AsyncKind)
-            {
-                case AsyncKind.Task:
-                    source.Append("                var task = ").Append(member.Expression).AppendLine(";");
-                    source.AppendLine("                await task.ConfigureAwait(false);");
-                    source.AppendLine("                return task.Result;");
-                    break;
-                case AsyncKind.ValueTask:
-                    source.Append("                var valueTask = ").Append(member.Expression).AppendLine(";");
-                    source.AppendLine("                return await valueTask.ConfigureAwait(false);");
-                    break;
-                case AsyncKind.TaskWithoutResult:
-                    source.Append("                var task = ").Append(member.Expression).AppendLine(";");
-                    source.AppendLine("                await task.ConfigureAwait(false);");
-                    source.AppendLine("                return null;");
-                    break;
-                case AsyncKind.ValueTaskWithoutResult:
-                    source.Append("                var valueTask = ").Append(member.Expression).AppendLine(";");
-                    source.AppendLine("                await valueTask.ConfigureAwait(false);");
-                    source.AppendLine("                return null;");
-                    break;
-                default:
-                    source.Append("                return ").Append(member.Expression).AppendLine(";");
-                    break;
-            }
-
-            source.AppendLine("            }");
-        }
-
-        source.AppendLine();
-        source.AppendLine("            return null;");
+        source.AppendLine("            return default;");
         source.AppendLine("        }");
         source.AppendLine("    }");
     }
@@ -572,7 +526,7 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
                 ? $"{typeSymbol.ToDisplayString(TypeExpressionFormat)}.{memberName}"
                 : $"typed.{memberName}";
 
-            members.Add(new MemberAccess(property.Name, expression, GetAsyncKind(property.Type)));
+            members.Add(new MemberAccess(property.Name, expression));
         }
 
         foreach (var field in EnumerateFields(typeSymbol))
@@ -592,7 +546,7 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
                 ? $"{typeSymbol.ToDisplayString(TypeExpressionFormat)}.{memberName}"
                 : $"typed.{memberName}";
 
-            members.Add(new MemberAccess(field.Name, expression, GetAsyncKind(field.Type)));
+            members.Add(new MemberAccess(field.Name, expression));
         }
 
         foreach (var method in EnumerateMethods(typeSymbol))
@@ -612,7 +566,7 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
                 ? $"{typeSymbol.ToDisplayString(TypeExpressionFormat)}.{memberName}()"
                 : $"typed.{memberName}()";
 
-            members.Add(new MemberAccess(method.Name, expression, GetAsyncKind(method.ReturnType)));
+            members.Add(new MemberAccess(method.Name, expression));
         }
 
         return members;
@@ -701,29 +655,6 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
         }
     }
 
-    private static AsyncKind GetAsyncKind(ITypeSymbol type)
-    {
-        if (type is not INamedTypeSymbol namedType)
-        {
-            return AsyncKind.None;
-        }
-
-        var containingNamespace = namedType.ContainingNamespace?.ToDisplayString();
-        if (!string.Equals(containingNamespace, "System.Threading.Tasks", StringComparison.Ordinal))
-        {
-            return AsyncKind.None;
-        }
-
-        return namedType.Name switch
-        {
-            "Task" when namedType.IsGenericType => AsyncKind.Task,
-            "Task" => AsyncKind.TaskWithoutResult,
-            "ValueTask" when namedType.IsGenericType => AsyncKind.ValueTask,
-            "ValueTask" => AsyncKind.ValueTaskWithoutResult,
-            _ => AsyncKind.None
-        };
-    }
-
     private static string CreateAccessorName(ITypeSymbol typeSymbol, HashSet<string> usedAccessorNames)
     {
         var baseName = typeSymbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
@@ -797,16 +728,7 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
         INamedTypeSymbol OptionsType,
         ImmutableArray<AccessorRegistration> Accessors);
 
-    private sealed record MemberAccess(string Name, string Expression, AsyncKind AsyncKind);
-
-    private enum AsyncKind
-    {
-        None,
-        Task,
-        ValueTask,
-        TaskWithoutResult,
-        ValueTaskWithoutResult
-    }
+    private sealed record MemberAccess(string Name, string Expression);
 
     private static readonly string AttributeSource = """
         // <auto-generated />

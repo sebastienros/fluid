@@ -2,13 +2,13 @@ namespace Fluid
 {
     public abstract class MemberAccessStrategy
     {
-        public abstract IMemberAccessor GetAccessor(Type type, string name, StringComparer stringComparer);
+        public abstract MemberAccessor GetAccessor(Type type, string name, StringComparer stringComparer);
 
-        public abstract void Register(Type type, string name, IMemberAccessor accessor);
+        public abstract void Register(Type type, string name, MemberAccessor accessor);
 
         /// <summary>
         /// Gets a token identifying the current set of accessors this strategy would return, or
-        /// <c>null</c> to disable caching. Call sites may remember the <see cref="IMemberAccessor"/>
+        /// <c>null</c> to disable caching. Call sites may remember the <see cref="MemberAccessor"/>
         /// resolved for a type and name, and re-resolve it only once this token changes.
         /// </summary>
         /// <remarks>

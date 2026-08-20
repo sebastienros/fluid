@@ -166,7 +166,7 @@ context.SetValue("temporary", value);
 Fluid works when targeting NativeAOT and trimmed deployments.
 
 - If dynamic code is not supported at runtime, Fluid automatically switches to reflection-based member accessors.
-- Existing `MemberAccessStrategy.Register<T...>` APIs are preserved.
+- Runtime `MemberAccessStrategy.Register<T...>` APIs are available for custom mappings.
 - No interceptor setup is required.
 
 ### Recommended usage when targeting NativeAOT
@@ -207,6 +207,29 @@ The generated registrations are instance-scoped and are applied automatically to
 ```csharp
 options.MemberAccessStrategy.Register<Product, object>((product, name) => product.Name);
 ```
+
+### Custom member accessors
+
+Custom accessors derive from `MemberAccessor` and return a `ValueTask<FluidValue>` directly.
+
+```csharp
+private sealed class ProductDisplayNameAccessor : MemberAccessor
+{
+    public override ValueTask<FluidValue> GetAsync(
+        object obj,
+        string name,
+        TemplateContext context)
+    {
+        return CreateValueTask(((Product)obj).Name, context);
+    }
+}
+
+options.MemberAccessStrategy.Register<Product>(
+    "display_name",
+    new ProductDisplayNameAccessor());
+```
+
+The protected `CreateValueTask` overloads convert synchronous, `Task<T>`, and `ValueTask<T>` results using the `TemplateOptions.ValueConverters` configured for the current context. Return `NilValue.Instance` for a Liquid `nil` value; a null `FluidValue` is reserved as the accessor's not-handled result.
 
 Alternatively, explicit profile methods can apply generated registrations to any `TemplateOptions` instance:
 
