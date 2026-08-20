@@ -995,7 +995,7 @@ Wed Dec 31 19:00:00 -08:00 1969
 
 ### Converting time zones
 
-Dates and times can be converted to specific time zones using the `time_zone: <iana>` filter.
+Dates and times can be converted to specific time zones using the `time_zone` filter. On .NET 6 and later, identifiers are resolved with `TimeZoneInfo.FindSystemTimeZoneById`. The `netstandard2.0` asset uses TimeZoneConverter by default.
 
 #### Example
 
@@ -1006,6 +1006,16 @@ context.SetValue("published", DateTime.UtcNow);
 
 ```Liquid
 {{ published | time_zone: 'America/New_York' | date: '%+' }}
+```
+
+On Windows, IANA identifiers require ICU globalization data. Resolution can fail on Windows versions that do not include ICU unless the application deploys it app-locally with the `Microsoft.ICU.ICU4C.Runtime` package. IANA identifiers are also unavailable when globalization invariant mode is enabled (`System.Globalization.Invariant`) or Windows NLS is forced (`System.Globalization.UseNls`). In these configurations, configure a custom resolver. For example, with the `TimeZoneConverter` package:
+
+```csharp
+var options = new TemplateOptions
+{
+    TimeZoneResolver = id => TimeZoneConverter.TZConvert.GetTimeZoneInfo(id)
+};
+var context = new TemplateContext(options);
 ```
 
 #### Result
