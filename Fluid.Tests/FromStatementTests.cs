@@ -126,6 +126,31 @@ public class FromStatementTests
     }
 
     [Fact]
+    public async Task FromStatement_WithoutImportList_ShouldOnlyImportAllMacros()
+    {
+        var fileProvider = new MockFileProvider();
+        fileProvider.Add("_Macros.liquid", @"
+        {%- assign imported_value = 'should not escape' -%}
+        SHOULD_NOT_RENDER
+        {%- macro hello_world() -%}
+        Hello world!
+        {%- endmacro -%}
+        {%- macro hello(name) -%}
+        Hello {{ name }}!
+        {%- endmacro -%}
+        ");
+
+        var source = "{% from '_Macros' %}{{ hello_world() }} {{ hello('John') }}|{{ imported_value }}";
+        _parser.TryParse(source, out var template, out var error);
+        Assert.True(template != null, error);
+
+        var options = new TemplateOptions { FileProvider = fileProvider };
+        var result = await template.RenderAsync(new TemplateContext(options));
+
+        Assert.Equal("Hello world! Hello John!|", result);
+    }
+
+    [Fact]
     public async Task FromStatement_ShouldLoadMacrosAsynchronously()
     {
         var sourceLoader = new AsyncTemplateFileProvider()
