@@ -11,10 +11,12 @@ The reference implementation of the Liquid template language in Ruby can be foun
 ```shell
 dotnet build                              # SDK pinned by global.json (10.0.100, rollForward latestMajor)
 dotnet test                               # xUnit v3 on Microsoft.Testing.Platform (set in global.json)
-dotnet test /p:Compiled=true              # second CI pass: exercises the compiled Parlot grammar
+dotnet test --property:Compiled=true      # second CI pass: exercises the compiled Parlot grammar
 dotnet test --list-tests
 dotnet run -c Release --project Fluid.Benchmarks
 ```
+
+Use `--property:`, not `/p:`. Both spellings reach MSBuild from PowerShell or the CI shells, but MSYS path conversion in Git Bash — the shell coding agents get on Windows — rewrites `/p:Compiled=true` to `p:Compiled=true` before `dotnet test` sees it, and the mangled argument aborts the run with zero tests executed (exit code 5).
 
 CI (`.github/workflows/pr.yml`) runs both test passes in Release on Linux/macOS/Windows. `Fluid.Tests` targets `net10.0` only, so `dotnet test` is already the single-TFM run that keeps the dev loop fast.
 
@@ -46,7 +48,7 @@ Run a single one — with xUnit v3 and MTP v2, use the test executable directly 
 
 - Central package management: add/update versions in `Directory.Packages.props`, never in a `.csproj`.
 - `Common.props` sets `TreatWarningsAsErrors=true` and strong-name signing (`Fluid.snk`) for all projects — warnings break the build.
-- `Fluid` multi-targets `netstandard2.0;net8.0;net9.0;net10.0`. New core code must compile on netstandard2.0: PolySharp supplies language polyfills and `Fluid/Shims.cs` (`#if !NET6_0_OR_GREATER`) supplies the missing BCL overloads.
+- `Fluid` multi-targets `netstandard2.0;net8.0;net9.0;net10.0`. New core code must compile on netstandard2.0: PolySharp supplies language polyfills and `Fluid/Shims.cs` supplies the missing BCL overloads (`#if !NET6_0_OR_GREATER`, plus a `Lock` placeholder behind `#if !NET9_0_OR_GREATER`).
 
 ## Architecture
 
@@ -94,11 +96,11 @@ Existing patterns to follow rather than reinvent:
 
 - `Fluid/Utils/ValueStringBuilder.cs` — ref struct builder seeded from `stackalloc`, spilling to `ArrayPool<char>`. Used throughout `Fluid/Filters/MiscFilters.cs` (e.g. `new ValueStringBuilder(stackalloc char[32])`).
 - `Fluid/Utils/BufferFluidOutput.cs` and `TextWriterFluidOutput.cs` — pooled output buffering behind `IFluidOutput`.
-- `Fluid/Values/NumberValue.cs:131` — `Span<char>` scratch with an `ArrayPool` fallback for larger formats.
+- `Fluid/Values/NumberValue.cs:158` — `Span<char>` scratch with an `ArrayPool` fallback for larger formats.
 - `FluidParserExtensions.RenderStatementsAsync` — synchronous `ValueTask` fast path, `Awaited` local function only when a task actually suspends.
 - Cached singletons (`NilValue.Instance`, `BooleanValue.True`, `Statement.NormalCompletion`) instead of fresh allocations.
 
-Because `Fluid` still targets netstandard2.0, APIs that only exist on modern runtimes go behind a TFM guard with a working fallback — `Fluid/FluidOutputExtensions.cs:78` (`#if NET8_0_OR_GREATER`) and `Fluid/Filters/StringFilters.cs:205` (`#if NET6_0_OR_GREATER`) are the model. `SearchValues<T>` in particular is net8.0+, so it needs this treatment. Do not drop the fallback path; do not regress netstandard2.0 behavior.
+Because `Fluid` still targets netstandard2.0, APIs that only exist on modern runtimes go behind a TFM guard with a working fallback — `Fluid/FluidOutputExtensions.cs:64` (`#if NET8_0_OR_GREATER`) and `Fluid/Filters/StringFilters.cs:244` (`#if NET6_0_OR_GREATER`) are the model. `SearchValues<T>` in particular is net8.0+, so it needs this treatment. Do not drop the fallback path; do not regress netstandard2.0 behavior.
 
 Measure with `Fluid.Benchmarks` (`dotnet run -c Release --project Fluid.Benchmarks`) before and after any hot-path change, and keep the numbers — an unmeasured performance claim is not one.
 
