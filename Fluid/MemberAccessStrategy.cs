@@ -6,6 +6,10 @@ namespace Fluid
 
         public abstract void Register(Type type, string name, MemberAccessor accessor);
 
+        internal virtual void RegisterGeneratedAccessor(Type type)
+        {
+        }
+
         /// <summary>
         /// Gets a token identifying the current set of accessors this strategy would return, or
         /// <c>null</c> to disable caching. Call sites may remember the <see cref="MemberAccessor"/>

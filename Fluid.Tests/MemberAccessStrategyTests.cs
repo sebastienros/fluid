@@ -392,6 +392,79 @@ namespace Fluid.Tests
 
             Assert.Equal("runtime", template.Render(new TemplateContext(model, options)));
         }
+
+        [Fact]
+        public void ShouldUseGeneratedMemberAccessorInferredFromTemplateContextConstructor()
+        {
+            var options = new TemplateOptions();
+            var model = new InferredModel();
+            var context = new TemplateContext(model, options);
+
+            var accessor = options.MemberAccessStrategy.GetAccessor(
+                typeof(InferredModel),
+                nameof(InferredModel.Inferred),
+                options.ModelNamesComparer);
+
+            Assert.Equal("Fluid.SourceGenerated", accessor.GetType().Namespace);
+            Assert.Equal("inferred", _parser.Parse("{{ Inferred }}").Render(context));
+            Assert.Equal("", _parser.Parse("{{ NotAProperty }}").Render(context));
+            Assert.Null(options.MemberAccessStrategy.GetAccessor(
+                typeof(InferredModel),
+                nameof(InferredModel.NotAProperty),
+                options.ModelNamesComparer));
+        }
+
+        [Fact]
+        public void InferredAccessorShouldPreserveBaseTypeRegistrationFallback()
+        {
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<InferredModelBase, object>(
+                static (_, name) => name == "Custom" ? "custom" : null);
+            var context = new TemplateContext(new InferredModel(), options);
+
+            Assert.Equal("custom", _parser.Parse("{{ Custom }}").Render(context));
+        }
+
+        [Fact]
+        public void ShouldNotActivateInferredAccessorOnTemplateOptionsDefault()
+        {
+            var options = TemplateOptions.Default;
+            var context = new TemplateContext(new DefaultInferredModel(), options);
+            var accessor = options.MemberAccessStrategy.GetAccessor(
+                typeof(DefaultInferredModel),
+                nameof(DefaultInferredModel.Value),
+                options.ModelNamesComparer);
+
+            Assert.Equal("Fluid.Accessors", accessor.GetType().Namespace);
+            Assert.Equal("default", _parser.Parse("{{ Value }}").Render(context));
+        }
+
+        [Fact]
+        public void InferredAccessorShouldUseConfiguredValueConverters()
+        {
+            var options = new TemplateOptions();
+            options.ValueConverters.Add(static value => value is int ? "converted" : null);
+            var context = new TemplateContext(new InferredModel(), options);
+
+            Assert.Equal("converted", _parser.Parse("{{ Count }}").Render(context));
+        }
+
+        [Fact]
+        public void InferredAccessorShouldPreserveNonGenericAsyncMemberBehavior()
+        {
+            var options = new TemplateOptions();
+            _ = new TemplateContext(new InferredModel(), options);
+
+            Assert.Equal("Fluid.Accessors", options.MemberAccessStrategy.GetAccessor(
+                typeof(InferredModel),
+                nameof(InferredModel.PlainTask),
+                options.ModelNamesComparer).GetType().Namespace);
+            Assert.Equal("Fluid.Accessors", options.MemberAccessStrategy.GetAccessor(
+                typeof(InferredModel),
+                nameof(InferredModel.ValueTask),
+                options.ModelNamesComparer).GetType().Namespace);
+        }
+
     }
 
     public class ModelWithStaticNull
@@ -422,6 +495,24 @@ namespace Fluid.Tests
     public sealed class GeneratedModel
     {
         public string Generated { get; set; } = "model";
+    }
+
+    public class InferredModelBase
+    {
+    }
+
+    public sealed class InferredModel : InferredModelBase
+    {
+        public string Inferred { get; set; } = "inferred";
+        public int Count { get; set; } = 42;
+        public Task PlainTask { get; set; } = Task.CompletedTask;
+        public ValueTask<int> ValueTask { get; set; }
+        public string NotAProperty() => "method";
+    }
+
+    public sealed class DefaultInferredModel
+    {
+        public string Value => "default";
     }
 
     public sealed class GeneratedTemplateOptions : TemplateOptions, ITemplateOptionsMemberAccessorRegistrar

@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Fluid.Accessors;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -20,10 +21,26 @@ namespace Fluid
             public volatile Dictionary<ReflectedAccessorKey, MemberAccessor> Accessors = [];
         }
 
+        private sealed class AccessorCacheState
+        {
+            public AccessorCacheState(object registrations, object generatedRegistrations)
+            {
+                Registrations = registrations;
+                GeneratedRegistrations = generatedRegistrations;
+            }
+
+            public object Registrations { get; }
+            public object GeneratedRegistrations { get; }
+        }
+
         private static readonly bool _dynamicCodeSupported = IsDynamicCodeSupported();
 
         private volatile Dictionary<AccessorKey, MemberAccessor> _registrations = [];
+        private volatile Dictionary<Type, GeneratedMemberAccessorRegistration[]> _generatedRegistrations = [];
+        private volatile object _generatedRegistryToken = GeneratedMemberAccessorRegistry.CacheToken;
+        private volatile Type _lastGeneratedType;
         private volatile ReflectionCache _reflectionCache;
+        private volatile AccessorCacheState _accessorCacheState;
 
         // Only the exact type opts in. A derived strategy may override GetAccessor to resolve from its
         // own source, which these maps -- and therefore the token -- would not reflect; it would then serve
@@ -33,10 +50,19 @@ namespace Fluid
         public DefaultMemberAccessStrategy()
         {
             _accessorCachingSupported = GetType() == typeof(DefaultMemberAccessStrategy);
-            _reflectionCache = new ReflectionCache(_registrations);
+            _accessorCacheState = new AccessorCacheState(_registrations, _generatedRegistrations);
+            _reflectionCache = new ReflectionCache(_accessorCacheState);
         }
 
-        protected internal override object AccessorCacheToken => _accessorCachingSupported ? _registrations : null;
+        protected internal override object AccessorCacheToken
+            => _accessorCachingSupported ? GetAccessorCacheState(_registrations, _generatedRegistrations) : null;
+
+        /// <summary>
+        /// Registers an accessor emitted by the Fluid source generator.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static void RegisterSourceGeneratedAccessor(Type type, MemberAccessor accessor, params string[] memberNames)
+            => GeneratedMemberAccessorRegistry.Register(type, accessor, memberNames);
 
         public override MemberAccessor GetAccessor(Type type, string name, StringComparer stringComparer)
         {
@@ -45,13 +71,25 @@ namespace Fluid
             ArgumentNullException.ThrowIfNull(stringComparer);
 
             var registrations = _registrations;
+            var generatedRegistrations = _generatedRegistrations;
 
             if (TryGetRegisteredAccessor(registrations, type, name, out var accessor))
             {
                 return accessor;
             }
 
-            var reflectionCache = GetReflectionCache(registrations);
+            if (generatedRegistrations.TryGetValue(type, out var generatedAccessors))
+            {
+                foreach (var generatedAccessor in generatedAccessors)
+                {
+                    if (generatedAccessor.CanAccess(name, stringComparer))
+                    {
+                        return generatedAccessor.Accessor;
+                    }
+                }
+            }
+
+            var reflectionCache = GetReflectionCache(GetAccessorCacheState(registrations, generatedRegistrations));
             var key = new ReflectedAccessorKey(type, name, stringComparer);
             var reflectedAccessors = reflectionCache.Accessors;
 
@@ -231,7 +269,60 @@ namespace Fluid
                     Interlocked.CompareExchange(ref _registrations, updated, registrations),
                     registrations))
                 {
-                    _reflectionCache = new ReflectionCache(updated);
+                    _reflectionCache = new ReflectionCache(GetAccessorCacheState(updated, _generatedRegistrations));
+                    return;
+                }
+            }
+        }
+
+        internal override void RegisterGeneratedAccessor(Type type)
+        {
+            while (true)
+            {
+                var registryToken = GeneratedMemberAccessorRegistry.CacheToken;
+                var generatedRegistrations = _generatedRegistrations;
+
+                if (ReferenceEquals(_generatedRegistryToken, registryToken))
+                {
+                    if (ReferenceEquals(_lastGeneratedType, type))
+                    {
+                        return;
+                    }
+
+                    if (generatedRegistrations.ContainsKey(type))
+                    {
+                        _lastGeneratedType = type;
+                        return;
+                    }
+                }
+
+                var accessors = GeneratedMemberAccessorRegistry.GetAccessors(type, out registryToken);
+                if (accessors is null)
+                {
+                    _generatedRegistryToken = registryToken;
+                    return;
+                }
+
+                if (generatedRegistrations.TryGetValue(type, out var registeredAccessors) &&
+                    ReferenceEquals(registeredAccessors, accessors))
+                {
+                    _generatedRegistryToken = registryToken;
+                    _lastGeneratedType = type;
+                    return;
+                }
+
+                var updated = new Dictionary<Type, GeneratedMemberAccessorRegistration[]>(generatedRegistrations)
+                {
+                    [type] = accessors
+                };
+
+                if (ReferenceEquals(
+                    Interlocked.CompareExchange(ref _generatedRegistrations, updated, generatedRegistrations),
+                    generatedRegistrations))
+                {
+                    _generatedRegistryToken = registryToken;
+                    _lastGeneratedType = type;
+                    _reflectionCache = new ReflectionCache(GetAccessorCacheState(_registrations, updated));
                     return;
                 }
             }
@@ -251,6 +342,28 @@ namespace Fluid
                 if (ReferenceEquals(
                     Interlocked.CompareExchange(ref _reflectionCache, updated, reflectionCache),
                     reflectionCache))
+                {
+                    return updated;
+                }
+            }
+        }
+
+        private AccessorCacheState GetAccessorCacheState(object registrations, object generatedRegistrations)
+        {
+            while (true)
+            {
+                var state = _accessorCacheState;
+
+                if (ReferenceEquals(state.Registrations, registrations) &&
+                    ReferenceEquals(state.GeneratedRegistrations, generatedRegistrations))
+                {
+                    return state;
+                }
+
+                var updated = new AccessorCacheState(registrations, generatedRegistrations);
+                if (ReferenceEquals(
+                    Interlocked.CompareExchange(ref _accessorCacheState, updated, state),
+                    state))
                 {
                     return updated;
                 }

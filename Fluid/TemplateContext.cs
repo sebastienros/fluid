@@ -29,6 +29,11 @@ namespace Fluid
         {
             ArgumentNullException.ThrowIfNull(model);
 
+            if (!ReferenceEquals(options, TemplateOptions.Default))
+            {
+                options.MemberAccessStrategy.RegisterGeneratedAccessor(model.GetType());
+            }
+
             if (model is FluidValue fluidValue)
             {
                 Model = fluidValue;

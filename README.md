@@ -173,18 +173,43 @@ Fluid works when targeting NativeAOT and trimmed deployments.
 
 1. Reuse `TemplateOptions` instances (for example, at app startup).
 2. If you use runtime `MemberAccessStrategy.Register<T...>` calls, execute them during application startup before rendering templates.
-3. Prefer `[FluidRegister]` on a custom `TemplateOptions` subclass for model types known at compile time.
+3. Pass a statically typed model and custom options to `TemplateContext`, or use `[FluidRegister]` for types that are not visible at a context construction site.
 4. Validate your app with AOT/trim publish settings:
 
 ```shell
 dotnet publish -c Release -r <RID> -p:PublishAot=true
 ```
 
+### Compatibility boundaries
+
+NativeAOT compatibility and trimming compatibility are related but separate. Fluid's reflection fallback does not emit code and can run when dynamic code is unavailable. A trimmed application must also preserve every member that the fallback discovers at runtime.
+
+| Usage | NativeAOT with trimming |
+| --- | --- |
+| `new TemplateContext(concreteModel, customOptions)` with the source generator enabled and matching compile-time and runtime model types | Compatible. Eligible public fields and properties are accessed directly by generated code. |
+| A model registered with `[FluidRegister]` | Compatible. Use this for boxed models, nested model types, models created in another assembly, or types not visible at a `TemplateContext` construction site. |
+| An explicit `MemberAccessStrategy.Register<T...>` mapping or custom `MemberAccessor` that accesses members directly | Compatible. The application supplies the access logic instead of relying on member discovery. |
+| The one-argument `new TemplateContext(model)` constructor or `TemplateOptions.Default` | No accessor is inferred. Rendering uses an explicit registration if one exists; otherwise it falls back to reflection. |
+| A model passed as `object`, an interface or base type whose runtime type differs, or an unregistered nested model | No accessor is inferred for the runtime type. Use `[FluidRegister]` for the concrete runtime type or register an accessor explicitly. |
+| Reflection fallback for an unregistered type | NativeAOT-compatible only when the required public member metadata is preserved from trimming. Prefer source generation or explicit registration rather than relying on linker configuration. |
+| A reflection-discovered `Task<T>` member | Avoid in trimmed NativeAOT applications because the reflection fallback uses runtime dynamic binding to read the result. A generated or custom accessor handles `Task<T>` without dynamic binding. |
+
+Source generation covers public readable properties and public fields that can be referenced from generated code. Members that cannot be generated continue through the normal registration and reflection fallback paths. If any required member uses a fallback path, validate the published application rather than assuming that source generation preserved it.
+
 ### Source generation (optional)
 
-When the `Fluid.SourceGenerator` analyzer is enabled, Fluid can generate strongly-typed member accessors for types declared with `FluidRegisterAttribute`.
+When the `Fluid.SourceGenerator` analyzer is enabled, Fluid can generate strongly-typed member accessors for model types discovered at compile time.
 
-The recommended pattern is to declare a custom `TemplateOptions` subclass and add one `FluidRegisterAttribute` per model type:
+The model type is inferred automatically when its compile-time and runtime types match and it is passed with custom options:
+
+```csharp
+var options = new TemplateOptions();
+var context = new TemplateContext(person, options);
+```
+
+The generated accessor is activated on the `DefaultMemberAccessStrategy` of the options instance passed to that constructor. Explicit registrations on `options.MemberAccessStrategy` still take precedence. The one-argument `TemplateContext(model)` constructor does not infer or activate a model accessor because it uses the shared `TemplateOptions.Default` instance.
+
+Use `FluidRegisterAttribute` when a model is passed as `object`, is created outside the compilation using the source generator, or when nested model types also need generated accessors. The recommended explicit pattern is to declare a custom `TemplateOptions` subclass and add one attribute per model type:
 
 ```csharp
 using Fluid;

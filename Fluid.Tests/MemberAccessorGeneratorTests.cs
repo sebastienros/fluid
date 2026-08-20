@@ -109,6 +109,87 @@ public class MemberAccessorGeneratorTests
         Assert.Contains("strategy.Register(typeof(global::Address), \"*\", new global::Fluid.SourceGenerated.Address_GeneratedMemberAccessor());", generated);
     }
 
+    [Fact]
+    public void ShouldInferModelTypeFromTemplateContextWithCustomOptions()
+    {
+        var source = """
+            using Fluid;
+
+            public class Person
+            {
+                public string FirstName { get; set; } = "";
+                public string Hidden { private get; set; } = "";
+                public string Method() => "";
+                public System.Threading.Tasks.Task PlainTask { get; set; } = System.Threading.Tasks.Task.CompletedTask;
+                public System.Threading.Tasks.ValueTask<int> ValueTask { get; set; }
+            }
+
+            public static class ContextFactory
+            {
+                public static TemplateContext Create(Person person, TemplateOptions options)
+                    => new TemplateContext(person, options);
+            }
+            """;
+
+        var generated = RunGenerator(source);
+
+        Assert.Contains("internal sealed class Person_GeneratedMemberAccessor", generated);
+        Assert.Contains("[global::System.Runtime.CompilerServices.ModuleInitializer]", generated);
+        Assert.Contains(
+            "DefaultMemberAccessStrategy.RegisterSourceGeneratedAccessor(typeof(global::Person), new Person_GeneratedMemberAccessor_Inferred0(), new string[] { \"FirstName\" });",
+            generated);
+        Assert.DoesNotContain("typed.Hidden", generated);
+        Assert.Contains("typed.Method()", generated);
+        Assert.DoesNotContain("new string[] { \"PlainTask\" }", generated);
+        Assert.DoesNotContain("new string[] { \"ValueTask\" }", generated);
+    }
+
+    [Fact]
+    public void ShouldNotInferModelTypeFromTemplateContextUsingDefaultOptions()
+    {
+        var source = """
+            using Fluid;
+
+            public class Person
+            {
+                public string FirstName { get; set; } = "";
+            }
+
+            public static class ContextFactory
+            {
+                public static TemplateContext Create(Person person)
+                    => new TemplateContext(person);
+            }
+            """;
+
+        var generated = RunGenerator(source);
+
+        Assert.DoesNotContain("Person_GeneratedMemberAccessor", generated);
+    }
+
+    [Fact]
+    public void ShouldNotInferModelTypeFromExplicitTemplateOptionsDefault()
+    {
+        var source = """
+            using Fluid;
+
+            public class Person
+            {
+                public string FirstName { get; set; } = "";
+            }
+
+            public static class ContextFactory
+            {
+                public static TemplateContext Create(Person person)
+                    => new TemplateContext(person, TemplateOptions.Default);
+            }
+            """;
+
+        var generated = RunGenerator(source);
+
+        Assert.DoesNotContain("Person_GeneratedMemberAccessor", generated);
+    }
+
     private static string RunGenerator(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
@@ -122,7 +203,7 @@ public class MemberAccessorGeneratorTests
         var driver = CSharpGeneratorDriver.Create(generator).RunGenerators(compilation);
         var runResult = driver.GetRunResult();
 
-        Assert.Equal(2, runResult.GeneratedTrees.Length);
+        Assert.InRange(runResult.GeneratedTrees.Length, 1, 2);
         Assert.Empty(runResult.Diagnostics.Where(static x => x.Severity == DiagnosticSeverity.Error));
 
         var outputCompilation = compilation.AddSyntaxTrees(runResult.GeneratedTrees);
