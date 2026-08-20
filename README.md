@@ -1527,12 +1527,25 @@ Now `field` is available as a local property of the template and can be invoked 
 
 Macros defined in an external template **must** be imported before they can be invoked.
 
+Omit the import list to import every macro defined by the template:
+
+```
+{% from 'forms' %}
+
+{{ field('user') }}
+{{ field('pass', type='password') }}
+```
+
+Use an explicit import list to import only selected macros:
+
 ```
 {% from 'forms' import field %}
 
 {{ field('user') }}
 {{ field('pass', type='password') }}
 ```
+
+The import-all form is the equivalent of a wildcard import; no wildcard token is required. Both forms evaluate the external template without rendering its output and copy only macros, not its assigned variables. An imported macro replaces a same-named value in the current scope, so prefer selective imports when name collisions are possible. Use `include` to render external template content and `from` to load its macros.
 
 ### Extensibility
 
