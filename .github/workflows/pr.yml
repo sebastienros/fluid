@@ -3,7 +3,7 @@ name: PR Checks
 on:
 
   pull_request:
-    branches: [ main, 'releases/**' ]
+    branches: [ main, 'release/**' ]
     paths-ignore:
     - 'doc/**'
     - 'readme.md'
