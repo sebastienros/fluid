@@ -35,6 +35,9 @@
   <ItemGroup>
     <PackageReference Include="Parlot" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
     <PackageReference Include="TimeZoneConverter" />
   </ItemGroup>
 

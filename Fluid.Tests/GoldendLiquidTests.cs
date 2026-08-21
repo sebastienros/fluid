@@ -9,7 +9,6 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using TimeZoneConverter;
 using Xunit;
 using Xunit.Sdk;
 
@@ -17,7 +16,7 @@ namespace Fluid.Tests
 {
     public class GoldenLiquidTests
     {
-        private static readonly TimeZoneInfo Pacific = TZConvert.GetTimeZoneInfo("America/Los_Angeles");
+        private static readonly TimeZoneInfo Pacific = TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles");
         private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
         private static readonly Dictionary<string, string> _skippedTests = new()
         {

@@ -9,15 +9,14 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using TimeZoneConverter;
 using Xunit;
 
 namespace Fluid.Tests
 {
     public class MiscFiltersTests
     {
-        private static readonly TimeZoneInfo Pacific = TZConvert.GetTimeZoneInfo("America/Los_Angeles");
-        private static readonly TimeZoneInfo Eastern = TZConvert.GetTimeZoneInfo("America/New_York");
+        private static readonly TimeZoneInfo Pacific = TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles");
+        private static readonly TimeZoneInfo Eastern = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
         private static readonly string RoundTripDateTimePattern = "%Y-%m-%dT%H:%M:%S.%L%Z"; // Equivalent to "o" format
 
         [Fact]
@@ -378,6 +377,30 @@ namespace Fluid.Tests
             Assert.Equal(expected, ((DateTimeOffset)result.ToObjectValue()).ToString("yyyy-MM-ddTHH:mm:ssK"));
         }
 
+        [Fact]
+        public async Task ChangeTimeZoneUsesConfiguredResolver()
+        {
+            var input = new DateTimeValue(DateTimeOffset.Parse("2020-05-18T02:13:09+00:00"));
+            var arguments = new FilterArguments(new StringValue("Custom"));
+            var customTimeZone = TimeZoneInfo.CreateCustomTimeZone("Custom", TimeSpan.FromHours(3), "Custom", "Custom");
+            var resolvedId = "";
+            var options = new TemplateOptions
+            {
+                TimeZoneResolver = id =>
+                {
+                    resolvedId = id;
+                    return customTimeZone;
+                }
+            };
+
+            var result = await MiscFilters.ChangeTimeZone(input, arguments, new TemplateContext(options));
+
+            Assert.Equal("Custom", resolvedId);
+            Assert.Equal(
+                "2020-05-18T05:13:09+03:00",
+                ((DateTimeOffset)result.ToObjectValue()).ToString("yyyy-MM-ddTHH:mm:ssK"));
+        }
+
         [Theory]
         [InlineData("2022-12-13T21:02:18.399+00:00", "utc", "2022-12-13T21:02:18.399+00:00")]
         [InlineData("2022-12-13T21:02:18.399+00:00", "America/New_York", "2022-12-13T21:02:18.399+00:00")]
@@ -392,7 +415,7 @@ namespace Fluid.Tests
             // - When no TZ is provided, we assume the local offset (context.TimeZone)
 
             var input = new StringValue(initialDateTime);
-            var context = new TemplateContext { TimeZone = TZConvert.GetTimeZoneInfo(timeZone) };
+            var context = new TemplateContext { TimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZone) };
 
             var date = await MiscFilters.Date(input, new FilterArguments(new StringValue(RoundTripDateTimePattern)), context);
 

@@ -6,6 +6,7 @@ This guide explains how time zones work in Fluid templates, covering parsing, re
 - [Understanding Time Zone Behavior](#understanding-time-zone-behavior)
 - [The TimeZone Property](#the-timezone-property)
 - [Converting Time Zones During Rendering](#converting-time-zones-during-rendering)
+- [Resolving Time Zone Identifiers](#resolving-time-zone-identifiers)
 - [Automatic Conversion with Value Converters](#automatic-conversion-with-value-converters)
 - [Common Patterns and Examples](#common-patterns-and-examples)
 
@@ -170,6 +171,33 @@ Explicit timezone: Wednesday, 02 February 2022 14:00:00
 
 Notice that the `time_zone` filter must be combined with the `date` filter to properly display the converted time. The first line shows the UTC time, while the filtered versions show the time converted to 14:00 in the Uzhgorod timezone (UTC+2).
 
+## Resolving Time Zone Identifiers
+
+On .NET 6 and later, the `time_zone` filter resolves identifiers with `TimeZoneInfo.FindSystemTimeZoneById`. Both IANA identifiers such as `America/Los_Angeles` and Windows identifiers such as `Pacific Standard Time` are supported across platforms when ICU globalization data is available. Fluid's `netstandard2.0` asset uses [TimeZoneConverter](https://github.com/mattjohnsonpint/TimeZoneConverter) as its default resolver for compatibility with older runtimes.
+
+```csharp
+var options = new TemplateOptions();
+var context = new TemplateContext(options);
+
+var template = parser.Parse(
+    "{{ published | time_zone: 'America/Los_Angeles' | date: '%+' }}");
+```
+
+IANA identifiers are not available through `TimeZoneInfo` on Windows when globalization invariant mode or NLS mode is enabled. You can replace the resolver through `TemplateOptions.TimeZoneResolver`. For example, an application using the [TimeZoneConverter](https://github.com/mattjohnsonpint/TimeZoneConverter) package can configure:
+
+```csharp
+using TimeZoneConverter;
+
+var options = new TemplateOptions
+{
+    TimeZoneResolver = id => TZConvert.GetTimeZoneInfo(id)
+};
+
+var context = new TemplateContext(options);
+```
+
+The resolver is used for explicit identifiers passed to the `time_zone` filter. The special `local` identifier still uses `TemplateContext.TimeZone`.
+
 ## Automatic Conversion with Value Converters
 
 If you want to automatically convert all DateTime values to a specific time zone without using the `time_zone` filter everywhere, you can use a value converter:
@@ -304,10 +332,12 @@ The date string will be interpreted as Pacific time, not UTC.
 
 ## Time Zone Identifiers
 
-Fluid uses the [TimeZoneConverter](https://github.com/mattjohnsonpint/TimeZoneConverter) library, which supports:
+Fluid uses `TimeZoneInfo` on .NET 6 and later and TimeZoneConverter on `netstandard2.0`. The default resolver supports:
 - IANA time zone IDs (e.g., "America/New_York", "Europe/London")
 - Windows time zone IDs (e.g., "Pacific Standard Time", "GMT Standard Time")
-- Cross-platform conversion between IANA and Windows identifiers
+- Cross-platform resolution on .NET 6 and later when ICU globalization data is available
+
+Use `TemplateOptions.TimeZoneResolver` when your runtime does not provide the identifiers your templates need.
 
 ### Finding Time Zone IDs
 
@@ -343,13 +373,15 @@ foreach (var tz in TimeZoneInfo.GetSystemTimeZones())
 | Parse date strings without time zone info | Set `TemplateContext.TimeZone` |
 | Display dates in a specific time zone | Use `{{ date \| time_zone: 'timezone-id' }}` filter |
 | Display dates in the context's time zone | Use `{{ date \| time_zone: 'local' }}` filter |
+| Resolve identifiers with a custom library | Set `TemplateOptions.TimeZoneResolver` |
 | Automatically convert all dates | Use a `ValueConverter` |
 | Display dates in multiple time zones | Use multiple `time_zone` filters with different IDs |
 
 ## Additional Resources
 
 - [Ruby date and time format strings](https://ruby-doc.org/core-3.0.0/Time.html#method-i-strftime) - Used by the `date` filter
-- [TimeZoneConverter Library](https://github.com/mattjohnsonpint/TimeZoneConverter) - Cross-platform time zone support
+- [TimeZoneInfo.FindSystemTimeZoneById](https://learn.microsoft.com/dotnet/api/system.timezoneinfo.findsystemtimezonebyid) - Default time zone resolution
+- [TimeZoneConverter Library](https://github.com/mattjohnsonpint/TimeZoneConverter) - Optional resolver for additional compatibility
 - [IANA Time Zone Database](https://www.iana.org/time-zones) - Standard time zone identifiers
 - [Fluid README - Time zones section](README.md#time-zones) - Quick reference
 - [Fluid README - Value Converters section](README.md#adding-a-value-converter) - More on value converters

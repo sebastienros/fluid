@@ -22,8 +22,8 @@ namespace Fluid.Tests
         private static FluidParser _parser = new FluidParser();
 #endif
 
-        private static readonly TimeZoneInfo Eastern = TimeZoneConverter.TZConvert.GetTimeZoneInfo("America/New_York");
-        private static readonly TimeZoneInfo Paris = TimeZoneConverter.TZConvert.GetTimeZoneInfo("Europe/Paris");
+        private static readonly TimeZoneInfo Eastern = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
+        private static readonly TimeZoneInfo Paris = TimeZoneInfo.FindSystemTimeZoneById("Europe/Paris");
 
         private object _products = new[]
         {

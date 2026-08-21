@@ -149,9 +149,26 @@ namespace Fluid
         public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Local;
 
         /// <summary>
+        /// Gets or sets the function used by the <c>time_zone</c> filter to resolve a time zone identifier.
+        /// </summary>
+        /// <remarks>
+        /// The default uses <see cref="TimeZoneInfo.FindSystemTimeZoneById(string)"/> on .NET 6 and later.
+        /// </remarks>
+        public Func<string, TimeZoneInfo> TimeZoneResolver { get; set; } = ResolveTimeZone;
+
+        /// <summary>
         /// Gets or sets the maximum depth of recursions a script can execute. 100 by default.
         /// </summary>
         public int MaxRecursion { get; set; } = 100;
+
+        private static TimeZoneInfo ResolveTimeZone(string id)
+        {
+#if NET6_0_OR_GREATER
+            return TimeZoneInfo.FindSystemTimeZoneById(id);
+#else
+            return TimeZoneConverter.TZConvert.GetTimeZoneInfo(id);
+#endif
+        }
 
         /// <summary>
         /// Gets the collection of filters available in the templates.

@@ -6,7 +6,6 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using TimeZoneConverter;
 
 namespace Fluid.Filters
 {
@@ -482,9 +481,20 @@ namespace Fluid.Filters
             {
                 timeZoneInfo = context.TimeZone;
             }
-            else if (!TZConvert.TryGetTimeZoneInfo(timeZone, out timeZoneInfo))
+            else
             {
-                return new DateTimeValue(value);
+                try
+                {
+                    timeZoneInfo = context.Options.TimeZoneResolver(timeZone);
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                    return new DateTimeValue(value);
+                }
+                catch (InvalidTimeZoneException)
+                {
+                    return new DateTimeValue(value);
+                }
             }
 
             var result = TimeZoneInfo.ConvertTime(value, timeZoneInfo);
