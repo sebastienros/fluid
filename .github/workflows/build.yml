@@ -10,6 +10,8 @@ on:
 jobs:
   build:
 
+    # Don't run on forks
+    if: github.repository == 'sebastienros/fluid'
     runs-on: ubuntu-latest
     env:
         DOTNET_NOLOGO: true
@@ -28,7 +30,7 @@ jobs:
       run: dotnet test -c Release
 
     - name: Test - Compiled
-      run: dotnet test --configuration Release /p:Compiled=true
+      run: dotnet test --configuration Release --property:Compiled=true
 
     - name: Pack
       run: |

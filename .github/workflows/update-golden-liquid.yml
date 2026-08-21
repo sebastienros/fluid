@@ -8,6 +8,8 @@ on:
 
 jobs:
   check-and-update:
+    # Don't run on forks
+    if: github.repository == 'sebastienros/fluid'
     runs-on: ubuntu-latest
     permissions:
       actions: write
