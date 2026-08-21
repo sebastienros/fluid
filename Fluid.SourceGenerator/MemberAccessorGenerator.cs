@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace Fluid.SourceGenerator;
 
@@ -10,6 +11,7 @@ namespace Fluid.SourceGenerator;
 public sealed class MemberAccessorGenerator : IIncrementalGenerator
 {
     private const string RegisterAttributeType = "Fluid.FluidRegisterAttribute";
+    private const string TemplateContextType = "Fluid.TemplateContext";
     private const string TemplateOptionsType = "Fluid.TemplateOptions";
 
     private static readonly SymbolDisplayFormat TypeExpressionFormat = SymbolDisplayFormat.FullyQualifiedFormat
@@ -50,8 +52,25 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
             .Where(static candidate => candidate is not null)
             .Select(static (candidate, _) => candidate!);
 
-        var combined = context.CompilationProvider.Combine(profileMethods.Collect()).Combine(optionsTypes.Collect());
-        context.RegisterSourceOutput(combined, static (sourceContext, source) => Execute(sourceContext, source.Left.Right, source.Right));
+        var inferredModelTypes = context.SyntaxProvider.CreateSyntaxProvider(
+                predicate: static (node, _) =>
+                    node is BaseObjectCreationExpressionSyntax { ArgumentList.Arguments.Count: 2 },
+                transform: static (syntaxContext, _) => GetTemplateContextModelType(syntaxContext))
+            .Where(static candidate => candidate is not null)
+            .Select(static (candidate, _) => candidate!);
+
+        var combined = context.CompilationProvider
+            .Combine(profileMethods.Collect())
+            .Combine(optionsTypes.Collect())
+            .Combine(inferredModelTypes.Collect());
+
+        context.RegisterSourceOutput(combined, static (sourceContext, source) =>
+            Execute(
+                sourceContext,
+                source.Left.Left.Left,
+                source.Left.Left.Right,
+                source.Left.Right,
+                source.Right));
     }
 
     private static ProfileMethodCandidate? GetProfileMethod(GeneratorSyntaxContext context)
@@ -116,6 +135,60 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
             typeSyntax.GetLocation());
     }
 
+    private static ITypeSymbol? GetTemplateContextModelType(GeneratorSyntaxContext context)
+    {
+        if (context.SemanticModel.GetOperation(context.Node) is not IObjectCreationOperation creation ||
+            creation.Constructor is not { Parameters.Length: 2 } constructor ||
+            !string.Equals(constructor.ContainingType.ToDisplayString(), TemplateContextType, StringComparison.Ordinal) ||
+            !string.Equals(constructor.Parameters[1].Type.ToDisplayString(), TemplateOptionsType, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var modelArgument = creation.Arguments.FirstOrDefault(static argument => argument.Parameter?.Ordinal == 0);
+        var optionsArgument = creation.Arguments.FirstOrDefault(static argument => argument.Parameter?.Ordinal == 1);
+        if (modelArgument is null || optionsArgument is null || IsTemplateOptionsDefault(optionsArgument.Value))
+        {
+            return null;
+        }
+
+        IOperation value = modelArgument.Value;
+        while (value is IConversionOperation { IsImplicit: true } conversion)
+        {
+            value = conversion.Operand;
+        }
+
+        var modelType = value.Type;
+        if (modelType is null ||
+            modelType.SpecialType == SpecialType.System_Object ||
+            modelType.TypeKind is TypeKind.Dynamic or TypeKind.Error or TypeKind.TypeParameter ||
+            !CanGenerateAccessor(modelType))
+        {
+            return null;
+        }
+
+        return modelType.IsReferenceType
+            ? modelType.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
+            : modelType;
+    }
+
+    private static bool IsTemplateOptionsDefault(IOperation operation)
+    {
+        while (operation is IConversionOperation { IsImplicit: true } conversion)
+        {
+            operation = conversion.Operand;
+        }
+
+        return operation is IFieldReferenceOperation
+        {
+            Field:
+            {
+                IsStatic: true,
+                Name: "Default"
+            } field
+        } && string.Equals(field.ContainingType.ToDisplayString(), TemplateOptionsType, StringComparison.Ordinal);
+    }
+
     private static ImmutableArray<ITypeSymbol> GetRegisteredTypes(ISymbol symbol)
     {
         var registerAttributes = symbol.GetAttributes()
@@ -152,9 +225,14 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
         return registeredTypes.ToImmutableArray();
     }
 
-    private static void Execute(SourceProductionContext context, ImmutableArray<ProfileMethodCandidate> methodCandidates, ImmutableArray<OptionsTypeCandidate> optionsTypeCandidates)
+    private static void Execute(
+        SourceProductionContext context,
+        Compilation compilation,
+        ImmutableArray<ProfileMethodCandidate> methodCandidates,
+        ImmutableArray<OptionsTypeCandidate> optionsTypeCandidates,
+        ImmutableArray<ITypeSymbol> inferredModelTypes)
     {
-        if (methodCandidates.IsDefaultOrEmpty && optionsTypeCandidates.IsDefaultOrEmpty)
+        if (methodCandidates.IsDefaultOrEmpty && optionsTypeCandidates.IsDefaultOrEmpty && inferredModelTypes.IsDefaultOrEmpty)
         {
             return;
         }
@@ -195,7 +273,24 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
             }
         }
 
-        if ((validMethods.Count == 0 && validOptionsTypes.Count == 0) || allRegisteredTypes.Count == 0)
+        var inferredTypeExpressions = new HashSet<string>(StringComparer.Ordinal);
+        var supportsModuleInitializers = compilation.SyntaxTrees.FirstOrDefault()?.Options is CSharpParseOptions
+        {
+            LanguageVersion: >= LanguageVersion.CSharp9
+        };
+
+        if (supportsModuleInitializers)
+        {
+            foreach (var inferredModelType in inferredModelTypes)
+            {
+                var typeExpression = inferredModelType.ToDisplayString(TypeExpressionFormat);
+                allRegisteredTypes[typeExpression] = inferredModelType;
+                inferredTypeExpressions.Add(typeExpression);
+            }
+        }
+
+        if ((validMethods.Count == 0 && validOptionsTypes.Count == 0 && inferredTypeExpressions.Count == 0) ||
+            allRegisteredTypes.Count == 0)
         {
             return;
         }
@@ -249,7 +344,14 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
             .OrderBy(static x => x.OptionsType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), StringComparer.Ordinal)
             .ToList();
 
-        if (methodRegistrations.Count == 0 && optionsTypeRegistrations.Count == 0)
+        var inferredAccessors = inferredTypeExpressions
+            .Where(accessorsByType.ContainsKey)
+            .OrderBy(static x => x, StringComparer.Ordinal)
+            .Select(typeExpression => accessorsByType[typeExpression])
+            .Where(static accessor => accessor.Members.Any(static member => member.CanInfer))
+            .ToImmutableArray();
+
+        if (methodRegistrations.Count == 0 && optionsTypeRegistrations.Count == 0 && inferredAccessors.IsDefaultOrEmpty)
         {
             return;
         }
@@ -264,6 +366,31 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
         foreach (var accessor in accessorsByType.Values.OrderBy(static x => x.TypeExpression, StringComparer.Ordinal))
         {
             AppendAccessor(source, accessor.AccessorName, accessor.TypeExpression, accessor.Members);
+            source.AppendLine();
+        }
+
+        if (!inferredAccessors.IsDefaultOrEmpty)
+        {
+            foreach (var accessor in inferredAccessors)
+            {
+                for (var i = 0; i < accessor.Members.Count; i++)
+                {
+                    var member = accessor.Members[i];
+                    if (!member.CanInfer)
+                    {
+                        continue;
+                    }
+
+                    AppendDirectAccessor(
+                        source,
+                        GetInferredAccessorName(accessor.AccessorName, i),
+                        accessor.TypeExpression,
+                        member.Expression);
+                    source.AppendLine();
+                }
+            }
+
+            AppendInferredAccessorRegistration(source, inferredAccessors);
             source.AppendLine();
         }
 
@@ -282,8 +409,65 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
             source.AppendLine();
         }
 
+        if (!inferredAccessors.IsDefaultOrEmpty &&
+            compilation.GetTypeByMetadataName("System.Runtime.CompilerServices.ModuleInitializerAttribute") is null)
+        {
+            source.AppendLine(ModuleInitializerAttributeSource);
+        }
+
         context.AddSource("Fluid.MemberAccessProfiles.g.cs", source.ToString());
     }
+
+    private static void AppendInferredAccessorRegistration(StringBuilder source, ImmutableArray<AccessorRegistration> accessors)
+    {
+        source.AppendLine("    internal static class InferredMemberAccessorRegistration");
+        source.AppendLine("    {");
+        source.AppendLine("        [global::System.Runtime.CompilerServices.ModuleInitializer]");
+        source.AppendLine("        internal static void Register()");
+        source.AppendLine("        {");
+
+        foreach (var accessor in accessors)
+        {
+            for (var i = 0; i < accessor.Members.Count; i++)
+            {
+                var member = accessor.Members[i];
+                if (!member.CanInfer)
+                {
+                    continue;
+                }
+
+                source.Append("            global::Fluid.DefaultMemberAccessStrategy.RegisterSourceGeneratedAccessor(typeof(")
+                    .Append(accessor.TypeExpression)
+                    .Append("), new ")
+                    .Append(GetInferredAccessorName(accessor.AccessorName, i))
+                    .Append("(), new string[] { \"")
+                    .Append(member.Name)
+                    .AppendLine("\" });");
+            }
+        }
+
+        source.AppendLine("        }");
+        source.AppendLine("    }");
+    }
+
+    private static void AppendDirectAccessor(
+        StringBuilder source,
+        string accessorName,
+        string typeExpression,
+        string expression)
+    {
+        source.Append("    internal sealed class ").Append(accessorName).AppendLine(" : global::Fluid.MemberAccessor");
+        source.AppendLine("    {");
+        source.AppendLine("        public override global::System.Threading.Tasks.ValueTask<global::Fluid.Values.FluidValue> GetAsync(object obj, string name, global::Fluid.TemplateContext context)");
+        source.AppendLine("        {");
+        source.Append("            var typed = (").Append(typeExpression).AppendLine(")obj;");
+        source.Append("            return CreateValueTask(").Append(expression).AppendLine(", context);");
+        source.AppendLine("        }");
+        source.AppendLine("    }");
+    }
+
+    private static string GetInferredAccessorName(string accessorName, int memberIndex)
+        => accessorName + "_Inferred" + memberIndex;
 
     private static bool TryValidateProfileMethod(ProfileMethodCandidate candidate, SourceProductionContext context, out ProfileMethodRegistration registration)
     {
@@ -526,7 +710,11 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
                 ? $"{typeSymbol.ToDisplayString(TypeExpressionFormat)}.{memberName}"
                 : $"typed.{memberName}";
 
-            members.Add(new MemberAccess(property.Name, expression));
+            members.Add(new MemberAccess(
+                property.Name,
+                expression,
+                IsMethod: false,
+                CanInfer: CanInferMemberType(property.Type)));
         }
 
         foreach (var field in EnumerateFields(typeSymbol))
@@ -546,7 +734,11 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
                 ? $"{typeSymbol.ToDisplayString(TypeExpressionFormat)}.{memberName}"
                 : $"typed.{memberName}";
 
-            members.Add(new MemberAccess(field.Name, expression));
+            members.Add(new MemberAccess(
+                field.Name,
+                expression,
+                IsMethod: false,
+                CanInfer: CanInferMemberType(field.Type)));
         }
 
         foreach (var method in EnumerateMethods(typeSymbol))
@@ -566,7 +758,7 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
                 ? $"{typeSymbol.ToDisplayString(TypeExpressionFormat)}.{memberName}()"
                 : $"typed.{memberName}()";
 
-            members.Add(new MemberAccess(method.Name, expression));
+            members.Add(new MemberAccess(method.Name, expression, IsMethod: true, CanInfer: false));
         }
 
         return members;
@@ -576,7 +768,9 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
     {
         foreach (var symbol in EnumerateMembers(typeSymbol).OfType<IPropertySymbol>())
         {
-            if (symbol.IsIndexer || symbol.GetMethod is null)
+            if (symbol.IsIndexer ||
+                symbol.GetMethod is null ||
+                symbol.GetMethod.DeclaredAccessibility != Accessibility.Public)
             {
                 continue;
             }
@@ -655,6 +849,71 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
         }
     }
 
+    private static bool CanInferMemberType(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol is not INamedTypeSymbol namedType ||
+            !string.Equals(namedType.ContainingNamespace.ToDisplayString(), "System.Threading.Tasks", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return namedType.Name switch
+        {
+            "Task" => namedType.IsGenericType,
+            "ValueTask" => false,
+            _ => true
+        };
+    }
+
+    private static bool CanGenerateAccessor(ITypeSymbol typeSymbol)
+    {
+        if (!typeSymbol.CanBeReferencedByName)
+        {
+            return false;
+        }
+
+        return typeSymbol switch
+        {
+            IArrayTypeSymbol arrayType => CanGenerateAccessor(arrayType.ElementType),
+            IPointerTypeSymbol pointerType => CanGenerateAccessor(pointerType.PointedAtType),
+            INamedTypeSymbol namedType => CanGenerateAccessor(namedType),
+            _ => true
+        };
+    }
+
+    private static bool CanGenerateAccessor(INamedTypeSymbol typeSymbol)
+    {
+        if (typeSymbol.IsAnonymousType ||
+            typeSymbol.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal))
+        {
+            return false;
+        }
+
+        foreach (var syntaxReference in typeSymbol.DeclaringSyntaxReferences)
+        {
+            if (syntaxReference.GetSyntax() is TypeDeclarationSyntax typeSyntax &&
+                typeSyntax.Modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.FileKeyword)))
+            {
+                return false;
+            }
+        }
+
+        if (typeSymbol.ContainingType is not null && !CanGenerateAccessor(typeSymbol.ContainingType))
+        {
+            return false;
+        }
+
+        foreach (var typeArgument in typeSymbol.TypeArguments)
+        {
+            if (!CanGenerateAccessor(typeArgument))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static string CreateAccessorName(ITypeSymbol typeSymbol, HashSet<string> usedAccessorNames)
     {
         var baseName = typeSymbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
@@ -728,7 +987,7 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
         INamedTypeSymbol OptionsType,
         ImmutableArray<AccessorRegistration> Accessors);
 
-    private sealed record MemberAccess(string Name, string Expression);
+    private sealed record MemberAccess(string Name, string Expression, bool IsMethod, bool CanInfer);
 
     private static readonly string AttributeSource = """
         // <auto-generated />
@@ -744,6 +1003,17 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
                 }
 
                 public global::System.Type Type { get; }
+            }
+        }
+        """;
+
+    private static readonly string ModuleInitializerAttributeSource = """
+
+        namespace System.Runtime.CompilerServices
+        {
+            [global::System.AttributeUsage(global::System.AttributeTargets.Method, Inherited = false)]
+            internal sealed class ModuleInitializerAttribute : global::System.Attribute
+            {
             }
         }
         """;

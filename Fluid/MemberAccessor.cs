@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Fluid.Values;
 
 namespace Fluid
@@ -21,6 +22,93 @@ namespace Fluid
         /// <returns>The resolved Fluid value, or <c>null</c> when the accessor did not handle the name.</returns>
         public abstract ValueTask<FluidValue> GetAsync(object obj, string name, TemplateContext context);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static ValueTask<FluidValue> CreateValueTask(bool value, TemplateContext context)
+            => new(context.Options.ValueConverters.Count == 0
+                ? value ? BooleanValue.True : BooleanValue.False
+                : FluidValue.Create(value, context.Options));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static ValueTask<FluidValue> CreateValueTask(byte value, TemplateContext context)
+            => new(context.Options.ValueConverters.Count == 0
+                ? NumberValue.Create(value)
+                : FluidValue.Create(value, context.Options));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static ValueTask<FluidValue> CreateValueTask(ushort value, TemplateContext context)
+            => new(context.Options.ValueConverters.Count == 0
+                ? NumberValue.Create(value)
+                : FluidValue.Create(value, context.Options));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static ValueTask<FluidValue> CreateValueTask(uint value, TemplateContext context)
+            => new(context.Options.ValueConverters.Count == 0
+                ? NumberValue.Create(value)
+                : FluidValue.Create(value, context.Options));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static ValueTask<FluidValue> CreateValueTask(sbyte value, TemplateContext context)
+            => new(context.Options.ValueConverters.Count == 0
+                ? NumberValue.Create(value)
+                : FluidValue.Create(value, context.Options));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static ValueTask<FluidValue> CreateValueTask(short value, TemplateContext context)
+            => new(context.Options.ValueConverters.Count == 0
+                ? NumberValue.Create(value)
+                : FluidValue.Create(value, context.Options));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static ValueTask<FluidValue> CreateValueTask(int value, TemplateContext context)
+            => new(context.Options.ValueConverters.Count == 0
+                ? NumberValue.Create(value)
+                : FluidValue.Create(value, context.Options));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static ValueTask<FluidValue> CreateValueTask(ulong value, TemplateContext context)
+            => new(context.Options.ValueConverters.Count == 0
+                ? NumberValue.Create(value)
+                : FluidValue.Create(value, context.Options));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static ValueTask<FluidValue> CreateValueTask(long value, TemplateContext context)
+            => new(context.Options.ValueConverters.Count == 0
+                ? NumberValue.Create(value)
+                : FluidValue.Create(value, context.Options));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static ValueTask<FluidValue> CreateValueTask(double value, TemplateContext context)
+            => new(context.Options.ValueConverters.Count == 0
+                ? NumberValue.Create((decimal)value)
+                : FluidValue.Create(value, context.Options));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static ValueTask<FluidValue> CreateValueTask(float value, TemplateContext context)
+            => new(context.Options.ValueConverters.Count == 0
+                ? NumberValue.Create((decimal)value)
+                : FluidValue.Create(value, context.Options));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static ValueTask<FluidValue> CreateValueTask(decimal value, TemplateContext context)
+            => new(context.Options.ValueConverters.Count == 0
+                ? NumberValue.Create(value)
+                : FluidValue.Create(value, context.Options));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static ValueTask<FluidValue> CreateValueTask(DateTime value, TemplateContext context)
+            => new(context.Options.ValueConverters.Count == 0
+                ? new DateTimeValue(value)
+                : FluidValue.Create(value, context.Options));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static ValueTask<FluidValue> CreateValueTask(string value, TemplateContext context)
+            => new(value is null
+                ? null
+                : context.Options.ValueConverters.Count == 0
+                    ? StringValue.Create(value)
+                    : FluidValue.Create(value, context.Options));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static ValueTask<FluidValue> CreateValueTask<T>(T value, TemplateContext context)
         {
             return new(value is null ? null : FluidValue.Create(value, context.Options));
