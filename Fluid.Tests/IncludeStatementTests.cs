@@ -59,6 +59,23 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task IncludeStatement_ShouldNotReportRootedTemplatePath_WhenIncludedTemplateCannotBeParsed()
+        {
+            const string templatePath = "/Users/alice/templates/invalid";
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add($"{templatePath}.liquid", "{% if true %}");
+
+            var context = new TemplateContext(new TemplateOptions { FileProvider = fileProvider });
+            var template = _parser.Parse($"{{% include '{templatePath}' %}}");
+
+            var exception = await Assert.ThrowsAsync<ParseException>(
+                () => template.RenderAsync(context).AsTask());
+
+            Assert.Contains("template 'invalid.liquid'", exception.Message);
+            Assert.DoesNotContain("/Users/alice/templates", exception.Message);
+        }
+
+        [Fact]
         public async Task IncludeStatement_ShouldLoadPartial_IfThePartialsFolderExist()
         {
 

@@ -35,7 +35,7 @@ internal static class TemplateLoader
 
             if (!parser.TryParse(content, out template, out var errors))
             {
-                throw new ParseException($"Failed to parse template '{resolvedPath}'.\n{errors}");
+                throw new ParseException($"Failed to parse template '{GetDisplayPath(resolvedPath)}'.\n{errors}");
             }
 
             if (context.Options.TemplateParsed != null)
@@ -47,6 +47,23 @@ internal static class TemplateLoader
         }
 
         return new LoadedTemplate(resolvedPath, template);
+    }
+
+    private static string GetDisplayPath(string path)
+    {
+        var isRooted =
+            path.Length > 0 &&
+            (path[0] == '/' ||
+             path[0] == '\\' ||
+             (path.Length > 1 && path[1] == ':' && char.IsLetter(path[0])));
+
+        if (!isRooted)
+        {
+            return path;
+        }
+
+        var separator = path.LastIndexOfAny(['/', '\\']);
+        return separator < 0 ? path : path.Substring(separator + 1);
     }
 
     private static ValueTask<TemplateSourceInfo> GetSourceAsync(string path, TemplateContext context)
