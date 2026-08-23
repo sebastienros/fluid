@@ -35,7 +35,7 @@ internal static class TemplateLoader
 
             if (!parser.TryParse(content, out template, out var errors))
             {
-                throw new ParseException(errors);
+                throw new ParseException($"Failed to parse template '{resolvedPath}'.\n{errors}");
             }
 
             if (context.Options.TemplateParsed != null)

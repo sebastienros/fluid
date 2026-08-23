@@ -42,6 +42,23 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task IncludeStatement_ShouldReportResolvedPath_WhenIncludedTemplateCannotBeParsed()
+        {
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add("invalid.liquid", "{% if true %}");
+
+            var context = new TemplateContext(new TemplateOptions { FileProvider = fileProvider });
+            var template = _parser.Parse("{% include 'invalid' %}");
+
+            var exception = await Assert.ThrowsAsync<ParseException>(
+                () => template.RenderAsync(context).AsTask());
+
+            Assert.Contains("invalid.liquid", exception.Message);
+            Assert.Contains("'{% endif %}' was expected", exception.Message);
+            Assert.Contains("Source:\n{% if true %}", exception.Message);
+        }
+
+        [Fact]
         public async Task IncludeStatement_ShouldLoadPartial_IfThePartialsFolderExist()
         {
 
