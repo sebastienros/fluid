@@ -725,6 +725,15 @@ namespace Fluid.Tests
             Assert.Equal(expected, result.ToStringValue());
         }
 
+        [Fact]
+        public async Task HandleizeLargeInput()
+        {
+            var value = new string('a', 377_000);
+            var result = await MiscFilters.Handleize(new StringValue(value), new FilterArguments(), new TemplateContext());
+
+            Assert.Equal(value, result.ToStringValue());
+        }
+
         [Theory]
         [InlineData("Hello World!", "\"Hello World!\"")]
         [InlineData("\"", "\"\\u0022\"")]

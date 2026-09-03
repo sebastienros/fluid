@@ -54,7 +54,7 @@ namespace Fluid.Filters
             LiquidException.ThrowFilterArgumentsCount("handleize", expected: 0, arguments);
 
             var value = input.ToStringValue();
-            var result = new ValueStringBuilder(stackalloc char[Math.Max(512, value.Length * 2)]);
+            var result = new ValueStringBuilder(stackalloc char[512]);
             var lastIndex = value.Length - 1;
 
             for (var i = 0; i < value.Length; i++)
