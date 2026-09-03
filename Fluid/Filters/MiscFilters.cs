@@ -609,7 +609,7 @@ namespace Fluid.Filters
                             case 'd': result.Append(Format(value.Day, 2)); break;
                             case 'D':
                                 {
-                                    var sb = new ValueStringBuilder(stackalloc char[16]);
+                                    var sb = new ValueStringBuilder(16);
                                     ForStrf(value, "%m/%d/%y", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
@@ -619,7 +619,7 @@ namespace Fluid.Filters
                                 break;
                             case 'F':
                                 {
-                                    var sb = new ValueStringBuilder(stackalloc char[16]);
+                                    var sb = new ValueStringBuilder(16);
                                     ForStrf(value, "%Y-%m-%d", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
@@ -686,14 +686,14 @@ namespace Fluid.Filters
                             case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLower(context.CultureInfo)); break;
                             case 'r':
                                 {
-                                    var sb = new ValueStringBuilder(stackalloc char[32]);
+                                    var sb = new ValueStringBuilder(32);
                                     ForStrf(value, "%I:%M:%S %p", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
                             case 'R':
                                 {
-                                    var sb = new ValueStringBuilder(stackalloc char[16]);
+                                    var sb = new ValueStringBuilder(16);
                                     ForStrf(value, "%H:%M", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
@@ -705,7 +705,7 @@ namespace Fluid.Filters
                             case 't': result.Append(new String('\t', width ?? 1)); break;
                             case 'T':
                                 {
-                                    var sb = new ValueStringBuilder(stackalloc char[32]);
+                                    var sb = new ValueStringBuilder(32);
                                     ForStrf(value, "%H:%M:%S", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
@@ -726,7 +726,7 @@ namespace Fluid.Filters
                                 }
                             case 'v':
                                 {
-                                    var sb = new ValueStringBuilder(stackalloc char[32]);
+                                    var sb = new ValueStringBuilder(32);
                                     ForStrf(value, "%e-%b-%Y", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
@@ -777,7 +777,7 @@ namespace Fluid.Filters
                             case '%': result.Append('%'); break;
                             case '+':
                                 {
-                                    var sb = new ValueStringBuilder(stackalloc char[128]);
+                                    var sb = new ValueStringBuilder(128);
                                     ForStrf(value, "%a %b %e %H:%M:%S %Z %Y", ref sb);
                                     result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
