@@ -544,6 +544,17 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task FormatStringWithoutArgumentsDoesNotThrow()
+        {
+            var input = new StringValue("literal text");
+            var context = new TemplateContext();
+
+            var result = await MiscFilters.FormatString(input, FilterArguments.Empty, context);
+
+            Assert.Equal("literal text", result.ToStringValue());
+        }
+
+        [Fact]
         public async Task DateWithoutFormatShouldReturnInput()
         {
             var input = new StringValue("08/01/2017");
@@ -728,6 +739,7 @@ namespace Fluid.Tests
         [InlineData("First_Second_ThirdHi", "first-second-third-hi")]
         [InlineData("100% M & Ms!!!", "100-m-ms")]
         [InlineData("!!!100% M & Ms", "100-m-ms")]
+        [InlineData("!HelloWorld", "hello-world")]
         public async Task Handleize(string text, string expected)
         {
             var input = new StringValue(text);

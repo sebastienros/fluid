@@ -304,14 +304,13 @@ namespace Fluid.Filters
 
                 var sourceLength = sourceArray.Count;
 
-                if (requestedStartIndex < 0 && Math.Abs(requestedStartIndex) > sourceLength)
+                if (requestedStartIndex < -sourceLength)
                 {
                     return ArrayValue.Empty;
                 }
 
                 var startIndex = requestedStartIndex < 0 ? Math.Max(sourceLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceLength);
-                var length = requestedLength > sourceLength ? sourceLength : requestedLength;
-                length = startIndex > 0 && length + startIndex > sourceLength ? length - startIndex : length;
+                var length = Math.Min(requestedLength, sourceLength - startIndex);
 
                 context.EnsureCollectionSize(length);
                 return new ArrayValue(sourceArray.Skip(startIndex).Take(length).ToArray());
@@ -327,7 +326,7 @@ namespace Fluid.Filters
 
                 var sourceStringLength = sourceString.Length;
 
-                if (requestedStartIndex < 0 && Math.Abs(requestedStartIndex) > sourceStringLength)
+                if (requestedStartIndex < -sourceStringLength)
                 {
                     return BlankValue.Instance;
                 }

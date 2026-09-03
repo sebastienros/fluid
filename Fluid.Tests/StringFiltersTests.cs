@@ -264,6 +264,29 @@ world
         }
 
         [Fact]
+        public async Task SliceArrayClampsLengthAtTheEnd()
+        {
+            var input = FluidValue.Create(new[] { "a", "b", "c", "d", "e" }, TemplateOptions.Default);
+            var arguments = new FilterArguments(NumberValue.Create(3), NumberValue.Create(4));
+            var context = new TemplateContext();
+
+            var result = await StringFilters.Slice(input, arguments, context);
+            var values = await result.EnumerateAsync(context).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+            Assert.Equal(["d", "e"], values.Select(x => x.ToStringValue()));
+        }
+
+        [Fact]
+        public async Task SliceWithMinimumOffsetReturnsEmpty()
+        {
+            var arguments = new FilterArguments(NumberValue.Create(int.MinValue));
+
+            var result = await StringFilters.Slice(new StringValue("abc"), arguments, new TemplateContext());
+
+            Assert.Same(BlankValue.Instance, result);
+        }
+
+        [Fact]
         public async Task Split()
         {
             var input = new StringValue("a.b.c");

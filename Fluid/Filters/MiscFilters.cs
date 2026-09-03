@@ -99,7 +99,7 @@ namespace Fluid.Filters
                 {
                     if (IsCapitalLetter(currentChar))
                     {
-                        if (result[^1] != KebabCaseSeparator && !char.IsDigit(lookAheadChar))
+                        if (result.Length != 0 && result[^1] != KebabCaseSeparator && !char.IsDigit(lookAheadChar))
                         {
                             result.Append(KebabCaseSeparator);
                         }
