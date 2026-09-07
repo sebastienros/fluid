@@ -32,10 +32,15 @@ jobs:
     - name: Test - Compiled
       run: dotnet test --configuration Release --property:Compiled=true
 
-    - name: Pack
-      run: |
-        PACKAGE_PATH="${GITHUB_WORKSPACE}/artifacts"
-        dotnet pack --property:PackageOutputPath=$PACKAGE_PATH --configuration Release -p:PackageVersion=$GITHUB_RUN_NUMBER -p:ContinuousIntegrationBuild=True
+    - name: Pack preview packages
+      run: dotnet pack --output artifacts --configuration Release --property:VersionSuffix=preview-$GITHUB_RUN_NUMBER --property:ContinuousIntegrationBuild=True
 
-    - name: Publish on MyGet
-      run: dotnet nuget push "artifacts/*.nupkg" --api-key ${{ secrets.MYGET_API_KEY }} --skip-duplicate --source https://www.myget.org/F/fluid/api/v2/package
+    - name: Push preview packages to Feedz
+      shell: bash
+      env:
+        FEEDZ_IO_API_KEY: ${{ secrets.FEEDZ_IO_API_KEY }}
+      run: |
+        set -euo pipefail
+        for package in artifacts/*.nupkg; do
+          dotnet nuget push "$package" --api-key "$FEEDZ_IO_API_KEY" --source https://f.feedz.io/sebastienros/fluid/nuget/index.json --skip-duplicate
+        done

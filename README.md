@@ -2,13 +2,13 @@
 
 [![NuGet](https://img.shields.io/nuget/v/Fluid.Core.svg)](https://nuget.org/packages/Fluid.Core)
 [![MIT](https://img.shields.io/github/license/sebastienros/fluid)](https://github.com/sebastienros/fluid/blob/main/LICENSE)
-[![MyGet](https://img.shields.io/myget/fluid/vpre/fluid.core.svg?label=MyGet)](https://www.myget.org/feed/fluid/package/nuget/fluid.core)
+[![Feedz preview version](https://img.shields.io/endpoint?url=https%3A%2F%2Ff.feedz.io%2Fsebastienros%2Ffluid%2Fshield%2FFluid.Core%2Flatest)](https://f.feedz.io/sebastienros/fluid/nuget/index.json)
 
 ## Basic Overview
 
 Fluid is an open-source .NET template engine based on the [Liquid template language](https://shopify.github.io/liquid/). It is a **secure** template language that is also **very accessible** for non-programmer audiences.
 
-> The following content is based on the 2.0.0-beta version, which is the recommended version, even though some of its API might vary significantly.
+> This document describes Fluid 3.0, which is under development on `main`. Preview packages are available from the [preview feed](#preview-packages); stable releases are available on [NuGet.org](https://www.nuget.org/packages/Fluid.Core).
 > To see the corresponding content for v1.0, use [this version](https://github.com/sebastienros/fluid/blob/release/1.x/README.md)
 
 <br>
@@ -34,6 +34,7 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 ## Contents
 - [Features](#features)
 - [Using Fluid in your project](#using-fluid-in-your-project)
+- [Preview packages](#preview-packages)
 - [NativeAOT and trimming](#nativeaot-and-trimming)
 - [Source generator](#source-generator)
 - [Allow-listing object members](#allow-listing-object-members)
@@ -106,6 +107,24 @@ Notice
 You can directly reference the [NuGet package](https://www.nuget.org/packages/Fluid.Core).
 
 The code samples in this document assume you have registered the `Fluid` namespace with `using Fluid;`.
+
+### Preview packages
+
+After a successful build triggered by a push to `main`, preview packages are published to the
+[Fluid feed on feedz.io](https://f.feedz.io/sebastienros/fluid/nuget/index.json).
+Versions follow `3.0.0-preview-<run number>`, using the GitHub Actions build run number.
+These packages contain the latest development changes and are intended for testing before release.
+Tagged releases continue to be published to NuGet.org.
+
+Add the preview feed alongside NuGet.org, then install the latest prerelease version:
+
+```shell
+dotnet nuget add source https://f.feedz.io/sebastienros/fluid/nuget/index.json --name fluid-preview
+dotnet add package Fluid.Core --prerelease
+```
+
+Keep NuGet.org enabled so dependencies can be restored. If your `NuGet.config` uses package source
+mapping, also map `Fluid.*` and `MinimalApis.LiquidViews` to the `fluid-preview` source.
 
 ### Hello World
 
