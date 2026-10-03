@@ -5,6 +5,12 @@ namespace Fluid.Values;
 
 public sealed class ForLoopValue : FluidValue
 {
+    public static ForLoopValue Create() => new ForLoopValue();
+
+    private ForLoopValue()
+    {
+    }
+
     public int Length { get; set; }
     public int Index { get; set; }
     public int Index0 { get; set; }
@@ -65,7 +71,7 @@ public sealed class ForLoopValue : FluidValue
             "last" => BooleanValue.Create(Last),
             "parentloop" => ParentLoop is null ? NilValue.Instance : ParentLoop,
             "name" => !string.IsNullOrEmpty(Identifier) && !string.IsNullOrEmpty(Source)
-                ? new StringValue(Identifier + "-" + Source)
+                ? StringValue.Create(Identifier + "-" + Source)
                 : NilValue.Instance,
             _ => NilValue.Instance,
         };

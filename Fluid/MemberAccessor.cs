@@ -97,7 +97,7 @@ public abstract class MemberAccessor
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static ValueTask<FluidValue> CreateValueTask(DateTime value, TemplateContext context)
         => new(!context.Options.HasValueConverters
-            ? new DateTimeValue(value)
+            ? DateTimeValue.Create(value)
             : FluidValue.Create(value, context.Options));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -153,7 +153,7 @@ public sealed class SourceGenerationContext
 
         name = GetUniqueId("StrVal_");
         _staticStrings[key] = name;
-        _staticMembers.Add(new StaticMember("StringValue", name, $"new StringValue({literal})"));
+        _staticMembers.Add(new StaticMember("FluidValue", name, $"StringValue.Create({literal})"));
         return name;
     }
 

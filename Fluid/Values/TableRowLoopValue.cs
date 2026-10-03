@@ -14,7 +14,9 @@ public sealed class TableRowLoopValue : FluidValue
     private int _cols;
     private int _index;
 
-    public TableRowLoopValue(int length, int cols)
+    public static TableRowLoopValue Create(int length, int cols) => new TableRowLoopValue(length, cols);
+
+    private TableRowLoopValue(int length, int cols)
     {
         _length = length;
         _row = 1;

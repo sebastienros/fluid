@@ -25,7 +25,7 @@ public class AssignmentCaptureTests
         _parser.TryParse(source, out var template, out var error);
         var context = new TemplateContext
         {
-            Assigned = (identifier, value, context) => new StringValue(value.ToStringValue() + "_altered")
+            Assigned = (identifier, value, context) => StringValue.Create(value.ToStringValue() + "_altered")
         };
         var result = await template.RenderAsync(context);
         Assert.Equal("b_altered", result);

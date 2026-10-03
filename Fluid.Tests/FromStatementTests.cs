@@ -22,7 +22,7 @@ public class FromStatementTests
     [Fact]
     public async Task FromStatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()
     {
-        var expression = new LiteralExpression(new StringValue("_Macros.liquid"));
+        var expression = new LiteralExpression(StringValue.Create("_Macros.liquid"));
         var sw = new StringWriter();
 
         try
@@ -41,7 +41,7 @@ public class FromStatementTests
     [Fact]
     public async Task FromStatement_ShouldOnlyImportListedMacrosToLocalScope()
     {
-        var expression = new LiteralExpression(new StringValue("_Macros.liquid"));
+        var expression = new LiteralExpression(StringValue.Create("_Macros.liquid"));
         var sw = new StringWriter();
 
         var fileProvider = new MockFileProvider();
@@ -68,7 +68,7 @@ public class FromStatementTests
     [Fact]
     public async Task FromStatement_ShouldNotRenderAnyOutput()
     {
-        var expression = new LiteralExpression(new StringValue("_Macros.liquid"));
+        var expression = new LiteralExpression(StringValue.Create("_Macros.liquid"));
         var sw = new StringWriter();
 
         var fileProvider = new MockFileProvider();
@@ -97,7 +97,7 @@ public class FromStatementTests
     [Fact]
     public async Task FromStatement_ShouldInvokeImportedMacros()
     {
-        var expression = new LiteralExpression(new StringValue("_Macros.liquid"));
+        var expression = new LiteralExpression(StringValue.Create("_Macros.liquid"));
         var sw = new StringWriter();
 
         var fileProvider = new MockFileProvider();

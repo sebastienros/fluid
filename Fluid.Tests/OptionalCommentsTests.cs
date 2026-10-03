@@ -179,7 +179,7 @@ public class OptionalCommentsTests
                 ", out var template, out var errors);
 
         var context = new TemplateContext();
-        context.SetValue("empty_array", new ArrayValue(new FluidValue[0]));
+        context.SetValue("empty_array", ArrayValue.Create(new FluidValue[0]));
 
         Assert.True(result);
         Assert.Null(errors);
@@ -255,7 +255,7 @@ public class OptionalCommentsTests
                 ", out var template, out var errors);
 
         var context = new TemplateContext();
-        context.SetValue("empty_array", new ArrayValue(new FluidValue[0]));
+        context.SetValue("empty_array", ArrayValue.Create(new FluidValue[0]));
 
         Assert.True(result);
         Assert.Null(errors);

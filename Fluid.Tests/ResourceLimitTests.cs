@@ -201,7 +201,7 @@ public class ResourceLimitTests
     public void CircularArrayStringificationThrows()
     {
         var values = new List<FluidValue>();
-        var array = new ArrayValue(values);
+        var array = ArrayValue.Create(values);
         values.Add(array);
 
         var exception = Assert.Throws<InvalidOperationException>(() => array.ToStringValue());
@@ -213,7 +213,7 @@ public class ResourceLimitTests
     public void CircularArrayHashingThrows()
     {
         var values = new List<FluidValue>();
-        var array = new ArrayValue(values);
+        var array = ArrayValue.Create(values);
         values.Add(array);
 
         Assert.Throws<InvalidOperationException>(() => array.GetHashCode());
@@ -222,9 +222,9 @@ public class ResourceLimitTests
     [Fact]
     public void AcyclicSharedArrayEqualityDoesNotLookRecursive()
     {
-        var child = new ArrayValue([]);
-        var middle = new ArrayValue([child]);
-        var parent = new ArrayValue([middle]);
+        var child = ArrayValue.Create([]);
+        var middle = ArrayValue.Create([child]);
+        var parent = ArrayValue.Create([middle]);
 
         Assert.False(parent.Equals(middle));
     }

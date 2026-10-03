@@ -233,7 +233,7 @@ public static class LiquidTool
             {
                 env[(string)entry.Key] = StringValue.Create(entry.Value?.ToString() ?? "");
             }
-            context.SetValue("env", new DictionaryValue(new FluidValueDictionaryFluidIndexable(env)));
+            context.SetValue("env", DictionaryValue.Create(new FluidValueDictionaryFluidIndexable(env)));
         }
 
         foreach (var (key, value) in sets)

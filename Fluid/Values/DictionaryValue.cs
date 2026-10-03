@@ -8,7 +8,9 @@ public sealed class DictionaryValue : FluidValue
 {
     private readonly IFluidIndexable _value;
 
-    public DictionaryValue(IFluidIndexable value)
+    public static DictionaryValue Create(IFluidIndexable value) => new DictionaryValue(value);
+
+    private DictionaryValue(IFluidIndexable value)
     {
         _value = value;
     }
@@ -79,7 +81,7 @@ public sealed class DictionaryValue : FluidValue
         {
             var firstKey = _value.Keys.First();
             _value.TryGetValue(firstKey, out var firstValue);
-            return new ArrayValue(new[] { new StringValue(firstKey), firstValue });
+            return ArrayValue.Create(new[] { StringValue.Create(firstKey), firstValue });
         }
 
         return NilValue.Instance;
@@ -166,7 +168,7 @@ public sealed class DictionaryValue : FluidValue
         {
             context?.IncrementSteps();
             _value.TryGetValue(key, out var value);
-            yield return new ArrayValue([new StringValue(key), value]);
+            yield return ArrayValue.Create([StringValue.Create(key), value]);
         }
 
         await Task.CompletedTask;

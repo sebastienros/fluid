@@ -49,7 +49,7 @@ public sealed class RangeExpression : Expression, ISourceable
             list[i] = NumberValue.Create(start + i);
         }
 
-        return new ArrayValue(list);
+        return ArrayValue.Create(list);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -85,6 +85,6 @@ public sealed class RangeExpression : Expression, ISourceable
             context.WriteLine("list[i] = NumberValue.Create(start + i);");
         }
         context.WriteLine("}");
-        context.WriteLine("return new ArrayValue(list);");
+        context.WriteLine("return ArrayValue.Create(list);");
     }
 }

@@ -52,7 +52,7 @@ public sealed class CaptureStatement : TagStatement, ISourceable
             }
         }
 
-        FluidValue result = new StringValue(captureBuffer.ToString(), false);
+        FluidValue result = StringValue.Create(captureBuffer.ToString(), false);
 
         // Substitute the result if a custom callback is provided
         if (context.Captured != null)
@@ -99,7 +99,7 @@ public sealed class CaptureStatement : TagStatement, ISourceable
         context.WriteLine("}");
 
         context.WriteLine("await captureBuffer.FlushAsync();");
-        context.WriteLine("FluidValue result = new StringValue(sw.ToString(), false);");
+        context.WriteLine("FluidValue result = StringValue.Create(sw.ToString(), false);");
         context.WriteLine($"if ({context.ContextName}.Captured != null)");
         context.WriteLine("{");
         using (context.Indent())

@@ -181,7 +181,7 @@ public class TemplateTests
     public async Task ShouldCustomizeCaptures()
     {
         _parser.TryParse("{% capture foo %}hello <br /> world{% endcapture %}{{ foo }}", out var template, out var error);
-        var result = await template.RenderAsync(new TemplateContext { Captured = (identifier, captured, context) => new StringValue(captured.ToStringValue().ToUpper(), false) }, HtmlEncoder.Default);
+        var result = await template.RenderAsync(new TemplateContext { Captured = (identifier, captured, context) => StringValue.Create(captured.ToStringValue().ToUpper(), false) }, HtmlEncoder.Default);
         Assert.Equal("HELLO <BR /> WORLD", result);
     }
 
@@ -237,7 +237,7 @@ public class TemplateTests
         _parser.TryParse(source, out var template, out var error);
 
         var context = new TemplateContext();
-        context.SetValue("obj", new { html = new StringValue("<div>test</div>", false) });
+        context.SetValue("obj", new { html = StringValue.Create("<div>test</div>", false) });
 
         var result = await template.RenderAsync(context, HtmlEncoder.Default);
 
@@ -319,7 +319,7 @@ public class TemplateTests
                     s += args.At(k).ToStringValue();
                 }
 
-                return new StringValue(s);
+                return StringValue.Create(s);
             })
             .Build();
 

@@ -29,7 +29,7 @@ var context = new TemplateContext
 };
 
 // This string has no time zone information
-var input = new StringValue("2022-12-13T21:02:18.399");
+var input = StringValue.Create("2022-12-13T21:02:18.399");
 
 // The date filter will parse it assuming the context's TimeZone
 var result = await MiscFilters.Date(input, new FilterArguments(), context);
@@ -44,7 +44,7 @@ If the string **already includes** time zone information:
 
 ```csharp
 // This string includes time zone information (+00:00)
-var input = new StringValue("2022-12-13T21:02:18.399+00:00");
+var input = StringValue.Create("2022-12-13T21:02:18.399+00:00");
 
 // The context's TimeZone is ignored - the string's time zone is used
 var result = await MiscFilters.Date(input, new FilterArguments(), context);
@@ -214,14 +214,14 @@ var options = new TemplateOptionsBuilder()
         {
             // Convert to the options' time zone
             var converted = TimeZoneInfo.ConvertTime(dt, timeZone);
-            return new DateTimeValue(converted);
+            return DateTimeValue.Create(converted);
         }
 
         if (obj is DateTimeOffset dto)
         {
             // Convert to the options' time zone
             var converted = TimeZoneInfo.ConvertTime(dto, timeZone);
-            return new DateTimeValue(converted);
+            return DateTimeValue.Create(converted);
         }
 
         return null; // No conversion needed
@@ -272,7 +272,7 @@ var options = new TemplateOptionsBuilder()
             // This would typically come from user preferences
             var userTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles");
             var converted = TimeZoneInfo.ConvertTime(dt, userTimeZone);
-            return new DateTimeValue(converted);
+            return DateTimeValue.Create(converted);
         }
         return null;
     })

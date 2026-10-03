@@ -13,7 +13,7 @@ public abstract class ObjectValueBase : FluidValue
 {
     protected static readonly char[] MemberSeparators = ['.'];
 
-    public ObjectValueBase(object value)
+    protected ObjectValueBase(object value)
     {
         Value = value;
     }

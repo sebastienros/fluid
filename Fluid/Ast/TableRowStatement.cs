@@ -86,7 +86,7 @@ public sealed class TableRowStatement : TagStatement
         using var scope = context.EnterScope(ScopeBehavior.WriteThrough);
 
         {
-            var tablerowloop = new TableRowLoopValue(count, cols);
+            var tablerowloop = TableRowLoopValue.Create(count, cols);
             context.LocalScope.SetOwnValue("tablerowloop", tablerowloop);
 
             // Output first row opening

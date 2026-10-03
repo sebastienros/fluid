@@ -530,7 +530,7 @@ public class StrictVariableTests
             .WithUndefined((name, type) =>
             {
                 // Return a custom default value for undefined variables
-                return ValueTask.FromResult<FluidValue>(new StringValue($"[{name} not found]"));
+                return ValueTask.FromResult<FluidValue>(StringValue.Create($"[{name} not found]"));
             })
             .Build();
 

@@ -8,12 +8,16 @@ public sealed class DateTimeValue : FluidValue
 {
     private readonly DateTimeOffset _value;
 
-    public DateTimeValue(DateTimeOffset value)
+    public static DateTimeValue Create(DateTimeOffset value) => new DateTimeValue(value);
+
+    public static DateTimeValue Create(DateTime value) => new DateTimeValue(value);
+
+    private DateTimeValue(DateTimeOffset value)
     {
         _value = value;
     }
 
-    public DateTimeValue(DateTime value)
+    private DateTimeValue(DateTime value)
     {
         // Handle edge cases where DateTime cannot be safely converted to DateTimeOffset
         // with local timezone offset due to overflow (e.g., DateTime.MinValue with positive offset)

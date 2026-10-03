@@ -29,7 +29,7 @@ public sealed class MacroStatement : TagStatement, ISourceable
             defaultValues[argument.Name] = argument.Expression == null ? NilValue.Instance : await argument.Expression.EvaluateAsync(context);
         }
 
-        var f = new FunctionValue(async (args, c) =>
+        var f = FunctionValue.Create(async (args, c) =>
         {
             using var macroBuffer = new BufferFluidOutput();
             var macroOutput = LimitedFluidOutput.Create(macroBuffer, context.MaxOutputSize);
@@ -79,7 +79,7 @@ public sealed class MacroStatement : TagStatement, ISourceable
                 var result = macroBuffer.ToString();
 
                 // Don't encode the result
-                return new StringValue(result, false);
+                return StringValue.Create(result, false);
             }
         });
 
@@ -112,7 +112,7 @@ public sealed class MacroStatement : TagStatement, ISourceable
         }
 
         context.WriteLine();
-        context.WriteLine("var f = new FunctionValue(async (args, c) =>");
+        context.WriteLine("var f = FunctionValue.Create(async (args, c) =>");
         context.WriteLine("{");
         using (context.Indent())
         {
@@ -187,7 +187,7 @@ public sealed class MacroStatement : TagStatement, ISourceable
 
                 context.WriteLine("await macroOutput.FlushAsync();");
                 context.WriteLine("var result = sw.ToString();");
-                context.WriteLine("return new StringValue(result, false);");
+                context.WriteLine("return StringValue.Create(result, false);");
             }
             context.WriteLine("}");
             context.WriteLine("finally");

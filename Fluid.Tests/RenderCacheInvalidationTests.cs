@@ -160,9 +160,9 @@ public class RenderCacheInvalidationTests
         _parser.TryParse("{{ 'x' | mark }}", out var template, out var error);
         Assert.Null(error);
 
-        var first = new TemplateOptionsBuilder().AddFilter("mark", (input, args, ctx) => new StringValue("one")).Build();
+        var first = new TemplateOptionsBuilder().AddFilter("mark", (input, args, ctx) => StringValue.Create("one")).Build();
 
-        var second = new TemplateOptionsBuilder().AddFilter("mark", (input, args, ctx) => new StringValue("two")).Build();
+        var second = new TemplateOptionsBuilder().AddFilter("mark", (input, args, ctx) => StringValue.Create("two")).Build();
 
         for (var i = 0; i < 3; i++)
         {
@@ -221,9 +221,9 @@ public class RenderCacheInvalidationTests
         _parser.TryParse("{% for p in items %}{{ p.Name }}{{ 'x' | mark }};{% endfor %}", out var template, out var error);
         Assert.Null(error);
 
-        var first = new TemplateOptionsBuilder().AddFilter("mark", (input, args, ctx) => new StringValue("1")).Build();
+        var first = new TemplateOptionsBuilder().AddFilter("mark", (input, args, ctx) => StringValue.Create("1")).Build();
 
-        var second = new TemplateOptionsBuilder().AddFilter("mark", (input, args, ctx) => new StringValue("2")).Build();
+        var second = new TemplateOptionsBuilder().AddFilter("mark", (input, args, ctx) => StringValue.Create("2")).Build();
 
         var items = new List<Model>();
         for (var i = 0; i < 50; i++)

@@ -456,7 +456,7 @@ Here is the `downcase` filter as defined in Fluid.
 ```csharp
 public static ValueTask<FluidValue> Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
 {
-    return new StringValue(input.ToStringValue().ToLower());
+    return StringValue.Create(input.ToStringValue().ToLower());
 }
 ```
 
@@ -481,7 +481,7 @@ Use the `ValueConverters` property to return different values than those provide
 
 ```csharp
 var options = new TemplateOptionsBuilder()
-    .AddValueConverter(o => o is DateTime d ? new StringValue($"This is a date time: {d}") : null)
+    .AddValueConverter(o => o is DateTime d ? StringValue.Create($"This is a date time: {d}") : null)
     .Build();
 ```
 
@@ -507,7 +507,7 @@ private class PersonValue : ObjectValueBase
     {
         if (name == "Bingo")
         {
-          return new StringValue("Hello, World!");
+          return StringValue.Create("Hello, World!");
         }
     }
 }
@@ -614,7 +614,7 @@ var options = new TemplateOptionsBuilder()
     .WithUndefined((name, type) =>
     {
         // Return a custom default value for undefined variables
-        return ValueTask.FromResult<FluidValue>(new StringValue($"[{name} not found]"));
+        return ValueTask.FromResult<FluidValue>(StringValue.Create($"[{name} not found]"));
     })
     .Build();
 
@@ -796,6 +796,22 @@ Whenever an object is manipulated in a template, it is converted to a specific `
 In Liquid, they can be Number, String, Boolean, Array, Dictionary, or Object. Fluid will automatically convert the CLR types to the corresponding Liquid ones, and also provides specialized ones.
 
 To customize this conversion, you can add **value converters**.
+
+### Creating Fluid values
+
+Use `FluidValue.Create(value, options)` to convert CLR values with the configured value converters,
+culture, and time zone. To create a specific built-in value directly, use its factory, such as
+`StringValue.Create("hello")`, `ArrayValue.Create(values)`, or `FunctionValue.Create(action)`.
+Factories can reuse cached instances; use `NilValue.Instance`, `BooleanValue.True`, and the other
+predefined values where appropriate.
+
+Built-in value constructors are private. When migrating constructor calls, note that
+`StringValue.Create(null)` returns `NilValue.Instance`, not an empty string; use `StringValue.Empty`
+when an empty string is intended. `StringValue.Encode` is read-only: select encoding with
+`StringValue.Create(text, encode: false)` instead of changing an existing value. The default is
+`encode: true`, which honors the encoder supplied when rendering.
+
+Custom `FluidValue` and `ObjectValueBase` subclasses can still define their own constructors.
 
 ### Adding a value converter
 
@@ -1730,11 +1746,11 @@ Functions are `FluidValue` instances implementing the `InvokeAsync` method. This
 A `FunctionValue` type is also available to provide out-of-the-box functions. It takes a delegate that returns a `ValueTask<FluidValue>` as the result.
 
 ```c#
-var lowercase = new FunctionValue((args, context) => 
+var lowercase = FunctionValue.Create((args, context) =>
 {
   var firstArg = args.At(0).ToStringValue();
   var lower = firstArg.ToLowerCase();
-  return new StringValue(lower);
+  return StringValue.Create(lower);
 });
 
 var context = new TemplateContext();

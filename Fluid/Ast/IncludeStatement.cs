@@ -78,7 +78,7 @@ public sealed class IncludeStatement : Statement
         }
         else if (For != null)
         {
-            var forloop = new ForLoopValue();
+            var forloop = ForLoopValue.Create();
 
             var evaluatedFor = await For.EvaluateAsync(context);
 

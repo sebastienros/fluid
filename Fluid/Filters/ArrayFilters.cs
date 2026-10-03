@@ -71,7 +71,7 @@ public static class ArrayFilters
             list.Add(s);
         }
 
-        return new StringValue(string.Join(separator, list));
+        return StringValue.Create(string.Join(separator, list));
     }
 
     public static ValueTask<FluidValue> First(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -91,7 +91,7 @@ public static class ArrayFilters
         if (input.Type == FluidValues.String)
         {
             var value = input.ToStringValue();
-            return value.Length == 0 ? StringValue.Empty : new StringValue(value[0].ToString());
+            return value.Length == 0 ? StringValue.Empty : StringValue.Create(value[0].ToString());
         }
 
         return NilValue.Instance;
@@ -109,7 +109,7 @@ public static class ArrayFilters
         if (input.Type == FluidValues.String)
         {
             var value = input.ToStringValue();
-            return value.Length == 0 ? StringValue.Empty : new StringValue(value[^1].ToString());
+            return value.Length == 0 ? StringValue.Empty : StringValue.Create(value[^1].ToString());
         }
 
         return NilValue.Instance;
@@ -177,7 +177,7 @@ public static class ArrayFilters
             concat.Add(arg);
         }
 
-        return new ArrayValue(concat);
+        return ArrayValue.Create(concat);
 
         static IEnumerable<FluidValue> Flatten(FluidValue value, TemplateContext context)
         {
@@ -232,7 +232,7 @@ public static class ArrayFilters
             list.Add(await input.GetIndexAsync(member, context));
         }
 
-        return new ArrayValue(list);
+        return ArrayValue.Create(list);
 
         // Flatten nested arrays within the input array for map filter
         static async IAsyncEnumerable<FluidValue> FlattenForMap(FluidValue value, TemplateContext context)
@@ -260,7 +260,7 @@ public static class ArrayFilters
 
         if (input.Type == FluidValues.Array)
         {
-            return new ArrayValue(await input.EnumerateAsync(context).Reverse().ToArrayAsync());
+            return ArrayValue.Create(await input.EnumerateAsync(context).Reverse().ToArrayAsync());
         }
         else if (input.Type == FluidValues.String)
         {
@@ -276,7 +276,7 @@ public static class ArrayFilters
 
                 Array.Reverse(valueAsArray);
 
-                return new ArrayValue(valueAsArray.Select(e => new StringValue(e.ToString())).ToArray());
+                return ArrayValue.Create(valueAsArray.Select(e => StringValue.Create(e.ToString())).ToArray());
             }
         }
         else
@@ -343,7 +343,7 @@ public static class ArrayFilters
             }
         }
 
-        return list != null ? new ArrayValue(list) : ArrayValue.Empty;
+        return list != null ? ArrayValue.Create(list) : ArrayValue.Empty;
     }
 
     public static async ValueTask<FluidValue> Find(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -709,7 +709,7 @@ public static class ArrayFilters
         // Golden Liquid treats strings and hashes as single items, not enumerables
         if (input.Type == FluidValues.String || input.Type == FluidValues.Object || input.Type == FluidValues.Dictionary)
         {
-            input = new ArrayValue([input]);
+            input = ArrayValue.Create([input]);
         }
         else if (input.Type != FluidValues.Array)
         {
@@ -720,7 +720,7 @@ public static class ArrayFilters
         var member = arguments.At(0);
         if (member.IsNil())
         {
-            return new ArrayValue([]);
+            return ArrayValue.Create([]);
         }
 
         var memberStr = member.ToStringValue();
@@ -804,10 +804,10 @@ public static class ArrayFilters
         // If we encountered nil error, return empty array
         if (hasNilError)
         {
-            return new ArrayValue([]);
+            return ArrayValue.Create([]);
         }
 
-        return new ArrayValue(list);
+        return ArrayValue.Create(list);
     }
 
     private static async ValueTask<(bool reject, bool hasError, bool isNilError)> ShouldRejectItem(
@@ -898,7 +898,7 @@ public static class ArrayFilters
                 .Select(x => x.Key)
                 .ToArray();
 
-            return new ArrayValue(orderedValues);
+            return ArrayValue.Create(orderedValues);
         }
         else
         {
@@ -919,7 +919,7 @@ public static class ArrayFilters
                 throw new InvalidOperationException("Cannot sort array with incompatible types");
             }
 
-            return new ArrayValue(values.OrderBy(x => x, new LiquidSortComparer(caseSensitive: true, compareNumbersAsStrings: false)).ToArray());
+            return ArrayValue.Create(values.OrderBy(x => x, new LiquidSortComparer(caseSensitive: true, compareNumbersAsStrings: false)).ToArray());
         }
     }
 
@@ -951,7 +951,7 @@ public static class ArrayFilters
                 .Select(x => x.Key)
                 .ToArray();
 
-            return new ArrayValue(orderedValues);
+            return ArrayValue.Create(orderedValues);
         }
         else
         {
@@ -972,7 +972,7 @@ public static class ArrayFilters
                 throw new InvalidOperationException("Cannot sort array with incompatible types");
             }
 
-            return new ArrayValue(values.OrderBy(x => x, new LiquidSortComparer(caseSensitive: false, compareNumbersAsStrings: false)).ToArray());
+            return ArrayValue.Create(values.OrderBy(x => x, new LiquidSortComparer(caseSensitive: false, compareNumbersAsStrings: false)).ToArray());
         }
     }
 
@@ -987,7 +987,7 @@ public static class ArrayFilters
 
         if (arguments.Count == 0)
         {
-            return new ArrayValue(await input.EnumerateAsync(context).Distinct().ToArrayAsync());
+            return ArrayValue.Create(await input.EnumerateAsync(context).Distinct().ToArrayAsync());
         }
 
         var property = arguments.At(0).ToStringValue();
@@ -1003,7 +1003,7 @@ public static class ArrayFilters
             }
         }
 
-        return new ArrayValue(result);
+        return ArrayValue.Create(result);
     }
 
     public static async ValueTask<FluidValue> Sum(FluidValue input, FilterArguments arguments, TemplateContext context)

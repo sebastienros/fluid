@@ -197,7 +197,7 @@ public class MemberAccessStrategyTests
             // When a property of a JObject value is accessed, try to look into its properties
             .ConfigureMemberAccess(strategy => strategy.Register<JObject, object>((source, name) => source[name]))
             // Convert JToken to FluidValue
-            .AddValueConverter(x => x is JObject o ? new ObjectValue(o) : null)
+            .AddValueConverter(x => x is JObject o ? ObjectValue.Create(o) : null)
             .AddValueConverter(x => x is JValue v ? v.Value : null)
             .Build();
 

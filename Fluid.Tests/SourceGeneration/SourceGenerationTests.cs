@@ -21,6 +21,7 @@ public class SourceGenerationTests
     [Theory]
     [InlineData("Hello", "Hello")]
     [InlineData("{{ 1 }}", "1")]
+    [InlineData("{{ '' }}{{ 'a' }}{{ 'hello' }}", "ahello")]
     [InlineData("{% assign x = 1 %}{{ x }}", "1")]
     [InlineData("{% if true %}a{% else %}b{% endif %}", "a")]
     [InlineData("{% unless false %}a{% endunless %}", "a")]
@@ -35,9 +36,13 @@ public class SourceGenerationTests
     [InlineData("{% if 2 > 1 and 2 >= 2 and 1 < 2 and 2 <= 2 %}yes{% endif %}", "yes")]
     [InlineData("{% if '' == empty and '' == blank %}yes{% endif %}", "yes")]
     [InlineData("{% if 'x' contains nil %}yes{% else %}no{% endif %}", "no")]
+    [InlineData("{{ 'a' == 'b' }}|{{ 'b' != 'a' }}|{{ 'abc' contains 'b' }}|{{ 'abc' startswith 'a' }}|{{ 'abc' endswith 'c' }}", "a|b|abc|abc|abc")]
+    [InlineData("{% capture x %}&{% endcapture %}{{ x }}", "&")]
+    [InlineData("{{ 'a' | json }}", "&quot;a&quot;")]
+    [InlineData("{% macro hello() %}hi{% endmacro %}{{ hello() }}", "hi")]
     public async Task GeneratedTemplate_MatchesRuntime(string liquid, string expected)
     {
-        var parser = new FluidParser();
+        var parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
         var template = parser.Parse(liquid);
 
         var source = template.Compile(new SourceGenerationOptions
@@ -212,7 +217,7 @@ public class SourceGenerationTests
 
         var options = new TemplateOptionsBuilder()
             .WithFileProvider(provider)
-            .WithGlobalValue("global", new Fluid.Values.StringValue("global"))
+            .WithGlobalValue("global", Fluid.Values.StringValue.Create("global"))
             .Build();
 
         var runtimeContext = new TemplateContext(options).SetValue("input", "root");

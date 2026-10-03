@@ -89,7 +89,7 @@ public class TemplateOptionsTests
             .WithMaxSteps(10)
             .AddFilter("first", (input, args, ctx) => input)
             .AddValueConverter(x => null)
-            .WithGlobalValue("g", new StringValue("one"))
+            .WithGlobalValue("g", StringValue.Create("one"))
             .ConfigureMemberAccess(strategy => strategy.Register(typeof(Model), "Name", new FixedMemberAccessor("one")));
 
         var options = builder.Build();
@@ -98,7 +98,7 @@ public class TemplateOptionsTests
             .WithMaxSteps(20)
             .AddFilter("second", (input, args, ctx) => input)
             .AddValueConverter(x => null)
-            .WithGlobalValue("g", new StringValue("two"))
+            .WithGlobalValue("g", StringValue.Create("two"))
             .ConfigureMemberAccess(strategy => strategy.Register(typeof(Model), "Name", new FixedMemberAccessor("two")));
 
         Assert.Equal(10, options.MaxSteps);
@@ -159,7 +159,7 @@ public class TemplateOptionsTests
     {
         var options = new TemplateOptionsBuilder()
             .AddValueConverter(x => null)
-            .WithGlobalValue("g", new StringValue("one"))
+            .WithGlobalValue("g", StringValue.Create("one"))
             .Build();
 
         Assert.Throws<NotSupportedException>(() => ((IDictionary<string, FluidValue>)options.GlobalValues).Add("x", NilValue.Instance));
@@ -223,7 +223,7 @@ public class TemplateOptionsTests
             .WithCultureInfo(new System.Globalization.CultureInfo("fr-FR"))
             .AddFilter("first", (input, args, ctx) => input)
             .AddValueConverter(x => null)
-            .WithGlobalValue("g", new StringValue("one"))
+            .WithGlobalValue("g", StringValue.Create("one"))
             .ConfigureMemberAccess(strategy => strategy.Register(typeof(Model), "Name", new FixedMemberAccessor("original")))
             .Build();
 
@@ -231,7 +231,7 @@ public class TemplateOptionsTests
             .WithMaxSteps(20)
             .AddFilter("second", (input, args, ctx) => input)
             .AddValueConverter(x => null)
-            .WithGlobalValue("g", new StringValue("two"))
+            .WithGlobalValue("g", StringValue.Create("two"))
             .ConfigureMemberAccess(strategy => strategy.Register(typeof(Model), "Name", new FixedMemberAccessor("derived")))
             .Build();
 
@@ -280,7 +280,7 @@ public class TemplateOptionsTests
     public async Task SharedOptionsShouldRenderConcurrently()
     {
         var options = new TemplateOptionsBuilder()
-            .WithGlobalValue("global", new StringValue("g"))
+            .WithGlobalValue("global", StringValue.Create("g"))
             .ConfigureMemberAccess(strategy => strategy.Register<Model, string>("Name", m => m.Name))
             .Build();
 

@@ -13,7 +13,10 @@ public sealed class BinaryExpressionFluidValue : FluidValue
     private readonly FluidValue _leftOperand;
     private readonly bool _comparisonResult;
 
-    public BinaryExpressionFluidValue(FluidValue leftOperand, bool comparisonResult)
+    public static BinaryExpressionFluidValue Create(FluidValue leftOperand, bool comparisonResult)
+        => new BinaryExpressionFluidValue(leftOperand, comparisonResult);
+
+    private BinaryExpressionFluidValue(FluidValue leftOperand, bool comparisonResult)
     {
         _leftOperand = leftOperand ?? NilValue.Instance;
         _comparisonResult = comparisonResult;

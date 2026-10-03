@@ -30,7 +30,7 @@ internal static class AccessorValueConverter
             TypeCode.Double => NumberValue.Create((decimal)(double)value),
             TypeCode.Single => NumberValue.Create((decimal)(float)value),
             TypeCode.Decimal => NumberValue.Create((decimal)value),
-            TypeCode.DateTime => new DateTimeValue((DateTime)value),
+            TypeCode.DateTime => DateTimeValue.Create((DateTime)value),
             TypeCode.String => StringValue.Create((string)value),
             _ => FluidValue.Create(value, options),
         };

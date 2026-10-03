@@ -73,7 +73,7 @@ public static class MoneyFilters
         return Format(input, arguments, context, "money_without_trailing_zeros", MoneyStyle.WithoutTrailingZeros);
     }
 
-    private static StringValue Format(FluidValue input, FilterArguments arguments, TemplateContext context, string filterName, MoneyStyle style)
+    private static FluidValue Format(FluidValue input, FilterArguments arguments, TemplateContext context, string filterName, MoneyStyle style)
     {
         LiquidException.ThrowFilterArgumentsCount(filterName, min: 0, max: 1, arguments);
 
@@ -99,18 +99,18 @@ public static class MoneyFilters
         {
             case MoneyStyle.WithoutCurrency:
                 // The amount is rendered on its own, the configured formats always contain a currency symbol.
-                return new StringValue(Round(amount, currency.DecimalDigits).ToString("N", numberFormat));
+                return StringValue.Create(Round(amount, currency.DecimalDigits).ToString("N", numberFormat));
 
             case MoneyStyle.WithoutTrailingZeros:
                 var rounded = Round(amount, currency.DecimalDigits);
                 var noDecimals = rounded % 1M == 0M;
-                return new StringValue(FormatAmount(rounded, currency, numberFormat, options.ParsedMoneyFormat, noDecimals));
+                return StringValue.Create(FormatAmount(rounded, currency, numberFormat, options.ParsedMoneyFormat, noDecimals));
 
             case MoneyStyle.WithCurrency:
-                return new StringValue(FormatWithCurrency(amount, currency, numberFormat, options));
+                return StringValue.Create(FormatWithCurrency(amount, currency, numberFormat, options));
 
             default:
-                return new StringValue(FormatAmount(amount, currency, numberFormat, options.ParsedMoneyFormat, noDecimals: false));
+                return StringValue.Create(FormatAmount(amount, currency, numberFormat, options.ParsedMoneyFormat, noDecimals: false));
         }
     }
 

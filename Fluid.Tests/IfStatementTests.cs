@@ -219,7 +219,7 @@ public class IfStatementTests
             TEXT("a"),
             new ElseStatement(new List<Statement>
             {
-                new AssignStatement("x", new LiteralExpression(new StringValue("value")))
+                new AssignStatement("x", new LiteralExpression(StringValue.Create("value")))
             })
         );
 
@@ -241,7 +241,7 @@ public class IfStatementTests
             {
                 new ElseIfStatement(BooleanExpression(true, async: false), new List<Statement>
                 {
-                    new AssignStatement("x", new LiteralExpression(new StringValue("value")))
+                    new AssignStatement("x", new LiteralExpression(StringValue.Create("value")))
                 })
             }
         );

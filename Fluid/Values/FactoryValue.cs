@@ -7,7 +7,9 @@ public sealed class FactoryValue : FluidValue
 {
     private readonly Lazy<FluidValue> _factory;
 
-    public FactoryValue(Func<FluidValue> factory)
+    public static FactoryValue Create(Func<FluidValue> factory) => new FactoryValue(factory);
+
+    private FactoryValue(Func<FluidValue> factory)
     {
         _factory = new Lazy<FluidValue>(() => factory());
     }
