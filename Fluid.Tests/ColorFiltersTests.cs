@@ -2,12 +2,19 @@ using Fluid.Filters;
 using Fluid.Tests.Extensions;
 using Fluid.Values;
 using System.Globalization;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Fluid.Tests;
 
 public class ColorFiltersTests
 {
+#if COMPILED
+    private static readonly FluidParser _parser = new FluidParser().Compile();
+#else
+    private static readonly FluidParser _parser = new FluidParser();
+#endif
+
     [Theory]
     [InlineData("#ffffff", "rgb(255, 255, 255)")]
     [InlineData("#fff", "rgb(255, 255, 255)")]
@@ -24,6 +31,22 @@ public class ColorFiltersTests
     [InlineData("hsl(240, 100%, 50%)", "rgb(0, 0, 255)")]
     [InlineData("hsl(300, 100%, 25%)", "rgb(128, 0, 128)")]
     [InlineData("hsla(0, 100%, 50%, 0.5)", "rgba(255, 0, 0, 0.5)")]
+    [InlineData("#ABC", "rgb(170, 187, 204)")]
+    [InlineData("#AABBCC", "rgb(170, 187, 204)")]
+    [InlineData("hsl(120deg, 100%, 50%)", "rgb(0, 255, 0)")]
+    [InlineData("hsl(100grad, 100%, 50%)", "rgb(128, 255, 0)")]
+    [InlineData("hsl(1.5707963267948966rad, 100%, 50%)", "rgb(128, 255, 0)")]
+    [InlineData("hsl(1rad, 50%, 50%)", "rgb(191, 186, 64)")]
+    [InlineData("hsl(4, 50%, 50%, 50%)", "rgba(191, 72, 64, 0.5)")]
+    [InlineData("hsl(.25turn, 100%, 50%)", "rgb(128, 255, 0)")]
+    [InlineData("hsl(-.75turn, 100%, 50%)", "rgb(128, 255, 0)")]
+    [InlineData("hsl(2.25turn, 100%, 50%)", "rgb(128, 255, 0)")]
+    [InlineData("hsl(-270deg, 100%, 50%)", "rgb(128, 255, 0)")]
+    [InlineData("hsl(810, 100%, 50%)", "rgb(128, 255, 0)")]
+    [InlineData("hsla(0DEG, 100%, 50%, 50%)", "rgba(255, 0, 0, 0.5)")]
+    [InlineData("hsl(0, 150%, 50%, -10%)", "rgba(255, 0, 0, 0)")]
+    [InlineData("hsla(0, -10%, 150%, 200%)", "rgb(255, 255, 255)")]
+    [InlineData("hsl(0, 100%, -10%, .4)", "rgba(0, 0, 0, 0.4)")]
     public void ToRgb(string color, string expected)
     {
         // Arrange
@@ -77,6 +100,19 @@ public class ColorFiltersTests
     [InlineData("hsl(240, 100%, 50%)", "#0000ff")]
     [InlineData("hsl(300, 100%, 25%)", "#800080")]
     [InlineData("hsl(300, 100%, 25%, 0.5)", "#800080")]
+    [InlineData("rgb(10.1, 11.2, 11.3, .4)", "#0a0b0b")]
+    [InlineData("rgb(10%, 10%, 20%, 40%)", "#1a1a33")]
+    [InlineData("rgba(100%, 50%, 0%, .5)", "#ff8000")]
+    [InlineData("rgba(+1e2, 2E2, .5, 5e-1)", "#64c801")]
+    [InlineData("rgb(10.5, 11.5, 12.5)", "#0b0c0d")]
+    [InlineData("rgb(10.49, 11.49, 12.49)", "#0a0b0c")]
+    [InlineData("rgb(-1, 256, 1e300)", "#00ffff")]
+    [InlineData("rgb(-10%, 150%, 50%)", "#00ff80")]
+    [InlineData("rgb(30%, 70%, 90%)", "#4db3e6")]
+    [InlineData("rgb(\t255,\r\n0,\f0)", "#ff0000")]
+    [InlineData("hsl(.5turn, 100%, 50%)", "#00ffff")]
+    [InlineData("hsl(2e2grad, 100%, 50%, 50%)", "#00ffff")]
+    [InlineData("hsl(360, 100%, 50%)", "#ff0000")]
     public void ToHex(string color, string expected)
     {
         // Arrange
@@ -124,6 +160,10 @@ public class ColorFiltersTests
     [InlineData("rgb(0, 0, 255)", "hsl(240, 100%, 50%)")]
     [InlineData("rgb(128, 0, 128)", "hsl(300, 100%, 25%)")]
     [InlineData("rgba(255, 0, 0, 0.5)", "hsla(0, 100%, 50%, 0.5)")]
+    [InlineData("rgba(100%, 0%, 0%, 50%)", "hsla(0, 100%, 50%, 0.5)")]
+    [InlineData("rgb(255.4, .1, .2, 40%)", "hsla(0, 100%, 50%, 0.4)")]
+    [InlineData("rgba(255, 0, 0, -.5)", "hsla(0, 100%, 50%, 0)")]
+    [InlineData("rgba(255, 0, 0, 150%)", "hsl(0, 100%, 50%)")]
     public void ToHsl(string color, string expected)
     {
         // Arrange
@@ -181,6 +221,15 @@ public class ColorFiltersTests
     [InlineData("hsl(100, 38%, 54%)", new object[] { "hue" }, "100")]
     [InlineData("hsl(100, 38%, 54%)", new object[] { "saturation" }, "38")]
     [InlineData("hsl(100, 38%, 54%)", new object[] { "lightness" }, "54")]
+    [InlineData("rgb(10.1, 11.2, 11.3, .4)", new object[] { "red" }, "10")]
+    [InlineData("rgb(10%, 10%, 20%, 40%)", new object[] { "alpha" }, "0.4")]
+    [InlineData("rgba(123, 182, 93, .123456789)", new object[] { "alpha" }, "0.123456789")]
+    [InlineData("hsla(.25turn, 50%, 50%, 12.3456789%)", new object[] { "alpha" }, "0.123456789")]
+    [InlineData("hsl(-100grad, 50%, 50%)", new object[] { "hue" }, "270")]
+    [InlineData("hsl(450deg, 50%, 50%)", new object[] { "hue" }, "90")]
+    [InlineData("hsl(100deg, 50%, 50%)", new object[] { "hue" }, "100")]
+    [InlineData("hsl(1e300turn, 50%, 50%)", new object[] { "hue" }, "0")]
+    [InlineData("hsl(-5e-324deg, 50%, 50%)", new object[] { "hue" }, "0")]
     public void ColorExtract(string color, object[] arguments, string expected)
     {
         // Arrange
@@ -410,6 +459,147 @@ public class ColorFiltersTests
 
         // Assert
         Assert.Equal(expected, result.Result.ToNumberValue());
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("rgb(1, 2)")]
+    [InlineData("rgb(1, 2, 3, .5, .6)")]
+    [InlineData("rgb(1., 2, 3)")]
+    [InlineData("rgb(1e, 2, 3)")]
+    [InlineData("rgb(1e999, 2, 3)")]
+    [InlineData("rgb(NaN, 2, 3)")]
+    [InlineData("rgb(Infinity, 2, 3)")]
+    [InlineData("rgb(1%%, 2%, 3%)")]
+    [InlineData("rgb(1%, 2, 3%)")]
+    [InlineData("rgba(1, 2, 3, NaN)")]
+    [InlineData("rgba(1, 2, 3, Infinity)")]
+    [InlineData("rgba(1, 2, 3, 1e999)")]
+    [InlineData("rgba(1, 2, 3, 50%%)")]
+    [InlineData("rgb(1 2 3 / .5)")]
+    [InlineData("hsl(1rad, 50, 50%)")]
+    [InlineData("hsl(1rad, 50%, 50)")]
+    [InlineData("hsl(1rad, 50%%, 50%)")]
+    [InlineData("hsl(1rad, 50%, 50%, 50%%)")]
+    [InlineData("hsl(1foo, 50%, 50%)")]
+    [InlineData("hsl(1%, 50%, 50%)")]
+    [InlineData("hsl(1.rad, 50%, 50%)")]
+    [InlineData("hsl(1e999turn, 50%, 50%)")]
+    [InlineData("hsl(NaN, 50%, 50%)")]
+    [InlineData("hsl(Infinity, 50%, 50%)")]
+    [InlineData("hsl(0, 1e999%, 50%)")]
+    [InlineData("hsl(0, 50%, 50%, NaN)")]
+    [InlineData("hsl(0, 50%, 50%, 1e999)")]
+    [InlineData("#ggg")]
+    [InlineData("#aabbcg")]
+    [InlineData("#abcd")]
+    [InlineData("#aabbccdd")]
+    public void InvalidColorShouldReturnEmpty(string color)
+    {
+        var result = ColorFilters.CalculateBrightness(new StringValue(color), FilterArguments.Empty, new TemplateContext());
+
+        Assert.Same(EmptyValue.Instance, result.Result);
+    }
+
+    [Theory]
+    [InlineData("color_to_hex")]
+    [InlineData("color_extract: 'red'")]
+    [InlineData("color_extract: 'green'")]
+    [InlineData("color_extract: 'blue'")]
+    [InlineData("color_extract: 'alpha'")]
+    [InlineData("color_extract: 'hue'")]
+    [InlineData("color_extract: 'saturation'")]
+    [InlineData("color_extract: 'lightness'")]
+    [InlineData("color_modify: 'alpha', .8")]
+    [InlineData("color_modify: 'red', 200")]
+    [InlineData("color_modify: 'green', 200")]
+    [InlineData("color_modify: 'blue', 200")]
+    [InlineData("color_modify: 'hue', 50")]
+    [InlineData("color_modify: 'saturation', 50")]
+    [InlineData("color_modify: 'lightness', 50")]
+    [InlineData("color_saturate: 30")]
+    [InlineData("color_desaturate: 30")]
+    [InlineData("color_lighten: 30")]
+    [InlineData("color_darken: 30")]
+    [InlineData("color_brightness")]
+    [InlineData("color_difference: other")]
+    [InlineData("brightness_difference: other")]
+    [InlineData("color_contrast: other")]
+    public async Task NumericTypesShouldWorkAcrossColorFilters(string filter)
+    {
+        var options = new TemplateOptionsBuilder().WithColorFilters().Build();
+        Assert.True(_parser.TryParse("{{ color | " + filter + " }}", out var template, out var error), error);
+
+        foreach (var (original, extended) in new[]
+        {
+            ("rgba(123, 182, 93, 0.5)", "rgba(1.23e2, 182.1, 92.8, 50%)"),
+            ("hsla(100, 38%, 54%, 0.5)", "hsla(100deg, 38%, 54%, 50%)"),
+            ("rgba(128, 191, 64, 0.5)", "rgba(50%, 75%, 25%, 50%)")
+        })
+        {
+            var context = new TemplateContext(options);
+            context.SetValue("color", original);
+            context.SetValue("other", "rgb(171, 205, 239)");
+            var expected = await template.RenderAsync(context);
+
+            context.SetValue("color", extended);
+            context.SetValue("other", "rgb(171.1, 205.1, 239.1)");
+            var result = await template.RenderAsync(context);
+
+            Assert.NotEmpty(result);
+            Assert.Equal(expected, result);
+        }
+    }
+
+    [Theory]
+    [InlineData("color_difference")]
+    [InlineData("brightness_difference")]
+    [InlineData("color_contrast")]
+    public async Task SecondColorShouldSupportAnglesAndPercentages(string filter)
+    {
+        var options = new TemplateOptionsBuilder().WithColorFilters().Build();
+        var context = new TemplateContext(options);
+        context.SetValue("color", "#495859");
+        Assert.True(_parser.TryParse("{{ color | " + filter + ": other }}", out var template, out var error), error);
+
+        context.SetValue("other", "hsla(210, 68%, 80.4%, .5)");
+        var expected = await template.RenderAsync(context);
+        context.SetValue("other", "hsla(210deg, 68%, 80.4%, 50%)");
+
+        var result = await template.RenderAsync(context);
+        Assert.NotEmpty(result);
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("en-US")]
+    [InlineData("de")]
+    [InlineData("fr-FR")]
+    [InlineData("zh-Hans")]
+    public async Task NumericTypesShouldBeCultureIndependent(string culture)
+    {
+        var originalCulture = CultureInfo.CurrentCulture;
+        var originalUiCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            SetCurrentCulture(culture);
+            var options = new TemplateOptionsBuilder().WithColorFilters().Build();
+            var context = new TemplateContext(options);
+            Assert.True(_parser.TryParse(
+                "{{ 'rgba(100%, 0%, 0%, 50%)' | color_to_hsl }}|" +
+                "{{ 'hsla(.25turn, 100%, 50%, 50%)' | color_to_rgb }}|" +
+                "{{ 'rgb(10.1, 11.2, 11.3, .4)' | color_to_hex }}|" +
+                "{{ 'hsl(200grad, 100%, 50%)' | color_to_rgb | color_to_hex }}",
+                out var template, out var error), error);
+
+            Assert.Equal("hsla(0, 100%, 50%, 0.5)|rgba(128, 255, 0, 0.5)|#0a0b0b|#00ffff",
+                await template.RenderAsync(context));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+            CultureInfo.CurrentUICulture = originalUiCulture;
+        }
     }
 
     private static void SetCurrentCulture(string culture)

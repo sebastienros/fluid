@@ -44,6 +44,7 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
 - [Localization](#localization)
+- [Color filters](#color-filters)
 - [Money filters](#money-filters)
 - [Time zones](#time-zones)
 - [Customizing tags and blocks](#customizing-tags-and-blocks)
@@ -929,6 +930,35 @@ Tuesday, August 1, 2017
 ```
 
 <br>
+
+## Color filters
+
+Color filters are opt-in. Register them with `TemplateOptionsBuilder.WithColorFilters()`:
+
+```csharp
+var options = new TemplateOptionsBuilder()
+    .WithColorFilters()
+    .Build();
+```
+
+The filters accept three- and six-digit hexadecimal colors and `rgb`/`rgba` and `hsl`/`hsla` functions with the existing comma-delimited syntax and optional alpha:
+
+| Component | Supported input |
+| --- | --- |
+| RGB channels | Numbers (including fractions such as `10.1`) or percentages; all three channels must use the same type |
+| Hue | Degrees without a unit, or an angle in `deg`, `rad`, `grad`, or `turn` |
+| Saturation and lightness | Percentages |
+| Alpha | A number or percentage, including leading-dot numbers such as `.4` |
+
+Numbers use invariant decimal-point syntax and can use signs and exponent notation. RGB channels, saturation, lightness, and alpha are clamped to their valid ranges. Hue wraps around a full revolution. RGB channels are stored as integers: percentages map `100%` to `255`, and fractional channel values round to the nearest integer, with half-way values rounded upward. Output formatting is unchanged; RGB/HSL alpha is rounded to one decimal place, while `color_extract: 'alpha'` returns the parsed alpha without that output rounding. Conversion to hex omits alpha.
+
+| Source | Result |
+| --- | --- |
+| `{{ 'rgb(10%, 10%, 20%, 40%)' \| color_to_hex }}` | `#1a1a33` |
+| `{{ 'hsla(.25turn, 100%, 50%, 50%)' \| color_to_rgb }}` | `rgba(128, 255, 0, 0.5)` |
+| `{{ 'rgb(10.1, 11.2, 11.3, .4)' \| color_extract: 'alpha' }}` | `0.4` |
+
+Malformed or non-finite components produce an empty filter result. This is not a complete CSS color parser: modern space-separated/slash-alpha syntax, named colors, other color spaces, and CSS expressions are not supported.
 
 ## Money filters
 
