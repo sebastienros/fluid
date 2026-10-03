@@ -1,27 +1,23 @@
-﻿namespace Fluid.Accessors
+using Fluid.Values;
+
+namespace Fluid.Accessors;
+
+public class AsyncDelegateAccessor<T, TResult> : MemberAccessor
 {
-    public class AsyncDelegateAccessor<T, TResult> : IAsyncMemberAccessor
+    private readonly Func<T, string, TemplateContext, Task<TResult>> _getter;
+
+    public AsyncDelegateAccessor(Func<T, string, TemplateContext, Task<TResult>> getter)
     {
-        private readonly Func<T, string, TemplateContext, Task<TResult>> _getter;
+        _getter = getter;
+    }
 
-        public AsyncDelegateAccessor(Func<T, string, TemplateContext, Task<TResult>> getter)
-        {
-            _getter = getter;
-        }
+    public Task<TResult> GetAsync(T obj, string name, TemplateContext ctx)
+    {
+        return _getter(obj, name, ctx);
+    }
 
-        public object Get(object obj, string name, TemplateContext ctx)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<TResult> GetAsync(T obj, string name, TemplateContext ctx)
-        {
-            return _getter(obj, name, ctx);
-        }
-
-        async Task<object> IAsyncMemberAccessor.GetAsync(object obj, string name, TemplateContext ctx)
-        {
-            return await _getter((T)obj, name, ctx);
-        }
+    public override ValueTask<FluidValue> GetAsync(object obj, string name, TemplateContext context)
+    {
+        return CreateValueTask(_getter((T)obj, name, context), context);
     }
 }

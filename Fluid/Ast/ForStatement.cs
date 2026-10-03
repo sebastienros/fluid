@@ -1,279 +1,450 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
-namespace Fluid.Ast
+namespace Fluid.Ast;
+
+public sealed class ForStatement : TagStatement, ISourceable
 {
-    public sealed class ForStatement : TagStatement
+    private readonly string _continueSourceLiteral;
+
+    // Precomputed for every source shape but a range. Both `forloop.name` and the `offset: continue`
+    // key are then constant for the lifetime of the statement, so they don't need to be rebuilt
+    // (with LINQ and string.Join) on every execution of the loop.
+    private readonly string _staticContinueOffsetLiteral;
+
+    // Statements never change after construction, and PrepareBuffer can only shrink a TextSpanStatement
+    // by trimming whitespace, so a whitespace-only body stays whitespace-only.
+    private readonly bool _suppressWhitespaceBody;
+
+    public ForStatement(
+        IReadOnlyList<Statement> statements,
+        string identifier,
+        Expression source,
+        Expression limit,
+        Expression offset,
+        bool reversed,
+        ElseStatement elseStatement = null
+    ) : base(statements)
     {
-        private readonly string _continueSourceLiteral;
+        Identifier = identifier;
+        Source = source;
+        Limit = limit;
+        Offset = offset;
+        Reversed = reversed;
+        Else = elseStatement;
 
-        public ForStatement(
-            IReadOnlyList<Statement> statements,
-            string identifier,
-            Expression source,
-            Expression limit,
-            Expression offset,
-            bool reversed,
-            ElseStatement elseStatement = null
-        ) : base(statements)
+        OffsetIsContinue = Offset is MemberExpression l && l.Segments.Count == 1 && ((IdentifierSegment)l.Segments[0]).Identifier == "continue";
+        _continueSourceLiteral = source is MemberExpression m
+            ? string.Join(".", m.Segments.Select(s => (s as IdentifierSegment)?.Identifier).Where(s => s != null))
+            : null;
+
+        if (!string.IsNullOrEmpty(_continueSourceLiteral))
         {
-            Identifier = identifier;
-            Source = source;
-            Limit = limit;
-            Offset = offset;
-            Reversed = reversed;
-            Else = elseStatement;
-
-            OffsetIsContinue = Offset is MemberExpression l && l.Segments.Count == 1 && ((IdentifierSegment)l.Segments[0]).Identifier == "continue";
-            _continueSourceLiteral = source is MemberExpression m
-                ? string.Join(".", m.Segments.Select(s => (s as IdentifierSegment)?.Identifier).Where(s => s != null))
-                : null;
+            _staticContinueOffsetLiteral = $"for_continue_{Identifier}-{_continueSourceLiteral}";
+        }
+        else if (source is not RangeExpression)
+        {
+            // Fallback: stable within the current render (statement instance).
+            _staticContinueOffsetLiteral = $"for_continue_{Identifier}-stmt_" + RuntimeHelpers.GetHashCode(this).ToString(CultureInfo.InvariantCulture);
         }
 
-        public string Identifier { get; }
-        public RangeExpression Range { get; }
-        public Expression Source { get; }
-        public Expression Limit { get; }
-        public Expression Offset { get; }
-        public bool Reversed { get; }
-        public ElseStatement Else { get; }
-        public bool OffsetIsContinue { get; }
+        _suppressWhitespaceBody = Statements.Count == 1 && Statements[0] is TextSpanStatement t && t.IsWhitespaceOrCommentOnly;
+    }
 
-        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+    public string Identifier { get; }
+    public RangeExpression Range { get; }
+    public Expression Source { get; }
+    public Expression Limit { get; }
+    public Expression Offset { get; }
+    public bool Reversed { get; }
+    public ElseStatement Else { get; }
+    public bool OffsetIsContinue { get; }
+
+    public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+    {
+        var evaluatedSource = await Source.EvaluateAsync(context);
+
+        // The `offset: continue` feature uses a per-source key to store the absolute index
+        // of the next item to render. In Liquid, this state is updated by every `for` loop
+        // over the same source, even if the loop itself doesn't specify `offset: continue`.
+        var continueOffsetLiteral = _staticContinueOffsetLiteral ?? await BuildRangeContinueOffsetLiteralAsync((RangeExpression)Source, context);
+
+        // Golden Liquid: empty strings are treated as empty collections
+        if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue()))
         {
-            var evaluatedSource = await Source.EvaluateAsync(context);
-
-            // The `offset: continue` feature uses a per-source key to store the absolute index
-            // of the next item to render. In Liquid, this state is updated by every `for` loop
-            // over the same source, even if the loop itself doesn't specify `offset: continue`.
-            var continueOffsetLiteral = await BuildContinueOffsetLiteralAsync(context);
-
-            // Golden Liquid: empty strings are treated as empty collections
-            if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue()))
+            if (Else != null)
             {
-                if (Else != null)
-                {
-                    await Else.WriteToAsync(output, encoder, context);
-                }
-
-                return Completion.Normal;
-            }
-
-            // Fast-path: FluidValue.Create(IEnumerable) and many array-like values already materialize as ArrayValue.
-            // Avoid re-enumerating and allocating a new List<T> in this very hot path.
-            IReadOnlyList<FluidValue> source = evaluatedSource is ArrayValue array
-                ? array.Values
-                : await evaluatedSource.EnumerateAsync(context).ToListAsync();
-
-            var suppressWhitespaceBody = Statements.Count == 1
-                && Statements[0] is TextSpanStatement t
-#if NET6_0_OR_GREATER
-                && t.Text.Span.IsWhiteSpace();
-#else
-                && string.IsNullOrWhiteSpace(t.Text.ToString());
-#endif
-
-            if (source.Count == 0)
-            {
-                if (Else != null)
-                {
-                    await Else.WriteToAsync(output, encoder, context);
-                }
-
-                return Completion.Normal;
-            }
-
-            // Apply options
-            var startIndex = 0;
-            if (Offset is not null)
-            {
-                if (OffsetIsContinue)
-                {
-                    startIndex = continueOffsetLiteral is null
-                        ? 0
-                        : (int)context.GetValue(continueOffsetLiteral).ToNumberValue();
-                }
-                else
-                {
-                    startIndex = await EvaluateIntegerArgumentAsync("offset", Offset, context);
-                }
-            }
-
-            var count = Math.Max(0, source.Count - startIndex);
-
-            if (Limit is not null)
-            {
-                var limit = await EvaluateIntegerArgumentAsync("limit", Limit, context);
-
-                // Limit can be negative
-                if (limit >= 0)
-                {
-                    count = Math.Min(count, limit);
-                }
-                else
-                {
-                    count = Math.Max(0, count + limit);
-                }
-            }
-
-            if (count == 0)
-            {
-                if (Else != null)
-                {
-                    await Else.WriteToAsync(output, encoder, context);
-                }
-
-                return Completion.Normal;
-            }
-
-            var parentLoop = context.LocalScope.GetValue("forloop");
-
-            context.EnterForLoopScope();
-
-            try
-            {
-                var endIndexExclusive = startIndex + count;
-
-                var forloop = new ForLoopValue
-                {
-                    Identifier = Identifier,
-                    Source = Source is MemberExpression m
-                        ? string.Join(".", m.Segments.Select(s => (s as IdentifierSegment)?.Identifier).Where(s => s != null))
-                        : Source is RangeExpression r
-                            ? $"({Convert.ToInt32((await r.From.EvaluateAsync(context)).ToNumberValue())}..{Convert.ToInt32((await r.To.EvaluateAsync(context)).ToNumberValue())})"
-                            : null
-                };
-
-                forloop.Length = count;
-
-                context.LocalScope.SetOwnValue("forloop", forloop);
-
-                // Render tag forloops should not be accessible as parentloop from nested for loops
-                // (render creates an isolated scope where parent relationships don't cross boundaries)
-                if (!parentLoop.IsNil() && parentLoop is ForLoopValue parentForLoop && !parentForLoop.IsRenderLoop)
-                {
-                    forloop.ParentLoop = parentForLoop;
-
-                    // Legacy Liquid compatibility: expose the parent loop as `parentloop`
-                    context.LocalScope.SetOwnValue("parentloop", parentForLoop);
-                }
-
-                for (var iteration = 0; iteration < count; iteration++)
-                {
-                    context.IncrementSteps();
-
-                    // When reversed, iterate the slice in reverse without mutating the underlying list.
-                    var itemIndex = Reversed ? endIndexExclusive - 1 - iteration : startIndex + iteration;
-                    var item = source[itemIndex];
-
-                    context.LocalScope.SetOwnValue(Identifier, item);
-
-                    // Set helper variables
-                    forloop.Index = iteration + 1;
-                    forloop.Index0 = iteration;
-                    forloop.RIndex = count - iteration;
-                    forloop.RIndex0 = count - iteration - 1;
-                    forloop.First = iteration == 0;
-                    forloop.Last = iteration == count - 1;
-
-                    var completion = Completion.Normal;
-
-                    if (!suppressWhitespaceBody)
-                    {
-                        for (var index = 0; index < Statements.Count; index++)
-                        {
-                            var statement = Statements[index];
-                            completion = await statement.WriteToAsync(output, encoder, context);
-
-                        //// Restore the forloop property after every statement in case it replaced it,
-                        //// for instance if it contains a nested for loop
-                        //context.LocalScope.SetOwnValue("forloop", forloop);
-
-                            if (completion != Completion.Normal)
-                            {
-                                // Stop processing the block statements
-                                break;
-                            }
-                        }
-                    }
-
-                    if (completion == Completion.Continue)
-                    {
-                        // Go to next iteration
-                        continue;
-                    }
-
-                    if (completion == Completion.Break)
-                    {
-                        // Leave the loop
-                        break;
-                    }
-                }
-
-                // Persist the continue cursor to the end of the intended slice, regardless of early break.
-                if (continueOffsetLiteral != null)
-                {
-                    context.SetValue(continueOffsetLiteral, endIndexExclusive);
-                }
-            }
-            finally
-            {
-                context.ReleaseScope();
+                await Else.WriteToAsync(output, encoder, context);
             }
 
             return Completion.Normal;
         }
 
-        private async ValueTask<string> BuildContinueOffsetLiteralAsync(TemplateContext context)
+        // Fast-path: materialized array-like values avoid an extra list allocation.
+        // Avoid re-enumerating and allocating a new List<T> in this very hot path.
+        IReadOnlyList<FluidValue> source = EnumerableObjectValue.GetMaterializedValues(evaluatedSource)
+            ?? await evaluatedSource.EnumerateAsync(context).ToListAsync(context.CancellationToken);
+
+        if (source.Count == 0)
         {
-            // Key is based on Liquid's `forloop.name`: "{identifier}-{source}".
-            // This means changing the loop variable changes the key.
-
-            string source;
-
-            if (!string.IsNullOrEmpty(_continueSourceLiteral))
+            if (Else != null)
             {
-                source = _continueSourceLiteral;
+                await Else.WriteToAsync(output, encoder, context);
             }
-            else if (Source is RangeExpression r)
+
+            return Completion.Normal;
+        }
+
+        // Apply options
+        var startIndex = 0;
+        if (Offset is not null)
+        {
+            if (OffsetIsContinue)
             {
-                var from = Convert.ToInt32((await r.From.EvaluateAsync(context)).ToNumberValue());
-                var to = Convert.ToInt32((await r.To.EvaluateAsync(context)).ToNumberValue());
-                source = $"({from}..{to})";
+                startIndex = continueOffsetLiteral is null
+                    ? 0
+                    : (int)context.GetValue(continueOffsetLiteral).ToNumberValue();
             }
             else
             {
-                // Fallback: stable within the current render (statement instance).
-                source = "stmt_" + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this).ToString(CultureInfo.InvariantCulture);
+                startIndex = await EvaluateIntegerArgumentAsync("offset", Offset, context);
             }
-
-            return $"for_continue_{Identifier}-{source}";
         }
 
-        private static async ValueTask<int> EvaluateIntegerArgumentAsync(string name, Expression expression, TemplateContext context)
-        {
-            var value = await expression.EvaluateAsync(context);
+        var count = Math.Max(0, source.Count - startIndex);
 
-            if (value.Type == FluidValues.Number)
+        if (Limit is not null)
+        {
+            var limit = await EvaluateIntegerArgumentAsync("limit", Limit, context);
+
+            // Limit can be negative
+            if (limit >= 0)
             {
-                return Convert.ToInt32(value.ToNumberValue());
+                count = Math.Min(count, limit);
+            }
+            else
+            {
+                count = Math.Max(0, count + limit);
+            }
+        }
+
+        if (count == 0)
+        {
+            if (Else != null)
+            {
+                await Else.WriteToAsync(output, encoder, context);
             }
 
-            if (value.Type == FluidValues.String)
+            return Completion.Normal;
+        }
+
+        var parentLoop = context.LocalScope.GetValue("forloop");
+
+        using var scope = context.EnterScope(ScopeBehavior.WriteThrough);
+
+        {
+            var endIndexExclusive = startIndex + count;
+
+            var forloop = new ForLoopValue
             {
-                var s = value.ToStringValue().Trim();
-                if (int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+                Identifier = Identifier,
+                Source = _continueSourceLiteral is not null
+                    ? _continueSourceLiteral
+                    : Source is RangeExpression r
+                        ? $"({Convert.ToInt32((await r.From.EvaluateAsync(context)).ToNumberValue())}..{Convert.ToInt32((await r.To.EvaluateAsync(context)).ToNumberValue())})"
+                        : null
+            };
+
+            forloop.Length = count;
+
+            context.LocalScope.SetOwnValue("forloop", forloop);
+
+            // Render tag forloops should not be accessible as parentloop from nested for loops
+            // (render creates an isolated scope where parent relationships don't cross boundaries)
+            if (!parentLoop.IsNil() && parentLoop is ForLoopValue parentForLoop && !parentForLoop.IsRenderLoop)
+            {
+                forloop.ParentLoop = parentForLoop;
+
+                // Legacy Liquid compatibility: expose the parent loop as `parentloop`
+                context.LocalScope.SetOwnValue("parentloop", parentForLoop);
+            }
+
+            for (var iteration = 0; iteration < count; iteration++)
+            {
+                context.IncrementSteps();
+
+                // When reversed, iterate the slice in reverse without mutating the underlying list.
+                var itemIndex = Reversed ? endIndexExclusive - 1 - iteration : startIndex + iteration;
+                var item = source[itemIndex];
+
+                context.LocalScope.SetOwnValue(Identifier, item);
+
+                // Set helper variables
+                forloop.Index = iteration + 1;
+                forloop.Index0 = iteration;
+                forloop.RIndex = count - iteration;
+                forloop.RIndex0 = count - iteration - 1;
+                forloop.First = iteration == 0;
+                forloop.Last = iteration == count - 1;
+
+                var completion = Completion.Normal;
+
+                if (!_suppressWhitespaceBody)
                 {
-                    return parsed;
+                    for (var index = 0; index < Statements.Count; index++)
+                    {
+                        var statement = Statements[index];
+                        completion = await statement.WriteToAsync(output, encoder, context);
+
+                        //// Restore the forloop property after every statement in case it replaced it,
+                        //// for instance if it contains a nested for loop
+                        //context.LocalScope.SetOwnValue("forloop", forloop);
+
+                        if (completion != Completion.Normal)
+                        {
+                            // Stop processing the block statements
+                            break;
+                        }
+                    }
                 }
 
-                throw new LiquidException($"for: {name} is not a number");
+                if (completion == Completion.Continue)
+                {
+                    // Go to next iteration
+                    continue;
+                }
+
+                if (completion == Completion.Break)
+                {
+                    // Leave the loop
+                    break;
+                }
             }
 
-            throw new LiquidException($"for: {name} must be a number");
+            // Persist the continue cursor to the end of the intended slice, regardless of early break.
+            if (continueOffsetLiteral != null)
+            {
+                context.SetValue(continueOffsetLiteral, endIndexExclusive);
+            }
         }
 
-        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitForStatement(this);
+        return Completion.Normal;
+    }
+
+    /// <summary>
+    /// Builds the key holding the `offset: continue` cursor for a range source, the only shape whose
+    /// `forloop.name` isn't known until the loop runs. Every other shape is precomputed in the constructor.
+    /// </summary>
+    private async ValueTask<string> BuildRangeContinueOffsetLiteralAsync(RangeExpression r, TemplateContext context)
+    {
+        // Key is based on Liquid's `forloop.name`: "{identifier}-{source}".
+        // This means changing the loop variable changes the key.
+        var from = Convert.ToInt32((await r.From.EvaluateAsync(context)).ToNumberValue());
+        var to = Convert.ToInt32((await r.To.EvaluateAsync(context)).ToNumberValue());
+        return $"for_continue_{Identifier}-({from}..{to})";
+    }
+
+    private static async ValueTask<int> EvaluateIntegerArgumentAsync(string name, Expression expression, TemplateContext context)
+    {
+        var value = await expression.EvaluateAsync(context);
+
+        if (value.Type == FluidValues.Number)
+        {
+            return Convert.ToInt32(value.ToNumberValue());
+        }
+
+        if (value.Type == FluidValues.String)
+        {
+            var s = value.ToStringValue().Trim();
+            if (int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+            {
+                return parsed;
+            }
+
+            throw new LiquidException($"for: {name} is not a number");
+        }
+
+        throw new LiquidException($"for: {name} must be a number");
+    }
+
+    protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitForStatement(this);
+
+    public void WriteTo(SourceGenerationContext context)
+    {
+        var sourceExpr = context.GetExpressionMethodName(Source);
+        var identifierLit = SourceGenerationContext.ToCSharpStringLiteral(Identifier);
+        var continueOffsetLiteralName = context.GetUniqueId("continueOffsetLiteral");
+        string continueOffsetLit = null;
+
+        if (!string.IsNullOrEmpty(_continueSourceLiteral))
+        {
+            continueOffsetLit = SourceGenerationContext.ToCSharpStringLiteral($"for_continue_{Identifier}-{_continueSourceLiteral}");
+            context.WriteLine($"var {continueOffsetLiteralName} = {continueOffsetLit};");
+        }
+        else if (Source is RangeExpression range)
+        {
+            var fromExpr = context.GetExpressionMethodName(range.From);
+            var toExpr = context.GetExpressionMethodName(range.To);
+            context.WriteLine($"var {continueOffsetLiteralName} = \"for_continue_{Identifier}-(\" + Convert.ToInt32((await {fromExpr}({context.ContextName})).ToNumberValue({context.ContextName})).ToString(CultureInfo.InvariantCulture) + \"..\" + Convert.ToInt32((await {toExpr}({context.ContextName})).ToNumberValue({context.ContextName})).ToString(CultureInfo.InvariantCulture) + \")\";");
+        }
+        else
+        {
+            continueOffsetLit = SourceGenerationContext.ToCSharpStringLiteral($"for_continue_{Identifier}-stmt_{System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this).ToString(CultureInfo.InvariantCulture)}");
+            context.WriteLine($"var {continueOffsetLiteralName} = {continueOffsetLit};");
+        }
+
+        context.WriteLine($"var evaluatedSource = await {sourceExpr}({context.ContextName});");
+        context.WriteLine("if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue()))");
+        context.WriteLine("{");
+        using (context.Indent())
+        {
+            if (Else != null)
+            {
+                var elseStmt = context.GetStatementMethodName(Else);
+                context.WriteLine($"await {elseStmt}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+            }
+            context.WriteLine("return Completion.Normal;");
+        }
+        context.WriteLine("}");
+        context.WriteLine();
+        context.WriteLine("IReadOnlyList<FluidValue> source = evaluatedSource is ArrayValue array");
+        using (context.Indent())
+        {
+            context.WriteLine("? array.Values");
+            context.WriteLine($": await evaluatedSource.EnumerateAsync({context.ContextName}).ToListAsync({context.ContextName}.CancellationToken);");
+        }
+        context.WriteLine("if (source.Count == 0)");
+        context.WriteLine("{");
+        using (context.Indent())
+        {
+            if (Else != null)
+            {
+                var elseStmt = context.GetStatementMethodName(Else);
+                context.WriteLine($"await {elseStmt}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+            }
+            context.WriteLine("return Completion.Normal;");
+        }
+        context.WriteLine("}");
+
+        context.WriteLine("var startIndex = 0;");
+        if (Offset is not null)
+        {
+            if (OffsetIsContinue)
+            {
+                context.WriteLine($"startIndex = (int){context.ContextName}.GetValue({continueOffsetLiteralName}).ToNumberValue({context.ContextName});");
+            }
+            else
+            {
+                var offsetExpr = context.GetExpressionMethodName(Offset);
+                context.WriteLine($"startIndex = (int)(await {offsetExpr}({context.ContextName})).ToNumberValue({context.ContextName});");
+            }
+        }
+
+        context.WriteLine("var count = Math.Max(0, source.Count - startIndex);");
+        if (Limit is not null)
+        {
+            var limitExpr = context.GetExpressionMethodName(Limit);
+            context.WriteLine($"var limit = (int)(await {limitExpr}({context.ContextName})).ToNumberValue({context.ContextName});");
+            context.WriteLine("if (limit >= 0)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("count = Math.Min(count, limit);");
+            }
+            context.WriteLine("}");
+            context.WriteLine("else");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("count = Math.Max(0, count + limit);");
+            }
+            context.WriteLine("}");
+        }
+
+        context.WriteLine("if (count == 0)");
+        context.WriteLine("{");
+        using (context.Indent())
+        {
+            if (Else != null)
+            {
+                var elseStmt = context.GetStatementMethodName(Else);
+                context.WriteLine($"await {elseStmt}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+            }
+            context.WriteLine("return Completion.Normal;");
+        }
+        context.WriteLine("}");
+
+        context.WriteLine($"var parentLoop = {context.ContextName}.LocalScope.GetValue(\"forloop\");");
+        context.WriteLine($"using var scope = {context.ContextName}.EnterScope(ScopeBehavior.WriteThrough);");
+        context.WriteLine("try");
+        context.WriteLine("{");
+        using (context.Indent())
+        {
+            var sourceLiteral = _continueSourceLiteral != null
+                ? SourceGenerationContext.ToCSharpStringLiteral(_continueSourceLiteral)
+                : "null";
+
+            context.WriteLine("var endIndexExclusive = startIndex + count;");
+            context.WriteLine("var forloop = new ForLoopValue");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"Identifier = {identifierLit},");
+                context.WriteLine($"Source = {sourceLiteral}");
+            }
+            context.WriteLine("};");
+            context.WriteLine("var length = forloop.Length = count;");
+            context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue(\"forloop\", forloop);");
+            context.WriteLine("if (!parentLoop.IsNil() && parentLoop is ForLoopValue parentForLoop && !parentForLoop.IsRenderLoop)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("forloop.ParentLoop = parentForLoop;");
+                context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue(\"parentloop\", parentForLoop);");
+            }
+            context.WriteLine("}");
+
+            context.WriteLine("for (var iteration = 0; iteration < count; iteration++)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"{context.ContextName}.IncrementSteps();");
+                context.WriteLine($"var itemIndex = {(Reversed ? "endIndexExclusive - 1 - iteration" : "startIndex + iteration")};");
+                context.WriteLine("var item = source[itemIndex];");
+                context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue({identifierLit}, item);");
+                context.WriteLine("// Set helper variables");
+                context.WriteLine("forloop.Index = iteration + 1;");
+                context.WriteLine("forloop.Index0 = iteration;");
+                context.WriteLine("forloop.RIndex = count - iteration;");
+                context.WriteLine("forloop.RIndex0 = count - iteration - 1;");
+                context.WriteLine("forloop.First = iteration == 0;");
+                context.WriteLine("forloop.Last = iteration == count - 1;");
+
+                context.WriteLine("var completion = Completion.Normal;");
+                for (var s = 0; s < Statements.Count; s++)
+                {
+                    var stmtMethod = context.GetStatementMethodName(Statements[s]);
+                    context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                    context.WriteLine("if (completion != Completion.Normal) break;");
+                }
+
+                context.WriteLine("if (completion == Completion.Continue) continue;");
+                context.WriteLine("if (completion == Completion.Break) break;");
+            }
+            context.WriteLine("}");
+            context.WriteLine($"{context.ContextName}.SetValue({continueOffsetLiteralName}, endIndexExclusive);");
+        }
+        context.WriteLine("}");
+        context.WriteLine("finally");
+        context.WriteLine("{");
+        using (context.Indent())
+        {
+        }
+        context.WriteLine("}");
+
+        context.WriteLine("return Completion.Normal;");
     }
 }

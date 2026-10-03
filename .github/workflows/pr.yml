@@ -7,6 +7,7 @@ on:
     paths-ignore:
     - 'doc/**'
     - 'readme.md'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -21,8 +22,8 @@ jobs:
         DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
     steps:
-    - uses: actions/checkout@v6
-    - uses: actions/setup-dotnet@v5
+    - uses: actions/checkout@v7
+    - uses: actions/setup-dotnet@v6
       with:
         dotnet-version: |
           8.0.x
@@ -36,4 +37,13 @@ jobs:
       run: dotnet test -c Release
 
     - name: Test - Compiled
-      run: dotnet test --configuration Release /p:Compiled=true
+      run: dotnet test --configuration Release --property:Compiled=true
+
+    - name: Publish Fluid.Core.Tool (native AOT)
+      if: matrix.os == 'ubuntu-latest'
+      run: dotnet publish Fluid.Core.Tool --configuration Release --output tool-out
+
+    - name: Smoke test Fluid.Core.Tool
+      if: matrix.os == 'ubuntu-latest'
+      shell: bash
+      run: echo '{"name":"World"}' | ./tool-out/liquid -e 'Hello {{ name }}!'

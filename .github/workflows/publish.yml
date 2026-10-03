@@ -8,14 +8,16 @@ on:
 jobs:
   build:
 
+    # Don't run on forks
+    if: github.repository == 'sebastienros/fluid'
     runs-on: ubuntu-latest
     env:
         DOTNET_NOLOGO: true
         DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
     steps:
-    - uses: actions/checkout@v6
-    - uses: actions/setup-dotnet@v5
+    - uses: actions/checkout@v7
+    - uses: actions/setup-dotnet@v6
       with:
         dotnet-version: |
           8.0.x
@@ -36,3 +38,81 @@ jobs:
 
     - name: Push with dotnet
       run: dotnet nuget push "artifacts/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+  tool-rid:
+    # Don't run on forks
+    if: github.repository == 'sebastienros/fluid'
+    name: Fluid.Core.Tool ${{ matrix.rid }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+        - { os: ubuntu-latest, rid: linux-x64 }
+        - { os: ubuntu-24.04-arm, rid: linux-arm64 }
+        - { os: windows-latest, rid: win-x64 }
+        - { os: windows-11-arm, rid: win-arm64 }
+        - { os: macos-15-intel, rid: osx-x64 }
+        - { os: macos-latest, rid: osx-arm64 }
+    runs-on: ${{ matrix.os }}
+    env:
+        DOTNET_NOLOGO: true
+        DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: |
+          10.0.x
+        global-json-file: global.json
+
+    - name: Pack native AOT tool (${{ matrix.rid }})
+      shell: bash
+      run: |
+        VERSION="${GITHUB_REF_NAME#v}"
+        dotnet pack Fluid.Core.Tool --configuration Release -r ${{ matrix.rid }} --property:PackTool=true --property:Version=$VERSION --property:ContinuousIntegrationBuild=True --property:PackageOutputPath="${GITHUB_WORKSPACE}/tool-artifacts"
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: tool-${{ matrix.rid }}
+        path: tool-artifacts/*.nupkg
+
+  tool-publish:
+    # Don't run on forks
+    if: github.repository == 'sebastienros/fluid'
+    needs: [build, tool-rid]
+    runs-on: ubuntu-latest
+    env:
+        DOTNET_NOLOGO: true
+        DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: |
+          10.0.x
+        global-json-file: global.json
+
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: tool-*
+        path: tool-artifacts
+        merge-multiple: true
+
+    - name: Pack CoreCLR fallback and pointer package
+      run: |
+        VERSION="${GITHUB_REF_NAME#v}"
+        PROPS="--configuration Release --property:PackTool=true --property:Version=$VERSION --property:ContinuousIntegrationBuild=True --property:PackageOutputPath=${GITHUB_WORKSPACE}/tool-artifacts"
+        dotnet pack Fluid.Core.Tool $PROPS -r any --property:PublishAot=false
+        rm -rf Fluid.Core.Tool/obj Fluid.Core.Tool/bin
+        dotnet pack Fluid.Core.Tool $PROPS
+
+    # RID-specific packages must be available before the top-level pointer package.
+    - name: Push RID-specific packages
+      run: dotnet nuget push "tool-artifacts/Fluid.Core.Tool.[a-z]*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      
+    - name: Push pointer package
+      run: |
+        VERSION="${GITHUB_REF_NAME#v}"
+        dotnet nuget push "tool-artifacts/Fluid.Core.Tool.${VERSION}.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

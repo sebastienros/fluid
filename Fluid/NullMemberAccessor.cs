@@ -1,17 +1,18 @@
-﻿namespace Fluid
+using Fluid.Values;
+
+namespace Fluid;
+
+public sealed class NullMemberAccessor : MemberAccessor
 {
-    public sealed class NullMemberAccessor : IMemberAccessor
+    public static readonly MemberAccessor Instance = new NullMemberAccessor();
+
+    private NullMemberAccessor()
     {
-        public static readonly IMemberAccessor Instance = new NullMemberAccessor();
 
-        private NullMemberAccessor()
-        {
+    }
 
-        }
-
-        object IMemberAccessor.Get(object obj, string name, TemplateContext ctx)
-        {
-            return null;
-        }
+    public override ValueTask<FluidValue> GetAsync(object obj, string name, TemplateContext context)
+    {
+        return new((FluidValue)null);
     }
 }

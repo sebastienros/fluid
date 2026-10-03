@@ -1,60 +1,59 @@
 using HandlebarsDotNet;
 using System;
 
-namespace Fluid.Benchmarks
+namespace Fluid.Benchmarks;
+
+public class HandlebarsBenchmarks : BaseBenchmarks
 {
-    public class HandlebarsBenchmarks : BaseBenchmarks
+    private readonly HandlebarsTemplate<object, object> _handlebarsTemplate;
+
+    public HandlebarsBenchmarks()
     {
-        private readonly HandlebarsTemplate<object, object> _handlebarsTemplate;
+        _handlebarsTemplate = CompileTemplate(ProductTemplateMustache);
+        CheckBenchmark();
+    }
 
-        public HandlebarsBenchmarks()
+    private HandlebarsTemplate<object, object> CompileTemplate(string template)
+    {
+        var handlebars = Handlebars.Create();
+
+        using (handlebars.Configure())
         {
-            _handlebarsTemplate = CompileTemplate(ProductTemplateMustache);
-            CheckBenchmark();
-        }
-
-        private HandlebarsTemplate<object, object> CompileTemplate(string template)
-        {
-            var handlebars = Handlebars.Create();
-
-            using (handlebars.Configure())
+            handlebars.RegisterHelper("truncate", (output, options, context, arguments) =>
             {
-                handlebars.RegisterHelper("truncate", (output, options, context, arguments) =>
-                {
-                    const string ellipsisStr = "...";
-                    var inputStr = options.Template();
-                    var length = Convert.ToInt32(arguments.Length > 0 ? arguments[0] : 50);
-                    var l = Math.Max(0, length - ellipsisStr.Length);
-                    var concat = string.Concat(inputStr.AsSpan().Slice(0, l), ellipsisStr);
-                    output.WriteSafeString(concat);
-                });
-
-                return handlebars.Compile(ProductTemplateMustache);
-            }
-        }
-
-        public override object Parse()
-        {
-            return Handlebars.Compile(ProductTemplateMustache);
-        }
-
-        public override object ParseBig()
-        {
-            throw new NotSupportedException();
-        }
-
-        public override string Render()
-        {
-            return _handlebarsTemplate(new
-            {
-                products = Products
+                const string ellipsisStr = "...";
+                var inputStr = options.Template();
+                var length = Convert.ToInt32(arguments.Length > 0 ? arguments[0] : 50);
+                var l = Math.Max(0, length - ellipsisStr.Length);
+                var concat = string.Concat(inputStr.AsSpan().Slice(0, l), ellipsisStr);
+                output.WriteSafeString(concat);
             });
-        }
 
-        public override string ParseAndRender()
-        {
-            var template = CompileTemplate(ProductTemplateMustache);
-            return template(new { products = Products });
+            return handlebars.Compile(ProductTemplateMustache);
         }
+    }
+
+    public override object Parse()
+    {
+        return Handlebars.Compile(ProductTemplateMustache);
+    }
+
+    public override object ParseBig()
+    {
+        return Handlebars.Compile(BlogPostTemplateMustache);
+    }
+
+    public override string Render()
+    {
+        return _handlebarsTemplate(new
+        {
+            products = Products
+        });
+    }
+
+    public override string ParseAndRender()
+    {
+        var template = CompileTemplate(ProductTemplateMustache);
+        return template(new { products = Products });
     }
 }

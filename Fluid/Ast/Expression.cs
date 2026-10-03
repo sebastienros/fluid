@@ -1,11 +1,10 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 
-namespace Fluid.Ast
+namespace Fluid.Ast;
+
+public abstract class Expression
 {
-    public abstract class Expression
-    {
-        public abstract ValueTask<FluidValue> EvaluateAsync(TemplateContext context);
+    public abstract ValueTask<FluidValue> EvaluateAsync(TemplateContext context);
 
-        protected internal virtual Expression Accept(AstVisitor visitor) => visitor.VisitOtherExpression(this);
-    }
+    protected internal virtual Expression Accept(AstVisitor visitor) => visitor.VisitOtherExpression(this);
 }

@@ -1,55 +1,63 @@
+# AGENTS.md
 
-## Reference Implementation
+Fluid is a .NET Liquid template engine. Reference implementation for ambiguous spec questions: https://github.com/Shopify/liquid (Ruby).
 
-The reference implementation of the Liquid template language in Ruby can be found at https://github.com/Shopify/liquid
+## Branches
 
-Refer to this implementation when the specification is unclear.
+- `main` targets an unreleased major version: API and behavior breaking changes are allowed. Prefer the right design over backward compatibility, and call out breaking changes in the PR description.
+- Maintenance branches of released versions must stay compatible (keep members with `[Obsolete]` instead of removing them).
 
-## Testing
+## Commands
 
-When running test use a single TFM (net10.0) to improve dev loop time.
-
-### Golden Tests
-
-The `GoldenLiquidTests.cs` file contains tests from the Golden Liquid tests suite (https://github.com/jq-rp/golden-liquid). The test definitions come from `https://raw.githubusercontent.com/jg-rp/golden-liquid/main/golden_liquid.json` and are not statically mentioned in this class, only in the JSON document.
-
-Golden Liquid tests might invalidate other existing unit tests so updating the unit tests are fine if they contradict a Golden Liquid test. Golden Tests always prevail.
-
-#### Running a Single Golden Test
-
-With xUnit v3 and MTP v2, use the test executable directly with the `-id` option:
-
-**Step 1: Find the test ID**
 ```shell
-./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -list full 2>&1 | grep -B2 -A5 "YOUR_TEST_NAME"
+dotnet build
+dotnet test                               # xUnit v3 on Microsoft.Testing.Platform
+dotnet test --property:Compiled=true      # second CI pass: compiled Parlot grammar
+dotnet run -c Release --project Fluid.Benchmarks
 ```
 
-**Step 2: Run the test by ID**
+- Use `--property:`, never `/p:` (Git Bash on Windows mangles `/p:` and the run executes zero tests).
+- CI runs both test passes. If a change passes only one, a grammar rule behaves differently once compiled (`COMPILED` constant swaps in `new FluidParser().Compile()`).
+
+## Golden Liquid tests
+
+`Fluid.Tests/GoldenLiquidTests.cs` runs the [Golden Liquid](https://github.com/jg-rp/golden-liquid) suite (definitions downloaded from its repo). Golden tests always prevail: if one contradicts a unit test, update the unit test.
+
 ```shell
-./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -id "TEST_ID_HERE"
-```
-
-**Example:**
-```shell
-# Find the test ID for identifiers_ascii_lowercase
-./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -list full 2>&1 | grep -B2 -A5 "identifiers_ascii_lowercase"
-
-# Run it (use the ID from the output above)
-./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -id "71958641a76ed3a8219c73a9e5f956b4ecf2cb1b07ca728d3d8c8365646e7895"
-```
-
-**Note:** The `-preEnumerateTheories` flag is required to enumerate the parameterized tests properly.
-
-#### Running All Golden Tests
-
-To run all Golden Liquid tests:
-```shell
+# all
 ./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -method "Fluid.Tests.GoldenLiquidTests.GoldenTestShouldPass"
+# one: find its id, then run it (-preEnumerateTheories is required)
+./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -list full 2>&1 | grep -B2 -A5 "<test_name>"
+./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -id "<id>"
 ```
 
-#### Listing all tests
+## Build rules
 
-To list all unit tests, at the github root, run:
-```shell
-dotnet test --list-tests
-```
+- Package versions go in `Directory.Packages.props`, never in a `.csproj`.
+- `TreatWarningsAsErrors=true`: warnings break the build.
+- `Fluid` multi-targets `netstandard2.0;net8.0;net9.0;net10.0`. New core code must compile on all; use `Fluid/Shims.cs` and `#if` guards with a working fallback for newer APIs (e.g. `SearchValues<T>` is net8.0+). Never drop the fallback.
+
+## Architecture
+
+Pipeline: source → Parlot grammar (`Fluid/FluidParser.cs`) → `Statement` AST → async render to `IFluidOutput`.
+
+- **Rendering**: nodes derive from `Statement` (`WriteToAsync` returns `ValueTask<Completion>`). Statements with children must stop and bubble up any non-`Normal` completion (`break`/`continue`). Follow `FluidParserExtensions.RenderStatementsAsync`: stay synchronous while the `ValueTask` is completed, fall into an `Awaited` local function only on suspension. Don't make everything `async`.
+- **Values**: the engine only manipulates `FluidValue` subclasses. Prefer cached singletons (`NilValue.Instance`, `BooleanValue.True`, `Statement.NormalCompletion`).
+- **Options vs context**: `TemplateOptions` is shared, immutable configuration with no public constructor or setters: configure a `TemplateOptionsBuilder` (`With*`/`Configure*`/`Add*`), then `Build()`, which copies filters, global values, converters and member access registrations and creates a new `MemberAccessStrategy`. `ToBuilder()` derives variations; a new option goes on the builder, `TemplateOptions` and the `ToBuilder` copy constructor together. `MoneyOptions` is immutable too. `TemplateContext` is per-render and not thread-safe. `FluidParser` and `IFluidTemplate` are thread-safe and should be cached.
+- **FluidParserOptions** is immutable (`init`-only; some options rewire tag parsers).
+- **Member access** is allow-list based. Changes to accessor resolution must work for all three paths: emit, `Reflection*Accessor` fallbacks, and source-generated (`Fluid.SourceGenerator`, `[FluidRegister]` on a `TemplateOptionsBuilder` subclass or a static partial method taking one). `Build()` makes the strategy read-only, so explicit `Register` calls go through `ConfigureMemberAccess`.
+- **Filters**: add built-ins to the matching `Fluid/Filters/*Filters.cs` plus its `With*Filters()` method. Color and Money filters are opt-in (`WithColorFilters()`, `WithMoneyFilters()` on the builder); `TemplateOptions.Filters` is a read-only copy.
+- **Grammar extension**: `Register*Tag/Block`, `RegisteredOperators`; `Fluid.ViewEngine/FluidViewParser.cs` is the worked example.
+- **Visitors**: a new `Statement` must override `Accept` and have a matching hook in `AstVisitor`/`AstRewriter`.
+
+## Performance
+
+Performance is a primary goal (competes with DotLiquid, Scriban, Handlebars.Net); allocations matter as much as throughput. Hot paths: parsing, member access, filter dispatch, `FluidValue` conversion, output writing.
+
+- Use modern features (`Span<T>`, `stackalloc`, `ArrayPool`, `SearchValues`, ref structs) only when measurably faster or fewer allocations.
+- Reuse existing patterns: `ValueStringBuilder`, `BufferFluidOutput`, cached singletons, the synchronous `ValueTask` fast path.
+- Benchmark with `Fluid.Benchmarks` before and after hot-path changes and report the numbers.
+
+## Documentation
+
+`README.md` is both user docs and the NuGet readme: update it for any template-visible behavior change.

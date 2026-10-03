@@ -8,53 +8,63 @@ using System.IO;
 using System.Threading.Tasks;
 using Fluid.Utils;
 
-namespace Fluid.MvcViewEngine
+namespace Fluid.MvcViewEngine;
+
+/// <summary>
+/// This class is registered as a singleton.
+/// </summary>
+public class FluidRendering
 {
-    /// <summary>
-    /// This class is registered as a singleton.
-    /// </summary>
-    public class FluidRendering
+    private readonly FluidViewRenderer _fluidViewRenderer;
+
+    public FluidRendering(
+        IOptions<FluidMvcViewOptions> optionsAccessor,
+        IWebHostEnvironment hostingEnvironment)
     {
-        private readonly FluidViewRenderer _fluidViewRenderer;
+        _hostingEnvironment = hostingEnvironment;
+        _options = optionsAccessor.Value;
 
-        public FluidRendering(
-            IOptions<FluidMvcViewOptions> optionsAccessor,
-            IWebHostEnvironment hostingEnvironment)
+        _options.TemplateOptionsBuilder.WithFileProvider(
+            _options.PartialsFileProvider ??
+            new FileProviderTemplateFileProvider(_hostingEnvironment.ContentRootFileProvider));
+
+        _options.ViewsFileProvider ??=
+            new FileProviderTemplateFileProvider(_hostingEnvironment.ContentRootFileProvider);
+
+        _fluidViewRenderer = new FluidViewRenderer(_options);
+    }
+
+    private readonly IWebHostEnvironment _hostingEnvironment;
+    private readonly FluidMvcViewOptions _options;
+
+    public async Task RenderAsync(TextWriter writer, string path, ViewContext viewContext)
+    {
+        var context = new TemplateContext(_options.TemplateOptions)
         {
-            _hostingEnvironment = hostingEnvironment;
-            _options = optionsAccessor.Value;
+            CancellationToken = viewContext.HttpContext.RequestAborted
+        };
+        context.SetValue("ViewData", viewContext.ViewData);
+        context.SetValue("ModelState", viewContext.ModelState);
+        context.SetValue("Model", viewContext.ViewData.Model);
 
-            _options.TemplateOptions.FileProvider = _options.PartialsFileProvider ?? _hostingEnvironment.ContentRootFileProvider;
-
-            _fluidViewRenderer = new FluidViewRenderer(_options);
-
-            _options.ViewsFileProvider ??= _hostingEnvironment.ContentRootFileProvider;
+        if (_options.RenderingViewAsync != null)
+        {
+            await _options.RenderingViewAsync.Invoke(path, viewContext, context);
         }
 
-        private readonly IWebHostEnvironment _hostingEnvironment;
-        private readonly FluidMvcViewOptions _options;
-
-        public async Task RenderAsync(TextWriter writer, string path, ViewContext viewContext)
+        var bufferSize = context.Options?.OutputBufferSize ?? 16 * 1024;
+        if (bufferSize <= 0)
         {
-            var context = new TemplateContext(_options.TemplateOptions);
-            context.SetValue("ViewData", viewContext.ViewData);
-            context.SetValue("ModelState", viewContext.ModelState);
-            context.SetValue("Model", viewContext.ViewData.Model);
-
-            if (_options.RenderingViewAsync != null)
-            {
-                await _options.RenderingViewAsync.Invoke(path, viewContext, context);
-            }
-
-            var bufferSize = context.Options?.OutputBufferSize ?? 16 * 1024;
-            if (bufferSize <= 0)
-            {
-                bufferSize = 16 * 1024;
-            }
-
-            await using var output = new TextWriterFluidOutput(writer, bufferSize, leaveOpen: true, allowSynchronousIO: false);
-            await _fluidViewRenderer.RenderViewAsync(output, path, context);
-            await output.FlushAsync();
+            bufferSize = 16 * 1024;
         }
+
+        await using var output = new TextWriterFluidOutput(
+            writer,
+            bufferSize,
+            leaveOpen: true,
+            allowSynchronousIO: false,
+            cancellationToken: context.CancellationToken);
+        await _fluidViewRenderer.RenderViewAsync(output, path, context);
+        await output.FlushAsync();
     }
 }

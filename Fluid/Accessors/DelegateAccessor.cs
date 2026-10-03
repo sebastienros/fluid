@@ -1,9 +1,8 @@
-﻿namespace Fluid.Accessors
+namespace Fluid.Accessors;
+
+public sealed class DelegateAccessor : DelegateAccessor<object, object>
 {
-    public sealed class DelegateAccessor : DelegateAccessor<object, object>
+    public DelegateAccessor(Func<object, string, object> getter) : base((obj, name, ctx) => getter(obj, name))
     {
-        public DelegateAccessor(Func<object, string, object> getter) : base((obj, name, ctx) => getter(obj, name))
-        {
-        }
     }
 }

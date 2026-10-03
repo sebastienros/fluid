@@ -1,188 +1,199 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Linq;
 using System.Text.Encodings.Web;
 
-namespace Fluid.Values
+namespace Fluid.Values;
+
+public sealed class DictionaryValue : FluidValue
 {
-    public sealed class DictionaryValue : FluidValue
+    private readonly IFluidIndexable _value;
+
+    public DictionaryValue(IFluidIndexable value)
     {
-        private readonly IFluidIndexable _value;
+        _value = value;
+    }
 
-        public DictionaryValue(IFluidIndexable value)
-        {
-            _value = value;
-        }
+    public override FluidValues Type => FluidValues.Dictionary;
 
-        public override FluidValues Type => FluidValues.Dictionary;
-
-        public override bool Equals(FluidValue other)
-        {
-            if (other.IsNil())
-            {
-                return _value.Count == 0;
-            }
-
-            if (other is DictionaryValue otherDictionary)
-            {
-                if (_value.Count != otherDictionary._value.Count)
-                {
-                    return false;
-                }
-
-                foreach (var key in _value.Keys)
-                {
-                    if (!otherDictionary._value.TryGetValue(key, out var otherItem))
-                    {
-                        return false;
-                    }
-
-                    _value.TryGetValue(key, out var item);
-
-                    if (!item.Equals(otherItem))
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-            else if (other.Type == FluidValues.Empty)
-            {
-                return _value.Count == 0;
-            }
-
-            return false;
-        }
-
-        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
-        {
-            // Check if the actual property exists first before using synthetic properties
-            if (_value.TryGetValue(name, out var fluidValue))
-            {
-                return fluidValue;
-            }
-
-            if (name == "size")
-            {
-                return NumberValue.Create(_value.Count);
-            }
-
-            // Only .first is a synthetic property for dictionaries (not .last)
-            if (name == "first" && _value.Count > 0)
-            {
-                var firstKey = _value.Keys.First();
-                _value.TryGetValue(firstKey, out var firstValue);
-                return new ArrayValue(new[] { new StringValue(firstKey), firstValue });
-            }
-
-            return NilValue.Instance;
-        }
-
-        public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
-        {
-            var name = index.ToStringValue();
-
-            if (!_value.TryGetValue(name, out var value))
-            {
-                return NilValue.Instance;
-            }
-
-            return value;
-        }
-
-        public override bool ToBooleanValue()
+    public override bool Equals(FluidValue other)
+    {
+        if (ReferenceEquals(this, other))
         {
             return true;
         }
 
-        public override decimal ToNumberValue()
+        if (other.IsNil())
         {
-            return _value.Count;
+            return _value.Count == 0;
         }
 
-        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+        if (other is DictionaryValue otherDictionary)
         {
-            AssertWriteToParameters(output, encoder, cultureInfo);
+            using var scope = RecursiveComparisonGuard.Enter(this, otherDictionary);
 
-            var value = ToStringValue();
-            if (string.IsNullOrEmpty(value))
+            if (_value.Count != otherDictionary._value.Count)
             {
-                return default;
+                return false;
             }
 
-            output.Write(encoder, value);
+            foreach (var key in _value.Keys)
+            {
+                if (!otherDictionary._value.TryGetValue(key, out var otherItem))
+                {
+                    return false;
+                }
+
+                _value.TryGetValue(key, out var item);
+
+                if (!item.Equals(otherItem))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        else if (other.Type == FluidValues.Empty)
+        {
+            return _value.Count == 0;
+        }
+
+        return false;
+    }
+
+    public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
+    {
+        // Check if the actual property exists first before using synthetic properties
+        if (_value.TryGetValue(name, out var fluidValue))
+        {
+            return fluidValue;
+        }
+
+        if (name == "size")
+        {
+            return NumberValue.Create(_value.Count);
+        }
+
+        // Only .first is a synthetic property for dictionaries (not .last)
+        if (name == "first" && _value.Count > 0)
+        {
+            var firstKey = _value.Keys.First();
+            _value.TryGetValue(firstKey, out var firstValue);
+            return new ArrayValue(new[] { new StringValue(firstKey), firstValue });
+        }
+
+        return NilValue.Instance;
+    }
+
+    public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
+    {
+        var name = index.ToStringValue();
+
+        if (!_value.TryGetValue(name, out var value))
+        {
+            return NilValue.Instance;
+        }
+
+        return value;
+    }
+
+    public override bool ToBooleanValue()
+    {
+        return true;
+    }
+
+    public override decimal ToNumberValue()
+    {
+        return _value.Count;
+    }
+
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    {
+        AssertWriteToParameters(output, encoder, cultureInfo);
+
+        var value = ToStringValue();
+        if (string.IsNullOrEmpty(value))
+        {
             return default;
         }
 
-        public override string ToStringValue()
+        output.Write(encoder, value);
+        return default;
+    }
+
+    public override string ToStringValue()
+    {
+        using var scope = RecursiveValueGuard.Enter(this);
+
+        if (_value.Count == 0)
         {
-            if (_value.Count == 0)
-            {
-                return "{}";
-            }
-            
-            var items = new List<string>();
-            foreach (var key in _value.Keys)
-            {
-                if (_value.TryGetValue(key, out var value))
-                {
-                    items.Add($"\"{key}\":{value.ToStringValue()}");
-                }
-            }
-            return "{" + string.Join(",", items) + "}";
+            return "{}";
         }
 
-        public override object ToObjectValue()
+        var items = new List<string>();
+        foreach (var key in _value.Keys)
         {
-            return _value;
-        }
-
-        public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
-        {
-            foreach (var key in _value.Keys)
+            if (_value.TryGetValue(key, out var value))
             {
-                if (_value.TryGetValue(key, out var item) && item.Equals(value.ToObjectValue(context)))
-                {
-                    return new ValueTask<bool>(true);
-                }
+                items.Add($"\"{key}\":{value.ToStringValue()}");
             }
-
-            return new ValueTask<bool>(false);
         }
+        return "{" + string.Join(",", items) + "}";
+    }
 
-        public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
+    public override object ToObjectValue()
+    {
+        using var scope = RecursiveValueGuard.Enter(this);
+        return _value;
+    }
+
+    public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
+    {
+        foreach (var key in _value.Keys)
         {
-            foreach (var key in _value.Keys)
+            if (_value.TryGetValue(key, out var item) && item.Equals(value.ToObjectValue(context)))
             {
-                _value.TryGetValue(key, out var value);
-                yield return new ArrayValue([new StringValue(key), value]);
+                return new ValueTask<bool>(true);
             }
-
-            await Task.CompletedTask;
         }
 
-        public override bool Equals(object obj)
+        return new ValueTask<bool>(false);
+    }
+
+    public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
+    {
+        foreach (var key in _value.Keys)
         {
-            // The is operator will return false if null
-            if (obj is DictionaryValue otherValue)
-            {
-                return Equals(otherValue);
-            }
-
-            return false;
+            context?.IncrementSteps();
+            _value.TryGetValue(key, out var value);
+            yield return new ArrayValue([new StringValue(key), value]);
         }
 
-        public override int GetHashCode()
+        await Task.CompletedTask;
+    }
+
+    public override bool Equals(object obj)
+    {
+        // The is operator will return false if null
+        if (obj is DictionaryValue otherValue)
         {
-            var hc = new HashCode();
-            foreach (var key in _value.Keys.OrderBy(k => k))
-            {
-                hc.Add(key);
-                if (_value.TryGetValue(key, out var v))
-                    hc.Add(v);
-            }
-
-            return hc.ToHashCode();
+            return Equals(otherValue);
         }
+
+        return false;
+    }
+
+    public override int GetHashCode()
+    {
+        using var scope = RecursiveValueGuard.Enter(this);
+        var hc = new HashCode();
+        foreach (var key in _value.Keys.OrderBy(k => k))
+        {
+            hc.Add(key);
+            if (_value.TryGetValue(key, out var v))
+                hc.Add(v);
+        }
+
+        return hc.ToHashCode();
     }
 }

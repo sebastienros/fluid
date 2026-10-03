@@ -1,11 +1,10 @@
-﻿using System.IO;
+using System.IO;
 using System.Threading.Tasks;
 
-namespace Fluid.ViewEngine
+namespace Fluid.ViewEngine;
+
+public interface IFluidViewRenderer
 {
-    public interface IFluidViewRenderer
-    {
-        Task RenderViewAsync(IFluidOutput output, string path, TemplateContext context);
-        Task RenderPartialAsync(IFluidOutput output, string path, TemplateContext context);
-    }
+    Task RenderViewAsync(IFluidOutput output, string path, TemplateContext context);
+    Task RenderPartialAsync(IFluidOutput output, string path, TemplateContext context);
 }

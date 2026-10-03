@@ -2,13 +2,13 @@
 
 [![NuGet](https://img.shields.io/nuget/v/Fluid.Core.svg)](https://nuget.org/packages/Fluid.Core)
 [![MIT](https://img.shields.io/github/license/sebastienros/fluid)](https://github.com/sebastienros/fluid/blob/main/LICENSE)
-[![MyGet](https://img.shields.io/myget/fluid/vpre/fluid.core.svg?label=MyGet)](https://www.myget.org/feed/fluid/package/nuget/fluid.core)
+[![Feedz preview version](https://img.shields.io/endpoint?url=https%3A%2F%2Ff.feedz.io%2Fsebastienros%2Ffluid%2Fshield%2FFluid.Core%2Flatest)](https://f.feedz.io/sebastienros/fluid/nuget/index.json)
 
 ## Basic Overview
 
 Fluid is an open-source .NET template engine based on the [Liquid template language](https://shopify.github.io/liquid/). It is a **secure** template language that is also **very accessible** for non-programmer audiences.
 
-> The following content is based on the 2.0.0-beta version, which is the recommended version, even though some of its API might vary significantly.
+> This document describes Fluid 3.0, which is under development on `main`. Preview packages are available from the [preview feed](#preview-packages); stable releases are available on [NuGet.org](https://www.nuget.org/packages/Fluid.Core).
 > To see the corresponding content for v1.0, use [this version](https://github.com/sebastienros/fluid/blob/release/1.x/README.md)
 
 <br>
@@ -34,12 +34,18 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 ## Contents
 - [Features](#features)
 - [Using Fluid in your project](#using-fluid-in-your-project)
+- [Preview packages](#preview-packages)
+- [Command line tool](#command-line-tool)
+- [NativeAOT and trimming](#nativeaot-and-trimming)
+- [Source generator](#source-generator)
 - [Allow-listing object members](#allow-listing-object-members)
 - [Handling undefined variables](#handling-undefined-variables)
 - [Execution limits](#execution-limits)
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
 - [Localization](#localization)
+- [Color filters](#color-filters)
+- [Money filters](#money-filters)
 - [Time zones](#time-zones)
 - [Customizing tags and blocks](#customizing-tags-and-blocks)
 - [ASP.NET MVC View Engine](#aspnet-mvc-view-engine)
@@ -98,11 +104,53 @@ Notice
 
 <br>
 
+## Command line tool
+
+The `Fluid.Core.Tool` .NET tool installs a native AOT `liquid` command (win/linux/osx, x64/arm64; other platforms fall back to a framework-dependent build) that renders Liquid templates from any shell, including PowerShell.
+
+```shell
+dotnet tool install -g Fluid.Core.Tool
+```
+
+JSON read from stdin (or `--data <file>`) is the model: the properties of a root object become top-level variables, any other root value is exposed as `data`.
+
+```shell
+echo '{"name":"World"}' | liquid -e "Hello {{ name | upcase }}!"
+liquid page.liquid --data model.json --output page.html
+Get-Content model.json | liquid page.liquid -I ./partials        # PowerShell
+liquid -e "{{ user }} on {{ env.HOME }}" --set user=Bob --env
+liquid page.liquid --validate
+```
+
+Options: `-t/--template`, `-e/--inline`, `-d/--data`, `-o/--output`, `-s/--set key=value`, `-I/--include-path` (directories for `include`/`render`, defaults to the template directory), `--culture`, `--timezone`, `--strict`, `--env`, `--validate`, `--max-steps`, `--max-recursion`. Run `liquid --help` for details. Exit codes: `0` success, `1` template/data/render error, `2` usage error.
+
+The tool only exposes JSON-derived values, so reflection-based member access on .NET types is not available.
+
+<br>
+
 ## Using Fluid in your project
 
 You can directly reference the [NuGet package](https://www.nuget.org/packages/Fluid.Core).
 
 The code samples in this document assume you have registered the `Fluid` namespace with `using Fluid;`.
+
+### Preview packages
+
+After a successful build triggered by a push to `main`, preview packages are published to the
+[Fluid feed on feedz.io](https://f.feedz.io/sebastienros/fluid/nuget/index.json).
+Versions follow `3.0.0-preview-<run number>`, using the GitHub Actions build run number.
+These packages contain the latest development changes and are intended for testing before release.
+Tagged releases continue to be published to NuGet.org.
+
+Add the preview feed alongside NuGet.org, then install the latest prerelease version:
+
+```shell
+dotnet nuget add source https://f.feedz.io/sebastienros/fluid/nuget/index.json --name fluid-preview
+dotnet add package Fluid.Core --prerelease
+```
+
+Keep NuGet.org enabled so dependencies can be restored. If your `NuGet.config` uses package source
+mapping, also map `Fluid.*` and `MinimalApis.LiquidViews` to the `fluid-preview` source.
 
 ### Hello World
 
@@ -129,6 +177,12 @@ else
 #### Result
 `Hello Bill Gates`
 
+### Model security
+
+Fluid templates can read public properties and fields from the model and from objects reachable through it. This is by design; a model passed to `TemplateContext` should be treated as the template's readable data boundary.
+
+When rendering an untrusted template, pass a dedicated model that contains only the data the template is allowed to read. Do not pass domain entities, service objects, configuration objects, or other object graphs that may expose sensitive data through public members.
+
 ### Thread-safety
 
 A `FluidParser` instance is thread-safe and should be shared by the whole application. A common pattern is to declare the parser in a local static variable:
@@ -140,6 +194,226 @@ A `FluidParser` instance is thread-safe and should be shared by the whole applic
 An `IFluidTemplate` instance is thread-safe and can be cached and reused by multiple threads concurrently.
 
 A `TemplateContext` instance is __not__ thread-safe, and a new instance should be created every time an `IFluidTemplate` instance is used.
+
+A `TemplateOptions` instance is immutable and thread-safe, and is created once with a `TemplateOptionsBuilder` (see [Reuse the `TemplateOptions` instance](#reuse-the-templateoptions-instance)). Values registered with `TemplateOptionsBuilder.WithGlobalValue` are exposed by `TemplateOptions.GlobalValues` and are shared by every context created from those options. Values set directly on a `TemplateContext` belong to that rendering. Custom tags that need temporary values should use a scope lease:
+
+```csharp
+using var scope = context.EnterScope(ScopeBehavior.Local);
+context.SetValue("temporary", value);
+```
+
+`Local` scopes inherit values and keep assignments local. `WriteThrough` scopes keep values assigned with `LocalScope.SetOwnValue` temporary while normal assignments update the caller, which matches `include` and loop behavior. `Isolated` scopes can only read the context's initial values and `GlobalValues`, which matches the `render` tag.
+
+<br>
+
+## NativeAOT and trimming
+
+Fluid works when targeting NativeAOT and trimmed deployments.
+
+- If dynamic code is not supported at runtime, Fluid automatically switches to reflection-based member accessors.
+- `TemplateOptionsBuilder.ConfigureMemberAccess` and the `MemberAccessStrategy.Register<T...>` APIs are available for custom mappings.
+- No interceptor setup is required.
+
+### Recommended usage when targeting NativeAOT
+
+1. Build `TemplateOptions` once (for example, at app startup) and reuse the instance.
+2. Register custom mappings with `TemplateOptionsBuilder.ConfigureMemberAccess(strategy => strategy.Register<T...>(...))`. Built options reject further registrations.
+3. Pass a statically typed model and custom options to `TemplateContext`, or use `[FluidRegister]` for types that are not visible at a context construction site.
+4. Validate your app with AOT/trim publish settings:
+
+```shell
+dotnet publish -c Release -r <RID> -p:PublishAot=true
+```
+
+### Compatibility boundaries
+
+NativeAOT compatibility and trimming compatibility are related but separate. Fluid's reflection fallback does not emit code and can run when dynamic code is unavailable. A trimmed application must also preserve every member that the fallback discovers at runtime.
+
+| Usage | NativeAOT with trimming |
+| --- | --- |
+| `new TemplateContext(concreteModel, customOptions)` with the source generator enabled and matching compile-time and runtime model types | Compatible. Eligible public fields and properties are accessed directly by generated code. |
+| A model registered with `[FluidRegister]` | Compatible. Use this for boxed models, nested model types, models created in another assembly, or types not visible at a `TemplateContext` construction site. |
+| An explicit `MemberAccessStrategy.Register<T...>` mapping or custom `MemberAccessor` that accesses members directly | Compatible. The application supplies the access logic instead of relying on member discovery. |
+| The one-argument `new TemplateContext(model)` constructor or `TemplateOptions.Default` | No accessor is inferred. Rendering uses an explicit registration if one exists; otherwise it falls back to reflection. |
+| A model passed as `object`, an interface or base type whose runtime type differs, or an unregistered nested model | No accessor is inferred for the runtime type. Use `[FluidRegister]` for the concrete runtime type or register an accessor explicitly. |
+| Reflection fallback for an unregistered type | NativeAOT-compatible only when the required public member metadata is preserved from trimming. Prefer source generation or explicit registration rather than relying on linker configuration. |
+| A reflection-discovered `Task<T>` member | Avoid in trimmed NativeAOT applications because the reflection fallback uses runtime dynamic binding to read the result. A generated or custom accessor handles `Task<T>` without dynamic binding. |
+
+Source generation covers public readable properties and public fields that can be referenced from generated code. Members that cannot be generated continue through the normal registration and reflection fallback paths. If any required member uses a fallback path, validate the published application rather than assuming that source generation preserved it.
+
+### Source generation (optional)
+
+When the `Fluid.SourceGenerator` analyzer is enabled, Fluid can generate strongly-typed member accessors for model types discovered at compile time.
+
+The model type is inferred automatically when its compile-time and runtime types match and it is passed with custom options:
+
+```csharp
+var options = new TemplateOptionsBuilder().Build();
+var context = new TemplateContext(person, options);
+```
+
+The generated accessor is activated on the `DefaultMemberAccessStrategy` of the options instance passed to that constructor. Explicit registrations made with `TemplateOptionsBuilder.ConfigureMemberAccess` still take precedence. The one-argument `TemplateContext(model)` constructor does not infer or activate a model accessor because it uses the shared `TemplateOptions.Default` instance.
+
+Use `FluidRegisterAttribute` when a model is passed as `object`, is created outside the compilation using the source generator, or when nested model types also need generated accessors. The recommended explicit pattern is to declare a custom `TemplateOptionsBuilder` subclass and add one attribute per model type:
+
+```csharp
+using Fluid;
+
+[FluidRegister(typeof(Person))]
+[FluidRegister(typeof(Address))]
+public partial class PublicTemplateOptionsBuilder : TemplateOptionsBuilder
+{
+}
+```
+
+Use the generated builder type like any other `TemplateOptionsBuilder`:
+
+```csharp
+var options = new PublicTemplateOptionsBuilder().Build();
+```
+
+The generated registrations are applied automatically to each `PublicTemplateOptionsBuilder` instance, before any registration made on it. Runtime registrations still work and can be added normally:
+
+```csharp
+var options = new PublicTemplateOptionsBuilder()
+    .ConfigureMemberAccess(strategy => strategy.Register<Product, object>((product, name) => product.Name))
+    .Build();
+```
+
+### Custom member accessors
+
+Custom accessors derive from `MemberAccessor` and return a `ValueTask<FluidValue>` directly.
+
+```csharp
+private sealed class ProductDisplayNameAccessor : MemberAccessor
+{
+    public override ValueTask<FluidValue> GetAsync(
+        object obj,
+        string name,
+        TemplateContext context)
+    {
+        return CreateValueTask(((Product)obj).Name, context);
+    }
+}
+
+var options = new TemplateOptionsBuilder()
+    .ConfigureMemberAccess(strategy => strategy.Register<Product>(
+        "display_name",
+        new ProductDisplayNameAccessor()))
+    .Build();
+```
+
+The protected `CreateValueTask` overloads convert synchronous, `Task<T>`, and `ValueTask<T>` results using the `TemplateOptions.ValueConverters` configured for the current context. Return `NilValue.Instance` for a Liquid `nil` value; a null `FluidValue` is reserved as the accessor's not-handled result.
+
+Alternatively, explicit profile methods can apply generated registrations to any `TemplateOptionsBuilder` instance:
+
+```csharp
+public static partial class FluidProfiles
+{
+    [FluidRegister(typeof(Person))]
+    [FluidRegister(typeof(Address))]
+    public static partial void ApplyPublic(TemplateOptionsBuilder builder);
+}
+```
+
+Use it with any builder instance:
+
+```csharp
+var builder = new TemplateOptionsBuilder();
+FluidProfiles.ApplyPublic(builder);
+var options = builder.Build();
+```
+
+<br>
+
+## Source generator
+
+Fluid includes a Roslyn source generator (project: `Fluid.SourceGenerator`) that can compile Liquid templates at build time and expose them as strongly-typed static properties.
+
+This is useful when you want:
+
+- Parse errors to fail the build.
+- Startup-time and runtime parsing eliminated.
+- Easy access to templates via generated members.
+
+### MSBuild setup
+
+1) Reference the generator as an analyzer.
+
+If you use a project reference:
+
+```xml
+<ItemGroup>
+  <ProjectReference Include="../Fluid.SourceGenerator/Fluid.SourceGenerator.csproj"
+                    OutputItemType="Analyzer"
+                    ReferenceOutputAssembly="false" />
+</ItemGroup>
+```
+
+2) Provide templates to the generator using `AdditionalFiles`.
+
+```xml
+<ItemGroup>
+  <AdditionalFiles Include="Templates/**/*.liquid" />
+</ItemGroup>
+```
+
+3) (Optional) Set the templates root folder.
+
+When set, the generator:
+
+- Only considers `AdditionalFiles` under this folder.
+- Matches glob patterns relative to that folder.
+
+```xml
+<PropertyGroup>
+  <FluidTemplatesFolder>Templates</FluidTemplatesFolder>
+</PropertyGroup>
+```
+
+### Usage
+
+Annotate a `partial` class with `FluidTemplates`, using include and optional exclude glob patterns. Each matching file generates a dedicated static property returning an `IFluidTemplate`.
+
+```csharp
+using Fluid.SourceGenerator;
+
+namespace MyApp;
+
+[FluidTemplates("**/*.liquid", Exclude = new[] { "_*.liquid" })]
+public static partial class Templates
+{
+}
+```
+
+With templates like:
+
+- `Templates/hello.liquid`
+- `Templates/_layout.liquid`
+
+The generator will create:
+
+- `Templates.Hello` (compiled from `hello.liquid`)
+
+### Glob patterns
+
+The generator supports a simple glob syntax:
+
+- `*` matches within a path segment.
+- `?` matches a single character within a path segment.
+- `**` matches across directories (e.g. `**/*.liquid`).
+
+Multiple include patterns are supported via the attribute constructor:
+
+```csharp
+[FluidTemplates("**/*.liquid", "**/*.txt")]
+```
+
+### Notes
+
+- Property names are derived from the file name (without extension) and converted to PascalCase. If multiple files would produce the same property name, a numeric suffix is appended.
+- `{% render %}` dependencies are resolved against the same set of `AdditionalFiles` (the generator also registers `.liquid` templates without the extension for convenience).
+- Source-generated templates currently require `TemplateOptions.Trimming` to be `TrimmingFlags.None`.
 
 <br>
 
@@ -158,11 +432,12 @@ public static ValueTask<FluidValue> Downcase(FluidValue input, FilterArguments a
 ```
 
 #### Registration
-Filters are registered in an instance of `TemplateOptions`. This options object can be reused every time a template is rendered.
+Filters are registered with a `TemplateOptionsBuilder`. The resulting immutable `TemplateOptions` object can be reused every time a template is rendered.
 
 ```csharp
-var options = new TemplateOptions();
-options.Filters.AddFilter('downcase', Downcase);
+var options = new TemplateOptionsBuilder()
+    .AddFilter('downcase', Downcase)
+    .Build();
 
 var context = new TemplateContext(options);
 ```
@@ -176,8 +451,9 @@ var context = new TemplateContext(options);
 Use the `ValueConverters` property to return different values than those provided by the model classes and properties:
 
 ```csharp
-var options = new TemplateOptions();
-options.ValueConverters.Add(o => o is DateTime d ? new StringValue($"This is a date time: {d}") : null);
+var options = new TemplateOptionsBuilder()
+    .AddValueConverter(o => o is DateTime d ? new StringValue($"This is a date time: {d}") : null)
+    .Build();
 ```
 
 The previous example will return a custom value instead of the actual `DateTime`. When no conversion should be applied, `null` is returned.
@@ -211,8 +487,9 @@ private class PersonValue : ObjectValueBase
 This custom type can be used with a converter so that any time a `Person` is used, it is wrapped as a `PersonValue`.
 
 ```csharp
-var options = new TemplateOptions();
-options.ValueConverters.Add(o => o is Person p ? new PersonValue(p) : null);
+var options = new TemplateOptionsBuilder()
+    .AddValueConverter(o => o is Person p ? new PersonValue(p) : null)
+    .Build();
 ```
 
 Invoking the member `Bingo` on a `Person` instance will then return the string `"Hello, World!"`:
@@ -250,10 +527,12 @@ await template.RenderAsync(context);
 
 ### Strict variables
 
-If you prefer templates to fail fast when they reference a variable that does not exist, enable strict variable mode by setting `TemplateOptions.StrictVariables` to `true`. When `StrictVariables` is `true`, any attempt to access an undefined variable throws a `FluidException` containing the variable name. This makes missing data issues visible immediately instead of silently rendering as an empty string.
+If you prefer templates to fail fast when they reference a variable that does not exist, enable strict variable mode by calling `TemplateOptionsBuilder.WithStrictVariables()`. When `StrictVariables` is `true`, any attempt to access an undefined variable throws a `FluidException` containing the variable name. This makes missing data issues visible immediately instead of silently rendering as an empty string.
 
 ```csharp
-var options = new TemplateOptions { StrictVariables = true };
+var options = new TemplateOptionsBuilder()
+    .WithStrictVariables()
+    .Build();
 var context = new TemplateContext(options);
 
 // Parsing a template that references an undefined variable
@@ -276,10 +555,12 @@ By default, applying an unknown filter simply returns the input value unchanged:
 {{ 'hello' | unknown }}  => hello
 ```
 
-If you would rather fail fast when a template references a filter that has not been registered, enable strict filter mode by setting `TemplateOptions.StrictFilters` to `true`:
+If you would rather fail fast when a template references a filter that has not been registered, enable strict filter mode by calling `TemplateOptionsBuilder.WithStrictFilters()`:
 
 ```csharp
-var options = new TemplateOptions { StrictFilters = true };
+var options = new TemplateOptionsBuilder()
+    .WithStrictFilters()
+    .Build();
 var context = new TemplateContext(options);
 
 var template = FluidTemplate.Parse("{{ 'hello' | unknown }}");
@@ -300,14 +581,13 @@ Use `StrictFilters` together with `StrictVariables` to enforce both variable and
 The `Undefined` delegate can return a custom `FluidValue` to provide fallback values or error messages for missing values:
 
 ```csharp
-var options = new TemplateOptions
-{
-    Undefined = (name, type) =>
+var options = new TemplateOptionsBuilder()
+    .WithUndefined((name, type) =>
     {
         // Return a custom default value for undefined variables
         return ValueTask.FromResult<FluidValue>(new StringValue($"[{name} not found]"));
-    }
-};
+    })
+    .Build();
 
 var template = FluidTemplate.Parse("Hello {{ user.name }} in {{ city }}!");
 var context = new TemplateContext(options);
@@ -321,14 +601,13 @@ var result = await template.RenderAsync(context);
 You can use the `Undefined` delegate to log missing values for debugging or monitoring:
 
 ```csharp
-var options = new TemplateOptions
-{
-    Undefined = (path, type) =>
+var options = new TemplateOptionsBuilder()
+    .WithUndefined((path, type) =>
     {
         Console.WriteLine($"Missing variable: {path}, parent type: {type?.Name ?? "<none>"}");
         return ValueTask.FromResult<FluidValue>(NilValue.Instance);
-    }
-};
+    })
+    .Build();
 
 var template = FluidTemplate.Parse("{{ first }} {{ second }}");
 var context = new TemplateContext(options);
@@ -342,15 +621,14 @@ await template.RenderAsync(context);
 By default, the properties of a registered object are case-sensitive and registered as they are in their source code. For instance, 
 the property `FirstName` would be accessed using the `{{ p.FirstName }}` tag.
 
-However, you can register these properties with different cases, like __camelCase__ (`firstName`), __snake_case__ (`first_name`), or even make them case-insensitive. The `ModelNamesComparer` option accepts an instance of `System.StringComparer`.
+However, you can register these properties with different cases, like __camelCase__ (`firstName`), __snake_case__ (`first_name`), or even make them case-insensitive. The `WithModelNamesComparer` option accepts an instance of `System.StringComparer`.
 
 The following example configures the templates to use camel casing.
 
 ```csharp
-var options = new TemplateOptions() 
-{ 
-    ModelNamesComparer = StringComparers.CamelCase
-}
+var options = new TemplateOptionsBuilder()
+    .WithModelNamesComparer(StringComparers.CamelCase)
+    .Build();
 ```
 
 With this setting, both model properties and context properties are accessible using camel-casing:
@@ -358,6 +636,52 @@ With this setting, both model properties and context properties are accessible u
 ```liquid
 {{ firstName }} {{ lastName }}
 ```
+
+### Loading templates asynchronously
+
+`TemplateOptions.FileProvider` uses the asynchronous `ITemplateFileProvider` contract. Templates stored in a remote service can be loaded without blocking:
+
+```csharp
+var options = new TemplateOptionsBuilder()
+    .WithFileProvider(new DelegateTemplateFileProvider(async (path, context, cancellationToken) =>
+    {
+        var metadata = await templateStore.GetMetadataAsync(path, cancellationToken);
+        if (metadata is null)
+        {
+            return null;
+        }
+
+        return new TemplateSourceInfo(
+            metadata.LastModified,
+            async cancellationToken => await templateStore.OpenReadAsync(path, cancellationToken),
+            cacheKey: $"{tenantId}:{path}");
+    }))
+    .Build();
+
+var context = new TemplateContext(options)
+{
+    CancellationToken = requestAborted
+};
+var result = await template.RenderAsync(context);
+```
+
+The provider returns `null` when a path does not exist. Fluid tries the requested path first, then appends `DefaultFileExtension` when necessary.
+
+Fluid calls the provider to obtain the source version before checking its parsed-template cache. The stream is opened only on a cache miss. `LastModified` must advance whenever the content changes; remote implementations can cache metadata themselves if checking it requires a network request. When a provider can return different content for the same path in different contexts, set `TemplateSourceInfo.CacheKey` to a stable value that includes the tenant or other source identity.
+
+Existing `Microsoft.Extensions.FileProviders.IFileProvider` implementations can be adapted:
+
+```csharp
+var options = new TemplateOptionsBuilder()
+    .WithFileProvider(new FileProviderTemplateFileProvider(existingFileProvider))
+    .Build();
+```
+
+`FluidViewEngineOptions.ViewsFileProvider` and `PartialsFileProvider` use the same asynchronous contract for views, layouts, `_ViewStart` files, and partials. ASP.NET Core MVC view-name discovery remains synchronous because `IViewEngine.FindView` has no asynchronous contract; configure `FluidMvcViewOptions.ViewLocationFileProvider` with an `IFileProvider` for that lookup.
+
+Always use `RenderAsync` with an asynchronous provider. The synchronous `Render` APIs must block if the provider suspends.
+
+`TemplateContext.CancellationToken` is also checked at render entry, between statements, on loop iterations and built-in array enumeration, and before buffered output is flushed. Custom filters and `FluidValue` implementations receive the context and should check the token during long-running work.
 
 <br>
 
@@ -370,8 +694,69 @@ To prevent this, the `TemplateOptions` class defines a default `MaxRecursion = 1
 
 ### Limiting template execution
 
-A template can inadvertently create an infinite loop that could block the server by running indefinitely. 
-To prevent this, the `TemplateOptions` class defines a default `MaxSteps`. By default, this value is not set.
+A template can inadvertently perform enough work to block the server. `MaxSteps` limits statements, loop iterations, range construction, and built-in collection enumeration. `MaxOutputSize` limits cumulative rendered output, captured blocks, macro results, and amplified string operations. `MaxCollectionSize` limits ranges and collections materialized by built-in operations.
+
+`MaxSteps`, `MaxOutputSize`, and `MaxCollectionSize` are unlimited by default to preserve compatibility. Set all of them when rendering untrusted templates. `TemplateContext.CancellationToken` complements these limits and should also be set.
+
+### Rendering user-provided templates safely
+
+Fluid is a template engine, not a security sandbox. An application that accepts templates from users should apply all of the following controls:
+
+1. Limit the template source length before parsing. Render limits do not limit parsing.
+2. Pass a dedicated model containing only data the user is allowed to read. Templates can read public properties and fields from every object reachable through the model. Do not pass domain entities, services, dependency-injection containers, configuration, or secrets.
+3. Configure recursion, work, output, and collection limits. The appropriate values depend on the templates and capacity of the application; start conservatively and adjust using representative load tests.
+4. Set a per-render cancellation deadline in addition to the request cancellation token.
+5. Keep the default null file provider unless user templates need `include`, `render`, or `from`. If they do, use a tenant-scoped or allow-listed provider that cannot access application files or another tenant's templates.
+6. Expose only trusted custom filters, tags, values, and file providers. Extension code executes with the permissions of the application and must honor cancellation and equivalent resource limits.
+7. Apply normal service protections such as request-size limits, authentication, rate limits, bounded concurrency, and memory or process isolation where the threat model requires it.
+
+The following is an example starting point. The numerical limits are illustrative and should be tuned for the application:
+
+```csharp
+private const int MaxTemplateLength = 100_000;
+
+private static readonly FluidParser Parser = new FluidParser();
+
+// The file provider retains its default NullFileProvider.
+private static readonly TemplateOptions UserTemplateOptions = new TemplateOptionsBuilder()
+    .WithMaxRecursion(20)
+    .WithMaxSteps(10_000)
+    .WithMaxOutputSize(1_000_000)
+    .WithMaxCollectionSize(10_000)
+    .Build();
+
+public static async ValueTask<string> RenderUserTemplateAsync(
+    string source,
+    SafeTemplateModel model,
+    CancellationToken requestAborted)
+{
+    if (source.Length > MaxTemplateLength)
+    {
+        throw new ArgumentException("The template is too large.", nameof(source));
+    }
+
+    if (!Parser.TryParse(source, out var template, out var error))
+    {
+        throw new ArgumentException(error, nameof(source));
+    }
+
+    using var timeout = CancellationTokenSource.CreateLinkedTokenSource(requestAborted);
+    timeout.CancelAfter(TimeSpan.FromSeconds(2));
+
+    var context = new TemplateContext(model, UserTemplateOptions)
+    {
+        CancellationToken = timeout.Token
+    };
+
+    return await template.RenderAsync(context);
+}
+```
+
+`TemplateOptions`, `FluidParser`, and parsed templates can be shared. Create a new `TemplateContext` for every render because it is not thread-safe and owns the execution counters and cancellation token.
+
+When a file provider can return different content for the same path in different tenants or security scopes, set `TemplateSourceInfo.CacheKey` to a stable value that includes that scope. This prevents a cached parsed template from crossing the same boundary enforced by the provider.
+
+`MaxOutputSize` counts UTF-16 characters written through Fluid's output abstraction. If the rendered result is encoded to a response with a separate byte limit, enforce that transport limit as well. Custom filters, values, tags, and output implementations are responsible for enforcing equivalent limits for work they perform outside Fluid's built-in operations.
 
 <br>
 
@@ -395,12 +780,24 @@ Value converters can return:
 The following example shows how to convert any instance implementing an interface to a custom string value:
 
 ```csharp
-var options = new TemplateOptions();
-
-options.ValueConverters.Add((value) => value is IUser user ? user.Name : null);
+var options = new TemplateOptionsBuilder()
+    .AddValueConverter((value) => value is IUser user ? user.Name : null)
+    .Build();
 ```
 
 > Note: Type mappings are defined globally for the application.
+
+`System.Text.Json.Nodes` values are supported by default: `JsonObject` and `JsonArray` map to Liquid dictionaries and arrays, and scalar `JsonValue` nodes map to the corresponding Liquid values. Configured value converters run before these built-in mappings, so they can override the default behavior; return `null` to continue with the built-in conversion.
+
+JSON date strings can be used directly with `date`, `format_date`, and `time_zone`, without first applying a string filter such as `strip`:
+
+```csharp
+var model = System.Text.Json.Nodes.JsonNode.Parse("""
+    { "published": "2020-05-18T02:13:09+00:00" }
+    """).AsObject();
+var template = new FluidParser().Parse("{{ published | date: '%Y-%m-%d' }}");
+var result = await template.RenderAsync(new TemplateContext(model)); // 2020-05-18
+```
 
 <br>
 
@@ -439,18 +836,17 @@ pre-encoded and won't be double-encoded if used in a `{{ }}` tag.
 
 ### Customizing JSON output
 
-The `json` filter uses `System.Text.Json.JsonSerializerOptions` to control the JSON output format. You can customize these options through `TemplateOptions.JsonSerializerOptions` or `TemplateContext.JsonSerializerOptions`.
+The `json` filter uses `System.Text.Json.JsonSerializerOptions` to control the JSON output format. You can customize these options through `TemplateOptionsBuilder.WithJsonSerializerOptions` or `TemplateContext.JsonSerializerOptions`.
 
 #### Example: Indented JSON output
 
 ```csharp
-var options = new TemplateOptions
-{
-    JsonSerializerOptions = new JsonSerializerOptions
+var options = new TemplateOptionsBuilder()
+    .WithJsonSerializerOptions(new JsonSerializerOptions
     {
         WriteIndented = true
-    }
-};
+    })
+    .Build();
 
 var context = new TemplateContext(options);
 context.SetValue("data", new { name = "John", age = 30 });
@@ -488,14 +884,12 @@ Using the relaxed JSON encoding:
 
 ```csharp
 // This variable should be static and reused for all template contexts
-var options = new TemplateOptions
-{
-    JsonSerializerOptions = new JsonSerializerOptions
+var options = new TemplateOptionsBuilder()
+    .WithJsonSerializerOptions(new JsonSerializerOptions
     {
         JavaScriptEncoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-    }
-    
-};
+    })
+    .Build();
 
 var context = new TemplateContext(options);
 ```
@@ -517,8 +911,9 @@ However, you can define a specific culture to use when rendering a template usin
 #### Source
 
 ```csharp
-var options = new TemplateOptions();
-options.CultureInfo = new CultureInfo("en-US");
+var options = new TemplateOptionsBuilder()
+    .WithCultureInfo(new CultureInfo("en-US"))
+    .Build();
 var context = new TemplateContext(options);
 var result = template.Render(context);
 ```
@@ -532,6 +927,174 @@ var result = template.Render(context);
 ```html
 1234.56
 Tuesday, August 1, 2017
+```
+
+<br>
+
+## Color filters
+
+Color filters are opt-in. Register them with `TemplateOptionsBuilder.WithColorFilters()`:
+
+```csharp
+var options = new TemplateOptionsBuilder()
+    .WithColorFilters()
+    .Build();
+```
+
+The filters accept three- and six-digit hexadecimal colors and `rgb`/`rgba` and `hsl`/`hsla` functions with the existing comma-delimited syntax and optional alpha:
+
+| Component | Supported input |
+| --- | --- |
+| RGB channels | Numbers (including fractions such as `10.1`) or percentages; all three channels must use the same type |
+| Hue | Degrees without a unit, or an angle in `deg`, `rad`, `grad`, or `turn` |
+| Saturation and lightness | Percentages |
+| Alpha | A number or percentage, including leading-dot numbers such as `.4` |
+
+Numbers use invariant decimal-point syntax and can use signs and exponent notation. RGB channels, saturation, lightness, and alpha are clamped to their valid ranges. Hue wraps around a full revolution. RGB channels are stored as integers: percentages map `100%` to `255`, and fractional channel values round to the nearest integer, with half-way values rounded upward. Output formatting is unchanged; RGB/HSL alpha is rounded to one decimal place, while `color_extract: 'alpha'` returns the parsed alpha without that output rounding. Conversion to hex omits alpha.
+
+| Source | Result |
+| --- | --- |
+| `{{ 'rgb(10%, 10%, 20%, 40%)' \| color_to_hex }}` | `#1a1a33` |
+| `{{ 'hsla(.25turn, 100%, 50%, 50%)' \| color_to_rgb }}` | `rgba(128, 255, 0, 0.5)` |
+| `{{ 'rgb(10.1, 11.2, 11.3, .4)' \| color_extract: 'alpha' }}` | `0.4` |
+
+Malformed or non-finite components produce an empty filter result. This is not a complete CSS color parser: modern space-separated/slash-alpha syntax, named colors, other color spaces, and CSS expressions are not supported.
+
+## Money filters
+
+Fluid implements the [Shopify money filters](https://shopify.dev/docs/api/liquid/filters/money). They are not registered by default, register them with `TemplateOptionsBuilder.WithMoneyFilters()`.
+
+```csharp
+var options = new TemplateOptionsBuilder()
+    .WithMoneyFilters()
+    .Build();
+```
+
+| Filter | Source | Result |
+| --- | --- | --- |
+| `money` | `{{ 1134.65 \| money }}` | `$1,134.65` |
+| `money_with_currency` | `{{ 1134.65 \| money_with_currency }}` | `$1,134.65 USD` |
+| `money_without_currency` | `{{ 1134.65 \| money_without_currency }}` | `1,134.65` |
+| `money_without_trailing_zeros` | `{{ 10.00 \| money_without_trailing_zeros }}` | `$10` |
+
+Amounts are rounded away from zero, so `10.005` is rendered as `$10.01`.
+
+### Cultures and currencies
+
+By default, the currency and the way amounts are formatted are derived from `TemplateOptions.CultureInfo`, which is set with `TemplateOptionsBuilder.WithCultureInfo()`. The default culture is the invariant one, which has no currency, in which case `USD` is used.
+
+```csharp
+var options = new TemplateOptionsBuilder()
+    .WithMoneyFilters()
+    .WithCultureInfo(new CultureInfo("de-DE"))
+    .Build();
+```
+
+```Liquid
+{{ 1134.65 | money_with_currency }}
+```
+
+```html
+1.134,65 € EUR
+```
+
+A specific currency can be set with `MoneyOptions.Currency`, using its [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217) code. It is also accepted as an argument of every money filter, which is useful when a single template renders multiple currencies.
+
+```csharp
+var options = new TemplateOptionsBuilder()
+    .WithMoneyFilters()
+    .WithMoneyOptions(new MoneyOptions { Currency = "EUR" })
+    .Build();
+```
+
+```Liquid
+{{ 10 | money }}
+{{ 10 | money: 'GBP' }}
+{{ 10 | money: currency: 'JPY' }}
+```
+
+```html
+€10.00
+£10.00
+¥10
+```
+
+The symbol and the number of decimal digits of the most common currencies are known to Fluid. Others can be added, or replaced, with `MoneyOptions.WithCurrency()`, which returns a new instance. A currency that is not registered is rendered using its code as the symbol.
+
+```csharp
+var moneyOptions = new MoneyOptions()
+    .WithCurrency(new MoneyCurrency("BTC", "₿", decimalDigits: 8));
+
+var options = new TemplateOptionsBuilder()
+    .WithMoneyFilters()
+    .WithMoneyOptions(moneyOptions)
+    .Build();
+```
+
+### Amounts stored in cents
+
+Shopify stores prices as integers representing cents. Set `MoneyOptions.AmountsInCents` to divide the input of the money filters by 100, which makes it possible to reuse Shopify templates as-is.
+
+```csharp
+var options = new TemplateOptionsBuilder()
+    .WithMoneyFilters()
+    .WithMoneyOptions(new MoneyOptions { AmountsInCents = true })
+    .Build();
+```
+
+```Liquid
+{{ 1450 | money }}
+```
+
+```html
+$14.50
+```
+
+### Custom formats
+
+`MoneyOptions.MoneyFormat` and `MoneyOptions.MoneyWithCurrencyFormat` override the culture based formatting, using the same placeholders as the [Shopify currency formatting settings](https://help.shopify.com/en/manual/payments/currency-formatting). These placeholders are culture independent.
+
+| Placeholder | Result for `1134.65` |
+| --- | --- |
+| `{{amount}}` | `1,134.65` |
+| `{{amount_no_decimals}}` | `1,135` |
+| `{{amount_with_comma_separator}}` | `1.134,65` |
+| `{{amount_no_decimals_with_comma_separator}}` | `1.135` |
+| `{{amount_with_apostrophe_separator}}` | `1'134.65` |
+| `{{amount_no_decimals_with_space_separator}}` | `1 135` |
+| `{{amount_with_space_separator}}` | `1 134,65` |
+| `{{amount_with_period_and_space_separator}}` | `1 134.65` |
+| `{{currency}}` | the ISO 4217 code of the currency, e.g. `USD` |
+| `{{currency_symbol}}` | the symbol of the currency, e.g. `$` |
+
+`{{currency}}` and `{{currency_symbol}}` are specific to Fluid, and let a single format be used with the currency that is resolved when the template is rendered. Unknown placeholders are rendered verbatim.
+
+```csharp
+var options = new TemplateOptionsBuilder()
+    .WithMoneyFilters()
+    .WithMoneyOptions(new MoneyOptions { MoneyFormat = "{{amount_with_comma_separator}} kr" })
+    .Build();
+```
+
+```Liquid
+{{ 1134.65 | money }}
+```
+
+```html
+1.134,65 kr
+```
+
+`money_without_currency` always renders the amount on its own and ignores these formats. When `MoneyWithCurrencyFormat` is not set, `money_with_currency` uses `MoneyFormat` followed by the currency code.
+
+### Rendering a different currency per request
+
+`MoneyOptions` is immutable application-wide configuration, set with `TemplateOptionsBuilder.WithMoneyOptions()`. To use a different currency for a single rendering, assign a `MoneyOptions` instance on the `TemplateContext`.
+
+```csharp
+var context = new TemplateContext(options)
+{
+    MoneyOptions = new MoneyOptions { Currency = "EUR" }
+};
 ```
 
 <br>
@@ -569,7 +1132,7 @@ Wed Dec 31 19:00:00 -08:00 1969
 
 ### Converting time zones
 
-Dates and times can be converted to specific time zones using the `time_zone: <iana>` filter.
+Dates and times can be converted to specific time zones using the `time_zone` filter. On .NET 6 and later, identifiers are resolved with `TimeZoneInfo.FindSystemTimeZoneById`. The `netstandard2.0` asset uses TimeZoneConverter by default.
 
 #### Example
 
@@ -580,6 +1143,15 @@ context.SetValue("published", DateTime.UtcNow);
 
 ```Liquid
 {{ published | time_zone: 'America/New_York' | date: '%+' }}
+```
+
+On Windows, IANA identifiers require ICU globalization data. Resolution can fail on Windows versions that do not include ICU unless the application deploys it app-locally with the `Microsoft.ICU.ICU4C.Runtime` package. IANA identifiers are also unavailable when globalization invariant mode is enabled (`System.Globalization.Invariant`) or Windows NLS is forced (`System.Globalization.UseNls`). In these configurations, configure a custom resolver. For example, with the `TimeZoneConverter` package:
+
+```csharp
+var options = new TemplateOptionsBuilder()
+    .WithTimeZoneResolver(id => TimeZoneConverter.TZConvert.GetTimeZoneInfo(id))
+    .Build();
+var context = new TemplateContext(options);
 ```
 
 #### Result
@@ -775,7 +1347,8 @@ public class Startup
 {
     public void ConfigureServices(IServiceCollection services)
     {
-        services.AddMvc().AddFluid(o => o.TemplateOptions.Register<Person>());
+        services.AddMvc().AddFluid(o => o.TemplateOptionsBuilder.ConfigureMemberAccess(
+            strategy => strategy.Register<Person, object>((person, name) => person.Firstname)));
     }
 }
 ```
@@ -991,12 +1564,12 @@ The `-%}` strips the whitespace from the right side of the `assign` tag.
 
 ## Template Options
 
-Fluid provides the `TemplateOptions.Trimming` property that can be set with predefined preferences for when whitespace should be stripped automatically, even if hyphens are not
+Fluid provides the `TemplateOptionsBuilder.WithTrimming()` method that can be used with predefined preferences for when whitespace should be stripped automatically, even if hyphens are not
 present in tags and output values.
 
 ## Greedy Mode
 
-When greedy mode is disabled in `TemplateOptions.Greedy`, only the spaces before the first new line are stripped.
+When greedy mode is disabled with `TemplateOptionsBuilder.WithGreedy(false)`, only the spaces before the first new line are stripped.
 Greedy mode is enabled by default since this is the standard behavior of the Liquid language.
 
 <br>
@@ -1101,12 +1674,25 @@ Now `field` is available as a local property of the template and can be invoked 
 
 Macros defined in an external template **must** be imported before they can be invoked.
 
+Omit the import list to import every macro defined by the template:
+
+```
+{% from 'forms' %}
+
+{{ field('user') }}
+{{ field('pass', type='password') }}
+```
+
+Use an explicit import list to import only selected macros:
+
 ```
 {% from 'forms' import field %}
 
 {{ field('user') }}
 {{ field('pass', type='password') }}
 ```
+
+The import-all form is the equivalent of a wildcard import; no wildcard token is required. Both forms evaluate the external template without rendering its output and copy only macros, not its assigned variables. An imported macro replaces a same-named value in the current scope, so prefer selective imports when name collisions are possible. Use `include` to render external template content and `from` to load its macros.
 
 ### Extensibility
 
@@ -1247,15 +1833,17 @@ Console.WriteLine(result); // writes -1
 
 ### Visiting templates parsed during rendering
 
-You can apply visitors and rewriters to templates that are parsed before they are cached by using the `TemplateParsed` callback on `TemplateOptions`. This works for all template parsing scenarios including the ViewEngine, `include` and `render` statements.
+You can apply visitors and rewriters to templates that are parsed before they are cached by using the `TemplateParsed` callback of the `TemplateOptionsBuilder`. This works for all template parsing scenarios including the ViewEngine, `include` and `render` statements.
 
 ```c#
-var options = new TemplateOptions { FileProvider = fileProvider };
-options.TemplateParsed = (path, template) =>
-{
-    var visitor = new MyCustomVisitor();
-    return visitor.VisitTemplate(template);
-};
+var options = new TemplateOptionsBuilder()
+    .WithFileProvider(new FileProviderTemplateFileProvider(fileProvider))
+    .WithTemplateParsed((path, template) =>
+    {
+        var visitor = new MyCustomVisitor();
+        return visitor.VisitTemplate(template);
+    })
+    .Build();
 ```
 
 The `TemplateParsed` callback is invoked after a template is parsed but before it is cached. This means:
@@ -1288,11 +1876,40 @@ It is common for the same templates to be rendered over time. In this case, it i
 
 These instances are meant to be reused. This is why there is a separation between `TemplateContext`, which is per rendering, and `TemplateOptions`, which contains state that is shared across all renderings, such as property resolutions and lambdas. A convenient approach is to declare them as `static`, though you should adapt this to your needs.
 
-`TemplateOptions` instances are thread-safe for read access and can be shared by multiple concurrent threads.
+`TemplateOptions` instances are immutable: they are created with a `TemplateOptionsBuilder` and can't be modified afterwards, so they can be shared by multiple concurrent threads without any precaution. The filters, global values, value converters and member access registrations are copied when `Build()` is called, so changing the builder later doesn't affect options that are already in use. Call `ToBuilder()` on an existing instance to create a variation, for instance one per tenant.
+
+```csharp
+private static readonly TemplateOptions _options = new TemplateOptionsBuilder()
+    .WithCultureInfo(new CultureInfo("en-US"))
+    .AddFilter("downcase", Downcase)
+    .ConfigureMemberAccess(strategy => strategy.Register<Person, object>((person, name) => person.Firstname))
+    .Build();
+
+private static readonly TemplateOptions _tenantOptions = _options.ToBuilder()
+    .WithMaxSteps(10_000)
+    .Build();
+```
+
+`TemplateOptions.Default` is also immutable, so a `TemplateContext` created without options can't alter configuration shared with other renderings. Use `TemplateContext` properties such as `CultureInfo`, `TimeZone` or `MoneyOptions` for overrides that apply to a single rendering.
+
+Objects that are provided to the builder, like the `ITemplateFileProvider`, the `ITemplateCache`, the delegates, or the `JsonSerializerOptions`, are used as-is, and remain responsible for their own thread-safety. A custom `MemberAccessStrategy` is created by a factory passed to `WithMemberAccessStrategy()`, which is invoked by every `Build()` call so that options never share a strategy that can be modified.
 
 ### Reuse the `FluidParser` instance
 
 Instantiating a `FluidParser` instance is expensive, do it once and reuse the instance. This can be registered as a singleton if you use dependency injection, but in most cases a `static` instance makes sense since it's rare to customize these.
+
+### Render directly to UTF-8
+
+On .NET 8 and later, `Utf8FluidOutput` writes directly to an `IBufferWriter<byte>` without accumulating the rendered response as UTF-16 or adding an ASP.NET Core dependency to Fluid:
+
+```csharp
+await template.RenderAsync(response.BodyWriter, HtmlEncoder.Default, context);
+
+// The destination remains caller-owned.
+await response.BodyWriter.FlushAsync(requestAborted);
+```
+
+The `RenderAsync` overload creates and disposes `Utf8FluidOutput`, ensuring its UTF-8 encoder state is finalized. The destination remains caller-owned and is not flushed or completed. Create `Utf8FluidOutput` directly when multiple templates need to share one character stream. Its `FlushAsync` method transcodes buffered characters while preserving encoder state so surrogate pairs remain valid across intermediate template flushes. Because `IFluidOutput` writes synchronously, transport flushing is not attempted in the middle of a render. `MaxOutputSize` continues to count UTF-16 characters, not encoded bytes.
 
 ### Benchmarks
 
@@ -1305,27 +1922,28 @@ TL;DR — Fluid is faster and allocates less memory than all other well-known .N
 
 **Parse: Parses a simple HTML template containing filters and properties**
 
-On this chart, Fluid is 40% faster than the second best, Scriban, and allocates half the memory.
+Scriban takes 46% longer to parse and allocates over 3 times as much memory as Fluid.
 
-![image](https://github.com/user-attachments/assets/536665c5-cb32-45f6-9613-c394cd7430d9)
+![Parse benchmark comparison](Assets/benchmark-parse.png)
 
 **ParseBig: Parses a Blog Post template**
 
-Fluid is 60% faster than the second best, Scriban, and allocates half the memory.
+Scriban takes 66% longer to parse and allocates almost 4 times as much memory as Fluid.
 
-![image](https://github.com/user-attachments/assets/5525759e-3e92-4ce1-8a00-99a49c9faca9)
+![Large template parse benchmark comparison](Assets/benchmark-parse-big.png)
 
 **Render: Renders a simple HTML template containing filters and properties, with 100 elements**
 
-Compared to DotLiquid, Fluid renders almost 8 times faster and allocates 14 times less memory.
-The second best, Handlebars (Mustache), is almost 3 times slower than Fluid and allocates 3 times more memory.
+DotLiquid takes over 10 times as long to render and allocates 18 times as much memory as Fluid.
+The second best, Handlebars (Mustache), takes 33% longer and allocates over 3 times as much memory.
 
-![image](https://github.com/user-attachments/assets/4fbe9a79-63ba-4275-9971-55dd88e83e52)
+![Render benchmark comparison](Assets/benchmark-render.png)
 
-Tested on 4/28/2025 with
-- Scriban 6.2.1
+Tested on 8/18/2026 with
+- Parlot 1.5.8
+- Scriban 7.2.6
 - DotLiquid 2.3.197
-- Handlebars.Net 2.1.6
+- Handlebars.Net 2.4.3
 
 - Liquid.NET 0.10.0 (Ignored since much slower and not in active development for a long time)
 
@@ -1334,30 +1952,32 @@ Tested on 4/28/2025 with
 <summary>Benchmark.NET data</summary>
 
 ``` text
-BenchmarkDotNet v0.14.0, Windows 11 (10.0.26100.3476)
-12th Gen Intel Core i7-1260P, 1 CPU, 16 logical and 12 physical cores
-.NET SDK 9.0.201
-  [Host]   : .NET 9.0.3 (9.0.325.11113), X64 RyuJIT AVX2
-  ShortRun : .NET 9.0.3 (9.0.325.11113), X64 RyuJIT AVX2
+BenchmarkDotNet v0.15.8, macOS Sequoia 15.7.9 (24G830) [Darwin 24.6.0]
+Apple M4 Pro, 1 CPU, 14 logical and 14 physical cores
+.NET SDK 10.0.400
+  [Host]   : .NET 10.0.11 (10.0.11, 10.0.1126.37416), Arm64 RyuJIT armv8.0-a
+  ShortRun : .NET 10.0.11 (10.0.11, 10.0.1126.37416), Arm64 RyuJIT armv8.0-a
 
 Job=ShortRun  IterationCount=3  LaunchCount=1
 WarmupCount=3
 
-| Method             | Mean         | Error         | StdDev     | Ratio    | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
-|------------------- |-------------:|--------------:|-----------:|---------:|--------:|--------:|--------:|----------:|------------:|
-| Fluid_Parse        |     2.333 us |     0.4108 us |  0.0225 us |     1.00 |    0.01 |  0.3090 |       - |   2.84 KB |        1.00 |
-| Scriban_Parse      |     3.231 us |     0.4593 us |  0.0252 us |     1.39 |    0.01 |  0.7744 |  0.0267 |   7.14 KB |        2.51 |
-| DotLiquid_Parse    |     5.420 us |     1.2515 us |  0.0686 us |     2.32 |    0.03 |  1.7548 |  0.0229 |  16.15 KB |        5.68 |
-| Handlebars_Parse   | 2,365.620 us | 1,080.6364 us | 59.2333 us | 1,014.02 |   23.55 | 15.6250 |       - | 155.22 KB |       54.58 |
-|                    |              |               |            |          |         |         |         |           |             |
-| Fluid_ParseBig     |    11.111 us |     2.5944 us |  0.1422 us |     1.00 |    0.02 |  1.2817 |  0.0305 |  11.81 KB |        1.00 |
-| Scriban_ParseBig   |    17.688 us |     1.2333 us |  0.0676 us |     1.59 |    0.02 |  3.4790 |  0.4883 |  32.07 KB |        2.71 |
-| DotLiquid_ParseBig |    25.480 us |    13.4114 us |  0.7351 us |     2.29 |    0.06 | 10.2539 |  0.4578 |  94.24 KB |        7.98 |
-|                    |              |               |            |          |         |         |         |           |             |
-| Fluid_Render       |    31.527 us |     7.0754 us |  0.3878 us |     1.00 |    0.02 |  5.1880 |  0.0610 |  47.91 KB |        1.00 |
-| Scriban_Render     |    94.043 us |    14.6300 us |  0.8019 us |     2.98 |    0.04 | 15.2588 |  2.5635 | 140.46 KB |        2.93 |
-| DotLiquid_Render   |   245.327 us |    30.0185 us |  1.6454 us |     7.78 |    0.09 | 74.2188 | 13.6719 | 685.53 KB |       14.31 |
-| Handlebars_Render  |    88.330 us |    11.2139 us |  0.6147 us |     2.80 |    0.03 | 16.8457 |  2.8076 |  155.7 KB |        3.25 |
+| Method                       | Mean       | Error         | StdDev     | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
+|----------------------------- |-----------:|--------------:|-----------:|------:|--------:|--------:|--------:|----------:|------------:|
+| Fluid_Parse                  |   1.685 us |     0.1182 us |  0.0065 us |  1.00 |    0.00 |  0.3910 |  0.0019 |    3.2 KB |        1.00 |
+| Scriban_Parse                |   2.464 us |     0.2919 us |  0.0160 us |  1.46 |    0.01 |  1.2245 |  0.0648 |  10.01 KB |        3.13 |
+| DotLiquid_Parse              |   4.054 us |     0.3527 us |  0.0193 us |  2.41 |    0.01 |  1.9608 |  0.0229 |  16.05 KB |        5.02 |
+| Handlebars_Parse             | 452.116 us |   433.5420 us | 23.7639 us | 268.40 |   12.25 | 15.6250 |  7.8125 | 133.62 KB |       41.82 |
+|                              |            |               |            |       |         |         |         |           |             |
+| Fluid_ParseBig               |   8.393 us |     0.5638 us |  0.0309 us |  1.00 |    0.00 |  1.5717 |  0.0458 |  12.86 KB |        1.00 |
+| Scriban_ParseBig             |  13.928 us |     1.0365 us |  0.0568 us |  1.66 |    0.01 |  5.8746 |  1.1749 |  48.07 KB |        3.74 |
+| DotLiquid_ParseBig           |  20.154 us |     2.4570 us |  0.1347 us |  2.40 |    0.02 | 11.4136 |  0.5188 |  93.46 KB |        7.27 |
+| Handlebars_ParseBig          | 356.951 us | 1,331.1202 us | 72.9632 us | 42.53 |    7.53 | 16.6016 |  7.8125 | 139.87 KB |       10.88 |
+|                              |            |               |            |       |         |         |         |           |             |
+| Fluid_Render                 |  16.426 us |     1.5309 us |  0.0839 us |  1.00 |    0.01 |  4.4250 |  0.0610 |  36.26 KB |        1.00 |
+| Fluid_SourceGenerated_Render |  30.694 us |     6.0248 us |  0.3302 us |  1.87 |    0.02 |  5.8594 |  0.0610 |  47.98 KB |        1.32 |
+| Scriban_Render               | 127.750 us |     7.0525 us |  0.3866 us |  7.78 |    0.04 | 43.7012 |  8.0566 | 358.12 KB |        9.88 |
+| DotLiquid_Render             | 166.841 us |     6.6613 us |  0.3651 us | 10.16 |    0.05 | 80.5664 | 15.3809 | 659.18 KB |       18.18 |
+| Handlebars_Render            |  21.926 us |     1.8049 us |  0.0989 us |  1.33 |    0.01 | 14.5874 |       - | 119.31 KB |        3.29 |
 ```
 
 </details>

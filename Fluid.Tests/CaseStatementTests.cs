@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -6,418 +6,417 @@ using Fluid.Ast;
 using Fluid.Values;
 using Xunit;
 
-namespace Fluid.Tests
+namespace Fluid.Tests;
+
+public class CaseStatementTests
 {
-    public class CaseStatementTests
+    private LiteralExpression A = new LiteralExpression(new StringValue("a"));
+    private LiteralExpression B = new LiteralExpression(new StringValue("b"));
+    private LiteralExpression C = new LiteralExpression(new StringValue("c"));
+    private LiteralExpression D = new LiteralExpression(new StringValue("d"));
+
+    private List<Statement> TEXT(string text)
     {
-        private LiteralExpression A = new LiteralExpression(new StringValue("a"));
-        private LiteralExpression B = new LiteralExpression(new StringValue("b"));
-        private LiteralExpression C = new LiteralExpression(new StringValue("c"));
-        private LiteralExpression D = new LiteralExpression(new StringValue("d"));
+        return new List<Statement> { new TextSpanStatement(text) };
+    }
 
-        private List<Statement> TEXT(string text)
-        {
-            return new List<Statement> { new TextSpanStatement(text) };
-        }
+    [Fact]
+    public async Task CaseCanProcessWhenMatch()
+    {
+        var e = new CaseStatement(
+            A,
+            new[] {
+                new WhenBlock(new List<Expression> { A }, TEXT("x"))
+            }
+        );
 
-        [Fact]
-        public async Task CaseCanProcessWhenMatch()
-        {
-            var e = new CaseStatement(
-                A,
-                new[] {
-                    new WhenBlock(new List<Expression> { A }, TEXT("x"))
-                }
-            );
+        var sw = new StringWriter();
+        await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
-            var sw = new StringWriter();
-            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+        Assert.Equal("x", sw.ToString());
+    }
 
-            Assert.Equal("x", sw.ToString());
-        }
+    [Fact]
+    public async Task CaseProcessesMultipleStatements()
+    {
+        var e = new CaseStatement(
+            A,
+            new[] {
+                new WhenBlock(new List<Expression> { A },
+                new List<Statement> { new TextSpanStatement("x"), new TextSpanStatement("y") })
+            }
+        );
 
-        [Fact]
-        public async Task CaseProcessesMultipleStatements()
-        {
-            var e = new CaseStatement(
-                A,
-                new[] {
-                    new WhenBlock(new List<Expression> { A }, 
-                    new List<Statement> { new TextSpanStatement("x"), new TextSpanStatement("y") })
-                }
-            );
+        var sw = new StringWriter();
+        await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
-            var sw = new StringWriter();
-            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+        Assert.Equal("xy", sw.ToString());
+    }
 
-            Assert.Equal("xy", sw.ToString());
-        }
+    [Fact]
+    public async Task CaseEvaluateMember()
+    {
+        var e = new CaseStatement(
+            new MemberExpression(
+                new IdentifierSegment("val")
+            ),
+            new[] {
+                new WhenBlock(new List<Expression> { A }, TEXT("x"))
+            }
+        );
 
-        [Fact]
-        public async Task CaseEvaluateMember()
-        {
-            var e = new CaseStatement(
-                new MemberExpression(
-                    new IdentifierSegment("val")
-                ),
-                new[] {
-                    new WhenBlock(new List<Expression> { A }, TEXT("x"))
-                }
-            );
+        var sw = new StringWriter();
+        var context = new TemplateContext();
+        context.SetValue("val", "a");
 
-            var sw = new StringWriter();
-            var context = new TemplateContext();
-            context.SetValue("val", "a");
+        await e.WriteToAsync(sw, HtmlEncoder.Default, context);
 
-            await e.WriteToAsync(sw, HtmlEncoder.Default, context);
+        Assert.Equal("x", sw.ToString());
+    }
 
-            Assert.Equal("x", sw.ToString());
-        }
+    [Fact]
+    public async Task CaseCanProcessWhenMatchMultiple()
+    {
+        var e = new CaseStatement(
+            A,
+            new[] {
+                new WhenBlock(new List<Expression> { A, B, C }, TEXT("x"))
+            }
+        );
 
-        [Fact]
-        public async Task CaseCanProcessWhenMatchMultiple()
-        {
-            var e = new CaseStatement(
-                A,
-                new[] {
-                    new WhenBlock(new List<Expression> { A, B, C }, TEXT("x"))
-                }
-            );
+        var sw = new StringWriter();
+        await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
-            var sw = new StringWriter();
-            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+        Assert.Equal("x", sw.ToString());
+    }
 
-            Assert.Equal("x", sw.ToString());
-        }
+    [Fact]
+    public async Task CaseProcessAllsWhensMatchMultiple()
+    {
+        var e = new CaseStatement(
+            A,
+            new[] {
+                new WhenBlock(new List<Expression> { A, B, C }, TEXT("x")),
+                new WhenBlock(new List<Expression> { D }, TEXT("y")),
+                new WhenBlock(new List<Expression> { A }, TEXT("z"))
+            }
+        );
 
-        [Fact]
-        public async Task CaseProcessAllsWhensMatchMultiple()
-        {
-            var e = new CaseStatement(
-                A,
-                new[] {
-                    new WhenBlock(new List<Expression> { A, B, C }, TEXT("x")),
-                    new WhenBlock(new List<Expression> { D }, TEXT("y")),
-                    new WhenBlock(new List<Expression> { A }, TEXT("z"))
-                }
-            );
+        var sw = new StringWriter();
+        await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
-            var sw = new StringWriter();
-            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+        Assert.Equal("xz", sw.ToString());
+    }
 
-            Assert.Equal("xz", sw.ToString());
-        }
+    [Fact]
+    public async Task CaseDoesntProcessWhenNoMatch()
+    {
+        var e = new CaseStatement(
+            A,
+            new[] {
+                new WhenBlock(new List<Expression> { B, C, D }, TEXT("x"))
+            }
+        );
 
-        [Fact]
-        public async Task CaseDoesntProcessWhenNoMatch()
-        {
-            var e = new CaseStatement(
-                A,
-                new[] {
-                    new WhenBlock(new List<Expression> { B, C, D }, TEXT("x"))
-                }
-            );
+        var sw = new StringWriter();
+        await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
-            var sw = new StringWriter();
-            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+        Assert.Equal("", sw.ToString());
+    }
 
-            Assert.Equal("", sw.ToString());
-        }
+    [Fact]
+    public async Task CaseDoesntProcessElseWhenMatch()
+    {
+        var e = new CaseStatement(
+            A,
+            new CaseBlock[] {
+                new WhenBlock(new List<Expression> { A }, TEXT("x")),
+                new ElseBlock(new List<Statement> { new TextSpanStatement("y") })
+            }
+        );
 
-        [Fact]
-        public async Task CaseDoesntProcessElseWhenMatch()
-        {
-            var e = new CaseStatement(
-                A,
-                new CaseBlock[] {
-                    new WhenBlock(new List<Expression> { A }, TEXT("x")),
-                    new ElseBlock(new List<Statement> { new TextSpanStatement("y") })
-                }
-            );
+        var sw = new StringWriter();
+        await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
-            var sw = new StringWriter();
-            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+        Assert.Equal("x", sw.ToString());
+    }
 
-            Assert.Equal("x", sw.ToString());
-        }
+    [Fact]
+    public async Task CaseProcessElseWhenNoMatch()
+    {
+        var e = new CaseStatement(
+            A,
+            new CaseBlock[] {
+                new WhenBlock(new List<Expression> { B, C }, TEXT("x")),
+                new ElseBlock(new List<Statement> { new TextSpanStatement("y") })
+            }
+        );
 
-        [Fact]
-        public async Task CaseProcessElseWhenNoMatch()
-        {
-            var e = new CaseStatement(
-                A,
-                new CaseBlock[] {
-                    new WhenBlock(new List<Expression> { B, C }, TEXT("x")),
-                    new ElseBlock(new List<Statement> { new TextSpanStatement("y") })
-                }
-            );
+        var sw = new StringWriter();
+        await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
-            var sw = new StringWriter();
-            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+        Assert.Equal("y", sw.ToString());
+    }
 
-            Assert.Equal("y", sw.ToString());
-        }        
+    [Fact]
+    public async Task CaseProcessFirstWhen()
+    {
+        var e = new CaseStatement(
+            B,
+            new CaseBlock[] {
+                new WhenBlock(new List<Expression> { A, C }, TEXT("1")),
+                new WhenBlock(new List<Expression> { B, C }, TEXT("2")),
+                new WhenBlock(new List<Expression> { C }, TEXT("3")),
+                new ElseBlock(new List<Statement> { new TextSpanStatement("y") })
+            }
+        );
 
-        [Fact]
-        public async Task CaseProcessFirstWhen()
-        {
-            var e = new CaseStatement(
-                B,
-                new CaseBlock[] {
-                    new WhenBlock(new List<Expression> { A, C }, TEXT("1")),
-                    new WhenBlock(new List<Expression> { B, C }, TEXT("2")),
-                    new WhenBlock(new List<Expression> { C }, TEXT("3")),
-                    new ElseBlock(new List<Statement> { new TextSpanStatement("y") })
-                }
-            );
+        var sw = new StringWriter();
+        await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
-            var sw = new StringWriter();
-            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+        Assert.Equal("2", sw.ToString());
+    }
 
-            Assert.Equal("2", sw.ToString());
-        }
+    [Fact]
+    public async Task CaseProcessNoMatchWhen()
+    {
+        var e = new CaseStatement(
+            A,
+            new[] {
+                new WhenBlock(new List<Expression> { B }, TEXT("2")),
+                new WhenBlock(new List<Expression> { C }, TEXT("3"))
+            }
+        );
 
-        [Fact]
-        public async Task CaseProcessNoMatchWhen()
-        {
-            var e = new CaseStatement(
-                A,
-                new[] {
-                    new WhenBlock(new List<Expression> { B }, TEXT("2")),
-                    new WhenBlock(new List<Expression> { C }, TEXT("3"))
-                }
-            );
+        var sw = new StringWriter();
+        await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
-            var sw = new StringWriter();
-            await e.WriteToAsync(sw, HtmlEncoder.Default, new TemplateContext());
+        Assert.Equal("", sw.ToString());
+    }
 
-            Assert.Equal("", sw.ToString());
-        }
+    [Fact]
+    public async Task CaseWithMixedWhenElse_NoMatch_AllElse()
+    {
+        var parser = new FluidParser();
+        var template = """
+            {%  case 'x' %}
+              {% when 'y' %}match1
+              {% when 'y' %}match2
+              {% else %} else1
+              {% else %} else2
+              {% when 'y' %}match3
+              {% when 'y' %}match4
+              {% else %} else3
+              {% else %} else4
+            {% endcase %}
+            """;
 
-        [Fact]
-        public async Task CaseWithMixedWhenElse_NoMatch_AllElse()
-        {
-            var parser = new FluidParser();
-            var template = """
-                {%  case 'x' %}
-                  {% when 'y' %}match1
-                  {% when 'y' %}match2
-                  {% else %} else1
-                  {% else %} else2
-                  {% when 'y' %}match3
-                  {% when 'y' %}match4
-                  {% else %} else3
-                  {% else %} else4
-                {% endcase %}
-                """;
-            
-            var result = parser.Parse(template);
-            var context = new TemplateContext();
-            var output = await result.RenderAsync(context);
-            
-            Assert.Equal("""
-                 else1
-                   else2
-                   else3
-                   else4
+        var result = parser.Parse(template);
+        var context = new TemplateContext();
+        var output = await result.RenderAsync(context);
 
-                """, output);
-        }
-        
-        [Fact]
-        public async Task CaseWithMixedWhenElse_Match_OnlyMatches()
-        {
-            var parser = new FluidParser();
-            var template = """
-                {%  case 'x' %}
-                  {% when 'x' %}match1
-                  {% when 'x' %}match2
-                  {% else %} else1
-                  {% else %} else2
-                  {% when 'y' %}match3
-                  {% when 'y' %}match4
-                  {% else %} else3
-                  {% else %} else4
-                {% endcase %}
-                """;
-            
-            var result = parser.Parse(template);
-            var context = new TemplateContext();
-            var output = await result.RenderAsync(context);
+        Assert.Equal("""
+             else1
+               else2
+               else3
+               else4
 
-            Assert.Equal("""
-                match1
-                  match2
-                  
-                """, output);
-        }
+            """, output);
+    }
 
-        [Fact]
-        public async Task CaseWithMultipleElseBlocks()
-        {
-            var parser = new FluidParser();
-            var template = "{% case 'x' %}{% when 'y' %}foo{% else %}bar{% else %}baz{% endcase %}";
-            
-            var result = parser.Parse(template);
-            var context = new TemplateContext();
-            var output = await result.RenderAsync(context);
-            
-            Assert.Equal("barbaz", output);
-        }
+    [Fact]
+    public async Task CaseWithMixedWhenElse_Match_OnlyMatches()
+    {
+        var parser = new FluidParser();
+        var template = """
+            {%  case 'x' %}
+              {% when 'x' %}match1
+              {% when 'x' %}match2
+              {% else %} else1
+              {% else %} else2
+              {% when 'y' %}match3
+              {% when 'y' %}match4
+              {% else %} else3
+              {% else %} else4
+            {% endcase %}
+            """;
 
-        [Fact]
-        public async Task CaseWithFalsyWhenBeforeAndTruthyWhenAfterElse()
-        {
-            var parser = new FluidParser();
-            var template = "{% case 'x' %}{% when 'y' %}foo{% else %}bar{% when 'x' %}baz{% endcase %}";
-            
-            var result = parser.Parse(template);
-            var context = new TemplateContext();
-            var output = await result.RenderAsync(context);
-            
-            Assert.Equal("barbaz", output);
-        }
+        var result = parser.Parse(template);
+        var context = new TemplateContext();
+        var output = await result.RenderAsync(context);
 
-        [Fact]
-        public async Task CaseWithFalsyWhenBeforeAndTruthyWhenAfterMultipleElseBlocks()
-        {
-            var parser = new FluidParser();
-            var template = "{% case 'x' %}{% when 'y' %}foo{% else %}bar{% else %}baz{% when 'x' %}qux{% endcase %}";
-            
-            var result = parser.Parse(template);
-            var context = new TemplateContext();
-            var output = await result.RenderAsync(context);
-            
-            Assert.Equal("barbazqux", output);
-        }
+        Assert.Equal("""
+            match1
+              match2
+              
+            """, output);
+    }
 
-        [Fact]
-        public async Task CaseWithTruthyWhenBeforeAndAfterElse()
-        {
-            var parser = new FluidParser();
-            var template = "{% case 'x' %}{% when 'x' %}foo{% else %}bar{% when 'x' %}baz{% endcase %}";
-            
-            var result = parser.Parse(template);
-            var context = new TemplateContext();
-            var output = await result.RenderAsync(context);
-            
-            Assert.Equal("foobaz", output);
-        }
+    [Fact]
+    public async Task CaseWithMultipleElseBlocks()
+    {
+        var parser = new FluidParser();
+        var template = "{% case 'x' %}{% when 'y' %}foo{% else %}bar{% else %}baz{% endcase %}";
 
-        [Fact]
-        public async Task CaseEvaluateMultipleMatchingBlocks()
-        {
-            var parser = new FluidParser();
-            var template = "{% case title %}{% when 'Hello' %}foo{% when a, 'Hello' %}bar{% endcase %}";
-            
-            var result = parser.Parse(template);
-            var context = new TemplateContext();
-            context.SetValue("title", "Hello");
-            context.SetValue("a", "Hello");
-            var output = await result.RenderAsync(context);
-            
-            Assert.Equal("foobarbar", output);
-        }
+        var result = parser.Parse(template);
+        var context = new TemplateContext();
+        var output = await result.RenderAsync(context);
 
-        [Fact]
-        public async Task CaseWithOrSeparatedWhenExpression()
-        {
-            var parser = new FluidParser();
-            var template = "{% case title %}{% when 'foo' %}foo{% when 'bar' or 'Hello' %}bar{% endcase %}";
-            
-            var result = parser.Parse(template);
-            var context = new TemplateContext();
-            context.SetValue("title", "Hello");
-            var output = await result.RenderAsync(context);
-            
-            Assert.Equal("bar", output);
-        }
+        Assert.Equal("barbaz", output);
+    }
 
-        [Fact]
-        public async Task CaseWithCommaSeparatedWhenExpression()
-        {
-            var parser = new FluidParser();
-            var template = "{% case title %}{% when 'foo' %}foo{% when 'bar', 'Hello' %}bar{% endcase %}";
-            
-            var result = parser.Parse(template);
-            var context = new TemplateContext();
-            context.SetValue("title", "Hello");
-            var output = await result.RenderAsync(context);
-            
-            Assert.Equal("bar", output);
-        }
+    [Fact]
+    public async Task CaseWithFalsyWhenBeforeAndTruthyWhenAfterElse()
+    {
+        var parser = new FluidParser();
+        var template = "{% case 'x' %}{% when 'y' %}foo{% else %}bar{% when 'x' %}baz{% endcase %}";
 
-        [Fact]
-        public async Task CaseMixOrAndCommaSeparatedWhenExpression()
-        {
-            var parser = new FluidParser();
-            var template = "{% case title %}{% when 'foo' %}foo{% when 'bar' or 'Hello', 'Hello' %}bar{% endcase %}";
-            
-            var result = parser.Parse(template);
-            var context = new TemplateContext();
-            context.SetValue("title", "Hello");
-            var output = await result.RenderAsync(context);
-            
-            // Both 'bar' or 'Hello' and 'Hello' match, so bar is output twice
-            Assert.Equal("barbar", output);
-        }
+        var result = parser.Parse(template);
+        var context = new TemplateContext();
+        var output = await result.RenderAsync(context);
 
-        [Fact]
-        public async Task CaseNoWhensOnlyElse()
-        {
-            var parser = new FluidParser();
-            var template = "{% case title %}{% else %}bar{% endcase %}";
-            
-            var result = parser.Parse(template);
-            var context = new TemplateContext();
-            context.SetValue("title", "Hello");
-            var output = await result.RenderAsync(context);
-            
-            Assert.Equal("bar", output);
-        }
+        Assert.Equal("barbaz", output);
+    }
 
-        [Fact]
-        public async Task CaseNoWhensNoElse()
-        {
-            var parser = new FluidParser();
-            var template = "{% case title %}{% endcase %}";
-            
-            var result = parser.Parse(template);
-            var context = new TemplateContext();
-            context.SetValue("title", "Hello");
-            var output = await result.RenderAsync(context);
-            
-            Assert.Equal("", output);
-        }
+    [Fact]
+    public async Task CaseWithFalsyWhenBeforeAndTruthyWhenAfterMultipleElseBlocks()
+    {
+        var parser = new FluidParser();
+        var template = "{% case 'x' %}{% when 'y' %}foo{% else %}bar{% else %}baz{% when 'x' %}qux{% endcase %}";
 
-        [Fact]
-        public async Task CaseWhenExpressionUsingIdentifier()
-        {
-            var parser = new FluidParser();
-            var template = "{% case title %}{% when other %}foo{% when 'goodbye' %}bar{% endcase %}";
-            
-            var result = parser.Parse(template);
-            var context = new TemplateContext();
-            context.SetValue("title", "Hello");
-            context.SetValue("other", "Hello");
-            var output = await result.RenderAsync(context);
-            
-            Assert.Equal("foo", output);
-        }
+        var result = parser.Parse(template);
+        var context = new TemplateContext();
+        var output = await result.RenderAsync(context);
 
-        [Fact]
-        public async Task CaseTagsInsideWhenBlock()
-        {
-            var parser = new FluidParser();
-            var template = "{% case title %}{% when other %}{% if true %}foo{% endif %}{% when 'goodbye' %}bar{% endcase %}";
-            
-            var result = parser.Parse(template);
-            var context = new TemplateContext();
-            context.SetValue("title", "Hello");
-            context.SetValue("other", "Hello");
-            var output = await result.RenderAsync(context);
-            
-            Assert.Equal("foo", output);
-        }
+        Assert.Equal("barbazqux", output);
+    }
+
+    [Fact]
+    public async Task CaseWithTruthyWhenBeforeAndAfterElse()
+    {
+        var parser = new FluidParser();
+        var template = "{% case 'x' %}{% when 'x' %}foo{% else %}bar{% when 'x' %}baz{% endcase %}";
+
+        var result = parser.Parse(template);
+        var context = new TemplateContext();
+        var output = await result.RenderAsync(context);
+
+        Assert.Equal("foobaz", output);
+    }
+
+    [Fact]
+    public async Task CaseEvaluateMultipleMatchingBlocks()
+    {
+        var parser = new FluidParser();
+        var template = "{% case title %}{% when 'Hello' %}foo{% when a, 'Hello' %}bar{% endcase %}";
+
+        var result = parser.Parse(template);
+        var context = new TemplateContext();
+        context.SetValue("title", "Hello");
+        context.SetValue("a", "Hello");
+        var output = await result.RenderAsync(context);
+
+        Assert.Equal("foobarbar", output);
+    }
+
+    [Fact]
+    public async Task CaseWithOrSeparatedWhenExpression()
+    {
+        var parser = new FluidParser();
+        var template = "{% case title %}{% when 'foo' %}foo{% when 'bar' or 'Hello' %}bar{% endcase %}";
+
+        var result = parser.Parse(template);
+        var context = new TemplateContext();
+        context.SetValue("title", "Hello");
+        var output = await result.RenderAsync(context);
+
+        Assert.Equal("bar", output);
+    }
+
+    [Fact]
+    public async Task CaseWithCommaSeparatedWhenExpression()
+    {
+        var parser = new FluidParser();
+        var template = "{% case title %}{% when 'foo' %}foo{% when 'bar', 'Hello' %}bar{% endcase %}";
+
+        var result = parser.Parse(template);
+        var context = new TemplateContext();
+        context.SetValue("title", "Hello");
+        var output = await result.RenderAsync(context);
+
+        Assert.Equal("bar", output);
+    }
+
+    [Fact]
+    public async Task CaseMixOrAndCommaSeparatedWhenExpression()
+    {
+        var parser = new FluidParser();
+        var template = "{% case title %}{% when 'foo' %}foo{% when 'bar' or 'Hello', 'Hello' %}bar{% endcase %}";
+
+        var result = parser.Parse(template);
+        var context = new TemplateContext();
+        context.SetValue("title", "Hello");
+        var output = await result.RenderAsync(context);
+
+        // Both 'bar' or 'Hello' and 'Hello' match, so bar is output twice
+        Assert.Equal("barbar", output);
+    }
+
+    [Fact]
+    public async Task CaseNoWhensOnlyElse()
+    {
+        var parser = new FluidParser();
+        var template = "{% case title %}{% else %}bar{% endcase %}";
+
+        var result = parser.Parse(template);
+        var context = new TemplateContext();
+        context.SetValue("title", "Hello");
+        var output = await result.RenderAsync(context);
+
+        Assert.Equal("bar", output);
+    }
+
+    [Fact]
+    public async Task CaseNoWhensNoElse()
+    {
+        var parser = new FluidParser();
+        var template = "{% case title %}{% endcase %}";
+
+        var result = parser.Parse(template);
+        var context = new TemplateContext();
+        context.SetValue("title", "Hello");
+        var output = await result.RenderAsync(context);
+
+        Assert.Equal("", output);
+    }
+
+    [Fact]
+    public async Task CaseWhenExpressionUsingIdentifier()
+    {
+        var parser = new FluidParser();
+        var template = "{% case title %}{% when other %}foo{% when 'goodbye' %}bar{% endcase %}";
+
+        var result = parser.Parse(template);
+        var context = new TemplateContext();
+        context.SetValue("title", "Hello");
+        context.SetValue("other", "Hello");
+        var output = await result.RenderAsync(context);
+
+        Assert.Equal("foo", output);
+    }
+
+    [Fact]
+    public async Task CaseTagsInsideWhenBlock()
+    {
+        var parser = new FluidParser();
+        var template = "{% case title %}{% when other %}{% if true %}foo{% endif %}{% when 'goodbye' %}bar{% endcase %}";
+
+        var result = parser.Parse(template);
+        var context = new TemplateContext();
+        context.SetValue("title", "Hello");
+        context.SetValue("other", "Hello");
+        var output = await result.RenderAsync(context);
+
+        Assert.Equal("foo", output);
     }
 }

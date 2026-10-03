@@ -1,90 +1,104 @@
-﻿using System.Text.Encodings.Web;
+using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
-namespace Fluid.Ast
+namespace Fluid.Ast;
+
+public sealed class ElseStatement : TagStatement, ISourceable
 {
-    public sealed class ElseStatement : TagStatement
-    {
-        private readonly bool _isWhitespaceOrCommentOnly;
+    private readonly bool _isWhitespaceOrCommentOnly;
 
-        public ElseStatement(IReadOnlyList<Statement> statements) : base(statements)
+    public ElseStatement(IReadOnlyList<Statement> statements) : base(statements)
+    {
+        _isWhitespaceOrCommentOnly = true;
+        for (var i = 0; i < Statements.Count; i++)
         {
-            _isWhitespaceOrCommentOnly = true;
-            for (var i = 0; i < Statements.Count; i++)
+            if (!Statements[i].IsWhitespaceOrCommentOnly)
             {
-                if (!Statements[i].IsWhitespaceOrCommentOnly)
-                {
-                    _isWhitespaceOrCommentOnly = false;
-                    break;
-                }
+                _isWhitespaceOrCommentOnly = false;
+                break;
             }
         }
+    }
 
-        public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
+    public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
 
-        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+    public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+    {
+        if (_isWhitespaceOrCommentOnly)
         {
-            if (_isWhitespaceOrCommentOnly)
-            {
-                // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
-                for (var i = 0; i < Statements.Count; i++)
-                {
-                    var statement = Statements[i];
-                    
-                    // Skip writing TextSpanStatements (whitespace)
-                    if (statement is TextSpanStatement)
-                    {
-                        continue;
-                    }
-
-                    context.IncrementSteps();
-
-                    var task = statement.WriteToAsync(output, encoder, context);
-                    if (!task.IsCompletedSuccessfully)
-                    {
-                        return Awaited(task, i + 1, output, encoder, context);
-                    }
-
-                    var completion = task.Result;
-                    if (completion != Completion.Normal)
-                    {
-                        return Statement.FromCompletion(completion);
-                    }
-                }
-                return Statement.NormalCompletion;
-            }
-
+            // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
             for (var i = 0; i < Statements.Count; i++)
             {
+                var statement = Statements[i];
+
+                // Skip writing TextSpanStatements (whitespace)
+                if (statement is TextSpanStatement)
+                {
+                    continue;
+                }
+
                 context.IncrementSteps();
 
-            var task = Statements[i].WriteToAsync(output, encoder, context);
-
+                var task = statement.WriteToAsync(output, encoder, context);
                 if (!task.IsCompletedSuccessfully)
                 {
                     return Awaited(task, i + 1, output, encoder, context);
                 }
 
                 var completion = task.Result;
-
                 if (completion != Completion.Normal)
                 {
-                    // Stop processing the block statements
-                    // We return the completion to flow it to the outer loop
                     return Statement.FromCompletion(completion);
                 }
             }
-
             return Statement.NormalCompletion;
         }
 
-        private async ValueTask<Completion> Awaited(
-            ValueTask<Completion> task,
-            int startIndex,
-            IFluidOutput output,
-            TextEncoder encoder,
-            TemplateContext context)
+        for (var i = 0; i < Statements.Count; i++)
         {
-            var completion = await task;
+            context.IncrementSteps();
+
+            var task = Statements[i].WriteToAsync(output, encoder, context);
+
+            if (!task.IsCompletedSuccessfully)
+            {
+                return Awaited(task, i + 1, output, encoder, context);
+            }
+
+            var completion = task.Result;
+
+            if (completion != Completion.Normal)
+            {
+                // Stop processing the block statements
+                // We return the completion to flow it to the outer loop
+                return Statement.FromCompletion(completion);
+            }
+        }
+
+        return Statement.NormalCompletion;
+    }
+
+    private async ValueTask<Completion> Awaited(
+        ValueTask<Completion> task,
+        int startIndex,
+        IFluidOutput output,
+        TextEncoder encoder,
+        TemplateContext context)
+    {
+        var completion = await task;
+
+        if (completion != Completion.Normal)
+        {
+            // Stop processing the block statements
+            // We return the completion to flow it to the outer loop
+            return completion;
+        }
+
+        for (var i = startIndex; i < Statements.Count; i++)
+        {
+            context.IncrementSteps();
+
+            completion = await Statements[i].WriteToAsync(output, encoder, context);
 
             if (completion != Completion.Normal)
             {
@@ -92,24 +106,24 @@ namespace Fluid.Ast
                 // We return the completion to flow it to the outer loop
                 return completion;
             }
-
-            for (var i = startIndex; i < Statements.Count; i++)
-            {
-                context.IncrementSteps();
-
-                completion = await Statements[i].WriteToAsync(output, encoder, context);
-
-                if (completion != Completion.Normal)
-                {
-                    // Stop processing the block statements
-                    // We return the completion to flow it to the outer loop
-                    return completion;
-                }
-            }
-
-            return Completion.Normal;
         }
 
-        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitElseStatement(this);
+        return Completion.Normal;
+    }
+
+    protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitElseStatement(this);
+
+    public void WriteTo(SourceGenerationContext context)
+    {
+        context.WriteLine("var completion = Completion.Normal;");
+        for (var i = 0; i < Statements.Count; i++)
+        {
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+            var stmtMethod = context.GetStatementMethodName(Statements[i]);
+            context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+            context.WriteLine("if (completion != Completion.Normal) return completion;");
+        }
+
+        context.WriteLine("return Completion.Normal;");
     }
 }

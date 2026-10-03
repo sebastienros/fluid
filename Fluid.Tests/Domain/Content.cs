@@ -1,6 +1,5 @@
-﻿namespace Fluid.Tests.Domain
+namespace Fluid.Tests.Domain;
+
+public class Content
 {
-    public class Content
-    {
-    }
 }

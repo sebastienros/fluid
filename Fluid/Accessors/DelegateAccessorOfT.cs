@@ -1,17 +1,18 @@
-﻿namespace Fluid.Accessors
+using Fluid.Values;
+
+namespace Fluid.Accessors;
+
+public class DelegateAccessor<T, TResult> : MemberAccessor
 {
-    public class DelegateAccessor<T, TResult> : IMemberAccessor
+    private readonly Func<T, string, TemplateContext, TResult> _getter;
+
+    public DelegateAccessor(Func<T, string, TemplateContext, TResult> getter)
     {
-        private readonly Func<T, string, TemplateContext, TResult> _getter;
+        _getter = getter;
+    }
 
-        public DelegateAccessor(Func<T, string, TemplateContext, TResult> getter)
-        {
-            _getter = getter;
-        }
-
-        object IMemberAccessor.Get(object obj, string name, TemplateContext ctx)
-        {
-            return _getter((T)obj, name, ctx);
-        }
+    public override ValueTask<FluidValue> GetAsync(object obj, string name, TemplateContext context)
+    {
+        return CreateValueTask(_getter((T)obj, name, context), context);
     }
 }

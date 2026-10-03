@@ -1,23 +1,22 @@
-﻿namespace Fluid.Tests.Domain
+namespace Fluid.Tests.Domain;
+
+public class Person
 {
-    public class Person
-    {
-        public string Firstname { get; set; }
-        public string Lastname { get; set; }
-        public Colors EyesColor { get; set; }
-        public Address Address { get; set; }
-    }
+    public string Firstname { get; set; }
+    public string Lastname { get; set; }
+    public Colors EyesColor { get; set; }
+    public Address Address { get; set; }
+}
 
-    public class Address
-    {
-        public string City { get; set; }
-        public string State { get; set; }
-    }
+public class Address
+{
+    public string City { get; set; }
+    public string State { get; set; }
+}
 
-    public enum Colors
-    {
-        Blue = 0,
-        Red = 1,
-        Yellow = 2
-    }
+public enum Colors
+{
+    Blue = 0,
+    Red = 1,
+    Yellow = 2
 }

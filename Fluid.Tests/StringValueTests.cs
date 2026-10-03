@@ -1,44 +1,43 @@
-﻿using System;
+using System;
 using Fluid.Values;
 using Xunit;
 
-namespace Fluid.Tests
+namespace Fluid.Tests;
+
+public class StringValueTests
 {
-    public class StringValueTests
+    [Theory]
+    [InlineData(null, "", true)]
+    [InlineData("", "", true)]
+    [InlineData("Foo", "Foo", false)]
+    public void CreateStringValue(string value, string expected, bool isEmpty)
     {
-        [Theory]
-        [InlineData(null, "", true)]
-        [InlineData("", "", true)]
-        [InlineData("Foo", "Foo", false)]
-        public void CreateStringValue(string value, string expected, bool isEmpty)
-        {
-            // Arrange & Act
-            var stringValue = new StringValue(value);
+        // Arrange & Act
+        var stringValue = new StringValue(value);
 
-            // Assert
-            Assert.Equal(expected, stringValue.ToStringValue());
-            Assert.Equal(isEmpty, stringValue.Equals(StringValue.Empty));
-        }
+        // Assert
+        Assert.Equal(expected, stringValue.ToStringValue());
+        Assert.Equal(isEmpty, stringValue.Equals(StringValue.Empty));
+    }
 
-        [Fact]
-        public void StringValueCreateNullShouldReturnEmpty()
-        {
-            var stringValue = new StringValue(null);
+    [Fact]
+    public void StringValueCreateNullShouldReturnEmpty()
+    {
+        var stringValue = new StringValue(null);
 
-            // Assert
-            Assert.Equal(StringValue.Empty, stringValue);
-        }
+        // Assert
+        Assert.Equal(StringValue.Empty, stringValue);
+    }
 
-        [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
-        public void StringValue_Create_InitializesProperties(bool encode)
-        {
-            var stringValue = StringValue.Create("a", encode) as StringValue;
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void StringValue_Create_InitializesProperties(bool encode)
+    {
+        var stringValue = StringValue.Create("a", encode) as StringValue;
 
-            // Assert
-            Assert.Equal("a", stringValue.ToStringValue());
-            Assert.Equal(encode, stringValue.Encode);
-        }
+        // Assert
+        Assert.Equal("a", stringValue.ToStringValue());
+        Assert.Equal(encode, stringValue.Encode);
     }
 }

@@ -1,20 +1,19 @@
-﻿using System.Reflection;
+using System.Reflection;
+using Fluid.Values;
 
-namespace Fluid.Accessors
+namespace Fluid.Accessors;
+
+public sealed class MethodInfoAccessor : MemberAccessor
 {
-    public sealed class MethodInfoAccessor : IMemberAccessor
+    private readonly MethodInfo _methodInfo;
+
+    public MethodInfoAccessor(MethodInfo methodInfo)
     {
-        private readonly MethodInfo _methodInfo;
-
-        public MethodInfoAccessor(MethodInfo methodInfo)
-        {
-            _methodInfo = methodInfo;
-        }
-
-        public object Get(object obj, string name, TemplateContext ctx)
-        {
-            return _methodInfo.Invoke(obj, null);
-        }
+        _methodInfo = methodInfo;
     }
 
+    public override ValueTask<FluidValue> GetAsync(object obj, string name, TemplateContext context)
+    {
+        return CreateValueTask(_methodInfo.Invoke(obj, null), context);
+    }
 }

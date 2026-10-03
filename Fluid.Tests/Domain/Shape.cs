@@ -1,9 +1,8 @@
-﻿using System.Drawing;
+using System.Drawing;
 
-namespace Fluid.Tests.Domain
+namespace Fluid.Tests.Domain;
+
+public class Shape
 {
-    public class Shape
-    {
-        public Point Coordinates { get; set; }
-    }
+    public Point Coordinates { get; set; }
 }

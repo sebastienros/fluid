@@ -1,133 +1,177 @@
-﻿using System.Text.Encodings.Web;
+using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
-namespace Fluid.Ast
+namespace Fluid.Ast;
+
+public sealed class UnlessStatement : TagStatement, ISourceable
 {
-    public sealed class UnlessStatement : TagStatement
+    private readonly bool _isWhitespaceOrCommentOnly;
+
+    public UnlessStatement(
+        Expression condition,
+        IReadOnlyList<Statement> statements,
+        ElseStatement elseStatement = null,
+        IReadOnlyList<ElseIfStatement> elseIfStatements = null) : base(statements)
     {
-        private readonly bool _isWhitespaceOrCommentOnly;
+        Condition = condition;
+        Else = elseStatement;
+        ElseIfs = elseIfStatements ?? [];
 
-        public UnlessStatement(
-            Expression condition,
-            IReadOnlyList<Statement> statements,
-            ElseStatement elseStatement = null,
-            IReadOnlyList<ElseIfStatement> elseIfStatements = null) : base(statements)
+        _isWhitespaceOrCommentOnly = true;
+
+        for (var i = 0; i < Statements.Count; i++)
         {
-            Condition = condition;
-            Else = elseStatement;
-            ElseIfs = elseIfStatements ?? [];
-            
-            _isWhitespaceOrCommentOnly = true;
-
-            for (var i = 0; i < Statements.Count; i++)
+            if (!Statements[i].IsWhitespaceOrCommentOnly)
             {
-                if (!Statements[i].IsWhitespaceOrCommentOnly)
-                {
-                    _isWhitespaceOrCommentOnly = false;
-                    break;
-                }
+                _isWhitespaceOrCommentOnly = false;
+                break;
             }
+        }
 
-            if (_isWhitespaceOrCommentOnly)
+        if (_isWhitespaceOrCommentOnly)
+        {
+            if (Else != null && !Else.IsWhitespaceOrCommentOnly)
             {
-                if (Else != null && !Else.IsWhitespaceOrCommentOnly)
+                _isWhitespaceOrCommentOnly = false;
+            }
+            else
+            {
+                for (var i = 0; i < ElseIfs.Count; i++)
                 {
-                    _isWhitespaceOrCommentOnly = false;
-                }
-                else
-                {
-                    for (var i = 0; i < ElseIfs.Count; i++)
+                    if (!ElseIfs[i].IsWhitespaceOrCommentOnly)
                     {
-                        if (!ElseIfs[i].IsWhitespaceOrCommentOnly)
-                        {
-                            _isWhitespaceOrCommentOnly = false;
-                            break;
-                        }
+                        _isWhitespaceOrCommentOnly = false;
+                        break;
                     }
                 }
             }
         }
+    }
 
-        public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
+    public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
 
-        public Expression Condition { get; }
-        public ElseStatement Else { get; }
-        public IReadOnlyList<ElseIfStatement> ElseIfs { get; }
+    public Expression Condition { get; }
+    public ElseStatement Else { get; }
+    public IReadOnlyList<ElseIfStatement> ElseIfs { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+    public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+    {
+        var result = (await Condition.EvaluateAsync(context)).ToBooleanValue();
+
+        if (!result)
         {
-            var result = (await Condition.EvaluateAsync(context)).ToBooleanValue();
-
-            if (!result)
+            // Unless condition is false, execute the main block
+            if (_isWhitespaceOrCommentOnly)
             {
-                // Unless condition is false, execute the main block
-                if (_isWhitespaceOrCommentOnly)
-                {
-                    // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
-                    for (var i = 0; i < Statements.Count; i++)
-                    {
-                        var statement = Statements[i];
-                        
-                        // Skip writing TextSpanStatements (whitespace)
-                        if (statement is TextSpanStatement)
-                        {
-                            continue;
-                        }
-
-                        var completion = await statement.WriteToAsync(output, encoder, context);
-
-                        if (completion != Completion.Normal)
-                        {
-                            return completion;
-                        }
-                    }
-                    return Completion.Normal;
-                }
-
+                // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
                 for (var i = 0; i < Statements.Count; i++)
                 {
                     var statement = Statements[i];
+
+                    // Skip writing TextSpanStatements (whitespace)
+                    if (statement is TextSpanStatement)
+                    {
+                        continue;
+                    }
+
                     var completion = await statement.WriteToAsync(output, encoder, context);
 
                     if (completion != Completion.Normal)
                     {
-                        // Stop processing the block statements
-                        // We return the completion to flow it to the outer loop
                         return completion;
                     }
                 }
-
                 return Completion.Normal;
             }
-            else
+
+            for (var i = 0; i < Statements.Count; i++)
             {
-                // Unless condition is true, check elsif branches (which use normal if logic)
-                for (var i = 0; i < ElseIfs.Count; i++)
+                var statement = Statements[i];
+                var completion = await statement.WriteToAsync(output, encoder, context);
+
+                if (completion != Completion.Normal)
                 {
-                    var elseIf = ElseIfs[i];
-                    var elseIfResult = (await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue();
-
-                    if (elseIfResult)
-                    {
-                        if (elseIf.IsWhitespaceOrCommentOnly)
-                        {
-                            // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
-                            // ElseIfStatement.WriteToAsync handles this logic internally now
-                        }
-
-                        return await elseIf.WriteToAsync(output, encoder, context);
-                    }
-                }
-
-                // No elsif matched, execute else if present
-                if (Else != null)
-                {
-                    await Else.WriteToAsync(output, encoder, context);
+                    // Stop processing the block statements
+                    // We return the completion to flow it to the outer loop
+                    return completion;
                 }
             }
 
             return Completion.Normal;
         }
+        else
+        {
+            // Unless condition is true, check elsif branches (which use normal if logic)
+            for (var i = 0; i < ElseIfs.Count; i++)
+            {
+                var elseIf = ElseIfs[i];
+                var elseIfResult = (await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue();
 
-        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitUnlessStatement(this);
+                if (elseIfResult)
+                {
+                    if (elseIf.IsWhitespaceOrCommentOnly)
+                    {
+                        // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
+                        // ElseIfStatement.WriteToAsync handles this logic internally now
+                    }
+
+                    return await elseIf.WriteToAsync(output, encoder, context);
+                }
+            }
+
+            // No elsif matched, execute else if present
+            if (Else != null)
+            {
+                await Else.WriteToAsync(output, encoder, context);
+            }
+        }
+
+        return Completion.Normal;
+    }
+
+    protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitUnlessStatement(this);
+
+    public void WriteTo(SourceGenerationContext context)
+    {
+        var conditionExpr = context.GetExpressionMethodName(Condition);
+        context.WriteLine($"var result = (await {conditionExpr}({context.ContextName})).ToBooleanValue();");
+        context.WriteLine("if (!result)");
+        context.WriteLine("{");
+        using (context.Indent())
+        {
+            context.WriteLine("var completion = Completion.Normal;");
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                var stmtMethod = context.GetStatementMethodName(Statements[i]);
+                context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                context.WriteLine("if (completion != Completion.Normal) return completion;");
+            }
+            context.WriteLine("return Completion.Normal;");
+        }
+        context.WriteLine("}");
+
+        for (var i = 0; i < ElseIfs.Count; i++)
+        {
+            var elseIf = ElseIfs[i];
+            var elseIfCondition = context.GetExpressionMethodName(elseIf.Condition);
+            var elseIfStatement = context.GetStatementMethodName(elseIf);
+            context.WriteLine($"if ((await {elseIfCondition}({context.ContextName})).ToBooleanValue())");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"return await {elseIfStatement}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+            }
+            context.WriteLine("}");
+        }
+
+        if (Else != null)
+        {
+            var elseStmt = context.GetStatementMethodName(Else);
+            context.WriteLine($"return await {elseStmt}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+        }
+        else
+        {
+            context.WriteLine("return Completion.Normal;");
+        }
     }
 }

@@ -1,17 +1,17 @@
-﻿#if !NETCOREAPP2_1
+#if !NETCOREAPP2_1
 using Fluid.Ast;
 using Fluid.ViewEngine;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Fluid.Tests.MvcViewEngine
+namespace Fluid.Tests.MvcViewEngine;
+
+public class SampleTests
 {
-    public class SampleTests
+    [Fact]
+    public void ShouldParseIndex()
     {
-        [Fact]
-        public void ShouldParseIndex()
-        {
-            var index = 
+        var index =
 @"Hello World from Liquid 2
 
 <h1>{{ ViewData[""Title""] }}</h1>
@@ -29,18 +29,17 @@ This is the footer
 
 {% mytag %}
 ";
-            var parser = new FluidViewParser(new FluidParserOptions());
+        var parser = new FluidViewParser(new FluidParserOptions());
 
-            parser.RegisterEmptyTag("mytag", static (o, e, c) =>
-            {
-                o.Write("Hello from MyTag");
-                return Statement.NormalCompletion;
-            });
+        parser.RegisterEmptyTag("mytag", static (o, e, c) =>
+        {
+            o.Write("Hello from MyTag");
+            return Statement.NormalCompletion;
+        });
 
-            var result = parser.TryParse(index, out var template, out var error);
-            Assert.True(result, error);
-            Assert.NotNull(template);
-        }
+        var result = parser.TryParse(index, out var template, out var error);
+        Assert.True(result, error);
+        Assert.NotNull(template);
     }
 }
 #endif
