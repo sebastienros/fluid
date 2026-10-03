@@ -15,7 +15,7 @@ namespace Fluid.Ast.BinaryExpressions
             var rightValue = await Right.EvaluateAsync(context);
 
             bool comparisonResult;
-            if (leftValue is ArrayValue)
+            if (leftValue.Type == FluidValues.Array)
             {
                 var first = await leftValue.GetValueAsync("first", context);
                 comparisonResult = first.Equals(rightValue);
@@ -39,7 +39,7 @@ namespace Fluid.Ast.BinaryExpressions
             context.WriteLine($"var rightValue = await {rightExpr}({context.ContextName});");
 
             context.WriteLine("bool comparisonResult;");
-            context.WriteLine("if (leftValue is ArrayValue)");
+            context.WriteLine("if (leftValue.Type == FluidValues.Array)");
             context.WriteLine("{");
             using (context.Indent())
             {

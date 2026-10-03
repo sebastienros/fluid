@@ -26,11 +26,12 @@ namespace Fluid.Values
                 return Values.Count == 0;
             }
 
-            if (other is ArrayValue arrayValue)
+            var otherValues = EnumerableObjectValue.GetMaterializedValues(other);
+            if (otherValues is not null)
             {
-                using var scope = RecursiveComparisonGuard.Enter(this, arrayValue);
+                using var scope = RecursiveComparisonGuard.Enter(this, other);
 
-                if (Values.Count != arrayValue.Values.Count)
+                if (Values.Count != otherValues.Count)
                 {
                     return false;
                 }
@@ -38,7 +39,7 @@ namespace Fluid.Values
                 for (var i = 0; i < Values.Count; i++)
                 {
                     var item = Values[i];
-                    var otherItem = arrayValue.Values[i];
+                    var otherItem = otherValues[i];
 
                     if (!item.Equals(otherItem))
                     {
@@ -155,7 +156,7 @@ namespace Fluid.Values
         public override bool Equals(object obj)
         {
             // The is operator will return false if null
-            if (obj is ArrayValue otherValue)
+            if (obj is FluidValue otherValue)
             {
                 return Equals(otherValue);
             }

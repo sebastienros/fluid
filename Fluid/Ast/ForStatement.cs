@@ -83,11 +83,10 @@ namespace Fluid.Ast
                 return Completion.Normal;
             }
 
-            // Fast-path: FluidValue.Create(IEnumerable) and many array-like values already materialize as ArrayValue.
+            // Fast-path: materialized array-like values avoid an extra list allocation.
             // Avoid re-enumerating and allocating a new List<T> in this very hot path.
-            IReadOnlyList<FluidValue> source = evaluatedSource is ArrayValue array
-                ? array.Values
-                : await evaluatedSource.EnumerateAsync(context).ToListAsync(context.CancellationToken);
+            IReadOnlyList<FluidValue> source = EnumerableObjectValue.GetMaterializedValues(evaluatedSource)
+                ?? await evaluatedSource.EnumerateAsync(context).ToListAsync(context.CancellationToken);
 
             if (source.Count == 0)
             {

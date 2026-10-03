@@ -317,16 +317,7 @@ namespace Fluid.Values
                             return new ArrayValue(values);
 
                         case IEnumerable enumerable:
-                            List<FluidValue> fluidValues = null;
-                            foreach (var item in enumerable)
-                            {
-                                fluidValues ??= [];
-                                fluidValues.Add(Create(item, options));
-                            }
-
-                            return fluidValues != null
-                                ? new ArrayValue(fluidValues)
-                                : ArrayValue.Empty;
+                            return new EnumerableObjectValue(enumerable, options);
                     }
 
                     // Nothing above matched, so every value of this type is a plain object. Swap in a

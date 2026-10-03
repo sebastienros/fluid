@@ -300,7 +300,7 @@ namespace Fluid.Filters
                     return ArrayValue.Empty;
                 }
 
-                var sourceArray = ((ArrayValue)input).Values;
+                var sourceArray = EnumerableObjectValue.GetMaterializedValues(input);
 
                 var sourceLength = sourceArray.Count;
 
