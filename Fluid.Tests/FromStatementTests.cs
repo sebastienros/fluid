@@ -13,11 +13,7 @@ public class FromStatementTests
 {
     // Enable all parsing options to ensure these custom features don't interfere with standard templates.
 
-#if COMPILED
-        private static FluidParser _parser = new FluidParser(new FluidParserOptions { AllowFunctions = true, AllowParentheses = true }).Compile();
-#else
     private static FluidParser _parser = new FluidParser(new FluidParserOptions { AllowFunctions = true, AllowParentheses = true });
-#endif
 
     [Fact]
     public async Task FromStatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()

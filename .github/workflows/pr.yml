@@ -35,6 +35,3 @@ jobs:
 
     - name: Test
       run: dotnet test -c Release
-
-    - name: Test - Compiled
-      run: dotnet test --configuration Release --property:Compiled=true

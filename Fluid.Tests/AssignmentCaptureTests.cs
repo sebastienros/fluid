@@ -9,11 +9,7 @@ namespace Fluid.Tests
 {
     public class AssignmentCaptureTests
     {
-#if COMPILED
-        private static FluidParser _parser = new FluidParser(new FluidParserOptions { AllowFunctions = true }).Compile();
-#else
         private static FluidParser _parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
-#endif
 
         [Fact]
         public async Task Assign()

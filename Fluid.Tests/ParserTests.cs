@@ -11,11 +11,7 @@ namespace Fluid.Tests
 {
     public class ParserTests
     {
-#if COMPILED
-        private static FluidParser _parser = new FluidParser().Compile();
-#else
         private static FluidParser _parser = new FluidParser();
-#endif
 
         private static IReadOnlyList<Statement> Parse(string source)
         {
@@ -1234,11 +1230,7 @@ class  {
 
             var options = new FluidParserOptions { AllowFunctions = true };
 
-#if COMPILED
-        var _parser = new FluidParser(options).Compile();
-#else
             var _parser = new FluidParser(options);
-#endif
 
             _parser.TryParse("{{ a() }}", out var template, out var errors);
             var statements = ((FluidTemplate)template).Statements;
@@ -1260,11 +1252,7 @@ class  {
 
             var options = new FluidParserOptions { AllowFunctions = false };
 
-#if COMPILED
-        var parser = new FluidParser(options).Compile();
-#else
             var parser = new FluidParser(options);
-#endif
 
             Assert.False(parser.TryParse("{{ a() }}", out var template, out var errors));
             Assert.Contains(ErrorMessages.FunctionsNotAllowed, errors);

@@ -14,11 +14,7 @@ namespace Fluid.Tests
 {
     public class Utf8FluidOutputTests
     {
-#if COMPILED
-        private static readonly FluidParser _parser = new FluidParser().Compile();
-#else
         private static readonly FluidParser _parser = new FluidParser();
-#endif
 
         [Fact]
         public async Task WritesAsciiBmpAndNonBmpUnicode()

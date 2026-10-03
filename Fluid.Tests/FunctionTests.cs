@@ -7,11 +7,7 @@ namespace Fluid.Tests
 {
     public class FunctionTests
     {
-#if COMPILED
-        private static FluidParser _parser = new FluidParser(new FluidParserOptions { AllowFunctions = true }).Compile();
-#else
         private static FluidParser _parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
-#endif
 
         [Fact]
         public async Task FunctionCallsShouldDefaultToNil()

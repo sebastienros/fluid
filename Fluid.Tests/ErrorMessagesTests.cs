@@ -5,11 +5,7 @@ namespace Fluid.Tests
 {
     public class ErrorMessagesTests
     {
-#if COMPILED
-        private static FluidParser _parser = new FluidParser().Compile();
-#else
         private static FluidParser _parser = new FluidParser();
-#endif
 
         [Theory]
         [InlineData("{% assign a 'b' %}", ErrorMessages.EqualAfterAssignIdentifier)]

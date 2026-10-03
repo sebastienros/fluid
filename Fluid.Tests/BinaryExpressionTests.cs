@@ -9,11 +9,7 @@ namespace Fluid.Tests
 {
     public class BinaryExpressionTests
     {
-#if COMPILED
-        private static FluidParser _parser = new FluidParser().Compile();
-#else
         private static FluidParser _parser = new FluidParser();
-#endif
 
         private async Task CheckAsync(string source, string expected, Action<TemplateContext> init = null)
         {

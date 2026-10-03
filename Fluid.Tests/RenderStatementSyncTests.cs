@@ -13,11 +13,7 @@ namespace Fluid.Tests
 {
     public class RenderStatementSyncTests
     {
-#if COMPILED
-        private static readonly FluidParser _parser = new FluidParser().Compile();
-#else
         private static readonly FluidParser _parser = new FluidParser();
-#endif
 
         [Fact]
         public void SynchronousRender_CompletesSynchronouslyAndRestoresScope()
