@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Fluid.Tool</RootNamespace>
+    <AssemblyName>liquid</AssemblyName>
+    <InvariantGlobalization>false</InvariantGlobalization>
+
+    <!-- Native AOT RID-specific packages are produced explicitly in CI: dotnet pack -r <rid> -p:PackTool=true -->
+    <IsPackable>false</IsPackable>
+    <IsPackable Condition="'$(PackTool)' == 'true'">true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <IncludeSymbols>false</IncludeSymbols>
+    <PackageId>Fluid.Core.Tool</PackageId>
+    <ToolCommandName>liquid</ToolCommandName>
+    <Title>Fluid Liquid command line tool</Title>
+    <Description>A native AOT command line tool that renders Liquid templates with Fluid, using JSON data from stdin or files.</Description>
+    <PackageTags>fluid;liquid;template;cli;dotnet-tool</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <PublishAot>true</PublishAot>
+    <IsAotCompatible>false</IsAotCompatible>
+    <ToolPackageRuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64;any</ToolPackageRuntimeIdentifiers>
+    <SignAssembly>false</SignAssembly>
+
+    <!-- Fluid's reflection based member access is never reached: the tool only exposes JSON-derived FluidValue instances. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <TrimmerSingleWarn>true</TrimmerSingleWarn>
+    <NoWarn>$(NoWarn);IL2026;IL2067;IL2070;IL2075;IL3050;IL2104;IL3053</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="" />
+    <PackageReference Include="System.CommandLine" />
+    <ProjectReference Include="..\Fluid\Fluid.csproj" />
+  </ItemGroup>
+
+</Project>

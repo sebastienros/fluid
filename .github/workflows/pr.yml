@@ -38,3 +38,10 @@ jobs:
 
     - name: Test - Compiled
       run: dotnet test --configuration Release --property:Compiled=true
+
+    - name: Publish Fluid.Core.Tool (native AOT)
+      run: dotnet publish Fluid.Core.Tool --configuration Release --output tool-out
+
+    - name: Smoke test Fluid.Core.Tool
+      shell: bash
+      run: echo '{"name":"World"}' | ./tool-out/liquid -e 'Hello {{ name }}!'

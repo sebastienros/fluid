@@ -10,7 +10,7 @@ namespace Fluid.Values
     /// This converter can be overridden by registering a custom JsonConverter for specific FluidValue types
     /// in the JsonSerializerOptions before the json filter is called.
     /// </remarks>
-    internal sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
+    public sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
     {
         /// <summary>
         /// Creates a new instance of FluidValueJsonConverter without a context.

@@ -35,6 +35,7 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 - [Features](#features)
 - [Using Fluid in your project](#using-fluid-in-your-project)
 - [Preview packages](#preview-packages)
+- [Command line tool](#command-line-tool)
 - [NativeAOT and trimming](#nativeaot-and-trimming)
 - [Source generator](#source-generator)
 - [Allow-listing object members](#allow-listing-object-members)
@@ -99,6 +100,30 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 Notice
 - The `<li>` tags are at the same index as in the template, even though the `{% for }` tag had some leading spaces
 - The `<ul>` and `<li>` tags are on contiguous lines even though the `{% for }` is taking a full line.
+
+<br>
+
+## Command line tool
+
+The `Fluid.Core.Tool` .NET tool installs a native AOT `liquid` command (win/linux/osx, x64/arm64; other platforms fall back to a framework-dependent build) that renders Liquid templates from any shell, including PowerShell.
+
+```shell
+dotnet tool install -g Fluid.Core.Tool
+```
+
+JSON read from stdin (or `--data <file>`) is the model: the properties of a root object become top-level variables, any other root value is exposed as `data`.
+
+```shell
+echo '{"name":"World"}' | liquid -e "Hello {{ name | upcase }}!"
+liquid page.liquid --data model.json --output page.html
+Get-Content model.json | liquid page.liquid -I ./partials        # PowerShell
+liquid -e "{{ user }} on {{ env.HOME }}" --set user=Bob --env
+liquid page.liquid --validate
+```
+
+Options: `-t/--template`, `-e/--inline`, `-d/--data`, `-o/--output`, `-s/--set key=value`, `-I/--include-path` (directories for `include`/`render`, defaults to the template directory), `--culture`, `--timezone`, `--strict`, `--env`, `--validate`, `--max-steps`, `--max-recursion`. Run `liquid --help` for details. Exit codes: `0` success, `1` template/data/render error, `2` usage error.
+
+The tool only exposes JSON-derived values, so reflection-based member access on .NET types is not available.
 
 <br>
 
