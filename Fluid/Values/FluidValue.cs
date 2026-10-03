@@ -330,6 +330,7 @@ namespace Fluid.Values
 
             return value.GetValueKind() switch
             {
+                JsonValueKind.String when value.TryGetValue<string>(out var text) => StringValue.Create(text),
                 JsonValueKind.String => StringValue.Create(value.ToString()),
                 JsonValueKind.Number when value.TryGetValue<decimal>(out var number) => NumberValue.Create(number),
                 JsonValueKind.Number => NumberValue.Create(decimal.Parse(value.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture)),
