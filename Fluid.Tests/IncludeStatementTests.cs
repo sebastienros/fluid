@@ -44,6 +44,70 @@ namespace Fluid.Tests
             Assert.True(false);
         }
 
+        [Theory]
+        [InlineData("include", "partials/invalid", ".liquid", "partials/invalid.liquid")]
+        [InlineData("render", "partials/invalid", ".liquid", "partials/invalid.liquid")]
+        [InlineData("include", "partials/invalid.liquid", ".liquid", "partials/invalid.liquid")]
+        [InlineData("render", "partials/invalid.liquid", ".liquid", "partials/invalid.liquid")]
+        [InlineData("include", "partials/invalid", ".html", "partials/invalid.html")]
+        [InlineData("render", "partials/invalid", ".html", "partials/invalid.html")]
+        [InlineData("include", "partials/invalid", ".liquid", "partials/invalid")]
+        [InlineData("render", "partials/invalid", ".liquid", "partials/invalid")]
+        [InlineData("include", "partials/invalid", null, "partials/invalid")]
+        [InlineData("render", "partials/invalid", null, "partials/invalid")]
+        public async Task LoadedTemplate_ShouldReportResolvedPath_WhenTemplateCannotBeParsed(string tag, string path, string defaultExtension, string resolvedPath)
+        {
+            const string content = "{% if true %}";
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add(resolvedPath, content);
+
+            var context = new TemplateContext(new TemplateOptions
+            {
+                FileProvider = fileProvider,
+                DefaultFileExtension = defaultExtension
+            });
+            var template = _parser.Parse($"{{% {tag} '{path}' %}}");
+            Assert.False(_parser.TryParse(content, out _, out var errors));
+
+            var exception = await Assert.ThrowsAsync<ParseException>(
+                () => template.RenderAsync(context).AsTask());
+
+            Assert.Equal($"Failed to parse template '{resolvedPath}'.\n{errors}", exception.Message);
+            Assert.Contains("'{% endif %}' was expected", exception.Message);
+            Assert.Contains("Source:\n{% if true %}", exception.Message);
+        }
+
+        [Theory]
+        [InlineData("include", "/Users/alice/templates/invalid")]
+        [InlineData("render", "/Users/alice/templates/invalid")]
+        [InlineData("include", @"C:\Users\alice\templates\invalid")]
+        [InlineData("render", @"C:\Users\alice\templates\invalid")]
+        [InlineData("include", "C:/Users/alice/templates/invalid")]
+        [InlineData("render", "C:/Users/alice/templates/invalid")]
+        [InlineData("include", @"\\server\templates\invalid")]
+        [InlineData("render", @"\\server\templates\invalid")]
+        [InlineData("include", @"\templates\invalid")]
+        [InlineData("render", @"\templates\invalid")]
+        public async Task LoadedTemplate_ShouldNotReportRootedPath_WhenTemplateCannotBeParsed(string tag, string path)
+        {
+            const string content = "{% if true %}";
+            var fileProvider = new MockFileProvider();
+            fileProvider.Add(path + ".liquid", content);
+
+            var context = new TemplateContext(new TemplateOptions { FileProvider = fileProvider });
+            Statement statement = tag == "include"
+                ? new IncludeStatement(_parser, new LiteralExpression(new StringValue(path)))
+                : new RenderStatement(_parser, path);
+            using var writer = new StringWriter();
+            Assert.False(_parser.TryParse(content, out _, out var errors));
+
+            var exception = await Assert.ThrowsAsync<ParseException>(
+                () => statement.WriteToAsync(writer, HtmlEncoder.Default, context).AsTask());
+
+            Assert.Equal($"Failed to parse template 'invalid.liquid'.\n{errors}", exception.Message);
+            Assert.DoesNotContain(path, exception.Message);
+        }
+
         [Fact]
         public async Task IncludeStatement_ShouldLoadPartial_IfThePartialsFolderExist()
         {

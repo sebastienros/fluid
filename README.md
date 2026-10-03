@@ -445,6 +445,10 @@ var options = new TemplateOptions();
 options.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
 ```
 
+## Loaded template parse errors
+
+If a template loaded by `{% include %}` or `{% render %}` cannot be parsed, its `ParseException` message identifies the resolved template path, including any default extension added during lookup, followed by the original parser diagnostics. Relative paths retain their folders; rooted paths show only the filename to avoid exposing filesystem locations.
+
 ## Execution limits
 
 ### Limiting templates recursion
