@@ -22,13 +22,12 @@ namespace Fluid.Benchmarks
         public IncludeScopeBenchmarks()
         {
             var parser = new FluidParser();
-            var options = new TemplateOptions
-            {
-                FileProvider = new InMemoryTemplateFileProvider(
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(new InMemoryTemplateFileProvider(
                     ("value.liquid", "{{ value }}"),
                     ("arguments.liquid", "{{ first }}{{ second }}{{ third }}"),
-                    ("outer.liquid", "{% include 'value', value: value %}"))
-            };
+                    ("outer.liquid", "{% include 'value', value: value %}")))
+                .Build();
 
             _context = new TemplateContext(options)
                 .SetValue("value", "v");

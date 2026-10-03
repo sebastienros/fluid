@@ -36,8 +36,7 @@ namespace Fluid.Tests
         [Fact]
         public void CustomValueConvertersTakePrecedenceForJsonValues()
         {
-            var options = new TemplateOptions();
-            options.ValueConverters.Add(value => value is JsonValue ? "custom" : null);
+            var options = new TemplateOptionsBuilder().AddValueConverter(value => value is JsonValue ? "custom" : null).Build();
 
             var value = FluidValue.Create(JsonValue.Create(42), options);
 
@@ -47,7 +46,7 @@ namespace Fluid.Tests
         [Fact]
         public void JsonValuesCreatedFromClrScalarsAreConverted()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             Assert.Equal(42, FluidValue.Create(JsonValue.Create(42), options).ToNumberValue());
             Assert.Equal("hello", FluidValue.Create(JsonValue.Create("hello"), options).ToStringValue());

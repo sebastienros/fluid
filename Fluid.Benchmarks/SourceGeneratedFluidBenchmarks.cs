@@ -5,13 +5,12 @@ namespace Fluid.Benchmarks
     [MemoryDiagnoser]
     public class SourceGeneratedFluidBenchmarks : BaseBenchmarks
     {
-        private readonly TemplateOptions _options = new TemplateOptions();
+        private readonly TemplateOptions _options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
         private readonly IFluidTemplate _productTemplate;
         private readonly IFluidTemplate _blogPostTemplate;
 
         public SourceGeneratedFluidBenchmarks()
         {
-            _options.ModelNamesComparer = StringComparers.CamelCase;
 
             // Generated from product.liquid and blogpost.liquid
             _productTemplate = SourceGeneratedTemplates.Product;

@@ -67,31 +67,24 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public void RegistrationsShouldInvalidateCachedRenderedAccessors()
+        public void RegistrationsShouldApplyToRenderedAccessorsOfTheirOptionsOnly()
         {
-            var options = new TemplateOptions
-            {
-                ModelNamesComparer = StringComparer.Ordinal
-            };
             var model = new Class1 { Property1 = "reflected" };
-            var context = new TemplateContext(options).SetValue("item", model);
             var template = _parser.Parse("{{ item.Property1 }}");
 
-            Assert.Equal("reflected", template.Render(context));
+            var reflected = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparer.Ordinal).Build();
+            var wildcard = reflected.ToBuilder()
+                .ConfigureMemberAccess(strategy => strategy.Register(typeof(Class1), "*", new FixedMemberAccessor("wildcard")))
+                .Build();
+            var exact = wildcard.ToBuilder()
+                .ConfigureMemberAccess(strategy => strategy.Register(typeof(Class1), nameof(Class1.Property1), new FixedMemberAccessor("exact")))
+                .Build();
 
-            options.MemberAccessStrategy.Register(
-                typeof(Class1),
-                "*",
-                new FixedMemberAccessor("wildcard"));
-
-            Assert.Equal("wildcard", template.Render(context));
-
-            options.MemberAccessStrategy.Register(
-                typeof(Class1),
-                nameof(Class1.Property1),
-                new FixedMemberAccessor("exact"));
-
-            Assert.Equal("exact", template.Render(context));
+            // The same parsed template is rendered against each set of options, and again against the first one.
+            Assert.Equal("reflected", template.Render(new TemplateContext(reflected).SetValue("item", model)));
+            Assert.Equal("wildcard", template.Render(new TemplateContext(wildcard).SetValue("item", model)));
+            Assert.Equal("exact", template.Render(new TemplateContext(exact).SetValue("item", model)));
+            Assert.Equal("reflected", template.Render(new TemplateContext(reflected).SetValue("item", model)));
         }
 
         [Fact]
@@ -187,7 +180,7 @@ namespace Fluid.Tests
                 new JProperty("a.b", "2")
             );
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var objectValue = FluidValue.Create(obj, options);
@@ -200,14 +193,13 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldNotBreakJObjectCustomizations()
         {
-            var options = new TemplateOptions();
-
-            // When a property of a JObject value is accessed, try to look into its properties
-            options.MemberAccessStrategy.Register<JObject, object>((source, name) => source[name]);
-
-            // Convert JToken to FluidValue
-            options.ValueConverters.Add(x => x is JObject o ? new ObjectValue(o) : null);
-            options.ValueConverters.Add(x => x is JValue v ? v.Value : null);
+            var options = new TemplateOptionsBuilder()
+                // When a property of a JObject value is accessed, try to look into its properties
+                .ConfigureMemberAccess(strategy => strategy.Register<JObject, object>((source, name) => source[name]))
+                // Convert JToken to FluidValue
+                .AddValueConverter(x => x is JObject o ? new ObjectValue(o) : null)
+                .AddValueConverter(x => x is JValue v ? v.Value : null)
+                .Build();
 
             var model = JObject.Parse("{\"Name\": \"Bill\",\"Company\":{\"Name\":\"Microsoft\"}}");
 
@@ -220,9 +212,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldRenderReadmeSample()
         {
-            var options = new TemplateOptions();
-
-            options.MemberAccessStrategy.Register<Person, object>((p, name) => p.Firstname);
+            var options = new TemplateOptionsBuilder().ConfigureMemberAccess(strategy => strategy.Register<Person, object>((p, name) => p.Firstname)).Build();
             var model = new Person { Firstname = "Bill" };
 
             _parser.TryParse("His name is {{ Something }}", out var template);
@@ -234,7 +224,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldAccessJObject()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             var model = JObject.Parse("{\"Name\": \"Bill\",\"Company\":{\"Name\":\"Microsoft\"}}");
 
@@ -247,7 +237,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldResolveModelProperty()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             var john = new Person { Firstname = "John", Lastname = "Wick", Address = new Address { City = "Redmond", State = "Washington" } };
 
@@ -266,7 +256,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldUseDictionaryAsModel()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             var model = new Dictionary<string, object>
             {
@@ -282,7 +272,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldResolveEnums()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             var john = new Person { Firstname = "John", EyesColor = Colors.Yellow };
 
@@ -293,7 +283,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldResolveStructs()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             var circle = new Shape
             {
@@ -307,7 +297,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldFindBackingFields()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             var s = new CustomStruct
             {
@@ -323,7 +313,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldResolveStaticField()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             Class1.StaticField = "StaticValue";
 
@@ -335,7 +325,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldResolveStaticProperty()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             Class1.StaticProperty = "StaticPropertyValue";
 
@@ -347,7 +337,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldResolveStaticFluidValueForNullComparison()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             // This test verifies the use case from issue #867
             var model = new ModelWithStaticNull();
@@ -359,7 +349,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldApplyGeneratedMemberAccessorsFromTemplateOptionsSubclass()
         {
-            var options = new GeneratedTemplateOptions();
+            var options = new GeneratedTemplateOptionsBuilder().Build();
             var model = new GeneratedModel();
 
             var template = _parser.Parse("{{Generated}}");
@@ -370,10 +360,9 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldReapplyGeneratedMemberAccessorsWhenStrategyIsReplaced()
         {
-            var options = new GeneratedTemplateOptions
-            {
-                MemberAccessStrategy = new DefaultMemberAccessStrategy()
-            };
+            var options = new GeneratedTemplateOptionsBuilder()
+                .WithMemberAccessStrategy(() => new DefaultMemberAccessStrategy())
+                .Build();
             var model = new GeneratedModel();
 
             var template = _parser.Parse("{{Generated}}");
@@ -384,8 +373,9 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldAllowRuntimeRegistrationsToOverrideGeneratedMemberAccessors()
         {
-            var options = new GeneratedTemplateOptions();
-            options.MemberAccessStrategy.Register(typeof(GeneratedModel), nameof(GeneratedModel.Generated), new FixedMemberAccessor("runtime"));
+            var options = new GeneratedTemplateOptionsBuilder()
+                .ConfigureMemberAccess(strategy => strategy.Register(typeof(GeneratedModel), nameof(GeneratedModel.Generated), new FixedMemberAccessor("runtime")))
+                .Build();
             var model = new GeneratedModel();
 
             var template = _parser.Parse("{{Generated}}");
@@ -396,7 +386,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldUseGeneratedMemberAccessorInferredFromTemplateContextConstructor()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var model = new InferredModel();
             var context = new TemplateContext(model, options);
 
@@ -417,9 +407,10 @@ namespace Fluid.Tests
         [Fact]
         public void InferredAccessorShouldPreserveBaseTypeRegistrationFallback()
         {
-            var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<InferredModelBase, object>(
-                static (_, name) => name == "Custom" ? "custom" : null);
+            var options = new TemplateOptionsBuilder()
+                .ConfigureMemberAccess(strategy => strategy.Register<InferredModelBase, object>(
+                static (_, name) => name == "Custom" ? "custom" : null))
+                .Build();
             var context = new TemplateContext(new InferredModel(), options);
 
             Assert.Equal("custom", _parser.Parse("{{ Custom }}").Render(context));
@@ -442,8 +433,7 @@ namespace Fluid.Tests
         [Fact]
         public void InferredAccessorShouldUseConfiguredValueConverters()
         {
-            var options = new TemplateOptions();
-            options.ValueConverters.Add(static value => value is int ? "converted" : null);
+            var options = new TemplateOptionsBuilder().AddValueConverter(static value => value is int ? "converted" : null).Build();
             var context = new TemplateContext(new InferredModel(), options);
 
             Assert.Equal("converted", _parser.Parse("{{ Count }}").Render(context));
@@ -452,7 +442,7 @@ namespace Fluid.Tests
         [Fact]
         public void InferredAccessorShouldPreserveNonGenericAsyncMemberBehavior()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             _ = new TemplateContext(new InferredModel(), options);
 
             Assert.Equal("Fluid.Accessors", options.MemberAccessStrategy.GetAccessor(
@@ -515,11 +505,11 @@ namespace Fluid.Tests
         public string Value => "default";
     }
 
-    public sealed class GeneratedTemplateOptions : TemplateOptions, ITemplateOptionsMemberAccessorRegistrar
+    public sealed class GeneratedTemplateOptionsBuilder : TemplateOptionsBuilder, ITemplateOptionsMemberAccessorRegistrar
     {
-        void ITemplateOptionsMemberAccessorRegistrar.RegisterMemberAccessors(TemplateOptions options)
+        void ITemplateOptionsMemberAccessorRegistrar.RegisterMemberAccessors(TemplateOptionsBuilder builder)
         {
-            options.MemberAccessStrategy.Register(typeof(GeneratedModel), "*", new FixedMemberAccessor("generated"));
+            builder.ConfigureMemberAccess(strategy => strategy.Register(typeof(GeneratedModel), "*", new FixedMemberAccessor("generated")));
         }
     }
 

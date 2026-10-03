@@ -79,12 +79,13 @@ namespace Fluid.Tests
         public async Task RenderAsync_ShouldObserveCancellationBetweenStatements()
         {
             using var cancellationTokenSource = new CancellationTokenSource();
-            var options = new TemplateOptions();
-            options.Filters.AddFilter("cancel", (input, arguments, context) =>
-            {
-                cancellationTokenSource.Cancel();
-                return input;
-            });
+            var options = new TemplateOptionsBuilder()
+                .AddFilter("cancel", (input, arguments, context) =>
+                {
+                    cancellationTokenSource.Cancel();
+                    return input;
+                })
+                .Build();
             var context = new TemplateContext(options)
             {
                 CancellationToken = cancellationTokenSource.Token
@@ -99,12 +100,13 @@ namespace Fluid.Tests
         public async Task RenderAsync_ShouldObserveCancellationAfterTheLastStatement()
         {
             using var cancellationTokenSource = new CancellationTokenSource();
-            var options = new TemplateOptions();
-            options.Filters.AddFilter("cancel", (input, arguments, context) =>
-            {
-                cancellationTokenSource.Cancel();
-                return input;
-            });
+            var options = new TemplateOptionsBuilder()
+                .AddFilter("cancel", (input, arguments, context) =>
+                {
+                    cancellationTokenSource.Cancel();
+                    return input;
+                })
+                .Build();
             var context = new TemplateContext(options)
             {
                 CancellationToken = cancellationTokenSource.Token
@@ -297,32 +299,33 @@ namespace Fluid.Tests
         public async Task ShouldEvaluateFilters(string source, string expected)
         {
             _parser.TryParse(source, out var template, out var error);
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder()
+                .AddFilter("inc", (i, args, ctx) =>
+                {
+                    var increment = 1;
+                    if (args.Count > 0)
+                    {
+                        increment = (int)args.At(0).ToNumberValue();
+                    }
+
+                    return NumberValue.Create(i.ToNumberValue() + increment);
+                })
+                .AddFilter("append", (i, args, ctx) =>
+                {
+                    var s = i.ToStringValue();
+
+                    for (var k = 0; k < args.Count; k++)
+                    {
+                        s += args.At(k).ToStringValue();
+                    }
+
+                    return new StringValue(s);
+                })
+                .Build();
 
             var context = new TemplateContext(options);
 
-            options.Filters.AddFilter("inc", (i, args, ctx) =>
-            {
-                var increment = 1;
-                if (args.Count > 0)
-                {
-                    increment = (int)args.At(0).ToNumberValue();
-                }
 
-                return NumberValue.Create(i.ToNumberValue() + increment);
-            });
-
-            options.Filters.AddFilter("append", (i, args, ctx) =>
-            {
-                var s = i.ToStringValue();
-
-                for (var k = 0; k < args.Count; k++)
-                {
-                    s += args.At(k).ToStringValue();
-                }
-
-                return new StringValue(s);
-            });
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
@@ -367,7 +370,7 @@ namespace Fluid.Tests
         {
             _parser.TryParse("{{ c.Value }}", out var template, out var error);
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             var context = new TemplateContext(options);
             context.SetValue("c", new NullStringContainer());
@@ -381,7 +384,7 @@ namespace Fluid.Tests
         {
             _parser.TryParse("{{ c }}", out var template, out var error);
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             var context = new TemplateContext(options);
             context.SetValue("c", new NullStringContainer());
@@ -513,7 +516,7 @@ namespace Fluid.Tests
         {
             _parser.TryParse("{{ p.Firstname }}", out var template, out var error);
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             var context = new TemplateContext(options);
             context.SetValue("p", new Person { Firstname = "John" });
@@ -525,7 +528,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldAccessPropertiesAndEnumerateCustomEnumerable()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
             context.SetValue("Permit", new Permit
             {
@@ -550,7 +553,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateObjectPropertyWhenInterfaceRegisteredAsGlobal()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             _parser.TryParse("{{ p.Age }}", out var template, out var error);
 
@@ -567,8 +570,7 @@ namespace Fluid.Tests
 
             _parser.TryParse("{{ p.Name }}", out var template, out var messages);
 
-            var options = new TemplateOptions();
-            options.ValueConverters.Add(x => x is IPet pet ? new PetValue(pet) : null);
+            var options = new TemplateOptionsBuilder().AddValueConverter(x => x is IPet pet ? new PetValue(pet) : null).Build();
             var context = new TemplateContext(options);
             context.SetValue("p", new Dog { Name = "Rex" });
 
@@ -579,7 +581,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldAllowInterfaceMembers()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             _parser.TryParse("{{ p.Name }}", out var template, out var error);
 
@@ -595,7 +597,7 @@ namespace Fluid.Tests
         {
             _parser.TryParse("{{ e.Firstname }} {{ e.Salary }}", out var template, out var error);
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
             context.SetValue("e", new Employee { Firstname = "John", Salary = 550 });
 
@@ -610,7 +612,7 @@ namespace Fluid.Tests
             // but the Person class is registered, so Name should be available
             _parser.TryParse("{{ c.Director.Firstname }} {{ c.Director.Salary }}", out var template, out var error);
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
             context.SetValue("c", new Company { Director = new Employee { Firstname = "John", Salary = 550 } });
 
@@ -632,8 +634,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task ShouldEvaluateCustomObjectIndex()
         {
-            var options = new TemplateOptions();
-            options.ValueConverters.Add(o => o is Person p ? new PersonValue(p) : null);
+            var options = new TemplateOptionsBuilder().AddValueConverter(o => o is Person p ? new PersonValue(p) : null).Build();
 
             var context = new TemplateContext(options);
             context.SetValue("p", new Person { Firstname = "Bill" });
@@ -852,14 +853,15 @@ turtle
 
             _parser.TryParse(source, out var template, out var error);
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder()
+                .AddFilter("query", async (input, arguments, ctx) =>
+                {
+                    await Task.Delay(10);
+                    return FluidValue.Create(input.ToStringValue() + arguments.At(0).ToStringValue(), ctx.Options);
+                })
+                .Build();
             var context = new TemplateContext(options);
 
-            options.Filters.AddFilter("query", async (input, arguments, ctx) =>
-            {
-                await Task.Delay(10);
-                return FluidValue.Create(input.ToStringValue() + arguments.At(0).ToStringValue(), options);
-            });
 
             var result = await template.RenderAsync(context);
             Assert.Equal("abcdefg", result);
@@ -945,8 +947,7 @@ turtle
             var expectedUS = "1234.567";
 
             _parser.TryParse(source, out var template, out var error);
-            var options = new TemplateOptions();
-            options.CultureInfo = new CultureInfo("en-US");
+            var options = new TemplateOptionsBuilder().WithCultureInfo(new CultureInfo("en-US")).Build();
             var context = new TemplateContext(options);
             var resultUS = await template.RenderAsync(context);
 
@@ -1078,8 +1079,7 @@ Partials: '{{ Partials }}'
 color: '{{ color }}'
 shape: '{{ shape }}'");
 
-            var options = new TemplateOptions();
-            options.FileProvider = fileProvider;
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
 
             var result = await template.RenderAsync(context);
@@ -1111,8 +1111,7 @@ color: '{{ color }}'
 shape: '{{ shape }}'");
 
             _parser.TryParse(source, out var template, out var error);
-            var options = new TemplateOptions();
-            options.FileProvider = fileProvider;
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
 
             var result = await template.RenderAsync(context);
@@ -1125,11 +1124,12 @@ shape: '{{ shape }}'");
         {
             _parser.TryParse("{{ Content.Foo }}{{ Content.Baz }}", out var template, out var error);
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder()
+                .ConfigureMemberAccess(strategy => strategy.Register<Content, string>("Foo", async (obj, name) => { await Task.Delay(100); return "Bar"; }))
+                .ConfigureMemberAccess(strategy => strategy.Register<Content, string>(async (obj, name) => { await Task.Delay(100); return name; }))
+                .Build();
             var context = new TemplateContext(options);
             context.SetValue("Content", new Content());
-            options.MemberAccessStrategy.Register<Content, string>("Foo", async (obj, name) => { await Task.Delay(100); return "Bar"; });
-            options.MemberAccessStrategy.Register<Content, string>(async (obj, name) => { await Task.Delay(100); return name; });
 
             var result = await template.RenderAsync(context);
             Assert.Equal("BarBaz", result);
@@ -1155,10 +1155,7 @@ shape: '{{ shape }}'");
             _parser.TryParse("{% for w in (1..10000) %} FOO {% endfor %}", out var template, out var error);
 
             // Options are inherited from TemplateOptions
-            var options = new TemplateOptions
-            {
-                MaxSteps = 100
-            };
+            var options = new TemplateOptionsBuilder().WithMaxSteps(100).Build();
 
             var context = new TemplateContext(options);
 
@@ -1202,13 +1199,13 @@ shape: '{{ shape }}'");
         {
             _parser.TryParse("{{ p.firsTname }}", out var template, out var _);
 
-            var options = new TemplateOptions() { ModelNamesComparer = StringComparer.OrdinalIgnoreCase };
+            var options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparer.OrdinalIgnoreCase).Build();
             var context = new TemplateContext(options);
             context.SetValue("p", new Person { Firstname = "John" });
             var result = await template.RenderAsync(context);
             Assert.Equal("John", result);
 
-            options = new TemplateOptions() { ModelNamesComparer = StringComparer.Ordinal };
+            options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparer.Ordinal).Build();
             context = new TemplateContext(options);
             context.SetValue("p", new Person { Firstname = "John" });
             result = await template.RenderAsync(context);
@@ -1377,7 +1374,7 @@ after
 
             _parser.TryParse(source, out var template, out var error);
 
-            var options = new TemplateOptions() { ModelNamesComparer = StringComparers.SnakeCase };
+            var options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparers.SnakeCase).Build();
             var context = new TemplateContext(model, options);
             context.SetValue("LastName", "Ros");
 
@@ -1393,7 +1390,7 @@ after
 
             _parser.TryParse(source, out var template, out var error);
 
-            var options = new TemplateOptions() { ModelNamesComparer = StringComparers.CamelCase };
+            var options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
             var context = new TemplateContext(model, options);
             context.SetValue("LastName", "Ros");
 
@@ -1409,7 +1406,7 @@ after
 
             _parser.TryParse(source, out var template, out var error);
 
-            var options = new TemplateOptions() { ModelNamesComparer = StringComparer.OrdinalIgnoreCase };
+            var options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparer.OrdinalIgnoreCase).Build();
             var context = new TemplateContext(model, options);
             context.SetValue("LastName", "Ros");
 
@@ -1461,7 +1458,7 @@ after
 
             _parser.TryParse(source, out var template, out var error);
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(model, options);
 
             var result = await template.RenderAsync(context);

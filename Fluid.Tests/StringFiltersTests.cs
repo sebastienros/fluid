@@ -366,7 +366,7 @@ world
         [InlineData("one two three four", 0, "one...")]
         public void TruncateWords(string input, object size, string output)
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var source = new StringValue(input);
             var arguments = new FilterArguments()
                 .Add(FluidValue.Create(size, options));

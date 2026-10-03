@@ -20,9 +20,9 @@ namespace Fluid.Benchmarks
 
         private readonly FluidParser _parser = new FluidParser();
 
-        private readonly TemplateOptions _ordinalOptions = new TemplateOptions();
-        private readonly TemplateOptions _camelCaseOptions = new TemplateOptions();
-        private readonly TemplateOptions _partialOptions = new TemplateOptions();
+        private readonly TemplateOptions _ordinalOptions = new TemplateOptionsBuilder().Build();
+        private readonly TemplateOptions _camelCaseOptions = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
+        private readonly TemplateOptions _partialOptions;
 
         private readonly IFluidTemplate _polymorphicTemplate;
         private readonly IFluidTemplate _monomorphicTemplate;
@@ -53,8 +53,6 @@ namespace Fluid.Benchmarks
 
         public RenderScenarioBenchmarks()
         {
-            _camelCaseOptions.ModelNamesComparer = StringComparers.CamelCase;
-
             for (var i = 0; i < ItemCount; i++)
             {
                 // Four runtime types in rotation: one call site, many shapes.
@@ -106,10 +104,12 @@ namespace Fluid.Benchmarks
             _parser.TryParse("{% for p in products %}{{ p.Price }}{% endfor %}", out _decimalPriceTemplate);
 
             var partialBytes = Encoding.UTF8.GetBytes("{{ value }}{{ root }}{{ outer }}");
-            _partialOptions.FileProvider = new DelegateTemplateFileProvider(
+            _partialOptions = new TemplateOptionsBuilder()
+                .WithFileProvider(new DelegateTemplateFileProvider(
                 (_, _, _) => new ValueTask<TemplateSourceInfo>(new TemplateSourceInfo(
                     DateTimeOffset.UnixEpoch,
-                    _ => new ValueTask<Stream>(new MemoryStream(partialBytes, writable: false)))));
+                    _ => new ValueTask<Stream>(new MemoryStream(partialBytes, writable: false))))))
+                .Build();
             _parser.TryParse("{% assign outer = 'hidden' %}{% render 'partial', value: root %}", out _renderScopeTemplate);
             _parser.TryParse("{% assign outer = 'hidden' %}{% include 'partial', value: root %}", out _includeScopeTemplate);
 

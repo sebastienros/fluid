@@ -24,9 +24,9 @@ namespace Fluid.MvcViewEngine
             _hostingEnvironment = hostingEnvironment;
             _options = optionsAccessor.Value;
 
-            _options.TemplateOptions.FileProvider =
+            _options.TemplateOptionsBuilder.WithFileProvider(
                 _options.PartialsFileProvider ??
-                new FileProviderTemplateFileProvider(_hostingEnvironment.ContentRootFileProvider);
+                new FileProviderTemplateFileProvider(_hostingEnvironment.ContentRootFileProvider));
 
             _options.ViewsFileProvider ??=
                 new FileProviderTemplateFileProvider(_hostingEnvironment.ContentRootFileProvider);

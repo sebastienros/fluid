@@ -193,7 +193,7 @@ namespace Fluid.Tests
         public async Task NestedRenderUsesOneContinuousUtf8Output()
         {
             var fileProvider = new MockFileProvider().Add("item.liquid", "[{{ item }}]");
-            var context = new TemplateContext(new TemplateOptions { FileProvider = fileProvider });
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build());
             context.SetValue("items", new[] { "\ud83d\ude80", "\u4e16\u754c" });
             var template = _parser.Parse("{% render 'item' for items as item %}");
             var writer = new ArrayBufferWriter<byte>();

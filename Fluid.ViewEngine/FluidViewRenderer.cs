@@ -48,7 +48,6 @@ namespace Fluid.ViewEngine
                 _fluidViewEngineOptions.PartialsFileProvider ??
                 _fluidViewEngineOptions.ViewsFileProvider ??
                 _fluidViewEngineOptions.TemplateOptions.FileProvider;
-            _fluidViewEngineOptions.TemplateOptions.FileProvider = _partialsFileProvider;
         }
 
         private readonly FluidViewEngineOptions _fluidViewEngineOptions;

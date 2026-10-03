@@ -11,6 +11,15 @@ namespace Fluid
         }
 
         /// <summary>
+        /// Called when the strategy becomes owned by a <see cref="TemplateOptions"/> instance, after which
+        /// explicit registrations must be rejected. Strategies that can't enforce this are responsible for
+        /// their own immutability.
+        /// </summary>
+        internal virtual void MakeReadOnly()
+        {
+        }
+
+        /// <summary>
         /// Gets a token identifying the current set of accessors this strategy would return, or
         /// <c>null</c> to disable caching. Call sites may remember the <see cref="MemberAccessor"/>
         /// resolved for a type and name, and re-resolve it only once this token changes.

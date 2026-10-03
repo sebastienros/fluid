@@ -10,7 +10,7 @@ namespace Fluid.Benchmarks
         // many interfaces, none of which is dictionary
         private static readonly List<string> nonDictionaryType = new();
 
-        private static readonly TemplateOptions options = new();
+        private static readonly TemplateOptions options = TemplateOptions.Default;
 
         [Benchmark]
         public FluidValue CreateFromList()

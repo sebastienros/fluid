@@ -9,7 +9,7 @@ namespace Fluid.Benchmarks
     [MemoryDiagnoser]
     public class FluidSourceGenerationBenchmarks : BaseBenchmarks
     {
-        private readonly TemplateOptions _options = new TemplateOptions();
+        private readonly TemplateOptions _options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
 
         private readonly FluidParser _parser = new FluidParser();
 
@@ -21,7 +21,6 @@ namespace Fluid.Benchmarks
 
         public FluidSourceGenerationBenchmarks()
         {
-            _options.ModelNamesComparer = StringComparers.CamelCase;
 
             _parser.TryParse(ProductTemplate, out _runtimeTemplate, out var _);
             _sourceGeneratedTemplate = SourceGeneratedTemplates.Product;

@@ -103,12 +103,13 @@ Wow, John G. Chalmers-Smith, you have a long name!";
 
             _parser.TryParse(sample, out var template, out var messages);
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder()
+                .AddFilter("prettyprint", (input, args, ctx) => input)
+                .AddFilter("paragraph", (input, args, ctx) => input)
+                .AddFilter("price", (input, args, ctx) => input)
+                .Build();
             var context = new TemplateContext(options);
             context.SetValue("products", _products);
-            options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
-            options.Filters.AddFilter("paragraph", (input, args, ctx) => input);
-            options.Filters.AddFilter("price", (input, args, ctx) => input);
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
@@ -162,12 +163,14 @@ Wow, John G. Chalmers-Smith, you have a long name!";
 
             _parser.TryParse(sample, out var template, out var messages);
 
-            var options = new TemplateOptions { Trimming = TrimmingFlags.TagLeft } ;
+            var options = new TemplateOptionsBuilder()
+                .WithTrimming(TrimmingFlags.TagLeft)
+                .AddFilter("prettyprint", (input, args, ctx) => input)
+                .AddFilter("paragraph", (input, args, ctx) => input)
+                .AddFilter("price", (input, args, ctx) => input)
+                .Build();
             var context = new TemplateContext(options);
             context.SetValue("products", _products);
-            options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
-            options.Filters.AddFilter("paragraph", (input, args, ctx) => input);
-            options.Filters.AddFilter("price", (input, args, ctx) => input);
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
@@ -221,12 +224,13 @@ Wow, John G. Chalmers-Smith, you have a long name!";
 
             _parser.TryParse(sample, out var template, out var messages);
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder()
+                .AddFilter("prettyprint", (input, args, ctx) => input)
+                .AddFilter("paragraph", (input, args, ctx) => input)
+                .AddFilter("price", (input, args, ctx) => input)
+                .Build();
             var context = new TemplateContext(options);
             context.SetValue("products", _products);
-            options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
-            options.Filters.AddFilter("paragraph", (input, args, ctx) => input);
-            options.Filters.AddFilter("price", (input, args, ctx) => input);
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
@@ -280,12 +284,14 @@ Wow, John G. Chalmers-Smith, you have a long name!";
 
             _parser.TryParse(sample, out var template, out var messages);
 
-            var options = new TemplateOptions { Trimming = TrimmingFlags.TagRight };
+            var options = new TemplateOptionsBuilder()
+                .WithTrimming(TrimmingFlags.TagRight)
+                .AddFilter("prettyprint", (input, args, ctx) => input)
+                .AddFilter("paragraph", (input, args, ctx) => input)
+                .AddFilter("price", (input, args, ctx) => input)
+                .Build();
             var context = new TemplateContext(options);
             context.SetValue("products", _products);
-            options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
-            options.Filters.AddFilter("paragraph", (input, args, ctx) => input);
-            options.Filters.AddFilter("price", (input, args, ctx) => input);
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
@@ -351,7 +357,7 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             var success = _parser.TryParse(source, out var template, out var messages);
             Assert.True(success, String.Join(", ", messages));
 
-            var options = new TemplateOptions { Trimming = TrimmingFlags.OutputRight };
+            var options = new TemplateOptionsBuilder().WithTrimming(TrimmingFlags.OutputRight).Build();
             var context = new TemplateContext(options);
             var result = await template.RenderAsync(context);
 
@@ -365,7 +371,7 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             var success = _parser.TryParse(source, out var template, out var messages);
             Assert.True(success, String.Join(", ", messages));
 
-            var options = new TemplateOptions { Trimming = TrimmingFlags.OutputLeft };
+            var options = new TemplateOptionsBuilder().WithTrimming(TrimmingFlags.OutputLeft).Build();
             var context = new TemplateContext(options);
             var result = await template.RenderAsync(context);
 
@@ -405,7 +411,7 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             var success = _parser.TryParse(source, out var template, out var messages);
             Assert.True(success, String.Join(", ", messages));
 
-            var options = new TemplateOptions { Greedy = false };
+            var options = new TemplateOptionsBuilder().WithGreedy(false).Build();
             var context = new TemplateContext(options);
             var result = await template.RenderAsync(context);
 

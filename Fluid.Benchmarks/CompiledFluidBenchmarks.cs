@@ -5,13 +5,12 @@ namespace Fluid.Benchmarks
     [MemoryDiagnoser]
     public class CompiledFluidBenchmarks : BaseBenchmarks
     {
-        private readonly TemplateOptions _options = new TemplateOptions();
+        private readonly TemplateOptions _options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
         private readonly FluidParser _parser  = new FluidParser().Compile();
         private readonly IFluidTemplate _fluidTemplate;
 
         public CompiledFluidBenchmarks()
         {
-            _options.ModelNamesComparer = StringComparers.CamelCase;
             _parser.TryParse(ProductTemplate, out _fluidTemplate, out var _);
 
             CheckBenchmark();

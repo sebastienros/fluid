@@ -69,7 +69,7 @@ namespace Fluid.Tests
         [InlineData(0, "$0.00")]
         public void AmountsInCents(decimal value, string expected)
         {
-            var context = CreateContext(options => options.MoneyOptions.AmountsInCents = true);
+            var context = CreateContext(options => options.WithMoneyOptions(new MoneyOptions { AmountsInCents = true }));
 
             Assert.Equal(expected, Invoke(MoneyFilters.Money, value, context));
         }
@@ -77,7 +77,7 @@ namespace Fluid.Tests
         [Fact]
         public void CurrencyCanBeConfiguredInOptions()
         {
-            var context = CreateContext(options => options.MoneyOptions.Currency = "EUR");
+            var context = CreateContext(options => options.WithMoneyOptions(new MoneyOptions { Currency = "EUR" }));
 
             Assert.Equal("€10.00", Invoke(MoneyFilters.Money, 10, context));
             Assert.Equal("€10.00 EUR", Invoke(MoneyFilters.MoneyWithCurrency, 10, context));
@@ -102,7 +102,7 @@ namespace Fluid.Tests
         [Fact]
         public void CurrencyArgumentTakesPrecedenceOverOptions()
         {
-            var context = CreateContext(options => options.MoneyOptions.Currency = "EUR");
+            var context = CreateContext(options => options.WithMoneyOptions(new MoneyOptions { Currency = "EUR" }));
             var arguments = new FilterArguments(new StringValue("GBP"));
 
             Assert.Equal("£10.00 GBP", Invoke(MoneyFilters.MoneyWithCurrency, 10, context, arguments));
@@ -119,7 +119,7 @@ namespace Fluid.Tests
         [Fact]
         public void CurrencyCanBeAddedToOptions()
         {
-            var context = CreateContext(options => options.MoneyOptions.Currencies["XYZ"] = new MoneyCurrency("XYZ", "Ξ", 4));
+            var context = CreateContext(options => options.WithMoneyOptions(new MoneyOptions().WithCurrency(new MoneyCurrency("XYZ", "Ξ", 4))));
             var arguments = new FilterArguments(new StringValue("XYZ"));
 
             Assert.Equal("Ξ10.0000", Invoke(MoneyFilters.Money, 10, context, arguments));
@@ -151,7 +151,7 @@ namespace Fluid.Tests
         [InlineData("no placeholder", "no placeholder")]
         public void MoneyFormatIsUsedWhenDefined(string format, string expected)
         {
-            var context = CreateContext(options => options.MoneyOptions.MoneyFormat = format);
+            var context = CreateContext(options => options.WithMoneyOptions(new MoneyOptions { MoneyFormat = format }));
 
             Assert.Equal(expected, Invoke(MoneyFilters.Money, 1134.65M, context));
         }
@@ -159,7 +159,7 @@ namespace Fluid.Tests
         [Fact]
         public void MoneyWithCurrencyFormatIsUsedWhenDefined()
         {
-            var context = CreateContext(options => options.MoneyOptions.MoneyWithCurrencyFormat = "{{amount}} {{currency}}");
+            var context = CreateContext(options => options.WithMoneyOptions(new MoneyOptions { MoneyWithCurrencyFormat = "{{amount}} {{currency}}" }));
 
             Assert.Equal("1,134.65 USD", Invoke(MoneyFilters.MoneyWithCurrency, 1134.65M, context));
         }
@@ -167,7 +167,7 @@ namespace Fluid.Tests
         [Fact]
         public void MoneyWithCurrencyFallsBackToMoneyFormat()
         {
-            var context = CreateContext(options => options.MoneyOptions.MoneyFormat = "{{amount}} kr");
+            var context = CreateContext(options => options.WithMoneyOptions(new MoneyOptions { MoneyFormat = "{{amount}} kr" }));
 
             Assert.Equal("1,134.65 kr USD", Invoke(MoneyFilters.MoneyWithCurrency, 1134.65M, context));
         }
@@ -177,7 +177,7 @@ namespace Fluid.Tests
         [InlineData(10.5, "$10.50")]
         public void MoneyWithoutTrailingZerosUsesTheNoDecimalsVariantOfTheFormat(decimal value, string expected)
         {
-            var context = CreateContext(options => options.MoneyOptions.MoneyFormat = "${{amount}}");
+            var context = CreateContext(options => options.WithMoneyOptions(new MoneyOptions { MoneyFormat = "${{amount}}" }));
 
             Assert.Equal(expected, Invoke(MoneyFilters.MoneyWithoutTrailingZeros, value, context));
         }
@@ -185,7 +185,7 @@ namespace Fluid.Tests
         [Fact]
         public void MoneyWithoutCurrencyIgnoresTheMoneyFormat()
         {
-            var context = CreateContext(options => options.MoneyOptions.MoneyFormat = "${{amount}}");
+            var context = CreateContext(options => options.WithMoneyOptions(new MoneyOptions { MoneyFormat = "${{amount}}" }));
 
             Assert.Equal("1,134.65", Invoke(MoneyFilters.MoneyWithoutCurrency, 1134.65M, context));
         }
@@ -193,7 +193,7 @@ namespace Fluid.Tests
         [Fact]
         public void EnUsCultureUsesItsOwnCurrency()
         {
-            var context = CreateContext(options => options.CultureInfo = new CultureInfo("en-US"));
+            var context = CreateContext(options => options.WithCultureInfo(new CultureInfo("en-US")));
 
             Assert.Equal("$1,134.65", Invoke(MoneyFilters.Money, 1134.65M, context));
             Assert.Equal("$1,134.65 USD", Invoke(MoneyFilters.MoneyWithCurrency, 1134.65M, context));
@@ -207,7 +207,7 @@ namespace Fluid.Tests
         [InlineData("ja-JP", "¥1,135", "JPY")]
         public void CulturesUseTheirOwnCurrency(string cultureName, string expected, string expectedCode)
         {
-            var context = CreateContext(options => options.CultureInfo = new CultureInfo(cultureName));
+            var context = CreateContext(options => options.WithCultureInfo(new CultureInfo(cultureName)));
 
             Assert.Equal(expected, Normalize(Invoke(MoneyFilters.Money, 1134.65M, context)));
             Assert.Equal(expected + " " + expectedCode, Normalize(Invoke(MoneyFilters.MoneyWithCurrency, 1134.65M, context)));
@@ -216,7 +216,7 @@ namespace Fluid.Tests
         [Fact]
         public void NeutralCulturesResolveTheirCurrency()
         {
-            var context = CreateContext(options => options.CultureInfo = new CultureInfo("de"));
+            var context = CreateContext(options => options.WithCultureInfo(new CultureInfo("de")));
 
             Assert.EndsWith("EUR", Invoke(MoneyFilters.MoneyWithCurrency, 10, context));
         }
@@ -282,8 +282,7 @@ namespace Fluid.Tests
         [InlineData("{{ nil | money }}", "")]
         public void MoneyFiltersAreRegisteredByWithMoneyFilters(string source, string expected)
         {
-            var options = new TemplateOptions();
-            options.Filters.WithMoneyFilters();
+            var options = new TemplateOptionsBuilder().WithMoneyFilters().Build();
 
             Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
             Assert.Equal(expected, template.Render(new TemplateContext(options)));
@@ -292,7 +291,7 @@ namespace Fluid.Tests
         [Fact]
         public void MoneyFiltersAreNotRegisteredByDefault()
         {
-            var options = new TemplateOptions { StrictFilters = true };
+            var options = new TemplateOptionsBuilder().WithStrictFilters(true).Build();
 
             Assert.True(_parser.TryParse("{{ 10 | money }}", out var template, out var errors), errors);
             Assert.Throws<FluidException>(() => template.Render(new TemplateContext(options)));
@@ -301,8 +300,7 @@ namespace Fluid.Tests
         [Fact]
         public void MoneyOptionsCanBeOverriddenPerContext()
         {
-            var options = new TemplateOptions();
-            options.Filters.WithMoneyFilters();
+            var options = new TemplateOptionsBuilder().WithMoneyFilters().Build();
 
             var context = new TemplateContext(options)
             {
@@ -313,12 +311,12 @@ namespace Fluid.Tests
             Assert.Equal("€10.00", template.Render(context));
         }
 
-        private static TemplateContext CreateContext(Action<TemplateOptions> configure = null)
+        private static TemplateContext CreateContext(Action<TemplateOptionsBuilder> configure = null)
         {
-            var options = new TemplateOptions();
-            configure?.Invoke(options);
+            var builder = new TemplateOptionsBuilder();
+            configure?.Invoke(builder);
 
-            return new TemplateContext(options);
+            return new TemplateContext(builder.Build());
         }
 
         private static string Invoke(FilterDelegate filter, decimal value, TemplateContext context = null, FilterArguments arguments = null)

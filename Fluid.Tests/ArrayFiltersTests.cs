@@ -143,7 +143,7 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments().Add(new StringValue("Title"));
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Map(input, arguments, context);
@@ -167,7 +167,7 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments().Add(new StringValue("Title.Text"));
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Map(input, arguments, context);
@@ -251,7 +251,7 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments().Add(new StringValue("Title"));
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sort(input, arguments, context);
@@ -264,7 +264,7 @@ namespace Fluid.Tests
 
             arguments = new FilterArguments().Add(new StringValue("Address.Zip"));
 
-            options = new TemplateOptions();
+            options = new TemplateOptionsBuilder().Build();
             context = new TemplateContext(options); 
 
             result = await ArrayFilters.Sort(input, arguments, context);
@@ -408,7 +408,7 @@ namespace Fluid.Tests
                 new ObjectValue(new { Title = "c", Pinned = true })
                 });
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned"));
@@ -445,7 +445,7 @@ namespace Fluid.Tests
                 new ObjectValue(new { Title = "c", Pinned = true, Missing = 1 })
             });
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             // x | where: "Missing"
@@ -493,7 +493,7 @@ namespace Fluid.Tests
                 new ObjectValue(new { Title = "c", Pinned = true })
                 });
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var arguments1 = new FilterArguments().Add(new StringValue("a.b.c"));
@@ -516,7 +516,7 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments().Add(new StringValue("Value"));
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
             //options.MemberAccessStrategy.Register(sample.GetType(), "Value");
 
@@ -534,7 +534,7 @@ namespace Fluid.Tests
                 NumberValue.Create(56)
             });
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
@@ -552,7 +552,7 @@ namespace Fluid.Tests
                 StringValue.Create("4")
             });
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
@@ -576,7 +576,7 @@ namespace Fluid.Tests
                 })
             });
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
@@ -594,7 +594,7 @@ namespace Fluid.Tests
                 new ObjectValue(new { Value = 12  })
             });
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
@@ -605,7 +605,7 @@ namespace Fluid.Tests
         [Fact]
         public void SumWithoutArgumentRender()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             context.SetValue("foo", new[] { 1m });
@@ -618,7 +618,7 @@ namespace Fluid.Tests
         [Fact]
         public void SumWithArgumentRender()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             context.SetValue("foo", new[] { new { Quantity = 1 } });
@@ -637,7 +637,7 @@ namespace Fluid.Tests
                 NumberValue.Create(-0.3m)
             });
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
@@ -654,7 +654,7 @@ namespace Fluid.Tests
                 StringValue.Create("0.3")
             });
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
@@ -671,7 +671,7 @@ namespace Fluid.Tests
                 NumberValue.Create(-0.3m)
             });
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
@@ -711,7 +711,7 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments().Add(new StringValue(filterArgument));
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
             
             //options.MemberAccessStrategy.Register(quantityObjectType.GetType(), filterArgument);
@@ -732,7 +732,7 @@ namespace Fluid.Tests
                 new ObjectValue(new { Title = "c", Pinned = true })
                 });
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned"));
@@ -768,7 +768,7 @@ namespace Fluid.Tests
                 new ObjectValue(new { Title = "c", Pinned = true })
                 });
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned")).Add(BooleanValue.True);
@@ -818,7 +818,7 @@ namespace Fluid.Tests
                 new ObjectValue(new { Title = "c", Pinned = true })
                 });
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned")).Add(BooleanValue.True);
@@ -868,7 +868,7 @@ namespace Fluid.Tests
                 new ObjectValue(new { Title = "c", Pinned = true })
                 });
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
 
             var arguments1 = new FilterArguments().Add(new StringValue("Pinned")).Add(BooleanValue.True);

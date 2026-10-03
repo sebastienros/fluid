@@ -41,6 +41,7 @@ namespace Fluid
         private volatile Type _lastGeneratedType;
         private volatile ReflectionCache _reflectionCache;
         private volatile AccessorCacheState _accessorCacheState;
+        private volatile bool _readOnly;
 
         // Only the exact type opts in. A derived strategy may override GetAccessor to resolve from its
         // own source, which these maps -- and therefore the token -- would not reflect; it would then serve
@@ -252,10 +253,17 @@ namespace Fluid
             return null;
         }
 
+        internal override void MakeReadOnly() => _readOnly = true;
+
         public override void Register(Type type, string name, MemberAccessor accessor)
         {
             ArgumentNullException.ThrowIfNull(type);
             ArgumentNullException.ThrowIfNull(name);
+
+            if (_readOnly)
+            {
+                throw new InvalidOperationException("The member access strategy is read-only. Register members with TemplateOptionsBuilder before building the options.");
+            }
 
             while (true)
             {

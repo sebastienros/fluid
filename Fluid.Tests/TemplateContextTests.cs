@@ -35,9 +35,10 @@ namespace Fluid.Tests
         {
             _parser.TryParse("{{ p.NaMe }}", out var template, out var error);
 
-            var options = new TemplateOptions();
-            options.GlobalValues.SetValue("o1", new StringValue("o1"));
-            options.GlobalValues.SetValue("o2", new StringValue("o2"));
+            var options = new TemplateOptionsBuilder()
+                .WithGlobalValue("o1", new StringValue("o1"))
+                .WithGlobalValue("o2", new StringValue("o2"))
+                .Build();
 
             var context = new TemplateContext(options);
             context.SetValue("o2", "new o2");
@@ -51,7 +52,7 @@ namespace Fluid.Tests
         [Fact]
         public void CustomContextShouldNotUseTemplateOptionsProperties()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             var context = new TemplateContext(options);
             context.TimeZone = TimeZoneInfo.Utc;
@@ -66,10 +67,11 @@ namespace Fluid.Tests
         [Fact]
         public void DefaultContextShouldUseTemplateOptionsProperties()
         {
-            var options = new TemplateOptions();
-            options.TimeZone = TimeZoneInfo.Utc;
-            options.CultureInfo = new CultureInfo("fr-FR");
-            options.Now = () => new DateTime(2020, 01, 01);
+            var options = new TemplateOptionsBuilder()
+                .WithTimeZone(TimeZoneInfo.Utc)
+                .WithCultureInfo(new CultureInfo("fr-FR"))
+                .WithNow(() => new DateTime(2020, 01, 01))
+                .Build();
 
             var context = new TemplateContext(options);
 
@@ -101,7 +103,7 @@ namespace Fluid.Tests
             // NB: Based on a previous implementation what would cache accessors too aggressively
 
             FluidParser parser = new();
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var template = parser.Parse("{% if Model1 %}{{ Model1.Name }}{% endif %}");
 
             var model1 = new { Model1 = new { Name = "model1" } };
@@ -171,7 +173,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldUseTemplateOptionsStringComparer()
         {
-            var options = new TemplateOptions { ModelNamesComparer = StringComparer.OrdinalIgnoreCase };
+            var options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparer.OrdinalIgnoreCase).Build();
             var context = new TemplateContext(options);
             context.SetValue("PageState", "insert");
 
@@ -181,7 +183,7 @@ namespace Fluid.Tests
         [Fact]
         public void ShouldUseTemplateOptionsStringComparerWithCaseSensitive()
         {
-            var options = new TemplateOptions { ModelNamesComparer = StringComparer.Ordinal };
+            var options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparer.Ordinal).Build();
             var context = new TemplateContext(options);
             context.SetValue("case", "lower");
             context.SetValue("CASE", "upper");
@@ -193,10 +195,7 @@ namespace Fluid.Tests
         [Fact]
         public void ChildScopeShouldInheritComparerFromEmptyParent()
         {
-            var context = new TemplateContext(new TemplateOptions
-            {
-                ModelNamesComparer = StringComparer.OrdinalIgnoreCase
-            });
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithModelNamesComparer(StringComparer.OrdinalIgnoreCase).Build());
 
             using var scope = context.EnterScope();
             context.SetValue("PageState", "insert");
@@ -207,8 +206,7 @@ namespace Fluid.Tests
         [Fact]
         public void ScopeBehaviorsShouldControlLookupAndAssignment()
         {
-            var options = new TemplateOptions();
-            options.GlobalValues.SetValue("global", new StringValue("global"));
+            var options = new TemplateOptionsBuilder().WithGlobalValue("global", new StringValue("global")).Build();
 
             var context = new TemplateContext(options);
             context.SetValue("root", "root");

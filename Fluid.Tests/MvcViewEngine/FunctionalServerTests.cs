@@ -28,7 +28,7 @@ namespace Fluid.Tests.MvcViewEngine
 
             builder.Services.PostConfigure<FluidMvcViewOptions>(options =>
             {
-                options.TemplateOptions.OutputBufferSize = 16;
+                options.TemplateOptionsBuilder.WithOutputBufferSize(16);
                 options.ViewsFileProvider = mockFileProvider;
                 options.PartialsFileProvider = mockFileProvider;
                 options.ViewLocationFileProvider = mockFileProvider;

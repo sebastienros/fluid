@@ -55,7 +55,7 @@ public class FromStatementTests
         {% endmacro %}
         ");
 
-        var options = new TemplateOptions { FileProvider = fileProvider };
+        var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
         var context = new TemplateContext(options);
 
         var fromStatement = new FromStatement(_parser, expression, new List<string>{"hello_world"});
@@ -84,7 +84,7 @@ public class FromStatementTests
         {{ hello_world() }}
         ");
 
-        var options = new TemplateOptions { FileProvider = fileProvider };
+        var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
         var context = new TemplateContext(options);
 
         var fromStatement = new FromStatement(_parser, expression, new List<string> { "hello_world" });
@@ -118,7 +118,7 @@ public class FromStatementTests
 
         _parser.TryParse(source, out var template, out var error);
 
-        var options = new TemplateOptions { FileProvider = fileProvider };
+        var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
         var context = new TemplateContext(options);
 
         var result = await template.RenderAsync(context);
@@ -144,7 +144,7 @@ public class FromStatementTests
         _parser.TryParse(source, out var template, out var error);
         Assert.True(template != null, error);
 
-        var options = new TemplateOptions { FileProvider = fileProvider };
+        var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
         var result = await template.RenderAsync(new TemplateContext(options));
 
         Assert.Equal("Hello world! Hello John!|", result);
@@ -155,7 +155,7 @@ public class FromStatementTests
     {
         var sourceLoader = new AsyncTemplateFileProvider()
             .Add("_Macros.liquid", "{% macro hello() %}Hello{% endmacro %}");
-        var options = new TemplateOptions { FileProvider = sourceLoader };
+        var options = new TemplateOptionsBuilder().WithFileProvider(sourceLoader).Build();
         var source = "{% from '_Macros' import hello %}{{ hello() }}";
 
         _parser.TryParse(source, out var template, out var error);
@@ -171,7 +171,7 @@ public class FromStatementTests
     {
         var sourceLoader = new AsyncTemplateFileProvider()
             .Add("_Macros.liquid", "{% macro hello() %}First{% endmacro %}");
-        var options = new TemplateOptions { FileProvider = sourceLoader };
+        var options = new TemplateOptionsBuilder().WithFileProvider(sourceLoader).Build();
         _parser.TryParse("{% from '_Macros' import hello %}{{ hello() }}", out var template);
 
         Assert.Equal("First", await template.RenderAsync(new TemplateContext(options)));

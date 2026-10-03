@@ -136,8 +136,8 @@ namespace Fluid.Values
                 return fluidValue;
             }
 
-            var converters = options.ValueConverters;
-            var length = converters.Count;
+            var converters = options.ValueConverterArray;
+            var length = converters.Length;
 
             for (var i = 0; i < length; i++)
             {

@@ -12,8 +12,8 @@ namespace Fluid.Tests
     /// <summary>
     /// Rendering caches member accessors and filter delegates per call site, keyed on the options they
     /// were resolved from. These tests pin the invalidation: a template parsed once and rendered many
-    /// times must observe registrations made between renders, and must not leak a resolution from one
-    /// set of options into another.
+    /// times must observe changes made to a mutable custom strategy between renders, and must not leak
+    /// a resolution from one set of options into another.
     /// </summary>
     public class RenderCacheInvalidationTests
     {
@@ -47,17 +47,31 @@ namespace Fluid.Tests
             _parser.TryParse("{{ p.Name }}", out var template, out var error);
             Assert.Null(error);
 
-            var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register(typeof(Model), "Name", new DelegateAccessor((o, n) => "first"));
+            var strategy = new MutableStrategy();
+            strategy.Register(typeof(Model), "Name", new DelegateAccessor((o, n) => "first"));
+            var options = new TemplateOptionsBuilder().WithMemberAccessStrategy(() => strategy).Build();
 
             var context = new TemplateContext(options).SetValue("p", new Model { Name = "ignored" });
             Assert.Equal("first", await template.RenderAsync(context));
 
             // Re-registering must invalidate whatever the first render cached for this call site.
-            options.MemberAccessStrategy.Register(typeof(Model), "Name", new DelegateAccessor((o, n) => "second"));
+            strategy.Register(typeof(Model), "Name", new DelegateAccessor((o, n) => "second"));
 
             context = new TemplateContext(options).SetValue("p", new Model { Name = "ignored" });
             Assert.Equal("second", await template.RenderAsync(context));
+        }
+
+        private sealed class MutableStrategy : MemberAccessStrategy
+        {
+            private volatile Dictionary<(Type, string), MemberAccessor> _accessors = [];
+
+            public override MemberAccessor GetAccessor(Type type, string name, StringComparer stringComparer)
+                => _accessors.TryGetValue((type, name), out var accessor) ? accessor : null;
+
+            public override void Register(Type type, string name, MemberAccessor accessor)
+                => _accessors = new Dictionary<(Type, string), MemberAccessor>(_accessors) { [(type, name)] = accessor };
+
+            protected override object AccessorCacheToken => _accessors;
         }
 
         [Fact]
@@ -69,7 +83,7 @@ namespace Fluid.Tests
             Assert.Null(error);
 
             var strategy = new ToggleStrategy();
-            var options = new TemplateOptions { MemberAccessStrategy = strategy };
+            var options = new TemplateOptionsBuilder().WithMemberAccessStrategy(() => strategy).Build();
 
             var context = new TemplateContext(options).SetValue("p", new Model());
             Assert.Equal("A", await template.RenderAsync(context));
@@ -108,11 +122,9 @@ namespace Fluid.Tests
             _parser.TryParse("{{ p.Name }}", out var template, out var error);
             Assert.Null(error);
 
-            var first = new TemplateOptions();
-            first.MemberAccessStrategy.Register(typeof(Model), "Name", new DelegateAccessor((o, n) => "one"));
+            var first = new TemplateOptionsBuilder().ConfigureMemberAccess(strategy => strategy.Register(typeof(Model), "Name", new DelegateAccessor((o, n) => "one"))).Build();
 
-            var second = new TemplateOptions();
-            second.MemberAccessStrategy.Register(typeof(Model), "Name", new DelegateAccessor((o, n) => "two"));
+            var second = new TemplateOptionsBuilder().ConfigureMemberAccess(strategy => strategy.Register(typeof(Model), "Name", new DelegateAccessor((o, n) => "two"))).Build();
 
             for (var i = 0; i < 3; i++)
             {
@@ -129,7 +141,7 @@ namespace Fluid.Tests
             _parser.TryParse("{% for p in items %}{{ p.Name }};{% endfor %}", out var template, out var error);
             Assert.Null(error);
 
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options)
                 .SetValue("items", new object[]
                 {
@@ -143,54 +155,14 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task FilterRegisteredBetweenRendersIsPickedUp()
-        {
-            _parser.TryParse("{{ 'x' | mark }}", out var template, out var error);
-            Assert.Null(error);
-
-            var options = new TemplateOptions();
-
-            // Not registered yet: non-strict filters pass the input through.
-            Assert.Equal("x", await template.RenderAsync(new TemplateContext(options)));
-
-            options.Filters.AddFilter("mark", (input, args, ctx) => new StringValue(input.ToStringValue() + "!"));
-            Assert.Equal("x!", await template.RenderAsync(new TemplateContext(options)));
-
-            // Replacing the delegate must also invalidate.
-            options.Filters.AddFilter("mark", (input, args, ctx) => new StringValue(input.ToStringValue() + "?"));
-            Assert.Equal("x?", await template.RenderAsync(new TemplateContext(options)));
-
-            options.Filters.Remove("mark");
-            Assert.Equal("x", await template.RenderAsync(new TemplateContext(options)));
-        }
-
-        [Fact]
-        public async Task StrictFiltersStillThrowsAfterAFilterIsRemoved()
-        {
-            _parser.TryParse("{{ 'x' | mark }}", out var template, out var error);
-            Assert.Null(error);
-
-            var options = new TemplateOptions { StrictFilters = true };
-            options.Filters.AddFilter("mark", (input, args, ctx) => new StringValue("ok"));
-
-            Assert.Equal("ok", await template.RenderAsync(new TemplateContext(options)));
-
-            options.Filters.Remove("mark");
-
-            await Assert.ThrowsAsync<FluidException>(() => template.RenderAsync(new TemplateContext(options)).AsTask());
-        }
-
-        [Fact]
         public async Task SameTemplateAlternatingBetweenFilterCollections()
         {
             _parser.TryParse("{{ 'x' | mark }}", out var template, out var error);
             Assert.Null(error);
 
-            var first = new TemplateOptions();
-            first.Filters.AddFilter("mark", (input, args, ctx) => new StringValue("one"));
+            var first = new TemplateOptionsBuilder().AddFilter("mark", (input, args, ctx) => new StringValue("one")).Build();
 
-            var second = new TemplateOptions();
-            second.Filters.AddFilter("mark", (input, args, ctx) => new StringValue("two"));
+            var second = new TemplateOptionsBuilder().AddFilter("mark", (input, args, ctx) => new StringValue("two")).Build();
 
             for (var i = 0; i < 3; i++)
             {
@@ -213,7 +185,7 @@ namespace Fluid.Tests
             Assert.Null(error);
 
             var cultureInfo = CultureInfo.GetCultureInfo(culture);
-            var options = new TemplateOptions { CultureInfo = cultureInfo };
+            var options = new TemplateOptionsBuilder().WithCultureInfo(cultureInfo).Build();
             var context = new TemplateContext(options)
                 .SetValue("a", NumberValue.Create(0m))
                 .SetValue("b", NumberValue.Create(1023m))
@@ -234,7 +206,7 @@ namespace Fluid.Tests
             Assert.Null(error);
 
             var cultureInfo = CultureInfo.GetCultureInfo(culture);
-            var options = new TemplateOptions { CultureInfo = cultureInfo };
+            var options = new TemplateOptionsBuilder().WithCultureInfo(cultureInfo).Build();
             var context = new TemplateContext(options).SetValue("a", NumberValue.Create(-1m));
 
             Assert.Equal((-1m).ToString(cultureInfo), await template.RenderAsync(context));
@@ -249,11 +221,9 @@ namespace Fluid.Tests
             _parser.TryParse("{% for p in items %}{{ p.Name }}{{ 'x' | mark }};{% endfor %}", out var template, out var error);
             Assert.Null(error);
 
-            var first = new TemplateOptions();
-            first.Filters.AddFilter("mark", (input, args, ctx) => new StringValue("1"));
+            var first = new TemplateOptionsBuilder().AddFilter("mark", (input, args, ctx) => new StringValue("1")).Build();
 
-            var second = new TemplateOptions();
-            second.Filters.AddFilter("mark", (input, args, ctx) => new StringValue("2"));
+            var second = new TemplateOptionsBuilder().AddFilter("mark", (input, args, ctx) => new StringValue("2")).Build();
 
             var items = new List<Model>();
             for (var i = 0; i < 50; i++)
@@ -320,7 +290,7 @@ namespace Fluid.Tests
             _parser.TryParse("{{ 'x' | nope }}", out var template, out var error);
             Assert.Null(error);
 
-            var options = new TemplateOptions { StrictFilters = true };
+            var options = new TemplateOptionsBuilder().WithStrictFilters(true).Build();
 
             // Second evaluation takes the cached fast path, which is where the throw would escape.
             for (var i = 0; i < 2; i++)
@@ -336,8 +306,7 @@ namespace Fluid.Tests
             _parser.TryParse("{{ 'x' | boom }}", out var template, out var error);
             Assert.Null(error);
 
-            var options = new TemplateOptions();
-            options.Filters.AddFilter("boom", (input, args, ctx) => throw new InvalidOperationException("boom"));
+            var options = new TemplateOptionsBuilder().AddFilter("boom", (input, args, ctx) => throw new InvalidOperationException("boom")).Build();
 
             for (var i = 0; i < 2; i++)
             {
@@ -350,8 +319,7 @@ namespace Fluid.Tests
         public async Task FilterInputThrowingSynchronouslyFaultsTheTask()
         {
             var expression = new FilterExpression(new ThrowingExpression(), "identity", []);
-            var options = new TemplateOptions();
-            options.Filters.AddFilter("identity", (input, args, ctx) => input);
+            var options = new TemplateOptionsBuilder().AddFilter("identity", (input, args, ctx) => input).Build();
             var context = new TemplateContext(options);
 
             // The first evaluation populates the literal-argument cache through the async path.

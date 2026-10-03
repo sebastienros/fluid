@@ -47,7 +47,7 @@ namespace Fluid.Tests
             var fileProvider = new MockFileProvider();
             fileProvider.Add("invalid.liquid", "{% if true %}");
 
-            var context = new TemplateContext(new TemplateOptions { FileProvider = fileProvider });
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build());
             var template = _parser.Parse("{% include 'invalid' %}");
 
             var exception = await Assert.ThrowsAsync<ParseException>(
@@ -65,7 +65,7 @@ namespace Fluid.Tests
             var fileProvider = new MockFileProvider();
             fileProvider.Add($"{templatePath}.liquid", "{% if true %}");
 
-            var context = new TemplateContext(new TemplateOptions { FileProvider = fileProvider });
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build());
             var template = _parser.Parse($"{{% include '{templatePath}' %}}");
 
             var exception = await Assert.ThrowsAsync<ParseException>(
@@ -88,10 +88,7 @@ Partials: '{{ Partials }}'
 color: '{{ color }}'
 shape: '{{ shape }}'");
 
-            var options = new TemplateOptions()
-            {
-                FileProvider = new FileProviderTemplateFileProvider(fileProvider)
-            };
+            var options = new TemplateOptionsBuilder().WithFileProvider(new FileProviderTemplateFileProvider(fileProvider)).Build();
             var context = new TemplateContext(options);
             var expectedResult = @"Partial Content
 Partials: ''
@@ -122,10 +119,7 @@ shape_Two: '{{ shape }}'");
 
             var model = new Domain.Person { Firstname = "_First.liquid" };
 
-            var options = new TemplateOptions()
-            {
-                FileProvider = new FileProviderTemplateFileProvider(fileProvider)
-            };
+            var options = new TemplateOptionsBuilder().WithFileProvider(new FileProviderTemplateFileProvider(fileProvider)).Build();
             var context = new TemplateContext(model, options);
             var expectedResultFirstCall = @"Partial Content One
 Partials_One: ''
@@ -168,10 +162,7 @@ Partials: '{{ Partials }}'
 color: '{{ color }}'
 shape: '{{ shape }}'");
 
-            var options = new TemplateOptions()
-            {
-                FileProvider = new FileProviderTemplateFileProvider(fileProvider)
-            };
+            var options = new TemplateOptionsBuilder().WithFileProvider(new FileProviderTemplateFileProvider(fileProvider)).Build();
             var context = new TemplateContext(options);
             var expectedResult = @"Partial Content
 Partials: ''
@@ -196,7 +187,7 @@ Partials: '{{ Partials }}'
 color: '{{ color }}'
 shape: '{{ shape }}'");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             var expectedResult = @"Partial Content
 Partials: ''
@@ -217,7 +208,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("_Partial.liquid", @"{{ 'Partial Content' }} {% include '_Partial' %}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => new IncludeStatement(_parser, expression).WriteToAsync(sw, HtmlEncoder.Default, context).AsTask());
@@ -229,7 +220,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% include 'product' with products[0] %}", out var template);
@@ -244,7 +235,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product_alias.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% include 'product_alias' with products[0] as product %}", out var template);
@@ -259,7 +250,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product_alias.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% render 'product_alias' with products[0] as product %}", out var template);
@@ -274,7 +265,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             context.SetValue("product", new { title = "Draft 151cm" });
             _parser.TryParse("{% include 'product' %}", out var template);
@@ -289,7 +280,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             context.SetValue("product", new { title = "Draft 151cm" });
             _parser.TryParse("{% render 'product' %}", out var template);
@@ -304,7 +295,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("incr.liquid", "{% increment %}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             _parser.TryParse("{% increment %}{% increment %}{% render 'incr' %}", out var template, out var error);
             Assert.Null(error);
@@ -317,7 +308,7 @@ shape: ''";
         public void RenderTagCantUseDynamicName()
         {
             var fileProvider = new MockFileProvider();
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             var result = _parser.TryParse("{% assign name = 'snippet' %}{% render name %}", out var template, out var error);
             Assert.False(result);
@@ -330,7 +321,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} rindex:{{ forloop.rindex }} rindex0:{{ forloop.rindex0 }} " );
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% include 'product' for products %}", out var template);
@@ -346,7 +337,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} rindex:{{ forloop.rindex }} rindex0:{{ forloop.rindex0 }} " );
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             _parser.TryParse("{% render 'product' for products %}", out var template);
@@ -362,7 +353,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("snippet.liquid", "{{ outer_variable }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             context.SetValue("product", new { title = "Draft 151cm" });
             _parser.TryParse("{% assign outer_variable = 'should not be visible' %}{% render 'snippet' %}", out var template);
@@ -377,7 +368,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("snippet.liquid", "{{ outer_variable }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             context.SetValue("product", new { title = "Draft 151cm" });
             _parser.TryParse("{% assign outer_variable = 'should be visible' %}{% include 'snippet' %}", out var template);
@@ -392,9 +383,11 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("snippet.liquid", "{{ global_variable }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(fileProvider)
+                .WithGlobalValue("global_variable", new StringValue("global value"))
+                .Build();
             var context = new TemplateContext(options);
-            options.GlobalValues.SetValue("global_variable", new StringValue("global value"));
             context.SetValue("product", new { title = "Draft 151cm" });
             _parser.TryParse("{% render 'snippet' %}", out var template);
             var result = template.Render(context);
@@ -414,7 +407,7 @@ shape: ''";
                 fileProvider.Add($"{t[0]}.liquid", t);
             }
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             _parser.TryParse("{%- include file -%}", out var template);
 
             var stopped = false;
@@ -446,7 +439,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("a.liquid", "AAAA");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             IFluidTemplate template = null;
 
@@ -499,10 +492,7 @@ shape: ''";
 
             var fileInfos = templates.ToDictionary(t => t.Key, t => fileProvider.GetFileInfo(t.Key));
 
-            var options = new TemplateOptions()
-            {
-                FileProvider = new FileProviderTemplateFileProvider(fileProvider)
-            };
+            var options = new TemplateOptionsBuilder().WithFileProvider(new FileProviderTemplateFileProvider(fileProvider)).Build();
             _parser.TryParse("{%- include file -%}", out var template);
 
             // The first time a template is included it will be read from the file provider
@@ -587,10 +577,7 @@ shape: ''";
             File.WriteAllText(tempPath + "/this-folder/this_file.liquid", "content1");
             File.WriteAllText(tempPath + "/this-folder/that-folder/this_file.liquid", "content2");
 
-            var options = new TemplateOptions()
-            {
-                FileProvider = new FileProviderTemplateFileProvider(fileProvider)
-            };
+            var options = new TemplateOptionsBuilder().WithFileProvider(new FileProviderTemplateFileProvider(fileProvider)).Build();
             _parser.TryParse("{%- include file -%}", out var template);
 
             var context = new TemplateContext(options);
@@ -629,10 +616,7 @@ shape: ''";
             File.WriteAllText(tempPath + "/this_file.liquid", "content1");
             File.WriteAllText(tempPath + "/This_file.liquid", "content2");
 
-            var options = new TemplateOptions()
-            {
-                FileProvider = new FileProviderTemplateFileProvider(fileProvider)
-            };
+            var options = new TemplateOptionsBuilder().WithFileProvider(new FileProviderTemplateFileProvider(fileProvider)).Build();
             _parser.TryParse("{%- include file -%}", out var template);
 
             var context = new TemplateContext(options);
@@ -670,7 +654,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("icon.liquid", "Icon: {{ icon }}, Class: {{ class }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             _parser.TryParse("{% render 'icon' with 'rating-star', class: 'rating__star' %}", out var template);
             var result = template.Render(context);
@@ -684,7 +668,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ p.title }}, Price: {{ price }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             context.SetValue("my_product", new { title = "Draft 151cm" });
             _parser.TryParse("{% render 'product' with my_product as p, price: '$99' %}", out var template);
@@ -699,7 +683,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("button.liquid", "Text: {{ button }}, Size: {{ size }}, Color: {{ color }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             _parser.TryParse("{% render 'button' with 'Click Me', size: 'large', color: 'blue' %}", out var template);
             var result = template.Render(context);
@@ -713,7 +697,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("file.liquid", "{{ value }} {{ key }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             context.SetValue("value", new { f1 = "Hello", f2 = "World" });
             _parser.TryParse("{% render 'file', value: value.f1, key: value.f2 %}", out var template);
@@ -729,7 +713,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("product.liquid", "Product: {{ product.title }}, Tag: {{ tag }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             context.SetValue("products", new[] { new { title = "Draft 151cm" }, new { title = "Element 155cm" } });
             
@@ -767,7 +751,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("item.liquid", "Item: {{ i.name }}, Status: {{ status }} ");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             context.SetValue("items", new[] { new { name = "First" }, new { name = "Second" } });
             _parser.TryParse("{% render 'item' for items as i, status: 'active' %}", out var template);
@@ -782,7 +766,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("snippet.liquid", "{{ class }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             _parser.TryParse("{% render 'snippet', class: 'test' %}{{ class }}", out var template);
             var result = template.Render(context);
@@ -796,7 +780,10 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("template.html", "<div>{{ content }}</div>");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".html" };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(fileProvider)
+                .WithDefaultFileExtension(".html")
+                .Build();
             var context = new TemplateContext(options);
             context.SetValue("content", "Hello World");
             _parser.TryParse("{% include 'template' %}", out var template);
@@ -811,7 +798,10 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("template.html", "<div>{{ content }}</div>");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".html" };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(fileProvider)
+                .WithDefaultFileExtension(".html")
+                .Build();
             var context = new TemplateContext(options);
             context.SetValue("content", "Hello World");
             _parser.TryParse("{% render 'template' %}", out var template);
@@ -826,7 +816,10 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("styles.css", ".class { color: {{ color }}; }");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".css" };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(fileProvider)
+                .WithDefaultFileExtension(".css")
+                .Build();
             var context = new TemplateContext(options);
             context.SetValue("color", "red");
             _parser.TryParse("{% include 'styles' %}", out var template);
@@ -842,7 +835,10 @@ shape: ''";
             fileProvider.Add("template.html", "HTML content");
             fileProvider.Add("template.liquid", "Liquid content");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".liquid" };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(fileProvider)
+                .WithDefaultFileExtension(".liquid")
+                .Build();
             var context = new TemplateContext(options);
             _parser.TryParse("{% include 'template.html' %}", out var template);
             var result = template.Render(context);
@@ -857,7 +853,10 @@ shape: ''";
             fileProvider.Add("template.html", "HTML content");
             fileProvider.Add("template.liquid", "Liquid content");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = ".liquid" };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(fileProvider)
+                .WithDefaultFileExtension(".liquid")
+                .Build();
             var context = new TemplateContext(options);
             _parser.TryParse("{% render 'template.html' %}", out var template);
             var result = template.Render(context);
@@ -871,7 +870,10 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("template", "No extension content");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = null };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(fileProvider)
+                .WithDefaultFileExtension(null)
+                .Build();
             var context = new TemplateContext(options);
             _parser.TryParse("{% include 'template' %}", out var template);
             var result = template.Render(context);
@@ -885,7 +887,10 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("template", "No extension content");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = null };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(fileProvider)
+                .WithDefaultFileExtension(null)
+                .Build();
             var context = new TemplateContext(options);
             _parser.TryParse("{% render 'template' %}", out var template);
             var result = template.Render(context);
@@ -899,7 +904,10 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("template", "No extension content");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider, DefaultFileExtension = "" };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(fileProvider)
+                .WithDefaultFileExtension("")
+                .Build();
             var context = new TemplateContext(options);
             _parser.TryParse("{% include 'template' %}", out var template);
             var result = template.Render(context);
@@ -914,7 +922,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("template.liquid", "Default behavior");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             _parser.TryParse("{% include 'template' %}", out var template);
             var result = template.Render(context);
@@ -929,7 +937,7 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("template.liquid", "Default behavior");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
+            var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
             var context = new TemplateContext(options);
             _parser.TryParse("{% render 'template' %}", out var template);
             var result = template.Render(context);
@@ -944,14 +952,14 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("inner.liquid", "{{ 2 | plus: 2 }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
-            
-            // Use a visitor to replace 2 with 4
-            options.TemplateParsed = (path, template) =>
-            {
-                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
-                return visitor.VisitTemplate(template);
-            };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(fileProvider)
+                .WithTemplateParsed((path, template) =>
+                {
+                    var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                    return visitor.VisitTemplate(template);
+                })
+                .Build();
 
             var context = new TemplateContext(options);
             
@@ -975,14 +983,14 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("inner.liquid", "{{ 2 | plus: 2 }}");
 
-            var options = new TemplateOptions() { FileProvider = fileProvider };
-            
-            // Use a visitor to replace 2 with 4
-            options.TemplateParsed = (path, template) =>
-            {
-                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
-                return visitor.VisitTemplate(template);
-            };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(fileProvider)
+                .WithTemplateParsed((path, template) =>
+                {
+                    var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                    return visitor.VisitTemplate(template);
+                })
+                .Build();
 
             var context = new TemplateContext(options);
             
@@ -1006,21 +1014,18 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("inner.liquid", "{{ 2 | plus: 2 }}");
 
-            var options = new TemplateOptions() 
-            { 
-                FileProvider = fileProvider
-                // TemplateCache is created by default
-            };
-            
             var callbackCount = 0;
-            
+
             // Use a visitor to replace 2 with 4
-            options.TemplateParsed = (path, template) =>
-            {
-                callbackCount++;
-                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
-                return visitor.VisitTemplate(template);
-            };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(fileProvider)
+                .WithTemplateParsed((path, template) =>
+                {
+                    callbackCount++;
+                    var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                    return visitor.VisitTemplate(template);
+                })
+                .Build();
 
             var context = new TemplateContext(options);
             _parser.TryParse("{% render 'inner' %}", out var template);
@@ -1043,21 +1048,18 @@ shape: ''";
             var fileProvider = new MockFileProvider();
             fileProvider.Add("inner.liquid", "{{ 2 | plus: 2 }}");
 
-            var options = new TemplateOptions() 
-            { 
-                FileProvider = fileProvider
-                // TemplateCache is created by default
-            };
-            
             var callbackCount = 0;
-            
+
             // Use a visitor to replace 2 with 4
-            options.TemplateParsed = (path, template) =>
-            {
-                callbackCount++;
-                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
-                return visitor.VisitTemplate(template);
-            };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(fileProvider)
+                .WithTemplateParsed((path, template) =>
+                {
+                    callbackCount++;
+                    var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                    return visitor.VisitTemplate(template);
+                })
+                .Build();
 
             var context = new TemplateContext(options);
             _parser.TryParse("{% include 'inner' %}", out var template);
@@ -1080,10 +1082,7 @@ shape: ''";
         {
             var sourceLoader = new AsyncTemplateFileProvider()
                 .Add("inner.liquid", "{{ value }}");
-            var options = new TemplateOptions
-            {
-                FileProvider = sourceLoader
-            };
+            var options = new TemplateOptionsBuilder().WithFileProvider(sourceLoader).Build();
             var context = new TemplateContext(options).SetValue("value", "loaded");
             _parser.TryParse(source, out var template);
 
@@ -1104,7 +1103,7 @@ shape: ''";
         {
             var sourceLoader = new AsyncTemplateFileProvider()
                 .Add("inner.liquid", "first");
-            var options = new TemplateOptions { FileProvider = sourceLoader };
+            var options = new TemplateOptionsBuilder().WithFileProvider(sourceLoader).Build();
             var context = new TemplateContext(options);
             _parser.TryParse(source, out var template);
 
@@ -1122,13 +1121,15 @@ shape: ''";
             var sourceLoader = new AsyncTemplateFileProvider()
                 .Add("inner.liquid", "{{ 2 | plus: 2 }}");
             var callbackCount = 0;
-            var options = new TemplateOptions { FileProvider = sourceLoader };
-            options.TemplateParsed = (path, template) =>
-            {
-                callbackCount++;
-                var visitor = new Visitors.ReplaceTwosVisitor(NumberValue.Create(4));
-                return visitor.VisitTemplate(template);
-            };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(sourceLoader)
+                .WithTemplateParsed((path, template) =>
+                {
+                    callbackCount++;
+                    var visitor = new Visitors.ReplaceTwosVisitor(NumberValue.Create(4));
+                    return visitor.VisitTemplate(template);
+                })
+                .Build();
             _parser.TryParse("{% include 'inner' %}", out var template);
 
             Assert.Equal("8", await template.RenderAsync(new TemplateContext(options)));
@@ -1141,7 +1142,7 @@ shape: ''";
         public async Task TemplateFileProvider_ShouldThrowWhenTemplateIsMissing()
         {
             var sourceLoader = new AsyncTemplateFileProvider();
-            var options = new TemplateOptions { FileProvider = sourceLoader };
+            var options = new TemplateOptionsBuilder().WithFileProvider(sourceLoader).Build();
             _parser.TryParse("{% include 'missing' %}", out var template);
 
             await Assert.ThrowsAsync<FileNotFoundException>(
@@ -1153,7 +1154,7 @@ shape: ''";
         {
             var sourceLoader = new AsyncTemplateFileProvider()
                 .Add("inner.liquid", "content");
-            var options = new TemplateOptions { FileProvider = sourceLoader };
+            var options = new TemplateOptionsBuilder().WithFileProvider(sourceLoader).Build();
             using var cancellationTokenSource = new CancellationTokenSource();
             var context = new TemplateContext(options)
             {
@@ -1170,9 +1171,8 @@ shape: ''";
         public async Task TemplateFileProvider_ShouldIsolateCachedTemplatesBySourceCacheKey()
         {
             var lastModified = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
-            var options = new TemplateOptions
-            {
-                FileProvider = new DelegateTemplateFileProvider(async (path, context, cancellationToken) =>
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(new DelegateTemplateFileProvider(async (path, context, cancellationToken) =>
                 {
                     await Task.Yield();
                     var tenant = context.GetValue("tenant").ToStringValue();
@@ -1181,8 +1181,8 @@ shape: ''";
                         cancellationToken => new ValueTask<Stream>(
                             new MemoryStream(System.Text.Encoding.UTF8.GetBytes(tenant))),
                         cacheKey: $"{tenant}:{path}");
-                })
-            };
+                }))
+                .Build();
             _parser.TryParse("{% include 'inner.liquid' %}", out var template);
 
             var tenantA = new TemplateContext(options).SetValue("tenant", "A");

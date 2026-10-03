@@ -13,6 +13,7 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
     private const string RegisterAttributeType = "Fluid.FluidRegisterAttribute";
     private const string TemplateContextType = "Fluid.TemplateContext";
     private const string TemplateOptionsType = "Fluid.TemplateOptions";
+    private const string TemplateOptionsBuilderType = "Fluid.TemplateOptionsBuilder";
 
     private static readonly SymbolDisplayFormat TypeExpressionFormat = SymbolDisplayFormat.FullyQualifiedFormat
         .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers);
@@ -20,7 +21,7 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor InvalidProfileMethod = new(
         id: "FLUIDSG001",
         title: "Invalid Fluid registration profile method",
-        messageFormat: "Method '{0}' must be a static partial method declaration with explicit accessibility and signature '(TemplateOptions options)' inside a non-generic, non-nested partial class",
+        messageFormat: "Method '{0}' must be a static partial method declaration with explicit accessibility and signature '(TemplateOptionsBuilder builder)' inside a non-generic, non-nested partial class",
         category: "Fluid.SourceGenerator",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -28,7 +29,7 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor InvalidOptionsType = new(
         id: "FLUIDSG002",
         title: "Invalid Fluid template options type",
-        messageFormat: "Type '{0}' must be a partial, non-generic, non-nested class deriving from TemplateOptions",
+        messageFormat: "Type '{0}' must be a partial, non-generic, non-nested class deriving from TemplateOptionsBuilder",
         category: "Fluid.SourceGenerator",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -484,7 +485,7 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
             method.ReturnsVoid &&
             method.Arity == 0 &&
             method.Parameters.Length == 1 &&
-            string.Equals(method.Parameters[0].Type.ToDisplayString(), TemplateOptionsType, StringComparison.Ordinal) &&
+            string.Equals(method.Parameters[0].Type.ToDisplayString(), TemplateOptionsBuilderType, StringComparison.Ordinal) &&
             method.PartialImplementationPart is null &&
             containingType is not null &&
             containingType.TypeKind == TypeKind.Class &&
@@ -513,7 +514,7 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
             type.TypeKind == TypeKind.Class &&
             type.Arity == 0 &&
             type.ContainingType is null &&
-            InheritsFromTemplateOptions(type);
+            InheritsFromTemplateOptionsBuilder(type);
 
         if (!isValid)
         {
@@ -525,11 +526,11 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
         return true;
     }
 
-    private static bool InheritsFromTemplateOptions(INamedTypeSymbol typeSymbol)
+    private static bool InheritsFromTemplateOptionsBuilder(INamedTypeSymbol typeSymbol)
     {
         for (var current = typeSymbol.BaseType; current is not null; current = current.BaseType)
         {
-            if (string.Equals(current.ToDisplayString(), TemplateOptionsType, StringComparison.Ordinal))
+            if (string.Equals(current.ToDisplayString(), TemplateOptionsBuilderType, StringComparison.Ordinal))
             {
                 return true;
             }
@@ -579,21 +580,22 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
                 .Append(GetAccessibilityKeyword(method.Method.DeclaredAccessibility))
                 .Append(" static partial void ")
                 .Append(escapedName)
-                .AppendLine("(global::Fluid.TemplateOptions options)");
+                .AppendLine("(global::Fluid.TemplateOptionsBuilder builder)");
             source.AppendLine("        {");
-            source.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(options);");
-            source.AppendLine("            var strategy = options.MemberAccessStrategy;");
-            source.AppendLine();
+            source.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(builder);");
+            source.AppendLine("            builder.ConfigureMemberAccess(static strategy =>");
+            source.AppendLine("            {");
 
             foreach (var accessor in method.Accessors)
             {
-                source.Append("            strategy.Register(typeof(")
+                source.Append("                strategy.Register(typeof(")
                     .Append(accessor.TypeExpression)
                     .Append("), \"*\", new global::Fluid.SourceGenerated.")
                     .Append(accessor.AccessorName)
                     .AppendLine("());");
             }
 
+            source.AppendLine("            });");
             source.AppendLine("        }");
             source.AppendLine();
         }
@@ -624,21 +626,22 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
             .Append(optionsType.Name)
             .AppendLine(" : global::Fluid.ITemplateOptionsMemberAccessorRegistrar");
         source.AppendLine("    {");
-        source.AppendLine("        void global::Fluid.ITemplateOptionsMemberAccessorRegistrar.RegisterMemberAccessors(global::Fluid.TemplateOptions options)");
+        source.AppendLine("        void global::Fluid.ITemplateOptionsMemberAccessorRegistrar.RegisterMemberAccessors(global::Fluid.TemplateOptionsBuilder builder)");
         source.AppendLine("        {");
-        source.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(options);");
-        source.AppendLine("            var strategy = options.MemberAccessStrategy;");
-        source.AppendLine();
+        source.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(builder);");
+        source.AppendLine("            builder.ConfigureMemberAccess(static strategy =>");
+        source.AppendLine("            {");
 
         foreach (var accessor in accessors)
         {
-            source.Append("            strategy.Register(typeof(")
+            source.Append("                strategy.Register(typeof(")
                 .Append(accessor.TypeExpression)
                 .Append("), \"*\", new global::Fluid.SourceGenerated.")
                 .Append(accessor.AccessorName)
                 .AppendLine("());");
         }
 
+        source.AppendLine("            });");
         source.AppendLine("        }");
         source.AppendLine("    }");
 

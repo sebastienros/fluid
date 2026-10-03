@@ -24,7 +24,7 @@ namespace Fluid.Tests
         {
             var provider = new MockFileProvider()
                 .Add("snippet.liquid", "{{ argument }}{% assign persisted = argument %}");
-            var context = new TemplateContext(new TemplateOptions { FileProvider = provider });
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithFileProvider(provider).Build());
             var template = _parser.Parse(
                 "{% include 'snippet', argument: 'inner' %}|{{ argument }}|{{ persisted }}");
 
@@ -37,7 +37,7 @@ namespace Fluid.Tests
         {
             var provider = new MockFileProvider()
                 .Add("snippet.liquid", "{{ value }}");
-            var context = new TemplateContext(new TemplateOptions { FileProvider = provider });
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithFileProvider(provider).Build());
             var template = _parser.Parse(
                 "{% include 'snippet', value: 'first', value: value %}|{{ value }}");
 
@@ -51,7 +51,7 @@ namespace Fluid.Tests
             var provider = new MockFileProvider()
                 .Add("outer.liquid", "{{ value }}|{% include 'inner', value: 'inner' %}|{{ value }}")
                 .Add("inner.liquid", "{{ value }}");
-            var context = new TemplateContext(new TemplateOptions { FileProvider = provider });
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithFileProvider(provider).Build());
             var template = _parser.Parse(
                 "{% include 'outer', value: 'outer' %}|{{ value }}");
 
@@ -64,7 +64,7 @@ namespace Fluid.Tests
         {
             var provider = new MockFileProvider()
                 .Add("snippet.liquid", "{{ item }}|{{ value }}");
-            var context = new TemplateContext(new TemplateOptions { FileProvider = provider })
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithFileProvider(provider).Build())
                 .SetValue("item", "outer-item")
                 .SetValue("value", "outer-value");
             var include = new IncludeStatement(
@@ -92,7 +92,7 @@ namespace Fluid.Tests
         {
             var provider = new MockFileProvider()
                 .Add("flow.liquid", $"{{% {completion} %}}");
-            var context = new TemplateContext(new TemplateOptions { FileProvider = provider })
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithFileProvider(provider).Build())
                 .SetValue("items", new[] { 1, 2 });
             var template = _parser.Parse(
                 "{% for item in items %}before{% include 'flow', argument: 'inner' %}after{% endfor %}|{{ argument }}");
@@ -106,11 +106,10 @@ namespace Fluid.Tests
         {
             var provider = new MockFileProvider()
                 .Add("snippet.liquid", "");
-            var options = new TemplateOptions
-            {
-                FileProvider = provider,
-                TemplateParsed = (_, _) => new ThrowingTemplate()
-            };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(provider)
+                .WithTemplateParsed((_, _) => new ThrowingTemplate())
+                .Build();
             var context = new TemplateContext(options)
                 .SetValue("existing", "outer");
             var rootScope = context.LocalScope;
@@ -131,7 +130,7 @@ namespace Fluid.Tests
         {
             var provider = new MockFileProvider()
                 .Add("snippet.liquid", "");
-            var context = new TemplateContext(new TemplateOptions { FileProvider = provider })
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithFileProvider(provider).Build())
                 .SetValue("existing", "outer");
             var rootScope = context.LocalScope;
             var include = new IncludeStatement(
@@ -157,11 +156,10 @@ namespace Fluid.Tests
         {
             var provider = new MockFileProvider()
                 .Add("snippet.liquid", "");
-            var options = new TemplateOptions
-            {
-                FileProvider = provider,
-                TemplateParsed = (_, _) => new CanceledTemplate()
-            };
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(provider)
+                .WithTemplateParsed((_, _) => new CanceledTemplate())
+                .Build();
             var context = new TemplateContext(options);
             var rootScope = context.LocalScope;
             var template = _parser.Parse(

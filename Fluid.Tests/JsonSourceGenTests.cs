@@ -44,11 +44,11 @@ namespace Fluid.Tests
             return template;
         }
 
-        private static TemplateContext CreateContext(Action<TemplateOptions> configureOptions = null)
+        private static TemplateContext CreateContext(Action<TemplateOptionsBuilder> configureOptions = null)
         {
-            var options = new TemplateOptions();
-            configureOptions?.Invoke(options);
-            return new TemplateContext(options);
+            var builder = new TemplateOptionsBuilder();
+            configureOptions?.Invoke(builder);
+            return new TemplateContext(builder.Build());
         }
 
         [Fact]
@@ -71,10 +71,8 @@ namespace Fluid.Tests
                     TypeInfoResolver = JsonTypeInfoResolver.Combine(FluidJsonContext.Default, new DefaultJsonTypeInfoResolver()),
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 };
-                o.JsonSerializerOptions = genOptions;
+                o.WithJsonSerializerOptions(genOptions);
             });
-
-            ctx.Options.Filters.WithMiscFilters();
             ctx.SetValue("person", person);
             var template = Parse("{{ person | json }}");
             var rendered = template.Render(ctx);
@@ -91,10 +89,8 @@ namespace Fluid.Tests
                 {
                     TypeInfoResolver = JsonTypeInfoResolver.Combine(FluidJsonContext.Default, new DefaultJsonTypeInfoResolver())
                 };
-                o.JsonSerializerOptions = genOptions;
+                o.WithJsonSerializerOptions(genOptions);
             });
-
-            ctx.Options.Filters.WithMiscFilters();
             var tags = new[] { "one", "two", "three" };
             var scores = new Dictionary<string, int> { ["alpha"] = 1, ["beta"] = 2 };
             ctx.SetValue("tags", tags);
@@ -115,10 +111,8 @@ namespace Fluid.Tests
                 {
                     TypeInfoResolver = JsonTypeInfoResolver.Combine(FluidJsonContext.Default, new DefaultJsonTypeInfoResolver())
                 };
-                o.JsonSerializerOptions = genOptions;
+                o.WithJsonSerializerOptions(genOptions);
             });
-
-            ctx.Options.Filters.WithMiscFilters();
             var fluidString = new StringValue("Hello SourceGen");
             ctx.SetValue("msg", fluidString);
             var array = new object[] { "A", 123, true };
@@ -150,10 +144,8 @@ namespace Fluid.Tests
                     TypeInfoResolver = JsonTypeInfoResolver.Combine(FluidJsonContext.Default, new DefaultJsonTypeInfoResolver()),
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 };
-                o.JsonSerializerOptions = genOptions;
+                o.WithJsonSerializerOptions(genOptions);
             });
-
-            ctx.Options.Filters.WithMiscFilters();
             ctx.SetValue("person", person);
             var template = Parse("{{ person | json }}");
             var output = template.Render(ctx);

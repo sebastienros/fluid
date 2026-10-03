@@ -37,10 +37,6 @@ namespace MinimalApis.LiquidViews
             {
                 CancellationToken = httpContext.RequestAborted
             };
-            context.Options.FileProvider =
-                options.PartialsFileProvider ??
-                options.ViewsFileProvider ??
-                options.TemplateOptions.FileProvider;
 
             var viewPath = await LocatePageFromViewLocationsAsync(
                 _viewName,

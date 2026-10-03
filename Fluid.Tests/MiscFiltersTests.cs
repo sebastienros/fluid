@@ -327,7 +327,10 @@ namespace Fluid.Tests
             enUsCultureInfo.DateTimeFormat.FullDateTimePattern = "dddd, MMMM d, yyyy h:mm:ss tt";
 
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions() { CultureInfo = enUsCultureInfo, TimeZone = TimeZoneInfo.Utc };
+            var options = new TemplateOptionsBuilder()
+                .WithCultureInfo(enUsCultureInfo)
+                .WithTimeZone(TimeZoneInfo.Utc)
+                .Build();
             var context = new TemplateContext(options);
 
             new StringValue(dateTime).TryGetDateTimeInput(new TemplateContext(), out var customDateTime);
@@ -367,7 +370,7 @@ namespace Fluid.Tests
             var input = new DateTimeValue(DateTimeOffset.Parse(dateTimeOffset));
 
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture };
+            var options = new TemplateOptionsBuilder().WithCultureInfo(CultureInfo.InvariantCulture).Build();
             var context = new TemplateContext(options);
 
             var result = await MiscFilters.Date(input, arguments, context);
@@ -384,7 +387,7 @@ namespace Fluid.Tests
             var input = new DateTimeValue(DateTimeOffset.Parse(initialDateTime));
 
             var arguments = new FilterArguments(new StringValue(timeZone));
-            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture };
+            var options = new TemplateOptionsBuilder().WithCultureInfo(CultureInfo.InvariantCulture).Build();
             var context = new TemplateContext(options);
 
             var result = await MiscFilters.ChangeTimeZone(input, arguments, context);
@@ -399,14 +402,13 @@ namespace Fluid.Tests
             var arguments = new FilterArguments(new StringValue("Custom"));
             var customTimeZone = TimeZoneInfo.CreateCustomTimeZone("Custom", TimeSpan.FromHours(3), "Custom", "Custom");
             var resolvedId = "";
-            var options = new TemplateOptions
-            {
-                TimeZoneResolver = id =>
+            var options = new TemplateOptionsBuilder()
+                .WithTimeZoneResolver(id =>
                 {
                     resolvedId = id;
                     return customTimeZone;
-                }
-            };
+                })
+                .Build();
 
             var result = await MiscFilters.ChangeTimeZone(input, arguments, new TemplateContext(options));
 
@@ -447,7 +449,7 @@ namespace Fluid.Tests
             var input = new DateTimeValue(DateTimeOffset.Parse(initialDateTime));
             var timeZoneArgument = new FilterArguments(new StringValue(timeZone));
             var formatArgument = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture };
+            var options = new TemplateOptionsBuilder().WithCultureInfo(CultureInfo.InvariantCulture).Build();
             var context = new TemplateContext(options);
 
             var result = await MiscFilters.ChangeTimeZone(input, timeZoneArgument, context);
@@ -478,11 +480,10 @@ namespace Fluid.Tests
             var format = "%D";
 
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions()
-            {
-                CultureInfo = CultureInfo.InvariantCulture,
-                Now = () => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0))
-            };
+            var options = new TemplateOptionsBuilder()
+                .WithCultureInfo(CultureInfo.InvariantCulture)
+                .WithNow(() => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0)))
+                .Build();
             var context = new TemplateContext(options);
 
             var result = await MiscFilters.Date(input, arguments, context);
@@ -497,11 +498,10 @@ namespace Fluid.Tests
             var format = "%D";
 
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions()
-            {
-                CultureInfo = CultureInfo.InvariantCulture,
-                Now = () => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0))
-            };
+            var options = new TemplateOptionsBuilder()
+                .WithCultureInfo(CultureInfo.InvariantCulture)
+                .WithNow(() => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0)))
+                .Build();
             var context = new TemplateContext(options);
 
             var result = await MiscFilters.Date(input, arguments, context);
@@ -516,11 +516,10 @@ namespace Fluid.Tests
             var format = "d";
 
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions()
-            {
-                CultureInfo = CultureInfo.InvariantCulture,
-                Now = () => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0))
-            };
+            var options = new TemplateOptionsBuilder()
+                .WithCultureInfo(CultureInfo.InvariantCulture)
+                .WithNow(() => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0)))
+                .Build();
             var context = new TemplateContext(options);
 
             var result = await MiscFilters.FormatDate(input, arguments, context);
@@ -535,7 +534,10 @@ namespace Fluid.Tests
             var format = "%D";
 
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture, TimeZone = TimeZoneInfo.Utc };
+            var options = new TemplateOptionsBuilder()
+                .WithCultureInfo(CultureInfo.InvariantCulture)
+                .WithTimeZone(TimeZoneInfo.Utc)
+                .Build();
             var context = new TemplateContext(options);
 
             var result = await MiscFilters.Date(input, arguments, context);
@@ -559,7 +561,10 @@ namespace Fluid.Tests
         {
             var input = new StringValue("08/01/2017");
 
-            var options = new TemplateOptions() { CultureInfo = CultureInfo.InvariantCulture, TimeZone = TimeZoneInfo.Utc };
+            var options = new TemplateOptionsBuilder()
+                .WithCultureInfo(CultureInfo.InvariantCulture)
+                .WithTimeZone(TimeZoneInfo.Utc)
+                .Build();
             var context = new TemplateContext(options);
 
             var result = await MiscFilters.Date(input, FilterArguments.Empty, context);
@@ -576,7 +581,7 @@ namespace Fluid.Tests
         {
             // The resulting DateTimeValue should use the default TimeZone
 
-            var options = new TemplateOptions { TimeZone = Eastern };
+            var options = new TemplateOptionsBuilder().WithTimeZone(Eastern).Build();
             var input = NumberValue.Create(number);
             var format = new FilterArguments(new StringValue(RoundTripDateTimePattern));
             var context = new TemplateContext(options);
@@ -592,7 +597,7 @@ namespace Fluid.Tests
         [InlineData("1:2:3.1", "1969-12-31T20:02:03.100-05:00")]
         public async Task DateTimeSpanIsParsedWithLocalTimeZone(string timespan, string expected)
         {
-            var options = new TemplateOptions { TimeZone = Eastern };
+            var options = new TemplateOptionsBuilder().WithTimeZone(Eastern).Build();
             var input = FluidValue.Create(TimeSpan.Parse(timespan), options);
             var format = new FilterArguments(new StringValue(RoundTripDateTimePattern));
             var context = new TemplateContext(options);
@@ -686,10 +691,16 @@ namespace Fluid.Tests
 
             var arguments = new FilterArguments(new StringValue(format));
 
-            var context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("fr-FR", useUserOverride: false), TimeZone = TimeZoneInfo.Utc });
+            var context = new TemplateContext(new TemplateOptionsBuilder()
+                .WithCultureInfo(new CultureInfo("fr-FR", useUserOverride: false))
+                .WithTimeZone(TimeZoneInfo.Utc)
+                .Build());
             var resultFR = await MiscFilters.Date(input, arguments, context);
 
-            context = new TemplateContext(new TemplateOptions { CultureInfo = new CultureInfo("en-US", useUserOverride: false), TimeZone = TimeZoneInfo.Utc });
+            context = new TemplateContext(new TemplateOptionsBuilder()
+                .WithCultureInfo(new CultureInfo("en-US", useUserOverride: false))
+                .WithTimeZone(TimeZoneInfo.Utc)
+                .Build());
             var resultUS = await MiscFilters.Date(input, arguments, context);
 
             Assert.Equal("08/01/2017", resultFR.ToStringValue());
@@ -791,7 +802,7 @@ namespace Fluid.Tests
         {
             var model = new JsonWithStaticMember { Id = 100 };
             var input = FluidValue.Create(model, TemplateOptions.Default);
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             Assert.Equal("{\"Id\":100}", result.ToStringValue());
@@ -806,7 +817,7 @@ namespace Fluid.Tests
                 WithoutIndexable = new DictionaryWithoutIndexableTestObjects(new { }),
                 Bool = true
             };
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var input = FluidValue.Create(model, options);
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             Assert.Equal("{\"Id\":1,\"WithoutIndexable\":{\"Type\":6,\"Value\":{}},\"Bool\":true}", result.ToStringValue());
@@ -851,13 +862,12 @@ namespace Fluid.Tests
         [Fact]
         public async Task JsonShouldUseJsonSerializerOption()
         {
-            var options = new TemplateOptions
-            {
-                JsonSerializerOptions = new JsonSerializerOptions
+            var options = new TemplateOptionsBuilder()
+                .WithJsonSerializerOptions(new JsonSerializerOptions
                 {
                     Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-                }
-            };
+                })
+                .Build();
 
             var input = FluidValue.Create("你好，这是一条短信", options);
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
@@ -868,7 +878,7 @@ namespace Fluid.Tests
         [Fact]
         public async Task JsonShouldSerializeEnumsAsStrings()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             var input = FluidValue.Create(Domain.Colors.Red, options);
             var context = new TemplateContext(options);
@@ -881,13 +891,12 @@ namespace Fluid.Tests
         [Fact]
         public async Task JsonShouldSerializeEnumsInObjectsAsStrings()
         {
-            var options = new TemplateOptions
-            {
-                JsonSerializerOptions = new JsonSerializerOptions
+            var options = new TemplateOptionsBuilder()
+                .WithJsonSerializerOptions(new JsonSerializerOptions
                 {
                     Converters = { new JsonStringEnumConverter() }
-                }
-            };
+                })
+                .Build();
 
             var input = FluidValue.Create(new Person { EyesColor = Colors.Red }, options);
             var context = new TemplateContext(options);
@@ -915,7 +924,7 @@ namespace Fluid.Tests
                 ;
 
             var arguments = new FilterArguments(new StringValue(format));
-            var context = new TemplateContext(new TemplateOptions { CultureInfo = cultureInfo });
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithCultureInfo(cultureInfo).Build());
 
             var result = await MiscFilters.FormatNumber(FluidValue.Create(input, context.Options), arguments, context);
 
@@ -934,7 +943,7 @@ namespace Fluid.Tests
                 : CultureInfo.CreateSpecificCulture(culture)
                 ;
 
-            var context = new TemplateContext(new TemplateOptions { CultureInfo = cultureInfo });
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithCultureInfo(cultureInfo).Build());
             var arguments = new FilterArguments(args.Select(x => FluidValue.Create(x, context.Options)).ToArray());
 
             var result = await MiscFilters.FormatString(FluidValue.Create(input, context.Options), arguments, context);

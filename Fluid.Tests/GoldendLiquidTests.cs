@@ -75,10 +75,13 @@ namespace Fluid.Tests
             return null;
         }
 
-        private static TemplateOptions CreateOptions()
+        private static TemplateOptions CreateOptions(ITemplateFileProvider fileProvider)
         {
-            var options = new TemplateOptions();
-            options.ValueConverters.Add(x => x is JsonElement ? ConvertJsonElement((JsonElement)x, options) : null);
+            TemplateOptions options = null;
+            options = new TemplateOptionsBuilder()
+                .AddValueConverter(x => x is JsonElement ? ConvertJsonElement((JsonElement)x, options) : null)
+                .WithFileProvider(fileProvider)
+                .Build();
             return options;
         }
 
@@ -114,7 +117,17 @@ namespace Fluid.Tests
 
             Assert.True(parseResult, error?.ToString());
 
-            var context = new TemplateContext(CreateOptions());
+            var fileSystem = new MockFileProvider();
+
+            if (test.Partials.Count != 0)
+            {
+                foreach (var partial in test.Partials)
+                {
+                    fileSystem.Add(partial.Key + ".liquid", partial.Value);
+                }
+            }
+
+            var context = new TemplateContext(CreateOptions(fileSystem));
 
             context.TimeZone = test.Tags.Contains("utc") ? TimeZoneInfo.Utc : Pacific;
 
@@ -123,17 +136,6 @@ namespace Fluid.Tests
                 foreach (var item in test.Data)
                 {
                     context.SetValue(item.Key, item.Value);
-                }
-            }
-
-            var fileSystem = new MockFileProvider();
-            context.Options.FileProvider = fileSystem;
-
-            if (test.Partials.Count != 0)
-            {
-                foreach (var partial in test.Partials)
-                {
-                    fileSystem.Add(partial.Key + ".liquid", partial.Value);
                 }
             }
 
