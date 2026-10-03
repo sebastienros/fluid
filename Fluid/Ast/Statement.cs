@@ -1,9 +1,24 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast;
 
 public abstract class Statement
 {
+    /// <summary>
+    /// Gets the zero-based UTF-16 offset in the original template, or -1 when no source location is available.
+    /// Locations are recorded when <see cref="FluidParserOptions.TrackStatementLocations"/> is enabled.
+    /// </summary>
+    [Experimental("FLUID001")]
+    public int SourceOffset { get; internal set; } = -1;
+
+    /// <summary>
+    /// Gets the length in UTF-16 code units in the original template, or zero when no location is available.
+    /// Block locations include their opening and closing tags and are not changed by whitespace trimming.
+    /// </summary>
+    [Experimental("FLUID001")]
+    public int SourceLength { get; internal set; }
+
     public static readonly ValueTask<Completion> BreakCompletion = new(Completion.Break);
     public static readonly ValueTask<Completion> NormalCompletion = new(Completion.Normal);
     public static readonly ValueTask<Completion> ContinueCompletion = new(Completion.Continue);

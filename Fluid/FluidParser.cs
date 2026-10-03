@@ -1,3 +1,5 @@
+#pragma warning disable FLUID001
+
 using Fluid.Ast;
 using Fluid.Ast.BinaryExpressions;
 using Fluid.Parser;
@@ -13,6 +15,7 @@ namespace Fluid;
 
 public class FluidParser
 {
+    private readonly bool _trackStatementLocations;
     public Parser<IReadOnlyList<Statement>> Grammar;
     public Dictionary<string, Parser<Statement>> RegisteredTags { get; } = new();
     public Dictionary<string, Func<Expression, Expression, Expression>> RegisteredOperators { get; } = new();
@@ -87,6 +90,7 @@ public class FluidParser
 
     public FluidParser(FluidParserOptions parserOptions)
     {
+        _trackStatementLocations = parserOptions.TrackStatementLocations;
         if (!parserOptions.AllowLiquidTag)
         {
             OutputStart = NoInlineOutputStart;
@@ -288,10 +292,11 @@ public class FluidParser
                 });
         FilterExpression.Name = "FilterExpression";
 
-        var Output = OutputStart.SkipAnd(FilterExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter).And(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd))
+        Parser<Statement> Output = OutputStart.SkipAnd(FilterExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter).And(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd))
             .Then<Statement>(static x => new OutputStatement(x.Item1))
             );
         Output.Name = "Output";
+        Output = TrackStatement(Output);
 
         var Text = AnyCharBefore(OutputStart.Or(TagStart))
             .Then<Statement>(static (ctx, x) =>
@@ -316,6 +321,7 @@ public class FluidParser
                 return result;
             });
         Text.Name = "Text";
+        Text = TrackStatement(Text);
 
         var BreakTag = TagEnd.Then<Statement>(x => new BreakStatement()).ElseError("Invalid 'break' tag");
         BreakTag.Name = "BreakTag";
@@ -397,6 +403,7 @@ public class FluidParser
 
         var IncludeAssignStatement = Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2));
         IncludeAssignStatement.Name = "IncludeAssignStatement";
+        IncludeAssignStatement = TrackStatement(IncludeAssignStatement, skipLeadingWhitespace: true);
 
         var IncludeTag = OneOf(
                     Primary.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3)),
@@ -421,9 +428,9 @@ public class FluidParser
         FromTag.Name = "FromTag";
 
         var RenderTag = OneOf(
-                    String.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).And(ZeroOrOne(ZeroOrOne(Comma).SkipAnd(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))))).Then(x => new RenderStatement(this, x.Item1.ToString(), with: x.Item2, alias: x.Item3, assignStatements: x.Item4 ?? [])),
-                    String.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).And(ZeroOrOne(ZeroOrOne(Comma).SkipAnd(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))))).Then(x => new RenderStatement(this, x.Item1.ToString(), @for: x.Item2, alias: x.Item3, assignStatements: x.Item4 ?? [])),
-                    String.And(ZeroOrOne(ZeroOrOne(Comma).SkipAnd(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))))).Then(x => new RenderStatement(this, x.Item1.ToString(), null, null, null, x.Item2 ?? []))
+                    String.AndSkip(Terms.Text("with")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).And(ZeroOrOne(ZeroOrOne(Comma).SkipAnd(Separated(Comma, IncludeAssignStatement)))).Then(x => new RenderStatement(this, x.Item1.ToString(), with: x.Item2, alias: x.Item3, assignStatements: x.Item4 ?? [])),
+                    String.AndSkip(Terms.Text("for")).And(Primary).And(ZeroOrOne(Terms.Text("as").SkipAnd(Identifier))).And(ZeroOrOne(ZeroOrOne(Comma).SkipAnd(Separated(Comma, IncludeAssignStatement)))).Then(x => new RenderStatement(this, x.Item1.ToString(), @for: x.Item2, alias: x.Item3, assignStatements: x.Item4 ?? [])),
+                    String.And(ZeroOrOne(ZeroOrOne(Comma).SkipAnd(Separated(Comma, IncludeAssignStatement)))).Then(x => new RenderStatement(this, x.Item1.ToString(), null, null, null, x.Item2 ?? []))
                     ).ElseError(ErrorMessages.ExpectedStringRender).AndSkip(TagEnd)
                     .Then<Statement>(x => x)
                     .ElseError("Invalid 'render' tag")
@@ -451,20 +458,22 @@ public class FluidParser
         // Multiple else blocks: only first is used. Elsif after else: ignored.
         var ElseBlocksWithTrailing = ZeroOrMany(
             OneOf(
-                ElseTagLenient.SkipAnd(AnyTagsList).Then(x => (IReadOnlyList<Statement>)x),
-                ElsifTagCapture.SkipAnd(AnyTagsList).Then(x => (IReadOnlyList<Statement>)null) // elsif after else is ignored
+                TrackStatement(ElseTagLenient.SkipAnd(AnyTagsList).Then(x => new ElseStatement(x)), skipLeadingWhitespace: true),
+                ElsifTagCapture.SkipAnd(AnyTagsList).Then(x => (ElseStatement)null) // elsif after else is ignored
             )).Then(x =>
             {
                 // Find first non-null (first else block content)
-                return new ElseStatement(x.FirstOrDefault(e => e != null)) ?? null;
+                return x.FirstOrDefault(e => e != null) ?? new ElseStatement(null);
             });
+
+        var ElseIfBranch = TrackStatement(
+            TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(AnyTagsList)
+                .Then(x => new ElseIfStatement(x.Item1, x.Item2)), skipLeadingWhitespace: true);
 
         var IfTag = LogicalExpression
                     .AndSkip(TagEnd)
                     .And(AnyTagsList)
-                    .And(ZeroOrMany(
-                        TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(AnyTagsList))
-                        .Then(x => x.Select(e => new ElseIfStatement(e.Item1, e.Item2)).ToList()))
+                    .And(ZeroOrMany(ElseIfBranch))
                     .And(ElseBlocksWithTrailing)
                     .AndSkip(CreateTag("endif").ElseError($"'{{% endif %}}' was expected"))
                     .Then<Statement>(x => new IfStatement(x.Item1, x.Item2, x.Item4, x.Item3))
@@ -474,9 +483,7 @@ public class FluidParser
         var UnlessTag = LogicalExpression
                     .AndSkip(TagEnd)
                     .And(AnyTagsList)
-                    .And(ZeroOrMany(
-                        TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(AnyTagsList))
-                        .Then(x => x.Select(e => new ElseIfStatement(e.Item1, e.Item2)).ToList()))
+                    .And(ZeroOrMany(ElseIfBranch))
                     .And(ElseBlocksWithTrailing)
                     .AndSkip(CreateTag("endunless").ElseError($"'{{% endunless %}}' was expected"))
                     .Then<Statement>(x => new UnlessStatement(x.Item1, x.Item2, x.Item4, x.Item3))
@@ -523,9 +530,9 @@ public class FluidParser
                         .AndSkip(ZeroOrOne(Comma))
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
-                        .And(ZeroOrOne(
-                            CreateTag("else").SkipAnd(AnyTagsList))
-                            .Then(x => x != null ? new ElseStatement(x) : null))
+                        .And(ZeroOrOne(TrackStatement(
+                            CreateTag("else").SkipAnd(AnyTagsList).Then(x => new ElseStatement(x)),
+                            skipLeadingWhitespace: true)))
                         .AndSkip(CreateTag("endfor").ElseError($"'{{% endfor %}}' was expected"))
                         .Then<Statement>(x =>
                         {
@@ -582,17 +589,10 @@ public class FluidParser
                     ).ElseError("Invalid 'tablerow' tag");
         TableRowTag.Name = "TableRowTag";
 
-        var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
-            .Then((context, x) =>
-            {
-                var ctx = (FluidParseContext)context;
-                ctx.LiquidTagDepth++;
-                return x;
-            })
-            .SkipAnd(ZeroOrMany(OneOf(
-                Terms.Char('#').Then(x => "#"),
-                Identifier
-            ).Switch((context, previous) =>
+        Parser<Statement> LiquidChild = OneOf(
+            Terms.Char('#').Then(x => "#"),
+            Identifier
+        ).Switch((context, previous) =>
         {
             // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
             // as inner tags in blocks like {% if %} TagsList {% endif $}
@@ -608,7 +608,22 @@ public class FluidParser
                 throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}",
                     context.Scanner.Cursor.Buffer, context.Scanner.Cursor.Position);
             }
-        })))
+        });
+
+        if (_trackStatementLocations)
+        {
+            // In liquid mode TagStart consumes nothing, but preserves the start before Switch parses the arguments.
+            LiquidChild = TrackStatement(TagStart.SkipAnd(LiquidChild), skipLeadingWhitespace: true);
+        }
+
+        var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
+            .Then((context, x) =>
+            {
+                var ctx = (FluidParseContext)context;
+                ctx.LiquidTagDepth++;
+                return x;
+            })
+            .SkipAnd(ZeroOrMany(LiquidChild))
             .Then((context, x) =>
             {
                 var ctx = (FluidParseContext)context;
@@ -729,7 +744,7 @@ public class FluidParser
             return ReadFromList(modifiers);
         }
 
-        var AnyTags = TagStart.SkipAnd(OneOf(
+        var AnyTags = TrackStatement(TagStart.SkipAnd(OneOf(
             Terms.Char('#').Then(x => "#"),
             Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart)
         ).Switch((context, previous) =>
@@ -747,9 +762,9 @@ public class FluidParser
             {
                 return null;
             }
-        }));
+        })), skipLeadingWhitespace: true);
 
-        var KnownTags = TagStart.SkipAnd(OneOf(
+        var KnownTags = TrackStatement(TagStart.SkipAnd(OneOf(
             Terms.Char('#').Then(x => "#"),
             Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart)
         ).Switch((context, previous) =>
@@ -768,7 +783,7 @@ public class FluidParser
                 throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}",
                     context.Scanner.Cursor.Buffer, context.Scanner.Cursor.Position);
             }
-        }));
+        })), skipLeadingWhitespace: true);
 
         AnyTagsList.Parser = ZeroOrMany(Output.Or(AnyTags).Or(Text)); // Used in block and stop when an unknown tag is found
         KnownTagsList.Parser = ZeroOrMany(Output.Or(KnownTags).Or(Text)); // Used in main list and raises an issue when an unknown tag is found
@@ -777,6 +792,34 @@ public class FluidParser
     }
 
     public Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
+
+    /// <summary>
+    /// Records the source range of a statement parser when location tracking is enabled.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.Experimental("FLUID001")]
+    protected Parser<T> TrackStatement<T>(Parser<T> parser, bool skipLeadingWhitespace = false) where T : Statement
+    {
+        if (!_trackStatementLocations)
+        {
+            return parser;
+        }
+
+        return parser.Then((context, start, end, statement) =>
+        {
+            if (skipLeadingWhitespace)
+            {
+                var buffer = context.Scanner.Buffer;
+                while (start < end && Character.IsWhiteSpaceOrNewLine(buffer[start]))
+                {
+                    start++;
+                }
+            }
+
+            statement.SourceOffset = start;
+            statement.SourceLength = context.Scanner.Cursor.Offset - start;
+            return statement;
+        });
+    }
 
     public void RegisterIdentifierTag(string tagName, Func<string, IFluidOutput, TextEncoder, TemplateContext, ValueTask<Completion>> render)
     {
