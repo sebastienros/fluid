@@ -1,110 +1,63 @@
 # AGENTS.md
 
-Guidance for coding agents working in this repository.
+Fluid is a .NET Liquid template engine. Reference implementation for ambiguous spec questions: https://github.com/Shopify/liquid (Ruby).
 
-## Reference implementation
+## Branches
 
-The reference implementation of the Liquid template language in Ruby can be found at https://github.com/Shopify/liquid. Refer to it when the specification is unclear.
+- `main` targets an unreleased major version: API and behavior breaking changes are allowed. Prefer the right design over backward compatibility, and call out breaking changes in the PR description.
+- Maintenance branches of released versions must stay compatible (keep members with `[Obsolete]` instead of removing them).
 
 ## Commands
 
 ```shell
-dotnet build                              # SDK pinned by global.json (10.0.100, rollForward latestMajor)
-dotnet test                               # xUnit v3 on Microsoft.Testing.Platform (set in global.json)
-dotnet test --property:Compiled=true      # second CI pass: exercises the compiled Parlot grammar
-dotnet test --list-tests
+dotnet build
+dotnet test                               # xUnit v3 on Microsoft.Testing.Platform
+dotnet test --property:Compiled=true      # second CI pass: compiled Parlot grammar
 dotnet run -c Release --project Fluid.Benchmarks
 ```
 
-Use `--property:`, not `/p:`. Both spellings reach MSBuild from PowerShell or the CI shells, but MSYS path conversion in Git Bash — the shell coding agents get on Windows — rewrites `/p:Compiled=true` to `p:Compiled=true` before `dotnet test` sees it, and the mangled argument aborts the run with zero tests executed (exit code 5).
-
-CI (`.github/workflows/pr.yml`) runs both test passes in Release on Linux/macOS/Windows. `Fluid.Tests` targets `net10.0` only, so `dotnet test` is already the single-TFM run that keeps the dev loop fast.
-
-`/p:Compiled=true` defines the `COMPILED` constant, and ~18 test classes use it to swap `new FluidParser()` for `new FluidParser().Compile()` (see `Fluid.Tests/ParserTests.cs:14`). A change that passes one pass but not the other usually means a grammar rule behaves differently once Parlot compiles it.
+- Use `--property:`, never `/p:` (Git Bash on Windows mangles `/p:` and the run executes zero tests).
+- CI runs both test passes. If a change passes only one, a grammar rule behaves differently once compiled (`COMPILED` constant swaps in `new FluidParser().Compile()`).
 
 ## Golden Liquid tests
 
-`Fluid.Tests/GoldenLiquidTests.cs` runs the [Golden Liquid](https://github.com/jg-rp/golden-liquid) suite. The test definitions are not in that class, they come from `https://raw.githubusercontent.com/jg-rp/golden-liquid/main/golden_liquid.json`.
-
-Golden Liquid tests always prevail: if one contradicts an existing unit test, update the unit test.
-
-Run them all:
+`Fluid.Tests/GoldenLiquidTests.cs` runs the [Golden Liquid](https://github.com/jg-rp/golden-liquid) suite (definitions downloaded from its repo). Golden tests always prevail: if one contradicts a unit test, update the unit test.
 
 ```shell
+# all
 ./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -method "Fluid.Tests.GoldenLiquidTests.GoldenTestShouldPass"
+# one: find its id, then run it (-preEnumerateTheories is required)
+./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -list full 2>&1 | grep -B2 -A5 "<test_name>"
+./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -id "<id>"
 ```
 
-Run a single one — with xUnit v3 and MTP v2, use the test executable directly with `-id`. The `-preEnumerateTheories` flag is required to enumerate the parameterized tests.
+## Build rules
 
-```shell
-# Find the test ID
-./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -list full 2>&1 | grep -B2 -A5 "identifiers_ascii_lowercase"
-
-# Run it, using the ID from the output above
-./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -id "71958641a76ed3a8219c73a9e5f956b4ecf2cb1b07ca728d3d8c8365646e7895"
-```
-
-## Build configuration
-
-- Central package management: add/update versions in `Directory.Packages.props`, never in a `.csproj`.
-- `Common.props` sets `TreatWarningsAsErrors=true` and strong-name signing (`Fluid.snk`) for all projects — warnings break the build.
-- `Fluid` multi-targets `netstandard2.0;net8.0;net9.0;net10.0`. New core code must compile on netstandard2.0: PolySharp supplies language polyfills and `Fluid/Shims.cs` supplies the missing BCL overloads (`#if !NET6_0_OR_GREATER`, plus a `Lock` placeholder behind `#if !NET9_0_OR_GREATER`).
+- Package versions go in `Directory.Packages.props`, never in a `.csproj`.
+- `TreatWarningsAsErrors=true`: warnings break the build.
+- `Fluid` multi-targets `netstandard2.0;net8.0;net9.0;net10.0`. New core code must compile on all; use `Fluid/Shims.cs` and `#if` guards with a working fallback for newer APIs (e.g. `SearchValues<T>` is net8.0+). Never drop the fallback.
 
 ## Architecture
 
-Pipeline: **source text → Parlot grammar → `Statement` AST → async render into an `IFluidOutput`.**
+Pipeline: source → Parlot grammar (`Fluid/FluidParser.cs`) → `Statement` AST → async render to `IFluidOutput`.
 
-**Parsing** — `Fluid/FluidParser.cs` builds `Grammar`, a `Parser<IReadOnlyList<Statement>>` from [Parlot](https://github.com/sebastienros/parlot) combinators. `FluidParserExtensions.Parse/TryParse` runs it and wraps the result in `FluidTemplate` (`Fluid/Parser/FluidTemplate.cs`), which implements `IFluidTemplate`. `FluidParser.Compile()` (`Fluid/FluidParser.cs:828`) compiles the grammar and every entry in `RegisteredTags` for faster parsing.
-
-`FluidParserOptions` gates non-default syntax (`AllowFunctions`, `AllowParentheses`, `AllowLiquidTag`, `AllowTrailingQuestionMark`) and is immutable (`init`-only properties) — some options rewire which tag-start/tag-end parsers are used, so it cannot be changed later.
-
-**Rendering** — every node derives from `Fluid/Ast/Statement.cs`:
-`ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)`. `Completion` (`Normal`/`Break`/`Continue`) is how `{% break %}`/`{% continue %}` propagate out of nested blocks — a statement that contains children must stop and bubble up any non-`Normal` completion. `FluidParserExtensions.RenderStatementsAsync` is the reference implementation of that loop, and of the repo-wide async idiom: run synchronously while `ValueTask.IsCompletedSuccessfully`, and only fall into an `Awaited` local function when a task actually suspends. Match that shape in new statements rather than making everything `async`.
-
-**Values** — `Fluid/Values/FluidValue.cs` and its subclasses are the only things the engine manipulates at runtime. CLR objects enter through `FluidValue.Create` and `TemplateOptions.ValueConverters`. Prefer the cached singletons (`NilValue.Instance`, `BooleanValue.True`, `Statement.NormalCompletion`) over new allocations.
-
-**Options vs context** — `TemplateOptions` is shared, immutable application configuration (filters, member access strategy, culture, time zone, execution limits) and should be created once. It has no public constructor or setters: configure a `TemplateOptionsBuilder` with its fluent `With*`/`Configure*`/`Add*` methods, then call `Build()`; `Build()` copies the filters, global values, value converters and member access registrations, and creates a new `MemberAccessStrategy`, so a builder can be reused without affecting options already built. `TemplateOptions.ToBuilder()` derives a variation. `MoneyOptions` and `FluidParserOptions` are immutable too (`init`-only properties, `MoneyOptions.WithCurrency`). A new option goes on the builder, `TemplateOptions` and `TemplateOptionsBuilder.ToBuilder` copy constructor together. `TemplateContext` is per-render and **not** thread-safe; it owns the scope chain, the model, and the step/recursion counters. `FluidParser` and `IFluidTemplate` instances are thread-safe and meant to be cached.
-
-**Security / member access** — Fluid is allow-list based: a .NET member is invisible to templates until registered. `MemberAccessStrategy` + `MemberAccessor` resolve members, with emit-based accessors when dynamic code is available and `Reflection*Accessor` fallbacks otherwise (NativeAOT/trimming). `Fluid.SourceGenerator/MemberAccessorGenerator.cs` generates accessors for types marked with `[FluidRegister]` (on a `TemplateOptionsBuilder` subclass, or on a static partial method taking a `TemplateOptionsBuilder`); the `TemplateOptionsBuilder` constructor invokes the generated registrar, which calls `ConfigureMemberAccess`. `DefaultMemberAccessStrategy` is made read-only by `Build()`, so explicit `Register` calls must go through the builder. Changes to accessor resolution need to hold for all three paths — emit, reflection, generated.
-
-**Filters** — `FilterCollection` maps a name to a `FilterDelegate`. Built-ins live in `Fluid/Filters/{Array,String,Number,Misc,Color,Money}Filters.cs` and are wired up by `With*Filters()` extension methods. The `TemplateOptionsBuilder` constructor calls `WithArrayFilters().WithStringFilters().WithNumberFilters().WithMiscFilters()`; `WithColorFilters()` and `WithMoneyFilters()` exist but are opt-in. `TemplateOptions.Filters` is a read-only copy. A new built-in filter goes in the matching file plus its `With*Filters` method. `WithMoneyFilters()` is configured by `TemplateOptions.MoneyOptions` (`Fluid/MoneyOptions.cs`, set with `TemplateOptionsBuilder.WithMoneyOptions`), which is mirrored on `TemplateContext` so a currency can be picked per render.
-
-**Extending the grammar** — `FluidParser.Register{Empty,Identifier,Expression,Parser}{Tag,Block}` add custom tags/blocks; `RegisteredOperators` adds binary operators. `Fluid.ViewEngine/FluidViewParser.cs` is the worked example, adding `layout`, `section`, `rendersection`, and `renderbody` on top of the base parser.
-
-**Visitors** — `Fluid/Ast/AstVisitor.cs` and `AstRewriter.cs` walk or rewrite a parsed template via `Statement.Accept`. A new statement type must override `Accept` and get a matching visitor hook, or it becomes opaque to analysis and rewriting.
-
-## Project layout
-
-| Project | Role |
-| --- | --- |
-| `Fluid` | Core engine, packaged as `Fluid.Core` |
-| `Fluid.SourceGenerator` | Roslyn generator for `[FluidRegister]` member accessors |
-| `Fluid.ViewEngine` | Layout/section tags, `FluidViewParser`, `FluidViewRenderer` |
-| `Fluid.MvcViewEngine` | ASP.NET Core MVC `IViewEngine` on top of `Fluid.ViewEngine` |
-| `MinimalApis.LiquidViews` | Minimal APIs integration |
-| `Fluid.Tests` | All tests (net10.0) |
-| `Fluid.Benchmarks` | BenchmarkDotNet, incl. comparisons against DotLiquid/Scriban/Handlebars |
-| `Fluid.MvcSample`, `Fluid.MinimalApisSample` | Sample apps |
+- **Rendering**: nodes derive from `Statement` (`WriteToAsync` returns `ValueTask<Completion>`). Statements with children must stop and bubble up any non-`Normal` completion (`break`/`continue`). Follow `FluidParserExtensions.RenderStatementsAsync`: stay synchronous while the `ValueTask` is completed, fall into an `Awaited` local function only on suspension. Don't make everything `async`.
+- **Values**: the engine only manipulates `FluidValue` subclasses. Prefer cached singletons (`NilValue.Instance`, `BooleanValue.True`, `Statement.NormalCompletion`).
+- **Options vs context**: `TemplateOptions` is shared, immutable configuration with no public constructor or setters: configure a `TemplateOptionsBuilder` (`With*`/`Configure*`/`Add*`), then `Build()`, which copies filters, global values, converters and member access registrations and creates a new `MemberAccessStrategy`. `ToBuilder()` derives variations; a new option goes on the builder, `TemplateOptions` and the `ToBuilder` copy constructor together. `MoneyOptions` is immutable too. `TemplateContext` is per-render and not thread-safe. `FluidParser` and `IFluidTemplate` are thread-safe and should be cached.
+- **FluidParserOptions** is immutable (`init`-only; some options rewire tag parsers).
+- **Member access** is allow-list based. Changes to accessor resolution must work for all three paths: emit, `Reflection*Accessor` fallbacks, and source-generated (`Fluid.SourceGenerator`, `[FluidRegister]` on a `TemplateOptionsBuilder` subclass or a static partial method taking one). `Build()` makes the strategy read-only, so explicit `Register` calls go through `ConfigureMemberAccess`.
+- **Filters**: add built-ins to the matching `Fluid/Filters/*Filters.cs` plus its `With*Filters()` method. Color and Money filters are opt-in (`WithColorFilters()`, `WithMoneyFilters()` on the builder); `TemplateOptions.Filters` is a read-only copy.
+- **Grammar extension**: `Register*Tag/Block`, `RegisteredOperators`; `Fluid.ViewEngine/FluidViewParser.cs` is the worked example.
+- **Visitors**: a new `Statement` must override `Accept` and have a matching hook in `AstVisitor`/`AstRewriter`.
 
 ## Performance
 
-Performance is a primary design goal of this library, not an afterthought — Fluid competes on benchmarks against DotLiquid, Scriban, and Handlebars.Net, and allocation counts matter as much as throughput. Hot paths are parsing, member access resolution, filter dispatch, `FluidValue` conversions, and output writing.
+Performance is a primary goal (competes with DotLiquid, Scriban, Handlebars.Net); allocations matter as much as throughput. Hot paths: parsing, member access, filter dispatch, `FluidValue` conversion, output writing.
 
-Use the newest language and runtime features available when they genuinely help — `stackalloc` and `Span<T>`/`ReadOnlySpan<T>`, `SearchValues<char>` for multi-character scanning, `ArrayPool<char>`, ref structs, `MemoryMarshal`, vectorized/SIMD APIs, collection expressions, and newer BCL overloads that avoid intermediate allocations. `LangVersion` is `latest` everywhere, so new C# syntax is available. The bar is "measurably faster or fewer allocations for a realistic template", not novelty — a change that only makes the code look modern is not worth the churn.
+- Use modern features (`Span<T>`, `stackalloc`, `ArrayPool`, `SearchValues`, ref structs) only when measurably faster or fewer allocations.
+- Reuse existing patterns: `ValueStringBuilder`, `BufferFluidOutput`, cached singletons, the synchronous `ValueTask` fast path.
+- Benchmark with `Fluid.Benchmarks` before and after hot-path changes and report the numbers.
 
-Existing patterns to follow rather than reinvent:
+## Documentation
 
-- `Fluid/Utils/ValueStringBuilder.cs` — ref struct builder seeded from `stackalloc`, spilling to `ArrayPool<char>`. Used throughout `Fluid/Filters/MiscFilters.cs` (e.g. `new ValueStringBuilder(stackalloc char[32])`).
-- `Fluid/Utils/BufferFluidOutput.cs` and `TextWriterFluidOutput.cs` — pooled output buffering behind `IFluidOutput`.
-- `Fluid/Values/NumberValue.cs:158` — `Span<char>` scratch with an `ArrayPool` fallback for larger formats.
-- `FluidParserExtensions.RenderStatementsAsync` — synchronous `ValueTask` fast path, `Awaited` local function only when a task actually suspends.
-- Cached singletons (`NilValue.Instance`, `BooleanValue.True`, `Statement.NormalCompletion`) instead of fresh allocations.
-
-Because `Fluid` still targets netstandard2.0, APIs that only exist on modern runtimes go behind a TFM guard with a working fallback — `Fluid/FluidOutputExtensions.cs:64` (`#if NET8_0_OR_GREATER`) and `Fluid/Filters/StringFilters.cs:244` (`#if NET6_0_OR_GREATER`) are the model. `SearchValues<T>` in particular is net8.0+, so it needs this treatment. Do not drop the fallback path; do not regress netstandard2.0 behavior.
-
-Measure with `Fluid.Benchmarks` (`dotnet run -c Release --project Fluid.Benchmarks`) before and after any hot-path change, and keep the numbers — an unmeasured performance claim is not one.
-
-## Conventions
-
-- `README.md` is the user-facing documentation *and* the NuGet package readme — behavior changes visible in templates belong there too.
-- Public API changes should keep the netstandard2.0 surface working, and obsolete members are kept with `[Obsolete]` rather than removed (see `FluidValue.ToStringValue()` and friends).
+`README.md` is both user docs and the NuGet readme: update it for any template-visible behavior change.

@@ -763,6 +763,16 @@ var options = new TemplateOptionsBuilder()
 
 `System.Text.Json.Nodes` values are supported by default: `JsonObject` and `JsonArray` map to Liquid dictionaries and arrays, and scalar `JsonValue` nodes map to the corresponding Liquid values. Configured value converters run before these built-in mappings, so they can override the default behavior; return `null` to continue with the built-in conversion.
 
+JSON date strings can be used directly with `date`, `format_date`, and `time_zone`, without first applying a string filter such as `strip`:
+
+```csharp
+var model = System.Text.Json.Nodes.JsonNode.Parse("""
+    { "published": "2020-05-18T02:13:09+00:00" }
+    """).AsObject();
+var template = new FluidParser().Parse("{{ published | date: '%Y-%m-%d' }}");
+var result = await template.RenderAsync(new TemplateContext(model)); // 2020-05-18
+```
+
 <br>
 
 ## Encoding
