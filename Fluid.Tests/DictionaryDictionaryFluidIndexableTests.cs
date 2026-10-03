@@ -1,5 +1,6 @@
 ﻿using Fluid.Values;
 using System.Globalization;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -90,5 +91,35 @@ public class DictionaryDictionaryFluidIndexableTests
         var result = template.Render(context);
 
         Assert.Equal("1,5=value;", result);
+    }
+
+    [Fact]
+    public void TemplateShouldLookUpNumericDictionaryKeysByString()
+    {
+        var context = new TemplateContext();
+        context.SetValue("items", new Dictionary<long, string> { { 101, "value" } });
+        var template = _parser.Parse("{{ items['101'] }}");
+
+        Assert.Equal("value", template.Render(context));
+    }
+
+    [Fact]
+    public void LookupShouldPreferAnExactStringKey()
+    {
+        var items = new Hashtable { [1] = "numeric", ["1"] = "string" };
+        var indexable = new DictionaryDictionaryFluidIndexable(items, new TemplateOptions());
+
+        Assert.True(indexable.TryGetValue("1", out var value));
+        Assert.Equal("string", value.ToStringValue());
+    }
+
+    [Fact]
+    public void MissingKeyShouldReturnNil()
+    {
+        var items = new Hashtable { [1] = "numeric", ["one"] = "string" };
+        var indexable = new DictionaryDictionaryFluidIndexable(items, new TemplateOptions());
+
+        Assert.False(indexable.TryGetValue("missing", out var value));
+        Assert.Same(NilValue.Instance, value);
     }
 }
