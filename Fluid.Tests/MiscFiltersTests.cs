@@ -378,6 +378,140 @@ namespace Fluid.Tests
             Assert.Equal(expected, ((DateTimeOffset)result.ToObjectValue()).ToString("yyyy-MM-ddTHH:mm:ssK"));
         }
 
+        [Fact]
+        public async Task ChangeTimeZoneUsesConfiguredResolver()
+        {
+            var value = DateTimeOffset.Parse("2020-05-18T02:13:09+00:00", CultureInfo.InvariantCulture);
+            var customTimeZone = TimeZoneInfo.CreateCustomTimeZone("Custom", TimeSpan.FromHours(3), "Custom", "Custom");
+            var options = new TemplateOptions
+            {
+                TimeZoneResolver = id =>
+                {
+                    Assert.Equal("Custom", id);
+                    return customTimeZone;
+                }
+            };
+
+            var result = await MiscFilters.ChangeTimeZone(new DateTimeValue(value),
+                new FilterArguments(new StringValue("Custom")), new TemplateContext(options));
+
+            var converted = Assert.IsType<DateTimeValue>(result);
+            Assert.Equal(value.ToOffset(TimeSpan.FromHours(3)), converted.ToObjectValue());
+            Assert.Equal(TimeSpan.FromHours(3), ((DateTimeOffset)converted.ToObjectValue()).Offset);
+        }
+
+        [Theory]
+        [InlineData("America/New_York")]
+        [InlineData("Pacific Standard Time")]
+        [InlineData("utc")]
+        [InlineData("")]
+        [InlineData("Europe/wrongTZ")]
+        public async Task ChangeTimeZoneDefaultMatchesTimeZoneConverter(string id)
+        {
+            var value = DateTimeOffset.Parse("2020-05-18T02:13:09+01:00", CultureInfo.InvariantCulture);
+            var options = new TemplateOptions();
+            var resolved = TZConvert.TryGetTimeZoneInfo(id, out var timeZone);
+            var expected = resolved ? TimeZoneInfo.ConvertTime(value, timeZone) : value;
+
+            if (resolved)
+            {
+                Assert.Equal(timeZone, options.TimeZoneResolver(id));
+            }
+            else
+            {
+                Assert.Throws<TimeZoneNotFoundException>(() => options.TimeZoneResolver(id));
+            }
+
+            var result = await MiscFilters.ChangeTimeZone(new DateTimeValue(value),
+                new FilterArguments(new StringValue(id)), new TemplateContext(options));
+
+            var actual = (DateTimeOffset)Assert.IsType<DateTimeValue>(result).ToObjectValue();
+            Assert.Equal(expected, actual);
+            Assert.Equal(expected.Offset, actual.Offset);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ChangeTimeZoneLeavesDateUnchangedForResolverTimeZoneErrors(bool invalid)
+        {
+            var value = DateTimeOffset.Parse("2020-05-18T02:13:09+01:00", CultureInfo.InvariantCulture);
+            var options = new TemplateOptions
+            {
+                TimeZoneResolver = _ => invalid
+                    ? throw new InvalidTimeZoneException()
+                    : throw new TimeZoneNotFoundException()
+            };
+
+            var result = await MiscFilters.ChangeTimeZone(new DateTimeValue(value),
+                new FilterArguments(new StringValue("Custom")), new TemplateContext(options));
+
+            var actual = (DateTimeOffset)Assert.IsType<DateTimeValue>(result).ToObjectValue();
+            Assert.Equal(value, actual);
+            Assert.Equal(value.Offset, actual.Offset);
+        }
+
+        [Fact]
+        public async Task ChangeTimeZonePropagatesUnexpectedResolverErrors()
+        {
+            var error = new InvalidOperationException("Resolver failed.");
+            var options = new TemplateOptions { TimeZoneResolver = _ => throw error };
+
+            var actual = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await MiscFilters.ChangeTimeZone(new DateTimeValue(DateTimeOffset.UtcNow),
+                    new FilterArguments(new StringValue("Custom")), new TemplateContext(options)));
+
+            Assert.Same(error, actual);
+        }
+
+        [Fact]
+        public async Task ChangeTimeZoneRejectsNullResolverResults()
+        {
+            var options = new TemplateOptions { TimeZoneResolver = _ => null };
+
+            await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+                await MiscFilters.ChangeTimeZone(new DateTimeValue(DateTimeOffset.UtcNow),
+                    new FilterArguments(new StringValue("Custom")), new TemplateContext(options)));
+        }
+
+        [Theory]
+        [InlineData("local")]
+        [InlineData("LOCAL")]
+        public async Task ChangeTimeZoneLocalBypassesResolver(string id)
+        {
+            var value = DateTimeOffset.Parse("2020-05-18T02:13:09+00:00", CultureInfo.InvariantCulture);
+            var options = new TemplateOptions
+            {
+                TimeZoneResolver = _ => throw new InvalidOperationException("Resolver should not be called.")
+            };
+            var context = new TemplateContext(options) { TimeZone = Eastern };
+
+            var result = await MiscFilters.ChangeTimeZone(new DateTimeValue(value),
+                new FilterArguments(new StringValue(id)), context);
+
+            var expected = TimeZoneInfo.ConvertTime(value, Eastern);
+            var actual = (DateTimeOffset)Assert.IsType<DateTimeValue>(result).ToObjectValue();
+            Assert.Equal(expected, actual);
+            Assert.Equal(expected.Offset, actual.Offset);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ChangeTimeZoneMissingIdentifierReturnsNil(bool explicitNil)
+        {
+            var options = new TemplateOptions
+            {
+                TimeZoneResolver = _ => throw new InvalidOperationException("Resolver should not be called.")
+            };
+            var arguments = explicitNil ? new FilterArguments(NilValue.Instance) : new FilterArguments();
+
+            var result = await MiscFilters.ChangeTimeZone(new DateTimeValue(DateTimeOffset.UtcNow),
+                arguments, new TemplateContext(options));
+
+            Assert.Same(NilValue.Instance, result);
+        }
+
         [Theory]
         [InlineData("2022-12-13T21:02:18.399+00:00", "utc", "2022-12-13T21:02:18.399+00:00")]
         [InlineData("2022-12-13T21:02:18.399+00:00", "America/New_York", "2022-12-13T21:02:18.399+00:00")]

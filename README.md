@@ -783,7 +783,9 @@ Wed Dec 31 19:00:00 -08:00 1969
 
 ### Converting time zones
 
-Dates and times can be converted to specific time zones using the `time_zone: <iana>` filter.
+Dates and times can be converted to specific time zones using the `time_zone` filter.
+Fluid 2.x uses TimeZoneConverter on all target frameworks to resolve IANA and Windows identifiers,
+including on Windows with NLS enabled. This default remains unchanged.
 
 #### Example
 
@@ -800,6 +802,21 @@ context.SetValue("published", DateTime.UtcNow);
 ```html
 Tue Aug  1 17:04:36 -05:00 2017
 ```
+
+Use `TemplateOptions.TimeZoneResolver` to customize resolution or opt into the platform resolver:
+
+```csharp
+var options = new TemplateOptions
+{
+    TimeZoneResolver = TimeZoneInfo.FindSystemTimeZoneById
+};
+var context = new TemplateContext(options);
+```
+
+The platform resolver's supported identifiers depend on the operating system and globalization
+configuration. The special `local` identifier uses `TemplateContext.TimeZone` without calling the
+resolver. Unknown or invalid time zones leave the date unchanged. See [Time zone resolution](TimeZones.md)
+for the resolver contract and compatibility details.
 
 <br>
 

@@ -42,6 +42,24 @@ namespace Fluid.Tests
             Assert.Equal(expected, result);
         }
 
+        [Fact]
+        public async Task ShouldRenderWithCustomTimeZoneResolver()
+        {
+            var options = new TemplateOptions
+            {
+                TimeZoneResolver = id =>
+                {
+                    Assert.Equal("Custom", id);
+                    return TimeZoneInfo.CreateCustomTimeZone(id, TimeSpan.FromHours(3), id, id);
+                }
+            };
+            var context = new TemplateContext(options);
+            context.SetValue("published", new DateTimeOffset(2020, 5, 18, 2, 13, 9, TimeSpan.Zero));
+
+            await CheckAsync("{{ published | time_zone: 'Custom' | date: '%Y-%m-%dT%H:%M:%S%Z' }}",
+                "2020-05-18T05:13:09+03:00", context, NullEncoder.Default);
+        }
+
         private async Task CheckAsync(string source, string expected, TemplateContext context, TextEncoder encoder)
         {
             _parser.TryParse(source, out var template, out var error);
