@@ -6,11 +6,7 @@ namespace Fluid.Tests;
 
 public class StrictFiltersTests
 {
-#if COMPILED
-    private static readonly FluidParser _parser = new FluidParser().Compile();
-#else
     private static readonly FluidParser _parser = new FluidParser();
-#endif
 
     [Fact]
     public async Task UnknownFilter_DefaultBehavior_ReturnsInput()

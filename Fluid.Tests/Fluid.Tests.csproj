@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFrameworks>net10.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
-    <DefineConstants Condition="'$(Compiled)' == 'true'">$(DefineConstants);COMPILED</DefineConstants>
     <IsPackable>false</IsPackable>
     <SignAssembly>false</SignAssembly>
     <OutputType>Exe</OutputType>

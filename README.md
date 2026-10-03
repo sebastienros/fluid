@@ -1155,6 +1155,8 @@ any custom parser construct. These can be the standard ones defined in the `Flui
 For instance, `RegisterParseTag(Primary.AndSkip(Comma).And(Primary), ...)` will expect two `Primary` elements separated by a comma. The delegate will then 
 be invoked with a `ValueTuple<Expression, Expression>` representing the two `Primary` expressions.
 
+With Parlot 2.x, `FluidParser.Compile()` is no longer available. Create and cache a `FluidParser` directly; no runtime grammar compilation step is required.
+
 ### Registering a custom operator
 
 Operators are used to compare values, like `>` or `contains`. Custom operators can be defined if special comparisons need to be provided.

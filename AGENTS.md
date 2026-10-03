@@ -11,16 +11,11 @@ The reference implementation of the Liquid template language in Ruby can be foun
 ```shell
 dotnet build                              # SDK pinned by global.json (10.0.100, rollForward latestMajor)
 dotnet test                               # xUnit v3 on Microsoft.Testing.Platform (set in global.json)
-dotnet test --property:Compiled=true      # second CI pass: exercises the compiled Parlot grammar
 dotnet test --list-tests
 dotnet run -c Release --project Fluid.Benchmarks
 ```
 
-Use `--property:`, not `/p:`. Both spellings reach MSBuild from PowerShell or the CI shells, but MSYS path conversion in Git Bash — the shell coding agents get on Windows — rewrites `/p:Compiled=true` to `p:Compiled=true` before `dotnet test` sees it, and the mangled argument aborts the run with zero tests executed (exit code 5).
-
-CI (`.github/workflows/pr.yml`) runs both test passes in Release on Linux/macOS/Windows. `Fluid.Tests` targets `net10.0` only, so `dotnet test` is already the single-TFM run that keeps the dev loop fast.
-
-`/p:Compiled=true` defines the `COMPILED` constant, and ~18 test classes use it to swap `new FluidParser()` for `new FluidParser().Compile()` (see `Fluid.Tests/ParserTests.cs:14`). A change that passes one pass but not the other usually means a grammar rule behaves differently once Parlot compiles it.
+CI (`.github/workflows/pr.yml`) runs tests in Release on Linux/macOS/Windows. `Fluid.Tests` targets `net10.0` only, so `dotnet test` is already the single-TFM run that keeps the dev loop fast.
 
 ## Golden Liquid tests
 
@@ -54,7 +49,7 @@ Run a single one — with xUnit v3 and MTP v2, use the test executable directly 
 
 Pipeline: **source text → Parlot grammar → `Statement` AST → async render into an `IFluidOutput`.**
 
-**Parsing** — `Fluid/FluidParser.cs` builds `Grammar`, a `Parser<IReadOnlyList<Statement>>` from [Parlot](https://github.com/sebastienros/parlot) combinators. `FluidParserExtensions.Parse/TryParse` runs it and wraps the result in `FluidTemplate` (`Fluid/Parser/FluidTemplate.cs`), which implements `IFluidTemplate`. `FluidParser.Compile()` (`Fluid/FluidParser.cs:828`) compiles the grammar and every entry in `RegisteredTags` for faster parsing.
+**Parsing** — `Fluid/FluidParser.cs` builds `Grammar`, a `Parser<IReadOnlyList<Statement>>` from [Parlot](https://github.com/sebastienros/parlot) combinators. `FluidParserExtensions.Parse/TryParse` runs it and wraps the result in `FluidTemplate` (`Fluid/Parser/FluidTemplate.cs`), which implements `IFluidTemplate`.
 
 `FluidParserOptions` gates non-default syntax (`AllowFunctions`, `AllowParentheses`, `AllowLiquidTag`, `AllowTrailingQuestionMark`) and is fixed at construction — some options rewire which tag-start/tag-end parsers are used, so it cannot be changed later.
 

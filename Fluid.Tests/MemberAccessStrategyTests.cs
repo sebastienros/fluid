@@ -13,11 +13,7 @@ namespace Fluid.Tests
 {
     public class MemberAccessStrategyTests
     {
-#if COMPILED
-        private static FluidParser _parser = new FluidParser().Compile();
-#else
         private static FluidParser _parser = new FluidParser();
-#endif
 
         [Fact]
         public void RegisterByTypeAddPublicFields()

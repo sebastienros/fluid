@@ -13,11 +13,7 @@ namespace Fluid.Tests
 {
     public class IncludeStatementAllocationTests
     {
-#if COMPILED
-        private static readonly FluidParser _parser = new FluidParser().Compile();
-#else
         private static readonly FluidParser _parser = new FluidParser();
-#endif
 
         [Fact]
         public void IncludeArguments_AreRemovedWhileAssignmentsPersist()

@@ -1,4 +1,6 @@
 ﻿using Fluid.Ast;
+using Fluid.Parser;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Fluid.Tests.Extensibility
@@ -107,6 +109,70 @@ namespace Fluid.Tests.Extensibility
 
             Assert.Null(template);
             Assert.Contains("Unknown tag 'endhello'", error);
+        }
+
+        [Theory]
+        [InlineData("{% hello %}")]
+        [InlineData("{% if true %}{% hello %}{% endif %}")]
+        [InlineData("{% liquid\nhello\n%}")]
+        public void ShouldObserveDirectTagDictionaryChanges(string source)
+        {
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            parser.RegisterEmptyTag("first", static (output, encoder, context) =>
+            {
+                output.Write("first");
+                return Statement.Normal();
+            });
+            parser.RegisterEmptyTag("second", static (output, encoder, context) =>
+            {
+                output.Write("second");
+                return Statement.Normal();
+            });
+
+            parser.RegisteredTags["hello"] = parser.RegisteredTags["first"];
+            Assert.Equal("first", parser.Parse(source).Render());
+
+            parser.RegisteredTags["hello"] = parser.RegisteredTags["second"];
+            Assert.Equal("second", parser.Parse(source).Render());
+
+            Assert.True(parser.RegisteredTags.Remove("hello"));
+            parser.RegisteredTags["replacement"] = parser.RegisteredTags["first"];
+            Assert.Equal("first", parser.Parse(source.Replace("hello", "replacement")).Render());
+
+            parser.RegisteredTags["replacement"] = parser.RegisteredTags["second"];
+            Assert.True(parser.Grammar.TryParse(new FluidParseContext(source.Replace("hello", "replacement")), out var statements, out var error));
+            Assert.Null(error);
+            Assert.Equal("second", new FluidTemplate(statements).Render());
+        }
+
+        [Theory]
+        [InlineData("{% hello %}")]
+        [InlineData("{% liquid\nhello\n%}")]
+        public void ShouldRejectRemovedTags(string source)
+        {
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            parser.RegisteredTags["hello"] = parser.RegisteredTags["break"];
+            Assert.NotNull(parser.Parse(source));
+
+            Assert.True(parser.RegisteredTags.Remove("hello"));
+
+            Assert.False(parser.TryParse(source, out var template, out var error));
+            Assert.Null(template);
+            Assert.Contains("Unknown tag 'hello'", error);
+        }
+
+        [Fact]
+        public void ShouldParseRegisteredTagsConcurrently()
+        {
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+            parser.RegisterEmptyTag("hello", static (output, encoder, context) =>
+            {
+                output.Write("hello");
+                return Statement.Normal();
+            });
+            const string source = "{% if true %}{% hello %}{% if true %}{% hello %}{% endif %}{% endif %}{% liquid\nhello\n%}{% hello %}";
+
+            Parallel.For(0, 100, _ => Assert.Equal("hellohellohellohello", parser.Parse(source).Render()));
         }
 
         [Fact]

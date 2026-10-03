@@ -18,11 +18,7 @@ namespace Fluid.Tests
 {
     public class TemplateTests
     {
-#if COMPILED
-        private static FluidParser _parser = new FluidParser().Compile();
-#else
         private static FluidParser _parser = new FluidParser();
-#endif
 
         private static readonly TimeZoneInfo Eastern = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
         private static readonly TimeZoneInfo Paris = TimeZoneInfo.FindSystemTimeZoneById("Europe/Paris");
