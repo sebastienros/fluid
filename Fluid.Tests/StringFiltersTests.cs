@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Threading.Tasks;
 using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
@@ -8,6 +9,12 @@ namespace Fluid.Tests
 {
     public class StringFiltersTests
     {
+#if COMPILED
+        private static readonly FluidParser _parser = new FluidParser().Compile();
+#else
+        private static readonly FluidParser _parser = new FluidParser();
+#endif
+
         [Fact]
         public void Append()
         {
@@ -273,6 +280,46 @@ world
             var result = StringFilters.Slice(filterInput, filterArguments, context);
 
             Assert.Equal(expected, result.Result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData(3, 4, "d,e")]
+        [InlineData(-2, 4, "d,e")]
+        [InlineData(4, 2, "e")]
+        [InlineData(3, int.MaxValue, "d,e")]
+        [InlineData(5, 4, "")]
+        [InlineData(-5, 4, "a,b,c,d")]
+        [InlineData(-6, 4, "")]
+        [InlineData(int.MinValue, 1, "")]
+        [InlineData(0, 0, "")]
+        [InlineData(0, -1, "")]
+        public async Task SliceArrayClampsLengthAtTheEnd(int offset, int length, string expected)
+        {
+            var context = new TemplateContext();
+            var input = FluidValue.Create(new[] { "a", "b", "c", "d", "e" }, context.Options);
+            var arguments = new FilterArguments(NumberValue.Create(offset), NumberValue.Create(length));
+
+            var result = await StringFilters.Slice(input, arguments, context);
+
+            Assert.Equal(expected, string.Join(",", ((ArrayValue)result).Values.Select(x => x.ToStringValue())));
+
+            context.SetValue("input", input);
+            context.SetValue("offset", offset);
+            context.SetValue("length", length);
+            Assert.True(_parser.TryParse("{{ input | slice: offset, length | join: ',' }}", out var template, out var error), error);
+            Assert.Equal(expected, await template.RenderAsync(context));
+        }
+
+        [Fact]
+        public async Task SliceWithMinimumOffsetReturnsEmpty()
+        {
+            var arguments = new FilterArguments(NumberValue.Create(int.MinValue));
+
+            var result = await StringFilters.Slice(new StringValue("abc"), arguments, new TemplateContext());
+
+            Assert.Same(BlankValue.Instance, result);
+            Assert.True(_parser.TryParse("{{ 'abc' | slice: -2147483648 }}", out var template, out var error), error);
+            Assert.Equal("", await template.RenderAsync());
         }
 
         [Fact]
