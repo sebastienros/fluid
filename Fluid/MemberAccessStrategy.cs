@@ -6,6 +6,13 @@
 
         public abstract void Register(Type type, IEnumerable<KeyValuePair<string, IMemberAccessor>> accessors);
 
+        internal virtual void RegisterGeneratedAccessor(Type type)
+        {
+        }
+
+        internal virtual IMemberAccessor GetModelAccessor(Type type, string name)
+            => MemberAccessStrategyExtensions.GetNamedAccessor(type, name, MemberNameStrategy);
+
         public MemberNameStrategy MemberNameStrategy { get; set; } = MemberNameStrategies.Default;
 
         /// <summary>

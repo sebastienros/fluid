@@ -155,7 +155,7 @@ Fluid works when targeting NativeAOT and trimmed deployments.
 
 1. Reuse `TemplateOptions` instances (for example, at app startup).
 2. If you use runtime `MemberAccessStrategy.Register<T...>` calls, execute them during application startup before rendering templates.
-3. Prefer `[FluidRegister]` on a custom `TemplateOptions` subclass for model types known at compile time.
+3. Pass a statically typed model and custom options to `TemplateContext`, or use `[FluidRegister]` for other known model types.
 4. Validate your app with AOT/trim publish settings:
 
 ```shell
@@ -164,9 +164,28 @@ dotnet publish -c Release -r <RID> -p:PublishAot=true
 
 ### Source generation (optional)
 
-When the `Fluid.SourceGenerator` analyzer is enabled, Fluid can generate strongly-typed member accessors for types declared with `FluidRegisterAttribute`.
+When the `Fluid.SourceGenerator` analyzer is enabled, Fluid can generate strongly-typed member accessors for model types discovered at compile time.
 
-The recommended pattern is to declare a custom `TemplateOptions` subclass and add one `FluidRegisterAttribute` per model type:
+Eligible public instance fields and readable properties are inferred from a concrete model passed with custom options:
+
+```csharp
+var options = new TemplateOptions();
+var context = new TemplateContext(person, options);
+```
+
+On 2.x, inferred accessors optimize the root model fallback on the exact `DefaultMemberAccessStrategy` type. They do not register or allow-list the model. `allowModelMembers: false` still requires explicit registrations, and nested objects still require their own allow-list entries. Explicit named, wildcard, base-type and interface registrations retain precedence. Value converters are applied normally.
+
+The fallback preserves 2.x's ordinal member-name lookup, independently of `IgnoreCasing`. A non-default `MemberNameStrategy` (including camel-case, snake-case and custom delegates) continues to use the existing reflection fallback. Custom and derived member access strategies retain their existing behavior.
+
+The one-argument `TemplateContext(model)` constructor and `TemplateOptions.Default` do not activate inferred accessors. Models passed as `object`, interfaces, inaccessible or file-local types cannot be inferred. If a model's runtime type has no generated registration, member access falls back to reflection. Inference requires C# 9 or newer.
+
+### NativeAOT and trimming boundaries
+
+NativeAOT compatibility does not automatically imply trimming compatibility: the reflection fallback needs the member metadata it discovers at runtime. With default member naming, inferred accessors directly read eligible root model members, including `Task<T>` results, without runtime dynamic binding. Methods, static members, non-generic `Task` and `ValueTask` members are not inferred; they keep their existing 2.x behavior.
+
+For boxed models, nested objects, or types not visible at a context construction site, use `[FluidRegister]` or explicit `IMemberAccessor` / `IAsyncMemberAccessor` registrations that access members directly. Reflection-discovered `Task<T>` members use runtime dynamic binding and should be avoided in trimmed NativeAOT applications. Validate the published application whenever a required member uses a reflection fallback.
+
+The recommended explicit pattern is to declare a custom `TemplateOptions` subclass and add one `FluidRegisterAttribute` per model type:
 
 ```csharp
 using Fluid;

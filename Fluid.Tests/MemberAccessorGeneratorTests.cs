@@ -111,6 +111,135 @@ public class MemberAccessorGeneratorTests
         Assert.Contains("global::Fluid.MemberAccessStrategyExtensions.Register(strategy, typeof(global::Address), \"*\", new global::Fluid.SourceGenerated.Address_GeneratedMemberAccessor());", generated);
     }
 
+    [Theory]
+    [InlineData("new TemplateContext(person, options)")]
+    [InlineData("new TemplateContext(person, options, false)")]
+    [InlineData("new TemplateContext(options: options, model: person)")]
+    [InlineData("new(person, options)")]
+    public void ShouldInferModelWithCustomOptions(string construction)
+    {
+        var generated = RunGenerator($$"""
+            using Fluid;
+            public class Person
+            {
+                public string FirstName { get; set; } = "";
+                public string Hidden { private get; set; } = "";
+                public string Method() => "";
+                public static string Static => "";
+                public System.Threading.Tasks.Task PlainTask { get; set; } = System.Threading.Tasks.Task.CompletedTask;
+                public System.Threading.Tasks.ValueTask<int> ValueTask { get; set; }
+                public System.Threading.Tasks.Task<int> Count { get; set; } = System.Threading.Tasks.Task.FromResult(42);
+            }
+            public static class Factory
+            {
+                public static TemplateContext Create(Person person, TemplateOptions options) => {{construction}};
+            }
+            """);
+
+        Assert.Contains("[global::System.Runtime.CompilerServices.ModuleInitializer]", generated);
+        Assert.Contains("RegisterSourceGeneratedAccessor(typeof(global::Person)", generated);
+        Assert.Contains("typed.FirstName", generated);
+        Assert.Contains("var task = typed.Count;", generated);
+        Assert.DoesNotContain("typed.Hidden", generated);
+        Assert.DoesNotContain("typed.Method()", generated);
+        Assert.DoesNotContain("global::Person.Static", generated);
+        Assert.DoesNotContain("typed.PlainTask", generated);
+        Assert.DoesNotContain("typed.ValueTask", generated);
+    }
+
+    [Theory]
+    [InlineData("Person", "new TemplateContext(person)")]
+    [InlineData("Person", "new TemplateContext(person, TemplateOptions.Default)")]
+    [InlineData("object", "new TemplateContext(person, options)")]
+    [InlineData("IPerson", "new TemplateContext(person, options)")]
+    public void ShouldNotInferWithoutConcreteModelAndCustomOptions(string type, string construction)
+    {
+        var generated = RunGenerator($$"""
+            using Fluid;
+            public interface IPerson { string FirstName { get; } }
+            public class Person : IPerson { public string FirstName => ""; }
+            public static class Factory
+            {
+                public static TemplateContext Create({{type}} person, TemplateOptions options) => {{construction}};
+            }
+            """);
+
+        Assert.DoesNotContain("RegisterSourceGeneratedAccessor", generated);
+    }
+
+    [Fact]
+    public void ShouldIgnoreInaccessibleAndFileLocalModels()
+    {
+        var generated = RunGenerator("""
+            using Fluid;
+            file class FileModel { public string Value => ""; }
+            public class Factory
+            {
+                private class PrivateModel { public string Value => ""; }
+                public TemplateContext Create(TemplateOptions options) => new TemplateContext(new PrivateModel(), options);
+            }
+            public static class FileFactory
+            {
+                public static TemplateContext Create(TemplateOptions options) => new TemplateContext(new FileModel(), options);
+            }
+            """);
+
+        Assert.DoesNotContain("RegisterSourceGeneratedAccessor", generated);
+    }
+
+    [Fact]
+    public void ShouldGenerateIndependentExplicitAndInferredAccessors()
+    {
+        var generated = RunGenerator("""
+            using Fluid;
+            public class Person
+            {
+                public string FirstName => "";
+                public string Method() => "";
+                public System.Threading.Tasks.Task<string>? Loaded => null;
+            }
+            public static partial class Profile
+            {
+                [FluidRegister(typeof(Person))]
+                public static partial void Apply(TemplateOptions options);
+                public static TemplateContext Create(Person model, TemplateOptions options) => new(model, options);
+            }
+            """);
+
+        Assert.Contains("Person_GeneratedMemberAccessor : global::Fluid.IAsyncMemberAccessor", generated);
+        Assert.Contains("typed.Method()", generated);
+        Assert.Contains("Person_GeneratedMemberAccessor_Inferred0 : global::Fluid.IMemberAccessor", generated);
+        Assert.Contains("await task!.ConfigureAwait(false);", generated);
+    }
+
+    [Fact]
+    public void ShouldGenerateAccessibleInheritedMembersWithNameCollisions()
+    {
+        var generated = RunGenerator("""
+            using Fluid;
+            public class Base
+            {
+                public System.Threading.Tasks.Task<string> Value => System.Threading.Tasks.Task.FromResult("");
+                public string Hidden => "";
+                public string Inherited => "";
+            }
+            public class Person : Base
+            {
+                public new string Value = "";
+                private new string Hidden => "";
+            }
+            public static class Factory
+            {
+                public static TemplateContext Create(Person model, TemplateOptions options) => new(model, options);
+            }
+            """);
+
+        Assert.Contains("return typed.Value;", generated);
+        Assert.Contains("return ((global::Base)typed).Inherited;", generated);
+        Assert.DoesNotContain(".Hidden", generated);
+        Assert.DoesNotContain("var task =", generated);
+    }
+
     private static string RunGenerator(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
@@ -124,7 +253,7 @@ public class MemberAccessorGeneratorTests
         var driver = CSharpGeneratorDriver.Create(generator).RunGenerators(compilation);
         var runResult = driver.GetRunResult();
 
-        Assert.Equal(2, runResult.GeneratedTrees.Length);
+        Assert.InRange(runResult.GeneratedTrees.Length, 1, 2);
         Assert.Empty(runResult.Diagnostics.Where(static x => x.Severity == DiagnosticSeverity.Error));
 
         var outputCompilation = compilation.AddSyntaxTrees(runResult.GeneratedTrees);
