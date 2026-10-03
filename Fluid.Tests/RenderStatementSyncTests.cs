@@ -40,7 +40,7 @@ namespace Fluid.Tests
         public async Task SuspendedFileLoad_DoesNotEnterScopeEarly()
         {
             var provider = new ControlledFileProvider();
-            var context = new TemplateContext(new TemplateOptions { FileProvider = provider });
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithFileProvider(provider).Build());
             var rootScope = context.LocalScope;
             var statement = new RenderStatement(_parser, "snippet");
 
@@ -127,7 +127,7 @@ namespace Fluid.Tests
         {
             var provider = new MockFileProvider()
                 .Add("flow.liquid", $"{{% {completion} %}}");
-            var context = new TemplateContext(new TemplateOptions { FileProvider = provider })
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithFileProvider(provider).Build())
                 .SetValue("items", new[] { 1, 2 });
             var template = _parser.Parse(
                 "{% for item in items %}a{% render 'flow' %}b{% endfor %}");
@@ -138,11 +138,10 @@ namespace Fluid.Tests
         private static TemplateContext CreateContext(IFluidTemplate nested)
         {
             var provider = new MockFileProvider().Add("snippet.liquid", "");
-            return new TemplateContext(new TemplateOptions
-            {
-                FileProvider = provider,
-                TemplateParsed = (_, _) => nested
-            });
+            return new TemplateContext(new TemplateOptionsBuilder()
+                .WithFileProvider(provider)
+                .WithTemplateParsed((_, _) => nested)
+                .Build());
         }
 
         private sealed class SynchronousTemplate : IFluidTemplate

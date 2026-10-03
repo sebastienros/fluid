@@ -58,10 +58,9 @@ When rendering a DateTime value, Fluid displays it in its **own time zone**, not
 var date = new DateTime(2022, 2, 2, 12, 0, 0, DateTimeKind.Utc);
 var timezone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Uzhgorod");
 
-var context = new TemplateContext(data, new TemplateOptions
-{
-    TimeZone = timezone  // This does NOT affect rendering!
-});
+var context = new TemplateContext(data, new TemplateOptionsBuilder()
+    .WithTimeZone(timezone) // This does NOT affect rendering!
+    .Build());
 
 var template = parser.Parse("{{ BirthDate }}");
 var result = template.Render(context);
@@ -76,10 +75,9 @@ The `TimeZone` property is available in both `TemplateOptions` and `TemplateCont
 
 ```csharp
 // Set globally for all templates using these options
-var options = new TemplateOptions
-{
-    TimeZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time")
-};
+var options = new TemplateOptionsBuilder()
+    .WithTimeZone(TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time"))
+    .Build();
 
 // Or set per template context
 var context = new TemplateContext
@@ -115,10 +113,9 @@ The `time_zone` filter converts a DateTime to a specific time zone:
 The special keyword `'local'` converts to the context's configured time zone:
 
 ```csharp
-var context = new TemplateContext(data, new TemplateOptions
-{
-    TimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Uzhgorod")
-});
+var context = new TemplateContext(data, new TemplateOptionsBuilder()
+    .WithTimeZone(TimeZoneInfo.FindSystemTimeZoneById("Europe/Uzhgorod"))
+    .Build());
 ```
 
 ```liquid
@@ -153,10 +150,9 @@ var data = new
 var parser = new FluidParser();
 var template = parser.Parse(text);
 
-var context = new TemplateContext(data, new TemplateOptions
-{
-    TimeZone = timezone
-});
+var context = new TemplateContext(data, new TemplateOptionsBuilder()
+    .WithTimeZone(timezone)
+    .Build());
 
 var result = template.Render(context);
 Console.WriteLine(result);
@@ -176,22 +172,21 @@ Notice that the `time_zone` filter must be combined with the `date` filter to pr
 On .NET 6 and later, the `time_zone` filter resolves identifiers with `TimeZoneInfo.FindSystemTimeZoneById`. Both IANA identifiers such as `America/Los_Angeles` and Windows identifiers such as `Pacific Standard Time` are supported across platforms when ICU globalization data is available. Fluid's `netstandard2.0` asset uses [TimeZoneConverter](https://github.com/mattjohnsonpint/TimeZoneConverter) as its default resolver for compatibility with older runtimes.
 
 ```csharp
-var options = new TemplateOptions();
+var options = new TemplateOptionsBuilder().Build();
 var context = new TemplateContext(options);
 
 var template = parser.Parse(
     "{{ published | time_zone: 'America/Los_Angeles' | date: '%+' }}");
 ```
 
-IANA identifiers are not available through `TimeZoneInfo` on Windows when globalization invariant mode or NLS mode is enabled. You can replace the resolver through `TemplateOptions.TimeZoneResolver`. For example, an application using the [TimeZoneConverter](https://github.com/mattjohnsonpint/TimeZoneConverter) package can configure:
+IANA identifiers are not available through `TimeZoneInfo` on Windows when globalization invariant mode or NLS mode is enabled. You can replace the resolver through `TemplateOptionsBuilder.WithTimeZoneResolver()`. For example, an application using the [TimeZoneConverter](https://github.com/mattjohnsonpint/TimeZoneConverter) package can configure:
 
 ```csharp
 using TimeZoneConverter;
 
-var options = new TemplateOptions
-{
-    TimeZoneResolver = id => TZConvert.GetTimeZoneInfo(id)
-};
+var options = new TemplateOptionsBuilder()
+    .WithTimeZoneResolver(id => TZConvert.GetTimeZoneInfo(id))
+    .Build();
 
 var context = new TemplateContext(options);
 ```
@@ -208,30 +203,30 @@ If you want to automatically convert all DateTime values to a specific time zone
 using Fluid;
 using Fluid.Values;
 
-var options = new TemplateOptions
-{
-    TimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Uzhgorod")
-};
+var timeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Uzhgorod");
 
 // Add a value converter that automatically converts all DateTime values
-options.ValueConverters.Add(obj =>
-{
-    if (obj is DateTime dt)
+var options = new TemplateOptionsBuilder()
+    .WithTimeZone(timeZone)
+    .AddValueConverter(obj =>
     {
-        // Convert to the context's time zone
-        var converted = TimeZoneInfo.ConvertTime(dt, options.TimeZone);
-        return new DateTimeValue(converted);
-    }
-    
-    if (obj is DateTimeOffset dto)
-    {
-        // Convert to the context's time zone
-        var converted = TimeZoneInfo.ConvertTime(dto, options.TimeZone);
-        return new DateTimeValue(converted);
-    }
-    
-    return null; // No conversion needed
-});
+        if (obj is DateTime dt)
+        {
+            // Convert to the options' time zone
+            var converted = TimeZoneInfo.ConvertTime(dt, timeZone);
+            return new DateTimeValue(converted);
+        }
+
+        if (obj is DateTimeOffset dto)
+        {
+            // Convert to the options' time zone
+            var converted = TimeZoneInfo.ConvertTime(dto, timeZone);
+            return new DateTimeValue(converted);
+        }
+
+        return null; // No conversion needed
+    })
+    .Build();
 
 var data = new 
 {
@@ -268,20 +263,20 @@ Output: `Wednesday, 02 February 2022 14:00:00` (converted to Europe/Uzhgorod tim
 
 ```csharp
 // In your application setup
-var options = new TemplateOptions();
-
 // Add a converter to display all dates in the user's time zone
-options.ValueConverters.Add(obj =>
-{
-    if (obj is DateTime dt && dt.Kind == DateTimeKind.Utc)
+var options = new TemplateOptionsBuilder()
+    .AddValueConverter(obj =>
     {
-        // This would typically come from user preferences
-        var userTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles");
-        var converted = TimeZoneInfo.ConvertTime(dt, userTimeZone);
-        return new DateTimeValue(converted);
-    }
-    return null;
-});
+        if (obj is DateTime dt && dt.Kind == DateTimeKind.Utc)
+        {
+            // This would typically come from user preferences
+            var userTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles");
+            var converted = TimeZoneInfo.ConvertTime(dt, userTimeZone);
+            return new DateTimeValue(converted);
+        }
+        return null;
+    })
+    .Build();
 ```
 
 Template:
@@ -337,7 +332,7 @@ Fluid uses `TimeZoneInfo` on .NET 6 and later and TimeZoneConverter on `netstand
 - Windows time zone IDs (e.g., "Pacific Standard Time", "GMT Standard Time")
 - Cross-platform resolution on .NET 6 and later when ICU globalization data is available
 
-Use `TemplateOptions.TimeZoneResolver` when your runtime does not provide the identifiers your templates need.
+Use `TemplateOptionsBuilder.WithTimeZoneResolver()` when your runtime does not provide the identifiers your templates need.
 
 ### Finding Time Zone IDs
 
@@ -373,7 +368,7 @@ foreach (var tz in TimeZoneInfo.GetSystemTimeZones())
 | Parse date strings without time zone info | Set `TemplateContext.TimeZone` |
 | Display dates in a specific time zone | Use `{{ date \| time_zone: 'timezone-id' }}` filter |
 | Display dates in the context's time zone | Use `{{ date \| time_zone: 'local' }}` filter |
-| Resolve identifiers with a custom library | Set `TemplateOptions.TimeZoneResolver` |
+| Resolve identifiers with a custom library | Set `TemplateOptionsBuilder.WithTimeZoneResolver()` |
 | Automatically convert all dates | Use a `ValueConverter` |
 | Display dates in multiple time zones | Use multiple `time_zone` filters with different IDs |
 

@@ -1,41 +1,27 @@
 using System.Globalization;
-using Fluid.Filters;
 using Fluid.Values;
 using Microsoft.Extensions.FileProviders;
+using System.Collections.ObjectModel;
 using System.Text.Json;
 
 namespace Fluid
 {
-    public class TemplateOptions
+    /// <summary>
+    /// Represents the immutable, shareable configuration used to render templates.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Instances are created with <see cref="TemplateOptionsBuilder"/> and can't be modified afterwards, which makes them
+    /// safe to create once and share between threads, tenants and renderings. Use <see cref="ToBuilder"/> to derive a
+    /// variation. Per-rendering overrides belong on <see cref="TemplateContext"/>, which is not thread-safe.
+    /// </para>
+    /// <para>
+    /// Objects supplied by the application, like the <see cref="FileProvider"/>, the <see cref="TemplateCache"/>, the
+    /// delegates or the <see cref="JsonSerializerOptions"/>, are used as-is and remain responsible for their own thread-safety.
+    /// </para>
+    /// </remarks>
+    public sealed class TemplateOptions
     {
-        private MemberAccessStrategy _memberAccessStrategy = new DefaultMemberAccessStrategy();
-
-        /// <summary>
-        /// Gets or sets the size (in chars) of the internal output buffer used when rendering to a <see cref="TextWriter"/>.
-        /// When the buffer is full, content is written to the underlying writer and the buffer is reused.
-        /// Set to 0 to disable buffering.
-        /// </summary>
-        /// <remarks>
-        /// Default is 16KB.
-        /// </remarks>
-        public int OutputBufferSize { get; set; } = 16 * 1024;
-
-        /// <summary>
-        /// When set to <c>true</c>, any access to an undefined variable during template rendering will
-        /// immediately throw an <see cref="InvalidOperationException"/>. The default is <c>false</c>, which
-        /// renders undefined variables as empty strings (unless an <see cref="Undefined"/> delegate is provided).
-        /// This property can be set at any time and is checked when undefined variables are accessed.
-        /// </summary>
-        public bool StrictVariables { get; set; }
-
-        /// <summary>
-        /// When set to <c>true</c>, using an unknown filter name in a template will
-        /// immediately throw an <see cref="InvalidOperationException"/> instead of
-        /// silently ignoring the filter or returning the input value. The default is <c>false</c>.
-        /// This can be toggled after construction to enforce stricter authoring rules.
-        /// </summary>
-        public bool StrictFilters { get; set; }
-
         /// <param name="identifier">The name of the property that is assigned.</param>
         /// <param name="value">The value that is assigned.</param>
         /// <param name="context">The <see cref="TemplateContext" /> instance used for rendering the template.</param>
@@ -61,185 +47,261 @@ namespace Fluid
         /// <returns>The template to use, which may be modified by applying AST visitors or rewriters.</returns>
         public delegate IFluidTemplate TemplateParsedDelegate(string path, IFluidTemplate template);
 
-        public static readonly TemplateOptions Default = new();
-
         /// <summary>
-        /// Gets ot sets the members than can be accessed in a template.
+        /// Gets the options used when none are specified. They have the default configuration of a new <see cref="TemplateOptionsBuilder"/>.
         /// </summary>
-        public MemberAccessStrategy MemberAccessStrategy
-        {
-            get => _memberAccessStrategy;
-            set
-            {
-                ArgumentNullException.ThrowIfNull(value);
+        public static readonly TemplateOptions Default = new TemplateOptionsBuilder().Build();
 
-                _memberAccessStrategy = value;
-                RegisterGeneratedMemberAccessors();
+        private readonly Func<object, object>[] _valueConverters;
+        private readonly Func<MemberAccessStrategy> _memberAccessStrategyFactory;
+        private readonly Action<MemberAccessStrategy>[] _memberAccessConfigurations;
+        private readonly FilterCollection _filters;
+        private readonly ReadOnlyDictionary<string, FluidValue> _globalValues;
+        private readonly ReadOnlyCollection<Func<object, object>> _valueConverterList;
+
+        internal TemplateOptions(TemplateOptionsBuilder builder)
+        {
+            _filters = builder.FilterCollection.ToReadOnly();
+            _valueConverters = builder.ValueConverterList.ToArray();
+            _memberAccessStrategyFactory = builder.MemberAccessStrategyFactory;
+            _memberAccessConfigurations = builder.MemberAccessConfigurationList.ToArray();
+
+            _valueConverterList = new ReadOnlyCollection<Func<object, object>>(_valueConverters);
+            _globalValues = new ReadOnlyDictionary<string, FluidValue>(new Dictionary<string, FluidValue>(builder.GlobalValueMap, StringComparer.Ordinal));
+            GlobalScope = new Scope();
+
+            foreach (var globalValue in _globalValues)
+            {
+                GlobalScope.SetOwnValue(globalValue.Key, globalValue.Value);
             }
+
+            var strategy = _memberAccessStrategyFactory() ?? throw new InvalidOperationException("The member access strategy factory returned null.");
+
+            foreach (var configuration in _memberAccessConfigurations)
+            {
+                configuration(strategy);
+            }
+
+            strategy.MakeReadOnly();
+            MemberAccessStrategy = strategy;
+
+            OutputBufferSize = builder.OutputBufferSize;
+            StrictVariables = builder.StrictVariables;
+            StrictFilters = builder.StrictFilters;
+            FileProvider = builder.FileProvider;
+            TemplateCache = builder.TemplateCache;
+            DefaultFileExtension = builder.DefaultFileExtension;
+            MaxSteps = builder.MaxSteps;
+            MaxOutputSize = builder.MaxOutputSize;
+            MaxCollectionSize = builder.MaxCollectionSize;
+            ModelNamesComparer = builder.ModelNamesComparer;
+            CultureInfo = builder.CultureInfo;
+            MoneyOptions = builder.MoneyOptions;
+            Now = builder.Now;
+            TimeZone = builder.TimeZone;
+            TimeZoneResolver = builder.TimeZoneResolver;
+            MaxRecursion = builder.MaxRecursion;
+            Captured = builder.Captured;
+            Assigned = builder.Assigned;
+            Undefined = builder.Undefined;
+            TemplateParsed = builder.TemplateParsed;
+            JsonSerializerOptions = builder.JsonSerializerOptions;
+            Trimming = builder.Trimming;
+            Greedy = builder.Greedy;
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="ITemplateFileProvider"/> used to access files for include, render, and from statements.
+        /// Gets the size (in chars) of the internal output buffer used when rendering to a <see cref="TextWriter"/>.
+        /// When the buffer is full, content is written to the underlying writer and the buffer is reused.
+        /// A value of 0 disables buffering.
         /// </summary>
-        public ITemplateFileProvider FileProvider { get; set; } =
-            new FileProviderTemplateFileProvider(new NullFileProvider());
+        /// <remarks>
+        /// Default is 16KB.
+        /// </remarks>
+        public int OutputBufferSize { get; }
 
         /// <summary>
-        /// Gets or sets the <see cref="ITemplateCache"/> used to cache templates loaded from <see cref="FileProvider"/>.
+        /// Gets whether any access to an undefined variable during template rendering will
+        /// immediately throw an <see cref="InvalidOperationException"/>. The default is <c>false</c>, which
+        /// renders undefined variables as empty strings (unless an <see cref="Undefined"/> delegate is provided).
+        /// </summary>
+        public bool StrictVariables { get; }
+
+        /// <summary>
+        /// Gets whether using an unknown filter name in a template will
+        /// immediately throw an <see cref="InvalidOperationException"/> instead of
+        /// silently ignoring the filter or returning the input value. The default is <c>false</c>.
+        /// </summary>
+        public bool StrictFilters { get; }
+
+        /// <summary>
+        /// Gets the members than can be accessed in a template.
+        /// </summary>
+        /// <remarks>
+        /// The strategy is owned by these options. Explicit registrations can only be made with
+        /// <see cref="TemplateOptionsBuilder.ConfigureMemberAccess(Action{MemberAccessStrategy})"/>.
+        /// </remarks>
+        public MemberAccessStrategy MemberAccessStrategy { get; }
+
+        /// <summary>
+        /// Gets the <see cref="ITemplateFileProvider"/> used to access files for include, render, and from statements.
+        /// </summary>
+        public ITemplateFileProvider FileProvider { get; }
+
+        /// <summary>
+        /// Gets the <see cref="ITemplateCache"/> used to cache templates loaded from <see cref="FileProvider"/>.
         /// </summary>
         /// <remarks>
         /// The instance needs to be thread-safe for insertion and retrieval of cached entries.
         /// </remarks>
-        public ITemplateCache TemplateCache { get; set; } = new TemplateCache();
+        public ITemplateCache TemplateCache { get; }
 
         /// <summary>
-        /// Gets or sets the default file extension to use when loading templates with include and render statements.
+        /// Gets the default file extension to use when loading templates with include and render statements.
         /// If set, the file provider will first check if the file exists with the specified name, then try appending this extension.
         /// If null or empty, the filename is used as-is without any extension appending.
         /// </summary>
         /// <value>
         /// Default value is ".liquid"
         /// </value>
-        public string DefaultFileExtension { get; set; } = ".liquid";
+        public string DefaultFileExtension { get; }
 
         /// <summary>
-        /// Gets or sets the maximum number of steps a script can execute. Leave to 0 for unlimited.
+        /// Gets the maximum number of steps a script can execute. 0 means unlimited.
         /// </summary>
-        public int MaxSteps { get; set; }
+        public int MaxSteps { get; }
 
         /// <summary>
-        /// Gets or sets the maximum number of characters a template or captured block can render.
-        /// Leave to 0 for unlimited.
+        /// Gets the maximum number of characters a template or captured block can render.
+        /// 0 means unlimited.
         /// </summary>
-        public int MaxOutputSize { get; set; }
+        public int MaxOutputSize { get; }
 
         /// <summary>
-        /// Gets or sets the maximum number of items a template operation can materialize.
-        /// Leave to 0 for unlimited.
+        /// Gets the maximum number of items a template operation can materialize.
+        /// 0 means unlimited.
         /// </summary>
-        public int MaxCollectionSize { get; set; }
+        public int MaxCollectionSize { get; }
 
         /// <summary>
-        /// Gets or sets the <see cref="StringComparer"/> to use when comparing model names.
+        /// Gets the <see cref="StringComparer"/> to use when comparing model names.
         /// </summary>
         /// <value>
         /// Default value is <see cref="StringComparer.OrdinalIgnoreCase"/>
         /// </value>
-        public StringComparer ModelNamesComparer { get; set; } = StringComparer.OrdinalIgnoreCase;
+        public StringComparer ModelNamesComparer { get; }
 
         /// <summary>
-        /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
+        /// Gets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
         /// </summary>
-        public CultureInfo CultureInfo { get; set; } = CultureInfo.InvariantCulture;
+        public CultureInfo CultureInfo { get; }
 
         /// <summary>
-        /// Gets or sets the options used by the money filters. These filters are not registered by default,
-        /// use <see cref="MoneyFilters.WithMoneyFilters(FilterCollection)"/> to add them to <see cref="Filters"/>.
+        /// Gets the options used by the money filters. These filters are not registered by default,
+        /// use <see cref="TemplateOptionsBuilder.WithMoneyFilters"/> to add them to <see cref="Filters"/>.
         /// </summary>
-        public MoneyOptions MoneyOptions { get; set; } = new MoneyOptions();
+        public MoneyOptions MoneyOptions { get; }
 
         /// <summary>
-        /// Gets or sets the value returned by the "now" keyword.
+        /// Gets the function returning the value of the "now" keyword.
         /// </summary>
-        public Func<DateTimeOffset> Now { get; set; } = static () => DateTimeOffset.Now;
+        public Func<DateTimeOffset> Now { get; }
 
         /// <summary>
-        /// Gets or sets the local time zone used when parsing or creating dates without specific ones.
+        /// Gets the local time zone used when parsing or creating dates without specific ones.
         /// </summary>
-        public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Local;
+        public TimeZoneInfo TimeZone { get; }
 
         /// <summary>
-        /// Gets or sets the function used by the <c>time_zone</c> filter to resolve a time zone identifier.
+        /// Gets the function used by the <c>time_zone</c> filter to resolve a time zone identifier.
         /// </summary>
         /// <remarks>
         /// The default uses <see cref="TimeZoneInfo.FindSystemTimeZoneById(string)"/> on .NET 6 and later.
         /// </remarks>
-        public Func<string, TimeZoneInfo> TimeZoneResolver { get; set; } = ResolveTimeZone;
+        public Func<string, TimeZoneInfo> TimeZoneResolver { get; }
 
         /// <summary>
-        /// Gets or sets the maximum depth of recursions a script can execute. 100 by default.
+        /// Gets the maximum depth of recursions a script can execute. 100 by default.
         /// </summary>
-        public int MaxRecursion { get; set; } = 100;
+        public int MaxRecursion { get; }
 
-        private static TimeZoneInfo ResolveTimeZone(string id)
+        /// <summary>
+        /// Gets the read-only collection of filters available in the templates.
+        /// </summary>
+        public FilterCollection Filters => _filters;
+
+        /// <summary>
+        /// Gets values that are available in all templates rendered with these options.
+        /// </summary>
+        public IReadOnlyDictionary<string, FluidValue> GlobalValues => _globalValues;
+
+        /// <summary>
+        /// Gets the list of value converters.
+        /// </summary>
+        public IReadOnlyList<Func<object, object>> ValueConverters => _valueConverterList;
+
+        /// <summary>
+        /// Gets the delegate to execute when a Capture tag has been evaluated.
+        /// </summary>
+        public CapturedDelegate Captured { get; }
+
+        /// <summary>
+        /// Gets the delegate to execute when an Assign tag has been evaluated.
+        /// </summary>
+        public AssignedDelegate Assigned { get; }
+
+        /// <summary>
+        /// Gets the delegate to execute when an undefined value is encountered during rendering.
+        /// </summary>
+        public UndefinedDelegate Undefined { get; }
+
+        /// <summary>
+        /// Gets the delegate to execute when a template is parsed during include or render statements.
+        /// This can be used to apply AST visitors or rewriters to modify templates before they are rendered or cached.
+        /// </summary>
+        public TemplateParsedDelegate TemplateParsed { get; }
+
+        /// <summary>
+        /// Gets the <see cref="JsonSerializerOptions"/> used by the <c>json</c> filter.
+        /// </summary>
+        public JsonSerializerOptions JsonSerializerOptions { get; }
+
+        /// <summary>
+        /// Gets the default trimming rules.
+        /// </summary>
+        public TrimmingFlags Trimming { get; }
+
+        /// <summary>
+        /// Gets whether trimming is greedy. Default is true. When true, all successive blank chars are trimmed.
+        /// </summary>
+        public bool Greedy { get; }
+
+        internal Scope GlobalScope { get; }
+
+        internal Func<object, object>[] ValueConverterArray => _valueConverters;
+
+        internal bool HasValueConverters => _valueConverters.Length != 0;
+
+        internal Func<MemberAccessStrategy> MemberAccessStrategyFactory => _memberAccessStrategyFactory;
+
+        internal Action<MemberAccessStrategy>[] MemberAccessConfigurations => _memberAccessConfigurations;
+
+        /// <summary>
+        /// Creates a <see cref="TemplateOptionsBuilder"/> initialized with the configuration of these options.
+        /// </summary>
+        /// <remarks>
+        /// The builder gets its own copies of the filters, global values and value converters, and builds its own
+        /// <see cref="MemberAccessStrategy"/>, so changing it never affects these options.
+        /// </remarks>
+        public TemplateOptionsBuilder ToBuilder() => new(this);
+
+        internal static TimeZoneInfo ResolveTimeZone(string id)
         {
 #if NET6_0_OR_GREATER
             return TimeZoneInfo.FindSystemTimeZoneById(id);
 #else
             return TimeZoneConverter.TZConvert.GetTimeZoneInfo(id);
 #endif
-        }
-
-        /// <summary>
-        /// Gets the collection of filters available in the templates.
-        /// </summary>
-        public FilterCollection Filters { get; } = new FilterCollection();
-
-        /// <summary>
-        /// Gets values that are available in all templates rendered with these options.
-        /// </summary>
-        public Scope GlobalValues { get; } = new Scope();
-
-        /// <summary>
-        /// Gets the list of value converters.
-        /// </summary>
-        public List<Func<object, object>> ValueConverters { get; } = new List<Func<object, object>>();
-
-        /// <summary>
-        /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
-        /// </summary>
-        public CapturedDelegate Captured { get; set; }
-
-        /// <summary>
-        /// Gets or sets the delegate to execute when an Assign tag has been evaluated.
-        /// </summary>
-        public AssignedDelegate Assigned { get; set; }
-
-        /// <summary>
-        /// Gets or sets the delegate to execute when an undefined value is encountered during rendering.
-        /// </summary>
-        public UndefinedDelegate Undefined { get; set; }
-
-        /// <summary>
-        /// Gets or sets the delegate to execute when a template is parsed during include or render statements.
-        /// This can be used to apply AST visitors or rewriters to modify templates before they are rendered or cached.
-        /// </summary>
-        public TemplateParsedDelegate TemplateParsed { get; set; }
-
-        /// <summary>
-        /// Gets or sets the <see cref="JsonSerializerOptions"/> used by the <c>json</c> filter.
-        /// </summary>
-        public JsonSerializerOptions JsonSerializerOptions { get; set; } = JsonSerializerOptions.Default;
-
-        /// <summary>
-        /// Gets or sets the default trimming rules.
-        /// </summary>
-        public TrimmingFlags Trimming { get; set; } = TrimmingFlags.None;
-
-        /// <summary>
-        /// Gets or sets whether trimming is greedy. Default is true. When set to true, all successive blank chars are trimmed.
-        /// </summary>
-        public bool Greedy { get; set; } = true;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TemplateOptions"/> class.
-        /// </summary>
-        public TemplateOptions()
-        {
-            Filters.WithArrayFilters()
-                .WithStringFilters()
-                .WithNumberFilters()
-                .WithMiscFilters();
-
-            RegisterGeneratedMemberAccessors();
-        }
-
-        private void RegisterGeneratedMemberAccessors()
-        {
-            if (this is ITemplateOptionsMemberAccessorRegistrar registrar)
-            {
-                registrar.RegisterMemberAccessors(this);
-            }
         }
     }
 }

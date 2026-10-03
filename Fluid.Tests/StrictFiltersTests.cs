@@ -25,7 +25,7 @@ public class StrictFiltersTests
     public async Task UnknownFilter_StrictFilters_Throws()
     {
         _parser.TryParse("{{ 'hello' | unknown }}", out var template, out var _);
-        var options = new TemplateOptions { StrictFilters = true };
+        var options = new TemplateOptionsBuilder().WithStrictFilters(true).Build();
         var context = new TemplateContext(options);
         await Assert.ThrowsAsync<FluidException>(() => template.RenderAsync(context).AsTask());
     }
@@ -34,7 +34,7 @@ public class StrictFiltersTests
     public async Task KnownFilter_StrictFilters_Succeeds()
     {
         _parser.TryParse("{{ 'hello' | upcase }}", out var template, out var _);
-        var options = new TemplateOptions { StrictFilters = true };
+        var options = new TemplateOptionsBuilder().WithStrictFilters(true).Build();
         var context = new TemplateContext(options);
         var result = await template.RenderAsync(context);
         Assert.Equal("HELLO", result);

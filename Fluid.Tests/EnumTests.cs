@@ -11,7 +11,7 @@ namespace Fluid.Tests
         public void EnumInContextShouldRenderAsString()
         {
             var parser = new FluidParser();
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
             
             // Set an enum value directly in context
@@ -27,7 +27,7 @@ namespace Fluid.Tests
         public void EnumInArrayShouldRenderAsString()
         {
             var parser = new FluidParser();
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
             var context = new TemplateContext(options);
             
             // Set an array containing enums

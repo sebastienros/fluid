@@ -11,7 +11,7 @@ namespace Fluid.Benchmarks
         // many interfaces, none of which is dictionary
         private static readonly List<string> nonDictionaryType = new();
 
-        private static readonly TemplateOptions options = new();
+        private static readonly TemplateOptions options = TemplateOptions.Default;
         private static readonly JsonValue jsonString = JsonValue.Create("2020-05-18T02:13:09+00:00");
         private static readonly JsonValue objectJsonString = JsonValue.Create<object>("2020-05-18T02:13:09+00:00");
         private static readonly JsonNode parsedJsonString = JsonNode.Parse("\"2020-05-18T02:13:09+00:00\"");

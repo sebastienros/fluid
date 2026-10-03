@@ -12,7 +12,7 @@ namespace Fluid.Tests.MvcViewEngine
     public class ViewEngineTests
     {
         FluidViewEngineOptions _options = new ();
-        FluidViewRenderer _renderer;
+        FluidViewRenderer _rendererInstance;
         MockFileProvider _mockFileProvider = new ();
 
         public ViewEngineTests()
@@ -29,8 +29,25 @@ namespace Fluid.Tests.MvcViewEngine
 
             _options.LayoutsLocationFormats.Clear();
             _options.LayoutsLocationFormats.Add("/Shared/{0}" + Constants.ViewExtension);
+        }
 
-            _renderer = new FluidViewRenderer(_options);
+        // Created on first use because the template options are immutable once the renderer is created.
+        FluidViewRenderer Renderer => _rendererInstance ??= new FluidViewRenderer(_options);
+
+        [Fact]
+        public void TemplateOptionsShouldUseThePartialsFileProviderAndBeBuiltOnce()
+        {
+            _options.TemplateOptionsBuilder.WithMaxSteps(7);
+
+            var templateOptions = _options.TemplateOptions;
+
+            Assert.Same(_options.PartialsFileProvider, templateOptions.FileProvider);
+            Assert.Equal(7, templateOptions.MaxSteps);
+            Assert.Same(templateOptions, _options.TemplateOptions);
+
+            // Changes made after the options were built are ignored.
+            _options.TemplateOptionsBuilder.WithMaxSteps(8);
+            Assert.Equal(7, _options.TemplateOptions.MaxSteps);
         }
 
         [Fact]
@@ -39,7 +56,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/Index.liquid", "Hello World");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("Hello World", sw.ToString());
@@ -52,7 +69,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/_ViewStart.liquid", "ViewStart");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("ViewStartHello World", sw.ToString());
@@ -68,7 +85,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/_ViewStart.liquid", "ViewStart2");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, path, new TemplateContext());
+            await Renderer.RenderViewAsync(sw, path, new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("ViewStart2ViewStart1Hello World", sw.ToString());
@@ -81,7 +98,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Partials/World.liquid", "World");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("Hello World", sw.ToString());
@@ -94,7 +111,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Partials/World.liquid", "World {{ x }}");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("Hello World 1", sw.ToString());
@@ -107,7 +124,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/_Layout.liquid", "A {% renderbody %} B");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("A Hi B", sw.ToString());
@@ -119,7 +136,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/Index.liquid", "{% section s %}S1{% endsection %}A {% rendersection s %} B");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("A S1 B", sw.ToString());
@@ -132,7 +149,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/_Layout.liquid", "A {% rendersection s %} {% renderbody %} B");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("A S1 Hi B", sw.ToString());
@@ -145,7 +162,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/Shared/_Layout.liquid", "SHARED {% renderbody %}");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("SHARED Hi", sw.ToString());
@@ -159,7 +176,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/Shared/_Layout.liquid", "SHARED {% renderbody %}");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("LOCAL Hi", sw.ToString());
@@ -173,7 +190,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/Shared/_Layout.liquid", "SHARED {% renderbody %}");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("LOCAL Hi", sw.ToString());
@@ -186,7 +203,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/Shared/_Layout.liquid", "SHARED {% renderbody %}");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("", sw.ToString());
@@ -199,7 +216,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/_Layout.liquid", "PARENT {% renderbody %}");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Folder/Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Folder/Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("PARENT Hi", sw.ToString());
@@ -212,7 +229,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/Folder/_Layout.liquid", "PARENT {% renderbody %}");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Folder/Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Folder/Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("PARENT Hi", sw.ToString());
@@ -226,7 +243,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/_ViewStart.liquid", "[ViewStart]");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
             Assert.Equal("[Layout][ViewStart][View]", sw.ToString());
         }
@@ -239,7 +256,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/Index.liquid", "{{ custom }}");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             _options.RenderingViewAsync = null;
@@ -260,7 +277,7 @@ namespace Fluid.Tests.MvcViewEngine
 
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Home/Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Home/Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("Layout 2: Viewstart 1 ViewStart 2 Home Hello World", sw.ToString());
@@ -274,7 +291,7 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/_ViewStart.liquid", "[ViewStart]{%- assign title = '[TITLE]' -%}");
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("[TITLE][SUBTITLE][ViewStart][View]", sw.ToString());
@@ -288,7 +305,7 @@ namespace Fluid.Tests.MvcViewEngine
 
             await using var sw = new StreamWriter(new NoSyncStream(), bufferSize: 10);
             var template = new TemplateContext(new { BigString = new string(Enumerable.Range(0, 129).Select(x => 'b').ToArray()) });
-            await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+            await Renderer.RenderViewAsync(sw, "Index.liquid", template);
 #if NET8_0_OR_GREATER
             await sw.FlushAsync(TestContext.Current.CancellationToken);
 #else
@@ -304,7 +321,7 @@ namespace Fluid.Tests.MvcViewEngine
 
             await using var sw = new StreamWriter(new NoSyncStream());
             var template = new TemplateContext(new { BigString = new string(Enumerable.Range(0, 1500).Select(_ => 'b').ToArray()) });
-            await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+            await Renderer.RenderViewAsync(sw, "Index.liquid", template);
 #if NET8_0_OR_GREATER
             await sw.FlushAsync(TestContext.Current.CancellationToken);
 #else
@@ -317,14 +334,11 @@ namespace Fluid.Tests.MvcViewEngine
         {
             _mockFileProvider.Add("Views/Index.liquid", "{{ BigString }}");
 
-            var options = new TemplateOptions
-            {
-                OutputBufferSize = 16
-            };
+            var options = new TemplateOptionsBuilder().WithOutputBufferSize(16).Build();
 
             await using var sw = new StreamWriter(new NoSyncStream(), bufferSize: 10);
             var template = new TemplateContext(new { BigString = new string('b', 4096) }, options);
-            await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+            await Renderer.RenderViewAsync(sw, "Index.liquid", template);
 #if NET8_0_OR_GREATER
             await sw.FlushAsync(TestContext.Current.CancellationToken);
 #else
@@ -338,19 +352,17 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/Index.liquid", "{{ 1 | plus: 2 }}");
 
             // Use a visitor to replace 2 with 4
-            _options.TemplateOptions.TemplateParsed = (path, template) =>
+            _options.TemplateOptionsBuilder.WithTemplateParsed((path, template) =>
             {
                 var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
                 return visitor.VisitTemplate(template);
-            };
+            });
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("5", sw.ToString());
-
-            _options.TemplateOptions.TemplateParsed = null;
         }
 
         [Fact]
@@ -360,19 +372,17 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Partials/World.liquid", "{{ 1 | plus: 2 }}");
 
             // Use a visitor to replace 2 with 4
-            _options.TemplateOptions.TemplateParsed = (path, template) =>
+            _options.TemplateOptionsBuilder.WithTemplateParsed((path, template) =>
             {
                 var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
                 return visitor.VisitTemplate(template);
-            };
+            });
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("5", sw.ToString());
-
-            _options.TemplateOptions.TemplateParsed = null;
         }
 
         [Fact]
@@ -382,19 +392,17 @@ namespace Fluid.Tests.MvcViewEngine
             _mockFileProvider.Add("Views/_ViewStart.liquid", "{{ 1 | plus: 2 }} ");
 
             // Use a visitor to replace 2 with 4
-            _options.TemplateOptions.TemplateParsed = (path, template) =>
+            _options.TemplateOptionsBuilder.WithTemplateParsed((path, template) =>
             {
                 var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
                 return visitor.VisitTemplate(template);
-            };
+            });
 
             var sw = new StringWriter();
-            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
             await sw.FlushAsync();
 
             Assert.Equal("5 Hello", sw.ToString());
-
-            _options.TemplateOptions.TemplateParsed = null;
         }
 
         [Fact]

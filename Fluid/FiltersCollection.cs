@@ -4,6 +4,8 @@ namespace Fluid
 {
     public sealed class FilterCollection : IEnumerable<KeyValuePair<string, FilterDelegate>>
     {
+        private static readonly Dictionary<string, FilterDelegate> EmptyFilters = new();
+
         private Dictionary<string, FilterDelegate> _filters;
 
         public FilterCollection(int capacity = 0)
@@ -15,6 +17,47 @@ namespace Fluid
         }
 
         private int _version;
+        private bool _readOnly;
+
+        /// <summary>
+        /// Gets whether the collection can no longer be modified. The collection exposed by
+        /// <see cref="TemplateOptions.Filters"/> is read-only.
+        /// </summary>
+        public bool IsReadOnly => _readOnly;
+
+        /// <summary>
+        /// Creates a read-only copy of the collection.
+        /// </summary>
+        internal FilterCollection ToReadOnly()
+        {
+            var copy = new FilterCollection(Count);
+
+            if (_filters != null)
+            {
+                foreach (var filter in _filters)
+                {
+                    copy.AddFilter(filter.Key, filter.Value);
+                }
+            }
+
+            copy._readOnly = true;
+            return copy;
+        }
+
+        internal FilterCollection ToMutableCopy()
+        {
+            var copy = ToReadOnly();
+            copy._readOnly = false;
+            return copy;
+        }
+
+        private void ThrowIfReadOnly()
+        {
+            if (_readOnly)
+            {
+                throw new InvalidOperationException("The filter collection is read-only. Configure filters with TemplateOptionsBuilder before building the options.");
+            }
+        }
 
         /// <summary>
         /// Changes whenever the content of the collection changes, so that call sites can cache a
@@ -33,6 +76,8 @@ namespace Fluid
 
         public void AddFilter(string name, FilterDelegate d)
         {
+            ThrowIfReadOnly();
+
             _filters ??= new Dictionary<string, FilterDelegate>();
 
             _filters[name] = d;
@@ -48,6 +93,8 @@ namespace Fluid
 
         public void Remove(string name)
         {
+            ThrowIfReadOnly();
+
             if (_filters != null)
             {
                 _filters.Remove(name);
@@ -57,6 +104,8 @@ namespace Fluid
 
         public void Clear()
         {
+            ThrowIfReadOnly();
+
             if (_filters != null)
             {
                 _filters.Clear();
@@ -66,12 +115,12 @@ namespace Fluid
 
         public IEnumerator<KeyValuePair<string, FilterDelegate>> GetEnumerator()
         {
-            return _filters.GetEnumerator();
+            return (_filters ?? EmptyFilters).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return _filters.GetEnumerator();
+            return GetEnumerator();
         }
     }
 }

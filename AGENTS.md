@@ -43,10 +43,10 @@ Pipeline: source → Parlot grammar (`Fluid/FluidParser.cs`) → `Statement` AST
 
 - **Rendering**: nodes derive from `Statement` (`WriteToAsync` returns `ValueTask<Completion>`). Statements with children must stop and bubble up any non-`Normal` completion (`break`/`continue`). Follow `FluidParserExtensions.RenderStatementsAsync`: stay synchronous while the `ValueTask` is completed, fall into an `Awaited` local function only on suspension. Don't make everything `async`.
 - **Values**: the engine only manipulates `FluidValue` subclasses. Prefer cached singletons (`NilValue.Instance`, `BooleanValue.True`, `Statement.NormalCompletion`).
-- **Options vs context**: `TemplateOptions` is shared, effectively immutable; create once. `TemplateContext` is per-render and not thread-safe. `FluidParser` and `IFluidTemplate` are thread-safe and should be cached.
-- **FluidParserOptions** is fixed at construction (some options rewire tag parsers).
-- **Member access** is allow-list based. Changes to accessor resolution must work for all three paths: emit, `Reflection*Accessor` fallbacks, and source-generated (`Fluid.SourceGenerator`, `[FluidRegister]`).
-- **Filters**: add built-ins to the matching `Fluid/Filters/*Filters.cs` plus its `With*Filters()` method. Color and Money filters are opt-in.
+- **Options vs context**: `TemplateOptions` is shared, immutable configuration with no public constructor or setters: configure a `TemplateOptionsBuilder` (`With*`/`Configure*`/`Add*`), then `Build()`, which copies filters, global values, converters and member access registrations and creates a new `MemberAccessStrategy`. `ToBuilder()` derives variations; a new option goes on the builder, `TemplateOptions` and the `ToBuilder` copy constructor together. `MoneyOptions` is immutable too. `TemplateContext` is per-render and not thread-safe. `FluidParser` and `IFluidTemplate` are thread-safe and should be cached.
+- **FluidParserOptions** is immutable (`init`-only; some options rewire tag parsers).
+- **Member access** is allow-list based. Changes to accessor resolution must work for all three paths: emit, `Reflection*Accessor` fallbacks, and source-generated (`Fluid.SourceGenerator`, `[FluidRegister]` on a `TemplateOptionsBuilder` subclass or a static partial method taking one). `Build()` makes the strategy read-only, so explicit `Register` calls go through `ConfigureMemberAccess`.
+- **Filters**: add built-ins to the matching `Fluid/Filters/*Filters.cs` plus its `With*Filters()` method. Color and Money filters are opt-in (`WithColorFilters()`, `WithMoneyFilters()` on the builder); `TemplateOptions.Filters` is a read-only copy.
 - **Grammar extension**: `Register*Tag/Block`, `RegisteredOperators`; `Fluid.ViewEngine/FluidViewParser.cs` is the worked example.
 - **Visitors**: a new `Statement` must override `Accept` and have a matching hook in `AstVisitor`/`AstRewriter`.
 

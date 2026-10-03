@@ -20,7 +20,7 @@ public class DictionaryDictionaryFluidIndexableTests
             {5, "e"},
         };
 
-        var value = FluidValue.Create(items, new TemplateOptions());
+        var value = FluidValue.Create(items, new TemplateOptionsBuilder().Build());
 
         var castedValue = value.ToObjectValue() as IFluidIndexable;
 
@@ -41,7 +41,7 @@ public class DictionaryDictionaryFluidIndexableTests
             {"5", "e"},
         };
 
-        var value = FluidValue.Create(items, new TemplateOptions());
+        var value = FluidValue.Create(items, new TemplateOptionsBuilder().Build());
 
         var castedValue = value.ToObjectValue() as IFluidIndexable;
 
@@ -60,7 +60,7 @@ public class DictionaryDictionaryFluidIndexableTests
             {"3", "c"},
         };
 
-        var value = FluidValue.Create(items, new TemplateOptions());
+        var value = FluidValue.Create(items, new TemplateOptionsBuilder().Build());
 
         Assert.Equal(items.Count, value.ToNumberValue());
     }
@@ -68,7 +68,7 @@ public class DictionaryDictionaryFluidIndexableTests
     [Fact]
     public void ToNumberValueShouldReturnZeroForEmptyDictionary()
     {
-        var value = FluidValue.Create(new Dictionary<string, string>(), new TemplateOptions());
+        var value = FluidValue.Create(new Dictionary<string, string>(), new TemplateOptionsBuilder().Build());
 
         Assert.Equal(0, value.ToNumberValue());
     }
@@ -98,7 +98,7 @@ public class DictionaryDictionaryFluidIndexableTests
         {
             {1.5m, "value"},
         };
-        var options = new TemplateOptions { CultureInfo = CultureInfo.GetCultureInfo("fr-FR") };
+        var options = new TemplateOptionsBuilder().WithCultureInfo(CultureInfo.GetCultureInfo("fr-FR")).Build();
         var template = new FluidParser().Parse(
             "{% for entry in items %}{{ entry[0] }}={{ entry[1] }};{% endfor %}");
         var context = new TemplateContext(options);

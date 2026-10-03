@@ -76,7 +76,7 @@ namespace Fluid.Tests
             var generated = CompileToAssembly(source.SourceCode);
             var type = generated.GetType(source.FullTypeName, throwOnError: true);
             var instance = (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
-            var context = new TemplateContext(new TemplateOptions { StrictVariables = true });
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithStrictVariables(true).Build());
 
             var ex = await Assert.ThrowsAsync<FluidException>(() => instance.RenderAsync(new StringWriter(), HtmlEncoder.Default, context).AsTask());
 
@@ -138,7 +138,7 @@ namespace Fluid.Tests
             var generated = CompileToAssembly(source.SourceCode);
             var type = generated.GetType(source.FullTypeName, throwOnError: true);
             var instance = (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
-            var context = new TemplateContext(new TemplateOptions { Trimming = TrimmingFlags.OutputLeft });
+            var context = new TemplateContext(new TemplateOptionsBuilder().WithTrimming(TrimmingFlags.OutputLeft).Build());
 
             var ex = await Assert.ThrowsAsync<NotSupportedException>(() => instance.RenderAsync(new FlushTrackingOutput(), HtmlEncoder.Default, context).AsTask());
 
@@ -179,8 +179,7 @@ namespace Fluid.Tests
             var type = generated.GetType(source.FullTypeName, throwOnError: true);
             var instance = (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
 
-            var runtimeContext = new TemplateContext();
-            runtimeContext.Options.FileProvider = provider;
+            var runtimeContext = new TemplateContext(new TemplateOptionsBuilder().WithFileProvider(provider).Build());
 
             var runtimeWriter = new StringWriter();
             await template.RenderAsync(runtimeWriter, HtmlEncoder.Default, runtimeContext);
@@ -211,8 +210,10 @@ namespace Fluid.Tests
             var type = generated.GetType(source.FullTypeName, throwOnError: true);
             var instance = (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
 
-            var options = new TemplateOptions { FileProvider = provider };
-            options.GlobalValues.SetValue("global", new Fluid.Values.StringValue("global"));
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(provider)
+                .WithGlobalValue("global", new Fluid.Values.StringValue("global"))
+                .Build();
 
             var runtimeContext = new TemplateContext(options).SetValue("input", "root");
             var runtimeWriter = new StringWriter();

@@ -8,13 +8,16 @@ namespace Fluid
     /// Configures the money filters registered by <see cref="Filters.MoneyFilters.WithMoneyFilters"/>.
     /// </summary>
     /// <remarks>
-    /// Like <see cref="TemplateOptions"/> an instance is expected to be configured once, before any
-    /// template is rendered, and then shared. Formats and currencies are cached the first time they are used.
+    /// Instances are immutable: configure them with an object initializer or with <see cref="WithCurrency(MoneyCurrency)"/>,
+    /// then share them freely. Number formats are cached internally the first time they are used.
     /// </remarks>
-    public class MoneyOptions
+    public sealed class MoneyOptions
     {
-        private string _moneyFormat;
-        private string _moneyWithCurrencyFormat;
+        private static readonly IReadOnlyDictionary<string, MoneyCurrency> DefaultCurrencies = CreateDefaultCurrencies();
+
+        private readonly string _moneyFormat;
+        private readonly string _moneyWithCurrencyFormat;
+        private readonly IReadOnlyDictionary<string, MoneyCurrency> _currencies = DefaultCurrencies;
 
         private readonly ConcurrentDictionary<string, NumberFormatInfo> _numberFormats = new(StringComparer.Ordinal);
 
@@ -25,13 +28,13 @@ namespace Fluid
         /// <example>
         /// With <c>AmountsInCents</c> set to <c>true</c>, <c>{{ 1450 | money }}</c> renders <c>$14.50</c>.
         /// </example>
-        public bool AmountsInCents { get; set; }
+        public bool AmountsInCents { get; init; }
 
         /// <summary>
         /// Gets or sets the ISO 4217 code of the currency to use, e.g. <c>EUR</c>.
         /// When <c>null</c>, the currency of <see cref="TemplateOptions.CultureInfo"/> is used, falling back to <c>USD</c>.
         /// </summary>
-        public string Currency { get; set; }
+        public string Currency { get; init; }
 
         /// <summary>
         /// Gets or sets the format used by the <c>money</c> and <c>money_without_trailing_zeros</c> filters.
@@ -49,7 +52,7 @@ namespace Fluid
         public string MoneyFormat
         {
             get => _moneyFormat;
-            set
+            init
             {
                 _moneyFormat = value;
                 ParsedMoneyFormat = MoneyFormatTemplate.Parse(value);
@@ -67,7 +70,7 @@ namespace Fluid
         public string MoneyWithCurrencyFormat
         {
             get => _moneyWithCurrencyFormat;
-            set
+            init
             {
                 _moneyWithCurrencyFormat = value;
                 ParsedMoneyWithCurrencyFormat = MoneyFormatTemplate.Parse(value);
@@ -75,15 +78,61 @@ namespace Fluid
         }
 
         /// <summary>
-        /// Gets the currencies known to the money filters, keyed by their ISO 4217 code.
-        /// Entries can be added or replaced to support more currencies, or to use a different symbol.
+        /// Gets the currencies known to the money filters, keyed by their ISO 4217 code (case-insensitive).
         /// A currency that is not in this collection is rendered using its code as the symbol.
         /// </summary>
-        public IDictionary<string, MoneyCurrency> Currencies { get; } = CreateDefaultCurrencies();
+        /// <remarks>
+        /// The collection is copied when assigned. Use <see cref="WithCurrency(MoneyCurrency)"/> to add or replace
+        /// a single currency, for instance to support more currencies or to use a different symbol.
+        /// </remarks>
+        public IReadOnlyDictionary<string, MoneyCurrency> Currencies
+        {
+            get => _currencies;
+            init
+            {
+                ArgumentNullException.ThrowIfNull(value);
 
-        internal MoneyFormatTemplate ParsedMoneyFormat { get; private set; }
+                var currencies = new Dictionary<string, MoneyCurrency>(value.Count, StringComparer.OrdinalIgnoreCase);
 
-        internal MoneyFormatTemplate ParsedMoneyWithCurrencyFormat { get; private set; }
+                foreach (var entry in value)
+                {
+                    currencies[entry.Key] = entry.Value;
+                }
+
+                _currencies = currencies;
+            }
+        }
+
+        internal MoneyFormatTemplate ParsedMoneyFormat { get; private init; }
+
+        internal MoneyFormatTemplate ParsedMoneyWithCurrencyFormat { get; private init; }
+
+        /// <summary>
+        /// Returns a copy of these options that knows the specified currency, replacing any existing one with the same code.
+        /// </summary>
+        /// <param name="currency">The currency to add or replace.</param>
+        public MoneyOptions WithCurrency(MoneyCurrency currency)
+        {
+            ArgumentNullException.ThrowIfNull(currency);
+
+            var currencies = new Dictionary<string, MoneyCurrency>(_currencies.Count + 1, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var entry in _currencies)
+            {
+                currencies[entry.Key] = entry.Value;
+            }
+
+            currencies[currency.Code] = currency;
+
+            return new MoneyOptions
+            {
+                AmountsInCents = AmountsInCents,
+                Currency = Currency,
+                MoneyFormat = _moneyFormat,
+                MoneyWithCurrencyFormat = _moneyWithCurrencyFormat,
+                Currencies = currencies,
+            };
+        }
 
         internal NumberFormatInfo GetNumberFormat(CultureInfo culture, MoneyCurrency currency)
         {

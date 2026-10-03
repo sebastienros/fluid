@@ -67,12 +67,11 @@ namespace Fluid.Tests
         [InlineData(null, "time_zone: 'local'", "")]
         public async Task JsonObjectModelSupportsDateFilters(object input, string filters, string expected)
         {
-            var options = new TemplateOptions
-            {
-                CultureInfo = CultureInfo.InvariantCulture,
-                TimeZone = TimeZoneInfo.CreateCustomTimeZone("Fixed", TimeSpan.FromHours(2), "Fixed", "Fixed"),
-                Now = () => new DateTimeOffset(2020, 5, 18, 2, 13, 9, TimeSpan.Zero)
-            };
+            var options = new TemplateOptionsBuilder()
+                .WithCultureInfo(CultureInfo.InvariantCulture)
+                .WithTimeZone(TimeZoneInfo.CreateCustomTimeZone("Fixed", TimeSpan.FromHours(2), "Fixed", "Fixed"))
+                .WithNow(() => new DateTimeOffset(2020, 5, 18, 2, 13, 9, TimeSpan.Zero))
+                .Build();
             var model = new JsonObject
             {
                 ["nested"] = new JsonObject
@@ -89,8 +88,7 @@ namespace Fluid.Tests
         [Fact]
         public void CustomValueConvertersTakePrecedenceForJsonValues()
         {
-            var options = new TemplateOptions();
-            options.ValueConverters.Add(value => value is JsonValue ? "custom" : null);
+            var options = new TemplateOptionsBuilder().AddValueConverter(value => value is JsonValue ? "custom" : null).Build();
 
             var value = FluidValue.Create(JsonValue.Create(42), options);
 
@@ -100,7 +98,7 @@ namespace Fluid.Tests
         [Fact]
         public void JsonValuesCreatedFromClrScalarsAreConverted()
         {
-            var options = new TemplateOptions();
+            var options = new TemplateOptionsBuilder().Build();
 
             Assert.Equal(42, FluidValue.Create(JsonValue.Create(42), options).ToNumberValue());
             Assert.Equal("hello", FluidValue.Create(JsonValue.Create("hello"), options).ToStringValue());

@@ -94,14 +94,13 @@ namespace Fluid.Benchmarks
             var provider = new BenchmarkTemplateFileProvider()
                 .Add(path, "x")
                 .Add(path + "-async", "");
-            var options = new TemplateOptions
-            {
-                FileProvider = provider,
-                TemplateParsed = (templatePath, template) =>
+            var options = new TemplateOptionsBuilder()
+                .WithFileProvider(provider)
+                .WithTemplateParsed((templatePath, template) =>
                     templatePath.EndsWith("-async", StringComparison.Ordinal)
                         ? new SuspendingTemplate()
-                        : template
-            };
+                        : template)
+                .Build();
 
             return new TemplateContext(options);
         }

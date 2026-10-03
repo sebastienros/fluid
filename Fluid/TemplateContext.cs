@@ -54,7 +54,7 @@ namespace Fluid
             modelNamesComparer ??= options.ModelNamesComparer;
 
             Options = options;
-            _localScope = new Scope(options.GlobalValues, null, modelNamesComparer, null);
+            _localScope = new Scope(options.GlobalScope, null, modelNamesComparer, null);
             RootScope = _localScope;
             CultureInfo = options.CultureInfo;
             MoneyOptions = options.MoneyOptions;

@@ -20,9 +20,49 @@ namespace Fluid.ViewEngine
         public TextEncoder TextEncoder = HtmlEncoder.Default;
 
         /// <summary>
-        /// Gets the template options.
+        /// Gets the builder used to configure the <see cref="TemplateOptions"/>.
         /// </summary>
-        public TemplateOptions TemplateOptions { get; } = new TemplateOptions();
+        /// <remarks>
+        /// The builder is read once, when <see cref="TemplateOptions"/> is first accessed, which is when the view renderer is created.
+        /// Changes made afterwards are ignored.
+        /// </remarks>
+        public TemplateOptionsBuilder TemplateOptionsBuilder { get; } = new TemplateOptionsBuilder();
+
+        /// <summary>
+        /// Gets the immutable template options built from <see cref="TemplateOptionsBuilder"/>.
+        /// </summary>
+        /// <remarks>
+        /// The options are built the first time they are accessed. Their file provider is
+        /// <see cref="PartialsFileProvider"/>, then <see cref="ViewsFileProvider"/>, when one is set.
+        /// </remarks>
+        public TemplateOptions TemplateOptions
+        {
+            get
+            {
+                if (_templateOptions is null)
+                {
+                    lock (_templateOptionsLock)
+                    {
+                        if (_templateOptions is null)
+                        {
+                            var fileProvider = PartialsFileProvider ?? ViewsFileProvider;
+
+                            if (fileProvider is not null)
+                            {
+                                TemplateOptionsBuilder.WithFileProvider(fileProvider);
+                            }
+
+                            _templateOptions = TemplateOptionsBuilder.Build();
+                        }
+                    }
+                }
+
+                return _templateOptions;
+            }
+        }
+
+        private readonly object _templateOptionsLock = new();
+        private volatile TemplateOptions _templateOptions;
 
         /// <summary>
         /// Gets or sets the <see cref="ITemplateFileProvider"/> used to access views.

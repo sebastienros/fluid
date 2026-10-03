@@ -5,14 +5,16 @@ namespace Fluid.Benchmarks
     [MemoryDiagnoser]
     public class FluidBenchmarks : BaseBenchmarks
     {
-        private readonly TemplateOptions _options = new TemplateOptions(){ OutputBufferSize = 40 * 1024};
+        private readonly TemplateOptions _options = new TemplateOptionsBuilder()
+            .WithOutputBufferSize(40 * 1024)
+            .WithModelNamesComparer(StringComparers.CamelCase)
+            .Build();
         private readonly FluidParser _parser  = new FluidParser();
         private readonly IFluidTemplate _fluidTemplate;
         private readonly FluidParser _compiledParser = new FluidParser().Compile();
 
         public FluidBenchmarks()
         {
-            _options.ModelNamesComparer = StringComparers.CamelCase;
             _parser.TryParse(ProductTemplate, out _fluidTemplate, out var _);
 
             CheckBenchmark();
