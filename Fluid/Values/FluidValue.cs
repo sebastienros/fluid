@@ -2,6 +2,8 @@ using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace Fluid.Values
@@ -158,6 +160,11 @@ namespace Fluid.Values
             }
 
             var typeOfValue = value.GetType();
+
+            if (value is JsonValue jsonValue)
+            {
+                return CreateJsonValue(jsonValue);
+            }
 
             // Check if the value is an enum and convert to string
             if (typeOfValue.IsEnum)
@@ -346,6 +353,35 @@ namespace Fluid.Values
                 default:
                     throw new InvalidOperationException();
             }
+        }
+
+        private static FluidValue CreateJsonValue(JsonValue value)
+        {
+            if (value.TryGetValue<JsonElement>(out var element))
+            {
+                return element.ValueKind switch
+                {
+                    JsonValueKind.String => StringValue.Create(element.GetString()),
+                    JsonValueKind.Number when element.TryGetInt32(out var integer) => NumberValue.Create(integer),
+                    JsonValueKind.Number when element.TryGetDecimal(out var number) => NumberValue.Create(number),
+                    JsonValueKind.Number => NumberValue.Create(decimal.Parse(element.GetRawText(), NumberStyles.Float, CultureInfo.InvariantCulture)),
+                    JsonValueKind.True => BooleanValue.True,
+                    JsonValueKind.False => BooleanValue.False,
+                    JsonValueKind.Null => NilValue.Instance,
+                    _ => new ObjectValue(value)
+                };
+            }
+
+            return value.GetValueKind() switch
+            {
+                JsonValueKind.String => StringValue.Create(value.ToString()),
+                JsonValueKind.Number when value.TryGetValue<decimal>(out var number) => NumberValue.Create(number),
+                JsonValueKind.Number => NumberValue.Create(decimal.Parse(value.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture)),
+                JsonValueKind.True => BooleanValue.True,
+                JsonValueKind.False => BooleanValue.False,
+                JsonValueKind.Null => NilValue.Instance,
+                _ => new ObjectValue(value)
+            };
         }
 
         [Obsolete("Use ContainsAsync(FluidValue, TemplateContext) instead.")]
