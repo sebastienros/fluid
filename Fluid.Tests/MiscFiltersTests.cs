@@ -640,6 +640,33 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task FormatStringWithoutArgumentsDoesNotThrow()
+        {
+            var input = new StringValue("literal text");
+            var context = new TemplateContext();
+
+            foreach (var arguments in new[] { FilterArguments.Empty, new FilterArguments(), new FilterArguments(Array.Empty<FluidValue>()) })
+            {
+                var result = await MiscFilters.FormatString(input, arguments, context);
+                Assert.Equal("literal text", result.ToStringValue());
+            }
+        }
+
+        [Theory]
+        [InlineData("{{ 'literal text' | format_string }}", "literal text")]
+        [InlineData("{{ '!HelloWorld' | handleize }}", "hello-world")]
+        public async Task FilterRegressionsRender(string source, string expected)
+        {
+#if COMPILED
+            var parser = new FluidParser().Compile();
+#else
+            var parser = new FluidParser();
+#endif
+            Assert.True(parser.TryParse(source, out var template, out var error), error);
+            Assert.Equal(expected, await template.RenderAsync());
+        }
+
+        [Fact]
         public async Task DateWithoutFormatShouldReturnInput()
         {
             var input = new StringValue("08/01/2017");
@@ -824,6 +851,8 @@ namespace Fluid.Tests
         [InlineData("First_Second_ThirdHi", "first-second-third-hi")]
         [InlineData("100% M & Ms!!!", "100-m-ms")]
         [InlineData("!!!100% M & Ms", "100-m-ms")]
+        [InlineData("!HelloWorld", "hello-world")]
+        [InlineData("!!!HelloWorld", "hello-world")]
         public async Task Handleize(string text, string expected)
         {
             var input = new StringValue(text);

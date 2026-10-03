@@ -80,6 +80,11 @@ namespace Fluid
 
         internal object[] ValuesToObjectArray()
         {
+            if (_positional == null || _positional.Count == 0)
+            {
+                return Array.Empty<object>();
+            }
+
             var array = new object[_positional.Count];
             for (var i = 0; i < array.Length; ++i)
             {

@@ -1,5 +1,6 @@
 ﻿using Fluid.Values;
 using System;
+using System.Reflection;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -12,6 +13,20 @@ namespace Fluid.Tests
 #else
         private static FluidParser _parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
 #endif
+
+        [Fact]
+        public void EmptyFunctionArgumentsConvertToEmptyObjectArray()
+        {
+            var method = typeof(FunctionArguments).GetMethod("ValuesToObjectArray", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.NotNull(method);
+
+            foreach (var arguments in new[] { FunctionArguments.Empty, new FunctionArguments(), new FunctionArguments(Array.Empty<FluidValue>()) })
+            {
+                Assert.Same(Array.Empty<object>(), method.Invoke(arguments, null));
+            }
+
+            Assert.Equal(new object[] { "hello", 42m }, Assert.IsType<object[]>(method.Invoke(new FunctionArguments(new StringValue("hello"), NumberValue.Create(42)), null)));
+        }
 
         [Fact]
         public async Task FunctionCallsShouldDefaultToNil()
