@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Threading;
@@ -521,6 +523,31 @@ namespace Fluid.Tests
         }
 
         [Fact]
+        public async Task ShouldAccessPropertiesAndEnumerateCustomEnumerable()
+        {
+            var options = new TemplateOptions();
+            var context = new TemplateContext(options);
+            context.SetValue("Permit", new Permit
+            {
+                Vehicles = new VehicleHistory(
+                [
+                    new Vehicle("ABC", true),
+                    new Vehicle("DEF", false),
+                    new Vehicle("GHI", true)
+                ])
+            });
+
+            var template = _parser.Parse(
+                "{% assign second = Permit.Vehicles | slice: 1, 1 | first %}" +
+                "{{ Permit.Vehicles.size }}|{{ Permit.Vehicles.first.Plate }}|{{ Permit.Vehicles.last.Plate }}|{{ Permit.Vehicles[1].Plate }}|{{ second.Plate }}|" +
+                "{% for vehicle in Permit.Vehicles %}{{ vehicle.Plate }}{% endfor %}|" +
+                "{% for vehicle in Permit.Vehicles.Approved %}{{ vehicle.Plate }} {% endfor %}");
+
+            Assert.Equal("3|ABC|GHI|DEF|DEF|ABCDEFGHI|ABC GHI ", await template.RenderAsync(context));
+            Assert.IsType<ArrayValue>(FluidValue.Create(new[] { 1, 2 }, options));
+        }
+
+        [Fact]
         public async Task ShouldEvaluateObjectPropertyWhenInterfaceRegisteredAsGlobal()
         {
             var options = new TemplateOptions();
@@ -622,6 +649,29 @@ namespace Fluid.Tests
 
             public override string ToString() => null;
         }
+
+        private sealed class Permit
+        {
+            public VehicleHistory Vehicles { get; init; }
+        }
+
+        private sealed class VehicleHistory : IEnumerable<Vehicle>
+        {
+            private readonly Vehicle[] _vehicles;
+
+            public VehicleHistory(Vehicle[] vehicles)
+            {
+                _vehicles = vehicles;
+            }
+
+            public IEnumerable<Vehicle> Approved => _vehicles.Where(vehicle => vehicle.Approved);
+
+            public IEnumerator<Vehicle> GetEnumerator() => ((IEnumerable<Vehicle>)_vehicles).GetEnumerator();
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        private sealed record Vehicle(string Plate, bool Approved);
 
         private class PersonValue : ObjectValueBase
         {

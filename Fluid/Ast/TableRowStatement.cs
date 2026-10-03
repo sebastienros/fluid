@@ -41,9 +41,8 @@ namespace Fluid.Ast
                 return Completion.Normal;
             }
 
-            IReadOnlyList<FluidValue> source = evaluatedSource is ArrayValue array
-                ? array.Values
-                : await evaluatedSource.EnumerateAsync(context).ToListAsync(context.CancellationToken);
+            IReadOnlyList<FluidValue> source = EnumerableObjectValue.GetMaterializedValues(evaluatedSource)
+                ?? await evaluatedSource.EnumerateAsync(context).ToListAsync(context.CancellationToken);
 
             if (source.Count == 0)
             {

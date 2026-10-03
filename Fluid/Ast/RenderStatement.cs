@@ -129,9 +129,8 @@ namespace Fluid.Ast
             else if (For != null)
             {
                 var evaluatedFor = await For.EvaluateAsync(context);
-                list = evaluatedFor is ArrayValue array
-                    ? array.Values
-                    : await evaluatedFor.EnumerateAsync(context).ToListAsync(context.CancellationToken);
+                list = EnumerableObjectValue.GetMaterializedValues(evaluatedFor)
+                    ?? await evaluatedFor.EnumerateAsync(context).ToListAsync(context.CancellationToken);
             }
 
             // Liquid evaluates named argument expressions in the caller before creating the isolated context.

@@ -82,10 +82,9 @@ namespace Fluid.Ast
 
                 var evaluatedFor = await For.EvaluateAsync(context);
 
-                // Fast-path: avoid re-enumerating already materialized arrays.
-                IReadOnlyList<FluidValue> list = evaluatedFor is ArrayValue array
-                    ? array.Values
-                    : await evaluatedFor.EnumerateAsync(context).ToListAsync(context.CancellationToken);
+                // Fast-path: avoid re-enumerating already materialized values.
+                IReadOnlyList<FluidValue> list = EnumerableObjectValue.GetMaterializedValues(evaluatedFor)
+                    ?? await evaluatedFor.EnumerateAsync(context).ToListAsync(context.CancellationToken);
 
                 var length = forloop.Length = list.Count;
 
