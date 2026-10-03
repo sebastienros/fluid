@@ -158,4 +158,23 @@ public static class NumberFilters
 
         return NumberValue.Create(input.ToNumberValue() * first.ToNumberValue());
     }
+
+    public static ValueTask<FluidValue> Random(FluidValue input, FilterArguments arguments, TemplateContext context)
+    {
+        LiquidException.ThrowFilterArgumentsCount("random", expected: 2, arguments);
+
+        var minValue = (int)arguments.At(0).ToNumberValue();
+        var maxValue = (int)arguments.At(1).ToNumberValue();
+
+        if (minValue > maxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(arguments), "The minimum cannot be greater than the maximum.");
+        }
+
+        var random = new Random();
+        var range = (long)maxValue - minValue + 1;
+        var value = minValue + (long)(random.NextDouble() * range);
+
+        return NumberValue.Create(value);
+    }
 }
