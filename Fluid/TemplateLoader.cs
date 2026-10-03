@@ -33,9 +33,18 @@ internal static class TemplateLoader
         {
             var content = await source.ReadToEndAsync(context.CancellationToken);
 
-            if (!parser.TryParse(content, out template, out var errors))
+            try
             {
-                throw new ParseException($"Failed to parse template '{GetDisplayPath(resolvedPath)}'.\n{errors}");
+                template = parser.Parse(content);
+            }
+            catch (Exception exception)
+            {
+                var parseException = exception as ParseException;
+                throw new ParseException(
+                    $"Failed to parse template '{GetDisplayPath(resolvedPath)}'.\n{exception.Message}",
+                    parseException?.TemplateSource ?? content,
+                    parseException?.Position,
+                    exception);
             }
 
             if (context.Options.TemplateParsed != null)

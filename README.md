@@ -177,6 +177,35 @@ else
 #### Result
 `Hello Bill Gates`
 
+### Parsing errors
+
+`TryParse` returns parsing diagnostics as a string. Use `Parse` when you need structured
+error information:
+
+```csharp
+try
+{
+    var template = parser.Parse(source);
+}
+catch (ParseException exception)
+{
+    if (exception.Position is { } position)
+    {
+        Console.WriteLine($"Error at line {position.Line}, column {position.Column} (offset {position.Offset})");
+    }
+
+    Console.WriteLine(exception.Message);
+}
+```
+
+`ParseException.TemplateSource` contains the full original template, including when an
+invalid template is loaded by an `include` or `render` tag or the view engine.
+`Position` is a nullable `Parlot.TextPosition`: its offset is zero-based and its line
+and column are one-based. Line numbers follow Parlot's LF-based counting (including CRLF,
+but not standalone CR). Exceptions created without parsing metadata may have a
+null source or position. The inherited `Exception.Source` property retains its standard
+meaning and does not contain the template text.
+
 ### Model security
 
 Fluid templates can read public properties and fields from the model and from objects reachable through it. This is by design; a model passed to `TemplateContext` should be treated as the template's readable data boundary.

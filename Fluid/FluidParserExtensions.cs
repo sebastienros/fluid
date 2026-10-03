@@ -11,18 +11,33 @@ public static class FluidParserExtensions
     {
         var context = new FluidParseContext(template);
 
-        var success = parser.Grammar.TryParse(context, out var statements, out var parlotError);
+        bool success;
+        IReadOnlyList<Statement> statements;
+        Parlot.ParseError parlotError;
+
+        try
+        {
+            success = parser.Grammar.TryParse(context, out statements, out parlotError);
+        }
+        catch (ParseException exception) when (exception.TemplateSource == null || exception.Position == null)
+        {
+            throw new ParseException(
+                exception.Message,
+                exception.TemplateSource ?? template,
+                exception.Position ?? context.Scanner.Cursor.Position,
+                exception);
+        }
 
         if (parlotError != null)
         {
             // Extract line with error
-            var start = parlotError.Position.Offset - 1;
+            var start = parlotError.Position.Offset;
             var end = parlotError.Position.Offset;
-            while (start > 0 && template[start] != '\n' && template[start] != '\r') start--;
-            while (end < template.Length && template[end] != '\n') end++;
-            var source = template.Substring(start, end - start).Trim('\n', '\r');
+            while (start > 0 && template[start - 1] != '\n' && template[start - 1] != '\r') start--;
+            while (end < template.Length && template[end] != '\n' && template[end] != '\r') end++;
+            var source = template.Substring(start, end - start);
 
-            throw new ParseException($"{parlotError.Message} at {parlotError.Position}\nSource:\n{source}");
+            throw new ParseException($"{parlotError.Message} at {parlotError.Position}\nSource:\n{source}", template, parlotError.Position);
         }
 
         if (!success)

@@ -346,12 +346,18 @@ public class FluidViewRenderer : IFluidViewRenderer
     {
         var content = await source.ReadToEndAsync(cancellationToken);
 
-        if (_fluidViewEngineOptions.Parser.TryParse(content, out var template, out var errors))
+        try
         {
-            return template;
+            return _fluidViewEngineOptions.Parser.Parse(content);
         }
-
-        throw new ParseException(errors);
+        catch (ParseException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            throw new ParseException(exception.Message, content, null, exception);
+        }
     }
 
 }
