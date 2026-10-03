@@ -1,9 +1,8 @@
-﻿namespace Fluid.Values
+namespace Fluid.Values;
+
+public sealed class ObjectValue : ObjectValueBase
 {
-    public sealed class ObjectValue : ObjectValueBase
+    public ObjectValue(object value) : base(value)
     {
-        public ObjectValue(object value) : base(value)
-        {
-        }
     }
 }

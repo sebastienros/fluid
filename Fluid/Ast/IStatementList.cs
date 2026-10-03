@@ -1,7 +1,6 @@
-﻿namespace Fluid.Ast
+namespace Fluid.Ast;
+
+public interface IStatementList
 {
-    public interface IStatementList
-    {
-        IReadOnlyList<Statement> Statements { get; }
-    }
+    IReadOnlyList<Statement> Statements { get; }
 }

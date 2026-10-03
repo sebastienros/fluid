@@ -548,12 +548,12 @@ public class StrictVariableTests
         _parser.TryParse("{{ event.userId }}", out var template, out var _);
         var options = new TemplateOptionsBuilder().WithStrictVariables(true).Build();
         var context = new TemplateContext(options);
-        
+
         // Set event but without userId property
         context.SetValue("event", new { email = "test@example.com" });
-        
+
         var exception = await Assert.ThrowsAsync<FluidException>(() => template.RenderAsync(context).AsTask());
-        
+
         // The exception message should contain "userId"
         Assert.Contains("userId", exception.Message);
     }
@@ -565,12 +565,12 @@ public class StrictVariableTests
         _parser.TryParse("{{ user.profile.avatar }}", out var template, out var _);
         var options = new TemplateOptionsBuilder().WithStrictVariables(true).Build();
         var context = new TemplateContext(options);
-        
+
         // Set user with profile but without avatar property
         context.SetValue("user", new { profile = new { name = "John" } });
-        
+
         var exception = await Assert.ThrowsAsync<FluidException>(() => template.RenderAsync(context).AsTask());
-        
+
         // The exception message should contain "avatar"
         Assert.Contains("avatar", exception.Message);
     }

@@ -58,7 +58,7 @@ public sealed class TemplateSourceInfo
 #if NET8_0_OR_GREATER
         return await reader.ReadToEndAsync(cancellationToken);
 #else
-        using var registration = cancellationToken.Register(static state => ((Stream) state).Dispose(), stream);
+        using var registration = cancellationToken.Register(static state => ((Stream)state).Dispose(), stream);
 
         try
         {

@@ -1,124 +1,123 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using Xunit;
 
-namespace Fluid.Tests.Extensibility
+namespace Fluid.Tests.Extensibility;
+
+public class ExtensibilityTests
 {
-    public class ExtensibilityTests
+    [Fact]
+    public void ShouldRenderEmptyTags()
     {
-        [Fact]
-        public void ShouldRenderEmptyTags()
+        var parser = new CustomParser();
+
+        parser.RegisterEmptyTag("hello", (w, e, c) =>
         {
-            var parser = new CustomParser();
+            w.Write("Hello World");
 
-            parser.RegisterEmptyTag("hello", (w, e, c) =>
-            {
-                w.Write("Hello World");
+            return Statement.Normal();
+        });
 
-                return Statement.Normal();
-            });
+        var template = parser.Parse("{% hello %}");
+        var result = template.Render();
 
-            var template = parser.Parse("{% hello %}");
-            var result = template.Render();
+        Assert.Equal("Hello World", result);
+    }
 
-            Assert.Equal("Hello World", result);
-        }
+    [Fact]
+    public void ShouldReportAndErrorOnEmptyTags()
+    {
+        var parser = new CustomParser();
 
-        [Fact]
-        public void ShouldReportAndErrorOnEmptyTags()
+        parser.RegisterEmptyTag("hello", (w, e, c) =>
         {
-            var parser = new CustomParser();
+            w.Write("Hello World");
 
-            parser.RegisterEmptyTag("hello", (w, e, c) =>
-            {
-                w.Write("Hello World");
+            return Statement.Normal();
+        });
 
-                return Statement.Normal();
-            });
+        Assert.Throws<ParseException>(() => parser.Parse("{% hello foo %}"));
+    }
 
-            Assert.Throws<ParseException>(() => parser.Parse("{% hello foo %}"));
-        }
+    [Fact]
+    public void ShouldRenderIdentifierTags()
+    {
+        var parser = new CustomParser();
 
-        [Fact]
-        public void ShouldRenderIdentifierTags()
+        parser.RegisterIdentifierTag("hello", (s, w, e, c) =>
         {
-            var parser = new CustomParser();
+            w.Write("Hello ");
+            w.Write(s);
 
-            parser.RegisterIdentifierTag("hello", (s, w, e, c) =>
-            {
-                w.Write("Hello ");
-                w.Write(s);
+            return Statement.Normal();
+        });
 
-                return Statement.Normal();
-            });
+        var template = parser.Parse("{% hello test %}");
+        var result = template.Render();
 
-            var template = parser.Parse("{% hello test %}");
-            var result = template.Render();
+        Assert.Equal("Hello test", result);
+    }
 
-            Assert.Equal("Hello test", result);
-        }
+    [Fact]
+    public void ShouldRenderEmptyBlocks()
+    {
+        var parser = new CustomParser();
 
-        [Fact]
-        public void ShouldRenderEmptyBlocks()
+        parser.RegisterEmptyBlock("hello", static (s, w, e, c) =>
         {
-            var parser = new CustomParser();
+            w.Write("Hello World");
+            return s.RenderStatementsAsync(w, e, c);
+        });
 
-            parser.RegisterEmptyBlock("hello", static (s, w, e, c) =>
-            {
-                w.Write("Hello World");
-                return s.RenderStatementsAsync(w, e, c);
-            });
+        var template = parser.Parse("{% hello %} hi {%- endhello %}");
+        var result = template.Render();
 
-            var template = parser.Parse("{% hello %} hi {%- endhello %}");
-            var result = template.Render();
+        Assert.Equal("Hello World hi", result);
+    }
 
-            Assert.Equal("Hello World hi", result);
-        }
+    [Fact]
+    public void ShouldRenderIdentifierBlocks()
+    {
+        var parser = new CustomParser();
 
-        [Fact]
-        public void ShouldRenderIdentifierBlocks()
+        parser.RegisterIdentifierBlock("hello", (i, s, w, e, c) =>
         {
-            var parser = new CustomParser();
+            w.Write("Hello ");
+            w.Write(i);
+            return s.RenderStatementsAsync(w, e, c);
+        });
 
-            parser.RegisterIdentifierBlock("hello", (i, s, w, e, c) =>
-            {
-                w.Write("Hello ");
-                w.Write(i);
-                return s.RenderStatementsAsync(w, e, c);
-            });
+        var template = parser.Parse("{% hello test %} hi {%- endhello %}");
+        var result = template.Render();
 
-            var template = parser.Parse("{% hello test %} hi {%- endhello %}");
-            var result = template.Render();
+        Assert.Equal("Hello test hi", result);
+    }
 
-            Assert.Equal("Hello test hi", result);
-        }
+    [Fact]
+    public void CustomBlockShouldReturnErrorMessage()
+    {
+        var parser = new CustomParser();
 
-        [Fact]
-        public void CustomBlockShouldReturnErrorMessage()
+        parser.RegisterEmptyBlock("hello", static (s, w, e, c) =>
         {
-            var parser = new CustomParser();
+            w.Write("Hello World");
+            return s.RenderStatementsAsync(w, e, c);
+        });
 
-            parser.RegisterEmptyBlock("hello", static (s, w, e, c) =>
-            {
-                w.Write("Hello World");
-                return s.RenderStatementsAsync(w, e, c);
-            });
+        parser.TryParse("{% hello %} hi {%- endhello %} {% endhello %}", out var template, out var error);
 
-            parser.TryParse("{% hello %} hi {%- endhello %} {% endhello %}", out var template, out var error);
+        Assert.Null(template);
+        Assert.Contains("Unknown tag 'endhello'", error);
+    }
 
-            Assert.Null(template);
-            Assert.Contains("Unknown tag 'endhello'", error);
-        }
+    [Fact]
+    public void ShouldAddOperator()
+    {
+        var parser = new CustomParser();
 
-        [Fact]
-        public void ShouldAddOperator()
-        {
-            var parser = new CustomParser();
+        parser.RegisteredOperators["xor"] = (a, b) => new XorBinaryExpression(a, b);
 
-            parser.RegisteredOperators["xor"] = (a, b) => new XorBinaryExpression(a, b);
+        parser.TryParse("{% if true xor false %}true{% endif %}", out var template, out var error);
 
-            parser.TryParse("{% if true xor false %}true{% endif %}", out var template, out var error);
-
-            Assert.Equal("true", template.Render());
-        }
+        Assert.Equal("true", template.Render());
     }
 }

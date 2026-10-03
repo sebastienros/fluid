@@ -117,25 +117,23 @@ public static class LiquidTool
             sets.Add(new(set[..index], set[(index + 1)..]));
         }
 
-        var options = new TemplateOptions
-        {
-            StrictVariables = r.Strict,
-            StrictFilters = r.Strict,
-            MaxSteps = r.MaxSteps,
-            MaxRecursion = r.MaxRecursion,
-            JsonSerializerOptions = ToolJsonContext.Default.Options,
-        };
+        var optionsBuilder = new TemplateOptionsBuilder()
+            .WithStrictVariables(r.Strict)
+            .WithStrictFilters(r.Strict)
+            .WithMaxSteps(r.MaxSteps)
+            .WithMaxRecursion(r.MaxRecursion)
+            .WithJsonSerializerOptions(ToolJsonContext.Default.Options);
 
         try
         {
             if (r.Culture is not null)
             {
-                options.CultureInfo = CultureInfo.GetCultureInfo(r.Culture);
+                optionsBuilder.WithCultureInfo(CultureInfo.GetCultureInfo(r.Culture));
             }
 
             if (r.TimeZone is not null)
             {
-                options.TimeZone = options.TimeZoneResolver(r.TimeZone);
+                optionsBuilder.WithTimeZone(TemplateOptions.Default.TimeZoneResolver(r.TimeZone));
             }
         }
         catch (Exception e) when (e is CultureNotFoundException or TimeZoneNotFoundException or ArgumentException)
@@ -171,7 +169,9 @@ public static class LiquidTool
         var includeRoots = r.IncludePaths.Length > 0
             ? r.IncludePaths
             : [templateDirectory ?? Directory.GetCurrentDirectory()];
-        options.FileProvider = new DirectoryTemplateFileProvider(includeRoots);
+        var options = optionsBuilder
+            .WithFileProvider(new DirectoryTemplateFileProvider(includeRoots))
+            .Build();
 
         var parser = new FluidParser();
         if (!parser.TryParse(source, out var template, out var parseError))

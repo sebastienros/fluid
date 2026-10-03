@@ -1,7 +1,6 @@
-﻿namespace Fluid.Tests.Domain.WithInterfaces
+namespace Fluid.Tests.Domain.WithInterfaces;
+
+public interface IAnimal
 {
-    public interface IAnimal
-    {
-        int Age { get; set; }
-    }
+    int Age { get; set; }
 }

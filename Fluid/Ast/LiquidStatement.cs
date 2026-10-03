@@ -1,63 +1,62 @@
-﻿using System.Text.Encodings.Web;
+using System.Text.Encodings.Web;
 using Fluid.SourceGeneration;
 
-namespace Fluid.Ast
+namespace Fluid.Ast;
+
+public sealed class LiquidStatement : TagStatement, ISourceable
 {
-    public sealed class LiquidStatement : TagStatement, ISourceable
+    public LiquidStatement(IReadOnlyList<Statement> statements) : base(statements)
     {
-        public LiquidStatement(IReadOnlyList<Statement> statements) : base(statements)
-        {
-        }
+    }
 
-        public override bool IsWhitespaceOrCommentOnly
+    public override bool IsWhitespaceOrCommentOnly
+    {
+        get
         {
-            get
-            {
-                for (var i = 0; i < Statements.Count; i++)
-                {
-                    if (!Statements[i].IsWhitespaceOrCommentOnly)
-                    {
-                        return false;
-                    }
-                }
-                return true;
-            }
-        }
-
-        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
-        {
-            context.IncrementSteps();
-
             for (var i = 0; i < Statements.Count; i++)
             {
-                var statement = Statements[i];
-                var completion = await statement.WriteToAsync(output, encoder, context);
-
-                if (completion != Completion.Normal)
+                if (!Statements[i].IsWhitespaceOrCommentOnly)
                 {
-                    // Stop processing the block statements
-                    // We return the completion to flow it to the outer loop
-                    return completion;
+                    return false;
                 }
             }
-
-            return Completion.Normal;
+            return true;
         }
+    }
 
-        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitLiquidStatement(this);
+    public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+    {
+        context.IncrementSteps();
 
-        public void WriteTo(SourceGenerationContext context)
+        for (var i = 0; i < Statements.Count; i++)
         {
-            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+            var statement = Statements[i];
+            var completion = await statement.WriteToAsync(output, encoder, context);
 
-            for (var i = 0; i < Statements.Count; i++)
+            if (completion != Completion.Normal)
             {
-                var stmtMethod = context.GetStatementMethodName(Statements[i]);
-                context.WriteLine($"var completion{i} = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-                context.WriteLine($"if (completion{i} != Completion.Normal) return completion{i};");
+                // Stop processing the block statements
+                // We return the completion to flow it to the outer loop
+                return completion;
             }
-
-            context.WriteLine("return Completion.Normal;");
         }
+
+        return Completion.Normal;
+    }
+
+    protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitLiquidStatement(this);
+
+    public void WriteTo(SourceGenerationContext context)
+    {
+        context.WriteLine($"{context.ContextName}.IncrementSteps();");
+
+        for (var i = 0; i < Statements.Count; i++)
+        {
+            var stmtMethod = context.GetStatementMethodName(Statements[i]);
+            context.WriteLine($"var completion{i} = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+            context.WriteLine($"if (completion{i} != Completion.Normal) return completion{i};");
+        }
+
+        context.WriteLine("return Completion.Normal;");
     }
 }

@@ -94,6 +94,42 @@ public class LiquidToolTests
     }
 
     [Fact]
+    public async Task StrictFailsOnUndefinedFilter()
+    {
+        var (code, _, err) = await RunAsync("", "-e", "{{ 'value' | unknown_filter }}", "--strict");
+        Assert.Equal(1, code);
+        Assert.Contains("unknown_filter", err);
+    }
+
+    [Theory]
+    [InlineData("--culture", "fr-FR", "{{ 1.5 }}", "1,5")]
+    [InlineData("--timezone", "UTC", "{{ '2024-01-01T12:00:00Z' | date: '%H:%M' }}", "12:00")]
+    public async Task AppliesRenderingOptions(string option, string value, string template, string expected)
+    {
+        var (code, output, err) = await RunAsync("", "-e", template, option, value);
+        Assert.Equal(0, code);
+        Assert.Equal(expected, output);
+        Assert.Equal("", err);
+    }
+
+    [Fact]
+    public async Task MaxStepsLimitsRendering()
+    {
+        var (code, _, err) = await RunAsync("", "-e", "{% for i in (1..10) %}{{ i }}{% endfor %}", "--max-steps", "1");
+        Assert.Equal(1, code);
+        Assert.StartsWith("error:", err);
+    }
+
+    [Fact]
+    public async Task InvalidTimeZoneIsUsageError()
+    {
+        var (code, output, err) = await RunAsync("", "-e", "value", "--timezone", "Invalid/TimeZone");
+        Assert.Equal(2, code);
+        Assert.Equal("", output);
+        Assert.StartsWith("error:", err);
+    }
+
+    [Fact]
     public async Task ValidateDoesNotRender()
     {
         var (code, output, _) = await RunAsync("", "-e", "{{ x }}", "--validate");

@@ -1,25 +1,24 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using Fluid.Values;
 
-namespace Fluid.Tests.Visitors
+namespace Fluid.Tests.Visitors;
+
+internal class ReplaceTwosVisitor : AstRewriter
 {
-    internal class ReplaceTwosVisitor : AstRewriter
+    private readonly FluidValue _replacement;
+
+    public ReplaceTwosVisitor(FluidValue replacement)
     {
-        private readonly FluidValue _replacement;
+        _replacement = replacement;
+    }
 
-        public ReplaceTwosVisitor(FluidValue replacement)
+    protected override Expression VisitLiteralExpression(LiteralExpression literalExpression)
+    {
+        if (literalExpression.Value is NumberValue n && n.ToNumberValue() == 2)
         {
-            _replacement = replacement;
+            return new LiteralExpression(_replacement);
         }
 
-        protected override Expression VisitLiteralExpression(LiteralExpression literalExpression)
-        {
-            if (literalExpression.Value is NumberValue n && n.ToNumberValue() == 2)
-            {
-                return new LiteralExpression(_replacement);
-            }
-
-            return literalExpression;
-        }
+        return literalExpression;
     }
 }

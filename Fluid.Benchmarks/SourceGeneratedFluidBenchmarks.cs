@@ -1,41 +1,40 @@
 using BenchmarkDotNet.Attributes;
 
-namespace Fluid.Benchmarks
+namespace Fluid.Benchmarks;
+
+[MemoryDiagnoser]
+public class SourceGeneratedFluidBenchmarks : BaseBenchmarks
 {
-    [MemoryDiagnoser]
-    public class SourceGeneratedFluidBenchmarks : BaseBenchmarks
+    private readonly TemplateOptions _options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
+    private readonly IFluidTemplate _productTemplate;
+    private readonly IFluidTemplate _blogPostTemplate;
+
+    public SourceGeneratedFluidBenchmarks()
     {
-        private readonly TemplateOptions _options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
-        private readonly IFluidTemplate _productTemplate;
-        private readonly IFluidTemplate _blogPostTemplate;
 
-        public SourceGeneratedFluidBenchmarks()
-        {
+        // Generated from product.liquid and blogpost.liquid
+        _productTemplate = SourceGeneratedTemplates.Product;
+        _blogPostTemplate = SourceGeneratedTemplates.Blogpost;
 
-            // Generated from product.liquid and blogpost.liquid
-            _productTemplate = SourceGeneratedTemplates.Product;
-            _blogPostTemplate = SourceGeneratedTemplates.Blogpost;
+        CheckBenchmark();
+    }
 
-            CheckBenchmark();
-        }
+    public override object Parse() => null;
+    public override object ParseBig() => null;
 
-        public override object Parse() => null;
-        public override object ParseBig() => null;
+    [Benchmark]
+    public override string Render()
+    {
+        var context = new TemplateContext(_options).SetValue("products", Products);
+        return _productTemplate.Render(context);
+    }
 
-        [Benchmark]
-        public override string Render()
-        {
-            var context = new TemplateContext(_options).SetValue("products", Products);
-            return _productTemplate.Render(context);
-        }
+    public override string ParseAndRender() => Render();
 
-        public override string ParseAndRender() => Render();
-
-        [Benchmark]
-        public string RenderBig()
-        {
-            var context = new TemplateContext(_options).SetValue("products", Products);
-            return _blogPostTemplate.Render(context);
-        }
+    [Benchmark]
+    public string RenderBig()
+    {
+        var context = new TemplateContext(_options).SetValue("products", Products);
+        return _blogPostTemplate.Render(context);
     }
 }

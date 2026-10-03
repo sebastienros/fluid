@@ -1,7 +1,6 @@
-﻿namespace Fluid.Tests.Domain.WithInterfaces
+namespace Fluid.Tests.Domain.WithInterfaces;
+
+public interface IPet
 {
-    public interface IPet
-    {
-        string Name { get; set; }
-    }
+    string Name { get; set; }
 }

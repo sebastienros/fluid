@@ -1,4 +1,4 @@
-﻿using Fluid;
+using Fluid;
 using Fluid.MvcSample;
 using Fluid.MvcViewEngine;
 

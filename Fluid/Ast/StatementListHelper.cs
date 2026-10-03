@@ -1,75 +1,74 @@
-namespace Fluid.Ast
+namespace Fluid.Ast;
+
+internal static class StatementListHelper
 {
-    internal static class StatementListHelper
+    internal static bool IsWhitespaceOrCommentOnly(IReadOnlyList<Statement> statements)
     {
-        internal static bool IsWhitespaceOrCommentOnly(IReadOnlyList<Statement> statements)
+        for (var i = 0; i < statements.Count; i++)
         {
-            for (var i = 0; i < statements.Count; i++)
+            switch (statements[i])
             {
-                switch (statements[i])
-                {
-                    case TextSpanStatement t:
+                case TextSpanStatement t:
 #if NET6_0_OR_GREATER
-                        if (!t.Text.Span.IsWhiteSpace())
+                    if (!t.Text.Span.IsWhiteSpace())
 #else
-                        if (!string.IsNullOrWhiteSpace(t.Text.ToString()))
+                    if (!string.IsNullOrWhiteSpace(t.Text.ToString()))
 #endif
-                        {
-                            return false;
-                        }
-                        break;
-
-                    case CommentStatement:
-                    case AssignStatement:
-                    case IncrementStatement:
-                    case DecrementStatement:
-                    case CycleStatement:
-                    case CaptureStatement:
-                    case MacroStatement:
-                    case FromStatement:
-                        break;
-
-                    case LiquidStatement liquidStatement:
-                        if (!IsWhitespaceOrCommentOnly(liquidStatement.Statements)) return false;
-                        break;
-
-                    case IfStatement ifStatement:
-                        {
-                            if (!IsWhitespaceOrCommentOnly(ifStatement.Statements)) return false;
-                            if (ifStatement.Else != null && !IsWhitespaceOrCommentOnly(ifStatement.Else.Statements)) return false;
-                            foreach (var elseIf in ifStatement.ElseIfs)
-                            {
-                                if (!IsWhitespaceOrCommentOnly(elseIf.Statements)) return false;
-                            }
-                            break;
-                        }
-
-                    case UnlessStatement unlessStatement:
-                        {
-                            if (!IsWhitespaceOrCommentOnly(unlessStatement.Statements)) return false;
-                            if (unlessStatement.Else != null && !IsWhitespaceOrCommentOnly(unlessStatement.Else.Statements)) return false;
-                            foreach (var elseIf in unlessStatement.ElseIfs)
-                            {
-                                if (!IsWhitespaceOrCommentOnly(elseIf.Statements)) return false;
-                            }
-                            break;
-                        }
-
-                    case CaseStatement caseStatement:
-                        {
-                            foreach (var block in caseStatement.Blocks)
-                            {
-                                if (!IsWhitespaceOrCommentOnly(block.Statements)) return false;
-                            }
-                            break;
-                        }
-
-                    default:
+                    {
                         return false;
-                }
-            }
+                    }
+                    break;
 
-            return true;
+                case CommentStatement:
+                case AssignStatement:
+                case IncrementStatement:
+                case DecrementStatement:
+                case CycleStatement:
+                case CaptureStatement:
+                case MacroStatement:
+                case FromStatement:
+                    break;
+
+                case LiquidStatement liquidStatement:
+                    if (!IsWhitespaceOrCommentOnly(liquidStatement.Statements)) return false;
+                    break;
+
+                case IfStatement ifStatement:
+                    {
+                        if (!IsWhitespaceOrCommentOnly(ifStatement.Statements)) return false;
+                        if (ifStatement.Else != null && !IsWhitespaceOrCommentOnly(ifStatement.Else.Statements)) return false;
+                        foreach (var elseIf in ifStatement.ElseIfs)
+                        {
+                            if (!IsWhitespaceOrCommentOnly(elseIf.Statements)) return false;
+                        }
+                        break;
+                    }
+
+                case UnlessStatement unlessStatement:
+                    {
+                        if (!IsWhitespaceOrCommentOnly(unlessStatement.Statements)) return false;
+                        if (unlessStatement.Else != null && !IsWhitespaceOrCommentOnly(unlessStatement.Else.Statements)) return false;
+                        foreach (var elseIf in unlessStatement.ElseIfs)
+                        {
+                            if (!IsWhitespaceOrCommentOnly(elseIf.Statements)) return false;
+                        }
+                        break;
+                    }
+
+                case CaseStatement caseStatement:
+                    {
+                        foreach (var block in caseStatement.Blocks)
+                        {
+                            if (!IsWhitespaceOrCommentOnly(block.Statements)) return false;
+                        }
+                        break;
+                    }
+
+                default:
+                    return false;
+            }
         }
+
+        return true;
     }
 }

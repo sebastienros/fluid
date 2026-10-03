@@ -1,23 +1,22 @@
 using System.Buffers;
 
-namespace Fluid.Utils
+namespace Fluid.Utils;
+
+internal sealed class NullFluidOutput : IFluidOutput
 {
-    internal sealed class NullFluidOutput : IFluidOutput
-    {
-        public static readonly NullFluidOutput Instance = new();
+    public static readonly NullFluidOutput Instance = new();
 
-        private NullFluidOutput() { }
+    private NullFluidOutput() { }
 
-        public void Advance(int count) { }
+    public void Advance(int count) { }
 
-        public Memory<char> GetMemory(int sizeHint = 0) => Memory<char>.Empty;
+    public Memory<char> GetMemory(int sizeHint = 0) => Memory<char>.Empty;
 
-        public Span<char> GetSpan(int sizeHint = 0) => Span<char>.Empty;
+    public Span<char> GetSpan(int sizeHint = 0) => Span<char>.Empty;
 
-        public void Write(string value) { }
+    public void Write(string value) { }
 
-        public void Write(char[] buffer, int index, int count) { }
+    public void Write(char[] buffer, int index, int count) { }
 
-        public ValueTask FlushAsync() => default;
-    }
+    public ValueTask FlushAsync() => default;
 }
