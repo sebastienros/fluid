@@ -131,6 +131,27 @@ namespace Fluid
         public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Local;
 
         /// <summary>
+        /// Gets or sets the function used by the <c>time_zone</c> filter to resolve explicit time zone identifiers.
+        /// </summary>
+        /// <remarks>
+        /// The default uses TimeZoneConverter on all target frameworks.
+        /// Resolvers must return a non-null time zone. <see cref="TimeZoneNotFoundException"/> and
+        /// <see cref="InvalidTimeZoneException"/> leave the date unchanged; other exceptions propagate.
+        /// The special <c>local</c> identifier uses <see cref="TemplateContext.TimeZone"/> instead.
+        /// </remarks>
+        public Func<string, TimeZoneInfo> TimeZoneResolver { get; set; } = ResolveTimeZone;
+
+        private static TimeZoneInfo ResolveTimeZone(string id)
+        {
+            if (TimeZoneConverter.TZConvert.TryGetTimeZoneInfo(id, out var timeZone))
+            {
+                return timeZone;
+            }
+
+            throw new TimeZoneNotFoundException($"The time zone identifier '{id}' could not be resolved.");
+        }
+
+        /// <summary>
         /// Gets or sets the maximum depth of recursions a script can execute. 100 by default.
         /// </summary>
         public int MaxRecursion { get; set; } = 100;
