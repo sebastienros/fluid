@@ -605,7 +605,8 @@ public class FluidParser
             }
             else
             {
-                throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
+                throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}",
+                    context.Scanner.Cursor.Buffer, context.Scanner.Cursor.Position);
             }
         })))
             .Then((context, x) =>
@@ -764,7 +765,8 @@ public class FluidParser
             }
             else
             {
-                throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
+                throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}",
+                    context.Scanner.Cursor.Buffer, context.Scanner.Cursor.Position);
             }
         }));
 

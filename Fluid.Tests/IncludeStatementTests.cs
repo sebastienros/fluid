@@ -56,6 +56,11 @@ public class IncludeStatementTests
         Assert.Contains("invalid.liquid", exception.Message);
         Assert.Contains("'{% endif %}' was expected", exception.Message);
         Assert.Contains("Source:\n{% if true %}", exception.Message);
+        Assert.Equal("{% if true %}", exception.TemplateSource);
+        Assert.Equal(13, exception.Position.Value.Offset);
+        var inner = Assert.IsType<ParseException>(exception.InnerException);
+        Assert.Equal(exception.TemplateSource, inner.TemplateSource);
+        Assert.Equal(exception.Position, inner.Position);
     }
 
     [Fact]
@@ -73,6 +78,30 @@ public class IncludeStatementTests
 
         Assert.Contains("template 'invalid.liquid'", exception.Message);
         Assert.DoesNotContain("/Users/alice/templates", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("include")]
+    [InlineData("render")]
+    public async Task LoadedTemplateParseExceptionPreservesUnknownTagMetadata(string tag)
+    {
+        const string source = "hello\n{% assing a = 1 %}";
+        var fileProvider = new MockFileProvider();
+        fileProvider.Add("invalid.liquid", source);
+        var context = new TemplateContext(new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build());
+        var template = _parser.Parse($"{{% {tag} 'invalid' %}}");
+
+        var exception = await Assert.ThrowsAsync<ParseException>(
+            () => template.RenderAsync(context).AsTask());
+
+        Assert.Contains("template 'invalid.liquid'", exception.Message);
+        Assert.Equal(source, exception.TemplateSource);
+        Assert.Equal(15, exception.Position.Value.Offset);
+        Assert.Equal(2, exception.Position.Value.Line);
+        Assert.Equal(10, exception.Position.Value.Column);
+        var inner = Assert.IsType<ParseException>(exception.InnerException);
+        Assert.Equal(exception.Position, inner.Position);
+        Assert.Equal(source, inner.TemplateSource);
     }
 
     [Fact]

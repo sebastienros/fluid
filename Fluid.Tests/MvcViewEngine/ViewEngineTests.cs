@@ -62,6 +62,31 @@ public class ViewEngineTests
         Assert.Equal("Hello World", sw.ToString());
     }
 
+    [Theory]
+    [InlineData("Views/Index.liquid")]
+    [InlineData("Views/_Layout.liquid")]
+    [InlineData("Views/_ViewStart.liquid")]
+    public async Task ShouldPreserveParseMetadataWhenLoadingTemplates(string invalidPath)
+    {
+        const string source = "hello\n{% assing a = 1 %}";
+        _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Layout' %}Hi");
+        _mockFileProvider.Add("Views/_Layout.liquid", "{% renderbody %}");
+        _mockFileProvider.Add(invalidPath, source);
+#if COMPILED
+        _options.Parser.Compile();
+#endif
+        var writer = new StringWriter();
+
+        var exception = await Assert.ThrowsAsync<ParseException>(
+            () => Renderer.RenderViewAsync(writer, "Index.liquid", new TemplateContext()));
+
+        Assert.Equal(source, exception.TemplateSource);
+        Assert.Equal(15, exception.Position.Value.Offset);
+        Assert.Equal(2, exception.Position.Value.Line);
+        Assert.Equal(10, exception.Position.Value.Column);
+        Assert.Equal("Unknown tag 'assing' at (2:10)", exception.Message);
+    }
+
     [Fact]
     public async Task ShouldImportViewStart()
     {
