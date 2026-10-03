@@ -86,7 +86,7 @@ public class MoneyFiltersTests
     [Fact]
     public void CurrencyCanBePassedAsAPositionalArgument()
     {
-        var arguments = new FilterArguments(new StringValue("EUR"));
+        var arguments = new FilterArguments(StringValue.Create("EUR"));
 
         Assert.Equal("€10.00", Invoke(MoneyFilters.Money, 10, CreateContext(), arguments));
     }
@@ -94,7 +94,7 @@ public class MoneyFiltersTests
     [Fact]
     public void CurrencyCanBePassedAsANamedArgument()
     {
-        var arguments = new FilterArguments().Add("currency", new StringValue("EUR"));
+        var arguments = new FilterArguments().Add("currency", StringValue.Create("EUR"));
 
         Assert.Equal("€10.00", Invoke(MoneyFilters.Money, 10, CreateContext(), arguments));
     }
@@ -103,7 +103,7 @@ public class MoneyFiltersTests
     public void CurrencyArgumentTakesPrecedenceOverOptions()
     {
         var context = CreateContext(options => options.WithMoneyOptions(new MoneyOptions { Currency = "EUR" }));
-        var arguments = new FilterArguments(new StringValue("GBP"));
+        var arguments = new FilterArguments(StringValue.Create("GBP"));
 
         Assert.Equal("£10.00 GBP", Invoke(MoneyFilters.MoneyWithCurrency, 10, context, arguments));
     }
@@ -111,7 +111,7 @@ public class MoneyFiltersTests
     [Fact]
     public void UnknownCurrencyUsesItsCodeAsSymbol()
     {
-        var arguments = new FilterArguments(new StringValue("XYZ"));
+        var arguments = new FilterArguments(StringValue.Create("XYZ"));
 
         Assert.Equal("XYZ10.00", Invoke(MoneyFilters.Money, 10, CreateContext(), arguments));
     }
@@ -120,7 +120,7 @@ public class MoneyFiltersTests
     public void CurrencyCanBeAddedToOptions()
     {
         var context = CreateContext(options => options.WithMoneyOptions(new MoneyOptions().WithCurrency(new MoneyCurrency("XYZ", "Ξ", 4))));
-        var arguments = new FilterArguments(new StringValue("XYZ"));
+        var arguments = new FilterArguments(StringValue.Create("XYZ"));
 
         Assert.Equal("Ξ10.0000", Invoke(MoneyFilters.Money, 10, context, arguments));
     }
@@ -130,7 +130,7 @@ public class MoneyFiltersTests
     [InlineData(1234.56, "¥1,235")]
     public void CurrenciesWithoutDecimalDigits(decimal value, string expected)
     {
-        var arguments = new FilterArguments(new StringValue("JPY"));
+        var arguments = new FilterArguments(StringValue.Create("JPY"));
 
         Assert.Equal(expected, Invoke(MoneyFilters.Money, value, CreateContext(), arguments));
     }
@@ -260,13 +260,13 @@ public class MoneyFiltersTests
     [Fact]
     public void StringValuesAreParsed()
     {
-        Assert.Equal("$10.50", MoneyFilters.Money(new StringValue("10.50"), FilterArguments.Empty, CreateContext()).Result.ToStringValue());
+        Assert.Equal("$10.50", MoneyFilters.Money(StringValue.Create("10.50"), FilterArguments.Empty, CreateContext()).Result.ToStringValue());
     }
 
     [Fact]
     public void TooManyArgumentsThrows()
     {
-        var arguments = new FilterArguments(new StringValue("EUR"), new StringValue("USD"));
+        var arguments = new FilterArguments(StringValue.Create("EUR"), StringValue.Create("USD"));
 
         Assert.Throws<LiquidException>(() => MoneyFilters.Money(NumberValue.Create(10), arguments, CreateContext()).Result);
     }

@@ -147,7 +147,8 @@ public sealed class RenderStatement : Statement, ISourceable
         else if (For != null)
         {
             ApplyAssignStatements(assignedValues, context);
-            var forloop = new ForLoopValue { IsRenderLoop = true };
+            var forloop = ForLoopValue.Create();
+            forloop.IsRenderLoop = true;
             var length = forloop.Length = list.Count;
 
             context.SetValue("forloop", forloop);
@@ -262,7 +263,8 @@ public sealed class RenderStatement : Statement, ISourceable
         else if (For != null)
         {
             EmitApplyAssignStatements();
-            context.WriteLine("var forloop = new ForLoopValue { IsRenderLoop = true };");
+            context.WriteLine("var forloop = ForLoopValue.Create();");
+            context.WriteLine("forloop.IsRenderLoop = true;");
             context.WriteLine("var length = forloop.Length = list.Count;");
             context.WriteLine($"{context.ContextName}.SetValue(\"forloop\", forloop);");
 

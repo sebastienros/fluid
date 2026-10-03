@@ -12,9 +12,9 @@ public class StringFiltersTests
     [Fact]
     public void Append()
     {
-        var input = new StringValue("Hello");
+        var input = StringValue.Create("Hello");
 
-        var arguments = new FilterArguments().Add(new StringValue(" World"));
+        var arguments = new FilterArguments().Add(StringValue.Create(" World"));
         var context = new TemplateContext();
 
         var result = StringFilters.Append(input, arguments, context);
@@ -25,7 +25,7 @@ public class StringFiltersTests
     [Fact]
     public void Capitalize()
     {
-        var input = new StringValue("hello world");
+        var input = StringValue.Create("hello world");
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();
@@ -38,7 +38,7 @@ public class StringFiltersTests
     [Fact]
     public void Downcase()
     {
-        var input = new StringValue("Hello World");
+        var input = StringValue.Create("Hello World");
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();
@@ -51,7 +51,7 @@ public class StringFiltersTests
     [Fact]
     public void LStrip()
     {
-        var input = new StringValue("   Hello World   ");
+        var input = StringValue.Create("   Hello World   ");
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();
@@ -64,7 +64,7 @@ public class StringFiltersTests
     [Fact]
     public void RStrip()
     {
-        var input = new StringValue("   Hello World   ");
+        var input = StringValue.Create("   Hello World   ");
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();
@@ -77,7 +77,7 @@ public class StringFiltersTests
     [Fact]
     public void Strip()
     {
-        var input = new StringValue("   Hello World   ");
+        var input = StringValue.Create("   Hello World   ");
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();
@@ -90,7 +90,7 @@ public class StringFiltersTests
     [Fact]
     public void StripNewLines()
     {
-        var input = new StringValue(@"
+        var input = StringValue.Create(@"
 Hello
 world
 ");
@@ -105,7 +105,7 @@ world
     [Fact]
     public void NewLineToBr()
     {
-        var input = new StringValue("Hello\nWorld");
+        var input = StringValue.Create("Hello\nWorld");
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();
@@ -118,9 +118,9 @@ world
     [Fact]
     public void Prepend()
     {
-        var input = new StringValue("World");
+        var input = StringValue.Create("World");
 
-        var arguments = new FilterArguments().Add(new StringValue("Hello "));
+        var arguments = new FilterArguments().Add(StringValue.Create("Hello "));
         var context = new TemplateContext();
 
         var result = StringFilters.Prepend(input, arguments, context);
@@ -133,7 +133,7 @@ world
     [InlineData("1 1 1 1", new object[] { 1 }, " 1 1 1")]
     public void RemoveFirst(string input, object[] arguments, string expected)
     {
-        var filterInput = new StringValue(input);
+        var filterInput = StringValue.Create(input);
         var filterArguments = arguments.ToFilterArguments();
         var context = new TemplateContext();
 
@@ -147,7 +147,7 @@ world
     [InlineData("1 1 1 1", new object[] { 1 }, "   ")]
     public void Remove(string input, object[] arguments, string expected)
     {
-        var filterInput = new StringValue(input);
+        var filterInput = StringValue.Create(input);
         var filterArguments = arguments.ToFilterArguments();
         var context = new TemplateContext();
 
@@ -161,7 +161,7 @@ world
     [InlineData("1 1 1 1", new object[] { 1 }, "1 1 1 ")]
     public void RemoveLast(string input, object[] arguments, string expected)
     {
-        var filterInput = new StringValue(input);
+        var filterInput = StringValue.Create(input);
         var filterArguments = arguments.ToFilterArguments();
         var context = new TemplateContext();
 
@@ -178,7 +178,7 @@ world
     [InlineData("aa bb cc aa bb cc", new object[] { "cc", "dd" }, "aa bb dd aa bb cc")]
     public void ReplaceFirst(string input, object[] arguments, string expected)
     {
-        var filterInput = new StringValue(input);
+        var filterInput = StringValue.Create(input);
         var filterArguments = arguments.ToFilterArguments();
         var context = new TemplateContext();
 
@@ -195,7 +195,7 @@ world
     [InlineData("aa bb cc aa bb cc", new object[] { "cc", "dd" }, "aa bb dd aa bb dd")]
     public void Replace(string input, object[] arguments, string expected)
     {
-        var filterInput = new StringValue(input);
+        var filterInput = StringValue.Create(input);
         var filterArguments = arguments.ToFilterArguments();
         var context = new TemplateContext();
 
@@ -212,7 +212,7 @@ world
     [InlineData("aa bb cc aa bb cc", new object[] { "cc", "dd" }, "aa bb cc aa bb dd")]
     public void ReplaceLast(string input, object[] arguments, string expected)
     {
-        var filterInput = new StringValue(input);
+        var filterInput = StringValue.Create(input);
         var filterArguments = arguments.ToFilterArguments();
         var context = new TemplateContext();
 
@@ -281,7 +281,7 @@ world
     {
         var arguments = new FilterArguments(NumberValue.Create(int.MinValue));
 
-        var result = await StringFilters.Slice(new StringValue("abc"), arguments, new TemplateContext());
+        var result = await StringFilters.Slice(StringValue.Create("abc"), arguments, new TemplateContext());
 
         Assert.Same(BlankValue.Instance, result);
     }
@@ -289,24 +289,24 @@ world
     [Fact]
     public async Task Split()
     {
-        var input = new StringValue("a.b.c");
+        var input = StringValue.Create("a.b.c");
 
-        var arguments = new FilterArguments().Add(new StringValue("."));
+        var arguments = new FilterArguments().Add(StringValue.Create("."));
         var context = new TemplateContext();
 
         var result = await StringFilters.Split(input, arguments, context);
 
         var enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(3, enumerated.Count());
-        Assert.Equal(new StringValue("a"), enumerated.ElementAt(0));
-        Assert.Equal(new StringValue("b"), enumerated.ElementAt(1));
-        Assert.Equal(new StringValue("c"), enumerated.ElementAt(2));
+        Assert.Equal(StringValue.Create("a"), enumerated.ElementAt(0));
+        Assert.Equal(StringValue.Create("b"), enumerated.ElementAt(1));
+        Assert.Equal(StringValue.Create("c"), enumerated.ElementAt(2));
     }
 
     [Fact]
     public async Task SplitWithEmptyString()
     {
-        var input = new StringValue("abc");
+        var input = StringValue.Create("abc");
 
         var arguments = new FilterArguments().Add(StringValue.Empty);
         var context = new TemplateContext();
@@ -315,9 +315,9 @@ world
 
         var enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(3, enumerated.Count());
-        Assert.Equal(new StringValue("a"), enumerated.ElementAt(0));
-        Assert.Equal(new StringValue("b"), enumerated.ElementAt(1));
-        Assert.Equal(new StringValue("c"), enumerated.ElementAt(2));
+        Assert.Equal(StringValue.Create("a"), enumerated.ElementAt(0));
+        Assert.Equal(StringValue.Create("b"), enumerated.ElementAt(1));
+        Assert.Equal(StringValue.Create("c"), enumerated.ElementAt(2));
     }
 
     [Theory]
@@ -328,7 +328,7 @@ world
     [InlineData(null, 5, "")]
     public void Truncate(string input, int size, string output)
     {
-        var source = new StringValue(input);
+        var source = StringValue.Create(input);
         var arguments = new FilterArguments().Add(NumberValue.Create(size));
         var context = new TemplateContext();
         var result = StringFilters.Truncate(source, arguments, context);
@@ -344,10 +344,10 @@ world
     [InlineData("ABCD EFGH IJKLM NOPQRS TUVWXYZ", 0, "", "")]
     public void TruncateWithCustomEllipsis(string input, int size, string ellipsis, string output)
     {
-        var source = new StringValue(input);
+        var source = StringValue.Create(input);
         var arguments = new FilterArguments()
             .Add(NumberValue.Create(size))
-            .Add(new StringValue(ellipsis));
+            .Add(StringValue.Create(ellipsis));
         var context = new TemplateContext();
         var result = StringFilters.Truncate(source, arguments, context);
 
@@ -367,7 +367,7 @@ world
     public void TruncateWords(string input, object size, string output)
     {
         var options = new TemplateOptionsBuilder().Build();
-        var source = new StringValue(input);
+        var source = StringValue.Create(input);
         var arguments = new FilterArguments()
             .Add(FluidValue.Create(size, options));
         var context = new TemplateContext();
@@ -383,10 +383,10 @@ world
     [InlineData("The cat came back the very next day", 0, "", "The")]
     public void TruncateWordsWithCustomEllipsis(string input, int size, string ellispsis, string output)
     {
-        var source = new StringValue(input);
+        var source = StringValue.Create(input);
         var arguments = new FilterArguments()
             .Add(NumberValue.Create(size))
-            .Add(new StringValue(ellispsis));
+            .Add(StringValue.Create(ellispsis));
 
         var context = new TemplateContext();
 
@@ -398,7 +398,7 @@ world
     [Fact]
     public void Upcase()
     {
-        var input = new StringValue("Hello World");
+        var input = StringValue.Create("Hello World");
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();

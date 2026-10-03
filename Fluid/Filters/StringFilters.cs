@@ -5,14 +5,14 @@ namespace Fluid.Filters;
 public static class StringFilters
 {
     private const string EllipsisString = "...";
-    private static readonly StringValue Ellipsis = new StringValue(EllipsisString);
+    private static readonly FluidValue Ellipsis = StringValue.Create(EllipsisString);
     private static readonly NumberValue DefaultTruncateLength = NumberValue.Create(50);
 
-    private static StringValue CreateStringValue(string value, FluidValue input)
+    private static FluidValue CreateStringValue(string value, FluidValue input)
     {
         return input is StringValue stringValue
-            ? new StringValue(value, stringValue.Encode)
-            : new StringValue(value);
+            ? StringValue.Create(value, stringValue.Encode)
+            : StringValue.Create(value);
     }
 
     public static FilterCollection WithStringFilters(this FilterCollection filters)
@@ -313,7 +313,7 @@ public static class StringFilters
             var length = Math.Min(requestedLength, sourceLength - startIndex);
 
             context.EnsureCollectionSize(length);
-            return new ArrayValue(sourceArray.Skip(startIndex).Take(length).ToArray());
+            return ArrayValue.Create(sourceArray.Skip(startIndex).Take(length).ToArray());
         }
         else
         {
@@ -427,7 +427,7 @@ public static class StringFilters
             values[i] = StringValue.Create(strings[i]);
         }
 
-        return new ArrayValue(values);
+        return ArrayValue.Create(values);
     }
 
     public static ValueTask<FluidValue> Strip(FluidValue input, FilterArguments arguments, TemplateContext context)

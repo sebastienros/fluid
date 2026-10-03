@@ -22,9 +22,9 @@ public class MiscFiltersTests
     [Fact]
     public async Task DefaultReturnsValueIfDefined()
     {
-        var input = new StringValue("foo");
+        var input = StringValue.Create("foo");
 
-        var arguments = new FilterArguments().Add(new StringValue("bar"));
+        var arguments = new FilterArguments().Add(StringValue.Create("bar"));
         var context = new TemplateContext();
 
         var result = await MiscFilters.Default(input, arguments, context);
@@ -60,11 +60,11 @@ public class MiscFiltersTests
     [Fact]
     public async Task CompactRemovesNilValues()
     {
-        var input = new ArrayValue(new FluidValue[] {
-            new StringValue("a"),
+        var input = ArrayValue.Create(new FluidValue[] {
+            StringValue.Create("a"),
             NumberValue.Zero,
             NilValue.Instance,
-            new StringValue("b")
+            StringValue.Create("b")
             });
 
         var arguments = new FilterArguments();
@@ -79,7 +79,7 @@ public class MiscFiltersTests
     [Fact]
     public async Task EncodeUrl()
     {
-        var input = new StringValue("john@liquid.com");
+        var input = StringValue.Create("john@liquid.com");
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();
@@ -92,7 +92,7 @@ public class MiscFiltersTests
     [Fact]
     public async Task DecodeUrl()
     {
-        var input = new StringValue("john%40liquid.com");
+        var input = StringValue.Create("john%40liquid.com");
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();
@@ -108,7 +108,7 @@ public class MiscFiltersTests
     [InlineData("Hello", "SGVsbG8=")]
     public async Task Base64Encode(string value, string expected)
     {
-        var input = new StringValue(value);
+        var input = StringValue.Create(value);
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();
@@ -124,7 +124,7 @@ public class MiscFiltersTests
     [InlineData("SGVsbG8=", "Hello")]
     public async Task Base64Decode(string value, string expected)
     {
-        var input = new StringValue(value);
+        var input = StringValue.Create(value);
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();
@@ -141,7 +141,7 @@ public class MiscFiltersTests
     public async Task Base64UrlSafeEncode(string value, string expected)
     {
         // Arrange
-        var input = new StringValue(value);
+        var input = StringValue.Create(value);
         var arguments = new FilterArguments();
         var context = new TemplateContext();
 
@@ -159,7 +159,7 @@ public class MiscFiltersTests
     public async Task Base64UrlSafeDecode(string value, string expected)
     {
         // Arrange
-        var input = new StringValue(value);
+        var input = StringValue.Create(value);
         var arguments = new FilterArguments();
         var context = new TemplateContext();
 
@@ -177,7 +177,7 @@ public class MiscFiltersTests
     [InlineData(null, "")]
     public async Task StripHtml(string value, string expected)
     {
-        var input = new StringValue(value);
+        var input = StringValue.Create(value);
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();
@@ -190,7 +190,7 @@ public class MiscFiltersTests
     [Fact]
     public async Task Escape()
     {
-        var input = new StringValue("Have you read 'James & the Giant Peach'?");
+        var input = StringValue.Create("Have you read 'James & the Giant Peach'?");
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();
@@ -203,7 +203,7 @@ public class MiscFiltersTests
     [Fact]
     public async Task EscapeOnce()
     {
-        var input = new StringValue("1 &lt; 2 &amp; 3");
+        var input = StringValue.Create("1 &lt; 2 &amp; 3");
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();
@@ -218,7 +218,7 @@ public class MiscFiltersTests
     {
         // The escape filter should return a StringValue with Encode = false
         // to prevent double-encoding when rendered with an encoder
-        var input = new StringValue("<div>test</div>");
+        var input = StringValue.Create("<div>test</div>");
         var arguments = new FilterArguments();
         var context = new TemplateContext();
 
@@ -234,7 +234,7 @@ public class MiscFiltersTests
     {
         // The escape_once filter should return a StringValue with Encode = false
         // to prevent double-encoding when rendered with an encoder
-        var input = new StringValue("&lt;div&gt;test&lt;/div&gt;");
+        var input = StringValue.Create("&lt;div&gt;test&lt;/div&gt;");
         var arguments = new FilterArguments();
         var context = new TemplateContext();
 
@@ -326,15 +326,15 @@ public class MiscFiltersTests
         var enUsCultureInfo = new CultureInfo("en-US", useUserOverride: false);
         enUsCultureInfo.DateTimeFormat.FullDateTimePattern = "dddd, MMMM d, yyyy h:mm:ss tt";
 
-        var arguments = new FilterArguments(new StringValue(format));
+        var arguments = new FilterArguments(StringValue.Create(format));
         var options = new TemplateOptionsBuilder()
             .WithCultureInfo(enUsCultureInfo)
             .WithTimeZone(TimeZoneInfo.Utc)
             .Build();
         var context = new TemplateContext(options);
 
-        new StringValue(dateTime).TryGetDateTimeInput(new TemplateContext(), out var customDateTime);
-        var input = new DateTimeValue(customDateTime);
+        StringValue.Create(dateTime).TryGetDateTimeInput(new TemplateContext(), out var customDateTime);
+        var input = DateTimeValue.Create(customDateTime);
 
         var result = await MiscFilters.Date(input, arguments, context);
 
@@ -346,11 +346,11 @@ public class MiscFiltersTests
     {
         const int Repetitions = 100_000;
         var format = string.Concat(Enumerable.Repeat("%D", Repetitions));
-        var input = new DateTimeValue(new DateTimeOffset(2017, 8, 1, 0, 0, 0, TimeSpan.Zero));
+        var input = DateTimeValue.Create(new DateTimeOffset(2017, 8, 1, 0, 0, 0, TimeSpan.Zero));
 
         var result = await MiscFilters.Date(
             input,
-            new FilterArguments(new StringValue(format)),
+            new FilterArguments(StringValue.Create(format)),
             new TemplateContext());
 
         Assert.Equal(Repetitions * 8, result.ToStringValue().Length);
@@ -367,9 +367,9 @@ public class MiscFiltersTests
     [InlineData("2020-05-18T11:59:00+01:00", "%l:%M%P", "11:59am")]
     public async Task Time12hFormatFormDateTimeOffset(string dateTimeOffset, string format, string expected)
     {
-        var input = new DateTimeValue(DateTimeOffset.Parse(dateTimeOffset));
+        var input = DateTimeValue.Create(DateTimeOffset.Parse(dateTimeOffset));
 
-        var arguments = new FilterArguments(new StringValue(format));
+        var arguments = new FilterArguments(StringValue.Create(format));
         var options = new TemplateOptionsBuilder().WithCultureInfo(CultureInfo.InvariantCulture).Build();
         var context = new TemplateContext(options);
 
@@ -384,9 +384,9 @@ public class MiscFiltersTests
     [InlineData("2020-05-18T02:13:09+00:00", "Europe/wrongTZ", "2020-05-18T02:13:09+00:00")]
     public async Task ChangeTimeZone(string initialDateTime, string timeZone, string expected)
     {
-        var input = new DateTimeValue(DateTimeOffset.Parse(initialDateTime));
+        var input = DateTimeValue.Create(DateTimeOffset.Parse(initialDateTime));
 
-        var arguments = new FilterArguments(new StringValue(timeZone));
+        var arguments = new FilterArguments(StringValue.Create(timeZone));
         var options = new TemplateOptionsBuilder().WithCultureInfo(CultureInfo.InvariantCulture).Build();
         var context = new TemplateContext(options);
 
@@ -398,8 +398,8 @@ public class MiscFiltersTests
     [Fact]
     public async Task ChangeTimeZoneUsesConfiguredResolver()
     {
-        var input = new DateTimeValue(DateTimeOffset.Parse("2020-05-18T02:13:09+00:00"));
-        var arguments = new FilterArguments(new StringValue("Custom"));
+        var input = DateTimeValue.Create(DateTimeOffset.Parse("2020-05-18T02:13:09+00:00"));
+        var arguments = new FilterArguments(StringValue.Create("Custom"));
         var customTimeZone = TimeZoneInfo.CreateCustomTimeZone("Custom", TimeSpan.FromHours(3), "Custom", "Custom");
         var resolvedId = "";
         var options = new TemplateOptionsBuilder()
@@ -431,10 +431,10 @@ public class MiscFiltersTests
         // - When a TZ is provided in the source string, the resulting DateTimeOffset uses it
         // - When no TZ is provided, we assume the local offset (context.TimeZone)
 
-        var input = new StringValue(initialDateTime);
+        var input = StringValue.Create(initialDateTime);
         var context = new TemplateContext { TimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZone) };
 
-        var date = await MiscFilters.Date(input, new FilterArguments(new StringValue(RoundTripDateTimePattern)), context);
+        var date = await MiscFilters.Date(input, new FilterArguments(StringValue.Create(RoundTripDateTimePattern)), context);
 
         Assert.Equal(expected, date.ToStringValue());
     }
@@ -446,9 +446,9 @@ public class MiscFiltersTests
     [InlineData("2020-05-18T02:13:09+00:00", "Australia/Adelaide", "%l:%M%P", "11:43am")]
     public async Task ChangeTimeZoneAndApply12hFormat(string initialDateTime, string timeZone, string format, string expected)
     {
-        var input = new DateTimeValue(DateTimeOffset.Parse(initialDateTime));
-        var timeZoneArgument = new FilterArguments(new StringValue(timeZone));
-        var formatArgument = new FilterArguments(new StringValue(format));
+        var input = DateTimeValue.Create(DateTimeOffset.Parse(initialDateTime));
+        var timeZoneArgument = new FilterArguments(StringValue.Create(timeZone));
+        var formatArgument = new FilterArguments(StringValue.Create(format));
         var options = new TemplateOptionsBuilder().WithCultureInfo(CultureInfo.InvariantCulture).Build();
         var context = new TemplateContext(options);
 
@@ -464,11 +464,11 @@ public class MiscFiltersTests
         // - When a TZ is provided in the source string, the resulting DateTimeOffset uses it
         // - When no TZ is provided, we assume the local offset (context.TimeZone)
 
-        var input = new StringValue("2022-12-13T21:02:18.399+01:00");
+        var input = StringValue.Create("2022-12-13T21:02:18.399+01:00");
         var context = new TemplateContext { TimeZone = Pacific };
 
-        var date = await MiscFilters.ChangeTimeZone(input, new FilterArguments(new StringValue("local")), context);
-        var formatted = await MiscFilters.Date(date, new FilterArguments(new StringValue(RoundTripDateTimePattern)), context);
+        var date = await MiscFilters.ChangeTimeZone(input, new FilterArguments(StringValue.Create("local")), context);
+        var formatted = await MiscFilters.Date(date, new FilterArguments(StringValue.Create(RoundTripDateTimePattern)), context);
 
         Assert.Equal("2022-12-13T12:02:18.399-08:00", formatted.ToStringValue());
     }
@@ -476,10 +476,10 @@ public class MiscFiltersTests
     [Fact]
     public async Task DateResolvesNow()
     {
-        var input = new StringValue("now");
+        var input = StringValue.Create("now");
         var format = "%D";
 
-        var arguments = new FilterArguments(new StringValue(format));
+        var arguments = new FilterArguments(StringValue.Create(format));
         var options = new TemplateOptionsBuilder()
             .WithCultureInfo(CultureInfo.InvariantCulture)
             .WithNow(() => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0)))
@@ -494,10 +494,10 @@ public class MiscFiltersTests
     [Fact]
     public async Task DateResolvesToday()
     {
-        var input = new StringValue("today");
+        var input = StringValue.Create("today");
         var format = "%D";
 
-        var arguments = new FilterArguments(new StringValue(format));
+        var arguments = new FilterArguments(StringValue.Create(format));
         var options = new TemplateOptionsBuilder()
             .WithCultureInfo(CultureInfo.InvariantCulture)
             .WithNow(() => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0)))
@@ -512,10 +512,10 @@ public class MiscFiltersTests
     [Fact]
     public async Task FormatDate()
     {
-        var input = new StringValue("now");
+        var input = StringValue.Create("now");
         var format = "d";
 
-        var arguments = new FilterArguments(new StringValue(format));
+        var arguments = new FilterArguments(StringValue.Create(format));
         var options = new TemplateOptionsBuilder()
             .WithCultureInfo(CultureInfo.InvariantCulture)
             .WithNow(() => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0)))
@@ -530,10 +530,10 @@ public class MiscFiltersTests
     [Fact]
     public async Task DateIsParsed()
     {
-        var input = new StringValue("08/01/2017");
+        var input = StringValue.Create("08/01/2017");
         var format = "%D";
 
-        var arguments = new FilterArguments(new StringValue(format));
+        var arguments = new FilterArguments(StringValue.Create(format));
         var options = new TemplateOptionsBuilder()
             .WithCultureInfo(CultureInfo.InvariantCulture)
             .WithTimeZone(TimeZoneInfo.Utc)
@@ -548,7 +548,7 @@ public class MiscFiltersTests
     [Fact]
     public async Task FormatStringWithoutArgumentsDoesNotThrow()
     {
-        var input = new StringValue("literal text");
+        var input = StringValue.Create("literal text");
         var context = new TemplateContext();
 
         var result = await MiscFilters.FormatString(input, FilterArguments.Empty, context);
@@ -559,7 +559,7 @@ public class MiscFiltersTests
     [Fact]
     public async Task DateWithoutFormatShouldReturnInput()
     {
-        var input = new StringValue("08/01/2017");
+        var input = StringValue.Create("08/01/2017");
 
         var options = new TemplateOptionsBuilder()
             .WithCultureInfo(CultureInfo.InvariantCulture)
@@ -583,7 +583,7 @@ public class MiscFiltersTests
 
         var options = new TemplateOptionsBuilder().WithTimeZone(Eastern).Build();
         var input = NumberValue.Create(number);
-        var format = new FilterArguments(new StringValue(RoundTripDateTimePattern));
+        var format = new FilterArguments(StringValue.Create(RoundTripDateTimePattern));
         var context = new TemplateContext(options);
 
         var result = await MiscFilters.Date(input, format, context);
@@ -599,7 +599,7 @@ public class MiscFiltersTests
     {
         var options = new TemplateOptionsBuilder().WithTimeZone(Eastern).Build();
         var input = FluidValue.Create(TimeSpan.Parse(timespan), options);
-        var format = new FilterArguments(new StringValue(RoundTripDateTimePattern));
+        var format = new FilterArguments(StringValue.Create(RoundTripDateTimePattern));
         var context = new TemplateContext(options);
 
         var result = await MiscFilters.Date(input, format, context);
@@ -611,7 +611,7 @@ public class MiscFiltersTests
     public async Task NoTimeZoneIsParsedAsLocal()
     {
         var input = StringValue.Create("1970-01-01 00:00:00");
-        var format = new FilterArguments(new StringValue(RoundTripDateTimePattern));
+        var format = new FilterArguments(StringValue.Create(RoundTripDateTimePattern));
         var context = new TemplateContext { TimeZone = Pacific };
 
         var result = await MiscFilters.Date(input, format, context);
@@ -625,7 +625,7 @@ public class MiscFiltersTests
         // This test ensures that when a TZ is specified it uses it instead of the settings one
         var input = StringValue.Create("1970-01-01 00:00:00 -05:00");
 
-        var format = new FilterArguments(new StringValue("%s"));
+        var format = new FilterArguments(StringValue.Create("%s"));
         var context = new TemplateContext { TimeZone = TimeZoneInfo.Utc };
 
         var result = await MiscFilters.Date(input, format, context);
@@ -639,7 +639,7 @@ public class MiscFiltersTests
         // This test ensures that when a TZ is specified it uses it instead of the settings one
         var input = StringValue.Create("1970-01-01 00:00:00");
 
-        var format = new FilterArguments(new StringValue("%s"));
+        var format = new FilterArguments(StringValue.Create("%s"));
         var context = new TemplateContext { TimeZone = Eastern };
 
         var result = await MiscFilters.Date(input, format, context);
@@ -654,7 +654,7 @@ public class MiscFiltersTests
 
         var input = StringValue.Create("2021-01-01 00:00:00");
 
-        var format = new FilterArguments(new StringValue("%z"));
+        var format = new FilterArguments(StringValue.Create("%z"));
         var context = new TemplateContext { TimeZone = Pacific };
 
         var result = await MiscFilters.Date(input, format, context);
@@ -675,7 +675,7 @@ public class MiscFiltersTests
         // {{ 0 | date: '%c' }}
 
         var input = NumberValue.Create(0);
-        var format = new FilterArguments(new StringValue("%+"));
+        var format = new FilterArguments(StringValue.Create("%+"));
         var context = new TemplateContext { TimeZone = Eastern };
 
         var result = await MiscFilters.Date(input, format, context);
@@ -686,10 +686,10 @@ public class MiscFiltersTests
     [Fact]
     public async Task DateIsParsedWithCulture()
     {
-        var input = new StringValue("08/01/2017");
+        var input = StringValue.Create("08/01/2017");
         var format = "%d/%m/%Y";
 
-        var arguments = new FilterArguments(new StringValue(format));
+        var arguments = new FilterArguments(StringValue.Create(format));
 
         var context = new TemplateContext(new TemplateOptionsBuilder()
             .WithCultureInfo(new CultureInfo("fr-FR", useUserOverride: false))
@@ -716,10 +716,10 @@ public class MiscFiltersTests
         // - The date is rendered with the specified timezone (UTC)
         // - The uppercase modifier is applied with the culture (Turkish i)
 
-        var input = new StringValue("07/02/2017");
+        var input = StringValue.Create("07/02/2017");
         var format = "%^c";
 
-        var arguments = new FilterArguments(new StringValue(format));
+        var arguments = new FilterArguments(StringValue.Create(format));
 
         var context = new TemplateContext { CultureInfo = new CultureInfo("fr-FR", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
         var resultFR = await MiscFilters.Date(input, arguments, context);
@@ -753,7 +753,7 @@ public class MiscFiltersTests
     [InlineData("!HelloWorld", "hello-world")]
     public async Task Handleize(string text, string expected)
     {
-        var input = new StringValue(text);
+        var input = StringValue.Create(text);
 
         var arguments = new FilterArguments();
         var context = new TemplateContext();
@@ -767,7 +767,7 @@ public class MiscFiltersTests
     public async Task HandleizeLargeInput()
     {
         var value = new string('a', 377_000);
-        var result = await MiscFilters.Handleize(new StringValue(value), new FilterArguments(), new TemplateContext());
+        var result = await MiscFilters.Handleize(StringValue.Create(value), new FilterArguments(), new TemplateContext());
 
         Assert.Equal(value, result.ToStringValue());
     }
@@ -923,7 +923,7 @@ public class MiscFiltersTests
             : CultureInfo.CreateSpecificCulture(culture)
             ;
 
-        var arguments = new FilterArguments(new StringValue(format));
+        var arguments = new FilterArguments(StringValue.Create(format));
         var context = new TemplateContext(new TemplateOptionsBuilder().WithCultureInfo(cultureInfo).Build());
 
         var result = await MiscFilters.FormatNumber(FluidValue.Create(input, context.Options), arguments, context);
@@ -955,7 +955,7 @@ public class MiscFiltersTests
     public async Task MD5()
     {
         // Arrange
-        var input = new StringValue("Fluid");
+        var input = StringValue.Create("Fluid");
         var arguments = new FilterArguments();
         var context = new TemplateContext();
 
@@ -970,7 +970,7 @@ public class MiscFiltersTests
     public async Task Sha1()
     {
         // Arrange
-        var input = new StringValue("Fluid");
+        var input = StringValue.Create("Fluid");
         var arguments = new FilterArguments();
         var context = new TemplateContext();
 
@@ -985,7 +985,7 @@ public class MiscFiltersTests
     public async Task Sha256()
     {
         // Arrange
-        var input = new StringValue("Fluid");
+        var input = StringValue.Create("Fluid");
         var arguments = new FilterArguments();
         var context = new TemplateContext();
 
@@ -1007,7 +1007,7 @@ public class MiscFiltersTests
         // Arrange
         FluidValue input = value is null
             ? EmptyValue.Instance
-            : new StringValue(value);
+            : StringValue.Create(value);
         var arguments = new FilterArguments(FluidValue.Create(key, TemplateOptions.Default));
         var context = new TemplateContext();
 
@@ -1029,7 +1029,7 @@ public class MiscFiltersTests
         // Arrange
         FluidValue input = value is null
             ? EmptyValue.Instance
-            : new StringValue(value);
+            : StringValue.Create(value);
         var arguments = new FilterArguments(FluidValue.Create(key, TemplateOptions.Default));
         var context = new TemplateContext();
 

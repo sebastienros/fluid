@@ -20,27 +20,24 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
         for (var i = 0; i < CharToString.Length; ++i)
         {
             var c = (char)i;
-            CharToString[i] = new StringValue(c.ToString());
+            CharToString[i] = c == ' ' ? Space : new StringValue(c.ToString());
         }
     }
 
-    public StringValue(string value)
+    private StringValue(string value)
     {
-        // Returns a StringValue instance and not NilValue since this is what is asked for.
-        // However FluidValue.Create(null) returns NilValue.
-
-        _value = value ?? NilValue.Instance.ToStringValue();
+        _value = value;
     }
 
-    public StringValue(string value, bool encode) : this(value)
+    private StringValue(string value, bool encode) : this(value)
     {
         Encode = encode;
     }
 
     /// <summary>
-    /// Gets or sets whether the string is encoded (default) or not when rendered.
+    /// Gets whether the string is encoded (default) or not when rendered.
     /// </summary>
-    public bool Encode { get; set; } = true;
+    public bool Encode { get; } = true;
 
     public override FluidValues Type => FluidValues.String;
 
@@ -76,6 +73,11 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FluidValue Create(string s, bool encode)
     {
+        if (encode)
+        {
+            return Create(s);
+        }
+
         if (s is null)
         {
             return NilValue.Instance;

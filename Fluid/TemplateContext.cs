@@ -318,7 +318,7 @@ public static class TemplateContextExtensions
 
     public static TemplateContext SetValue(this TemplateContext context, string name, string value)
     {
-        return context.SetValue(name, new StringValue(value));
+        return context.SetValue(name, StringValue.Create(value));
     }
 
     public static TemplateContext SetValue(this TemplateContext context, string name, char value)
@@ -343,6 +343,6 @@ public static class TemplateContextExtensions
 
     public static TemplateContext SetValue(this TemplateContext context, string name, Func<FluidValue> factory)
     {
-        return context.SetValue(name, new FactoryValue(factory));
+        return context.SetValue(name, FactoryValue.Create(factory));
     }
 }

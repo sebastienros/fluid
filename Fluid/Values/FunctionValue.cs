@@ -8,12 +8,18 @@ public sealed class FunctionValue : FluidValue
     public static readonly FunctionValue NoOp = new FunctionValue((_, _) => NilValue.Instance);
     private readonly Func<FunctionArguments, TemplateContext, ValueTask<FluidValue>> _action;
 
-    public FunctionValue(Func<FunctionArguments, TemplateContext, ValueTask<FluidValue>> asyncAction)
+    public static FunctionValue Create(Func<FunctionArguments, TemplateContext, ValueTask<FluidValue>> asyncAction)
+        => new FunctionValue(asyncAction);
+
+    public static FunctionValue Create(Func<FunctionArguments, TemplateContext, FluidValue> action)
+        => new FunctionValue(action);
+
+    private FunctionValue(Func<FunctionArguments, TemplateContext, ValueTask<FluidValue>> asyncAction)
     {
         _action = asyncAction;
     }
 
-    public FunctionValue(Func<FunctionArguments, TemplateContext, FluidValue> action)
+    private FunctionValue(Func<FunctionArguments, TemplateContext, FluidValue> action)
     {
         _action = (args, c) => action(args, c);
     }

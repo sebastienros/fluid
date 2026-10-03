@@ -18,7 +18,7 @@ public static class JsonFluidConverter
                 {
                     dictionary[property.Name] = Convert(property.Value);
                 }
-                return new DictionaryValue(new FluidValueDictionaryFluidIndexable(dictionary));
+                return DictionaryValue.Create(new FluidValueDictionaryFluidIndexable(dictionary));
 
             case JsonValueKind.Array:
                 var list = new List<FluidValue>(element.GetArrayLength());
@@ -26,7 +26,7 @@ public static class JsonFluidConverter
                 {
                     list.Add(Convert(item));
                 }
-                return new ArrayValue(list);
+                return ArrayValue.Create(list);
 
             case JsonValueKind.String:
                 return StringValue.Create(element.GetString()!);

@@ -25,7 +25,7 @@ public class IncludeStatementTests
     [Fact]
     public async Task IncludeStatement_ShouldThrowFileNotFoundException_IfTheFileProviderIsNotPresent()
     {
-        var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
+        var expression = new LiteralExpression(StringValue.Create("_Partial.liquid"));
         var sw = new StringWriter();
 
         try
@@ -79,7 +79,7 @@ public class IncludeStatementTests
     public async Task IncludeStatement_ShouldLoadPartial_IfThePartialsFolderExist()
     {
 
-        var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
+        var expression = new LiteralExpression(StringValue.Create("_Partial.liquid"));
         var sw = new StringWriter();
 
         var fileProvider = new MockFileProvider();
@@ -148,11 +148,11 @@ shape_Two: ''";
     [Fact]
     public async Task IncludeStatement_WithInlinevariableAssignment_ShouldBeEvaluated()
     {
-        var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
+        var expression = new LiteralExpression(StringValue.Create("_Partial.liquid"));
         var assignStatements = new List<AssignStatement>
         {
-            new AssignStatement("color", new LiteralExpression(new StringValue("blue"))),
-            new AssignStatement("shape", new LiteralExpression(new StringValue("circle")))
+            new AssignStatement("color", new LiteralExpression(StringValue.Create("blue"))),
+            new AssignStatement("shape", new LiteralExpression(StringValue.Create("circle")))
         };
         var sw = new StringWriter();
 
@@ -177,8 +177,8 @@ shape: 'circle'";
     [Fact]
     public async Task IncludeStatement_WithTagParams_ShouldBeEvaluated()
     {
-        var pathExpression = new LiteralExpression(new StringValue("color"));
-        var withExpression = new LiteralExpression(new StringValue("blue"));
+        var pathExpression = new LiteralExpression(StringValue.Create("color"));
+        var withExpression = new LiteralExpression(StringValue.Create("blue"));
         var sw = new StringWriter();
 
         var fileProvider = new MockFileProvider();
@@ -202,7 +202,7 @@ shape: ''";
     [Fact]
     public async Task IncludeStatement_ShouldLimitRecursion()
     {
-        var expression = new LiteralExpression(new StringValue("_Partial.liquid"));
+        var expression = new LiteralExpression(StringValue.Create("_Partial.liquid"));
         var sw = new StringWriter();
 
         var fileProvider = new MockFileProvider();
@@ -385,7 +385,7 @@ shape: ''";
 
         var options = new TemplateOptionsBuilder()
             .WithFileProvider(fileProvider)
-            .WithGlobalValue("global_variable", new StringValue("global value"))
+            .WithGlobalValue("global_variable", StringValue.Create("global value"))
             .Build();
         var context = new TemplateContext(options);
         context.SetValue("product", new { title = "Draft 151cm" });

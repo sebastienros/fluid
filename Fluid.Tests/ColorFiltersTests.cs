@@ -50,7 +50,7 @@ public class ColorFiltersTests
     public void ToRgb(string color, string expected)
     {
         // Arrange
-        var input = new StringValue(color);
+        var input = StringValue.Create(color);
         var context = new TemplateContext();
 
         // Act
@@ -70,7 +70,7 @@ public class ColorFiltersTests
         // Arrange
         SetCurrentCulture(culture);
 
-        var input = new StringValue("hsla(0.5, 77.3%, 49.1%, 0.5)");
+        var input = StringValue.Create("hsla(0.5, 77.3%, 49.1%, 0.5)");
         var context = new TemplateContext();
 
         // Act
@@ -116,7 +116,7 @@ public class ColorFiltersTests
     public void ToHex(string color, string expected)
     {
         // Arrange
-        var input = new StringValue(color);
+        var input = StringValue.Create(color);
         var context = new TemplateContext();
 
         // Act
@@ -136,7 +136,7 @@ public class ColorFiltersTests
         // Arrange
         SetCurrentCulture(culture);
 
-        var input = new StringValue("hsla(0.5, 77.3%, 49.1%, 0.5)");
+        var input = StringValue.Create("hsla(0.5, 77.3%, 49.1%, 0.5)");
         var context = new TemplateContext();
 
         // Act
@@ -167,7 +167,7 @@ public class ColorFiltersTests
     public void ToHsl(string color, string expected)
     {
         // Arrange
-        var input = new StringValue(color);
+        var input = StringValue.Create(color);
         var context = new TemplateContext();
 
         // Act
@@ -187,7 +187,7 @@ public class ColorFiltersTests
         // Arrange
         SetCurrentCulture(culture);
 
-        var input = new StringValue("rgba(124, 26, 1, 0.5)");
+        var input = StringValue.Create("rgba(124, 26, 1, 0.5)");
         var context = new TemplateContext();
 
         // Act
@@ -233,7 +233,7 @@ public class ColorFiltersTests
     public void ColorExtract(string color, object[] arguments, string expected)
     {
         // Arrange
-        var input = new StringValue(color);
+        var input = StringValue.Create(color);
         var context = new TemplateContext();
 
         // Act
@@ -253,7 +253,7 @@ public class ColorFiltersTests
         // Arrange
         SetCurrentCulture(culture);
 
-        var input = new StringValue("hsl(100, 38%, 54%, 0.5)");
+        var input = StringValue.Create("hsl(100, 38%, 54%, 0.5)");
         var context = new TemplateContext();
         var arguments = new FluidValue[] {
             FluidValue.Create("alpha", TemplateOptions.Default),
@@ -291,7 +291,7 @@ public class ColorFiltersTests
     public void ColorModify(string color, object[] arguments, string expected)
     {
         // Arrange
-        var input = new StringValue(color);
+        var input = StringValue.Create(color);
         var context = new TemplateContext();
 
         // Act
@@ -311,7 +311,7 @@ public class ColorFiltersTests
         // Arrange
         SetCurrentCulture(culture);
 
-        var input = new StringValue("hsla(100, 38%, 54%, 0.5)");
+        var input = StringValue.Create("hsla(100, 38%, 54%, 0.5)");
         var context = new TemplateContext();
         var arguments = new FluidValue[] {
             FluidValue.Create("alpha", TemplateOptions.Default),
@@ -332,7 +332,7 @@ public class ColorFiltersTests
     public void CalculateBrightness(string color, decimal expected)
     {
         // Arrange
-        var input = new StringValue(color);
+        var input = StringValue.Create(color);
         var context = new TemplateContext();
 
         // Act
@@ -349,7 +349,7 @@ public class ColorFiltersTests
     public void ColorSaturate(string color, object[] arguments, string expected)
     {
         // Arrange
-        var input = new StringValue(color);
+        var input = StringValue.Create(color);
         var context = new TemplateContext();
 
         // Act
@@ -366,7 +366,7 @@ public class ColorFiltersTests
     public void ColorDesaturate(string color, object[] arguments, string expected)
     {
         // Arrange
-        var input = new StringValue(color);
+        var input = StringValue.Create(color);
         var context = new TemplateContext();
 
         // Act
@@ -383,7 +383,7 @@ public class ColorFiltersTests
     public void ColorLighten(string color, object[] arguments, string expected)
     {
         // Arrange
-        var input = new StringValue(color);
+        var input = StringValue.Create(color);
         var context = new TemplateContext();
 
         // Act
@@ -400,7 +400,7 @@ public class ColorFiltersTests
     public void ColorDarken(string color, object[] arguments, string expected)
     {
         // Arrange
-        var input = new StringValue(color);
+        var input = StringValue.Create(color);
         var context = new TemplateContext();
 
         // Act
@@ -417,7 +417,7 @@ public class ColorFiltersTests
     public void ColorDifference(string color, object[] arguments, decimal expected)
     {
         // Arrange
-        var input = new StringValue(color);
+        var input = StringValue.Create(color);
         var context = new TemplateContext();
 
         // Act
@@ -434,7 +434,7 @@ public class ColorFiltersTests
     public void BrightnessDifference(string color, object[] arguments, decimal expected)
     {
         // Arrange
-        var input = new StringValue(color);
+        var input = StringValue.Create(color);
         var context = new TemplateContext();
 
         // Act
@@ -451,7 +451,7 @@ public class ColorFiltersTests
     public void ColorContrast(string color, object[] arguments, decimal expected)
     {
         // Arrange
-        var input = new StringValue(color);
+        var input = StringValue.Create(color);
         var context = new TemplateContext();
 
         // Act
@@ -496,7 +496,7 @@ public class ColorFiltersTests
     [InlineData("#aabbccdd")]
     public void InvalidColorShouldReturnEmpty(string color)
     {
-        var result = ColorFilters.CalculateBrightness(new StringValue(color), FilterArguments.Empty, new TemplateContext());
+        var result = ColorFilters.CalculateBrightness(StringValue.Create(color), FilterArguments.Empty, new TemplateContext());
 
         Assert.Same(EmptyValue.Instance, result.Result);
     }

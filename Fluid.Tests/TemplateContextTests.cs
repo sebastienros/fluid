@@ -36,8 +36,8 @@ public class TemplateContextTests
         _parser.TryParse("{{ p.NaMe }}", out var template, out var error);
 
         var options = new TemplateOptionsBuilder()
-            .WithGlobalValue("o1", new StringValue("o1"))
-            .WithGlobalValue("o2", new StringValue("o2"))
+            .WithGlobalValue("o1", StringValue.Create("o1"))
+            .WithGlobalValue("o2", StringValue.Create("o2"))
             .Build();
 
         var context = new TemplateContext(options);
@@ -206,7 +206,7 @@ public class TemplateContextTests
     [Fact]
     public void ScopeBehaviorsShouldControlLookupAndAssignment()
     {
-        var options = new TemplateOptionsBuilder().WithGlobalValue("global", new StringValue("global")).Build();
+        var options = new TemplateOptionsBuilder().WithGlobalValue("global", StringValue.Create("global")).Build();
 
         var context = new TemplateContext(options);
         context.SetValue("root", "root");
@@ -224,7 +224,7 @@ public class TemplateContextTests
 
             using (context.EnterScope(ScopeBehavior.WriteThrough))
             {
-                context.LocalScope.SetOwnValue("temporary", new StringValue("temporary"));
+                context.LocalScope.SetOwnValue("temporary", StringValue.Create("temporary"));
                 context.SetValue("persisted", "persisted");
             }
 

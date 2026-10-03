@@ -8,7 +8,7 @@ namespace Fluid.Benchmarks;
 public class ColorFiltersBenchmarks
 {
     private readonly TemplateContext _context = new();
-    private StringValue _input;
+    private FluidValue _input;
 
     [Params("rgb(123, 182, 93)", "rgba(123, 182, 93, 0.5)",
         "hsl(100, 38%, 54%)", "hsla(100, 38%, 54%, 0.5)", "#7bd", "#7bb65d",
@@ -17,7 +17,7 @@ public class ColorFiltersBenchmarks
     public string Color { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _input = new StringValue(Color);
+    public void Setup() => _input = StringValue.Create(Color);
 
     [Benchmark]
     public FluidValue Brightness() => ColorFilters.CalculateBrightness(_input, FilterArguments.Empty, _context).Result;

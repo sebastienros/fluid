@@ -13,7 +13,7 @@ public class IfChangedStatementTests
     public async Task IfChangedOutputsOnFirstInvocation()
     {
         var statement = new IfChangedStatement(
-            [new OutputStatement(new LiteralExpression(new StringValue("hello")))]
+            [new OutputStatement(new LiteralExpression(StringValue.Create("hello")))]
         );
 
         var context = new TemplateContext();
@@ -28,7 +28,7 @@ public class IfChangedStatementTests
     public async Task IfChangedDoesNotOutputOnSecondIdenticalInvocation()
     {
         var statement = new IfChangedStatement(
-            [new OutputStatement(new LiteralExpression(new StringValue("hello")))]
+            [new OutputStatement(new LiteralExpression(StringValue.Create("hello")))]
         );
 
         var context = new TemplateContext();

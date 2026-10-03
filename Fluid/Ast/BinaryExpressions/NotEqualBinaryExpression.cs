@@ -12,7 +12,7 @@ public sealed class NotEqualBinaryExpression : BinaryExpression, ISourceable
     internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
     {
         var comparisonResult = !leftValue.Equals(rightValue);
-        return new BinaryExpressionFluidValue(leftValue, comparisonResult);
+        return BinaryExpressionFluidValue.Create(leftValue, comparisonResult);
     }
 
     protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitNotEqualBinaryExpression(this);
@@ -25,6 +25,6 @@ public sealed class NotEqualBinaryExpression : BinaryExpression, ISourceable
         context.WriteLine($"var leftValue = await {leftExpr}({context.ContextName});");
         context.WriteLine($"var rightValue = await {rightExpr}({context.ContextName});");
         context.WriteLine("var comparisonResult = !leftValue.Equals(rightValue);");
-        context.WriteLine("return new BinaryExpressionFluidValue(leftValue, comparisonResult);");
+        context.WriteLine("return BinaryExpressionFluidValue.Create(leftValue, comparisonResult);");
     }
 }

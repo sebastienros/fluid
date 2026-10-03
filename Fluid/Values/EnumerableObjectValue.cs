@@ -6,7 +6,10 @@ namespace Fluid.Values;
 
 internal sealed class EnumerableObjectValue : ObjectValueBase
 {
-    public EnumerableObjectValue(IEnumerable value, TemplateOptions options) : base(value)
+    public static EnumerableObjectValue Create(IEnumerable value, TemplateOptions options)
+        => new EnumerableObjectValue(value, options);
+
+    private EnumerableObjectValue(IEnumerable value, TemplateOptions options) : base(value)
     {
         var values = new List<FluidValue>();
 

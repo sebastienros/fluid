@@ -69,12 +69,12 @@ public class IncludeStatementAllocationTests
             .SetValue("value", "outer-value");
         var include = new IncludeStatement(
             _parser,
-            new LiteralExpression(new StringValue("snippet")),
-            with: new LiteralExpression(new StringValue("inner-item")),
+            new LiteralExpression(StringValue.Create("snippet")),
+            with: new LiteralExpression(StringValue.Create("inner-item")),
             alias: "item",
             assignStatements: new List<AssignStatement>
             {
-                new("value", new LiteralExpression(new StringValue("inner-value")))
+                new("value", new LiteralExpression(StringValue.Create("inner-value")))
             });
         var writer = new StringWriter();
 
@@ -135,10 +135,10 @@ public class IncludeStatementAllocationTests
         var rootScope = context.LocalScope;
         var include = new IncludeStatement(
             _parser,
-            new LiteralExpression(new StringValue("snippet")),
+            new LiteralExpression(StringValue.Create("snippet")),
             assignStatements: new List<AssignStatement>
             {
-                new("argument", new LiteralExpression(new StringValue("inner"))),
+                new("argument", new LiteralExpression(StringValue.Create("inner"))),
                 new("existing", new ThrowingExpression())
             });
 

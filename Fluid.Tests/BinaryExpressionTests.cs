@@ -223,12 +223,12 @@ public class BinaryExpressionTests
     [Fact]
     public void DictionaryValuesShouldBeEqual()
     {
-        var actual = new DictionaryValue(new FluidValueDictionaryFluidIndexable(new Dictionary<string, FluidValue>
+        var actual = DictionaryValue.Create(new FluidValueDictionaryFluidIndexable(new Dictionary<string, FluidValue>
         {
             { "stringProperty", StringValue.Create("testValue") }
         }));
 
-        var expected = new DictionaryValue(new FluidValueDictionaryFluidIndexable(new Dictionary<string, FluidValue>
+        var expected = DictionaryValue.Create(new FluidValueDictionaryFluidIndexable(new Dictionary<string, FluidValue>
         {
             { "stringProperty", StringValue.Create("testValue") }
         }));
@@ -239,12 +239,12 @@ public class BinaryExpressionTests
     [Fact]
     public void ArrayValuesShouldBeEqual()
     {
-        var actual = new ArrayValue(new FluidValue[]
+        var actual = ArrayValue.Create(new FluidValue[]
         {
             StringValue.Create("testValue")
         });
 
-        var expected = new ArrayValue(new FluidValue[]
+        var expected = ArrayValue.Create(new FluidValue[]
         {
             StringValue.Create("testValue")
         });

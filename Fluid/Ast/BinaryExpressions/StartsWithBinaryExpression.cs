@@ -25,7 +25,7 @@ public sealed class StartsWithBinaryExpression : BinaryExpression, ISourceable
             comparisonResult = leftValue.ToStringValue().StartsWith(rightValue.ToStringValue());
         }
 
-        return new BinaryExpressionFluidValue(leftValue, comparisonResult);
+        return BinaryExpressionFluidValue.Create(leftValue, comparisonResult);
     }
 
     protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitStartsWithBinaryExpression(this);
@@ -55,6 +55,6 @@ public sealed class StartsWithBinaryExpression : BinaryExpression, ISourceable
         }
         context.WriteLine("}");
 
-        context.WriteLine("return new BinaryExpressionFluidValue(leftValue, comparisonResult);");
+        context.WriteLine("return BinaryExpressionFluidValue.Create(leftValue, comparisonResult);");
     }
 }

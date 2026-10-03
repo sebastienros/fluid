@@ -35,7 +35,7 @@ public class AstSyncPathBenchmarks
             values[i] = NumberValue.Create(i);
         }
 
-        var source = new LiteralExpression(new ArrayValue(values));
+        var source = new LiteralExpression(ArrayValue.Create(values));
         _forContext = new TemplateContext();
         _for = new ForStatement(
             [new TextSpanStatement("x")],
@@ -58,8 +58,8 @@ public class AstSyncPathBenchmarks
 
         _render = new RenderStatement(parser, renderPath);
         _renderAsync = new RenderStatement(parser, renderPath + "-async");
-        _include = new IncludeStatement(parser, new LiteralExpression(new StringValue(includePath)));
-        _includeAsync = new IncludeStatement(parser, new LiteralExpression(new StringValue(includePath + "-async")));
+        _include = new IncludeStatement(parser, new LiteralExpression(StringValue.Create(includePath)));
+        _includeAsync = new IncludeStatement(parser, new LiteralExpression(StringValue.Create(includePath + "-async")));
 
         WarmTemplateCaches();
     }

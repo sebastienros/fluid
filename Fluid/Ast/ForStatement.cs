@@ -148,15 +148,13 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             var endIndexExclusive = startIndex + count;
 
-            var forloop = new ForLoopValue
-            {
-                Identifier = Identifier,
-                Source = _continueSourceLiteral is not null
-                    ? _continueSourceLiteral
-                    : Source is RangeExpression r
-                        ? $"({Convert.ToInt32((await r.From.EvaluateAsync(context)).ToNumberValue())}..{Convert.ToInt32((await r.To.EvaluateAsync(context)).ToNumberValue())})"
-                        : null
-            };
+            var forloop = ForLoopValue.Create();
+            forloop.Identifier = Identifier;
+            forloop.Source = _continueSourceLiteral is not null
+                ? _continueSourceLiteral
+                : Source is RangeExpression r
+                    ? $"({Convert.ToInt32((await r.From.EvaluateAsync(context)).ToNumberValue())}..{Convert.ToInt32((await r.To.EvaluateAsync(context)).ToNumberValue())})"
+                    : null;
 
             forloop.Length = count;
 
@@ -388,14 +386,9 @@ public sealed class ForStatement : TagStatement, ISourceable
                 : "null";
 
             context.WriteLine("var endIndexExclusive = startIndex + count;");
-            context.WriteLine("var forloop = new ForLoopValue");
-            context.WriteLine("{");
-            using (context.Indent())
-            {
-                context.WriteLine($"Identifier = {identifierLit},");
-                context.WriteLine($"Source = {sourceLiteral}");
-            }
-            context.WriteLine("};");
+            context.WriteLine("var forloop = ForLoopValue.Create();");
+            context.WriteLine($"forloop.Identifier = {identifierLit};");
+            context.WriteLine($"forloop.Source = {sourceLiteral};");
             context.WriteLine("var length = forloop.Length = count;");
             context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue(\"forloop\", forloop);");
             context.WriteLine("if (!parentLoop.IsNil() && parentLoop is ForLoopValue parentForLoop && !parentForLoop.IsRenderLoop)");

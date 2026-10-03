@@ -15,7 +15,10 @@ internal sealed class SerializableFluidValue : FluidValue
     [JsonIgnore]
     public TemplateContext Context { get; }
 
-    public SerializableFluidValue(FluidValue inner, TemplateContext context)
+    public static SerializableFluidValue Create(FluidValue inner, TemplateContext context)
+        => new SerializableFluidValue(inner, context);
+
+    private SerializableFluidValue(FluidValue inner, TemplateContext context)
     {
         _inner = inner ?? throw new ArgumentNullException(nameof(inner));
         Context = context ?? throw new ArgumentNullException(nameof(context));

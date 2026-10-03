@@ -38,7 +38,7 @@ public class FluidValueTemplateContextTests
     {
         // Arrange
         var context = new TemplateContext();
-        var value = new StringValue("Hello");
+        var value = StringValue.Create("Hello");
 
         // Act
         var result = value.ToStringValue(context);

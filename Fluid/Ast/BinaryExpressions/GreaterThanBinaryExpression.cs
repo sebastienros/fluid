@@ -64,10 +64,10 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
         else
         {
             // For non-number, non-string types, return nil as left operand with false comparison
-            return new BinaryExpressionFluidValue(NilValue.Instance, false);
+            return BinaryExpressionFluidValue.Create(NilValue.Instance, false);
         }
 
-        return new BinaryExpressionFluidValue(leftValue, comparisonResult);
+        return BinaryExpressionFluidValue.Create(leftValue, comparisonResult);
     }
 
     protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitGreaterThanBinaryExpression(this);
@@ -122,10 +122,10 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine("return new BinaryExpressionFluidValue(NilValue.Instance, false);");
+            context.WriteLine("return BinaryExpressionFluidValue.Create(NilValue.Instance, false);");
         }
         context.WriteLine("}");
 
-        context.WriteLine("return new BinaryExpressionFluidValue(leftValue, comparisonResult);");
+        context.WriteLine("return BinaryExpressionFluidValue.Create(leftValue, comparisonResult);");
     }
 }

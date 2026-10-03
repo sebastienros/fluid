@@ -23,6 +23,18 @@ public class FluidValueBenchmarks
     }
 
     [Benchmark]
+    public FluidValue CreateFromEmptyString() => FluidValue.Create("", options);
+
+    [Benchmark]
+    public FluidValue CreateFromCharacterString() => FluidValue.Create("a", options);
+
+    [Benchmark]
+    public FluidValue CreateFromString() => FluidValue.Create("hello", options);
+
+    [Benchmark]
+    public FluidValue CreateFromEmptyArray() => FluidValue.Create(System.Array.Empty<FluidValue>(), options);
+
+    [Benchmark]
     public FluidValue CreateFromJsonString() => FluidValue.Create(jsonString, options);
 
     [Benchmark]

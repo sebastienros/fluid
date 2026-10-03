@@ -9,7 +9,14 @@ public sealed class ArrayValue : FluidValue
 
     public override FluidValues Type => FluidValues.Array;
 
-    public ArrayValue(IReadOnlyList<FluidValue> values)
+    public static ArrayValue Create(IReadOnlyList<FluidValue> values)
+    {
+        return values is null || values is FluidValue[] { Length: 0 }
+            ? Empty
+            : new ArrayValue(values);
+    }
+
+    private ArrayValue(IReadOnlyList<FluidValue> values)
     {
         Values = values ?? [];
     }

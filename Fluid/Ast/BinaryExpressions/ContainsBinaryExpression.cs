@@ -19,11 +19,11 @@ public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
         if (leftValue.IsNil() || (leftValue.Type == FluidValues.Boolean && !leftValue.ToBooleanValue())
             || rightValue.IsNil() || (rightValue.Type == FluidValues.Boolean && !rightValue.ToBooleanValue()))
         {
-            return new BinaryExpressionFluidValue(leftValue, false);
+            return BinaryExpressionFluidValue.Create(leftValue, false);
         }
 
         var comparisonResult = await leftValue.ContainsAsync(rightValue, context);
-        return new BinaryExpressionFluidValue(leftValue, comparisonResult);
+        return BinaryExpressionFluidValue.Create(leftValue, comparisonResult);
     }
 
     protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitContainsBinaryExpression(this);
@@ -40,10 +40,10 @@ public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine("return new BinaryExpressionFluidValue(leftValue, false);");
+            context.WriteLine("return BinaryExpressionFluidValue.Create(leftValue, false);");
         }
         context.WriteLine("}");
         context.WriteLine($"var comparisonResult = await leftValue.ContainsAsync(rightValue, {context.ContextName});");
-        context.WriteLine("return new BinaryExpressionFluidValue(leftValue, comparisonResult);");
+        context.WriteLine("return BinaryExpressionFluidValue.Create(leftValue, comparisonResult);");
     }
 }

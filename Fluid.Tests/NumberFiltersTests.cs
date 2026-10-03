@@ -183,7 +183,7 @@ public class NumberFiltersTests
     [Fact]
     public void PlusConvertsObjectToNumber()
     {
-        var input = new ObjectValue("6");
+        var input = ObjectValue.Create("6");
 
         var arguments = new FilterArguments(NumberValue.Create(3));
         var context = new TemplateContext();

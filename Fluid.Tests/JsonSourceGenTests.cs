@@ -113,7 +113,7 @@ public class JsonSourceGenTests
             };
             o.WithJsonSerializerOptions(genOptions);
         });
-        var fluidString = new StringValue("Hello SourceGen");
+        var fluidString = StringValue.Create("Hello SourceGen");
         ctx.SetValue("msg", fluidString);
         var array = new object[] { "A", 123, true };
         ctx.SetValue("mixed", array);

@@ -52,7 +52,7 @@ public sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
                 var items = actualValue.EnumerateAsync(context).ToEnumerable();
                 foreach (var item in items)
                 {
-                    var wrapped = new SerializableFluidValue(item, context);
+                    var wrapped = SerializableFluidValue.Create(item, context);
                     JsonSerializer.Serialize<FluidValue>(writer, wrapped, options);
                 }
                 writer.WriteEndArray();
@@ -80,7 +80,7 @@ public sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
 
                     if (dict.TryGetValue(key, out var fluidValue) && fluidValue is not null)
                     {
-                        var wrapped = new SerializableFluidValue(fluidValue, context);
+                        var wrapped = SerializableFluidValue.Create(fluidValue, context);
                         JsonSerializer.Serialize<FluidValue>(writer, wrapped, options);
                     }
                     else

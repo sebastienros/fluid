@@ -16,7 +16,7 @@ public sealed class AddBinaryExpression : BinaryExpression, ISourceable
             var left = leftValue.ToStringValue();
             var right = rightValue.ToStringValue();
             context.EnsureOutputSize((long)left.Length + right.Length);
-            return new StringValue(left + right);
+            return StringValue.Create(left + right);
         }
 
         if (leftValue is NumberValue)
@@ -44,7 +44,7 @@ public sealed class AddBinaryExpression : BinaryExpression, ISourceable
             context.WriteLine("var left = leftValue.ToStringValue();");
             context.WriteLine("var right = rightValue.ToStringValue();");
             context.WriteLine($"{context.ContextName}.EnsureOutputSize((long)left.Length + right.Length);");
-            context.WriteLine("return new StringValue(left + right);");
+            context.WriteLine("return StringValue.Create(left + right);");
         }
         context.WriteLine("}");
 

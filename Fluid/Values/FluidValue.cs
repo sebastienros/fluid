@@ -169,7 +169,7 @@ public abstract class FluidValue : IEquatable<FluidValue>
         // Check if the value is an enum and convert to string
         if (typeOfValue.IsEnum)
         {
-            return new StringValue(value.ToString());
+            return StringValue.Create(value.ToString());
         }
 
         switch (System.Type.GetTypeCode(typeOfValue))
@@ -206,24 +206,24 @@ public abstract class FluidValue : IEquatable<FluidValue>
                 // rather than up front, where every string and number would pay for it and miss.
                 if (_plainObjectTypeCache.Contains(typeOfValue))
                 {
-                    return new ObjectValue(value);
+                    return ObjectValue.Create(value);
                 }
 
                 switch (value)
                 {
                     case DateTimeOffset dateTimeOffset:
-                        return new DateTimeValue(dateTimeOffset);
+                        return DateTimeValue.Create(dateTimeOffset);
 
                     case TimeSpan timeSpan:
                         var baseDateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)timeSpan.TotalMilliseconds).ToOffset(options.TimeZone.BaseUtcOffset);
-                        return new DateTimeValue(baseDateTime);
+                        return DateTimeValue.Create(baseDateTime);
 
                     case IConvertible convertible:
                         var typeCode = convertible.GetTypeCode();
                         return typeCode switch
                         {
                             TypeCode.Boolean => BooleanValue.Create(convertible.ToBoolean(options.CultureInfo)),
-                            TypeCode.Char => new StringValue(convertible.ToString(options.CultureInfo)),
+                            TypeCode.Char => StringValue.Create(convertible.ToString(options.CultureInfo)),
                             TypeCode.SByte => NumberValue.Create(convertible.ToInt32(options.CultureInfo)),
                             TypeCode.Byte => NumberValue.Create(convertible.ToUInt32(options.CultureInfo)),
                             TypeCode.Int16 => NumberValue.Create(convertible.ToInt32(options.CultureInfo)),
@@ -235,30 +235,28 @@ public abstract class FluidValue : IEquatable<FluidValue>
                             TypeCode.Single => NumberValue.Create(convertible.ToDecimal(options.CultureInfo)),
                             TypeCode.Double => NumberValue.Create(convertible.ToDecimal(options.CultureInfo)),
                             TypeCode.Decimal => NumberValue.Create(convertible.ToDecimal(options.CultureInfo)),
-                            TypeCode.DateTime => new DateTimeValue(convertible.ToDateTime(options.CultureInfo)),
-                            TypeCode.String => new StringValue(convertible.ToString(options.CultureInfo)),
-                            TypeCode.Object => new StringValue(convertible.ToString(options.CultureInfo)),
+                            TypeCode.DateTime => DateTimeValue.Create(convertible.ToDateTime(options.CultureInfo)),
+                            TypeCode.String => StringValue.Create(convertible.ToString(options.CultureInfo)),
+                            TypeCode.Object => StringValue.Create(convertible.ToString(options.CultureInfo)),
                             TypeCode.DBNull => NilValue.Instance,
                             TypeCode.Empty => NilValue.Instance,
                             _ => throw new InvalidOperationException(),
                         };
 
                     case IFormattable formattable:
-                        return new StringValue(formattable.ToString(null, options.CultureInfo));
+                        return StringValue.Create(formattable.ToString(null, options.CultureInfo));
 
                     case IDictionary<string, object> dictionary:
-                        return new DictionaryValue(new ObjectDictionaryFluidIndexable<object>(dictionary, options));
+                        return DictionaryValue.Create(new ObjectDictionaryFluidIndexable<object>(dictionary, options));
 
                     case IDictionary<string, FluidValue> fluidDictionary:
-                        return new DictionaryValue(new FluidValueDictionaryFluidIndexable(fluidDictionary));
+                        return DictionaryValue.Create(new FluidValueDictionaryFluidIndexable(fluidDictionary));
 
                     case IDictionary otherDictionary:
-                        return new DictionaryValue(new DictionaryDictionaryFluidIndexable(otherDictionary, options));
+                        return DictionaryValue.Create(new DictionaryDictionaryFluidIndexable(otherDictionary, options));
 
                     case FluidValue[] array:
-                        return array.Length > 0
-                            ? new ArrayValue(array)
-                            : ArrayValue.Empty;
+                        return ArrayValue.Create(array);
                 }
 
                 // Check if it's a more specific IDictionary<string, V>, e.g. JObject
@@ -286,7 +284,7 @@ public abstract class FluidValue : IEquatable<FluidValue>
 
                 if (genericType != null)
                 {
-                    return new DictionaryValue(Activator.CreateInstance(genericType, value, options) as IFluidIndexable);
+                    return DictionaryValue.Create(Activator.CreateInstance(genericType, value, options) as IFluidIndexable);
                 }
 
                 switch (value)
@@ -297,10 +295,10 @@ public abstract class FluidValue : IEquatable<FluidValue>
                             return ArrayValue.Empty;
                         }
 
-                        return new ArrayValue(list);
+                        return ArrayValue.Create(list);
 
                     case IEnumerable<FluidValue> enumerable:
-                        return new ArrayValue(enumerable.ToArray());
+                        return ArrayValue.Create(enumerable.ToArray());
 
                     case IList list:
                         if (list.Count == 0)
@@ -314,10 +312,10 @@ public abstract class FluidValue : IEquatable<FluidValue>
                             values[i] = Create(list[i], options);
                         }
 
-                        return new ArrayValue(values);
+                        return ArrayValue.Create(values);
 
                     case IEnumerable enumerable:
-                        return new EnumerableObjectValue(enumerable, options);
+                        return EnumerableObjectValue.Create(enumerable, options);
                 }
 
                 // Nothing above matched, so every value of this type is a plain object. Swap in a
@@ -330,16 +328,16 @@ public abstract class FluidValue : IEquatable<FluidValue>
                     Interlocked.CompareExchange(ref _plainObjectTypeCache, new HashSet<Type>(plainTypes) { typeOfValue }, plainTypes);
                 }
 
-                return new ObjectValue(value);
+                return ObjectValue.Create(value);
 
             case TypeCode.DateTime:
-                return new DateTimeValue((DateTime)value);
+                return DateTimeValue.Create((DateTime)value);
 
             case TypeCode.Char:
-                return new StringValue(Convert.ToString(value, options.CultureInfo));
+                return StringValue.Create(Convert.ToString(value, options.CultureInfo));
 
             case TypeCode.String:
-                return new StringValue((string)value);
+                return StringValue.Create((string)value);
 
             default:
                 throw new InvalidOperationException();
@@ -359,7 +357,7 @@ public abstract class FluidValue : IEquatable<FluidValue>
                 JsonValueKind.True => BooleanValue.True,
                 JsonValueKind.False => BooleanValue.False,
                 JsonValueKind.Null => NilValue.Instance,
-                _ => new ObjectValue(value)
+                _ => ObjectValue.Create(value)
             };
         }
 
@@ -372,7 +370,7 @@ public abstract class FluidValue : IEquatable<FluidValue>
             JsonValueKind.True => BooleanValue.True,
             JsonValueKind.False => BooleanValue.False,
             JsonValueKind.Null => NilValue.Instance,
-            _ => new ObjectValue(value)
+            _ => ObjectValue.Create(value)
         };
     }
 

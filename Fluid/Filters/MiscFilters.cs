@@ -114,7 +114,7 @@ public static class MiscFilters
             return (uint)(c - 'A') <= (uint)('Z' - 'A');
         }
 
-        return new StringValue(result.ToString().ToLowerInvariant());
+        return StringValue.Create(result.ToString().ToLowerInvariant());
     }
 
     public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -155,7 +155,7 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("raw", expected: 0, arguments);
 
-        var stringValue = new StringValue(input.ToStringValue(), false);
+        var stringValue = StringValue.Create(input.ToStringValue(), false);
 
         return stringValue;
     }
@@ -166,7 +166,7 @@ public static class MiscFilters
 
         if (input.Type != FluidValues.Array)
         {
-            return input.IsNil() ? ArrayValue.Empty : new ArrayValue([input]);
+            return input.IsNil() ? ArrayValue.Empty : ArrayValue.Create([input]);
         }
 
         var member = arguments.At(0);
@@ -187,7 +187,7 @@ public static class MiscFilters
             compacted.Add(value);
         }
 
-        return new ArrayValue(compacted);
+        return ArrayValue.Create(compacted);
     }
 
     public static ValueTask<FluidValue> UrlEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -197,14 +197,14 @@ public static class MiscFilters
         var encoded = WebUtility.UrlEncode(input.ToStringValue());
         // WebUtility.UrlEncode doesn't encode ! but Shopify's Liquid does
         encoded = encoded?.Replace("!", "%21");
-        return new StringValue(encoded);
+        return StringValue.Create(encoded);
     }
 
     public static ValueTask<FluidValue> UrlDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("url_decode", expected: 0, arguments);
 
-        return new StringValue(WebUtility.UrlDecode(input.ToStringValue()));
+        return StringValue.Create(WebUtility.UrlDecode(input.ToStringValue()));
     }
 
     public static ValueTask<FluidValue> Base64Encode(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -220,7 +220,7 @@ public static class MiscFilters
 
         var byteCount = Encoding.UTF8.GetByteCount(value);
         context.EnsureOutputSize(4L * ((byteCount + 2L) / 3L));
-        return new StringValue(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
+        return StringValue.Create(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
     }
 
     public static ValueTask<FluidValue> Base64Decode(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -231,7 +231,7 @@ public static class MiscFilters
 
         return String.IsNullOrEmpty(value)
             ? StringValue.Empty
-            : new StringValue(Encoding.UTF8.GetString(Convert.FromBase64String(value)));
+            : StringValue.Create(Encoding.UTF8.GetString(Convert.FromBase64String(value)));
     }
 
     public static ValueTask<FluidValue> Base64UrlSafeEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -264,7 +264,7 @@ public static class MiscFilters
                 }
             }
 
-            return new StringValue(encodedBase64StringBuilder.ToString());
+            return StringValue.Create(encodedBase64StringBuilder.ToString());
         }
     }
 
@@ -310,7 +310,7 @@ public static class MiscFilters
             try
             {
                 var decodedBase64 = Encoding.UTF8.GetString(Convert.FromBase64String(encodedBase64StringBuilder.ToString()));
-                return new StringValue(decodedBase64);
+                return StringValue.Create(decodedBase64);
             }
             catch
             {
@@ -373,11 +373,11 @@ public static class MiscFilters
                 i++;
             }
 
-            return new StringValue(new string(result, 0, cursor));
+            return StringValue.Create(new string(result, 0, cursor));
         }
         catch
         {
-            return new StringValue(String.Empty);
+            return StringValue.Create(String.Empty);
         }
         finally
         {
@@ -449,14 +449,14 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("escape", expected: 0, arguments);
 
-        return new StringValue(WebUtility.HtmlEncode(input.ToStringValue()), encode: false);
+        return StringValue.Create(WebUtility.HtmlEncode(input.ToStringValue()), encode: false);
     }
 
     public static ValueTask<FluidValue> EscapeOnce(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("escape", expected: 0, arguments);
 
-        return new StringValue(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())), encode: false);
+        return StringValue.Create(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())), encode: false);
     }
 
     public static ValueTask<FluidValue> ChangeTimeZone(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -489,16 +489,16 @@ public static class MiscFilters
             }
             catch (TimeZoneNotFoundException)
             {
-                return new DateTimeValue(value);
+                return DateTimeValue.Create(value);
             }
             catch (InvalidTimeZoneException)
             {
-                return new DateTimeValue(value);
+                return DateTimeValue.Create(value);
             }
         }
 
         var result = TimeZoneInfo.ConvertTime(value, timeZoneInfo);
-        return new DateTimeValue(result);
+        return DateTimeValue.Create(result);
     }
 
     // https://docs.ruby-lang.org/en/master/strftime_formatting_rdoc.html
@@ -515,7 +515,7 @@ public static class MiscFilters
         if (arguments.At(0).IsNil())
         {
             // An absent format argument returns the input parsed as date
-            return new DateTimeValue(value);
+            return DateTimeValue.Create(value);
         }
 
         var format = arguments.At(0).ToStringValue();
@@ -524,7 +524,7 @@ public static class MiscFilters
 
         ForStrf(value, format, ref result);
 
-        return new StringValue(result.ToString());
+        return StringValue.Create(result.ToString());
 
         void ForStrf(DateTimeOffset value, string format, ref ValueStringBuilder result)
         {
@@ -834,17 +834,17 @@ public static class MiscFilters
             culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue()) ?? context.CultureInfo;
         }
 
-        return new StringValue(value.ToString(format, culture));
+        return StringValue.Create(value.ToString(format, culture));
     }
 
     public static ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         // Wrap the input in a SerializableFluidValue to provide the context to the JSON converter
-        var serializableValue = new SerializableFluidValue(input, context);
+        var serializableValue = SerializableFluidValue.Create(input, context);
 
         // Cast to FluidValue to ensure the converter from the base class is used
         var json = JsonSerializer.Serialize<FluidValue>(serializableValue, context.JsonSerializerOptions);
-        return new StringValue(json);
+        return StringValue.Create(json);
     }
 
     public static ValueTask<FluidValue> FormatNumber(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -863,7 +863,7 @@ public static class MiscFilters
             culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue()) ?? context.CultureInfo;
         }
 
-        return new StringValue(input.ToNumberValue().ToString(format, culture));
+        return StringValue.Create(input.ToNumberValue().ToString(format, culture));
     }
 
     public static ValueTask<FluidValue> FormatString(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -884,7 +884,7 @@ public static class MiscFilters
 
         var parameters = arguments.ValuesToObjectArray();
 
-        return new StringValue(string.Format(culture, format, parameters));
+        return StringValue.Create(string.Format(culture, format, parameters));
     }
 
     public static ValueTask<FluidValue> MD5(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -902,7 +902,7 @@ public static class MiscFilters
 #if NET6_0_OR_GREATER
 #pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
         var hash = System.Security.Cryptography.MD5.HashData(Encoding.UTF8.GetBytes(value));
-        return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+        return StringValue.Create(Fluid.Utils.HexUtilities.ToHexLower(hash));
 #pragma warning restore CA5351
 #else
 
@@ -917,7 +917,7 @@ public static class MiscFilters
             builder.Append(b.ToString("x2"));
         }
 
-        return new StringValue(builder.ToString());
+        return StringValue.Create(builder.ToString());
 #endif
     }
 
@@ -935,7 +935,7 @@ public static class MiscFilters
 #pragma warning disable CA5350 // Do Not Use Broken Cryptographic Algorithms
         var hash = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(value));
 #pragma warning restore CA5350
-        return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+        return StringValue.Create(Fluid.Utils.HexUtilities.ToHexLower(hash));
 #else
 #pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
         using var provider = System.Security.Cryptography.SHA1.Create();
@@ -948,7 +948,7 @@ public static class MiscFilters
             builder.Append(b.ToString("x2"));
         }
 
-        return new StringValue(builder.ToString());
+        return StringValue.Create(builder.ToString());
 #endif
     }
 
@@ -966,7 +966,7 @@ public static class MiscFilters
 
 #if NET6_0_OR_GREATER
         var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(value));
-        return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+        return StringValue.Create(Fluid.Utils.HexUtilities.ToHexLower(hash));
 #else
         using var provider = System.Security.Cryptography.SHA256.Create();
         var builder = new ValueStringBuilder(stackalloc char[64]);
@@ -977,7 +977,7 @@ public static class MiscFilters
             builder.Append(b.ToString("x2"));
         }
 
-        return new StringValue(builder.ToString());
+        return StringValue.Create(builder.ToString());
 #endif
     }
 
@@ -1006,7 +1006,7 @@ public static class MiscFilters
         };
 #pragma warning restore CA5350
 
-        return new StringValue(HexUtilities.ToHexLower(hash));
+        return StringValue.Create(HexUtilities.ToHexLower(hash));
 #else
         using var provider = HMAC.Create(algorithm);
         provider.Key = keyBytes;
@@ -1018,7 +1018,7 @@ public static class MiscFilters
             builder.Append(b.ToString("x2"));
         }
 
-        return new StringValue(builder.ToString());
+        return StringValue.Create(builder.ToString());
 #endif
     }
 }
