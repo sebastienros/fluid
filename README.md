@@ -1790,6 +1790,29 @@ At that point a template like the following will work:
 
 Fluid provides a __Visitor__ pattern that allows you to analyze what a template is made of, and also to alter it. This can be used, for instance, to check if a specific identifier is used, replace some filters with others, or remove any expression that might not be authorized.
 
+### Tracking statement source locations (experimental)
+
+```csharp
+#pragma warning disable FLUID001
+
+var parser = new FluidParser(new FluidParserOptions
+{
+    TrackStatementLocations = true
+});
+var template = parser.Parse(source);
+var statements = ((Fluid.Parser.FluidTemplate)template).Statements;
+
+foreach (var statement in statements)
+{
+    if (statement.SourceOffset >= 0)
+    {
+        var originalText = source.Substring(statement.SourceOffset, statement.SourceLength);
+    }
+}
+
+#pragma warning restore FLUID001
+```
+
 ### Visiting a template
 
 The `Fluid.Ast.AstVisitor` class can be used to create a custom visitor.

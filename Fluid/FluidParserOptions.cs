@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Fluid;
 
 /// <summary>
@@ -5,6 +7,12 @@ namespace Fluid;
 /// </summary>
 public sealed class FluidParserOptions
 {
+    /// <summary>
+    /// Gets whether original source offsets and lengths are recorded on statements. Default is <c>false</c>.
+    /// </summary>
+    [Experimental("FLUID001")]
+    public bool TrackStatementLocations { get; init; }
+
     /// <summary>
     /// Gets whether functions are allowed in templates. Default is <c>false</c>.
     /// </summary>

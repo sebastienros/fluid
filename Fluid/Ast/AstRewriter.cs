@@ -1,3 +1,5 @@
+#pragma warning disable FLUID001
+
 using Fluid.Ast.BinaryExpressions;
 using Fluid.Parser;
 
@@ -96,7 +98,15 @@ public class AstRewriter : AstVisitor
 
     public override Statement Visit(Statement statement)
     {
-        return statement?.Accept(this);
+        var result = statement?.Accept(this);
+
+        if (result != null && result != statement && result.SourceOffset == -1)
+        {
+            result.SourceOffset = statement.SourceOffset;
+            result.SourceLength = statement.SourceLength;
+        }
+
+        return result;
     }
 
     public override Expression Visit(Expression expression)
