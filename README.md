@@ -255,6 +255,28 @@ options.MemberAccessStrategy.Register<Person>();
 > Note: When passing a model with `new TemplateContext(model)` the type of the `model` object is automatically registered. This behavior can be disable
 by calling `new TemplateContext(model, false)`
 
+### Properties on enumerable objects
+
+Custom objects converted through the general `IEnumerable` path can expose allow-listed
+properties alongside their array contents. The existing list, array, dictionary, and
+`IEnumerable<FluidValue>` conversion paths are unchanged.
+For example, register `VehicleHistory.Approved` to use
+`{% for vehicle in Permit.Vehicles.Approved %}` while still iterating `Permit.Vehicles` directly.
+Register the containing and item types as usual:
+
+```csharp
+options.MemberAccessStrategy.Register<Permit>("Vehicles");
+options.MemberAccessStrategy.Register<VehicleHistory>("Approved");
+options.MemberAccessStrategy.Register<Vehicle>("Plate");
+```
+
+The built-in `size`, `first`, and `last` members take precedence over CLR members with the
+same names. Contents are materialized once when converted to a `FluidValue`. In 2.x the
+result remains an `ArrayValue`, and `ToObjectValue()` still returns the materialized object
+array rather than the original enumerable. Custom value converters retain their precedence.
+Empty custom enumerables retain their properties too, using a source-aware `ArrayValue`
+instead of the shared `ArrayValue.Empty` instance.
+
 ### Allow-listing specific members
 
 This will only allow the specific fields or properties to be read from a template.

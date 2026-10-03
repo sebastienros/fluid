@@ -9,9 +9,16 @@ namespace Fluid.Values
 
         public override FluidValues Type => FluidValues.Array;
 
+        private readonly ObjectValue _source;
+
         public ArrayValue(IReadOnlyList<FluidValue> values)
         {
             Values = values ?? [];
+        }
+
+        internal ArrayValue(IReadOnlyList<FluidValue> values, object source) : this(values)
+        {
+            _source = new ObjectValue(source);
         }
 
         public override bool Equals(FluidValue other)
@@ -70,6 +77,8 @@ namespace Fluid.Values
                     }
                     break;
 
+                default:
+                    return _source != null ? _source.GetValueAsync(name, context) : NilValue.Instance;
             }
 
             return NilValue.Instance;

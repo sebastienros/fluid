@@ -292,9 +292,7 @@ namespace Fluid.Values
                                 fluidValues.Add(Create(item, options));
                             }
 
-                            return fluidValues != null
-                                ? new ArrayValue(fluidValues)
-                                : ArrayValue.Empty;
+                            return new ArrayValue(fluidValues, enumerable);
                     }
 
                     return new ObjectValue(value);
