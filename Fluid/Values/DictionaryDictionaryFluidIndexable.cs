@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 
 namespace Fluid.Values
 {
@@ -21,10 +22,13 @@ namespace Fluid.Values
             {
                 foreach (var key in _dictionary.Keys)
                 {
-                    // Only handle string keys since this is what TryGetValue returns
-                    if (key is string)
+                    if (key is string str)
                     {
-                        yield return key.ToString();
+                        yield return str;
+                    }
+                    else
+                    {
+                        yield return ConvertKeyToString(key);
                     }
                 }
             }
@@ -39,8 +43,27 @@ namespace Fluid.Values
                 return true;
             }
 
+            foreach (var key in _dictionary.Keys)
+            {
+                if (key is not string && ConvertKeyToString(key) == name)
+                {
+                    value = FluidValue.Create(_dictionary[key], _options);
+                    return true;
+                }
+            }
+
             value = NilValue.Instance;
             return false;
+        }
+
+        private string ConvertKeyToString(object key)
+        {
+            return key switch
+            {
+                IFormattable formattable => formattable.ToString(null, _options.CultureInfo),
+                IConvertible convertible => convertible.ToString(_options.CultureInfo),
+                _ => key.ToString()
+            };
         }
     }
 }
