@@ -51,6 +51,29 @@ public class DictionaryDictionaryFluidIndexableTests
     }
 
     [Fact]
+    public void ToNumberValueShouldReturnDictionaryItemCount()
+    {
+        var items = new Dictionary<string, string>()
+        {
+            {"1", "a"},
+            {"2", "b"},
+            {"3", "c"},
+        };
+
+        var value = FluidValue.Create(items, new TemplateOptions());
+
+        Assert.Equal(items.Count, value.ToNumberValue());
+    }
+
+    [Fact]
+    public void ToNumberValueShouldReturnZeroForEmptyDictionary()
+    {
+        var value = FluidValue.Create(new Dictionary<string, string>(), new TemplateOptions());
+
+        Assert.Equal(0, value.ToNumberValue());
+    }
+
+    [Fact]
     public void TemplateShouldRenderNumericDictionaryKeys()
     {
         var inventoryByWarehouse = new Dictionary<long, string>()
