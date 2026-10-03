@@ -1,9 +1,8 @@
-﻿namespace Fluid.Ast
+namespace Fluid.Ast;
+
+public enum Completion
 {
-    public enum Completion
-    {
-        Normal,
-        Break,
-        Continue
-    }
+    Normal,
+    Break,
+    Continue
 }

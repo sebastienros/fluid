@@ -1,6 +1,5 @@
-﻿using System.Reflection;
+using System.Reflection;
 
-namespace Fluid
-{
-    public delegate string MemberNameStrategy(MemberInfo member);
-}
+namespace Fluid;
+
+public delegate string MemberNameStrategy(MemberInfo member);

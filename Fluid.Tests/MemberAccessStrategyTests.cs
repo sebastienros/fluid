@@ -9,520 +9,519 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Fluid.Tests
+namespace Fluid.Tests;
+
+public class MemberAccessStrategyTests
 {
-    public class MemberAccessStrategyTests
-    {
 #if COMPILED
-        private static FluidParser _parser = new FluidParser().Compile();
+    private static FluidParser _parser = new FluidParser().Compile();
 #else
-        private static FluidParser _parser = new FluidParser();
+    private static FluidParser _parser = new FluidParser();
 #endif
 
-        [Fact]
-        public void RegisterByTypeAddPublicFields()
-        {
-            var strategy = new DefaultMemberAccessStrategy();
-
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field1), StringComparer.Ordinal));
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field2), StringComparer.Ordinal));
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateField), StringComparer.Ordinal));
-        }
-
-        [Fact]
-        public void RegisterByTypeAddPublicProperties()
-        {
-            var strategy = new DefaultMemberAccessStrategy();
-
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal));
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property2), StringComparer.Ordinal));
-
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateProperty), StringComparer.Ordinal));
-        }
-
-        [Fact]
-        public void ReflectedAccessorsShouldVaryByStringComparer()
-        {
-            var strategy = new DefaultMemberAccessStrategy();
-
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), "property1", StringComparer.OrdinalIgnoreCase));
-            Assert.Null(strategy.GetAccessor(typeof(Class1), "property1", StringComparer.Ordinal));
-        }
-
-        [Fact]
-        public async Task WildcardRegistrationShouldOverridePreviouslyReflectedAccessor()
-        {
-            var strategy = new DefaultMemberAccessStrategy();
-            var reflected = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal);
-
-            Assert.NotNull(reflected);
-
-            strategy.Register<Class1, object>((instance, name) =>
-                name == nameof(Class1.Property2) ? instance.Property2 : null);
-
-            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal);
-
-            Assert.NotSame(reflected, accessor);
-            Assert.Null(await accessor.GetAsync(new Class1(), nameof(Class1.Property1), new TemplateContext()));
-        }
-
-        [Fact]
-        public void RegistrationsShouldApplyToRenderedAccessorsOfTheirOptionsOnly()
-        {
-            var model = new Class1 { Property1 = "reflected" };
-            var template = _parser.Parse("{{ item.Property1 }}");
-
-            var reflected = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparer.Ordinal).Build();
-            var wildcard = reflected.ToBuilder()
-                .ConfigureMemberAccess(strategy => strategy.Register(typeof(Class1), "*", new FixedMemberAccessor("wildcard")))
-                .Build();
-            var exact = wildcard.ToBuilder()
-                .ConfigureMemberAccess(strategy => strategy.Register(typeof(Class1), nameof(Class1.Property1), new FixedMemberAccessor("exact")))
-                .Build();
-
-            // The same parsed template is rendered against each set of options, and again against the first one.
-            Assert.Equal("reflected", template.Render(new TemplateContext(reflected).SetValue("item", model)));
-            Assert.Equal("wildcard", template.Render(new TemplateContext(wildcard).SetValue("item", model)));
-            Assert.Equal("exact", template.Render(new TemplateContext(exact).SetValue("item", model)));
-            Assert.Equal("reflected", template.Render(new TemplateContext(reflected).SetValue("item", model)));
-        }
-
-        [Fact]
-        public async Task BaseRegistrationChangesShouldInvalidateDerivedAccessors()
-        {
-            var strategy = new DefaultMemberAccessStrategy();
-            strategy.Register<Class1, object>((instance, name) => "first");
-
-            var first = strategy.GetAccessor(typeof(DerivedClass1), "custom", StringComparer.Ordinal);
-            Assert.Equal("first", (await first.GetAsync(new DerivedClass1(), "custom", new TemplateContext())).ToObjectValue());
-
-            strategy.Register<Class1, object>((instance, name) => "second");
-
-            var second = strategy.GetAccessor(typeof(DerivedClass1), "custom", StringComparer.Ordinal);
-            Assert.Equal("second", (await second.GetAsync(new DerivedClass1(), "custom", new TemplateContext())).ToObjectValue());
-        }
-
-        [Fact]
-        public void RegisterByTypeUsesAotSafePropertyAccessorWhenDynamicCodeIsUnavailable()
-        {
-            var strategy = new DefaultMemberAccessStrategy();
-            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal);
-
-            if (RuntimeFeature.IsDynamicCodeSupported)
-            {
-                Assert.IsType<PropertyInfoAccessor>(accessor, exactMatch: false);
-            }
-            else
-            {
-                Assert.Equal("ReflectionPropertyInfoAccessor", accessor.GetType().Name);
-            }
-        }
-
-        [Fact]
-        public void RegisterByTypeUsesAotSafeFieldAccessorWhenDynamicCodeIsUnavailable()
-        {
-            var strategy = new DefaultMemberAccessStrategy();
-            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Field1), StringComparer.Ordinal);
-
-            if (RuntimeFeature.IsDynamicCodeSupported)
-            {
-                Assert.IsType<FieldInfoAccessor>(accessor, exactMatch: false);
-            }
-            else
-            {
-                Assert.Equal("ReflectionFieldInfoAccessor", accessor.GetType().Name);
-            }
-        }
-
-        [Fact]
-        public void RegisterByTypeAddAsyncPublicFields()
-        {
-            var strategy = new DefaultMemberAccessStrategy();
-
-            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Field3), StringComparer.Ordinal);
-            Assert.NotNull(accessor);
-            Assert.IsType<AsyncDelegateAccessor>(accessor, exactMatch: false);
-        }
-
-        [Fact]
-        public void RegisterByTypeAddAsyncPublicProperties()
-        {
-            var strategy = new DefaultMemberAccessStrategy();
-
-            var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property3), StringComparer.Ordinal);
-            Assert.NotNull(accessor);
-            Assert.IsType<AsyncDelegateAccessor>(accessor, exactMatch: false);
-        }
-
-        [Fact]
-        public void RegisterByTypeIncludesStaticMembers()
-        {
-            var strategy = new DefaultMemberAccessStrategy();
-
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.StaticField), StringComparer.Ordinal));
-            Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.StaticProperty), StringComparer.Ordinal));
-        }
-
-        [Fact]
-        public void RegisterByTypeIgnoresPrivateMembers()
-        {
-            var strategy = new DefaultMemberAccessStrategy();
-
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateField), StringComparer.Ordinal));
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateProperty), StringComparer.Ordinal));
-        }
-
-        [Fact]
-        public async Task ShouldResolvePropertiesWithDots()
-        {
-            var obj = new JObject(
-                new JProperty("a", "1"),
-                new JProperty("a.b", "2")
-            );
-
-            var options = new TemplateOptionsBuilder().Build();
-            var context = new TemplateContext(options);
-
-            var objectValue = FluidValue.Create(obj, options);
-
-            Assert.Equal("1", (await objectValue.GetValueAsync("a", context)).ToObjectValue());
-            Assert.Equal("2", (await objectValue.GetValueAsync("a.b", context)).ToObjectValue());
-            Assert.Null((await objectValue.GetValueAsync("a.c", context)).ToObjectValue());
-        }
-
-        [Fact]
-        public async Task ShouldNotBreakJObjectCustomizations()
-        {
-            var options = new TemplateOptionsBuilder()
-                // When a property of a JObject value is accessed, try to look into its properties
-                .ConfigureMemberAccess(strategy => strategy.Register<JObject, object>((source, name) => source[name]))
-                // Convert JToken to FluidValue
-                .AddValueConverter(x => x is JObject o ? new ObjectValue(o) : null)
-                .AddValueConverter(x => x is JValue v ? v.Value : null)
-                .Build();
-
-            var model = JObject.Parse("{\"Name\": \"Bill\",\"Company\":{\"Name\":\"Microsoft\"}}");
-
-            _parser.TryParse("His name is {{ Name }}, Company : {{ Company.Name }}", out var template);
-            var context = new TemplateContext(model, options);
-
-            Assert.Equal("His name is Bill, Company : Microsoft", await template.RenderAsync(context));
-        }
-
-        [Fact]
-        public async Task ShouldRenderReadmeSample()
-        {
-            var options = new TemplateOptionsBuilder().ConfigureMemberAccess(strategy => strategy.Register<Person, object>((p, name) => p.Firstname)).Build();
-            var model = new Person { Firstname = "Bill" };
-
-            _parser.TryParse("His name is {{ Something }}", out var template);
-            var context = new TemplateContext(model, options);
-
-            Assert.Equal("His name is Bill", await template.RenderAsync(context));
-        }
-
-        [Fact]
-        public async Task ShouldAccessJObject()
-        {
-            var options = new TemplateOptionsBuilder().Build();
-
-            var model = JObject.Parse("{\"Name\": \"Bill\",\"Company\":{\"Name\":\"Microsoft\"}}");
-
-            _parser.TryParse("His name is {{ Name }}, Company : {{ Company | json }}", out var template);
-            var context = new TemplateContext(model, options);
-
-            Assert.Equal("His name is Bill, Company : {\"Name\":\"Microsoft\"}", await template.RenderAsync(context));
-        }
-
-        [Fact]
-        public void ShouldResolveModelProperty()
-        {
-            var options = new TemplateOptionsBuilder().Build();
-
-            var john = new Person { Firstname = "John", Lastname = "Wick", Address = new Address { City = "Redmond", State = "Washington" } };
-
-            var template = _parser.Parse("{{Firstname}} {{Lastname}}");
-            Assert.Equal("John Wick", template.Render(new TemplateContext(john, options)));
-        }
-
-        [Fact]
-        public void ShouldSkipWriteOnlyProperty()
-        {
-            var strategy = new DefaultMemberAccessStrategy();
-
-            Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.WriteOnlyProperty), StringComparer.Ordinal));
-        }
-
-        [Fact]
-        public void ShouldUseDictionaryAsModel()
-        {
-            var options = new TemplateOptionsBuilder().Build();
-
-            var model = new Dictionary<string, object>
-            {
-                { "Firstname", "Bill" },
-                { "Lastname", "Gates" }
-            };
-
-            var template = _parser.Parse("{{Firstname}} {{Lastname}}");
-            
-            Assert.Equal("Bill Gates", template.Render(new TemplateContext(model, options)));
-        }
-
-        [Fact]
-        public void ShouldResolveEnums()
-        {
-            var options = new TemplateOptionsBuilder().Build();
-
-            var john = new Person { Firstname = "John", EyesColor = Colors.Yellow };
-
-            var template = _parser.Parse("{{Firstname}} {{EyesColor}}");
-            Assert.Equal("John Yellow", template.Render(new TemplateContext(john, options)));
-        }
-
-        [Fact]
-        public void ShouldResolveStructs()
-        {
-            var options = new TemplateOptionsBuilder().Build();
-
-            var circle = new Shape
-            {
-                Coordinates = new Point(1, 2)
-            };
-
-            var template = _parser.Parse("{{Coordinates.X}} {{Coordinates.Y}}");
-            Assert.Equal("1 2", template.Render(new TemplateContext(circle, options)));
-        }
-
-        [Fact]
-        public void ShouldFindBackingFields()
-        {
-            var options = new TemplateOptionsBuilder().Build();
-
-            var s = new CustomStruct
-            {
-                X1 = 1,
-                X2 = 2,
-                X3 = 3
-            };
-
-            var template = _parser.Parse("{{X1}} {{X2}} {{X3}}");
-            Assert.Equal("1 2 3", template.Render(new TemplateContext(s, options)));
-        }
-
-        [Fact]
-        public void ShouldResolveStaticField()
-        {
-            var options = new TemplateOptionsBuilder().Build();
-
-            Class1.StaticField = "StaticValue";
-
-            var model = new Class1();
-            var template = _parser.Parse("{{StaticField}}");
-            Assert.Equal("StaticValue", template.Render(new TemplateContext(model, options)));
-        }
-
-        [Fact]
-        public void ShouldResolveStaticProperty()
-        {
-            var options = new TemplateOptionsBuilder().Build();
-
-            Class1.StaticProperty = "StaticPropertyValue";
-
-            var model = new Class1();
-            var template = _parser.Parse("{{StaticProperty}}");
-            Assert.Equal("StaticPropertyValue", template.Render(new TemplateContext(model, options)));
-        }
-
-        [Fact]
-        public void ShouldResolveStaticFluidValueForNullComparison()
-        {
-            var options = new TemplateOptionsBuilder().Build();
-
-            // This test verifies the use case from issue #867
-            var model = new ModelWithStaticNull();
-            var template = _parser.Parse("{% if product == Null %}Not found{% else %}Found{% endif %}");
-            
-            Assert.Equal("Not found", template.Render(new TemplateContext(model, options)));
-        }
-
-        [Fact]
-        public void ShouldApplyGeneratedMemberAccessorsFromTemplateOptionsSubclass()
-        {
-            var options = new GeneratedTemplateOptionsBuilder().Build();
-            var model = new GeneratedModel();
-
-            var template = _parser.Parse("{{Generated}}");
-
-            Assert.Equal("generated", template.Render(new TemplateContext(model, options)));
-        }
-
-        [Fact]
-        public void ShouldReapplyGeneratedMemberAccessorsWhenStrategyIsReplaced()
-        {
-            var options = new GeneratedTemplateOptionsBuilder()
-                .WithMemberAccessStrategy(() => new DefaultMemberAccessStrategy())
-                .Build();
-            var model = new GeneratedModel();
-
-            var template = _parser.Parse("{{Generated}}");
-
-            Assert.Equal("generated", template.Render(new TemplateContext(model, options)));
-        }
-
-        [Fact]
-        public void ShouldAllowRuntimeRegistrationsToOverrideGeneratedMemberAccessors()
-        {
-            var options = new GeneratedTemplateOptionsBuilder()
-                .ConfigureMemberAccess(strategy => strategy.Register(typeof(GeneratedModel), nameof(GeneratedModel.Generated), new FixedMemberAccessor("runtime")))
-                .Build();
-            var model = new GeneratedModel();
-
-            var template = _parser.Parse("{{Generated}}");
-
-            Assert.Equal("runtime", template.Render(new TemplateContext(model, options)));
-        }
-
-        [Fact]
-        public void ShouldUseGeneratedMemberAccessorInferredFromTemplateContextConstructor()
-        {
-            var options = new TemplateOptionsBuilder().Build();
-            var model = new InferredModel();
-            var context = new TemplateContext(model, options);
-
-            var accessor = options.MemberAccessStrategy.GetAccessor(
-                typeof(InferredModel),
-                nameof(InferredModel.Inferred),
-                options.ModelNamesComparer);
-
-            Assert.Equal("Fluid.SourceGenerated", accessor.GetType().Namespace);
-            Assert.Equal("inferred", _parser.Parse("{{ Inferred }}").Render(context));
-            Assert.Equal("", _parser.Parse("{{ NotAProperty }}").Render(context));
-            Assert.Null(options.MemberAccessStrategy.GetAccessor(
-                typeof(InferredModel),
-                nameof(InferredModel.NotAProperty),
-                options.ModelNamesComparer));
-        }
-
-        [Fact]
-        public void InferredAccessorShouldPreserveBaseTypeRegistrationFallback()
-        {
-            var options = new TemplateOptionsBuilder()
-                .ConfigureMemberAccess(strategy => strategy.Register<InferredModelBase, object>(
-                static (_, name) => name == "Custom" ? "custom" : null))
-                .Build();
-            var context = new TemplateContext(new InferredModel(), options);
-
-            Assert.Equal("custom", _parser.Parse("{{ Custom }}").Render(context));
-        }
-
-        [Fact]
-        public void ShouldNotActivateInferredAccessorOnTemplateOptionsDefault()
-        {
-            var options = TemplateOptions.Default;
-            var context = new TemplateContext(new DefaultInferredModel(), options);
-            var accessor = options.MemberAccessStrategy.GetAccessor(
-                typeof(DefaultInferredModel),
-                nameof(DefaultInferredModel.Value),
-                options.ModelNamesComparer);
-
-            Assert.Equal("Fluid.Accessors", accessor.GetType().Namespace);
-            Assert.Equal("default", _parser.Parse("{{ Value }}").Render(context));
-        }
-
-        [Fact]
-        public void InferredAccessorShouldUseConfiguredValueConverters()
-        {
-            var options = new TemplateOptionsBuilder().AddValueConverter(static value => value is int ? "converted" : null).Build();
-            var context = new TemplateContext(new InferredModel(), options);
-
-            Assert.Equal("converted", _parser.Parse("{{ Count }}").Render(context));
-        }
-
-        [Fact]
-        public void InferredAccessorShouldPreserveNonGenericAsyncMemberBehavior()
-        {
-            var options = new TemplateOptionsBuilder().Build();
-            _ = new TemplateContext(new InferredModel(), options);
-
-            Assert.Equal("Fluid.Accessors", options.MemberAccessStrategy.GetAccessor(
-                typeof(InferredModel),
-                nameof(InferredModel.PlainTask),
-                options.ModelNamesComparer).GetType().Namespace);
-            Assert.Equal("Fluid.Accessors", options.MemberAccessStrategy.GetAccessor(
-                typeof(InferredModel),
-                nameof(InferredModel.ValueTask),
-                options.ModelNamesComparer).GetType().Namespace);
-        }
-
-    }
-
-    public class ModelWithStaticNull
+    [Fact]
+    public void RegisterByTypeAddPublicFields()
     {
-        public static FluidValue Null => NilValue.Instance;
-        public FluidValue product => NilValue.Instance;
+        var strategy = new DefaultMemberAccessStrategy();
+
+        Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field1), StringComparer.Ordinal));
+        Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Field2), StringComparer.Ordinal));
+        Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateField), StringComparer.Ordinal));
     }
 
-    public class Class1
+    [Fact]
+    public void RegisterByTypeAddPublicProperties()
     {
-        public static string StaticField;
-        public static string StaticProperty { get; set; }
-        internal string PrivateField = null;
-        internal string PrivateProperty { get; set; }
-        public string Field1;
-        public int Field2;
-        public Task<string> Field3;
-        public string Property1 { get; set; }
-        public int Property2 { get; set; }
-        public Task<string> Property3 { get; set; }
-        public string WriteOnlyProperty { private get; set; }
+        var strategy = new DefaultMemberAccessStrategy();
+
+        Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal));
+        Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.Property2), StringComparer.Ordinal));
+
+        Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateProperty), StringComparer.Ordinal));
     }
 
-    public sealed class DerivedClass1 : Class1
+    [Fact]
+    public void ReflectedAccessorsShouldVaryByStringComparer()
     {
+        var strategy = new DefaultMemberAccessStrategy();
+
+        Assert.NotNull(strategy.GetAccessor(typeof(Class1), "property1", StringComparer.OrdinalIgnoreCase));
+        Assert.Null(strategy.GetAccessor(typeof(Class1), "property1", StringComparer.Ordinal));
     }
 
-    public sealed class GeneratedModel
+    [Fact]
+    public async Task WildcardRegistrationShouldOverridePreviouslyReflectedAccessor()
     {
-        public string Generated { get; set; } = "model";
+        var strategy = new DefaultMemberAccessStrategy();
+        var reflected = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal);
+
+        Assert.NotNull(reflected);
+
+        strategy.Register<Class1, object>((instance, name) =>
+            name == nameof(Class1.Property2) ? instance.Property2 : null);
+
+        var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal);
+
+        Assert.NotSame(reflected, accessor);
+        Assert.Null(await accessor.GetAsync(new Class1(), nameof(Class1.Property1), new TemplateContext()));
     }
 
-    public class InferredModelBase
+    [Fact]
+    public void RegistrationsShouldApplyToRenderedAccessorsOfTheirOptionsOnly()
     {
+        var model = new Class1 { Property1 = "reflected" };
+        var template = _parser.Parse("{{ item.Property1 }}");
+
+        var reflected = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparer.Ordinal).Build();
+        var wildcard = reflected.ToBuilder()
+            .ConfigureMemberAccess(strategy => strategy.Register(typeof(Class1), "*", new FixedMemberAccessor("wildcard")))
+            .Build();
+        var exact = wildcard.ToBuilder()
+            .ConfigureMemberAccess(strategy => strategy.Register(typeof(Class1), nameof(Class1.Property1), new FixedMemberAccessor("exact")))
+            .Build();
+
+        // The same parsed template is rendered against each set of options, and again against the first one.
+        Assert.Equal("reflected", template.Render(new TemplateContext(reflected).SetValue("item", model)));
+        Assert.Equal("wildcard", template.Render(new TemplateContext(wildcard).SetValue("item", model)));
+        Assert.Equal("exact", template.Render(new TemplateContext(exact).SetValue("item", model)));
+        Assert.Equal("reflected", template.Render(new TemplateContext(reflected).SetValue("item", model)));
     }
 
-    public sealed class InferredModel : InferredModelBase
+    [Fact]
+    public async Task BaseRegistrationChangesShouldInvalidateDerivedAccessors()
     {
-        public string Inferred { get; set; } = "inferred";
-        public int Count { get; set; } = 42;
-        public Task PlainTask { get; set; } = Task.CompletedTask;
-        public ValueTask<int> ValueTask { get; set; }
-        public string NotAProperty() => "method";
+        var strategy = new DefaultMemberAccessStrategy();
+        strategy.Register<Class1, object>((instance, name) => "first");
+
+        var first = strategy.GetAccessor(typeof(DerivedClass1), "custom", StringComparer.Ordinal);
+        Assert.Equal("first", (await first.GetAsync(new DerivedClass1(), "custom", new TemplateContext())).ToObjectValue());
+
+        strategy.Register<Class1, object>((instance, name) => "second");
+
+        var second = strategy.GetAccessor(typeof(DerivedClass1), "custom", StringComparer.Ordinal);
+        Assert.Equal("second", (await second.GetAsync(new DerivedClass1(), "custom", new TemplateContext())).ToObjectValue());
     }
 
-    public sealed class DefaultInferredModel
+    [Fact]
+    public void RegisterByTypeUsesAotSafePropertyAccessorWhenDynamicCodeIsUnavailable()
     {
-        public string Value => "default";
-    }
+        var strategy = new DefaultMemberAccessStrategy();
+        var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property1), StringComparer.Ordinal);
 
-    public sealed class GeneratedTemplateOptionsBuilder : TemplateOptionsBuilder, ITemplateOptionsMemberAccessorRegistrar
-    {
-        void ITemplateOptionsMemberAccessorRegistrar.RegisterMemberAccessors(TemplateOptionsBuilder builder)
+        if (RuntimeFeature.IsDynamicCodeSupported)
         {
-            builder.ConfigureMemberAccess(strategy => strategy.Register(typeof(GeneratedModel), "*", new FixedMemberAccessor("generated")));
+            Assert.IsType<PropertyInfoAccessor>(accessor, exactMatch: false);
+        }
+        else
+        {
+            Assert.Equal("ReflectionPropertyInfoAccessor", accessor.GetType().Name);
         }
     }
 
-    public sealed class FixedMemberAccessor : MemberAccessor
+    [Fact]
+    public void RegisterByTypeUsesAotSafeFieldAccessorWhenDynamicCodeIsUnavailable()
     {
-        private readonly string _value;
+        var strategy = new DefaultMemberAccessStrategy();
+        var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Field1), StringComparer.Ordinal);
 
-        public FixedMemberAccessor(string value)
+        if (RuntimeFeature.IsDynamicCodeSupported)
         {
-            _value = value;
+            Assert.IsType<FieldInfoAccessor>(accessor, exactMatch: false);
         }
-
-        public override ValueTask<FluidValue> GetAsync(object obj, string name, TemplateContext context)
-            => CreateValueTask(_value, context);
+        else
+        {
+            Assert.Equal("ReflectionFieldInfoAccessor", accessor.GetType().Name);
+        }
     }
+
+    [Fact]
+    public void RegisterByTypeAddAsyncPublicFields()
+    {
+        var strategy = new DefaultMemberAccessStrategy();
+
+        var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Field3), StringComparer.Ordinal);
+        Assert.NotNull(accessor);
+        Assert.IsType<AsyncDelegateAccessor>(accessor, exactMatch: false);
+    }
+
+    [Fact]
+    public void RegisterByTypeAddAsyncPublicProperties()
+    {
+        var strategy = new DefaultMemberAccessStrategy();
+
+        var accessor = strategy.GetAccessor(typeof(Class1), nameof(Class1.Property3), StringComparer.Ordinal);
+        Assert.NotNull(accessor);
+        Assert.IsType<AsyncDelegateAccessor>(accessor, exactMatch: false);
+    }
+
+    [Fact]
+    public void RegisterByTypeIncludesStaticMembers()
+    {
+        var strategy = new DefaultMemberAccessStrategy();
+
+        Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.StaticField), StringComparer.Ordinal));
+        Assert.NotNull(strategy.GetAccessor(typeof(Class1), nameof(Class1.StaticProperty), StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void RegisterByTypeIgnoresPrivateMembers()
+    {
+        var strategy = new DefaultMemberAccessStrategy();
+
+        Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateField), StringComparer.Ordinal));
+        Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.PrivateProperty), StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public async Task ShouldResolvePropertiesWithDots()
+    {
+        var obj = new JObject(
+            new JProperty("a", "1"),
+            new JProperty("a.b", "2")
+        );
+
+        var options = new TemplateOptionsBuilder().Build();
+        var context = new TemplateContext(options);
+
+        var objectValue = FluidValue.Create(obj, options);
+
+        Assert.Equal("1", (await objectValue.GetValueAsync("a", context)).ToObjectValue());
+        Assert.Equal("2", (await objectValue.GetValueAsync("a.b", context)).ToObjectValue());
+        Assert.Null((await objectValue.GetValueAsync("a.c", context)).ToObjectValue());
+    }
+
+    [Fact]
+    public async Task ShouldNotBreakJObjectCustomizations()
+    {
+        var options = new TemplateOptionsBuilder()
+            // When a property of a JObject value is accessed, try to look into its properties
+            .ConfigureMemberAccess(strategy => strategy.Register<JObject, object>((source, name) => source[name]))
+            // Convert JToken to FluidValue
+            .AddValueConverter(x => x is JObject o ? new ObjectValue(o) : null)
+            .AddValueConverter(x => x is JValue v ? v.Value : null)
+            .Build();
+
+        var model = JObject.Parse("{\"Name\": \"Bill\",\"Company\":{\"Name\":\"Microsoft\"}}");
+
+        _parser.TryParse("His name is {{ Name }}, Company : {{ Company.Name }}", out var template);
+        var context = new TemplateContext(model, options);
+
+        Assert.Equal("His name is Bill, Company : Microsoft", await template.RenderAsync(context));
+    }
+
+    [Fact]
+    public async Task ShouldRenderReadmeSample()
+    {
+        var options = new TemplateOptionsBuilder().ConfigureMemberAccess(strategy => strategy.Register<Person, object>((p, name) => p.Firstname)).Build();
+        var model = new Person { Firstname = "Bill" };
+
+        _parser.TryParse("His name is {{ Something }}", out var template);
+        var context = new TemplateContext(model, options);
+
+        Assert.Equal("His name is Bill", await template.RenderAsync(context));
+    }
+
+    [Fact]
+    public async Task ShouldAccessJObject()
+    {
+        var options = new TemplateOptionsBuilder().Build();
+
+        var model = JObject.Parse("{\"Name\": \"Bill\",\"Company\":{\"Name\":\"Microsoft\"}}");
+
+        _parser.TryParse("His name is {{ Name }}, Company : {{ Company | json }}", out var template);
+        var context = new TemplateContext(model, options);
+
+        Assert.Equal("His name is Bill, Company : {\"Name\":\"Microsoft\"}", await template.RenderAsync(context));
+    }
+
+    [Fact]
+    public void ShouldResolveModelProperty()
+    {
+        var options = new TemplateOptionsBuilder().Build();
+
+        var john = new Person { Firstname = "John", Lastname = "Wick", Address = new Address { City = "Redmond", State = "Washington" } };
+
+        var template = _parser.Parse("{{Firstname}} {{Lastname}}");
+        Assert.Equal("John Wick", template.Render(new TemplateContext(john, options)));
+    }
+
+    [Fact]
+    public void ShouldSkipWriteOnlyProperty()
+    {
+        var strategy = new DefaultMemberAccessStrategy();
+
+        Assert.Null(strategy.GetAccessor(typeof(Class1), nameof(Class1.WriteOnlyProperty), StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void ShouldUseDictionaryAsModel()
+    {
+        var options = new TemplateOptionsBuilder().Build();
+
+        var model = new Dictionary<string, object>
+        {
+            { "Firstname", "Bill" },
+            { "Lastname", "Gates" }
+        };
+
+        var template = _parser.Parse("{{Firstname}} {{Lastname}}");
+
+        Assert.Equal("Bill Gates", template.Render(new TemplateContext(model, options)));
+    }
+
+    [Fact]
+    public void ShouldResolveEnums()
+    {
+        var options = new TemplateOptionsBuilder().Build();
+
+        var john = new Person { Firstname = "John", EyesColor = Colors.Yellow };
+
+        var template = _parser.Parse("{{Firstname}} {{EyesColor}}");
+        Assert.Equal("John Yellow", template.Render(new TemplateContext(john, options)));
+    }
+
+    [Fact]
+    public void ShouldResolveStructs()
+    {
+        var options = new TemplateOptionsBuilder().Build();
+
+        var circle = new Shape
+        {
+            Coordinates = new Point(1, 2)
+        };
+
+        var template = _parser.Parse("{{Coordinates.X}} {{Coordinates.Y}}");
+        Assert.Equal("1 2", template.Render(new TemplateContext(circle, options)));
+    }
+
+    [Fact]
+    public void ShouldFindBackingFields()
+    {
+        var options = new TemplateOptionsBuilder().Build();
+
+        var s = new CustomStruct
+        {
+            X1 = 1,
+            X2 = 2,
+            X3 = 3
+        };
+
+        var template = _parser.Parse("{{X1}} {{X2}} {{X3}}");
+        Assert.Equal("1 2 3", template.Render(new TemplateContext(s, options)));
+    }
+
+    [Fact]
+    public void ShouldResolveStaticField()
+    {
+        var options = new TemplateOptionsBuilder().Build();
+
+        Class1.StaticField = "StaticValue";
+
+        var model = new Class1();
+        var template = _parser.Parse("{{StaticField}}");
+        Assert.Equal("StaticValue", template.Render(new TemplateContext(model, options)));
+    }
+
+    [Fact]
+    public void ShouldResolveStaticProperty()
+    {
+        var options = new TemplateOptionsBuilder().Build();
+
+        Class1.StaticProperty = "StaticPropertyValue";
+
+        var model = new Class1();
+        var template = _parser.Parse("{{StaticProperty}}");
+        Assert.Equal("StaticPropertyValue", template.Render(new TemplateContext(model, options)));
+    }
+
+    [Fact]
+    public void ShouldResolveStaticFluidValueForNullComparison()
+    {
+        var options = new TemplateOptionsBuilder().Build();
+
+        // This test verifies the use case from issue #867
+        var model = new ModelWithStaticNull();
+        var template = _parser.Parse("{% if product == Null %}Not found{% else %}Found{% endif %}");
+
+        Assert.Equal("Not found", template.Render(new TemplateContext(model, options)));
+    }
+
+    [Fact]
+    public void ShouldApplyGeneratedMemberAccessorsFromTemplateOptionsSubclass()
+    {
+        var options = new GeneratedTemplateOptionsBuilder().Build();
+        var model = new GeneratedModel();
+
+        var template = _parser.Parse("{{Generated}}");
+
+        Assert.Equal("generated", template.Render(new TemplateContext(model, options)));
+    }
+
+    [Fact]
+    public void ShouldReapplyGeneratedMemberAccessorsWhenStrategyIsReplaced()
+    {
+        var options = new GeneratedTemplateOptionsBuilder()
+            .WithMemberAccessStrategy(() => new DefaultMemberAccessStrategy())
+            .Build();
+        var model = new GeneratedModel();
+
+        var template = _parser.Parse("{{Generated}}");
+
+        Assert.Equal("generated", template.Render(new TemplateContext(model, options)));
+    }
+
+    [Fact]
+    public void ShouldAllowRuntimeRegistrationsToOverrideGeneratedMemberAccessors()
+    {
+        var options = new GeneratedTemplateOptionsBuilder()
+            .ConfigureMemberAccess(strategy => strategy.Register(typeof(GeneratedModel), nameof(GeneratedModel.Generated), new FixedMemberAccessor("runtime")))
+            .Build();
+        var model = new GeneratedModel();
+
+        var template = _parser.Parse("{{Generated}}");
+
+        Assert.Equal("runtime", template.Render(new TemplateContext(model, options)));
+    }
+
+    [Fact]
+    public void ShouldUseGeneratedMemberAccessorInferredFromTemplateContextConstructor()
+    {
+        var options = new TemplateOptionsBuilder().Build();
+        var model = new InferredModel();
+        var context = new TemplateContext(model, options);
+
+        var accessor = options.MemberAccessStrategy.GetAccessor(
+            typeof(InferredModel),
+            nameof(InferredModel.Inferred),
+            options.ModelNamesComparer);
+
+        Assert.Equal("Fluid.SourceGenerated", accessor.GetType().Namespace);
+        Assert.Equal("inferred", _parser.Parse("{{ Inferred }}").Render(context));
+        Assert.Equal("", _parser.Parse("{{ NotAProperty }}").Render(context));
+        Assert.Null(options.MemberAccessStrategy.GetAccessor(
+            typeof(InferredModel),
+            nameof(InferredModel.NotAProperty),
+            options.ModelNamesComparer));
+    }
+
+    [Fact]
+    public void InferredAccessorShouldPreserveBaseTypeRegistrationFallback()
+    {
+        var options = new TemplateOptionsBuilder()
+            .ConfigureMemberAccess(strategy => strategy.Register<InferredModelBase, object>(
+            static (_, name) => name == "Custom" ? "custom" : null))
+            .Build();
+        var context = new TemplateContext(new InferredModel(), options);
+
+        Assert.Equal("custom", _parser.Parse("{{ Custom }}").Render(context));
+    }
+
+    [Fact]
+    public void ShouldNotActivateInferredAccessorOnTemplateOptionsDefault()
+    {
+        var options = TemplateOptions.Default;
+        var context = new TemplateContext(new DefaultInferredModel(), options);
+        var accessor = options.MemberAccessStrategy.GetAccessor(
+            typeof(DefaultInferredModel),
+            nameof(DefaultInferredModel.Value),
+            options.ModelNamesComparer);
+
+        Assert.Equal("Fluid.Accessors", accessor.GetType().Namespace);
+        Assert.Equal("default", _parser.Parse("{{ Value }}").Render(context));
+    }
+
+    [Fact]
+    public void InferredAccessorShouldUseConfiguredValueConverters()
+    {
+        var options = new TemplateOptionsBuilder().AddValueConverter(static value => value is int ? "converted" : null).Build();
+        var context = new TemplateContext(new InferredModel(), options);
+
+        Assert.Equal("converted", _parser.Parse("{{ Count }}").Render(context));
+    }
+
+    [Fact]
+    public void InferredAccessorShouldPreserveNonGenericAsyncMemberBehavior()
+    {
+        var options = new TemplateOptionsBuilder().Build();
+        _ = new TemplateContext(new InferredModel(), options);
+
+        Assert.Equal("Fluid.Accessors", options.MemberAccessStrategy.GetAccessor(
+            typeof(InferredModel),
+            nameof(InferredModel.PlainTask),
+            options.ModelNamesComparer).GetType().Namespace);
+        Assert.Equal("Fluid.Accessors", options.MemberAccessStrategy.GetAccessor(
+            typeof(InferredModel),
+            nameof(InferredModel.ValueTask),
+            options.ModelNamesComparer).GetType().Namespace);
+    }
+
+}
+
+public class ModelWithStaticNull
+{
+    public static FluidValue Null => NilValue.Instance;
+    public FluidValue product => NilValue.Instance;
+}
+
+public class Class1
+{
+    public static string StaticField;
+    public static string StaticProperty { get; set; }
+    internal string PrivateField = null;
+    internal string PrivateProperty { get; set; }
+    public string Field1;
+    public int Field2;
+    public Task<string> Field3;
+    public string Property1 { get; set; }
+    public int Property2 { get; set; }
+    public Task<string> Property3 { get; set; }
+    public string WriteOnlyProperty { private get; set; }
+}
+
+public sealed class DerivedClass1 : Class1
+{
+}
+
+public sealed class GeneratedModel
+{
+    public string Generated { get; set; } = "model";
+}
+
+public class InferredModelBase
+{
+}
+
+public sealed class InferredModel : InferredModelBase
+{
+    public string Inferred { get; set; } = "inferred";
+    public int Count { get; set; } = 42;
+    public Task PlainTask { get; set; } = Task.CompletedTask;
+    public ValueTask<int> ValueTask { get; set; }
+    public string NotAProperty() => "method";
+}
+
+public sealed class DefaultInferredModel
+{
+    public string Value => "default";
+}
+
+public sealed class GeneratedTemplateOptionsBuilder : TemplateOptionsBuilder, ITemplateOptionsMemberAccessorRegistrar
+{
+    void ITemplateOptionsMemberAccessorRegistrar.RegisterMemberAccessors(TemplateOptionsBuilder builder)
+    {
+        builder.ConfigureMemberAccess(strategy => strategy.Register(typeof(GeneratedModel), "*", new FixedMemberAccessor("generated")));
+    }
+}
+
+public sealed class FixedMemberAccessor : MemberAccessor
+{
+    private readonly string _value;
+
+    public FixedMemberAccessor(string value)
+    {
+        _value = value;
+    }
+
+    public override ValueTask<FluidValue> GetAsync(object obj, string name, TemplateContext context)
+        => CreateValueTask(_value, context);
 }

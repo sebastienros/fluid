@@ -1,4 +1,4 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 using System.Globalization;
 using System.Collections.Generic;
 using System.Linq;

@@ -58,7 +58,7 @@ public class FromStatementTests
         var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
         var context = new TemplateContext(options);
 
-        var fromStatement = new FromStatement(_parser, expression, new List<string>{"hello_world"});
+        var fromStatement = new FromStatement(_parser, expression, new List<string> { "hello_world" });
         await fromStatement.WriteToAsync(sw, HtmlEncoder.Default, context);
 
         Assert.IsType<FunctionValue>(context.GetValue("hello_world"));
@@ -95,7 +95,7 @@ public class FromStatementTests
     }
 
     [Fact]
-    public async Task  FromStatement_ShouldInvokeImportedMacros()
+    public async Task FromStatement_ShouldInvokeImportedMacros()
     {
         var expression = new LiteralExpression(new StringValue("_Macros.liquid"));
         var sw = new StringWriter();

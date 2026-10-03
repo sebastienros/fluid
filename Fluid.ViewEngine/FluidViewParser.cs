@@ -1,124 +1,123 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using static Parlot.Fluent.Parsers;
 
-namespace Fluid.ViewEngine
+namespace Fluid.ViewEngine;
+
+public class FluidViewParser : FluidParser
 {
-    public class FluidViewParser : FluidParser
+    public FluidViewParser() : this(new())
     {
-        public FluidViewParser() : this (new())
+    }
+
+    public FluidViewParser(FluidParserOptions parserOptions) : base(parserOptions)
+    {
+        RegisterIdentifierTag("rendersection", static async (identifier, output, encoder, context) =>
         {
-        }
+            if (context.AmbientValues.TryGetValue(Constants.SectionsIndex, out var sections))
+            {
+                var dictionary = sections as Dictionary<string, IReadOnlyList<Statement>>;
 
-        public FluidViewParser(FluidParserOptions parserOptions) : base(parserOptions)
+                // dictionary can be null if no "section" tag was invoked
+
+                if (dictionary != null && dictionary.TryGetValue(identifier, out var section))
+                {
+                    foreach (var statement in section)
+                    {
+                        await statement.WriteToAsync(output, encoder, context);
+                    }
+                }
+            }
+
+            return Completion.Normal;
+        });
+
+        RegisterEmptyTag("renderbody", static (output, encoder, context) =>
         {
-            RegisterIdentifierTag("rendersection", static async (identifier, output, encoder, context) =>
+            if (context.AmbientValues.TryGetValue(Constants.BodyIndex, out var body))
             {
-                if (context.AmbientValues.TryGetValue(Constants.SectionsIndex, out var sections))
+                output.Write((string)body);
+            }
+            else
+            {
+                throw new ParseException("Could not render body, Layouts can't be evaluated directly.");
+            }
+
+            return Statement.NormalCompletion;
+        });
+
+        RegisterIdentifierBlock("section", static (identifier, statements, output, encoder, context) =>
+        {
+            if (context.AmbientValues.TryGetValue(Constants.SectionsIndex, out var sections))
+            {
+                var dictionary = sections as Dictionary<string, IReadOnlyList<Statement>>;
+
+                if (dictionary == null)
                 {
-                    var dictionary = sections as Dictionary<string, IReadOnlyList<Statement>>;
+                    // Lazily initialize the sections dictionary
 
-                    // dictionary can be null if no "section" tag was invoked
-
-                    if (dictionary != null && dictionary.TryGetValue(identifier, out var section))
-                    {
-                        foreach (var statement in section)
-                        {
-                            await statement.WriteToAsync(output, encoder, context);
-                        }
-                    }
+                    dictionary = new Dictionary<string, IReadOnlyList<Statement>>();
+                    context.AmbientValues[Constants.SectionsIndex] = dictionary;
                 }
 
+                dictionary[identifier] = statements;
+            }
+
+            return Statement.NormalCompletion;
+        });
+
+
+        RegisterExpressionTag("layout", static async (pathExpression, output, encoder, context) =>
+        {
+            var layoutPath = (await pathExpression.EvaluateAsync(context)).ToStringValue();
+
+            // If '' is assigned, remove any Layout, for instance to override one defined in a _viewstart
+            if (string.IsNullOrEmpty(layoutPath))
+            {
+                context.AmbientValues[Constants.LayoutIndex] = null;
                 return Completion.Normal;
-            });
+            }
 
-            RegisterEmptyTag("renderbody", static (output, encoder, context) =>
+            context.AmbientValues[Constants.LayoutIndex] = layoutPath;
+
+            return Completion.Normal;
+        });
+
+        var partialExpression = OneOf(
+                    Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new { Expression = x.Item1, Assignments = x.Item2 }),
+                    Primary.Then(x => new { Expression = x, Assignments = (IReadOnlyList<AssignStatement>)[] })
+                    ).ElseError("Invalid 'partial' tag");
+
+        RegisterParserTag("partial", partialExpression, static async (partialStatement, output, encoder, context) =>
+        {
+            var relativePartialPath = (await partialStatement.Expression.EvaluateAsync(context)).ToStringValue();
+
+            context.IncrementSteps();
+
             {
-                if (context.AmbientValues.TryGetValue(Constants.BodyIndex, out var body))
+                using var scope = context.EnterScope(ScopeBehavior.Local);
+
+                if (!relativePartialPath.EndsWith(Constants.ViewExtension, StringComparison.OrdinalIgnoreCase))
                 {
-                    output.Write((string)body);
-                }
-                else
-                {
-                    throw new ParseException("Could not render body, Layouts can't be evaluated directly.");
+                    relativePartialPath += Constants.ViewExtension;
                 }
 
-                return Statement.NormalCompletion;
-            });
+                var renderer = context.AmbientValues[Constants.RendererIndex] as IFluidViewRenderer;
 
-            RegisterIdentifierBlock("section", static (identifier, statements, output, encoder, context) =>
-            {
-                if (context.AmbientValues.TryGetValue(Constants.SectionsIndex, out var sections))
+                if (partialStatement.Assignments != null)
                 {
-                    var dictionary = sections as Dictionary<string, IReadOnlyList<Statement>>;
-
-                    if (dictionary == null)
+                    foreach (var assignStatement in partialStatement.Assignments)
                     {
-                        // Lazily initialize the sections dictionary
-
-                        dictionary = new Dictionary<string, IReadOnlyList<Statement>>();
-                        context.AmbientValues[Constants.SectionsIndex] = dictionary;
+                        await assignStatement.WriteToAsync(output, encoder, context);
                     }
-
-                    dictionary[identifier] = statements;
                 }
 
-                return Statement.NormalCompletion;
-            });
+                await renderer.RenderPartialAsync(output, relativePartialPath, context);
+            }
 
-
-            RegisterExpressionTag("layout", static async (pathExpression, output, encoder, context) =>
-            {
-                var layoutPath = (await pathExpression.EvaluateAsync(context)).ToStringValue();
-
-                // If '' is assigned, remove any Layout, for instance to override one defined in a _viewstart
-                if (string.IsNullOrEmpty(layoutPath))
-                {
-                    context.AmbientValues[Constants.LayoutIndex] = null;
-                    return Completion.Normal;
-                }
-
-                context.AmbientValues[Constants.LayoutIndex] = layoutPath;
-
-                return Completion.Normal;
-            });
-
-            var partialExpression = OneOf(
-                        Primary.AndSkip(Comma).And(Separated(Comma, Identifier.AndSkip(Colon).And(Primary).Then(static x => new AssignStatement(x.Item1, x.Item2)))).Then(x => new { Expression = x.Item1, Assignments = x.Item2 }),
-                        Primary.Then(x => new { Expression = x, Assignments = (IReadOnlyList<AssignStatement>)[] })
-                        ).ElseError("Invalid 'partial' tag");
-
-            RegisterParserTag("partial", partialExpression, static async (partialStatement, output, encoder, context) =>
-            {
-                var relativePartialPath = (await partialStatement.Expression.EvaluateAsync(context)).ToStringValue();
-
-                context.IncrementSteps();
-
-                {
-                    using var scope = context.EnterScope(ScopeBehavior.Local);
-
-                    if (!relativePartialPath.EndsWith(Constants.ViewExtension, StringComparison.OrdinalIgnoreCase))
-                    {
-                        relativePartialPath += Constants.ViewExtension;
-                    }
-
-                    var renderer = context.AmbientValues[Constants.RendererIndex] as IFluidViewRenderer;
-
-                    if (partialStatement.Assignments != null)
-                    {
-                        foreach (var assignStatement in partialStatement.Assignments)
-                        {
-                            await assignStatement.WriteToAsync(output, encoder, context);
-                        }
-                    }
-
-                    await renderer.RenderPartialAsync(output, relativePartialPath, context);
-                }
-
-                return Completion.Normal;
-            });
-        }
+            return Completion.Normal;
+        });
     }
 }

@@ -1,70 +1,69 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 
-namespace Fluid.Ast
+namespace Fluid.Ast;
+
+public sealed class FunctionCallSegment : MemberSegment
 {
-    public sealed class FunctionCallSegment : MemberSegment
+    private static readonly FunctionArguments NonCacheableArguments = new();
+    private volatile FunctionArguments _cachedArguments;
+
+    public FunctionCallSegment(IReadOnlyList<FunctionCallArgument> arguments)
     {
-        private static readonly FunctionArguments NonCacheableArguments = new();
-        private volatile FunctionArguments _cachedArguments;
+        Arguments = arguments ?? [];
+    }
 
-        public FunctionCallSegment(IReadOnlyList<FunctionCallArgument> arguments)
+    public IReadOnlyList<FunctionCallArgument> Arguments { get; }
+
+    public override async ValueTask<FluidValue> ResolveAsync(FluidValue value, TemplateContext context)
+    {
+        var arguments = _cachedArguments;
+
+        // Do we need to evaluate arguments?
+
+        if (arguments == null || arguments == NonCacheableArguments)
         {
-            Arguments = arguments ?? [];
-        }
-
-        public IReadOnlyList<FunctionCallArgument> Arguments { get; }
-
-        public override async ValueTask<FluidValue> ResolveAsync(FluidValue value, TemplateContext context)
-        {
-            var arguments = _cachedArguments;
-
-            // Do we need to evaluate arguments?
-
-            if (arguments == null || arguments == NonCacheableArguments)
+            if (Arguments.Count == 0)
             {
-                if (Arguments.Count == 0)
+                arguments = FunctionArguments.Empty;
+                _cachedArguments = arguments;
+            }
+            else
+            {
+                var newArguments = new FunctionArguments();
+
+                foreach (var argument in Arguments)
                 {
-                    arguments = FunctionArguments.Empty;
-                    _cachedArguments = arguments;
+                    newArguments.Add(argument.Name, await argument.Expression.EvaluateAsync(context));
+                }
+
+                // The arguments can be cached if all the parameters are LiteralExpression
+
+                if (arguments == null && Arguments.All(x => x.Expression is LiteralExpression))
+                {
+                    _cachedArguments = newArguments;
                 }
                 else
                 {
-                    var newArguments = new FunctionArguments();
-
-                    foreach (var argument in Arguments)
-                    {
-                        newArguments.Add(argument.Name, await argument.Expression.EvaluateAsync(context));
-                    }
-
-                    // The arguments can be cached if all the parameters are LiteralExpression
-
-                    if (arguments == null && Arguments.All(x => x.Expression is LiteralExpression))
-                    {
-                        _cachedArguments = newArguments;
-                    }
-                    else
-                    {
-                        _cachedArguments = NonCacheableArguments;
-                    }
-
-                    arguments = newArguments;
+                    _cachedArguments = NonCacheableArguments;
                 }
+
+                arguments = newArguments;
             }
-
-            return await value.InvokeAsync(arguments, context);
         }
 
-        public override ValueTask<(FluidValue Value, bool UseModelFallback)> ResolveFromScopeAsync(TemplateContext context)
-        {
-            // FunctionCallSegment cannot be the first segment in a member expression
-            // It's always preceded by an identifier or indexer
-            throw new NotSupportedException("FunctionCallSegment cannot be the first segment in a member expression");
-        }
+        return await value.InvokeAsync(arguments, context);
+    }
 
-        public override string GetSegmentName()
-        {
-            // For function call segments, return a generic representation
-            return "()";
-        }
+    public override ValueTask<(FluidValue Value, bool UseModelFallback)> ResolveFromScopeAsync(TemplateContext context)
+    {
+        // FunctionCallSegment cannot be the first segment in a member expression
+        // It's always preceded by an identifier or indexer
+        throw new NotSupportedException("FunctionCallSegment cannot be the first segment in a member expression");
+    }
+
+    public override string GetSegmentName()
+    {
+        // For function call segments, return a generic representation
+        return "()";
     }
 }

@@ -1,15 +1,14 @@
-﻿namespace Fluid.Ast
+namespace Fluid.Ast;
+
+public readonly struct FilterArgument
 {
-    public readonly struct FilterArgument
+    public FilterArgument(string name, Expression expression)
     {
-        public FilterArgument(string name, Expression expression)
-        {
-            Name = name;
-            Expression = expression;
-        }
-
-        public string Name { get; }
-
-        public Expression Expression { get; }
+        Name = name;
+        Expression = expression;
     }
+
+    public string Name { get; }
+
+    public Expression Expression { get; }
 }

@@ -7,340 +7,340 @@ using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Fluid.Tests
+namespace Fluid.Tests;
+
+public class ParserTests
 {
-    public class ParserTests
-    {
 #if COMPILED
-        private static FluidParser _parser = new FluidParser().Compile();
+    private static FluidParser _parser = new FluidParser().Compile();
 #else
-        private static FluidParser _parser = new FluidParser();
+    private static FluidParser _parser = new FluidParser();
 #endif
 
-        private static IReadOnlyList<Statement> Parse(string source)
-        {
-            _parser.TryParse(source, out var template, out var errors);
-            return ((FluidTemplate)template).Statements;
-        }
+    private static IReadOnlyList<Statement> Parse(string source)
+    {
+        _parser.TryParse(source, out var template, out var errors);
+        return ((FluidTemplate)template).Statements;
+    }
 
-        private async Task CheckAsync(string source, string expected, Action<TemplateContext> init = null)
-        {
-            _parser.TryParse("{% if " + source + " %}true{% else %}false{% endif %}", out var template, out var messages);
+    private async Task CheckAsync(string source, string expected, Action<TemplateContext> init = null)
+    {
+        _parser.TryParse("{% if " + source + " %}true{% else %}false{% endif %}", out var template, out var messages);
 
-            var context = new TemplateContext();
-            init?.Invoke(context);
+        var context = new TemplateContext();
+        init?.Invoke(context);
 
-            var result = await template.RenderAsync(context);
-            Assert.Equal(expected, result);
-        }
+        var result = await template.RenderAsync(context);
+        Assert.Equal(expected, result);
+    }
 
-        [Fact]
-        public void ShouldFiltersWithNamedArguments()
-        {
+    [Fact]
+    public void ShouldFiltersWithNamedArguments()
+    {
 
-            var statements = Parse("{{ a | b: c:1, 'value', d: 3 }}");
-            Assert.Single(statements);
+        var statements = Parse("{{ a | b: c:1, 'value', d: 3 }}");
+        Assert.Single(statements);
 
-            var outputStatement = statements[0] as OutputStatement;
-            Assert.NotNull(outputStatement);
+        var outputStatement = statements[0] as OutputStatement;
+        Assert.NotNull(outputStatement);
 
-            var filterExpression = outputStatement.Expression as FilterExpression;
-            Assert.NotNull(filterExpression);
-            Assert.Equal("b", filterExpression.Name);
+        var filterExpression = outputStatement.Expression as FilterExpression;
+        Assert.NotNull(filterExpression);
+        Assert.Equal("b", filterExpression.Name);
 
-            var input = filterExpression.Input as MemberExpression;
-            Assert.NotNull(input);
+        var input = filterExpression.Input as MemberExpression;
+        Assert.NotNull(input);
 
-            Assert.Equal("c", filterExpression.Parameters[0].Name);
-            Assert.Null(filterExpression.Parameters[1].Name);
-            Assert.Equal("d", filterExpression.Parameters[2].Name);
-        }
+        Assert.Equal("c", filterExpression.Parameters[0].Name);
+        Assert.Null(filterExpression.Parameters[1].Name);
+        Assert.Equal("d", filterExpression.Parameters[2].Name);
+    }
 
 
-        [Fact]
-        public void ShouldParseText()
-        {
-            var statements = Parse("Hello World");
+    [Fact]
+    public void ShouldParseText()
+    {
+        var statements = Parse("Hello World");
 
-            var textStatement = statements[0] as TextSpanStatement;
+        var textStatement = statements[0] as TextSpanStatement;
 
-            Assert.Single(statements);
-            Assert.NotNull(textStatement);
-            Assert.Equal("Hello World", textStatement.Text.ToString());
-        }
+        Assert.Single(statements);
+        Assert.NotNull(textStatement);
+        Assert.Equal("Hello World", textStatement.Text.ToString());
+    }
 
-        [Fact]
-        public void ShouldParseOutput()
-        {
-            var statements = Parse("{{ 1 }}");
+    [Fact]
+    public void ShouldParseOutput()
+    {
+        var statements = Parse("{{ 1 }}");
 
-            var outputStatement = statements[0] as OutputStatement;
+        var outputStatement = statements[0] as OutputStatement;
 
-            Assert.Single(statements);
-            Assert.NotNull(outputStatement);
-        }
+        Assert.Single(statements);
+        Assert.NotNull(outputStatement);
+    }
 
-        [Theory]
-        [InlineData("{{ a }}")]
-        [InlineData("{{ a.b }}")]
-        [InlineData("{{ a.b[1] }}")]
-        public void ShouldParseOutputWithMember(string source)
-        {
-            var statements = Parse(source);
+    [Theory]
+    [InlineData("{{ a }}")]
+    [InlineData("{{ a.b }}")]
+    [InlineData("{{ a.b[1] }}")]
+    public void ShouldParseOutputWithMember(string source)
+    {
+        var statements = Parse(source);
 
-            var outputStatement = statements[0] as OutputStatement;
+        var outputStatement = statements[0] as OutputStatement;
 
-            Assert.Single(statements);
-            Assert.NotNull(outputStatement);
-        }
+        Assert.Single(statements);
+        Assert.NotNull(outputStatement);
+    }
 
-        [Fact]
-        public void ShouldParseForTag()
-        {
-            var statements = Parse("{% for a in b %}{% endfor %}");
+    [Fact]
+    public void ShouldParseForTag()
+    {
+        var statements = Parse("{% for a in b %}{% endfor %}");
 
-            Assert.IsType<ForStatement>(statements.ElementAt(0));
-        }
+        Assert.IsType<ForStatement>(statements.ElementAt(0));
+    }
 
-        [Fact]
-        public void ShouldParseForElseTag()
-        {
-            var statements = Parse("{% for a in b %}x{% else %}y{% endfor %}");
+    [Fact]
+    public void ShouldParseForElseTag()
+    {
+        var statements = Parse("{% for a in b %}x{% else %}y{% endfor %}");
 
-            Assert.IsType<ForStatement>(statements.ElementAt(0));
-            var forStatement = statements.ElementAt(0) as ForStatement;
-            Assert.True(forStatement.Statements.Count == 1);
-            Assert.NotNull(forStatement.Else);
-            Assert.True((forStatement.Else is ElseStatement s) && s.Statements.Count == 1);
-        }
+        Assert.IsType<ForStatement>(statements.ElementAt(0));
+        var forStatement = statements.ElementAt(0) as ForStatement;
+        Assert.True(forStatement.Statements.Count == 1);
+        Assert.NotNull(forStatement.Else);
+        Assert.True((forStatement.Else is ElseStatement s) && s.Statements.Count == 1);
+    }
 
-        [Fact]
-        public void ShouldParseForLimitLiteral()
-        {
-            var statements = Parse("{% for item in items limit: 1 %}x{% endfor %}");
+    [Fact]
+    public void ShouldParseForLimitLiteral()
+    {
+        var statements = Parse("{% for item in items limit: 1 %}x{% endfor %}");
 
-            Assert.IsType<ForStatement>(statements.ElementAt(0));
-            var forStatement = statements.ElementAt(0) as ForStatement;
-            Assert.True(forStatement.Statements.Count == 1);
-            Assert.True(forStatement.Limit is LiteralExpression);
-        }
+        Assert.IsType<ForStatement>(statements.ElementAt(0));
+        var forStatement = statements.ElementAt(0) as ForStatement;
+        Assert.True(forStatement.Statements.Count == 1);
+        Assert.True(forStatement.Limit is LiteralExpression);
+    }
 
-        [Fact]
-        public void ShouldParseForLimitMember()
-        {
-            var statements = Parse("{% for item in items limit: limit %}x{% endfor %}");
+    [Fact]
+    public void ShouldParseForLimitMember()
+    {
+        var statements = Parse("{% for item in items limit: limit %}x{% endfor %}");
 
-            Assert.IsType<ForStatement>(statements.ElementAt(0));
-            var forStatement = statements.ElementAt(0) as ForStatement;
-            Assert.True(forStatement.Statements.Count == 1);
-            Assert.True(forStatement.Limit is MemberExpression);
-        }
+        Assert.IsType<ForStatement>(statements.ElementAt(0));
+        var forStatement = statements.ElementAt(0) as ForStatement;
+        Assert.True(forStatement.Statements.Count == 1);
+        Assert.True(forStatement.Limit is MemberExpression);
+    }
 
-        [Fact]
-        public void ShouldReadSingleCharInTag()
-        {
-            var statements = Parse(@"{% for a in b %};{% endfor %}");
-            Assert.Single(statements);
-            var text = ((ForStatement)statements[0]).Statements[0] as TextSpanStatement;
-            Assert.Equal(";", text.Text.ToString());
-        }
+    [Fact]
+    public void ShouldReadSingleCharInTag()
+    {
+        var statements = Parse(@"{% for a in b %};{% endfor %}");
+        Assert.Single(statements);
+        var text = ((ForStatement)statements[0]).Statements[0] as TextSpanStatement;
+        Assert.Equal(";", text.Text.ToString());
+    }
 
-        [Fact]
-        public void ShouldParseRaw()
-        {
-            var statements = Parse(@"{% raw %} on {{ this }} and {{{ that }}} {% endraw %}");
+    [Fact]
+    public void ShouldParseRaw()
+    {
+        var statements = Parse(@"{% raw %} on {{ this }} and {{{ that }}} {% endraw %}");
 
-            Assert.Single(statements);
-            Assert.IsType<RawStatement>(statements.ElementAt(0));
-            Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as RawStatement).Text.ToString());
-        }
+        Assert.Single(statements);
+        Assert.IsType<RawStatement>(statements.ElementAt(0));
+        Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as RawStatement).Text.ToString());
+    }
 
-        [Fact]
-        public void ShouldParseRawWithBlocks()
-        {
-            var statements = Parse(@"{% raw %} {%if true%} {%endif%} {% endraw %}");
+    [Fact]
+    public void ShouldParseRawWithBlocks()
+    {
+        var statements = Parse(@"{% raw %} {%if true%} {%endif%} {% endraw %}");
 
-            Assert.Single(statements);
-            Assert.IsType<RawStatement>(statements.ElementAt(0));
-            Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as RawStatement).Text.ToString());
-        }
+        Assert.Single(statements);
+        Assert.IsType<RawStatement>(statements.ElementAt(0));
+        Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as RawStatement).Text.ToString());
+    }
 
-        [Fact]
-        public void ShouldParseEmptyRawTags()
-        {
-            var statements = Parse(@"{% raw %}{% endraw %}");
+    [Fact]
+    public void ShouldParseEmptyRawTags()
+    {
+        var statements = Parse(@"{% raw %}{% endraw %}");
 
-            Assert.Single(statements);
-            Assert.IsType<RawStatement>(statements.ElementAt(0));
-            Assert.Equal("", (statements.ElementAt(0) as RawStatement).Text.ToString());
-        }
+        Assert.Single(statements);
+        Assert.IsType<RawStatement>(statements.ElementAt(0));
+        Assert.Equal("", (statements.ElementAt(0) as RawStatement).Text.ToString());
+    }
 
-        [Fact]
-        public void ShouldParseEmptyCommentTags()
-        {
-            var statements = Parse(@"{% comment %}{% endcomment %}");
+    [Fact]
+    public void ShouldParseEmptyCommentTags()
+    {
+        var statements = Parse(@"{% comment %}{% endcomment %}");
 
-            Assert.Single(statements);
-            Assert.IsType<CommentStatement>(statements.ElementAt(0));
-            Assert.Equal("", (statements.ElementAt(0) as CommentStatement).Text.ToString());
-        }
+        Assert.Single(statements);
+        Assert.IsType<CommentStatement>(statements.ElementAt(0));
+        Assert.Equal("", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+    }
 
-        [Fact]
-        public void ShouldParseComment()
-        {
-            var statements = Parse(@"{% comment %} on {{ this }} and {{{ that }}} {% endcomment %}");
+    [Fact]
+    public void ShouldParseComment()
+    {
+        var statements = Parse(@"{% comment %} on {{ this }} and {{{ that }}} {% endcomment %}");
 
-            Assert.Single(statements);
-            Assert.IsType<CommentStatement>(statements.ElementAt(0));
-            Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as CommentStatement).Text.ToString());
-        }
+        Assert.Single(statements);
+        Assert.IsType<CommentStatement>(statements.ElementAt(0));
+        Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+    }
 
-        [Fact]
-        public void ShouldParseCommentWithBlocks()
-        {
-            var statements = Parse(@"{% comment %} {%if true%} {%endif%} {% endcomment %}");
+    [Fact]
+    public void ShouldParseCommentWithBlocks()
+    {
+        var statements = Parse(@"{% comment %} {%if true%} {%endif%} {% endcomment %}");
 
-            Assert.Single(statements);
-            Assert.IsType<CommentStatement>(statements.ElementAt(0));
-            Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as CommentStatement).Text.ToString());
-        }
+        Assert.Single(statements);
+        Assert.IsType<CommentStatement>(statements.ElementAt(0));
+        Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+    }
 
-        [Fact]
-        public void ShouldParseInlineComment()
-        {
-            var statements = Parse(@"{% # this is an inline comment %}");
+    [Fact]
+    public void ShouldParseInlineComment()
+    {
+        var statements = Parse(@"{% # this is an inline comment %}");
 
-            Assert.Single(statements);
-            Assert.IsType<CommentStatement>(statements.ElementAt(0));
-            Assert.Equal(" this is an inline comment", (statements.ElementAt(0) as CommentStatement).Text.ToString());
-        }
+        Assert.Single(statements);
+        Assert.IsType<CommentStatement>(statements.ElementAt(0));
+        Assert.Equal(" this is an inline comment", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+    }
 
-        [Fact]
-        public void ShouldParseEmptyInlineComment()
-        {
-            var statements = Parse(@"{% #%}");
+    [Fact]
+    public void ShouldParseEmptyInlineComment()
+    {
+        var statements = Parse(@"{% #%}");
 
-            Assert.Single(statements);
-            Assert.IsType<CommentStatement>(statements.ElementAt(0));
-            Assert.Equal("", (statements.ElementAt(0) as CommentStatement).Text.ToString());
-        }
+        Assert.Single(statements);
+        Assert.IsType<CommentStatement>(statements.ElementAt(0));
+        Assert.Equal("", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+    }
 
-        [Fact]
-        public void ShouldParseInlineCommentWithoutLiquidTags()
-        {
-            var statements = Parse(@"{% # this is a simple comment %}");
+    [Fact]
+    public void ShouldParseInlineCommentWithoutLiquidTags()
+    {
+        var statements = Parse(@"{% # this is a simple comment %}");
 
-            Assert.Single(statements);
-            Assert.IsType<CommentStatement>(statements.ElementAt(0));
-        }
+        Assert.Single(statements);
+        Assert.IsType<CommentStatement>(statements.ElementAt(0));
+    }
 
-        [Fact]
-        public void ShouldParseInlineCommentWithWhitespaceTrim()
-        {
-            var statements = Parse(@"{%- # this is a trimmed comment -%}");
+    [Fact]
+    public void ShouldParseInlineCommentWithWhitespaceTrim()
+    {
+        var statements = Parse(@"{%- # this is a trimmed comment -%}");
 
-            Assert.Single(statements);
-            Assert.IsType<CommentStatement>(statements.ElementAt(0));
-            Assert.Equal(" this is a trimmed comment", (statements.ElementAt(0) as CommentStatement).Text.ToString());
-        }
+        Assert.Single(statements);
+        Assert.IsType<CommentStatement>(statements.ElementAt(0));
+        Assert.Equal(" this is a trimmed comment", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+    }
 
-        [Fact]
-        public void ShouldParseIfTag()
-        {
-            var statements = Parse("{% if true %}yes{% endif %}");
+    [Fact]
+    public void ShouldParseIfTag()
+    {
+        var statements = Parse("{% if true %}yes{% endif %}");
 
-            Assert.IsType<IfStatement>(statements.ElementAt(0));
-            Assert.True(statements.ElementAt(0) is IfStatement s && s.Statements.Count == 1);
-        }
+        Assert.IsType<IfStatement>(statements.ElementAt(0));
+        Assert.True(statements.ElementAt(0) is IfStatement s && s.Statements.Count == 1);
+    }
 
-        [Fact]
-        public void ShouldParseIfElseTag()
-        {
-            var statements = Parse("{% if true %}yes{%else%}no{% endif %}");
+    [Fact]
+    public void ShouldParseIfElseTag()
+    {
+        var statements = Parse("{% if true %}yes{%else%}no{% endif %}");
 
-            var ifStatement = statements.ElementAt(0) as IfStatement;
-            Assert.NotNull(ifStatement);
-            Assert.Single(ifStatement.Statements);
-            Assert.NotNull(ifStatement.Else);
-            Assert.Empty(ifStatement.ElseIfs);
-        }
+        var ifStatement = statements.ElementAt(0) as IfStatement;
+        Assert.NotNull(ifStatement);
+        Assert.Single(ifStatement.Statements);
+        Assert.NotNull(ifStatement.Else);
+        Assert.Empty(ifStatement.ElseIfs);
+    }
 
-        [Fact]
-        public void ShouldParseIfElseIfTag()
-        {
-            var statements = Parse("{% if true %}yes{%elsif a%}maybe{%else%}no{%endif%}");
+    [Fact]
+    public void ShouldParseIfElseIfTag()
+    {
+        var statements = Parse("{% if true %}yes{%elsif a%}maybe{%else%}no{%endif%}");
 
-            var ifStatement = statements.ElementAt(0) as IfStatement;
-            Assert.NotNull(ifStatement);
-            Assert.Single(ifStatement.Statements);
-            Assert.NotNull(ifStatement.Else);
-            Assert.NotNull(ifStatement.ElseIfs);
-        }
+        var ifStatement = statements.ElementAt(0) as IfStatement;
+        Assert.NotNull(ifStatement);
+        Assert.Single(ifStatement.Statements);
+        Assert.NotNull(ifStatement.Else);
+        Assert.NotNull(ifStatement.ElseIfs);
+    }
 
-        [Theory]
-        [InlineData("abc { def")]
-        [InlineData("abc } def")]
-        [InlineData("abc }} def")]
-        [InlineData("abc { def }}")]
-        [InlineData("abc %} def")]
-        [InlineData("abc %}")]
-        [InlineData("%} def")]
-        [InlineData("abc }%} def")]
-        public void ShouldSucceedParseValidTemplate(string source)
-        {
-            var result = _parser.TryParse(source, out var template, out var errors);
-            Assert.True(result);
-            Assert.NotNull(template);
-            Assert.Null(errors);
-        }
+    [Theory]
+    [InlineData("abc { def")]
+    [InlineData("abc } def")]
+    [InlineData("abc }} def")]
+    [InlineData("abc { def }}")]
+    [InlineData("abc %} def")]
+    [InlineData("abc %}")]
+    [InlineData("%} def")]
+    [InlineData("abc }%} def")]
+    public void ShouldSucceedParseValidTemplate(string source)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+    }
 
-        [Theory]
-        [InlineData("abc {% {{ %} def")]
-        [InlineData("abc {% { %} def")]
-        public void ShouldFailParseInvalidTemplate(string source)
-        {
-            var result = _parser.TryParse(source, out var template, out var errors);
-            Assert.False(result);
-        }
+    [Theory]
+    [InlineData("abc {% {{ %} def")]
+    [InlineData("abc {% { %} def")]
+    public void ShouldFailParseInvalidTemplate(string source)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+        Assert.False(result);
+    }
 
-        [Theory]
-        [InlineData("{% assign _foo = 1 %}")]
-        [InlineData("{% assign __foo = 1 %}")]
-        [InlineData("{% assign fo-o = 1 %}")]
-        [InlineData("{% assign fo_o = 1 %}")]
-        [InlineData("{% assign fo--o = 1 %}")]
-        [InlineData("{% assign fo__o = 1 %}")]
-        public void ShouldAcceptDashesInIdentifiers(string source)
-        {
-            var result = _parser.TryParse(source, out var template, out var error);
+    [Theory]
+    [InlineData("{% assign _foo = 1 %}")]
+    [InlineData("{% assign __foo = 1 %}")]
+    [InlineData("{% assign fo-o = 1 %}")]
+    [InlineData("{% assign fo_o = 1 %}")]
+    [InlineData("{% assign fo--o = 1 %}")]
+    [InlineData("{% assign fo__o = 1 %}")]
+    public void ShouldAcceptDashesInIdentifiers(string source)
+    {
+        var result = _parser.TryParse(source, out var template, out var error);
 
-            Assert.True(result);
-        }
+        Assert.True(result);
+    }
 
-        [Theory]
-        [InlineData("{% assign 1f = 123 %}{{ 1f }}")]
-        [InlineData("{% assign 123f = 123 %}{{ 123f }}")]
-        [InlineData("{% assign 1_ = 123 %}{{ 1_ }}")]
-        [InlineData("{% assign 1-1 = 123 %}{{ 1-1 }}")]
-        public void ShouldAcceptDigitsAtStartOfIdentifiers(string source)
-        {
-            var result = _parser.TryParse(source, out var template, out var error);
+    [Theory]
+    [InlineData("{% assign 1f = 123 %}{{ 1f }}")]
+    [InlineData("{% assign 123f = 123 %}{{ 123f }}")]
+    [InlineData("{% assign 1_ = 123 %}{{ 1_ }}")]
+    [InlineData("{% assign 1-1 = 123 %}{{ 1-1 }}")]
+    public void ShouldAcceptDigitsAtStartOfIdentifiers(string source)
+    {
+        var result = _parser.TryParse(source, out var template, out var error);
 
-            Assert.True(result, error);
-            Assert.Equal("123", template.Render());
-        }
+        Assert.True(result, error);
+        Assert.Equal("123", template.Render());
+    }
 
-        [Theory]
-        [InlineData(@"abc 
+    [Theory]
+    [InlineData(@"abc 
   {% {{ %}
 def", "at (")]
-        [InlineData(@"{% assign username = ""John G. Chalmers-Smith"" %}
+    [InlineData(@"{% assign username = ""John G. Chalmers-Smith"" %}
 {% if username and username.size > 10 %}
   Wow, {{ username }}, you have a long name!
 {% else %}
   Hello there {{ { }}!
 {% endif %}", "at (")]
-        [InlineData(@"{% assign username = ""John G. Chalmers-Smith"" %}
+    [InlineData(@"{% assign username = ""John G. Chalmers-Smith"" %}
 {% if username and 
       username.size > 5 &&
       username.size < 10 %}
@@ -348,46 +348,46 @@ def", "at (")]
 {% else %}
   Hello there!
 {% endif %}", "at (")]
-        public void ShouldFailParseInvalidTemplateWithCorrectLineNumber(string source, string expectedErrorEndString)
-        {
-            var result = _parser.TryParse(source, out var template, out var errors);
+    public void ShouldFailParseInvalidTemplateWithCorrectLineNumber(string source, string expectedErrorEndString)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.Contains(expectedErrorEndString, errors);
-        }
+        Assert.Contains(expectedErrorEndString, errors);
+    }
 
-        [Theory]
-        [InlineData("{% for a in b %}")]
-        [InlineData("{% if true %}")]
-        [InlineData("{% unless true %}")]
-        [InlineData("{% case a %}")]
-        [InlineData("{% capture myVar %}")]
-        public void ShouldFailNotClosedBlock(string source)
-        {
-            var result = _parser.TryParse(source, out var template, out var errors);
+    [Theory]
+    [InlineData("{% for a in b %}")]
+    [InlineData("{% if true %}")]
+    [InlineData("{% unless true %}")]
+    [InlineData("{% case a %}")]
+    [InlineData("{% capture myVar %}")]
+    public void ShouldFailNotClosedBlock(string source)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.False(result);
-            Assert.NotNull(errors);
-        }
+        Assert.False(result);
+        Assert.NotNull(errors);
+    }
 
-        [Theory]
-        [InlineData("{% for a in b %} {% endfor %}")]
-        [InlineData("{% if true %} {% endif %}")]
-        [InlineData("{% unless true %} {% endunless %}")]
-        [InlineData("{% case a %} {% when 'cake' %} blah {% endcase %}")]
-        [InlineData("{% capture myVar %} capture me! {% endcapture %}")]
-        public void ShouldSucceedClosedBlock(string source)
-        {
-            var result = _parser.TryParse(source, out var template, out var error);
+    [Theory]
+    [InlineData("{% for a in b %} {% endfor %}")]
+    [InlineData("{% if true %} {% endif %}")]
+    [InlineData("{% unless true %} {% endunless %}")]
+    [InlineData("{% case a %} {% when 'cake' %} blah {% endcase %}")]
+    [InlineData("{% capture myVar %} capture me! {% endcapture %}")]
+    public void ShouldSucceedClosedBlock(string source)
+    {
+        var result = _parser.TryParse(source, out var template, out var error);
 
-            Assert.True(result);
-            Assert.NotNull(template);
-            Assert.Null(error);
-        }
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(error);
+    }
 
-        [Fact]
-        public void ShouldAllowNewLinesInCase()
-        {
-            var result = _parser.TryParse(@"
+    [Fact]
+    public void ShouldAllowNewLinesInCase()
+    {
+        var result = _parser.TryParse(@"
                 {% case food %}
                     
 
@@ -399,18 +399,18 @@ def", "at (")]
                 {% endcase %}
                 ", out var template, out var errors);
 
-            var context = new TemplateContext();
-            context.SetValue("food", "cake");
+        var context = new TemplateContext();
+        context.SetValue("food", "cake");
 
-            Assert.True(result);
-            Assert.NotNull(template);
-            Assert.Null(errors);
-        }
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+    }
 
-        [Fact]
-        public void ShouldAllowCommentBetweenCaseAndWhen()
-        {
-            var result = _parser.TryParse(@"
+    [Fact]
+    public void ShouldAllowCommentBetweenCaseAndWhen()
+    {
+        var result = _parser.TryParse(@"
                 {%- capture name -%}John{%- endcapture -%}
 
                 {%- case name -%}
@@ -422,244 +422,244 @@ def", "at (")]
                 {%- endcase -%}
                 ", out var template, out var errors);
 
-            var context = new TemplateContext();
+        var context = new TemplateContext();
 
-            Assert.True(result);
-            Assert.NotNull(template);
-            Assert.Null(errors);
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(errors);
 
-            var output = template.Render(context);
-            Assert.Equal("Name is John", output);
-        }
+        var output = template.Render(context);
+        Assert.Equal("Name is John", output);
+    }
 
-        [Theory]
-        [InlineData("{{ 20 | divided_by: 7.0 | round: 2 }}", "2.86")]
-        [InlineData("{{ 20 | divided_by: 7 | round: 2 }}", "2")]
-        public void ShouldParseIntegralNumbers(string source, string expected)
+    [Theory]
+    [InlineData("{{ 20 | divided_by: 7.0 | round: 2 }}", "2.86")]
+    [InlineData("{{ 20 | divided_by: 7 | round: 2 }}", "2")]
+    public void ShouldParseIntegralNumbers(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var rendered = template.Render();
+
+        Assert.Equal(expected, rendered);
+    }
+
+    [Fact]
+    public void ShouldIndexStringSegment()
+    {
+        var segment = new StringSegment("012345");
+
+        Assert.Equal('0', segment.Index(0));
+        Assert.Equal('5', segment.Index(-1));
+
+        segment = segment.Subsegment(1, 4);
+
+        Assert.Equal('1', segment.Index(0));
+        Assert.Equal('4', segment.Index(-1));
+    }
+
+    [Fact]
+    public void ShouldParseCurlyBraceInOutputStatements()
+    {
+        Parse("{{ 'on {0}' }}");
+    }
+
+    [Fact]
+    public void ShouldBeAbleToCompareNilValues()
+    {
+        // [(), (), ()] | map: `title` will return [nil, nil, nil] then | uniq will try to call NilValue.GetHashCode()
+
+        var model = new
         {
-            var result = _parser.TryParse(source, out var template, out var errors);
+            Doubles = new List<object> { new(), new(), new() }
+        };
 
-            Assert.True(result);
-            Assert.NotNull(template);
-            Assert.Null(errors);
+        var template = "{{Doubles |map: 'title' |uniq}}";
 
-            var rendered = template.Render();
-
-            Assert.Equal(expected, rendered);
-        }
-
-        [Fact]
-        public void ShouldIndexStringSegment()
+        if (_parser.TryParse(template, out var result))
         {
-            var segment = new StringSegment("012345");
-
-            Assert.Equal('0', segment.Index(0));
-            Assert.Equal('5', segment.Index(-1));
-
-            segment = segment.Subsegment(1, 4);
-
-            Assert.Equal('1', segment.Index(0));
-            Assert.Equal('4', segment.Index(-1));
+            result.Render(new TemplateContext(model));
         }
+    }
 
-        [Fact]
-        public void ShouldParseCurlyBraceInOutputStatements()
+    [Fact]
+    public void ShouldRegisterModelType()
+    {
+        var model = new
         {
-            Parse("{{ 'on {0}' }}");
-        }
+            name = "Tobi"
+        };
 
-        [Fact]
-        public void ShouldBeAbleToCompareNilValues()
-        {
-            // [(), (), ()] | map: `title` will return [nil, nil, nil] then | uniq will try to call NilValue.GetHashCode()
+        var source = "{{name}}";
 
-            var model = new
-            {
-                Doubles = new List<object> { new(), new(), new() }
-            };
+        _parser.TryParse(source, out var template);
 
-            var template = "{{Doubles |map: 'title' |uniq}}";
+        var rendered = template.Render(new TemplateContext(model));
 
-            if (_parser.TryParse(template, out var result))
-            {
-                result.Render(new TemplateContext(model));
-            }
-        }
+        Assert.Equal("Tobi", rendered);
+    }
 
-        [Fact]
-        public void ShouldRegisterModelType()
-        {
-            var model = new
-            {
-                name = "Tobi"
-            };
+    [Theory]
+    [InlineData("{% for %}")]
+    [InlineData("{% case %}")]
+    [InlineData("{% if %}")]
+    [InlineData("{% unless %}")]
+    [InlineData("{% comment %}")]
+    [InlineData("{% raw %}")]
+    [InlineData("{% capture %}")]
 
-            var source = "{{name}}";
+    public void ShouldThrowParseExceptionMissingTag(string template)
+    {
+        Assert.Throws<ParseException>(() => _parser.Parse(template));
+    }
 
-            _parser.TryParse(source, out var template);
+    [Theory]
+    [InlineData("{{ 'a\\nb' }}", "a\nb")]
+    [InlineData("{{ 'a\\tb' }}", "a\tb")]
+    public void ShouldParseEscapeSequences(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
 
-            var rendered = template.Render(new TemplateContext(model));
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
 
-            Assert.Equal("Tobi", rendered);
-        }
+        var rendered = template.Render();
 
-        [Theory]
-        [InlineData("{% for %}")]
-        [InlineData("{% case %}")]
-        [InlineData("{% if %}")]
-        [InlineData("{% unless %}")]
-        [InlineData("{% comment %}")]
-        [InlineData("{% raw %}")]
-        [InlineData("{% capture %}")]
+        Assert.Equal(expected, rendered);
+    }
 
-        public void ShouldThrowParseExceptionMissingTag(string template)
-        {
-            Assert.Throws<ParseException>(() => _parser.Parse(template));
-        }
+    [Theory]
+    [InlineData("{{ 'a\nb' }}", "a\nb")]
+    [InlineData("{{ 'a\r\nb' }}", "a\r\nb")]
+    public void ShouldParseLineBreaksInStringLiterals(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
 
-        [Theory]
-        [InlineData("{{ 'a\\nb' }}", "a\nb")]
-        [InlineData("{{ 'a\\tb' }}", "a\tb")]
-        public void ShouldParseEscapeSequences(string source, string expected)
-        {
-            var result = _parser.TryParse(source, out var template, out var errors);
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
 
-            Assert.True(result, errors);
-            Assert.NotNull(template);
-            Assert.Null(errors);
+        var rendered = template.Render();
 
-            var rendered = template.Render();
+        Assert.Equal(expected, rendered);
+    }
 
-            Assert.Equal(expected, rendered);
-        }
+    [Theory]
+    [InlineData("{{ -3 }}", "-3")]
+    public void ShouldParseNegativeNumbers(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
 
-        [Theory]
-        [InlineData("{{ 'a\nb' }}", "a\nb")]
-        [InlineData("{{ 'a\r\nb' }}", "a\r\nb")]
-        public void ShouldParseLineBreaksInStringLiterals(string source, string expected)
-        {
-            var result = _parser.TryParse(source, out var template, out var errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
 
-            Assert.True(result, errors);
-            Assert.NotNull(template);
-            Assert.Null(errors);
+        var rendered = template.Render();
 
-            var rendered = template.Render();
+        Assert.Equal(expected, rendered);
+    }
 
-            Assert.Equal(expected, rendered);
-        }
+    [Theory]
+    [InlineData("{% assign my_integer = 7 %}{{ 20 | divided_by: my_integer }}", "2")]
+    [InlineData("{% assign my_integer = 7 %}{% assign my_float = my_integer | times: 1.0 %}{{ 20 | divided_by: my_float | round: 5 }}", "2.85714")]
+    [InlineData("{{ 183.357 | times: 12 }}", "2200.284")]
+    public void ShouldChangeVariableType(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
 
-        [Theory]
-        [InlineData("{{ -3 }}", "-3")]
-        public void ShouldParseNegativeNumbers(string source, string expected)
-        {
-            var result = _parser.TryParse(source, out var template, out var errors);
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(errors);
 
-            Assert.NotNull(template);
-            Assert.Null(errors);
+        var rendered = template.Render();
 
-            var rendered = template.Render();
+        Assert.Equal(expected, rendered);
+    }
 
-            Assert.Equal(expected, rendered);
-        }
+    [Theory]
+    [InlineData("{{ 0 | times: 1 }}", "0")]
+    [InlineData("{{ 0.0 | times: 1 }}", "0.0")]
+    [InlineData("{{ 0.1 | times: 1 }}", "0.1")]
+    [InlineData("{{ 0.01 | times: 1 }}", "0.01")]
+    [InlineData("{{ 0.0123 | times: 1 }}", "0.0123")]
+    [InlineData("{{ 0 | times: 1.0 }}", "0.0")]
+    [InlineData("{{ 1 | times: 1 }}", "1")]
+    [InlineData("{{ 1 | times: 1.1 }}", "1.1")]
+    [InlineData("{{ 1 | times: 1.123 }}", "1.123")]
+    [InlineData("{{ 1 | times: 1.1234567890 }}", "1.123456789")]
+    [InlineData("{{ 1 | times: 1.1000 }}", "1.1")]
+    [InlineData("{{ 1.1000 | times: 1 }}", "1.1")]
+    [InlineData("{{ 1 | times: 1. }}", "1")]
+    public void ShouldPreservePrecision(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
 
-        [Theory]
-        [InlineData("{% assign my_integer = 7 %}{{ 20 | divided_by: my_integer }}", "2")]
-        [InlineData("{% assign my_integer = 7 %}{% assign my_float = my_integer | times: 1.0 %}{{ 20 | divided_by: my_float | round: 5 }}", "2.85714")]
-        [InlineData("{{ 183.357 | times: 12 }}", "2200.284")]
-        public void ShouldChangeVariableType(string source, string expected)
-        {
-            var result = _parser.TryParse(source, out var template, out var errors);
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(errors);
 
-            Assert.True(result);
-            Assert.NotNull(template);
-            Assert.Null(errors);
+        var rendered = template.Render();
 
-            var rendered = template.Render();
+        Assert.Equal(expected, rendered);
+    }
 
-            Assert.Equal(expected, rendered);
-        }
+    [Theory]
+    [InlineData("{{ 0. | times: 1 }}", "0")]
+    [InlineData("{{ 0.0 | times: 1.0 }}", "0.0")]
+    [InlineData("{{ 0.00 | times: 1 }}", "0.0")]
+    [InlineData("{{ 0. | times: 1.0 }}", "0.0")]
+    public void DotsAreParsedAsIntegralValues(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
 
-        [Theory]
-        [InlineData("{{ 0 | times: 1 }}", "0")]
-        [InlineData("{{ 0.0 | times: 1 }}", "0.0")]
-        [InlineData("{{ 0.1 | times: 1 }}", "0.1")]
-        [InlineData("{{ 0.01 | times: 1 }}", "0.01")]
-        [InlineData("{{ 0.0123 | times: 1 }}", "0.0123")]
-        [InlineData("{{ 0 | times: 1.0 }}", "0.0")]
-        [InlineData("{{ 1 | times: 1 }}", "1")]
-        [InlineData("{{ 1 | times: 1.1 }}", "1.1")]
-        [InlineData("{{ 1 | times: 1.123 }}", "1.123")]
-        [InlineData("{{ 1 | times: 1.1234567890 }}", "1.123456789")]
-        [InlineData("{{ 1 | times: 1.1000 }}", "1.1")]
-        [InlineData("{{ 1.1000 | times: 1 }}", "1.1")]
-        [InlineData("{{ 1 | times: 1. }}", "1")]
-        public void ShouldPreservePrecision(string source, string expected)
-        {
-            var result = _parser.TryParse(source, out var template, out var errors);
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(errors);
 
-            Assert.True(result);
-            Assert.NotNull(template);
-            Assert.Null(errors);
+        var rendered = template.Render();
 
-            var rendered = template.Render();
+        Assert.Equal(expected, rendered);
+    }
 
-            Assert.Equal(expected, rendered);
-        }
+    [Theory]
+    [InlineData("{% assign my_string = 'abcd' %}{{ my_string.size }}", "4")]
+    public void SizeAppliedToStrings(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
 
-        [Theory]
-        [InlineData("{{ 0. | times: 1 }}", "0")]
-        [InlineData("{{ 0.0 | times: 1.0 }}", "0.0")]
-        [InlineData("{{ 0.00 | times: 1 }}", "0.0")]
-        [InlineData("{{ 0. | times: 1.0 }}", "0.0")]
-        public void DotsAreParsedAsIntegralValues(string source, string expected)
-        {
-            var result = _parser.TryParse(source, out var template, out var errors);
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(errors);
 
-            Assert.True(result);
-            Assert.NotNull(template);
-            Assert.Null(errors);
+        var rendered = template.Render();
 
-            var rendered = template.Render();
-
-            Assert.Equal(expected, rendered);
-        }
-
-        [Theory]
-        [InlineData("{% assign my_string = 'abcd' %}{{ my_string.size }}", "4")]
-        public void SizeAppliedToStrings(string source, string expected)
-        {
-            var result = _parser.TryParse(source, out var template, out var errors);
-
-            Assert.True(result);
-            Assert.NotNull(template);
-            Assert.Null(errors);
-
-            var rendered = template.Render();
-
-            Assert.Equal(expected, rendered);
-        }
+        Assert.Equal(expected, rendered);
+    }
 
 
-        [Theory]
-        [InlineData("{{ '{{ {% %} }}' }}{% assign x = '{{ {% %} }}' %}{{ x }}", "{{ {% %} }}{{ {% %} }}")]
-        public void StringsCanContainCurlies(string source, string expected)
-        {
-            var result = _parser.TryParse(source, out var template, out var errors);
+    [Theory]
+    [InlineData("{{ '{{ {% %} }}' }}{% assign x = '{{ {% %} }}' %}{{ x }}", "{{ {% %} }}{{ {% %} }}")]
+    public void StringsCanContainCurlies(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.True(result);
-            Assert.NotNull(template);
-            Assert.Null(errors);
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(errors);
 
-            var rendered = template.Render();
+        var rendered = template.Render();
 
-            Assert.Equal(expected, rendered);
-        }
+        Assert.Equal(expected, rendered);
+    }
 
-        [Fact]
-        public void ShouldSkipNewLinesInTags()
-        {
-            var source = @"{% 
+    [Fact]
+    public void ShouldSkipNewLinesInTags()
+    {
+        var source = @"{% 
 if
 true
 or
@@ -670,187 +670,187 @@ true
 endif
 %}";
 
-            var result = _parser.TryParse(source, out var template, out var errors);
+        var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.True(result, errors);
-            Assert.NotNull(template);
-            Assert.Null(errors);
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
 
-            var rendered = template.Render();
+        var rendered = template.Render();
 
-            Assert.Equal("true", rendered);
-        }
+        Assert.Equal("true", rendered);
+    }
 
-        [Fact]
-        public void ShouldSkipNewLinesInOutput()
-        {
-            var source = @"{{
+    [Fact]
+    public void ShouldSkipNewLinesInOutput()
+    {
+        var source = @"{{
 true
 }}";
 
-            var result = _parser.TryParse(source, out var template, out var errors);
+        var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.True(result, errors);
-            Assert.NotNull(template);
-            Assert.Null(errors);
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
 
-            var rendered = template.Render();
+        var rendered = template.Render();
 
-            Assert.Equal("true", rendered);
-        }
+        Assert.Equal("true", rendered);
+    }
 
-        [Theory]
+    [Theory]
 
-        [InlineData("'' == p", "false")]
-        [InlineData("p == ''", "false")]
-        [InlineData("p != ''", "true")]
+    [InlineData("'' == p", "false")]
+    [InlineData("p == ''", "false")]
+    [InlineData("p != ''", "true")]
 
-        [InlineData("p == nil", "true")]
-        [InlineData("p != nil", "false")]
-        [InlineData("nil == p", "true")]
+    [InlineData("p == nil", "true")]
+    [InlineData("p != nil", "false")]
+    [InlineData("nil == p", "true")]
 
-        [InlineData("p == blank", "true")]
-        [InlineData("blank == p ", "true")]
+    [InlineData("p == blank", "true")]
+    [InlineData("blank == p ", "true")]
 
-        [InlineData("empty == blank", "false")]
-        [InlineData("blank == empty", "false")]
+    [InlineData("empty == blank", "false")]
+    [InlineData("blank == empty", "false")]
 
-        [InlineData("nil == blank", "true")]
-        [InlineData("blank == nil", "true")]
+    [InlineData("nil == blank", "true")]
+    [InlineData("blank == nil", "true")]
 
-        [InlineData("blank == ''", "true")]
-        [InlineData("'' == blank", "true")]
+    [InlineData("blank == ''", "true")]
+    [InlineData("'' == blank", "true")]
 
-        [InlineData("nil == ''", "false")]
-        [InlineData("'' == nil", "false")]
+    [InlineData("nil == ''", "false")]
+    [InlineData("'' == nil", "false")]
 
-        [InlineData("empty == ''", "true")]
-        [InlineData("'' == empty", "true")]
+    [InlineData("empty == ''", "true")]
+    [InlineData("'' == empty", "true")]
 
-        [InlineData("e == ''", "true")]
-        [InlineData("'' == e", "true")]
+    [InlineData("e == ''", "true")]
+    [InlineData("'' == e", "true")]
 
-        [InlineData("e == blank", "true")]
-        [InlineData("blank == e", "true")]
+    [InlineData("e == blank", "true")]
+    [InlineData("blank == e", "true")]
 
-        [InlineData("empty == nil", "false")]
-        [InlineData("nil == empty", "false")]
+    [InlineData("empty == nil", "false")]
+    [InlineData("nil == empty", "false")]
 
-        [InlineData("p != nil and p != ''", "false")]
-        [InlineData("p != '' and p != nil", "false")]
+    [InlineData("p != nil and p != ''", "false")]
+    [InlineData("p != '' and p != nil", "false")]
 
-        [InlineData("e != nil and e != ''", "false")]
-        [InlineData("e != '' and e != nil", "false")]
+    [InlineData("e != nil and e != ''", "false")]
+    [InlineData("e != '' and e != nil", "false")]
 
-        [InlineData("f != nil and f != ''", "true")]
-        [InlineData("f != '' and f != nil", "true")]
+    [InlineData("f != nil and f != ''", "true")]
+    [InlineData("f != '' and f != nil", "true")]
 
-        [InlineData("e == nil", "false")]
-        [InlineData("nil == e", "false")]
+    [InlineData("e == nil", "false")]
+    [InlineData("nil == e", "false")]
 
-        [InlineData("e == empty ", "true")]
-        [InlineData("empty == e ", "true")]
+    [InlineData("e == empty ", "true")]
+    [InlineData("empty == e ", "true")]
 
-        [InlineData("empty == f", "false")]
-        [InlineData("f == empty", "false")]
+    [InlineData("empty == f", "false")]
+    [InlineData("f == empty", "false")]
 
-        [InlineData("p == empty", "false")]
-        [InlineData("empty == p", "false")]
+    [InlineData("p == empty", "false")]
+    [InlineData("empty == p", "false")]
 
-        public Task EmptyShouldEqualToNil(string source, string expected)
-        {
-            return CheckAsync(source, expected, t => t.SetValue("e", "").SetValue("f", "hello"));
-        }
+    public Task EmptyShouldEqualToNil(string source, string expected)
+    {
+        return CheckAsync(source, expected, t => t.SetValue("e", "").SetValue("f", "hello"));
+    }
 
-        [Theory]
-        [InlineData("zero == empty", "false")]
-        [InlineData("empty == zero", "false")]
-        [InlineData("zero == blank", "false")]
-        [InlineData("blank == zero", "false")]
+    [Theory]
+    [InlineData("zero == empty", "false")]
+    [InlineData("empty == zero", "false")]
+    [InlineData("zero == blank", "false")]
+    [InlineData("blank == zero", "false")]
 
-        [InlineData("one == empty", "false")]
-        [InlineData("empty == one", "false")]
-        [InlineData("one == blank", "false")]
-        [InlineData("blank == one", "false")]
-        public Task EmptyShouldNotEqualNumbers(string source, string expected)
-        {
-            return CheckAsync(source, expected, t => t.SetValue("zero", 0).SetValue("one", 1));
-        }
+    [InlineData("one == empty", "false")]
+    [InlineData("empty == one", "false")]
+    [InlineData("one == blank", "false")]
+    [InlineData("blank == one", "false")]
+    public Task EmptyShouldNotEqualNumbers(string source, string expected)
+    {
+        return CheckAsync(source, expected, t => t.SetValue("zero", 0).SetValue("one", 1));
+    }
 
-        [Theory]
-        [InlineData("p == null", "true")]
-        [InlineData("p != null", "false")]
-        [InlineData("null == p", "true")]
-        [InlineData("null == blank", "true")]
-        [InlineData("blank == null", "true")]
-        [InlineData("null == ''", "false")]
-        [InlineData("'' == null", "false")]
-        [InlineData("empty == null", "false")]
-        [InlineData("null == empty", "false")]
-        [InlineData("null == nil", "true")]
-        [InlineData("nil == null", "true")]
-        [InlineData("e == null", "false")]
-        [InlineData("null == e", "false")]
-        [InlineData("p != null and p != ''", "false")]
-        [InlineData("p != '' and p != null", "false")]
-        public Task NullShouldBehaveLikeNil(string source, string expected)
-        {
-            return CheckAsync(source, expected, t => t.SetValue("e", "").SetValue("f", "hello"));
-        }
+    [Theory]
+    [InlineData("p == null", "true")]
+    [InlineData("p != null", "false")]
+    [InlineData("null == p", "true")]
+    [InlineData("null == blank", "true")]
+    [InlineData("blank == null", "true")]
+    [InlineData("null == ''", "false")]
+    [InlineData("'' == null", "false")]
+    [InlineData("empty == null", "false")]
+    [InlineData("null == empty", "false")]
+    [InlineData("null == nil", "true")]
+    [InlineData("nil == null", "true")]
+    [InlineData("e == null", "false")]
+    [InlineData("null == e", "false")]
+    [InlineData("p != null and p != ''", "false")]
+    [InlineData("p != '' and p != null", "false")]
+    public Task NullShouldBehaveLikeNil(string source, string expected)
+    {
+        return CheckAsync(source, expected, t => t.SetValue("e", "").SetValue("f", "hello"));
+    }
 
-        [Theory]
-        [InlineData("blank == false", "true")]
-        [InlineData("false == blank", "true")]
-        [InlineData("empty == false", "false")]
-        [InlineData("false == empty", "false")]
-        public Task BlankShouldComparesToFalse(string source, string expected)
-        {
-            return CheckAsync(source, expected, t => t.SetValue("zero", 0).SetValue("one", 1));
-        }
+    [Theory]
+    [InlineData("blank == false", "true")]
+    [InlineData("false == blank", "true")]
+    [InlineData("empty == false", "false")]
+    [InlineData("false == empty", "false")]
+    public Task BlankShouldComparesToFalse(string source, string expected)
+    {
+        return CheckAsync(source, expected, t => t.SetValue("zero", 0).SetValue("one", 1));
+    }
 
-        [Fact]
-        public void ModelShouldNotImpactBlank()
-        {
-            var source = "{% assign a = ' ' %}{{ a == blank }}";
-            var model = new { a = " ", b = "" };
-            var context = new TemplateContext(model);
-            var template = _parser.Parse(source);
-            // Binary expressions return the left operand when output
-            Assert.Equal(" ", template.Render(context));
-        }
+    [Fact]
+    public void ModelShouldNotImpactBlank()
+    {
+        var source = "{% assign a = ' ' %}{{ a == blank }}";
+        var model = new { a = " ", b = "" };
+        var context = new TemplateContext(model);
+        var template = _parser.Parse(source);
+        // Binary expressions return the left operand when output
+        Assert.Equal(" ", template.Render(context));
+    }
 
-        [Fact]
-        public void CycleShouldHandleNumbers()
-        {
-            var source = @"{% for i in (1..100) limit:9%}{% cycle 1, 2 ,3 %}<br />{% endfor %}";
+    [Fact]
+    public void CycleShouldHandleNumbers()
+    {
+        var source = @"{% for i in (1..100) limit:9%}{% cycle 1, 2 ,3 %}<br />{% endfor %}";
 
-            var result = _parser.TryParse(source, out var template, out var errors);
+        var result = _parser.TryParse(source, out var template, out var errors);
 
-            Assert.True(result);
-            Assert.NotNull(template);
-            Assert.Null(errors);
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(errors);
 
-            var rendered = template.Render();
+        var rendered = template.Render();
 
-            Assert.Equal("1<br />2<br />3<br />1<br />2<br />3<br />1<br />2<br />3<br />", rendered);
-        }
+        Assert.Equal("1<br />2<br />3<br />1<br />2<br />3<br />1<br />2<br />3<br />", rendered);
+    }
 
-        [Fact]
-        public void ShouldAssignWithLogicalExpression()
-        {
-            var source = @"{%- assign condition_temp = HasInheritance == false or ConvertConstructorInterfaceData | append: 'o' %}{{ condition_temp }}";
+    [Fact]
+    public void ShouldAssignWithLogicalExpression()
+    {
+        var source = @"{%- assign condition_temp = HasInheritance == false or ConvertConstructorInterfaceData | append: 'o' %}{{ condition_temp }}";
 
-            Assert.True(_parser.TryParse(source, out var template, out var _));
-            Assert.True(((FluidTemplate)template).Statements.Count == 2);
-            var rendered = template.Render();
+        Assert.True(_parser.TryParse(source, out var template, out var _));
+        Assert.True(((FluidTemplate)template).Statements.Count == 2);
+        var rendered = template.Render();
 
-            Assert.Equal("falseo", rendered);
-        }
+        Assert.Equal("falseo", rendered);
+    }
 
-        [Fact]
-        public void ShouldParseRecursiveIfs()
-        {
-            var source = @"
+    [Fact]
+    public void ShouldParseRecursiveIfs()
+    {
+        var source = @"
 {%- if true %}
     a1
     {%- if true %}
@@ -869,20 +869,20 @@ true
 {%- endif %}
 ";
 
-            Assert.True(_parser.TryParse(source, out var template, out var _));
-            var rendered = template.Render();
-            Assert.Contains("a1", rendered);
-            Assert.Contains("b1", rendered);
-            Assert.Contains("c1", rendered);
-            Assert.Contains("c2", rendered);
-            Assert.Contains("b2", rendered);
-            Assert.Contains("a2", rendered);
-        }
+        Assert.True(_parser.TryParse(source, out var template, out var _));
+        var rendered = template.Render();
+        Assert.Contains("a1", rendered);
+        Assert.Contains("b1", rendered);
+        Assert.Contains("c1", rendered);
+        Assert.Contains("c2", rendered);
+        Assert.Contains("b2", rendered);
+        Assert.Contains("a2", rendered);
+    }
 
-        [Fact]
-        public void ShouldParseNJsonSchema()
-        {
-            var source = @"
+    [Fact]
+    public void ShouldParseNJsonSchema()
+    {
+        var source = @"
 {%- if HasDescription %}
 /** {{ Description }} */
 {%- endif %}
@@ -1065,9 +1065,9 @@ true
 {%- endif %}
 ";
 
-            Assert.True(_parser.TryParse(source, out var template, out var _));
-            var rendered = template.Render();
-            Assert.Equal(@"
+        Assert.True(_parser.TryParse(source, out var template, out var _));
+        var rendered = template.Render();
+        Assert.Equal(@"
 class  {
     init(_data?: any) {
     }
@@ -1083,35 +1083,35 @@ class  {
     }
 }
 ", rendered);
-        }
+    }
 
 
-        [Theory]
-        [InlineData("{{1}}", "1")]
-        [InlineData("{{-1-}}", "1")]
-        [InlineData("{%-assign len='1,2,3'|split:','|size-%}{{len}}", "3")] // size-%} is ambiguous and can be read as "size -%}" or "size- %}"
-        public async Task ShouldSupportCompactNotation(string source, string expected)
-        {
-            Assert.True(_parser.TryParse(source, out var template, out var _));
-            var context = new TemplateContext();
-            var result = await template.RenderAsync(context);
-            Assert.Equal(expected, result);
-        }
+    [Theory]
+    [InlineData("{{1}}", "1")]
+    [InlineData("{{-1-}}", "1")]
+    [InlineData("{%-assign len='1,2,3'|split:','|size-%}{{len}}", "3")] // size-%} is ambiguous and can be read as "size -%}" or "size- %}"
+    public async Task ShouldSupportCompactNotation(string source, string expected)
+    {
+        Assert.True(_parser.TryParse(source, out var template, out var _));
+        var context = new TemplateContext();
+        var result = await template.RenderAsync(context);
+        Assert.Equal(expected, result);
+    }
 
-        [Fact]
-        public void ShouldParseEchoTag()
-        {
-            var source = @"{% echo 'welcome to the liquid tag' | upcase %}";
+    [Fact]
+    public void ShouldParseEchoTag()
+    {
+        var source = @"{% echo 'welcome to the liquid tag' | upcase %}";
 
-            Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
-            var rendered = template.Render();
-            Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
-        }
+        Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+        var rendered = template.Render();
+        Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
+    }
 
-        [Fact]
-        public void ShouldParseLiquidTag()
-        {
-            var source = @"
+    [Fact]
+    public void ShouldParseLiquidTag()
+    {
+        var source = @"
 {% 
    liquid 
    echo 
@@ -1120,52 +1120,52 @@ class  {
     | upcase 
 %}";
 
-            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
-            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
-            var rendered = template.Render();
-            Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
-        }
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+        var rendered = template.Render();
+        Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
+    }
 
-        [Fact]
-        public void LiquidTagShouldBreakOnCompletion()
-        {
-            var source = """
-                {%- for i in (1..5) %}
-                    {%- liquid 
-                        if i > 3
-                            continue
-                        endif
-                        echo i
-                    %}
-                {%- endfor %}
-                """;
+    [Fact]
+    public void LiquidTagShouldBreakOnCompletion()
+    {
+        var source = """
+            {%- for i in (1..5) %}
+                {%- liquid 
+                    if i > 3
+                        continue
+                    endif
+                    echo i
+                %}
+            {%- endfor %}
+            """;
 
-            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
-            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
-            var rendered = template.Render();
-            Assert.DoesNotContain("45", rendered);
-        }
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+        var rendered = template.Render();
+        Assert.DoesNotContain("45", rendered);
+    }
 
-        [Fact]
-        public void LiquidTagShouldSupportHashComments()
-        {
-            var source = @"{% liquid
+    [Fact]
+    public void LiquidTagShouldSupportHashComments()
+    {
+        var source = @"{% liquid
   assign name = 'John'
   # very important information
   assign name = 'Jenna'
   echo name
 %}";
 
-            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
-            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
-            var rendered = template.Render();
-            Assert.Equal("Jenna", rendered.Trim());
-        }
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+        var rendered = template.Render();
+        Assert.Equal("Jenna", rendered.Trim());
+    }
 
-        [Fact]
-        public void LiquidTagShouldSupportMultipleHashComments()
-        {
-            var source = @"{% liquid
+    [Fact]
+    public void LiquidTagShouldSupportMultipleHashComments()
+    {
+        var source = @"{% liquid
   # required args:
   assign product = 'MyProduct'
 
@@ -1176,117 +1176,117 @@ class  {
   echo product
 %}";
 
-            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
-            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
-            var rendered = template.Render();
-            Assert.Equal("MyProduct", rendered.Trim());
-        }
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+        var rendered = template.Render();
+        Assert.Equal("MyProduct", rendered.Trim());
+    }
 
-        [Fact]
-        public void LiquidTagShouldSupportEmptyHashComment()
-        {
-            var source = @"{% liquid
+    [Fact]
+    public void LiquidTagShouldSupportEmptyHashComment()
+    {
+        var source = @"{% liquid
   #
   assign name = 'Charlie'
   echo name
 %}";
 
-            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
-            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
-            var rendered = template.Render();
-            Assert.Equal("Charlie", rendered.Trim());
-        }
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+        var rendered = template.Render();
+        Assert.Equal("Charlie", rendered.Trim());
+    }
 
-        [Fact]
-        public void LiquidTagShouldSupportHashCommentAtBeginning()
-        {
-            var source = @"{% liquid
+    [Fact]
+    public void LiquidTagShouldSupportHashCommentAtBeginning()
+    {
+        var source = @"{% liquid
   # This is a comment at the beginning
   assign name = 'Alice'
   echo name
 %}";
 
-            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
-            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
-            var rendered = template.Render();
-            Assert.Equal("Alice", rendered.Trim());
-        }
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+        var rendered = template.Render();
+        Assert.Equal("Alice", rendered.Trim());
+    }
 
-        [Fact]
-        public void LiquidTagShouldSupportHashCommentAtEnd()
-        {
-            var source = @"{% liquid
+    [Fact]
+    public void LiquidTagShouldSupportHashCommentAtEnd()
+    {
+        var source = @"{% liquid
   assign name = 'Bob'
   echo name
   # This is a comment at the end
 %}";
 
-            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
-            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
-            var rendered = template.Render();
-            Assert.Equal("Bob", rendered.Trim());
-        }
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+        var rendered = template.Render();
+        Assert.Equal("Bob", rendered.Trim());
+    }
 
 
-        [Fact]
-        public void ShouldParseFunctionCall()
-        {
+    [Fact]
+    public void ShouldParseFunctionCall()
+    {
 
-            var options = new FluidParserOptions { AllowFunctions = true };
-
-#if COMPILED
-        var _parser = new FluidParser(options).Compile();
-#else
-            var _parser = new FluidParser(options);
-#endif
-
-            _parser.TryParse("{{ a() }}", out var template, out var errors);
-            var statements = ((FluidTemplate)template).Statements;
-
-            Assert.Single(statements);
-
-            var outputStatement = statements[0] as OutputStatement;
-            Assert.NotNull(outputStatement);
-
-            var memberExpression = outputStatement.Expression as MemberExpression;
-            Assert.Equal(2, memberExpression.Segments.Count);
-            Assert.IsType<IdentifierSegment>(memberExpression.Segments[0]);
-            Assert.IsType<FunctionCallSegment>(memberExpression.Segments[1]);
-        }
-
-        [Fact]
-        public void ShouldNotParseFunctionCall()
-        {
-
-            var options = new FluidParserOptions { AllowFunctions = false };
+        var options = new FluidParserOptions { AllowFunctions = true };
 
 #if COMPILED
-        var parser = new FluidParser(options).Compile();
+    var _parser = new FluidParser(options).Compile();
 #else
-            var parser = new FluidParser(options);
+        var _parser = new FluidParser(options);
 #endif
 
-            Assert.False(parser.TryParse("{{ a() }}", out var template, out var errors));
-            Assert.Contains(ErrorMessages.FunctionsNotAllowed, errors);
-        }
+        _parser.TryParse("{{ a() }}", out var template, out var errors);
+        var statements = ((FluidTemplate)template).Statements;
 
-        [Fact]
-        public void KeywordsShouldNotConflictWithIdentifiers()
-        {
-            // Ensure the parser doesn't read 'empty' when identifiers start with this keywork
-            // Same for blank, true, false
+        Assert.Single(statements);
 
-            var source = "{% assign emptyThing = 'this is not empty' %}{{ emptyThing }}{{ empty.size }}";
-            var context = new TemplateContext(new { empty = "eric" });
-            var template = _parser.Parse(source);
-            Assert.Equal("this is not empty4", template.Render(context));
-        }
+        var outputStatement = statements[0] as OutputStatement;
+        Assert.NotNull(outputStatement);
 
-        [Fact]
-        public void ShouldContinueForLoop()
-        {
+        var memberExpression = outputStatement.Expression as MemberExpression;
+        Assert.Equal(2, memberExpression.Segments.Count);
+        Assert.IsType<IdentifierSegment>(memberExpression.Segments[0]);
+        Assert.IsType<FunctionCallSegment>(memberExpression.Segments[1]);
+    }
 
-            var source = @"
+    [Fact]
+    public void ShouldNotParseFunctionCall()
+    {
+
+        var options = new FluidParserOptions { AllowFunctions = false };
+
+#if COMPILED
+    var parser = new FluidParser(options).Compile();
+#else
+        var parser = new FluidParser(options);
+#endif
+
+        Assert.False(parser.TryParse("{{ a() }}", out var template, out var errors));
+        Assert.Contains(ErrorMessages.FunctionsNotAllowed, errors);
+    }
+
+    [Fact]
+    public void KeywordsShouldNotConflictWithIdentifiers()
+    {
+        // Ensure the parser doesn't read 'empty' when identifiers start with this keywork
+        // Same for blank, true, false
+
+        var source = "{% assign emptyThing = 'this is not empty' %}{{ emptyThing }}{{ empty.size }}";
+        var context = new TemplateContext(new { empty = "eric" });
+        var template = _parser.Parse(source);
+        Assert.Equal("this is not empty4", template.Render(context));
+    }
+
+    [Fact]
+    public void ShouldContinueForLoop()
+    {
+
+        var source = @"
                 {%- assign array = (1..6) %}
                 {%- for item in array limit: 3 %}
                 {{- item}}
@@ -1295,108 +1295,107 @@ class  {
                 {{- item}}
                 {%- endfor %}";
 
-            var template = _parser.Parse(source);
-            Assert.Equal("12345", template.Render());
-        }
+        var template = _parser.Parse(source);
+        Assert.Equal("12345", template.Render());
+    }
 
-        [Theory]
-        [InlineData("")]
-        [InlineData(" ")]
-        [InlineData(" \n")]
-        [InlineData(" \n ")]
-        [InlineData("\n")]
-        public void ShouldParseLiquidTagWithDifferentSpaces(string spaces)
-        {
-            var source = """
-                {% liquid
-                    for c in (1..3)
-                        echo c
-                    endfor[SPACE]%}[SPACE]{{chars}}[SPACE]
-                """.Replace("[SPACE]", spaces);
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(" \n")]
+    [InlineData(" \n ")]
+    [InlineData("\n")]
+    public void ShouldParseLiquidTagWithDifferentSpaces(string spaces)
+    {
+        var source = """
+            {% liquid
+                for c in (1..3)
+                    echo c
+                endfor[SPACE]%}[SPACE]{{chars}}[SPACE]
+            """.Replace("[SPACE]", spaces);
 
-            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
-            Assert.True(parser.TryParse(source, out var template, out var errors), errors);
-            var rendered = template.Render();
-            Assert.Contains("123", rendered);
-        }
-        [Fact]
-        public async Task Has_WithEmptyArrays_ReturnsExpectedOutput()
-        {
-            // Arrange
-            var template = """
-                {%- assign has_product = products | has: 'title.content', 'Not found' -%}
-                {%- unless has_product -%}
-                  Product not found.
-                {%- endunless -%}
-                """;
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+        var rendered = template.Render();
+        Assert.Contains("123", rendered);
+    }
+    [Fact]
+    public async Task Has_WithEmptyArrays_ReturnsExpectedOutput()
+    {
+        // Arrange
+        var template = """
+            {%- assign has_product = products | has: 'title.content', 'Not found' -%}
+            {%- unless has_product -%}
+              Product not found.
+            {%- endunless -%}
+            """;
 
-            var expectedOutput = "Product not found.";
-            var context = new TemplateContext();
-            context.SetValue("products", Array.Empty<object>()); // Empty array
+        var expectedOutput = "Product not found.";
+        var context = new TemplateContext();
+        context.SetValue("products", Array.Empty<object>()); // Empty array
 
-            // Act
-            var parser = new FluidParser();
-            parser.TryParse(template, out var fluidTemplate, out var errors);
-            var result = await fluidTemplate.RenderAsync(context);
+        // Act
+        var parser = new FluidParser();
+        parser.TryParse(template, out var fluidTemplate, out var errors);
+        var result = await fluidTemplate.RenderAsync(context);
 
-            // Assert
-            Assert.Equal(expectedOutput, result.Trim());
-        }
+        // Assert
+        Assert.Equal(expectedOutput, result.Trim());
+    }
 
-        [Fact]
-        public async Task FindIndex_WithEmptyArrays_ReturnsExpectedOutput()
-        {
-            // Arrange
-            var template = """
-                {%- assign index = products | find_index: 'title.content', 'Not found' -%}
-                {%- unless index -%}
-                  Index not found.
-                {%- endunless -%}
-                """;
-            var expectedOutput = "Index not found.";
-            var context = new TemplateContext();
-            context.SetValue("products", Array.Empty<object>()); // Empty array
+    [Fact]
+    public async Task FindIndex_WithEmptyArrays_ReturnsExpectedOutput()
+    {
+        // Arrange
+        var template = """
+            {%- assign index = products | find_index: 'title.content', 'Not found' -%}
+            {%- unless index -%}
+              Index not found.
+            {%- endunless -%}
+            """;
+        var expectedOutput = "Index not found.";
+        var context = new TemplateContext();
+        context.SetValue("products", Array.Empty<object>()); // Empty array
 
-            // Act
-            var parser = new FluidParser();
-            parser.TryParse(template, out var fluidTemplate, out var errors);
-            var result = await fluidTemplate.RenderAsync(context);
+        // Act
+        var parser = new FluidParser();
+        parser.TryParse(template, out var fluidTemplate, out var errors);
+        var result = await fluidTemplate.RenderAsync(context);
 
-            // Assert
-            Assert.Equal(expectedOutput, result.Trim());
-        }
+        // Assert
+        Assert.Equal(expectedOutput, result.Trim());
+    }
 
-        [Fact]
-        public async Task ShouldParseBracketedAccessWithNestedMember()
-        {
-            var parser = new FluidParser();
-            
-            // First test: simple bracketed access with string literal
-            parser.TryParse("{{ ['foo'] }}", out var t1, out var e1);
-            Assert.Null(e1);
-            
-            // Second test: bracketed access with member
-            parser.TryParse("{{ [something] }}", out var t2, out var e2);
-            Assert.Null(e2);
-            
-            var context = new TemplateContext();
-            context.SetValue("something", "hello");
-            context.SetValue("hello", "goodbye");
-            
-            var result = await t2.RenderAsync(context);
-            Assert.Equal("goodbye", result);
-            
-            // Third test: nested bracketed access
-            parser.TryParse("{{ [list[settings.zero]] }}", out var t3, out var e3);
-            Assert.Null(e3);
-            
-            var context2 = new TemplateContext();
-            context2.SetValue("list", new[] { "foo" });
-            context2.SetValue("settings", new { zero = 0 });
-            context2.SetValue("foo", "bar");
-            
-            var result2 = await t3.RenderAsync(context2);
-            Assert.Equal("bar", result2);
-        }
+    [Fact]
+    public async Task ShouldParseBracketedAccessWithNestedMember()
+    {
+        var parser = new FluidParser();
+
+        // First test: simple bracketed access with string literal
+        parser.TryParse("{{ ['foo'] }}", out var t1, out var e1);
+        Assert.Null(e1);
+
+        // Second test: bracketed access with member
+        parser.TryParse("{{ [something] }}", out var t2, out var e2);
+        Assert.Null(e2);
+
+        var context = new TemplateContext();
+        context.SetValue("something", "hello");
+        context.SetValue("hello", "goodbye");
+
+        var result = await t2.RenderAsync(context);
+        Assert.Equal("goodbye", result);
+
+        // Third test: nested bracketed access
+        parser.TryParse("{{ [list[settings.zero]] }}", out var t3, out var e3);
+        Assert.Null(e3);
+
+        var context2 = new TemplateContext();
+        context2.SetValue("list", new[] { "foo" });
+        context2.SetValue("settings", new { zero = 0 });
+        context2.SetValue("foo", "bar");
+
+        var result2 = await t3.RenderAsync(context2);
+        Assert.Equal("bar", result2);
     }
 }
