@@ -270,6 +270,8 @@ This will provide a method to intercept when a member is accessed and either ret
 
 NB: If the model implements `IDictionary` or any similar generic dictionary types the dictionary access has priority over the custom accessors.
 
+Non-string keys in an `IDictionary`, such as numeric keys, are exposed as strings for template lookup and iteration. Key formatting uses `TemplateOptions.CultureInfo`; existing string keys take precedence over converted keys with the same name.
+
 This example demonstrates how to intercept calls to a `Person` and always return the same property.
 
 ```csharp
