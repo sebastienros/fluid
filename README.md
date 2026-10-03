@@ -486,6 +486,8 @@ options.ValueConverters.Add((value) => value is IUser user ? user.Name : null);
 
 > Note: Type mapping are defined globally for the application.
 
+`System.Text.Json.Nodes` values are supported by default: `JsonObject` and `JsonArray` map to Liquid dictionaries and arrays, and scalar `JsonValue` nodes map to the corresponding Liquid values. Configured value converters run before these built-in mappings, so they can override the default behavior; return `null` to continue with the built-in conversion.
+
 <br>
 
 ## Encoding
