@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+    <ProjectReference Include="..\Fluid.Core.Tool\Fluid.Core.Tool.csproj" />
     <ProjectReference Include="..\Fluid.MvcViewEngine\Fluid.MvcViewEngine.csproj" />
     <ProjectReference Include="..\MinimalApis.LiquidViews\MinimalApis.LiquidViews.csproj" />
     <ProjectReference Include="..\Fluid.SourceGenerator\Fluid.SourceGenerator.csproj"
