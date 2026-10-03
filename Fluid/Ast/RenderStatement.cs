@@ -74,7 +74,7 @@ namespace Fluid.Ast
 
                 if (!Parser.TryParse(content, out template, out var errors))
                 {
-                    throw new ParseException(errors);
+                    throw TemplateParseDiagnostics.CreateException(relativePath, errors);
                 }
 
                 // Allow user to modify the template before caching (e.g., apply visitors/rewriters)
