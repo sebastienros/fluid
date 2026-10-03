@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Xunit;
@@ -358,6 +359,239 @@ namespace Fluid.Tests
             var template = _parser.Parse("{{Generated}}");
 
             Assert.Equal("runtime", template.Render(new TemplateContext(model, options)));
+        }
+
+        [Fact]
+        public void ShouldInferDirectAccessorsWithoutAllowListingTheModel()
+        {
+            var options = new TemplateOptions();
+            var context = new TemplateContext(new InferredContextModel(), options);
+
+            Assert.Null(options.MemberAccessStrategy.GetAccessor(typeof(InferredContextModel), "Value"));
+            Assert.Equal("Fluid.SourceGenerated", GetModelAccessor(options.MemberAccessStrategy,
+                typeof(InferredContextModel), "Value").GetType().Namespace);
+            Assert.Equal("value;42;async;", _parser.Parse("{{Value}};{{Count}};{{Loaded}};{{Method}}").Render(context));
+            context.AllowModelMembers = false;
+            Assert.Equal("", _parser.Parse("{{Value}}").Render(context));
+        }
+
+        [Fact]
+        public void InferredAccessorsShouldPreserveAllowListsAndNestedMembers()
+        {
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<InferredContextModel>("Count");
+            var context = new TemplateContext(new InferredContextModel(), options, false);
+            Assert.Equal(";42;", _parser.Parse("{{Value}};{{Count}};{{Child.Value}}").Render(context));
+            context.AllowModelMembers = true;
+            Assert.Equal("value;42;", _parser.Parse("{{Value}};{{Count}};{{Child.Value}}").Render(context));
+        }
+
+        [Fact]
+        public void InferredAccessorsShouldPreserveExplicitAndWildcardPrecedence()
+        {
+            var options = new TemplateOptions();
+            var context = new TemplateContext(new InferredContextModel(), options);
+            options.MemberAccessStrategy.Register<InferredContextModel, object>("Value", (_, _) => "explicit");
+            Assert.Equal("explicit", _parser.Parse("{{Value}}").Render(context));
+            options.MemberAccessStrategy.Register<InferredContextModel, object>((_, _) => "wildcard");
+            Assert.Equal("explicit;wildcard", _parser.Parse("{{Value}};{{Count}}").Render(context));
+
+            var inheritedOptions = new TemplateOptions();
+            inheritedOptions.MemberAccessStrategy.Register<InferredContextBase, object>((_, _) => "base");
+            Assert.Equal("base", _parser.Parse("{{Value}}").Render(new TemplateContext(new InferredContextModel(), inheritedOptions)));
+        }
+
+        [Fact]
+        public void InferredAccessorsShouldPreserveNamingAndCasing()
+        {
+            var options = new TemplateOptions();
+            var context = new TemplateContext(new InferredContextModel(), options);
+            Assert.Equal("value;", _parser.Parse("{{Value}};{{value}}").Render(context));
+            options.MemberAccessStrategy.IgnoreCasing = true;
+            Assert.Equal("value;", _parser.Parse("{{Value}};{{value}}").Render(context));
+            options.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
+            Assert.Equal(";value", _parser.Parse("{{Value}};{{value}}").Render(context));
+            options.MemberAccessStrategy.MemberNameStrategy = member => "custom_" + member.Name;
+            Assert.Equal("value", _parser.Parse("{{custom_Value}}").Render(context));
+        }
+
+        [Fact]
+        public void InferredAccessorsShouldPreserveConvertersAndAsyncFallback()
+        {
+            var options = new TemplateOptions();
+            options.ValueConverters.Add(value => value is int ? "converted" : null);
+            var context = new TemplateContext(new InferredContextModel(), options);
+            Assert.Equal("converted", _parser.Parse("{{Count}}").Render(context));
+            Assert.Equal("Fluid.Accessors", GetModelAccessor(options.MemberAccessStrategy,
+                typeof(InferredContextModel), "PlainTask").GetType().Namespace);
+            Assert.Equal("Fluid.Accessors", GetModelAccessor(options.MemberAccessStrategy,
+                typeof(InferredContextModel), "ValueTask").GetType().Namespace);
+        }
+
+        [Fact]
+        public void ShouldNotActivateInferredAccessorsOnDefaultOrCustomStrategies()
+        {
+            var defaultContext = new TemplateContext(new InferredContextModel(), TemplateOptions.Default);
+            Assert.Equal("Fluid.Accessors", GetModelAccessor(TemplateOptions.Default.MemberAccessStrategy,
+                typeof(InferredContextModel), "Value").GetType().Namespace);
+            Assert.Equal("value", _parser.Parse("{{Value}}").Render(defaultContext));
+
+            var options = new TemplateOptions { MemberAccessStrategy = new CustomContextStrategy() };
+            Assert.Equal("custom", _parser.Parse("{{Value}}").Render(new TemplateContext(new InferredContextModel(), options)));
+            var derivedOptions = new TemplateOptions { MemberAccessStrategy = new DerivedContextStrategy() };
+            _ = new TemplateContext(new InferredContextModel(), derivedOptions);
+            Assert.Equal("Fluid.Accessors", GetModelAccessor(derivedOptions.MemberAccessStrategy,
+                typeof(InferredContextModel), "Value").GetType().Namespace);
+        }
+
+        [Fact]
+        public void ShouldRequireMatchingRuntimeTypeAndKeepOptionInstancesIndependent()
+        {
+            InferredContextBase model = new UninferredContextModel();
+            var options = new TemplateOptions();
+            _ = new TemplateContext(model, options);
+            Assert.Equal("Fluid.Accessors", GetModelAccessor(options.MemberAccessStrategy,
+                typeof(UninferredContextModel), "Value").GetType().Namespace);
+            var unrelatedOptions = new TemplateOptions();
+            Assert.Equal("Fluid.Accessors", GetModelAccessor(unrelatedOptions.MemberAccessStrategy,
+                typeof(InferredContextModel), "Value").GetType().Namespace);
+        }
+
+        [Fact]
+        public void InferredAccessorsShouldPreserveInterfaceRegistrationFallback()
+        {
+            var options = new TemplateOptions();
+            options.MemberAccessStrategy.Register<IInferredContextModel, object>((_, _) => "interface");
+            Assert.Equal("interface", _parser.Parse("{{Value}}").Render(new TemplateContext(new InferredContextModel(), options)));
+        }
+
+        [Fact]
+        public void InferredAccessorsShouldMatchReflectedInheritedMemberSelection()
+        {
+            var model = new InferredInheritedModel();
+            var generated = new TemplateContext(model, new TemplateOptions());
+            var reflected = new TemplateContext(model, new TemplateOptions { MemberAccessStrategy = new DerivedContextStrategy() });
+            var template = _parser.Parse("{{Value}};{{Hidden}};{{Different}};{{Field}}");
+            Assert.Equal("field;;base;base", template.Render(reflected));
+            Assert.Equal(template.Render(reflected), template.Render(generated));
+        }
+
+        [Fact]
+        public void ShouldActivateLateGeneratedRegistrationsWithoutChangingAllowLists()
+        {
+            var options = new TemplateOptions();
+            object model = new LateRegisteredContextModel();
+            var firstContext = new TemplateContext(model, options);
+            Assert.Equal("model", _parser.Parse("{{Value}}").Render(firstContext));
+
+            var names = new[] { "Value" };
+            DefaultMemberAccessStrategy.RegisterSourceGeneratedAccessor(
+                typeof(LateRegisteredContextModel), new FixedMemberAccessor("late"), names);
+            names[0] = "Other";
+            var secondContext = new TemplateContext(model, options);
+            Assert.Equal("late", _parser.Parse("{{Value}}").Render(secondContext));
+            Assert.Equal("late", _parser.Parse("{{Value}}").Render(firstContext));
+            Assert.Null(options.MemberAccessStrategy.GetAccessor(typeof(LateRegisteredContextModel), "Value"));
+            secondContext.AllowModelMembers = false;
+            Assert.Equal("", _parser.Parse("{{Value}}").Render(secondContext));
+        }
+
+        [Fact]
+        public void ShouldPreserveGeneratedProfilesAndOptionsRegistrations()
+        {
+            var template = _parser.Parse("{{Value}};{{Loaded}};{{Method}}");
+            var options = new TemplateOptions();
+            ExplicitContextProfile.Apply(options);
+            Assert.Equal("profile;loaded;method", template.Render(new TemplateContext(new ProfileContextModel(), options, false)));
+            Assert.Equal("profile;loaded;method", template.Render(new TemplateContext(new ProfileContextModel(), new ProfileContextOptions(), false)));
+            var unrelatedOptions = new TemplateOptions();
+            Assert.Equal(";;", template.Render(new TemplateContext(new ProfileContextModel(), unrelatedOptions, false)));
+        }
+
+        private static IMemberAccessor GetModelAccessor(MemberAccessStrategy strategy, Type type, string name)
+            => (IMemberAccessor)typeof(MemberAccessStrategy)
+                .GetMethod("GetModelAccessor", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(strategy, [type, name]);
+    }
+
+    public class InferredContextBase
+    {
+    }
+
+    public interface IInferredContextModel
+    {
+        string Value { get; }
+    }
+
+    public sealed class InferredContextModel : InferredContextBase, IInferredContextModel
+    {
+        public string Value => "value";
+        public int Count = 42;
+        public Task<string> Loaded => Task.FromResult("async");
+        public Task PlainTask => Task.CompletedTask;
+        public ValueTask<int> ValueTask => new(42);
+        public InferredContextChild Child => new();
+        public string Method() => "method";
+    }
+
+    public class InferredInheritedBase
+    {
+        public Task<string> Value => Task.FromResult("property");
+        public string Hidden => "base";
+        public object Different => "base";
+        public string Field = "base";
+    }
+
+    public sealed class InferredInheritedModel : InferredInheritedBase
+    {
+        public new string Value = "field";
+        private new string Hidden => "private";
+        public new string Different => "derived";
+        public new string Field = "derived";
+    }
+
+    public sealed class UninferredContextModel : InferredContextBase
+    {
+        public string Value => "uninferred";
+    }
+
+    public sealed class LateRegisteredContextModel
+    {
+        public string Value => "model";
+    }
+
+    public sealed class ProfileContextModel
+    {
+        public string Value => "profile";
+        public Task<string> Loaded => Task.FromResult("loaded");
+        public string Method() => "method";
+    }
+
+    public static partial class ExplicitContextProfile
+    {
+        [FluidRegister(typeof(ProfileContextModel))]
+        public static partial void Apply(TemplateOptions options);
+    }
+
+    [FluidRegister(typeof(ProfileContextModel))]
+    public partial class ProfileContextOptions : TemplateOptions
+    {
+    }
+
+    public sealed class InferredContextChild
+    {
+        public string Value => "child";
+    }
+
+    public sealed class DerivedContextStrategy : DefaultMemberAccessStrategy
+    {
+    }
+
+    public sealed class CustomContextStrategy : MemberAccessStrategy
+    {
+        public override IMemberAccessor GetAccessor(Type type, string name) => new FixedMemberAccessor("custom");
+        public override void Register(Type type, IEnumerable<KeyValuePair<string, IMemberAccessor>> accessors)
+        {
         }
     }
 

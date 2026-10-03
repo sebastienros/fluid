@@ -24,7 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Fluid.MvcViewEngine\Fluid.MvcViewEngine.csproj" />
-    <ProjectReference Include="..\Fluid.SourceGenerator\Fluid.SourceGenerator.csproj" />
+    <ProjectReference Include="..\Fluid.SourceGenerator\Fluid.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
     <ProjectReference Include="..\Fluid.ViewEngine\Fluid.ViewEngine.csproj" />
     <ProjectReference Include="..\Fluid\Fluid.csproj" />
   </ItemGroup>

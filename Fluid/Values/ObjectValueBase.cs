@@ -49,7 +49,7 @@ namespace Fluid.Values
 
             if (accessor == null && _isModelType.Value && context.AllowModelMembers)
             {
-                accessor = MemberAccessStrategyExtensions.GetNamedAccessor(Value.GetType(), name, context.Options.MemberAccessStrategy.MemberNameStrategy);
+                accessor = context.Options.MemberAccessStrategy.GetModelAccessor(Value.GetType(), name);
             }
 
             if (name.Contains('.'))

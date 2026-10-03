@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.ComponentModel;
 
 namespace Fluid
 {
@@ -11,6 +12,51 @@ namespace Fluid
 
         private Dictionary<Key, IMemberAccessor> _map = new();
         private bool _hasAllAccessors;
+        private volatile Dictionary<Type, Dictionary<string, IMemberAccessor>> _generatedAccessors = new();
+
+        /// <summary>
+        /// Registers an accessor emitted by the Fluid source generator.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static void RegisterSourceGeneratedAccessor(Type type, IMemberAccessor accessor, params string[] memberNames)
+            => GeneratedMemberAccessorRegistry.Register(type, accessor, memberNames);
+
+        internal override void RegisterGeneratedAccessor(Type type)
+        {
+            // Derived strategies retain their own member resolution behavior.
+            if (GetType() != typeof(DefaultMemberAccessStrategy))
+            {
+                return;
+            }
+
+            var accessors = GeneratedMemberAccessorRegistry.GetAccessors(type);
+            if (accessors is null ||
+                (_generatedAccessors.TryGetValue(type, out var existing) && ReferenceEquals(existing, accessors)))
+            {
+                return;
+            }
+
+            lock (_synLock)
+            {
+                _generatedAccessors = new Dictionary<Type, Dictionary<string, IMemberAccessor>>(_generatedAccessors)
+                {
+                    [type] = accessors
+                };
+            }
+        }
+
+        internal override IMemberAccessor GetModelAccessor(Type type, string name)
+        {
+            // The 2.x reflection fallback uses ordinal names, independently of IgnoreCasing.
+            if (MemberNameStrategy == MemberNameStrategies.Default &&
+                _generatedAccessors.TryGetValue(type, out var accessors) &&
+                accessors.TryGetValue(name, out var accessor))
+            {
+                return accessor;
+            }
+
+            return base.GetModelAccessor(type, name);
+        }
 
         public override IMemberAccessor GetAccessor(Type type, string name)
         {
