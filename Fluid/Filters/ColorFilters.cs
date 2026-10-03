@@ -540,93 +540,230 @@ public static class ColorFilters
         return rgbColor;
     }
 
+    private static bool TryReadComponent(scoped ref ReadOnlySpan<char> remaining, out ReadOnlySpan<char> component)
+    {
+        var start = 0;
+        while (start < remaining.Length && IsColorSeparator(remaining[start]))
+        {
+            start++;
+        }
+
+        var end = start;
+        while (end < remaining.Length && !IsColorSeparator(remaining[end]))
+        {
+            end++;
+        }
+
+        component = remaining.Slice(start, end - start);
+        remaining = remaining.Slice(end);
+        return !component.IsEmpty;
+    }
+
+    private static bool IsColorSeparator(char c) => c is '(' or ')' or ',' or ' ' or '\t' or '\r' or '\n' or '\f';
+
+    private static bool TryReadComponents(ReadOnlySpan<char> remaining, out ReadOnlySpan<char> first,
+        out ReadOnlySpan<char> second, out ReadOnlySpan<char> third, out ReadOnlySpan<char> alpha)
+    {
+        second = third = alpha = default;
+        if (!TryReadComponent(ref remaining, out first) ||
+            !TryReadComponent(ref remaining, out second) ||
+            !TryReadComponent(ref remaining, out third))
+        {
+            return false;
+        }
+
+        TryReadComponent(ref remaining, out alpha);
+        return !TryReadComponent(ref remaining, out _);
+    }
+
+    private static bool TryParseNumber(ReadOnlySpan<char> value, out double number)
+    {
+        number = 0;
+        // CSS numbers must end in a digit, unlike .NET's floating-point syntax (for example, "1.").
+        if (value.IsEmpty || value[^1] < '0' || value[^1] > '9')
+        {
+            return false;
+        }
+
+#if NETSTANDARD2_0
+        return Double.TryParse(value.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out number) &&
+#else
+        return Double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out number) &&
+#endif
+            !Double.IsNaN(number) && !Double.IsInfinity(number);
+    }
+
+    private static double Clamp(double value, double maximum) => Math.Min(Math.Max(value, 0), maximum);
+
+    private static bool TryParsePercentage(ReadOnlySpan<char> value, out double percentage)
+    {
+        percentage = 0;
+        if (value.IsEmpty || value[^1] != '%' || !TryParseNumber(value.Slice(0, value.Length - 1), out var number))
+        {
+            return false;
+        }
+
+        percentage = Clamp(number, 100) / 100;
+        return true;
+    }
+
+    private static bool TryParseAlpha(ReadOnlySpan<char> value, out double alpha)
+    {
+        alpha = 1;
+        if (value.IsEmpty)
+        {
+            return true;
+        }
+
+        if (value[^1] == '%')
+        {
+            return TryParsePercentage(value, out alpha);
+        }
+
+        if (!TryParseNumber(value, out var number))
+        {
+            return false;
+        }
+
+        alpha = Clamp(number, 1);
+        return true;
+    }
+
+    private static bool TryParseRgbComponent(ReadOnlySpan<char> value, out int channel)
+    {
+        channel = 0;
+        double number;
+        if (value[^1] == '%')
+        {
+            if (!TryParsePercentage(value, out number))
+            {
+                return false;
+            }
+
+            number *= 255;
+        }
+        else
+        {
+            if (!TryParseNumber(value, out number))
+            {
+                return false;
+            }
+
+            number = Clamp(number, 255);
+        }
+
+        channel = (int)Math.Round(number, MidpointRounding.AwayFromZero);
+        return true;
+    }
+
+    private static bool TryParseHue(ReadOnlySpan<char> value, out double hue)
+    {
+        double revolution = 360;
+        var suffixLength = 0;
+        if (value.EndsWith("grad".AsSpan(), StringComparison.OrdinalIgnoreCase))
+        {
+            revolution = 400;
+            suffixLength = 4;
+        }
+        else if (value.EndsWith("rad".AsSpan(), StringComparison.OrdinalIgnoreCase))
+        {
+            revolution = 2 * Math.PI;
+            suffixLength = 3;
+        }
+        else if (value.EndsWith("turn".AsSpan(), StringComparison.OrdinalIgnoreCase))
+        {
+            revolution = 1;
+            suffixLength = 4;
+        }
+        else if (value.EndsWith("deg".AsSpan(), StringComparison.OrdinalIgnoreCase))
+        {
+            suffixLength = 3;
+        }
+
+        if (!TryParseNumber(value.Slice(0, value.Length - suffixLength), out hue))
+        {
+            return false;
+        }
+
+        // Reduce before converting units so large, finite angles cannot overflow.
+        hue %= revolution;
+        if (suffixLength != 0 && revolution != 360)
+        {
+            hue = hue / revolution * 360;
+        }
+
+        if (hue < 0)
+        {
+            hue += 360;
+        }
+
+        if (hue >= 360)
+        {
+            hue = 0;
+        }
+
+        return true;
+    }
+
     private readonly struct HexColor
     {
         public static readonly HexColor Empty = default;
 
-        public HexColor(string red, string green, string blue)
+        public HexColor(int red, int green, int blue)
         {
-            if (!IsHexadecimal(red))
-            {
-                ExceptionHelper.ThrowArgumentException(nameof(red), "The red value is not hexadecimal");
-            }
-
-            if (!IsHexadecimal(green))
-            {
-                ExceptionHelper.ThrowArgumentException(nameof(green), "The green value is not hexadecimal");
-            }
-
-            if (!IsHexadecimal(blue))
-            {
-                ExceptionHelper.ThrowArgumentException(nameof(blue), "The blue value is not hexadecimal");
-            }
-
             R = red;
             G = green;
             B = blue;
         }
 
-        public string R { get; }
+        public int R { get; }
 
-        public string G { get; }
+        public int G { get; }
 
-        public string B { get; }
+        public int B { get; }
 
         public static bool TryParse(string value, out HexColor color)
         {
             color = HexColor.Empty;
 
-            if (String.IsNullOrEmpty(value))
+            if (value.Length is not (4 or 7) || value[0] != '#')
             {
                 return false;
             }
 
-            if (value[0] == '#')
+            var digits = value.AsSpan(1);
+            var number = 0;
+            foreach (var c in digits)
             {
-                string red, blue, green;
-                switch (value.Length)
+                var digit = HexDigit(c);
+                if (digit < 0)
                 {
-                    case 4:
-                        red = Char.ToString(value[1]);
-                        green = Char.ToString(value[2]);
-                        blue = Char.ToString(value[3]);
-                        if (IsHexadecimal(red) && IsHexadecimal(green) && IsHexadecimal(blue))
-                        {
-                            color = new HexColor(red, green, blue);
-
-                            return true;
-                        }
-
-                        break;
-                    case 7:
-                        red = value.Substring(1, 2);
-                        green = value.Substring(3, 2);
-                        blue = value.Substring(5, 2);
-                        if (IsHexadecimal(red) && IsHexadecimal(green) && IsHexadecimal(blue))
-                        {
-                            color = new HexColor(red, green, blue);
-
-                            return true;
-                        }
-
-                        break;
+                    return false;
                 }
+
+                number = (number << 4) | digit;
             }
 
-            return false;
+            color = digits.Length == 3
+                ? new HexColor((number >> 8) * 17, ((number >> 4) & 15) * 17, (number & 15) * 17)
+                : new HexColor(number >> 16, (number >> 8) & 255, number & 255);
+            return true;
         }
 
-        public override string ToString() => $"#{R}{G}{B}".ToLowerInvariant();
+        public override string ToString() => FormattableString.Invariant($"#{R:x2}{G:x2}{B:x2}");
 
         public static explicit operator HexColor(HslColor hslColor) => (HexColor)(RgbColor)hslColor;
 
         public static explicit operator HexColor(RgbColor rgbColor)
-            => new HexColor(
-                rgbColor.R.ToString("X2", null),
-                rgbColor.G.ToString("X2", null),
-                rgbColor.B.ToString("X2", null));
+            => new HexColor(rgbColor.R, rgbColor.G, rgbColor.B);
 
-        private static bool IsHexadecimal(string value) => value.All(c => "0123456789abcdefABCDEF".Contains(c));
+        private static int HexDigit(char c) => c switch
+        {
+            >= '0' and <= '9' => c - '0',
+            >= 'a' and <= 'f' => c - 'a' + 10,
+            >= 'A' and <= 'F' => c - 'A' + 10,
+            _ => -1
+        };
     }
 
 #pragma warning disable CA1067 // should override Equals because it implements IEquatable<T>
@@ -634,8 +771,6 @@ public static class ColorFilters
 #pragma warning restore CA1067
     {
         private const double DefaultTransperency = 1.0;
-
-        private static readonly char[] _colorSeparators = ['(', ',', ' ', ')'];
 
         public static readonly RgbColor Empty = default;
 
@@ -682,25 +817,17 @@ public static class ColorFilters
 
         public static bool TryParse(string value, out RgbColor color)
         {
-            if ((value.StartsWith("rgb(") || value.StartsWith("rgba(")) && value.EndsWith(')'))
+            if ((value.StartsWith("rgb(", StringComparison.Ordinal) || value.StartsWith("rgba(", StringComparison.Ordinal)) && value.EndsWith(')'))
             {
-                var rgbColor = value.Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
-
-                if (rgbColor.Length == 4 &&
-                    Int32.TryParse(rgbColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out int red) &&
-                    Int32.TryParse(rgbColor[2], NumberStyles.Float, CultureInfo.InvariantCulture, out int green) &&
-                    Int32.TryParse(rgbColor[3], NumberStyles.Float, CultureInfo.InvariantCulture, out int blue))
-                {
-                    color = new RgbColor(red, green, blue);
-
-                    return true;
-                }
-
-                if (rgbColor.Length == 5 &&
-                    Int32.TryParse(rgbColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out red) &&
-                    Int32.TryParse(rgbColor[2], NumberStyles.Float, CultureInfo.InvariantCulture, out green) &&
-                    Int32.TryParse(rgbColor[3], NumberStyles.Float, CultureInfo.InvariantCulture, out blue) &&
-                    Single.TryParse(rgbColor[4], NumberStyles.Float, CultureInfo.InvariantCulture, out float alpha))
+                var start = value[3] == '(' ? 4 : 5;
+                if (TryReadComponents(value.AsSpan(start, value.Length - start - 1), out var redValue,
+                        out var greenValue, out var blueValue, out var alphaValue) &&
+                    (redValue[^1] == '%') == (greenValue[^1] == '%') &&
+                    (redValue[^1] == '%') == (blueValue[^1] == '%') &&
+                    TryParseRgbComponent(redValue, out var red) &&
+                    TryParseRgbComponent(greenValue, out var green) &&
+                    TryParseRgbComponent(blueValue, out var blue) &&
+                    TryParseAlpha(alphaValue, out var alpha))
                 {
                     color = new RgbColor(red, green, blue, alpha);
 
@@ -747,25 +874,7 @@ public static class ColorFilters
 
         public static explicit operator RgbColor(Color color) => new RgbColor(color);
 
-        public static explicit operator RgbColor(HexColor hexColor)
-        {
-            if (hexColor.R.Length == 1)
-            {
-                var red = Convert.ToInt32(hexColor.R + hexColor.R, 16);
-                var green = Convert.ToInt32(hexColor.G + hexColor.G, 16);
-                var blue = Convert.ToInt32(hexColor.B + hexColor.B, 16);
-
-                return new RgbColor(red, green, blue);
-            }
-            else
-            {
-                var red = Convert.ToInt32(hexColor.R, 16);
-                var green = Convert.ToInt32(hexColor.G, 16);
-                var blue = Convert.ToInt32(hexColor.B, 16);
-
-                return new RgbColor(red, green, blue);
-            }
-        }
+        public static explicit operator RgbColor(HexColor hexColor) => new RgbColor(hexColor.R, hexColor.G, hexColor.B);
 
         public static explicit operator RgbColor(HslColor hslColor)
         {
@@ -814,8 +923,6 @@ public static class ColorFilters
     {
         private const double DefaultTransparency = 1.0;
 
-        private static readonly char[] _colorSeparators = ['(', ',', ' ', ')'];
-
         public static readonly HslColor Empty = default;
 
         public HslColor(double hue, double saturation, double lightness, double alpha = DefaultTransparency)
@@ -856,27 +963,17 @@ public static class ColorFilters
 
         public static bool TryParse(string value, out HslColor color)
         {
-            if ((value.StartsWith("hsl(") || value.StartsWith("hsla(")) && value.EndsWith(')'))
+            if ((value.StartsWith("hsl(", StringComparison.Ordinal) || value.StartsWith("hsla(", StringComparison.Ordinal)) && value.EndsWith(')'))
             {
-                var hslColor = value.Split(_colorSeparators, StringSplitOptions.RemoveEmptyEntries);
-
-                if (hslColor.Length == 4 && hslColor[2].EndsWith('%') && hslColor[3].EndsWith('%') &&
-                    Double.TryParse(hslColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double hue) &&
-                    Double.TryParse(hslColor[2].TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double saturation) &&
-                    Double.TryParse(hslColor[3].TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double lightness))
+                var start = value[3] == '(' ? 4 : 5;
+                if (TryReadComponents(value.AsSpan(start, value.Length - start - 1), out var hueValue,
+                        out var saturationValue, out var lightnessValue, out var alphaValue) &&
+                    TryParseHue(hueValue, out var hue) &&
+                    TryParsePercentage(saturationValue, out var saturation) &&
+                    TryParsePercentage(lightnessValue, out var lightness) &&
+                    TryParseAlpha(alphaValue, out var alpha))
                 {
-                    color = new HslColor(hue, saturation / 100.0, lightness / 100.0);
-
-                    return true;
-                }
-
-                if (hslColor.Length == 5 && hslColor[2].EndsWith('%') && hslColor[3].EndsWith('%') &&
-                    Double.TryParse(hslColor[1], NumberStyles.Float, CultureInfo.InvariantCulture, out hue) &&
-                    Double.TryParse(hslColor[2].TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out saturation) &&
-                    Double.TryParse(hslColor[3].TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out lightness) &&
-                    Double.TryParse(hslColor[4], NumberStyles.Float, CultureInfo.InvariantCulture, out double alpha))
-                {
-                    color = new HslColor(hue, saturation / 100.0, lightness / 100.0, alpha);
+                    color = new HslColor(hue, saturation, lightness, alpha);
 
                     return true;
                 }
