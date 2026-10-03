@@ -1,23 +1,25 @@
-﻿using Fluid.Ast;
-using System;
-using System.IO;
+using Fluid.Ast;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Fluid.Parser
 {
-    internal sealed class EmptyTagStatement : Statement
+    public sealed class EmptyTagStatement : Statement
     {
-        private readonly Func<TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> _render;
+        private readonly Func<IFluidOutput, TextEncoder, TemplateContext, ValueTask<Completion>> _render;
 
-        public EmptyTagStatement(Func<TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
+        public string TagName { get; }
+
+        public EmptyTagStatement(string tagName, Func<IFluidOutput, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {
+            TagName = tagName ?? throw new ArgumentNullException(nameof(tagName));
             _render = render ?? throw new ArgumentNullException(nameof(render));
         }
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
-            return _render(writer, encoder, context);
+            return _render(output, encoder, context);
         }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitEmptyTagStatement(this);
     }
 }

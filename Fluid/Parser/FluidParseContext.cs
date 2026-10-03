@@ -1,4 +1,4 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using Parlot;
 using Parlot.Fluent;
 
@@ -10,10 +10,11 @@ namespace Fluid.Parser
         {
         }
 
+        public string PreviousRenderTag { get; set; }
         public TextSpanStatement PreviousTextSpanStatement { get; set; }
         public bool StripNextTextSpanStatement { get; set; }
         public bool PreviousIsTag { get; set; }
         public bool PreviousIsOutput { get; set; }
-        public bool InsideLiquidTag { get; set; } // Used in the {% liquid %} tag to ensure a new line corresponds to '%}'
+        public int LiquidTagDepth { get; set; } // Used in the {% liquid %} tag to ensure a new line corresponds to '%}'
     }
 }

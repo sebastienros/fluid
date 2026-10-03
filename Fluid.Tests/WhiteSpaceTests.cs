@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -109,7 +109,6 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
             options.Filters.AddFilter("paragraph", (input, args, ctx) => input);
             options.Filters.AddFilter("price", (input, args, ctx) => input);
-            options.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
@@ -169,7 +168,6 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
             options.Filters.AddFilter("paragraph", (input, args, ctx) => input);
             options.Filters.AddFilter("price", (input, args, ctx) => input);
-            options.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
@@ -229,7 +227,6 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
             options.Filters.AddFilter("paragraph", (input, args, ctx) => input);
             options.Filters.AddFilter("price", (input, args, ctx) => input);
-            options.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);
@@ -289,7 +286,6 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             options.Filters.AddFilter("prettyprint", (input, args, ctx) => input);
             options.Filters.AddFilter("paragraph", (input, args, ctx) => input);
             options.Filters.AddFilter("price", (input, args, ctx) => input);
-            options.MemberAccessStrategy.Register(new { name = "", price = 0 }.GetType());
 
             var result = await template.RenderAsync(context);
             Assert.Equal(expected, result);

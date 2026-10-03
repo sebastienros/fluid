@@ -6,7 +6,6 @@ using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Values;
-using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Fluid.Tests
@@ -170,7 +169,7 @@ namespace Fluid.Tests
             context.SetValue("items", new[] { 1, 2, 3 });
             await e.WriteToAsync(sw, HtmlEncoder.Default, context);
 
-            Assert.Equal("31023truefalse32112falsefalse33201falsetrue", sw.ToString());
+            Assert.Equal("31032truefalse32121falsefalse33210falsetrue", sw.ToString());
         }
 
         [Fact]

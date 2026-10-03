@@ -1,4 +1,4 @@
-﻿using Liquid.NET;
+using Liquid.NET;
 using Liquid.NET.Utils;
 
 namespace Fluid.Benchmarks
@@ -10,6 +10,7 @@ namespace Fluid.Benchmarks
         public LiquidNetBenchmarks()
         {
             _liquidNetTemplate = LiquidTemplate.Create(ProductTemplate);
+            CheckBenchmark();
         }
 
         public override object Parse()
@@ -25,6 +26,7 @@ namespace Fluid.Benchmarks
         public override string Render()
         {
             var context = new Liquid.NET.TemplateContext();
+            context.WithAllFilters();
             context.DefineLocalVariable("products", Products.ToLiquid());
             return _liquidNetTemplate.LiquidTemplate.Render(context).Result;
         }
@@ -33,6 +35,7 @@ namespace Fluid.Benchmarks
         {
             var template = LiquidTemplate.Create(ProductTemplate);
             var context = new Liquid.NET.TemplateContext();
+            context.WithAllFilters();
             context.DefineLocalVariable("products", Products.ToLiquid());
             return template.LiquidTemplate.Render(context).Result;
         }

@@ -1,15 +1,11 @@
-﻿using Fluid.Values;
-using System;
+using Fluid.Utils;
+using Fluid.Values;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Net;
-using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
-using TimeZoneConverter;
 
 namespace Fluid.Filters
 {
@@ -44,6 +40,8 @@ namespace Fluid.Filters
             filters.AddFilter("md5", MD5);
             filters.AddFilter("sha1", Sha1);
             filters.AddFilter("sha256", Sha256);
+            filters.AddFilter("hmac_sha1", HmacSha1);
+            filters.AddFilter("hmac_sha256", HmacSha256);
 
             return filters;
         }
@@ -53,11 +51,13 @@ namespace Fluid.Filters
         /// </summary>
         public static ValueTask<FluidValue> Handleize(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("handleize", expected: 0, arguments);
+
             var value = input.ToStringValue();
-            var result = new StringBuilder();
+            var result = new ValueStringBuilder(stackalloc char[512]);
             var lastIndex = value.Length - 1;
 
-            for (int i = 0; i < value.Length; i++)
+            for (var i = 0; i < value.Length; i++)
             {
                 var currentChar = value[i];
                 var lookAheadChar = i == lastIndex
@@ -75,7 +75,7 @@ namespace Fluid.Filters
 
                     continue;
                 }
-                
+
                 if (IsCapitalLetter(lookAheadChar))
                 {
                     if (IsCapitalLetter(currentChar))
@@ -90,9 +90,8 @@ namespace Fluid.Filters
                         }
                         else
                         {
-                            result
-                                .Append(currentChar)
-                                .Append(KebabCaseSeparator);
+                            result.Append(currentChar);
+                            result.Append(KebabCaseSeparator);
                         }
                     }
                 }
@@ -100,7 +99,7 @@ namespace Fluid.Filters
                 {
                     if (IsCapitalLetter(currentChar))
                     {
-                        if (result[result.Length - 1] != KebabCaseSeparator && !char.IsDigit(lookAheadChar))
+                        if (result.Length != 0 && result[^1] != KebabCaseSeparator && !char.IsDigit(lookAheadChar))
                         {
                             result.Append(KebabCaseSeparator);
                         }
@@ -110,27 +109,42 @@ namespace Fluid.Filters
                 }
             }
 
-            static bool IsCapitalLetter(char c) => c >= 'A' && c <= 'Z';
+            static bool IsCapitalLetter(char c)
+            {
+                return (uint)(c - 'A') <= (uint)('Z' - 'A');
+            }
 
             return new StringValue(result.ToString().ToLowerInvariant());
         }
 
         public static ValueTask<FluidValue> Default(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("default", min: 0, max: 2, arguments);
+
+            if (arguments.Count == 0)
+            {
+                // When called with no arguments, return empty string for nil/false/empty
+                if (input.IsNil() || input == BooleanValue.False || EmptyValue.Instance.Equals(input))
+                {
+                    return StringValue.Empty;
+                }
+                return input;
+            }
+
             var falseCheck = arguments.HasNamed("allow_false") && arguments["allow_false"] == BooleanValue.True;
 
             if (falseCheck)
             {
                 if (input.IsNil() || EmptyValue.Instance.Equals(input))
                 {
-                    return arguments.At(0);
+                    return arguments.GetFirstPositional();
                 }
             }
             else
             {
                 if (input.IsNil() || input == BooleanValue.False || EmptyValue.Instance.Equals(input))
                 {
-                    return arguments.At(0);
+                    return arguments.GetFirstPositional();
                 }
             }
 
@@ -139,20 +153,38 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Raw(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("raw", expected: 0, arguments);
+
             var stringValue = new StringValue(input.ToStringValue(), false);
 
             return stringValue;
         }
 
-        public static ValueTask<FluidValue> Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
+        public static async ValueTask<FluidValue> Compact(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            var compacted = new List<FluidValue>();
-            foreach (var value in input.Enumerate(context))
+            LiquidException.ThrowFilterArgumentsCount("compact", min: 0, max: 1, arguments);
+
+            if (input.Type != FluidValues.Array)
             {
-                if (!value.IsNil())
+                return input.IsNil() ? ArrayValue.Empty : new ArrayValue([input]);
+            }
+
+            var member = arguments.At(0);
+
+            var compacted = new List<FluidValue>();
+            await foreach (var value in input.EnumerateAsync(context))
+            {
+                if (value.IsNil())
                 {
-                    compacted.Add(value);
+                    continue;
                 }
+
+                if (!member.IsNil() && (await value.GetValueAsync(member.ToStringValue(), context)).IsNil())
+                {
+                    continue;
+                }
+
+                compacted.Add(value);
             }
 
             return new ArrayValue(compacted);
@@ -160,25 +192,41 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> UrlEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(WebUtility.UrlEncode(input.ToStringValue()));
+            LiquidException.ThrowFilterArgumentsCount("url_encode", expected: 0, arguments);
+
+            var encoded = WebUtility.UrlEncode(input.ToStringValue());
+            // WebUtility.UrlEncode doesn't encode ! but Shopify's Liquid does
+            encoded = encoded?.Replace("!", "%21");
+            return new StringValue(encoded);
         }
 
         public static ValueTask<FluidValue> UrlDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("url_decode", expected: 0, arguments);
+
             return new StringValue(WebUtility.UrlDecode(input.ToStringValue()));
         }
 
         public static ValueTask<FluidValue> Base64Encode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("base64_encode", expected: 0, arguments);
+
             var value = input.ToStringValue();
 
-            return String.IsNullOrEmpty(value)
-                ? StringValue.Empty
-                : new StringValue(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
+            if (String.IsNullOrEmpty(value))
+            {
+                return StringValue.Empty;
+            }
+
+            var byteCount = Encoding.UTF8.GetByteCount(value);
+            context.EnsureOutputSize(4L * ((byteCount + 2L) / 3L));
+            return new StringValue(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
         }
 
         public static ValueTask<FluidValue> Base64Decode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("base64_decode", expected: 0, arguments);
+
             var value = input.ToStringValue();
 
             return String.IsNullOrEmpty(value)
@@ -188,6 +236,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Base64UrlSafeEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("base64_url_safe_encode", expected: 0, arguments);
+
             var value = input.ToStringValue();
             if (String.IsNullOrEmpty(value))
             {
@@ -195,10 +245,24 @@ namespace Fluid.Filters
             }
             else
             {
+                var byteCount = Encoding.UTF8.GetByteCount(value);
+                context.EnsureOutputSize(((4L * byteCount) + 2L) / 3L);
                 var encodedBase64StringBuilder = new StringBuilder(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
 
                 encodedBase64StringBuilder.Replace('+', '-');
                 encodedBase64StringBuilder.Replace('/', '_');
+
+                if (encodedBase64StringBuilder[^1] == '=')
+                {
+                    if (encodedBase64StringBuilder[^2] == '=')
+                    {
+                        encodedBase64StringBuilder.Length -= 2;
+                    }
+                    else
+                    {
+                        encodedBase64StringBuilder.Length--;
+                    }
+                }
 
                 return new StringValue(encodedBase64StringBuilder.ToString());
             }
@@ -206,6 +270,13 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> Base64UrlSafeDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("base64_url_safe_decode", expected: 0, arguments);
+
+            if (input is not StringValue and not NilValue and not UndefinedValue)
+            {
+                throw new LiquidException("base64_url_safe_decode expects a string");
+            }
+
             var value = input.ToStringValue();
             if (String.IsNullOrEmpty(value))
             {
@@ -213,18 +284,45 @@ namespace Fluid.Filters
             }
             else
             {
+                var paddingCharsToAdd = (value.Length % 4) switch
+                {
+                    0 => 0,
+                    2 => 2,
+                    3 => 1,
+                    _ => -1
+                };
+
+                if (paddingCharsToAdd == -1)
+                {
+                    return StringValue.Empty;
+                }
+
                 var encodedBase64StringBuilder = new StringBuilder(value);
                 encodedBase64StringBuilder.Replace('-', '+');
                 encodedBase64StringBuilder.Replace('_', '/');
 
-                var decodedBase64 = Encoding.UTF8.GetString(Convert.FromBase64String(encodedBase64StringBuilder.ToString()));
+                // Add the padding characters back.
+                for (; paddingCharsToAdd > 0; paddingCharsToAdd--)
+                {
+                    encodedBase64StringBuilder.Append('=');
+                }
 
-                return new StringValue(decodedBase64);
+                try
+                {
+                    var decodedBase64 = Encoding.UTF8.GetString(Convert.FromBase64String(encodedBase64StringBuilder.ToString()));
+                    return new StringValue(decodedBase64);
+                }
+                catch
+                {
+                    return StringValue.Empty;
+                }
             }
         }
 
         public static ValueTask<FluidValue> StripHtml(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("strip_html", expected: 0, arguments);
+
             var html = input.ToStringValue();
             if (String.IsNullOrEmpty(html))
             {
@@ -237,24 +335,42 @@ namespace Fluid.Filters
             {
                 var cursor = 0;
                 var inside = false;
-                for (var i = 0; i < html.Length; i++)
+                var i = 0;
+                while (i < html.Length)
                 {
-                    char current = html[i];
+                    var current = html[i];
 
-                    switch (current)
+                    if (current == '<')
                     {
-                        case '<':
-                            inside = true;
+                        // Check if this is a script or style tag that we should skip entirely
+                        if (IsStartOfSpecialTag(html, i, "script"))
+                        {
+                            i = SkipToEndOfTag(html, i, "script");
                             continue;
-                        case '>':
-                            inside = false;
+                        }
+                        else if (IsStartOfSpecialTag(html, i, "style"))
+                        {
+                            i = SkipToEndOfTag(html, i, "style");
                             continue;
+                        }
+                        inside = true;
+                        i++;
+                        continue;
+                    }
+
+                    if (current == '>')
+                    {
+                        inside = false;
+                        i++;
+                        continue;
                     }
 
                     if (!inside)
                     {
                         result[cursor++] = current;
                     }
+
+                    i++;
                 }
 
                 return new StringValue(new string(result, 0, cursor));
@@ -267,20 +383,86 @@ namespace Fluid.Filters
             {
                 ArrayPool<char>.Shared.Return(result);
             }
+
+            static bool IsStartOfSpecialTag(string html, int startIndex, string tagName)
+            {
+                if (startIndex + tagName.Length + 2 > html.Length)
+                {
+                    return false;
+                }
+
+                if (html[startIndex] != '<')
+                {
+                    return false;
+                }
+
+                var nextIndex = startIndex + 1;
+                
+                // Check for the tag name (case-insensitive)
+                for (int j = 0; j < tagName.Length; j++)
+                {
+                    if (char.ToLowerInvariant(html[nextIndex + j]) != tagName[j])
+                    {
+                        return false;
+                    }
+                }
+
+                // Make sure next char after tag name is whitespace or '>'
+                var charAfterTag = nextIndex + tagName.Length;
+                if (charAfterTag < html.Length)
+                {
+                    var ch = html[charAfterTag];
+                    return char.IsWhiteSpace(ch) || ch == '>';
+                }
+
+                return false;
+            }
+
+            static int SkipToEndOfTag(string html, int startIndex, string tagName)
+            {
+                var endTagStart = $"</{tagName}";
+                var searchStart = startIndex + 1;
+
+                while (searchStart < html.Length)
+                {
+                    var index = html.IndexOf(endTagStart, searchStart, StringComparison.OrdinalIgnoreCase);
+                    if (index == -1)
+                    {
+                        return html.Length;
+                    }
+
+                    // Find the closing >
+                    var closeIndex = html.IndexOf('>', index);
+                    if (closeIndex != -1)
+                    {
+                        return closeIndex + 1;
+                    }
+
+                    searchStart = index + 1;
+                }
+
+                return html.Length;
+            }
         }
 
         public static ValueTask<FluidValue> Escape(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(WebUtility.HtmlEncode(input.ToStringValue()));
+            LiquidException.ThrowFilterArgumentsCount("escape", expected: 0, arguments);
+
+            return new StringValue(WebUtility.HtmlEncode(input.ToStringValue()), encode: false);
         }
 
         public static ValueTask<FluidValue> EscapeOnce(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            return new StringValue(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())));
+            LiquidException.ThrowFilterArgumentsCount("escape", expected: 0, arguments);
+
+            return new StringValue(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())), encode: false);
         }
 
         public static ValueTask<FluidValue> ChangeTimeZone(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("timezone", min: 0, max: 1, arguments);
+
             if (!input.TryGetDateTimeInput(context, out var value))
             {
                 return NilValue.Instance;
@@ -299,9 +481,20 @@ namespace Fluid.Filters
             {
                 timeZoneInfo = context.TimeZone;
             }
-            else if (!TZConvert.TryGetTimeZoneInfo(timeZone, out timeZoneInfo))
+            else
             {
-                return new DateTimeValue(value);
+                try
+                {
+                    timeZoneInfo = context.Options.TimeZoneResolver(timeZone);
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                    return new DateTimeValue(value);
+                }
+                catch (InvalidTimeZoneException)
+                {
+                    return new DateTimeValue(value);
+                }
             }
 
             var result = TimeZoneInfo.ConvertTime(value, timeZoneInfo);
@@ -311,25 +504,29 @@ namespace Fluid.Filters
         // https://docs.ruby-lang.org/en/master/strftime_formatting_rdoc.html
         public static ValueTask<FluidValue> Date(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("date", min: 0, max: 1, arguments);
+
             if (!input.TryGetDateTimeInput(context, out var value))
             {
-                return NilValue.Instance;
+                // return input unchanged if it can't be parsed as a date
+                return input;
             }
 
             if (arguments.At(0).IsNil())
             {
+                // An absent format argument returns the input parsed as date
                 return new DateTimeValue(value);
             }
 
             var format = arguments.At(0).ToStringValue();
 
-            var result = new StringBuilder(64);
+            var result = new ValueStringBuilder(stackalloc char[128]);
 
-            ForStrf(value, format, result);
+            ForStrf(value, format, ref result);
 
             return new StringValue(result.ToString());
 
-            void ForStrf(DateTimeOffset value, string format, StringBuilder result)
+            void ForStrf(DateTimeOffset value, string format, ref ValueStringBuilder result)
             {
                 var percent = false;
 
@@ -377,50 +574,54 @@ namespace Fluid.Filters
                         switch (c)
                         {
                             case 'a':
-                                string AbbreviatedDayName() => context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int)value.DayOfWeek];
+                                string AbbreviatedDayName()
+                                {
+                                    return context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int)value.DayOfWeek];
+                                }
 
                                 var abbreviatedDayName = AbbreviatedDayName();
-                                result.Append(upperCaseFlag ? abbreviatedDayName.ToUpper() : abbreviatedDayName);
+                                result.Append(upperCaseFlag ? abbreviatedDayName.ToUpper(context.CultureInfo) : abbreviatedDayName);
                                 break;
                             case 'A':
                                 {
                                     var dayName = context.CultureInfo.DateTimeFormat.DayNames[(int)value.DayOfWeek];
-                                    result.Append(upperCaseFlag ? dayName.ToUpper() : dayName);
+                                    result.Append(upperCaseFlag ? dayName.ToUpper(context.CultureInfo) : dayName);
                                     break;
                                 }
                             case 'b':
                                 var abbreviatedMonthName = context.CultureInfo.DateTimeFormat.AbbreviatedMonthNames[value.Month - 1];
-                                result.Append(upperCaseFlag ? abbreviatedMonthName.ToUpper() : abbreviatedMonthName);
+                                result.Append(upperCaseFlag ? abbreviatedMonthName.ToUpper(context.CultureInfo) : abbreviatedMonthName);
                                 break;
                             case 'B':
                                 {
                                     var monthName = context.CultureInfo.DateTimeFormat.MonthNames[value.Month - 1];
-                                    result.Append(upperCaseFlag ? monthName.ToUpper() : monthName);
+                                    result.Append(upperCaseFlag ? monthName.ToUpper(context.CultureInfo) : monthName);
                                     break;
                                 }
                             case 'c':
                                 {
                                     // c is defined as "%a %b %e %T %Y" but it's also supposed to be locale aware, so we are using the 
                                     // C# standard format instead
-                                    result.Append(upperCaseFlag ? value.ToString("F", context.CultureInfo).ToUpper() : value.ToString("F", context.CultureInfo));
+                                    result.Append(upperCaseFlag ? value.ToString("F", context.CultureInfo).ToUpper(context.CultureInfo) : value.ToString("F", context.CultureInfo));
                                     break;
                                 }
                             case 'C': result.Append(Format(value.Year / 100, 2)); break;
-                            case 'd': result.Append(Format(value.Day, 2)); break; 
+                            case 'd': result.Append(Format(value.Day, 2)); break;
                             case 'D':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%m/%d/%y", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                    var sb = new ValueStringBuilder(16);
+                                    ForStrf(value, "%m/%d/%y", ref sb);
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
-                            case 'e': useSpaceForPaddingFlag = true; result.Append(Format(value.Day, 2));
+                            case 'e':
+                                useSpaceForPaddingFlag = true; result.Append(Format(value.Day, 2));
                                 break;
                             case 'F':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%Y-%m-%d", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                    var sb = new ValueStringBuilder(16);
+                                    ForStrf(value, "%Y-%m-%d", ref sb);
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
                             case 'g':
@@ -438,7 +639,7 @@ namespace Fluid.Filters
                                     break;
                                 }
                             case 'h':
-                                ForStrf(value, "%b", result);
+                                ForStrf(value, "%b", ref result);
                                 break;
                             case 'H':
                                 result.Append(value.ToString("HH"));
@@ -456,7 +657,7 @@ namespace Fluid.Filters
                                     break;
                                 }
                             case 'j': result.Append(Format(value.DayOfYear, 3)); break;
-                            case 'k': result.Append(value.Hour); break;
+                            case 'k': result.Append(value.Hour.ToString(CultureInfo.InvariantCulture)); break;
                             case 'l':
                                 {
                                     useSpaceForPaddingFlag = true;
@@ -479,22 +680,22 @@ namespace Fluid.Filters
                             case 'N':
                                 width ??= 9;
                                 var v = (value.Ticks % 10000000).ToString(context.CultureInfo);
-                                result.Append(v.Length >= width ? v.Substring(0, width.Value) : v.PadRight(width.Value, '0')); 
+                                result.Append(v.Length >= width ? v.Substring(0, width.Value) : v.PadRight(width.Value, '0'));
                                 break;
-                            case 'p': result.Append(value.ToString("tt", context.CultureInfo).ToUpper()); break;
-                            case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLower()); break;
+                            case 'p': result.Append(value.ToString("tt", context.CultureInfo).ToUpper(context.CultureInfo)); break;
+                            case 'P': result.Append(value.ToString("tt", context.CultureInfo).ToLower(context.CultureInfo)); break;
                             case 'r':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%I:%M:%S %p", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                    var sb = new ValueStringBuilder(32);
+                                    ForStrf(value, "%I:%M:%S %p", ref sb);
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
                             case 'R':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%H:%M", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                    var sb = new ValueStringBuilder(16);
+                                    ForStrf(value, "%H:%M", ref sb);
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
                             case 's': result.Append(Format(value.ToUnixTimeSeconds())); break;
@@ -504,12 +705,15 @@ namespace Fluid.Filters
                             case 't': result.Append(new String('\t', width ?? 1)); break;
                             case 'T':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%H:%M:%S", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                    var sb = new ValueStringBuilder(32);
+                                    ForStrf(value, "%H:%M:%S", ref sb);
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
-                            case 'u': result.Append(value.DayOfWeek switch { DayOfWeek.Sunday => 7, _ => (int)value.DayOfWeek }); break;
+                            case 'u':
+                                var dayOfWeek = ((int)value.DayOfWeek) == 0 ? 7 : (int)value.DayOfWeek;
+                                result.Append(dayOfWeek.ToString(CultureInfo.InvariantCulture));  
+                                break;
                             case 'U':
                                 {
                                     var week = context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstFullWeek, DayOfWeek.Sunday);
@@ -522,9 +726,9 @@ namespace Fluid.Filters
                                 }
                             case 'v':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%e-%b-%Y", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                    var sb = new ValueStringBuilder(32);
+                                    ForStrf(value, "%e-%b-%Y", ref sb);
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
                             case 'V': result.Append(Format(value.DayOfYear / 7 + 1, 2)); break;
@@ -536,7 +740,7 @@ namespace Fluid.Filters
                                     {
                                         week = 0;
                                     }
-                                    result.Append(Format(week, 2)); 
+                                    result.Append(Format(week, 2));
                                     break;
                                 }
                             case 'x':
@@ -544,7 +748,7 @@ namespace Fluid.Filters
                                     // x is defined as "%m/%d/%y" but it's also supposed to be locale aware, so we are using the 
                                     // C# short date pattern standard format instead
 
-                                    result.Append(upperCaseFlag ? value.ToString("d", context.CultureInfo).ToUpper() : value.ToString("d", context.CultureInfo));
+                                    result.Append(upperCaseFlag ? value.ToString("d", context.CultureInfo).ToUpper(context.CultureInfo) : value.ToString("d", context.CultureInfo));
                                     break;
                                 }
                             case 'X':
@@ -552,7 +756,7 @@ namespace Fluid.Filters
                                     // X is defined as "%T" but it's also supposed to be locale aware, so we are using the 
                                     // C# short time pattern standard format instead
 
-                                    result.Append(upperCaseFlag ? value.ToString("t", context.CultureInfo).ToUpper() : value.ToString("t", context.CultureInfo));
+                                    result.Append(upperCaseFlag ? value.ToString("t", context.CultureInfo).ToUpper(context.CultureInfo) : value.ToString("t", context.CultureInfo));
                                     break;
                                 }
                             case 'y':
@@ -573,12 +777,15 @@ namespace Fluid.Filters
                             case '%': result.Append('%'); break;
                             case '+':
                                 {
-                                    var sb = new StringBuilder();
-                                    ForStrf(value, "%a %b %e %H:%M:%S %Z %Y", sb);
-                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper() : sb.ToString());
+                                    var sb = new ValueStringBuilder(128);
+                                    ForStrf(value, "%a %b %e %H:%M:%S %Z %Y", ref sb);
+                                    result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                     break;
                                 }
-                            default: result.Append('%').Append(c); break;
+                            default: 
+                                result.Append('%');
+                                result.Append(c); 
+                                break;
                         }
 
                         percent = false;
@@ -606,6 +813,8 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> FormatDate(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("format_date", min: 0, max: 2, arguments);
+
             if (!input.TryGetDateTimeInput(context, out var value))
             {
                 return NilValue.Instance;
@@ -628,136 +837,13 @@ namespace Fluid.Filters
             return new StringValue(value.ToString(format, culture));
         }
 
-        private static async ValueTask WriteJson(Utf8JsonWriter writer, FluidValue input, TemplateContext ctx, HashSet<object> stack = null)
+        public static ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
-            switch (input.Type)
-            {
-                case FluidValues.Array:
-                    writer.WriteStartArray();
-                    foreach (var item in input.Enumerate(ctx))
-                    {
-                        await WriteJson(writer, item, ctx);
-                    }
-                    writer.WriteEndArray();
-                    break;
-                case FluidValues.Boolean:
-                    writer.WriteBooleanValue(input.ToBooleanValue());
-                    break;
-                case FluidValues.Nil:
-                    writer.WriteNullValue();
-                    break;
-                case FluidValues.Number:
-                    writer.WriteNumberValue(input.ToNumberValue());
-                    break;
-                case FluidValues.Dictionary:
-                    if (input.ToObjectValue() is IFluidIndexable dic)
-                    {
-                        writer.WriteStartObject();
-                        foreach (var key in dic.Keys)
-                        {
-                            writer.WritePropertyName(key);
-                            if (dic.TryGetValue(key, out var value))
-                            {
-                                await WriteJson(writer, value, ctx);
-                            }
-                            else
-                            {
-                                await WriteJson(writer, NilValue.Instance, ctx);
-                            }
-                        }
-
-                        writer.WriteEndObject();
-                    }
-                    else
-                    {
-                        writer.WriteNullValue();
-                    }
-                    break;
-                case FluidValues.Object:
-                    var obj = input.ToObjectValue();
-                    if (obj != null)
-                    {
-                        writer.WriteStartObject();
-                        var type = obj.GetType();
-                        var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
-                        var strategy = ctx.Options.MemberAccessStrategy;
-
-                        var conv = strategy.MemberNameStrategy;
-                        foreach (var property in properties)
-                        {
-                            var name = conv(property);
-                            var fluidValue = await input.GetValueAsync(name, ctx);
-                            if (fluidValue.IsNil())
-                            {
-                                continue;
-                            }
-
-                            stack ??= new HashSet<object>();
-                            if (fluidValue is ObjectValue)
-                            {
-                                var value = fluidValue.ToObjectValue();
-                                if (stack.Contains(value))
-                                {
-                                    fluidValue = StringValue.Create("Circular reference has been detected.");
-                                }
-                            }
-
-                            writer.WritePropertyName(name);
-                            stack.Add(obj);
-                            await WriteJson(writer, fluidValue, ctx, stack);
-                            stack.Remove(obj);
-                        }
-
-                        writer.WriteEndObject();
-                    }
-                    else
-                    {
-                        writer.WriteNullValue();
-                    }
-                    break;
-                case FluidValues.DateTime:
-                    var objValue = input.ToObjectValue();
-                    if (objValue is DateTime dateTime)
-                    {
-                        writer.WriteStringValue(dateTime);
-                    }
-                    else if (objValue is DateTimeOffset dateTimeOffset)
-                    {
-                        writer.WriteStringValue(dateTimeOffset);
-                    }
-                    else
-                    {
-                        writer.WriteStringValue(Convert.ToDateTime(objValue));
-                    }
-                    break;
-                case FluidValues.String:
-                    writer.WriteStringValue(input.ToStringValue());
-                    break;
-                case FluidValues.Blank:
-                    writer.WriteStringValue(string.Empty);
-                    break;
-                case FluidValues.Empty:
-                    writer.WriteStringValue(string.Empty);
-                    break;
-                default:
-                    throw new NotSupportedException("Unrecognized FluidValue");
-            }
-        }
-
-        public static async ValueTask<FluidValue> Json(FluidValue input, FilterArguments arguments, TemplateContext context)
-        {
-            using var ms = new MemoryStream();
-            await using (var writer = new Utf8JsonWriter(ms, new JsonWriterOptions
-            {
-                Indented = arguments.At(0).ToBooleanValue()
-            }))
-            {
-                await WriteJson(writer, input, context);
-            }
-
-            ms.Seek(0, SeekOrigin.Begin);
-            using var sr = new StreamReader(ms, Encoding.UTF8);
-            var json = await sr.ReadToEndAsync();
+            // Wrap the input in a SerializableFluidValue to provide the context to the JSON converter
+            var serializableValue = new SerializableFluidValue(input, context);
+            
+            // Cast to FluidValue to ensure the converter from the base class is used
+            var json = JsonSerializer.Serialize<FluidValue>(serializableValue, context.JsonSerializerOptions);
             return new StringValue(json);
         }
 
@@ -803,62 +889,137 @@ namespace Fluid.Filters
 
         public static ValueTask<FluidValue> MD5(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("md5", expected: 0, arguments);
+
             var value = input.ToStringValue();
-            if (String.IsNullOrEmpty(value))
+            if (string.IsNullOrEmpty(value))
             {
                 return StringValue.Empty;
             }
 
-            using (var provider = System.Security.Cryptography.MD5.Create())
-            {
-                var builder = new StringBuilder(32);
-                foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
-                {
-                    builder.Append(b.ToString("x2").ToLower());
-                }
+            // c.f. HashingBenchmarks
 
-                return new StringValue(builder.ToString());
+#if NET6_0_OR_GREATER
+#pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
+            var hash = System.Security.Cryptography.MD5.HashData(Encoding.UTF8.GetBytes(value));
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+#pragma warning restore CA5351
+#else
+
+#pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
+            using var provider = System.Security.Cryptography.MD5.Create();
+#pragma warning restore CA5351
+            var builder = new ValueStringBuilder(stackalloc char[32]);
+#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+#pragma warning restore CA1850
+            {
+                builder.Append(b.ToString("x2"));
             }
+
+            return new StringValue(builder.ToString());
+#endif
         }
 
         public static ValueTask<FluidValue> Sha1(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
             var value = input.ToStringValue();
-            if (String.IsNullOrEmpty(value))
+            if (string.IsNullOrEmpty(value))
             {
                 return StringValue.Empty;
             }
 
-            using (var provider = System.Security.Cryptography.SHA1.Create())
-            {
-                var builder = new StringBuilder(40);
-                foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
-                {
-                    builder.Append(b.ToString("x2").ToLower());
-                }
+            // c.f. HashingBenchmarks
 
-                return new StringValue(builder.ToString());
+#if NET6_0_OR_GREATER
+#pragma warning disable CA5350 // Do Not Use Broken Cryptographic Algorithms
+            var hash = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(value));
+#pragma warning restore CA5350
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+#else
+#pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
+            using var provider = System.Security.Cryptography.SHA1.Create();
+#pragma warning restore CA5350
+            var builder = new ValueStringBuilder(stackalloc char[40]);
+#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.MD5.HashData' method over 'ComputeHash'
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+#pragma warning restore CA1850
+            {
+                builder.Append(b.ToString("x2"));
             }
+
+            return new StringValue(builder.ToString());
+#endif
         }
 
         public static ValueTask<FluidValue> Sha256(FluidValue input, FilterArguments arguments, TemplateContext context)
         {
+            LiquidException.ThrowFilterArgumentsCount("sha256", expected: 0, arguments);
+
             var value = input.ToStringValue();
-            if (String.IsNullOrEmpty(value))
+            if (string.IsNullOrEmpty(value))
             {
                 return StringValue.Empty;
             }
 
-            using (var provider = System.Security.Cryptography.SHA256.Create())
-            {
-                var builder = new StringBuilder(64);
-                foreach (byte b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
-                {
-                    builder.Append(b.ToString("x2").ToLower());
-                }
+            // c.f. HashingBenchmarks
 
-                return new StringValue(builder.ToString());
+#if NET6_0_OR_GREATER
+            var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(value));
+            return new StringValue(Fluid.Utils.HexUtilities.ToHexLower(hash));
+#else
+            using var provider = System.Security.Cryptography.SHA256.Create();
+            var builder = new ValueStringBuilder(stackalloc char[64]);
+#pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.SHA256.HashData' method over 'ComputeHash'
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+#pragma warning restore CA1850
+            {
+                builder.Append(b.ToString("x2"));
             }
+
+            return new StringValue(builder.ToString());
+#endif
+        }
+
+        public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("HMACSHA1", input, arguments);
+
+        public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("HMACSHA256", input, arguments);
+
+        private static ValueTask<FluidValue> ComputeHmac(string algorithm, FluidValue input, FilterArguments arguments)
+        {
+            var key = arguments.At(0);
+            if (key.IsNil() || input.IsNil())
+            {
+                return StringValue.Empty;
+            }
+
+            var value = input.ToStringValue();
+            var keyBytes = Encoding.UTF8.GetBytes(key.ToStringValue());
+
+#if NET6_0_OR_GREATER
+#pragma warning disable CA5350
+            var hash = algorithm switch
+            {
+                "HMACSHA1" => HMACSHA1.HashData(keyBytes, Encoding.UTF8.GetBytes(value)),
+                "HMACSHA256" => HMACSHA256.HashData(keyBytes, Encoding.UTF8.GetBytes(value)),
+                _ => throw new ArgumentException("Unsupported HMAC algorithm", nameof(algorithm))
+            };
+#pragma warning restore CA5350
+
+            return new StringValue(HexUtilities.ToHexLower(hash));
+#else
+            using var provider = HMAC.Create(algorithm); 
+            provider.Key = keyBytes;
+            var builder = new ValueStringBuilder(stackalloc char[64]);
+#pragma warning disable CA1850
+            foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))
+#pragma warning restore CA1850
+            {
+                builder.Append(b.ToString("x2"));
+            }
+
+            return new StringValue(builder.ToString());
+#endif
         }
     }
 }

@@ -3,6 +3,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace Fluid.Tests.Domain.WithInterfaces
 {
@@ -42,12 +43,12 @@ namespace Fluid.Tests.Domain.WithInterfaces
             throw new NotImplementedException();
         }
 
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
             throw new NotImplementedException();
         }
 
-        protected override FluidValue GetValue(string name, TemplateContext context)
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             if (name == "Name")
             {

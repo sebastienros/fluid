@@ -1,11 +1,7 @@
 ﻿using Fluid.Ast;
 using Fluid.Parser;
-using Parlot.Fluent;
-using System;
-using System.Collections.Generic;
-using System.IO;
+using Fluid.Utils;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Fluid
 {
@@ -64,13 +60,15 @@ namespace Fluid
             return parser.TryParse(template, out result, out _);
         }
 
-        public static ValueTask<Completion> RenderStatementsAsync(this IReadOnlyList<Statement> statements, TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public static ValueTask<Completion> RenderStatementsAsync(this IReadOnlyList<Statement> statements, IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
+            output = LimitedFluidOutput.Create(output, context.MaxOutputSize);
+
             static async ValueTask<Completion> Awaited(
                 ValueTask<Completion> task,
-                int startIndex, 
+                int startIndex,
                 IReadOnlyList<Statement> statements,
-                TextWriter writer,
+                IFluidOutput output,
                 TextEncoder encoder,
                 TemplateContext context)
             {
@@ -84,8 +82,8 @@ namespace Fluid
                 for (var i = startIndex; i < statements.Count; i++)
                 {
                     var statement = statements[i];
-                    completion = await statement.WriteToAsync(writer, encoder, context);
-                
+                    completion = await statement.WriteToAsync(output, encoder, context);
+
                     if (completion != Completion.Normal)
                     {
                         // Stop processing the block statements
@@ -97,26 +95,26 @@ namespace Fluid
                 return Completion.Normal;
             }
 
-            
+
             for (var i = 0; i < statements.Count; i++)
             {
                 var statement = statements[i];
-                var task = statement.WriteToAsync(writer, encoder, context);
+                var task = statement.WriteToAsync(output, encoder, context);
                 if (!task.IsCompletedSuccessfully)
                 {
-                    return Awaited(task, i + 1, statements, writer, encoder, context);
+                    return Awaited(task, i + 1, statements, output, encoder, context);
                 }
-                
+
                 var completion = task.Result;
                 if (completion != Completion.Normal)
                 {
                     // Stop processing the block statements
                     // We return the completion to flow it to the outer loop
-                    return new ValueTask<Completion>(completion);
+                    return Statement.FromCompletion(completion);
                 }
             }
 
-            return new ValueTask<Completion>(Completion.Normal);
+            return Statement.NormalCompletion;
         }
     }
 }

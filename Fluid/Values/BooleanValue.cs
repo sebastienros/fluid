@@ -1,5 +1,5 @@
-﻿using System.Globalization;
-using System.IO;
+using Fluid.Utils;
+using System.Globalization;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
@@ -29,8 +29,13 @@ namespace Fluid.Values
         public override bool Equals(FluidValue other)
         {
             // blank == false -> true
-            if (other.Type == FluidValues.Blank) return _value == false;
-            
+            if (other.Type == FluidValues.Blank) return !_value;
+
+            if (other.Type != FluidValues.Boolean)
+            {
+                return false;
+            }
+
             return _value == other.ToBooleanValue();
         }
 
@@ -49,10 +54,16 @@ namespace Fluid.Values
             return _value ? "true" : "false";
         }
 
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-            writer.Write(encoder.Encode(ToStringValue()));
+            AssertWriteToParameters(output, encoder, cultureInfo);
+            output.Write(encoder, ToStringValue());
+            return default;
+        }
+
+        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        {
+            return [this];
         }
 
         public override object ToObjectValue()
@@ -60,10 +71,10 @@ namespace Fluid.Values
             return _value ? BoxedTrue : BoxedFalse;
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
             // The is operator will return false if null
-            if (other is BooleanValue otherValue)
+            if (obj is BooleanValue otherValue)
             {
                 return _value.Equals(otherValue._value);
             }

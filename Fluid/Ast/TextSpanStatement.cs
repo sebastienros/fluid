@@ -1,27 +1,31 @@
-﻿using Parlot;
-using System.IO;
+﻿using Fluid.Utils;
+using Parlot;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
-using Fluid.Utils;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public sealed class TextSpanStatement : Statement
+    public sealed class TextSpanStatement : Statement, ISourceable
     {
-        private bool _isStripped;
-        private bool _isEmpty;
-        private readonly object _synLock = new();
+        private bool _isBufferPrepared;
+        private readonly Lock _synLock = new();
         private TextSpan _text;
-        private string _buffer;
+        internal string _preparedBuffer;
+        private readonly bool _isWhitespaceOrCommentOnly;
 
         public TextSpanStatement(in TextSpan text)
         {
             _text = text;
+
+            #if NET6_0_OR_GREATER
+                _isWhitespaceOrCommentOnly = _text.Span.IsWhiteSpace();
+            #else
+                _isWhitespaceOrCommentOnly = string.IsNullOrWhiteSpace(_text.ToString());
+            #endif
         }
 
-        public TextSpanStatement(string text)
+        public TextSpanStatement(string text) : this(new TextSpan(text))
         {
-            _text = new TextSpan(text);
         }
 
         public bool StripLeft { get; set; }
@@ -34,138 +38,156 @@ namespace Fluid.Ast
 
         public ref readonly TextSpan Text => ref _text;
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public string Buffer => _preparedBuffer;
+
+        public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
+        public void PrepareBuffer(TemplateOptions options)
         {
-            if (!_isStripped)
+            if (_isBufferPrepared)
             {
-                // Prevent two threads from strsipping the same statement in case WriteToAsync is called concurrently
-                // 
-                lock (_synLock)
-                {
-                    if (!_isStripped)
-                    {
-                        var trimming = context.Options.Trimming;
-                        StripLeft |=
-                            (PreviousIsTag && (trimming & TrimmingFlags.TagRight) != 0) ||
-                            (PreviousIsOutput && (trimming & TrimmingFlags.OutputRight) != 0)
-                            ;
-
-                        StripRight |=
-                            (NextIsTag && (trimming & TrimmingFlags.TagLeft) != 0) ||
-                            (NextIsOutput && (trimming & TrimmingFlags.OutputLeft) != 0)
-                            ;
-
-                        var span = _text.Buffer;
-                        var start = 0;
-                        var end = _text.Length - 1;
-
-                        // Does this text need to have its left part trimmed?
-                        if (StripLeft)
-                        {
-                            var firstNewLine = -1;
-
-                            for (var i = start; i <= end; i++)
-                            {
-                                var c = span[_text.Offset + i];
-
-                                if (Character.IsWhiteSpaceOrNewLine(c))
-                                {
-                                    start++;
-
-                                    if (firstNewLine == -1 && (c == '\n'))
-                                    {
-                                        firstNewLine = start;
-                                    }
-                                }
-                                else
-                                {
-                                    break;
-                                }
-                            }
-
-                            if (!context.Options.Greedy)
-                            {
-                                if (firstNewLine != -1)
-                                {
-                                    start = firstNewLine;
-                                }
-                            }
-                        }
-
-                        // Does this text need to have its right part trimmed?
-                        if (StripRight)
-                        {
-                            var lastNewLine = -1;
-
-                            for (var i = end; i >= start; i--)
-                            {
-                                var c = span[_text.Offset + i];
-
-                                if (Character.IsWhiteSpaceOrNewLine(c))
-                                {
-                                    if (lastNewLine == -1 && c == '\n')
-                                    {
-                                        lastNewLine = end;
-                                    }
-
-                                    end--;
-                                }
-                                else
-                                {
-                                    break;
-                                }
-                            }
-
-                            if (!context.Options.Greedy)
-                            {
-                                if (lastNewLine != -1)
-                                {
-                                    end = lastNewLine;
-                                }
-                            }
-                        }
-                        if (end - start + 1 == 0)
-                        {
-                            _isEmpty = true;
-                        }
-                        else if (start != 0 || end != _text.Length - 1)
-                        {
-                            var offset = _text.Offset;
-                            var buffer = _text.Buffer;
-
-                            _text = new TextSpan(buffer, offset + start, end - start + 1);
-                        }
-
-                        _buffer = _text.ToString();
-                        _isStripped = true;
-                    }
-                }
+                return;
             }
 
-            if (_isEmpty)
+            // Prevent two threads from stripping the same statement in case WriteToAsync is called concurrently
+            lock (_synLock)
             {
-                return new ValueTask<Completion>(Completion.Normal);
+                if (!_isBufferPrepared)
+                {
+                    var trimming = options.Trimming;
+                    StripLeft |=
+                        (PreviousIsTag && (trimming & TrimmingFlags.TagRight) != 0) ||
+                        (PreviousIsOutput && (trimming & TrimmingFlags.OutputRight) != 0)
+                        ;
+
+                    StripRight |=
+                        (NextIsTag && (trimming & TrimmingFlags.TagLeft) != 0) ||
+                        (NextIsOutput && (trimming & TrimmingFlags.OutputLeft) != 0)
+                        ;
+
+                    var span = _text.Buffer;
+                    var start = 0;
+                    var end = _text.Length - 1;
+
+                    // Does this text need to have its left part trimmed?
+                    if (StripLeft)
+                    {
+                        var firstNewLine = -1;
+
+                        for (var i = start; i <= end; i++)
+                        {
+                            var c = span[_text.Offset + i];
+
+                            if (Character.IsWhiteSpaceOrNewLine(c))
+                            {
+                                start++;
+
+                                if (firstNewLine == -1 && (c == '\n'))
+                                {
+                                    firstNewLine = start;
+                                }
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+
+                        if (!options.Greedy)
+                        {
+                            if (firstNewLine != -1)
+                            {
+                                start = firstNewLine;
+                            }
+                        }
+                    }
+
+                    // Does this text need to have its right part trimmed?
+                    if (StripRight)
+                    {
+                        var lastNewLine = -1;
+
+                        for (var i = end; i >= start; i--)
+                        {
+                            var c = span[_text.Offset + i];
+
+                            if (Character.IsWhiteSpaceOrNewLine(c))
+                            {
+                                if (lastNewLine == -1 && c == '\n')
+                                {
+                                    lastNewLine = end;
+                                }
+
+                                end--;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+
+                        if (!options.Greedy)
+                        {
+                            if (lastNewLine != -1)
+                            {
+                                end = lastNewLine;
+                            }
+                        }
+                    }
+                    if (end - start + 1 == 0)
+                    {
+                        _text = "";
+                    }
+                    else if (start != 0 || end != _text.Length - 1)
+                    {
+                        var offset = _text.Offset;
+                        var buffer = _text.Buffer;
+
+                        _text = new TextSpan(buffer, offset + start, end - start + 1);
+                    }
+
+                    _preparedBuffer = _text.ToString();
+                    _isBufferPrepared = true;
+                }
+            }
+        }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitTextSpanStatement(this);
+
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+        {
+            if (!_isBufferPrepared)
+            {
+                PrepareBuffer(context.Options);
+            }
+
+            if (_preparedBuffer == "")
+            {
+                return Statement.NormalCompletion;
             }
 
             context.IncrementSteps();
 
             // The Text fragments are not encoded, but kept as-is
 
-            // Since WriteAsync needs an actual buffer, we created and reused _buffer
+            output.Write(_preparedBuffer);
 
-            static async ValueTask<Completion> Awaited(Task task)
+            return Statement.NormalCompletion;
+        }
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            // Source generation assumes TemplateOptions.Trimming == TrimmingFlags.None.
+            // Emit the raw text span as a cached static string without allocating _text.ToString().
+            if (_text.Length == 0)
             {
-                await task;
-                return Completion.Normal;
+                context.WriteLine("return Completion.Normal;");
+                return;
             }
 
-            var task = writer.WriteAsync(_buffer);
-            if (!task.IsCompletedSuccessfully())
-            {
-                return Awaited(task);
-            }
-
-            return new ValueTask<Completion>(Completion.Normal);
+            var textField = context.GetOrAddStaticString(_text.Buffer, _text.Offset, _text.Length);
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+            context.WriteLine($"{context.WriterName}.Write({textField});");
+            context.WriteLine("return Completion.Normal;");
         }
     }
 }

@@ -1,9 +1,8 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 
 namespace Fluid
 {
-    public class FilterCollection : IEnumerable<KeyValuePair<string, FilterDelegate>>
+    public sealed class FilterCollection : IEnumerable<KeyValuePair<string, FilterDelegate>>
     {
         private Dictionary<string, FilterDelegate> _filters;
 
@@ -15,17 +14,29 @@ namespace Fluid
             }
         }
 
-        public int Count => _filters == null ? 0 : _filters.Count;
+        private int _version;
 
-#if NETSTANDARD2_1
-        public void EnsureCapacity(int capacity) => _filters.EnsureCapacity(capacity);
-#endif
+        /// <summary>
+        /// Changes whenever the content of the collection changes, so that call sites can cache a
+        /// resolved <see cref="FilterDelegate"/> and detect when the cached value became stale.
+        /// </summary>
+        /// <remarks>
+        /// Read as an acquire so the dictionary probe that follows can't be reordered ahead of it, and
+        /// incremented atomically so a preempted writer can't roll the counter back onto a value a call
+        /// site has already cached. Note this only orders the version itself: mutating the collection
+        /// while templates render concurrently is still unsupported, because the backing dictionary is
+        /// not thread-safe.
+        /// </remarks>
+        internal int Version => Volatile.Read(ref _version);
+
+        public int Count => _filters == null ? 0 : _filters.Count;
 
         public void AddFilter(string name, FilterDelegate d)
         {
             _filters ??= new Dictionary<string, FilterDelegate>();
 
             _filters[name] = d;
+            Interlocked.Increment(ref _version);
         }
 
         public bool TryGetValue(string name, out FilterDelegate filter)
@@ -40,6 +51,7 @@ namespace Fluid
             if (_filters != null)
             {
                 _filters.Remove(name);
+                Interlocked.Increment(ref _version);
             }
         }
 
@@ -48,6 +60,7 @@ namespace Fluid
             if (_filters != null)
             {
                 _filters.Clear();
+                Interlocked.Increment(ref _version);
             }
         }
 

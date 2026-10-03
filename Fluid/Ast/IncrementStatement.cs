@@ -1,11 +1,10 @@
-﻿using System.IO;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 using Fluid.Values;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public class IncrementStatement : Statement
+    public sealed class IncrementStatement : Statement, ISourceable
     {
         public const string Prefix = "$$incdec$$$";
         public IncrementStatement(string identifier)
@@ -15,7 +14,9 @@ namespace Fluid.Ast
 
         public string Identifier { get; }
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override bool IsWhitespaceOrCommentOnly => true;
+
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
@@ -27,20 +28,66 @@ namespace Fluid.Ast
 
             var value = context.GetValue(prefixedIdentifier);
 
+            decimal current;
             if (value.IsNil())
             {
+                current = 0;
                 value = NumberValue.Zero;
             }
             else
             {
-                value = NumberValue.Create(value.ToNumberValue() + 1);
+                current = value.ToNumberValue();
             }
 
-            context.SetValue(prefixedIdentifier, value);
+            var nextValue = NumberValue.Create(current + 1);
 
-            value.WriteTo(writer, encoder, context.CultureInfo);
+            // Increment renders the value before incrementing it.
+            var task = value.WriteToAsync(output, encoder, context.CultureInfo);
+            if (task.IsCompletedSuccessfully)
+            {
+                context.SetValue(prefixedIdentifier, nextValue);
+                return Statement.NormalCompletion;
+            }
 
-            return Normal();
+            return Awaited(task, context, prefixedIdentifier, nextValue);
+
+            static async ValueTask<Completion> Awaited(ValueTask t, TemplateContext ctx, string key, FluidValue next)
+            {
+                await t;
+                ctx.SetValue(key, next);
+                return Completion.Normal;
+            }
+        }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIncrementStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            var identifierLit = SourceGenerationContext.ToCSharpStringLiteral(Identifier ?? "");
+
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+            context.WriteLine($"var prefixedIdentifier = {SourceGenerationContext.ToCSharpStringLiteral(Prefix)} + {identifierLit};");
+            context.WriteLine($"var value = {context.ContextName}.GetValue(prefixedIdentifier);");
+            context.WriteLine("decimal current;");
+            context.WriteLine("if (value.IsNil())");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("current = 0;");
+                context.WriteLine("value = NumberValue.Zero;");
+            }
+            context.WriteLine("}");
+            context.WriteLine("else");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"current = value.ToNumberValue({context.ContextName});");
+            }
+            context.WriteLine("}");
+            context.WriteLine("var nextValue = NumberValue.Create(current + 1);");
+            context.WriteLine($"{context.ContextName}.SetValue(prefixedIdentifier, nextValue);");
+            context.WriteLine($"await value.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName}.CultureInfo);");
+            context.WriteLine("return Completion.Normal;");
         }
     }
 }

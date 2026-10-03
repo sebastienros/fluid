@@ -12,8 +12,10 @@ namespace Fluid.MvcViewEngine
         public FluidViewEngineOptionsSetup(IWebHostEnvironment webHostEnvironment)
             : base(options =>
             {
-                options.PartialsFileProvider = new FileProviderMapper(webHostEnvironment.ContentRootFileProvider, "Views");
-                options.ViewsFileProvider = new FileProviderMapper(webHostEnvironment.ContentRootFileProvider, "Views");
+                var fileProvider = new FileProviderMapper(webHostEnvironment.ContentRootFileProvider, "Views");
+                options.PartialsFileProvider = fileProvider;
+                options.ViewsFileProvider = fileProvider;
+                options.ViewLocationFileProvider = fileProvider;
 
                 options.ViewsLocationFormats.Clear();
                 options.ViewsLocationFormats.Add("/{1}/{0}" + Constants.ViewExtension);

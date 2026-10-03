@@ -1,4 +1,4 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using Fluid.Values;
 using System;
 using System.Globalization;
@@ -28,7 +28,6 @@ namespace Fluid.Tests
         {
             await Task.Delay(10);
             var templateContext = new TemplateContext();
-            templateContext.Options.MemberAccessStrategy.Register(typeof(TestClass));
         }
 
         [Fact]
@@ -37,8 +36,8 @@ namespace Fluid.Tests
             _parser.TryParse("{{ p.NaMe }}", out var template, out var error);
 
             var options = new TemplateOptions();
-            options.Scope.SetValue("o1", new StringValue("o1"));
-            options.Scope.SetValue("o2", new StringValue("o2"));
+            options.GlobalValues.SetValue("o1", new StringValue("o1"));
+            options.GlobalValues.SetValue("o2", new StringValue("o2"));
 
             var context = new TemplateContext(options);
             context.SetValue("o2", "new o2");
@@ -102,7 +101,7 @@ namespace Fluid.Tests
             // NB: Based on a previous implementation what would cache accessors too aggressively
 
             FluidParser parser = new();
-            var options = new TemplateOptions { MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance };
+            var options = new TemplateOptions();
             var template = parser.Parse("{% if Model1 %}{{ Model1.Name }}{% endif %}");
 
             var model1 = new { Model1 = new { Name = "model1" } };
@@ -124,8 +123,8 @@ namespace Fluid.Tests
             template.Render(context);
 
             Assert.Equal("World", context.GetValue("text1").ToStringValue());
-            Assert.DoesNotContain("greetings", context.ValueNames);
-            Assert.DoesNotContain("foo", context.ValueNames);
+            Assert.DoesNotContain("greetings", context.LocalScope.Properties);
+            Assert.DoesNotContain("foo", context.LocalScope.Properties);
         }
 
         [Fact]
@@ -137,18 +136,17 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task ShouldNotReleaseScopeAsynchronously()
+        public async Task ShouldRestoreScopeAsynchronously()
         {
             var parser = new FluidParser();
 
             parser.RegisterEmptyBlock("sleep", async (statements, writer, encoder, context) =>
             {
-                context.EnterChildScope();
+                using var scope = context.EnterScope(ScopeBehavior.Local);
                 context.IncrementSteps();
                 context.SetValue("id", "0");
                 await Task.Delay(100);
                 await statements.RenderStatementsAsync(writer, encoder, context);
-                context.ReleaseScope();
                 return Completion.Normal;
             });
 
@@ -159,6 +157,177 @@ namespace Fluid.Tests
             var output = await template.RenderAsync(context);
 
             Assert.Equal("101", output);
+        }
+        
+        [Fact]
+        public void ShouldUseCustomStringComparer()
+        {
+            var context = new TemplateContext(StringComparer.OrdinalIgnoreCase);
+            context.SetValue("PageState", "insert");
+
+            Assert.Equal("insert", context.GetValue("pageState").ToStringValue());
+        }
+
+        [Fact]
+        public void ShouldUseTemplateOptionsStringComparer()
+        {
+            var options = new TemplateOptions { ModelNamesComparer = StringComparer.OrdinalIgnoreCase };
+            var context = new TemplateContext(options);
+            context.SetValue("PageState", "insert");
+
+            Assert.Equal("insert", context.GetValue("pageState").ToStringValue());
+        }
+
+        [Fact]
+        public void ShouldUseTemplateOptionsStringComparerWithCaseSensitive()
+        {
+            var options = new TemplateOptions { ModelNamesComparer = StringComparer.Ordinal };
+            var context = new TemplateContext(options);
+            context.SetValue("case", "lower");
+            context.SetValue("CASE", "upper");
+            context.SetValue("Case", "mixed");
+
+            Assert.Equal("lowerupper", context.GetValue("case").ToStringValue() + context.GetValue("CASE").ToStringValue());
+        }
+
+        [Fact]
+        public void ChildScopeShouldInheritComparerFromEmptyParent()
+        {
+            var context = new TemplateContext(new TemplateOptions
+            {
+                ModelNamesComparer = StringComparer.OrdinalIgnoreCase
+            });
+
+            using var scope = context.EnterScope();
+            context.SetValue("PageState", "insert");
+
+            Assert.Equal("insert", context.GetValue("pageState").ToStringValue());
+        }
+
+        [Fact]
+        public void ScopeBehaviorsShouldControlLookupAndAssignment()
+        {
+            var options = new TemplateOptions();
+            options.GlobalValues.SetValue("global", new StringValue("global"));
+
+            var context = new TemplateContext(options);
+            context.SetValue("root", "root");
+
+            using (context.EnterScope(ScopeBehavior.Local))
+            {
+                context.SetValue("outer", "outer");
+
+                using (context.EnterScope(ScopeBehavior.Isolated))
+                {
+                    Assert.Equal("root", context.GetValue("root").ToStringValue());
+                    Assert.Equal("global", context.GetValue("global").ToStringValue());
+                    Assert.True(context.GetValue("outer").IsNil());
+                }
+
+                using (context.EnterScope(ScopeBehavior.WriteThrough))
+                {
+                    context.LocalScope.SetOwnValue("temporary", new StringValue("temporary"));
+                    context.SetValue("persisted", "persisted");
+                }
+
+                Assert.True(context.GetValue("temporary").IsNil());
+                Assert.Equal("persisted", context.GetValue("persisted").ToStringValue());
+            }
+
+            Assert.True(context.GetValue("outer").IsNil());
+            Assert.True(context.GetValue("persisted").IsNil());
+        }
+
+        [Fact]
+        public void ScopeLeasesMustBeDisposedInReverseOrder()
+        {
+            var context = new TemplateContext();
+            var outer = context.EnterScope();
+            var inner = context.EnterScope();
+
+            Assert.Throws<InvalidOperationException>(() => outer.Dispose());
+
+            inner.Dispose();
+            outer.Dispose();
+        }
+
+        [Fact]
+        public void SetValue_WithNull_ShouldUseNilValue()
+        {
+            // This test verifies that setting null uses NilValue.Instance
+            // Changing to EmptyValue.Instance would break equality semantics
+            var context = new TemplateContext();
+            context.SetValue("nullVar", (object)null);
+
+            var value = context.GetValue("nullVar");
+
+            // NilValue equals NilValue.Instance
+            Assert.True(value.Equals(NilValue.Instance));
+            
+            // NilValue does NOT equal EmptyValue.Instance
+            Assert.False(value.Equals(EmptyValue.Instance));
+            
+            // NilValue converts to boolean false
+            Assert.False(value.ToBooleanValue());
+        }
+
+        [Fact]
+        public async Task SetValue_WithNull_NilEqualityInTemplates()
+        {
+            // This test verifies nil equality behavior in templates
+            // EmptyValue has different equality semantics than NilValue
+            _parser.TryParse("{% if nullVar == nil %}nil{% endif %}{% if nullVar == empty %}empty{% endif %}", out var template, out var _);
+
+            var context = new TemplateContext();
+            context.SetValue("nullVar", (object)null);
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("nil", result);
+        }
+
+        [Fact]
+        public async Task SetValue_WithUndefined_NilEqualityInTemplates()
+        {
+            // This test verifies nil equality behavior in templates
+            // EmptyValue has different equality semantics than NilValue
+            _parser.TryParse("{% if nullVar == nil %}nil{% endif %}{% if nullVar == empty %}empty{% endif %}", out var template, out var _);
+
+            var context = new TemplateContext();
+
+            var result = await template.RenderAsync(context);
+            Assert.Equal("nil", result);
+        }
+        
+        [Fact]
+        public async Task SetValue_WithNull_BooleanConversionInTemplates()
+        {
+            // This test verifies that null values are falsy in conditionals
+            // EmptyValue.ToBooleanValue() returns true, NilValue returns false
+            _parser.TryParse("{% if nullVar %}truthy{% else %}falsy{% endif %}", out var template, out var _);
+
+            var context = new TemplateContext();
+            context.SetValue("nullVar", (object)null);
+
+            var result = await template.RenderAsync(context);
+            
+            // With NilValue, null is falsy and should render "falsy"
+            // With EmptyValue, it would render "truthy"
+            Assert.Equal("falsy", result);
+        }
+
+        [Fact]
+        public async Task SetValue_WithNull_UnlessConditional()
+        {
+            // This test verifies unless conditional with null values
+            _parser.TryParse("{% unless nullVar %}rendered{% endunless %}", out var template, out var _);
+
+            var context = new TemplateContext();
+            context.SetValue("nullVar", (object)null);
+
+            var result = await template.RenderAsync(context);
+            
+            // With NilValue (falsy), unless should render the content
+            Assert.Equal("rendered", result);
         }
 
         private class TestClass

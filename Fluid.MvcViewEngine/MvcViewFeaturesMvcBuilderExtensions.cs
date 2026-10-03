@@ -10,10 +10,7 @@ namespace Fluid.MvcViewEngine
     {
         public static IMvcBuilder AddFluid(this IMvcBuilder builder, Action<FluidViewEngineOptions> setupAction = null)
         {
-            if (builder == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(builder));
-            }
+            ArgumentNullException.ThrowIfNull(builder);
 
             builder.Services.AddOptions();
             builder.Services.AddTransient<IConfigureOptions<FluidMvcViewOptions>, FluidViewEngineOptionsSetup>();

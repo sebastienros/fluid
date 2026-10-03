@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using Fluid.Values;
 
 namespace Fluid
@@ -8,7 +7,7 @@ namespace Fluid
     /// Represents the list of arguments that are passed to a <see cref="FilterDelegate"/>
     /// when invoked.
     /// </summary>
-    public class FilterArguments
+    public sealed class FilterArguments
     {
         public static readonly FilterArguments Empty = new FilterArguments();
 
@@ -64,18 +63,12 @@ namespace Fluid
         {
             if (name != null)
             {
-                if (_named == null)
-                {
-                    _named = new Dictionary<string, FluidValue>();
-                }
+                _named ??= new Dictionary<string, FluidValue>();
 
                 _named.Add(name, value);
             }
 
-            if (_positional == null)
-            {
-                _positional = new List<FluidValue>();
-            }
+            _positional ??= new List<FluidValue>();
 
             _positional.Add(value);
 
@@ -86,8 +79,35 @@ namespace Fluid
 
         public IEnumerable<FluidValue> Values => _positional;
 
+        public FluidValue GetFirstPositional()
+        {
+            if (_positional == null || _positional.Count == 0)
+            {
+                return NilValue.Instance;
+            }
+
+            // Get the set of values that are named arguments
+            var namedValues = new HashSet<FluidValue>(_named?.Values ?? Enumerable.Empty<FluidValue>());
+            
+            // Find the first positional value that is not a named argument
+            foreach (var value in _positional)
+            {
+                if (!namedValues.Contains(value))
+                {
+                    return value;
+                }
+            }
+
+            return NilValue.Instance;
+        }
+
         internal object[] ValuesToObjectArray()
         {
+            if (_positional == null || _positional.Count == 0)
+            {
+                return Array.Empty<object>();
+            }
+
             var array = new object[_positional.Count];
             for (var i = 0; i < array.Length; ++i)
             {

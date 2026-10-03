@@ -1,51 +1,144 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using Fluid.Values;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
-using Fluid.Values;
+using Fluid.SourceGeneration;
+using System.Runtime.CompilerServices;
 
 namespace Fluid.Ast
 {
-    public sealed class CycleStatement : Statement
+    public sealed class CycleStatement : Statement, ISourceable
     {
-        private readonly Expression[] _values;
+        private const string CycleRegisterKey = "$$cycle$$";
 
-        public CycleStatement(Expression group, Expression[] values)
-        {
-            Group = group;
-            _values = values;
-        }
-
-        public CycleStatement(Expression group, IList<Expression> values)
-        {
-            Group = group;
-            _values = values.ToArray();
-        }
+        public IReadOnlyList<Expression> Values;
 
         public Expression Group { get; }
-        public IList<Expression> Values2 { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        private readonly string _unnamedKey;
+
+        public CycleStatement(Expression group, IReadOnlyList<Expression> values)
+        {
+            Group = group;
+            Values = values;
+
+            if (Group is null)
+            {
+                // Shopify Liquid quirk: unnamed cycles that include lookups have independent counters per call site,
+                // even if they evaluate to the same values. Literal-only unnamed cycles share counters.
+                var hasLookup = Values.Any(static e => e is MemberExpression);
+
+                _unnamedKey = hasLookup
+                    ? "cycle_stmt_" + RuntimeHelpers.GetHashCode(this)
+                    : "cycle_" + string.Join(",", Values.Select(static e => e.ToString()));
+            }
+        }
+
+        public override bool IsWhitespaceOrCommentOnly => true;
+
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
-            var groupValue = Group == null ? "$cycle_" : "$cycle_" + (await Group.EvaluateAsync(context)).ToStringValue();
+            var key = await GetKeyAsync(context);
 
-            var currentValue = context.GetValue(groupValue);
-
-            if (currentValue.IsNil())
+            if (!context.AmbientValues.TryGetValue(CycleRegisterKey, out var registerObj) || registerObj is not Dictionary<string, int> register)
             {
-                currentValue = NumberValue.Zero;
+                register = new Dictionary<string, int>();
+                context.AmbientValues[CycleRegisterKey] = register;
             }
 
-            var index = (uint) currentValue.ToNumberValue() % _values.Length;
-            var value = await _values[index].EvaluateAsync(context);
-            context.SetValue(groupValue, NumberValue.Create(index + 1));
+            register.TryGetValue(key, out var iteration);
 
-            value.WriteTo(writer, encoder, context.CultureInfo);
+            // Shopify Liquid: do not modulo the index. If the counter is larger than the number of values,
+            // it evaluates to nil (renders nothing) and then the counter is reset.
+            FluidValue value;
+
+            if ((uint)iteration < (uint)Values.Count)
+            {
+                value = await Values[iteration].EvaluateAsync(context);
+            }
+            else
+            {
+                value = NilValue.Instance;
+            }
+
+            await value.WriteToAsync(output, encoder, context.CultureInfo);
+
+            iteration++;
+            if (Values.Count == 0 || iteration >= Values.Count)
+            {
+                iteration = 0;
+            }
+
+            register[key] = iteration;
 
             return Completion.Normal;
+        }
+
+        private async ValueTask<string> GetKeyAsync(TemplateContext context)
+        {
+            if (Group is null)
+            {
+                return _unnamedKey ?? "cycle_";
+            }
+
+            var groupValue = await Group.EvaluateAsync(context);
+            // Ruby Liquid uses the evaluated object as a hash key (nil is valid). We approximate this with a string key.
+            return "named_" + (groupValue.IsNil() ? string.Empty : groupValue.ToStringValue());
+        }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitCycleStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+
+            if (Group is null)
+            {
+                context.WriteLine($"var key = {SourceGenerationContext.ToCSharpStringLiteral(_unnamedKey ?? "cycle_")};");
+            }
+            else
+            {
+                var groupExpr = context.GetExpressionMethodName(Group);
+                context.WriteLine($"var groupValue = await {groupExpr}({context.ContextName});");
+                context.WriteLine("var key = \"named_\" + (groupValue.IsNil() ? string.Empty : groupValue.ToStringValue());");
+            }
+
+            context.WriteLine($"if (!{context.ContextName}.AmbientValues.TryGetValue(\"{CycleRegisterKey}\", out var registerObj) || registerObj is not Dictionary<string, int> register)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("register = new Dictionary<string, int>();");
+                context.WriteLine($"{context.ContextName}.AmbientValues[\"{CycleRegisterKey}\"] = register;");
+            }
+            context.WriteLine("}");
+            context.WriteLine();
+            context.WriteLine("register.TryGetValue(key, out var iteration);");
+
+            context.WriteLine("FluidValue value;");
+            context.WriteLine("switch (iteration)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                for (var i = 0; i < Values.Count; i++)
+                {
+                    var vExpr = context.GetExpressionMethodName(Values[i]);
+                    context.WriteLine($"case {i}: value = await {vExpr}({context.ContextName}); break;");
+                }
+                context.WriteLine("default: value = NilValue.Instance; break;");
+            }
+            context.WriteLine("}");
+
+            context.WriteLine("iteration++;");
+            context.WriteLine($"if ({Values.Count} == 0 || iteration >= {Values.Count})");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("iteration = 0;");
+            }
+            context.WriteLine("}");
+            context.WriteLine("register[key] = iteration;");
+            context.WriteLine($"await value.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName}.CultureInfo);");
+            context.WriteLine("return Completion.Normal;");
         }
     }
 }

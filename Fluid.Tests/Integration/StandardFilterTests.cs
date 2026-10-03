@@ -89,15 +89,20 @@ namespace Fluid.Tests.Integration
         }
 
         [Theory]
-        [InlineData("1234...", "1234567890", 7)]
-        [InlineData("1234567890", "1234567890", 20)]
-        [InlineData("...", "1234567890", 0)]
-        [InlineData("1234567890", "1234567890")]
-        [InlineData("测试...", "测试测试测试测试", 5)]
+        [InlineData("1234...", "1234567890", 7, "...")]
+        [InlineData("1234567890", "1234567890", 20, "...")]
+        [InlineData("...", "1234567890", 0, "...")]
+        [InlineData("1234567890", "1234567890", 50, "...")]
+        [InlineData("测试...", "测试测试测试测试", 5, "...")]
         [InlineData("12341", "1234567890", 5, 1)]
-        public void TestTruncate(string expected, object input, object length = null, object truncate = null)
+        public void TestTruncate(string expected, object input, object length, object truncate)
         {
-            Assert.Equal(expected, StringFilters.Truncate(FluidValue.Create(input, TemplateOptions.Default), new FilterArguments(FluidValue.Create(length, TemplateOptions.Default), FluidValue.Create(truncate, TemplateOptions.Default)), new TemplateContext()).Result.ToObjectValue());
+            var args = length != null && truncate != null 
+                ? new FilterArguments(FluidValue.Create(length, TemplateOptions.Default), FluidValue.Create(truncate, TemplateOptions.Default))
+                : length != null
+                    ? new FilterArguments(FluidValue.Create(length, TemplateOptions.Default))
+                    : new FilterArguments();
+            Assert.Equal(expected, StringFilters.Truncate(FluidValue.Create(input, TemplateOptions.Default), args, new TemplateContext()).Result.ToObjectValue());
         }
     }    
 }

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Globalization;
-using TimeZoneConverter;
+﻿using System.Globalization;
 
 namespace Fluid.Values
 {
@@ -12,16 +10,16 @@ namespace Fluid.Values
         // The K specifier is optional when used in TryParseExact, so
         // if a TZ is not specified, it will still match
 
-        private static readonly string[] DefaultFormats = {
+        private static readonly string[] DefaultFormats = [
             "yyyy-MM-ddTHH:mm:ss.FFFK",
             "yyyy-MM-ddTHH:mm:ssK",
             "yyyy-MM-ddTHH:mmK",
             "yyyy-MM-dd",
             "yyyy-MM",
             "yyyy"
-        };
+        ];
 
-        private static readonly string[] SecondaryFormats = {
+        private static readonly string[] SecondaryFormats = [
             // Formats used in DatePrototype toString methods
             "ddd MMM dd yyyy HH:mm:ss 'GMT'K",
             "ddd MMM dd yyyy",
@@ -49,12 +47,10 @@ namespace Fluid.Values
             "THH:mm:ssK",
             "THH:mmK",
             "THHK"
-        };
+        ];
 
         public static bool TryGetDateTimeInput(this FluidValue input, TemplateContext context, out DateTimeOffset result)
         {
-            result = context.Now();
-
             if (input.Type == FluidValues.String)
             {
                 var timeZoneProvided = false;
@@ -63,7 +59,25 @@ namespace Fluid.Values
 
                 if (stringValue == Now || stringValue == Today)
                 {
+                    result = context.Now();
+
                     return true;
+                }
+                // Try to parse as Unix timestamp (seconds since epoch)
+                // Golden Liquid only supports positive Unix timestamps
+                else if (long.TryParse(stringValue, NumberStyles.None, CultureInfo.InvariantCulture, out var timestamp))
+                {
+                    try
+                    {
+                        var dateTime = DateTimeOffset.FromUnixTimeSeconds(timestamp);
+                        result = dateTime.ToOffset(context.TimeZone.GetUtcOffset(dateTime));
+                        return true;
+                    }
+                    catch
+                    {
+                        result = default;
+                        return false;
+                    }
                 }
                 else
                 {
@@ -124,8 +138,17 @@ namespace Fluid.Values
             else if (input.Type == FluidValues.Number)
             {
                 var milliseconds = input.ToNumberValue() * 1000;
-                var dateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)milliseconds);
-                result = dateTime.ToOffset(context.TimeZone.GetUtcOffset(dateTime));
+                try
+                {
+                    var dateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)milliseconds);
+                    result = dateTime.ToOffset(context.TimeZone.GetUtcOffset(dateTime));
+                    return true;
+                }
+                catch
+                {
+                    result = default;
+                    return false;
+                }
             }
             else if (input.Type == FluidValues.DateTime)
             {
@@ -144,6 +167,7 @@ namespace Fluid.Values
                         break;
 
                     default:
+                        result = default;
                         return false;
                 }
             }
@@ -159,6 +183,28 @@ namespace Fluid.Values
             }
 
             return self;
+        }
+
+        public static IEnumerable<T> ToEnumerable<T>(this IAsyncEnumerable<T> asyncEnumerable)
+        {
+            var enumerator = asyncEnumerable.GetAsyncEnumerator();
+            try
+            {
+                var moveNextTask = enumerator.MoveNextAsync();
+                while (moveNextTask.IsCompleted ? moveNextTask.Result : moveNextTask.AsTask().GetAwaiter().GetResult())
+                {
+                    yield return enumerator.Current;
+                    moveNextTask = enumerator.MoveNextAsync();
+                }
+            }
+            finally
+            {
+                var disposeTask = enumerator.DisposeAsync();
+                if (!disposeTask.IsCompleted)
+                {
+                    disposeTask.AsTask().GetAwaiter().GetResult();
+                }
+            }
         }
     }
 }

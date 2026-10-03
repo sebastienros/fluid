@@ -1,16 +1,17 @@
-﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 
 namespace Fluid.Benchmarks
 {
-    [MemoryDiagnoser, GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
+    [MemoryDiagnoser, GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory), ShortRunJob]
     public class ComparisonBenchmarks
     {
-        private FluidBenchmarks _fluidBenchmarks = new FluidBenchmarks();
-        private HandlebarsBenchmarks _handlebarsBenchmarks = new HandlebarsBenchmarks();
-        private DotLiquidBenchmarks _dotLiquidBenchmarks = new DotLiquidBenchmarks();
-        private LiquidNetBenchmarks _liquidNetBenchmarks = new LiquidNetBenchmarks();
-        private ScribanBenchmarks _scribanBenchmarks = new ScribanBenchmarks();
+        private readonly FluidBenchmarks _fluidBenchmarks = new FluidBenchmarks();
+        private readonly SourceGeneratedFluidBenchmarks _fluidSourceGeneratedBenchmarks = new SourceGeneratedFluidBenchmarks();
+        private readonly HandlebarsBenchmarks _handlebarsBenchmarks = new HandlebarsBenchmarks();
+        private readonly DotLiquidBenchmarks _dotLiquidBenchmarks = new DotLiquidBenchmarks();
+        private readonly LiquidNetBenchmarks _liquidNetBenchmarks = new LiquidNetBenchmarks();
+        private readonly ScribanBenchmarks _scribanBenchmarks = new ScribanBenchmarks();
 
         [Benchmark(Baseline = true), BenchmarkCategory("Parse")]
         public object Fluid_Parse()
@@ -28,6 +29,12 @@ namespace Fluid.Benchmarks
         public string Fluid_Render()
         {
             return _fluidBenchmarks.Render();
+        }
+
+        [Benchmark, BenchmarkCategory("Render")]
+        public string Fluid_SourceGenerated_Render()
+        {
+            return _fluidSourceGeneratedBenchmarks.Render();
         }
 
         [Benchmark, BenchmarkCategory("Parse")]
@@ -66,19 +73,22 @@ namespace Fluid.Benchmarks
             return _dotLiquidBenchmarks.Render();
         }
 
-        [Benchmark, BenchmarkCategory("Parse")]
+        // Ignored since Liquid.NET is much slower and not in active development
+        [BenchmarkCategory("Parse")]
         public object LiquidNet_Parse()
         {
             return _liquidNetBenchmarks.Parse();
         }
 
-        [Benchmark, BenchmarkCategory("ParseBig")]
+        // Ignored since Liquid.NET is much slower and not in active development
+        [BenchmarkCategory("ParseBig")]
         public object LiquidNet_ParseBig()
         {
             return _liquidNetBenchmarks.ParseBig();
         }
 
-        [Benchmark, BenchmarkCategory("Render")]
+        // Ignored since Liquid.NET is much slower and not in active development
+        [BenchmarkCategory("Render")]
         public string LiquidNet_Render()
         {
             return _liquidNetBenchmarks.Render();
@@ -88,6 +98,12 @@ namespace Fluid.Benchmarks
         public object Handlebars_Parse()
         {
             return _handlebarsBenchmarks.Parse();
+        }
+
+        [Benchmark, BenchmarkCategory("ParseBig")]
+        public object Handlebars_ParseBig()
+        {
+            return _handlebarsBenchmarks.ParseBig();
         }
 
         [Benchmark, BenchmarkCategory("Render")]

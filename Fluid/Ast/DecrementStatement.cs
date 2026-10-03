@@ -1,20 +1,21 @@
-﻿using System.IO;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 using Fluid.Values;
+using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public class DecrementStatement : Statement
+    public sealed class DecrementStatement : Statement, ISourceable
     {
         public DecrementStatement(string identifier)
         {
-            Identifier = identifier;
+            Identifier = identifier ?? "";
         }
 
         public string Identifier { get; }
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override bool IsWhitespaceOrCommentOnly => true;
+
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
@@ -25,10 +26,10 @@ namespace Fluid.Ast
             var prefixedIdentifier = IncrementStatement.Prefix + Identifier;
 
             var value = context.GetValue(prefixedIdentifier);
-            
-            if (value.IsNil()) 
+
+            if (value.IsNil())
             {
-                value = NumberValue.Zero;
+                value = NumberValue.Create(-1);
             }
             else
             {
@@ -37,9 +38,24 @@ namespace Fluid.Ast
 
             context.SetValue(prefixedIdentifier, value);
 
-            value.WriteTo(writer, encoder, context.CultureInfo);
+            await value.WriteToAsync(output, encoder, context.CultureInfo);
 
-            return Normal();
+            return Completion.Normal;
+        }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitDecrementStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            var identifierLit = SourceGenerationContext.ToCSharpStringLiteral(Identifier ?? "");
+
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+            context.WriteLine($"var prefixedIdentifier = {SourceGenerationContext.ToCSharpStringLiteral(IncrementStatement.Prefix)} + {identifierLit};");
+            context.WriteLine($"var value = {context.ContextName}.GetValue(prefixedIdentifier);");
+            context.WriteLine($"if (value.IsNil()) value = NumberValue.Create(-1); else value = NumberValue.Create(value.ToNumberValue({context.ContextName}) - 1);");
+            context.WriteLine($"{context.ContextName}.SetValue(prefixedIdentifier, value);");
+            context.WriteLine($"await value.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName}.CultureInfo);");
+            context.WriteLine("return Completion.Normal;");
         }
     }
 }

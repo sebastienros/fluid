@@ -1,27 +1,68 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
+﻿using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public class ElseStatement : TagStatement
+    public sealed class ElseStatement : TagStatement, ISourceable
     {
-        public ElseStatement(List<Statement> statements) : base(statements)
+        private readonly bool _isWhitespaceOrCommentOnly;
+
+        public ElseStatement(IReadOnlyList<Statement> statements) : base(statements)
         {
+            _isWhitespaceOrCommentOnly = true;
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                if (!Statements[i].IsWhitespaceOrCommentOnly)
+                {
+                    _isWhitespaceOrCommentOnly = false;
+                    break;
+                }
+            }
         }
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
+
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
-            for (var i = 0; i < _statements.Count; i++)
+            if (_isWhitespaceOrCommentOnly)
+            {
+                // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
+                for (var i = 0; i < Statements.Count; i++)
+                {
+                    var statement = Statements[i];
+                    
+                    // Skip writing TextSpanStatements (whitespace)
+                    if (statement is TextSpanStatement)
+                    {
+                        continue;
+                    }
+
+                    context.IncrementSteps();
+
+                    var task = statement.WriteToAsync(output, encoder, context);
+                    if (!task.IsCompletedSuccessfully)
+                    {
+                        return Awaited(task, i + 1, output, encoder, context);
+                    }
+
+                    var completion = task.Result;
+                    if (completion != Completion.Normal)
+                    {
+                        return Statement.FromCompletion(completion);
+                    }
+                }
+                return Statement.NormalCompletion;
+            }
+
+            for (var i = 0; i < Statements.Count; i++)
             {
                 context.IncrementSteps();
 
-                var task = _statements[i].WriteToAsync(writer, encoder, context);
+            var task = Statements[i].WriteToAsync(output, encoder, context);
 
                 if (!task.IsCompletedSuccessfully)
                 {
-                    return Awaited(task, i + 1, writer, encoder, context);
+                    return Awaited(task, i + 1, output, encoder, context);
                 }
 
                 var completion = task.Result;
@@ -30,17 +71,17 @@ namespace Fluid.Ast
                 {
                     // Stop processing the block statements
                     // We return the completion to flow it to the outer loop
-                    return new ValueTask<Completion>(completion);
+                    return Statement.FromCompletion(completion);
                 }
             }
 
-            return new ValueTask<Completion>(Completion.Normal);
+            return Statement.NormalCompletion;
         }
 
         private async ValueTask<Completion> Awaited(
             ValueTask<Completion> task,
             int startIndex,
-            TextWriter writer,
+            IFluidOutput output,
             TextEncoder encoder,
             TemplateContext context)
         {
@@ -53,11 +94,11 @@ namespace Fluid.Ast
                 return completion;
             }
 
-            for (var i = startIndex; i < _statements.Count; i++)
+            for (var i = startIndex; i < Statements.Count; i++)
             {
                 context.IncrementSteps();
 
-                completion = await _statements[i].WriteToAsync(writer, encoder, context);
+                completion = await Statements[i].WriteToAsync(output, encoder, context);
 
                 if (completion != Completion.Normal)
                 {
@@ -68,6 +109,22 @@ namespace Fluid.Ast
             }
 
             return Completion.Normal;
+        }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitElseStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            context.WriteLine("var completion = Completion.Normal;");
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                context.WriteLine($"{context.ContextName}.IncrementSteps();");
+                var stmtMethod = context.GetStatementMethodName(Statements[i]);
+                context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                context.WriteLine("if (completion != Completion.Normal) return completion;");
+            }
+
+            context.WriteLine("return Completion.Normal;");
         }
     }
 }

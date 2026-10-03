@@ -1,4 +1,4 @@
-﻿using Fluid.ViewEngine;
+using Fluid.ViewEngine;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Options;
 using System.IO;
 using System.Threading.Tasks;
+using Fluid.Utils;
 
 namespace Fluid.MvcViewEngine
 {
@@ -23,13 +24,14 @@ namespace Fluid.MvcViewEngine
             _hostingEnvironment = hostingEnvironment;
             _options = optionsAccessor.Value;
 
-            _options.TemplateOptions.MemberAccessStrategy.Register<ViewDataDictionary>();
-            _options.TemplateOptions.MemberAccessStrategy.Register<ModelStateDictionary>();
-            _options.TemplateOptions.FileProvider = _options.PartialsFileProvider ?? _hostingEnvironment.ContentRootFileProvider;
+            _options.TemplateOptions.FileProvider =
+                _options.PartialsFileProvider ??
+                new FileProviderTemplateFileProvider(_hostingEnvironment.ContentRootFileProvider);
+
+            _options.ViewsFileProvider ??=
+                new FileProviderTemplateFileProvider(_hostingEnvironment.ContentRootFileProvider);
 
             _fluidViewRenderer = new FluidViewRenderer(_options);
-
-            _options.ViewsFileProvider ??= _hostingEnvironment.ContentRootFileProvider;
         }
 
         private readonly IWebHostEnvironment _hostingEnvironment;
@@ -37,7 +39,10 @@ namespace Fluid.MvcViewEngine
 
         public async Task RenderAsync(TextWriter writer, string path, ViewContext viewContext)
         {
-            var context = new TemplateContext(_options.TemplateOptions);
+            var context = new TemplateContext(_options.TemplateOptions)
+            {
+                CancellationToken = viewContext.HttpContext.RequestAborted
+            };
             context.SetValue("ViewData", viewContext.ViewData);
             context.SetValue("ModelState", viewContext.ModelState);
             context.SetValue("Model", viewContext.ViewData.Model);
@@ -47,7 +52,20 @@ namespace Fluid.MvcViewEngine
                 await _options.RenderingViewAsync.Invoke(path, viewContext, context);
             }
 
-            await _fluidViewRenderer.RenderViewAsync(writer, path, context);
+            var bufferSize = context.Options?.OutputBufferSize ?? 16 * 1024;
+            if (bufferSize <= 0)
+            {
+                bufferSize = 16 * 1024;
+            }
+
+            await using var output = new TextWriterFluidOutput(
+                writer,
+                bufferSize,
+                leaveOpen: true,
+                allowSynchronousIO: false,
+                cancellationToken: context.CancellationToken);
+            await _fluidViewRenderer.RenderViewAsync(output, path, context);
+            await output.FlushAsync();
         }
     }
 }

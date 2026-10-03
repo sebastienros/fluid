@@ -1,28 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
+﻿using System.Text.Encodings.Web;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public class WhenStatement : TagStatement
+    public sealed class WhenStatement : TagStatement, ISourceable
     {
-        private readonly IReadOnlyList<Expression> _options;
-
-        public WhenStatement(IReadOnlyList<Expression> options, List<Statement> statements) : base(statements)
+        public WhenStatement(IReadOnlyList<Expression> options, IReadOnlyList<Statement> statements) : base(statements)
         {
-            _options = options ?? Array.Empty<Expression>();
+            Options = options ?? [];
         }
 
-        public IReadOnlyList<Expression> Options => _options;
+        public IReadOnlyList<Expression> Options { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             // Process statements until next block or end of statements
-            for (var index = 0; index < _statements.Count; index++)
+            for (var index = 0; index < Statements.Count; index++)
             {
-                var completion = await _statements[index].WriteToAsync(writer, encoder, context);
+            var completion = await Statements[index].WriteToAsync(output, encoder, context);
 
                 if (completion != Completion.Normal)
                 {
@@ -35,5 +30,19 @@ namespace Fluid.Ast
             return Completion.Normal;
         }
 
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitWhenStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            context.WriteLine("var completion = Completion.Normal;");
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                var stmtMethod = context.GetStatementMethodName(Statements[i]);
+                context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                context.WriteLine("if (completion != Completion.Normal) return completion;");
+            }
+
+            context.WriteLine("return Completion.Normal;");
+        }
     }
 }

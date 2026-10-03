@@ -1,6 +1,9 @@
-﻿using Fluid.Tests.Mocks;
+using Fluid.Tests.Mocks;
 using Fluid.ViewEngine;
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -16,8 +19,6 @@ namespace Fluid.Tests.MvcViewEngine
         {
             _options.PartialsFileProvider = new FileProviderMapper(_mockFileProvider, "Partials");
             _options.ViewsFileProvider = new FileProviderMapper(_mockFileProvider, "Views");
-
-            _options.TemplateOptions.MemberAccessStrategy = UnsafeMemberAccessStrategy.Instance;
 
             _options.ViewsLocationFormats.Clear();
             _options.ViewsLocationFormats.Add("/{0}" + Constants.ViewExtension);
@@ -277,6 +278,323 @@ namespace Fluid.Tests.MvcViewEngine
             await sw.FlushAsync();
 
             Assert.Equal("[TITLE][SUBTITLE][ViewStart][View]", sw.ToString());
+        }
+
+        [Fact]
+        public async Task RenderViewOnlyAsyncStream_LargePropertyValue_Nested_SmallBuffer_BiggerThan128LengthString()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Layout' %}{% section bigboy %}{{BigString}}{% endsection %} ");
+            _mockFileProvider.Add("Views/_Layout.liquid", "{% rendersection bigboy %}");
+
+            await using var sw = new StreamWriter(new NoSyncStream(), bufferSize: 10);
+            var template = new TemplateContext(new { BigString = new string(Enumerable.Range(0, 129).Select(x => 'b').ToArray()) });
+            await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+#if NET8_0_OR_GREATER
+            await sw.FlushAsync(TestContext.Current.CancellationToken);
+#else
+            await sw.FlushAsync();
+#endif
+        }
+
+        [Fact]
+        public async Task RenderViewOnlyAsyncStream_LargePropertyValue_Nested()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Layout' %}{% section bigboy %}{{BigString}}{% endsection %} ");
+            _mockFileProvider.Add("Views/_Layout.liquid", "{% rendersection bigboy %}");
+
+            await using var sw = new StreamWriter(new NoSyncStream());
+            var template = new TemplateContext(new { BigString = new string(Enumerable.Range(0, 1500).Select(_ => 'b').ToArray()) });
+            await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+#if NET8_0_OR_GREATER
+            await sw.FlushAsync(TestContext.Current.CancellationToken);
+#else
+            await sw.FlushAsync();
+#endif
+        }
+
+        [Fact]
+        public async Task RenderViewOnlyAsyncStream_LargePropertyValue_SmallOutputBuffer()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{{ BigString }}");
+
+            var options = new TemplateOptions
+            {
+                OutputBufferSize = 16
+            };
+
+            await using var sw = new StreamWriter(new NoSyncStream(), bufferSize: 10);
+            var template = new TemplateContext(new { BigString = new string('b', 4096) }, options);
+            await _renderer.RenderViewAsync(sw, "Index.liquid", template);
+#if NET8_0_OR_GREATER
+            await sw.FlushAsync(TestContext.Current.CancellationToken);
+#else
+            await sw.FlushAsync();
+#endif
+        }
+
+        [Fact]
+        public async Task ShouldApplyTemplateParsedCallback()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{{ 1 | plus: 2 }}");
+
+            // Use a visitor to replace 2 with 4
+            _options.TemplateOptions.TemplateParsed = (path, template) =>
+            {
+                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                return visitor.VisitTemplate(template);
+            };
+
+            var sw = new StringWriter();
+            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await sw.FlushAsync();
+
+            Assert.Equal("5", sw.ToString());
+
+            _options.TemplateOptions.TemplateParsed = null;
+        }
+
+        [Fact]
+        public async Task ShouldApplyTemplateParsedCallbackToNestedTemplates()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "{% partial 'world' %}");
+            _mockFileProvider.Add("Partials/World.liquid", "{{ 1 | plus: 2 }}");
+
+            // Use a visitor to replace 2 with 4
+            _options.TemplateOptions.TemplateParsed = (path, template) =>
+            {
+                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                return visitor.VisitTemplate(template);
+            };
+
+            var sw = new StringWriter();
+            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await sw.FlushAsync();
+
+            Assert.Equal("5", sw.ToString());
+
+            _options.TemplateOptions.TemplateParsed = null;
+        }
+
+        [Fact]
+        public async Task ShouldApplyTemplateParsedCallbackToViewStarts()
+        {
+            _mockFileProvider.Add("Views/Index.liquid", "Hello");
+            _mockFileProvider.Add("Views/_ViewStart.liquid", "{{ 1 | plus: 2 }} ");
+
+            // Use a visitor to replace 2 with 4
+            _options.TemplateOptions.TemplateParsed = (path, template) =>
+            {
+                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                return visitor.VisitTemplate(template);
+            };
+
+            var sw = new StringWriter();
+            await _renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+            await sw.FlushAsync();
+
+            Assert.Equal("5 Hello", sw.ToString());
+
+            _options.TemplateOptions.TemplateParsed = null;
+        }
+
+        [Fact]
+        public async Task ShouldLoadViewsPartialsViewStartsAndLayoutsAsynchronously()
+        {
+            var sourceLoader = new AsyncTemplateFileProvider()
+                .Add("Home/Index.liquid", "{% layout '_Layout' %}View {% partial 'Part' %}")
+                .Add("_ViewStart.liquid", "Root ")
+                .Add("Home/_ViewStart.liquid", "Home ")
+                .Add("Home/_Layout.liquid", "Layout [{% renderbody %}]")
+                .Add("Part.liquid", "Partial");
+            var options = CreateAsyncOptions(sourceLoader);
+            var renderer = new FluidViewRenderer(options);
+            var writer = new StringWriter();
+
+            await renderer.RenderViewAsync(writer, "Home/Index.liquid", new TemplateContext());
+
+            Assert.Equal("Layout [Root Home View Partial]", writer.ToString());
+            Assert.Equal(1, sourceLoader.GetReadCount("Home/Index.liquid"));
+            Assert.Equal(1, sourceLoader.GetReadCount("_ViewStart.liquid"));
+            Assert.Equal(1, sourceLoader.GetReadCount("Home/_ViewStart.liquid"));
+            Assert.Equal(1, sourceLoader.GetReadCount("Home/_Layout.liquid"));
+            Assert.Equal(1, sourceLoader.GetReadCount("Part.liquid"));
+        }
+
+        [Fact]
+        public async Task ShouldReuseAndInvalidateAsynchronouslyLoadedViews()
+        {
+            var sourceLoader = new AsyncTemplateFileProvider()
+                .Add("Index.liquid", "first");
+            var renderer = new FluidViewRenderer(CreateAsyncOptions(sourceLoader));
+
+            var first = new StringWriter();
+            await renderer.RenderViewAsync(first, "Index.liquid", new TemplateContext());
+
+            var cached = new StringWriter();
+            await renderer.RenderViewAsync(cached, "Index.liquid", new TemplateContext());
+
+            sourceLoader.Add("Index.liquid", "second");
+
+            var updated = new StringWriter();
+            await renderer.RenderViewAsync(updated, "Index.liquid", new TemplateContext());
+
+            Assert.Equal("first", first.ToString());
+            Assert.Equal("first", cached.ToString());
+            Assert.Equal("second", updated.ToString());
+            Assert.Equal(2, sourceLoader.GetReadCount("Index.liquid"));
+        }
+
+        [Fact]
+        public async Task ViewsFileProvider_ShouldNotReplacePartialsFileProvider()
+        {
+            var sourceLoader = new AsyncTemplateFileProvider()
+                .Add("Index.liquid", "View {% partial 'Part' %}");
+            var partialsFileProvider = new MockFileProvider()
+                .Add("Part.liquid", "Partial");
+            var options = new FluidViewEngineOptions
+            {
+                ViewsFileProvider = sourceLoader,
+                PartialsFileProvider = partialsFileProvider
+            };
+            var renderer = new FluidViewRenderer(options);
+            var writer = new StringWriter();
+
+            await renderer.RenderViewAsync(writer, "Index.liquid", new TemplateContext());
+
+            Assert.Equal("View Partial", writer.ToString());
+        }
+
+        [Fact]
+        public async Task PartialsFileProvider_ShouldFallBackToViewsFileProvider()
+        {
+            var sourceLoader = new AsyncTemplateFileProvider()
+                .Add("Index.liquid", "View {% include 'Part' %}")
+                .Add("Part.liquid", "Partial");
+            var options = new FluidViewEngineOptions
+            {
+                ViewsFileProvider = sourceLoader
+            };
+            var renderer = new FluidViewRenderer(options);
+            var writer = new StringWriter();
+
+            await renderer.RenderViewAsync(
+                writer,
+                "Index.liquid",
+                new TemplateContext(options.TemplateOptions));
+
+            Assert.Equal("View Partial", writer.ToString());
+        }
+
+        [Fact]
+        public async Task DisabledChangeTracking_ShouldStillIsolateViewStartCacheKeys()
+        {
+            var lastModified = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
+            var sourceLoader = new DelegateTemplateFileProvider(async (path, context, cancellationToken) =>
+            {
+                await Task.Yield();
+                path = path.Replace('\\', '/').TrimStart('/');
+
+                if (path == "Home/Index.liquid")
+                {
+                    return new TemplateSourceInfo(
+                        lastModified,
+                        _ => new ValueTask<Stream>(
+                            new MemoryStream(System.Text.Encoding.UTF8.GetBytes("View"))),
+                        cacheKey: "shared-view");
+                }
+
+                if (path == "Home/_ViewStart.liquid")
+                {
+                    var tenant = context.GetValue("tenant").ToStringValue();
+                    return new TemplateSourceInfo(
+                        lastModified,
+                        _ => new ValueTask<Stream>(
+                            new MemoryStream(System.Text.Encoding.UTF8.GetBytes(tenant + " "))),
+                        cacheKey: tenant + ":view-start");
+                }
+
+                return null;
+            });
+            var options = new FluidViewEngineOptions
+            {
+                ViewsFileProvider = sourceLoader,
+                TrackFileChanges = false
+            };
+            var renderer = new FluidViewRenderer(options);
+
+            var tenantAWriter = new StringWriter();
+            var tenantAContext = new TemplateContext(options.TemplateOptions).SetValue("tenant", "A");
+            await renderer.RenderViewAsync(tenantAWriter, "Home/Index.liquid", tenantAContext);
+
+            var tenantBWriter = new StringWriter();
+            var tenantBContext = new TemplateContext(options.TemplateOptions).SetValue("tenant", "B");
+            await renderer.RenderViewAsync(tenantBWriter, "Home/Index.liquid", tenantBContext);
+
+            Assert.Equal("A View", tenantAWriter.ToString());
+            Assert.Equal("B View", tenantBWriter.ToString());
+        }
+
+        [Fact]
+        public async Task ShouldReevaluateAsyncLayoutLocations()
+        {
+            var sourceLoader = new AsyncTemplateFileProvider()
+                .Add("Home/Index.liquid", "{% layout '_Layout' %}View")
+                .Add("Shared/_Layout.liquid", "Shared [{% renderbody %}]");
+            var options = CreateAsyncOptions(sourceLoader);
+            var renderer = new FluidViewRenderer(options);
+            var first = new StringWriter();
+
+            await renderer.RenderViewAsync(first, "Home/Index.liquid", new TemplateContext());
+
+            sourceLoader.Add("Home/_Layout.liquid", "Local [{% renderbody %}]");
+
+            var second = new StringWriter();
+            await renderer.RenderViewAsync(second, "Home/Index.liquid", new TemplateContext());
+
+            Assert.Equal("Shared [View]", first.ToString());
+            Assert.Equal("Local [View]", second.ToString());
+        }
+
+        private static FluidViewEngineOptions CreateAsyncOptions(AsyncTemplateFileProvider sourceLoader)
+        {
+            var options = new FluidViewEngineOptions
+            {
+                ViewsFileProvider = sourceLoader,
+                PartialsFileProvider = sourceLoader
+            };
+            options.LayoutsLocationFormats.Add("/Shared/{0}" + Constants.ViewExtension);
+            return options;
+        }
+
+        [Fact]
+        public async Task CompositeFluidTemplateShouldRenderUsingStatementsNotTemplates()
+        {
+            // This test verifies that CompositeFluidTemplate renders using its Statements property
+            // rather than iterating through the Templates property, which is important for
+            // consistency with FluidTemplate and for ensuring altered statements are rendered.
+            
+            // Create a simple composite template
+            var parser = new FluidParser();
+            var template1 = parser.Parse("{{ 1 | plus: 2 }}");
+            var template2 = parser.Parse(" World");
+            
+            var composite = new Fluid.Parser.CompositeFluidTemplate(template1, template2);
+            
+            // Render it normally - should output "3 World"
+            var sw = new StringWriter();
+            await composite.RenderAsync(sw, System.Text.Encodings.Web.HtmlEncoder.Default, new TemplateContext());
+            Assert.Equal("3 World", sw.ToString());
+            
+            // Now apply a visitor that alters the statements
+            var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+            var altered = visitor.VisitTemplate(composite);
+            
+            // The visitor should return a new template with altered statements
+            var sw2 = new StringWriter();
+            await altered.RenderAsync(sw2, System.Text.Encodings.Web.HtmlEncoder.Default, new TemplateContext());
+            
+            // Should output "5 World" - the '2' has been replaced with '4', so 1+4=5
+            Assert.Equal("5 World", sw2.ToString());
         }
     }
 }

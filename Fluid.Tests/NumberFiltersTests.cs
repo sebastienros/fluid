@@ -1,8 +1,6 @@
-﻿using System.Linq;
 using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
-using System;
 
 namespace Fluid.Tests
 {
@@ -29,6 +27,7 @@ namespace Fluid.Tests
         [Theory]
         [InlineData(4, 5, 5)]
         [InlineData(4, 3, 4)]
+        [InlineData(-1, 0, 0)]
         public void AtLeast(int value1, object value2, int expectedResult)
         {
             var input = NumberValue.Create(value1);
@@ -150,7 +149,7 @@ namespace Fluid.Tests
             var arguments = FilterArguments.Empty;
             var context = new TemplateContext();
 
-            Assert.Throws<ParseException>(() => NumberFilters.Modulo(input, arguments, context));
+            Assert.Throws<LiquidException>(() => NumberFilters.Modulo(input, arguments, context));
         }
 
         [Fact]

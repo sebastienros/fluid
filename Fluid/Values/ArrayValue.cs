@@ -1,53 +1,44 @@
-﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values
 {
     public sealed class ArrayValue : FluidValue
     {
-        public static readonly ArrayValue Empty = new ArrayValue(Array.Empty<FluidValue>());
-
-        private readonly FluidValue[] _value;
+        public static readonly ArrayValue Empty = new ArrayValue([]);
 
         public override FluidValues Type => FluidValues.Array;
 
-        public ArrayValue(FluidValue[] value)
+        public ArrayValue(IReadOnlyList<FluidValue> values)
         {
-            _value = value;
-        }
-
-        public ArrayValue(IEnumerable<FluidValue> value)
-        {
-            _value = value.ToArray();
-        }
-
-        internal ArrayValue(IList<FluidValue> value)
-        {
-            _value = value.ToArray();
+            Values = values ?? [];
         }
 
         public override bool Equals(FluidValue other)
         {
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
             if (other.IsNil())
             {
-                return _value.Length == 0;
+                return Values.Count == 0;
             }
 
             if (other is ArrayValue arrayValue)
             {
-                if (_value.Length != arrayValue._value.Length)
+                using var scope = RecursiveComparisonGuard.Enter(this, arrayValue);
+
+                if (Values.Count != arrayValue.Values.Count)
                 {
                     return false;
                 }
 
-                for (var i = 0; i < _value.Length; i++)
+                for (var i = 0; i < Values.Count; i++)
                 {
-                    var item = _value[i];
-                    var otherItem = arrayValue._value[i];
+                    var item = Values[i];
+                    var otherItem = arrayValue.Values[i];
 
                     if (!item.Equals(otherItem))
                     {
@@ -59,30 +50,30 @@ namespace Fluid.Values
             }
             else if (other.Type == FluidValues.Empty)
             {
-                return _value.Length == 0;
+                return Values.Count == 0;
             }
-            
+
             return false;
         }
 
-        protected override FluidValue GetValue(string name, TemplateContext context)
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             switch (name)
             {
                 case "size":
-                    return NumberValue.Create(_value.Length);
+                    return NumberValue.Create(Values.Count);
 
                 case "first":
-                    if (_value.Length > 0)
+                    if (Values.Count > 0)
                     {
-                        return _value[0];
+                        return Values[0];
                     }
                     break;
 
                 case "last":
-                    if (_value.Length > 0)
+                    if (Values.Count > 0)
                     {
-                        return _value[_value.Length - 1];
+                        return Values[Values.Count - 1];
                     }
                     break;
 
@@ -91,13 +82,18 @@ namespace Fluid.Values
             return NilValue.Instance;
         }
 
-        protected override FluidValue GetIndex(FluidValue index, TemplateContext context)
+        public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
             var i = (int)index.ToNumberValue();
 
-            if (i >= 0 && i < _value.Length)
+            if (i < 0)
             {
-                return FluidValue.Create(_value[i], context.Options);
+                i = Values.Count + i;
+            }
+
+            if (i >= 0 && i < Values.Count)
+            {
+                return Create(Values[i], context.Options);
             }
 
             return NilValue.Instance;
@@ -110,46 +106,58 @@ namespace Fluid.Values
 
         public override decimal ToNumberValue()
         {
-            return _value.Length;
+            return Values.Count;
         }
 
-        public FluidValue[] Values => _value;
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public IReadOnlyList<FluidValue> Values { get; }
+
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-            
-            foreach (var v in _value)
+            AssertWriteToParameters(output, encoder, cultureInfo);
+
+            using var scope = RecursiveValueGuard.Enter(this);
+            foreach (var item in Values)
             {
-                writer.Write(v.ToStringValue());
+                output.Write(item.ToStringValue());
             }
+
+            return default;
         }
 
         public override string ToStringValue()
         {
-            return String.Join("", _value.Select(x => x.ToStringValue()));
+            using var scope = RecursiveValueGuard.Enter(this);
+            return String.Join("", Values.Select(x => x.ToStringValue()));
         }
 
         public override object ToObjectValue()
         {
-            return _value.Select(x => x.ToObjectValue()).ToArray();
+            using var scope = RecursiveValueGuard.Enter(this);
+            return Values.Select(x => x.ToObjectValue()).ToArray();
         }
 
-        public override bool Contains(FluidValue value)
+        public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
         {
-            return Array.IndexOf(_value, value) > -1;
+            return new ValueTask<bool>(Values.Contains(value));
         }
 
-        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
-            return _value;
+            foreach (var value in Values)
+            {
+                context?.IncrementSteps();
+                yield return value;
+            }
+
+            await Task.CompletedTask;
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
             // The is operator will return false if null
-            if (other is ArrayValue otherValue)
+            if (obj is ArrayValue otherValue)
             {
-                return _value.Equals(otherValue._value);
+                return Equals(otherValue);
             }
 
             return false;
@@ -157,7 +165,17 @@ namespace Fluid.Values
 
         public override int GetHashCode()
         {
-            return _value.GetHashCode();
+            using var scope = RecursiveValueGuard.Enter(this);
+            var hc = new HashCode();
+
+            IReadOnlyList<FluidValue> values = Values;
+            int count = values.Count;
+            for (int i = 0; i < count; ++i)
+            {
+                hc.Add(values[i]);
+            }
+
+            return hc.ToHashCode();
         }
     }
 }

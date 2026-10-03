@@ -1,8 +1,8 @@
-﻿using System;
+﻿using Fluid.Values;
 
 namespace Fluid.Accessors
 {
-    public class DelegateAccessor<T, TResult> : IMemberAccessor
+    public class DelegateAccessor<T, TResult> : MemberAccessor
     {
         private readonly Func<T, string, TemplateContext, TResult> _getter;
 
@@ -11,9 +11,9 @@ namespace Fluid.Accessors
             _getter = getter;
         }
 
-        object IMemberAccessor.Get(object obj, string name, TemplateContext ctx)
+        public override ValueTask<FluidValue> GetAsync(object obj, string name, TemplateContext context)
         {
-            return _getter((T)obj, name, ctx);
+            return CreateValueTask(_getter((T)obj, name, context), context);
         }
     }
 }

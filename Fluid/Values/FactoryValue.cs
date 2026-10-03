@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
+﻿using System.Globalization;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
@@ -23,14 +19,14 @@ namespace Fluid.Values
             return _factory.Value.Equals(other);
         }
 
-        public override bool Contains(FluidValue value)
+        public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
         {
-            return _factory.Value.Contains(value);
+            return _factory.Value.ContainsAsync(value, context);
         }
 
-        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        public override IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
-            return _factory.Value.Enumerate(context);
+            return _factory.Value.EnumerateAsync(context);
         }
 
         public override bool Equals(object obj)
@@ -83,10 +79,10 @@ namespace Fluid.Values
             return _factory.Value.ToStringValue();
         }
 
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
-            _factory.Value.WriteTo(writer, encoder, cultureInfo);
+            AssertWriteToParameters(output, encoder, cultureInfo);
+            return _factory.Value.WriteToAsync(output, encoder, cultureInfo);
         }
     }
 }

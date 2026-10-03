@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Fluid
+﻿namespace Fluid
 {
     [Flags]
     public enum TrimmingFlags

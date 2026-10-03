@@ -1,11 +1,10 @@
 ﻿using Parlot;
-using System.IO;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public class CommentStatement : Statement
+    public sealed class CommentStatement : Statement, ISourceable
     {
         private readonly TextSpan _text;
 
@@ -16,11 +15,21 @@ namespace Fluid.Ast
 
         public ref readonly TextSpan Text => ref _text;
 
-        public override ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override bool IsWhitespaceOrCommentOnly => true;
+
+        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
             return Normal();
         }
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+            context.WriteLine("return Completion.Normal;");
+        }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitCommentStatement(this);
     }
 }

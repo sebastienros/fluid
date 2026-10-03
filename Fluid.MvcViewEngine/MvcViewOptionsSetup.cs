@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
 namespace Fluid.MvcViewEngine
@@ -16,10 +17,8 @@ namespace Fluid.MvcViewEngine
         /// <param name="fluidViewEngine">The <see cref="IFluidViewEngine"/>.</param>
         public MvcViewOptionsSetup(IFluidViewEngine fluidViewEngine)
         {
-            if (fluidViewEngine is null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(fluidViewEngine));
-            }
+            ArgumentNullException.ThrowIfNull(fluidViewEngine);
+            
             _fluidViewEngine = fluidViewEngine;
         }
 
@@ -29,10 +28,7 @@ namespace Fluid.MvcViewEngine
         /// <param name="options">The <see cref="MvcViewOptions"/> to configure.</param>
         public void Configure(MvcViewOptions options)
         {
-            if (options is null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             options.ViewEngines.Add(_fluidViewEngine);
         }

@@ -1,7 +1,5 @@
 ﻿using System.Globalization;
-using System.IO;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
@@ -14,6 +12,16 @@ namespace Fluid.Values
         public int RIndex0 { get; set; }
         public bool First { get; set; }
         public bool Last { get; set; }
+        public string Identifier { get; set; }
+        public string Source { get; set; }
+
+        public ForLoopValue ParentLoop { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether this forloop is from a render tag.
+        /// Render tag forloops should not be accessible as parentloop from nested for loops.
+        /// </summary>
+        public bool IsRenderLoop { get; set; }
 
         public int Count => Length;
 
@@ -48,19 +56,24 @@ namespace Fluid.Values
         {
             return name switch
             {
-                "length" => new ValueTask<FluidValue>(NumberValue.Create(Length)),
-                "index" => new ValueTask<FluidValue>(NumberValue.Create(Index)),
-                "index0" => new ValueTask<FluidValue>(NumberValue.Create(Index0)),
-                "rindex" => new ValueTask<FluidValue>(NumberValue.Create(RIndex)),
-                "rindex0" => new ValueTask<FluidValue>(NumberValue.Create(RIndex0)),
-                "first" => new ValueTask<FluidValue>(BooleanValue.Create(First)),
-                "last" => new ValueTask<FluidValue>(BooleanValue.Create(Last)),
-                _ => new ValueTask<FluidValue>(NilValue.Instance),
+                "length" => NumberValue.Create(Length),
+                "index" => NumberValue.Create(Index),
+                "index0" => NumberValue.Create(Index0),
+                "rindex" => NumberValue.Create(RIndex),
+                "rindex0" => NumberValue.Create(RIndex0),
+                "first" => BooleanValue.Create(First),
+                "last" => BooleanValue.Create(Last),
+                "parentloop" => ParentLoop is null ? NilValue.Instance : ParentLoop,
+                "name" => !string.IsNullOrEmpty(Identifier) && !string.IsNullOrEmpty(Source) 
+                    ? new StringValue(Identifier + "-" + Source) 
+                    : NilValue.Instance,
+                _ => NilValue.Instance,
             };
         }
 
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
+            return default;
         }
     }
 }

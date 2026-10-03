@@ -1,18 +1,22 @@
-﻿using Fluid.Filters;
+using Fluid.Filters;
+using Fluid.Tests.Domain;
 using Fluid.Values;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Globalization;
 using System.Linq;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using TimeZoneConverter;
 using Xunit;
 
 namespace Fluid.Tests
 {
     public class MiscFiltersTests
     {
-        private static readonly TimeZoneInfo Pacific = TZConvert.GetTimeZoneInfo("America/Los_Angeles");
-        private static readonly TimeZoneInfo Eastern = TZConvert.GetTimeZoneInfo("America/New_York");
+        private static readonly TimeZoneInfo Pacific = TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles");
+        private static readonly TimeZoneInfo Eastern = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
         private static readonly string RoundTripDateTimePattern = "%Y-%m-%dT%H:%M:%S.%L%Z"; // Equivalent to "o" format
 
         [Fact]
@@ -44,7 +48,7 @@ namespace Fluid.Tests
         public async Task DefaultReturnsDefaultIfNotDefinedOrEmptyOrFalse(object expected, object input, object @default, bool allowFalse)
         {
             var arguments = new FilterArguments()
-                .Add("default", FluidValue.Create(@default, TemplateOptions.Default))
+                .Add(FluidValue.Create(@default, TemplateOptions.Default))
                 .Add("allow_false", FluidValue.Create(allowFalse, TemplateOptions.Default));
 
             var context = new TemplateContext();
@@ -68,7 +72,7 @@ namespace Fluid.Tests
 
             var result = await MiscFilters.Compact(input, arguments, context);
 
-            Assert.Equal(3, result.Enumerate(context).Count());
+            Assert.Equal(3, await result.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
 
@@ -100,6 +104,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("a<>:a?", "YTw+OmE/")]
+        [InlineData("Hell", "SGVsbA==")]
+        [InlineData("Hello", "SGVsbG8=")]
         public async Task Base64Encode(string value, string expected)
         {
             var input = new StringValue(value);
@@ -114,6 +120,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("YTw+OmE/", "a<>:a?")]
+        [InlineData("SGVsbA==", "Hell")]
+        [InlineData("SGVsbG8=", "Hello")]        
         public async Task Base64Decode(string value, string expected)
         {
             var input = new StringValue(value);
@@ -128,6 +136,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("a<>:a?", "YTw-OmE_")]
+        [InlineData("Hell", "SGVsbA")]
+        [InlineData("Hello", "SGVsbG8")]
         public async Task Base64UrlSafeEncode(string value, string expected)
         {
             // Arrange
@@ -144,6 +154,8 @@ namespace Fluid.Tests
 
         [Theory]
         [InlineData("YTw-OmE_", "a<>:a?")]
+        [InlineData("SGVsbA", "Hell")]
+        [InlineData("SGVsbG8", "Hello")]   
         public async Task Base64UrlSafeDecode(string value, string expected)
         {
             // Arrange
@@ -199,6 +211,38 @@ namespace Fluid.Tests
             var result = await MiscFilters.EscapeOnce(input, arguments, context);
 
             Assert.Equal("1 &lt; 2 &amp; 3", result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task EscapeReturnsNonEncodableStringValue()
+        {
+            // The escape filter should return a StringValue with Encode = false
+            // to prevent double-encoding when rendered with an encoder
+            var input = new StringValue("<div>test</div>");
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = await MiscFilters.Escape(input, arguments, context);
+
+            Assert.IsType<StringValue>(result);
+            var stringValue = (StringValue)result;
+            Assert.False(stringValue.Encode, "Escape filter should return StringValue with Encode = false");
+        }
+
+        [Fact]
+        public async Task EscapeOnceReturnsNonEncodableStringValue()
+        {
+            // The escape_once filter should return a StringValue with Encode = false
+            // to prevent double-encoding when rendered with an encoder
+            var input = new StringValue("&lt;div&gt;test&lt;/div&gt;");
+            var arguments = new FilterArguments();
+            var context = new TemplateContext();
+
+            var result = await MiscFilters.EscapeOnce(input, arguments, context);
+
+            Assert.IsType<StringValue>(result);
+            var stringValue = (StringValue)result;
+            Assert.False(stringValue.Encode, "EscapeOnce filter should return StringValue with Encode = false");
         }
 
         [Theory]
@@ -277,8 +321,13 @@ namespace Fluid.Tests
         [InlineData("%Y-%m-%dT%H:%M:%S.%L", "2017-08-01T17:04:36.123")]
         public async Task Date(string format, string expected, string dateTime = "2017-08-01T17:04:36.123456789+08:00")
         {
+            // This test sets the CultureInfo.DateTimeFormat so it's not impacted by changes in ICU
+            // see https://github.com/dotnet/runtime/issues/95620
+            var enUsCultureInfo = new CultureInfo("en-US", useUserOverride: false);
+            enUsCultureInfo.DateTimeFormat.FullDateTimePattern = "dddd, MMMM d, yyyy h:mm:ss tt";
+
             var arguments = new FilterArguments(new StringValue(format));
-            var options = new TemplateOptions() { CultureInfo = new CultureInfo("en-US", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
+            var options = new TemplateOptions() { CultureInfo = enUsCultureInfo, TimeZone = TimeZoneInfo.Utc };
             var context = new TemplateContext(options);
 
             new StringValue(dateTime).TryGetDateTimeInput(new TemplateContext(), out var customDateTime);
@@ -287,6 +336,21 @@ namespace Fluid.Tests
             var result = await MiscFilters.Date(input, arguments, context);
 
             Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task DateLargeFormat()
+        {
+            const int Repetitions = 100_000;
+            var format = string.Concat(Enumerable.Repeat("%D", Repetitions));
+            var input = new DateTimeValue(new DateTimeOffset(2017, 8, 1, 0, 0, 0, TimeSpan.Zero));
+
+            var result = await MiscFilters.Date(
+                input,
+                new FilterArguments(new StringValue(format)),
+                new TemplateContext());
+
+            Assert.Equal(Repetitions * 8, result.ToStringValue().Length);
         }
 
         [Theory]
@@ -328,6 +392,30 @@ namespace Fluid.Tests
             Assert.Equal(expected, ((DateTimeOffset)result.ToObjectValue()).ToString("yyyy-MM-ddTHH:mm:ssK"));
         }
 
+        [Fact]
+        public async Task ChangeTimeZoneUsesConfiguredResolver()
+        {
+            var input = new DateTimeValue(DateTimeOffset.Parse("2020-05-18T02:13:09+00:00"));
+            var arguments = new FilterArguments(new StringValue("Custom"));
+            var customTimeZone = TimeZoneInfo.CreateCustomTimeZone("Custom", TimeSpan.FromHours(3), "Custom", "Custom");
+            var resolvedId = "";
+            var options = new TemplateOptions
+            {
+                TimeZoneResolver = id =>
+                {
+                    resolvedId = id;
+                    return customTimeZone;
+                }
+            };
+
+            var result = await MiscFilters.ChangeTimeZone(input, arguments, new TemplateContext(options));
+
+            Assert.Equal("Custom", resolvedId);
+            Assert.Equal(
+                "2020-05-18T05:13:09+03:00",
+                ((DateTimeOffset)result.ToObjectValue()).ToString("yyyy-MM-ddTHH:mm:ssK"));
+        }
+
         [Theory]
         [InlineData("2022-12-13T21:02:18.399+00:00", "utc", "2022-12-13T21:02:18.399+00:00")]
         [InlineData("2022-12-13T21:02:18.399+00:00", "America/New_York", "2022-12-13T21:02:18.399+00:00")]
@@ -342,7 +430,7 @@ namespace Fluid.Tests
             // - When no TZ is provided, we assume the local offset (context.TimeZone)
 
             var input = new StringValue(initialDateTime);
-            var context = new TemplateContext { TimeZone = TZConvert.GetTimeZoneInfo(timeZone) };
+            var context = new TemplateContext { TimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZone) };
 
             var date = await MiscFilters.Date(input, new FilterArguments(new StringValue(RoundTripDateTimePattern)), context);
 
@@ -453,6 +541,17 @@ namespace Fluid.Tests
             var result = await MiscFilters.Date(input, arguments, context);
 
             Assert.Equal("08/01/17", result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task FormatStringWithoutArgumentsDoesNotThrow()
+        {
+            var input = new StringValue("literal text");
+            var context = new TemplateContext();
+
+            var result = await MiscFilters.FormatString(input, FilterArguments.Empty, context);
+
+            Assert.Equal("literal text", result.ToStringValue());
         }
 
         [Fact]
@@ -600,19 +699,34 @@ namespace Fluid.Tests
         [Fact]
         public async Task DateIsRenderedWithCulture()
         {
-            var input = new StringValue("08/01/2017");
-            var format = "%c";
+            // This tests 4 things:
+            // - The date is parsed with the specified culture (July vs February)
+            // - The date is rendered with the specified culture (French vs English)
+            // - The date is rendered with the specified timezone (UTC)
+            // - The uppercase modifier is applied with the culture (Turkish i)
+
+            var input = new StringValue("07/02/2017");
+            var format = "%^c";
 
             var arguments = new FilterArguments(new StringValue(format));
 
             var context = new TemplateContext { CultureInfo = new CultureInfo("fr-FR", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
             var resultFR = await MiscFilters.Date(input, arguments, context);
 
-            context = new TemplateContext { CultureInfo = new CultureInfo("en-US", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
+            context = new TemplateContext { CultureInfo = new CultureInfo("tr-TR", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
+            var resultTR = await MiscFilters.Date(input, arguments, context);
+
+            // This test sets the CultureInfo.DateTimeFormat so it's not impacted by changes in ICU
+            // see https://github.com/dotnet/runtime/issues/95620
+            var enUsCultureInfo = new CultureInfo("en-US", useUserOverride: false);
+            enUsCultureInfo.DateTimeFormat.FullDateTimePattern = "dddd, MMMM d, yyyy h:mm:ss tt";
+
+            context = new TemplateContext { CultureInfo = enUsCultureInfo, TimeZone = TimeZoneInfo.Utc };
             var resultUS = await MiscFilters.Date(input, arguments, context);
 
-            Assert.Equal("dimanche 8 janvier 2017 00:00:00", resultFR.ToStringValue());
-            Assert.Equal("Tuesday, August 1, 2017 12:00:00 AM", resultUS.ToStringValue());
+            Assert.Equal("7 ŞUBAT 2017 SALI 00:00:00", resultTR.ToStringValue());
+            Assert.Equal("MARDI 7 FÉVRIER 2017 00:00:00", resultFR.ToStringValue());
+            Assert.Equal("SUNDAY, JULY 2, 2017 12:00:00 AM", resultUS.ToStringValue());
         }
 
         [Theory]
@@ -625,6 +739,7 @@ namespace Fluid.Tests
         [InlineData("First_Second_ThirdHi", "first-second-third-hi")]
         [InlineData("100% M & Ms!!!", "100-m-ms")]
         [InlineData("!!!100% M & Ms", "100-m-ms")]
+        [InlineData("!HelloWorld", "hello-world")]
         public async Task Handleize(string text, string expected)
         {
             var input = new StringValue(text);
@@ -635,6 +750,15 @@ namespace Fluid.Tests
             var result = await MiscFilters.Handleize(input, arguments, context);
 
             Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task HandleizeLargeInput()
+        {
+            var value = new string('a', 377_000);
+            var result = await MiscFilters.Handleize(new StringValue(value), new FilterArguments(), new TemplateContext());
+
+            Assert.Equal(value, result.ToStringValue());
         }
 
         [Theory]
@@ -663,65 +787,11 @@ namespace Fluid.Tests
         }
 
         [Fact]
-        public async Task JsonShouldHideMembers()
-        {
-            var inputObject = new JsonAccessStrategy();
-            var templateOptions = new TemplateOptions();
-            templateOptions.MemberAccessStrategy.Register<JsonAccessStrategy, FluidValue>((obj, name, context) =>
-            {
-                return name switch
-                {
-                    nameof(JsonAccessStrategy.Visible) => new StringValue(obj.Visible),
-                    nameof(JsonAccessStrategy.Null) => new StringValue(obj.Null),
-                    _ => NilValue.Instance
-                };
-            });
-
-            var input = FluidValue.Create(inputObject, templateOptions);
-            var expected = "{\"Visible\":\"Visible\",\"Null\":\"\"}";
-
-            var arguments = new FilterArguments();
-            var context = new TemplateContext(templateOptions);
-
-            var result = await MiscFilters.Json(input, arguments, context);
-
-            Assert.Equal(expected, result.ToStringValue());
-        }
-
-        [Fact]
-        public async Task JsonShouldHandleCircularReferences()
-        {
-            var model = TestObjects.RecursiveReferenceObject;
-            var input = FluidValue.Create(model, TemplateOptions.Default);
-            var to = new TemplateOptions();
-            to.MemberAccessStrategy.Register<TestObjects.Node>();
-
-            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
-
-            Assert.Equal("{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}}", result.ToStringValue());
-        }
-
-        [Fact]
-        public async Task JsonShouldHandleCircularReferencesOnSiblingPropertiesSeparately()
-        {
-            var model = TestObjects.SiblingPropertiesHaveSameReferenceObject;
-            var input = FluidValue.Create(model, TemplateOptions.Default);
-            var to = new TemplateOptions();
-            to.MemberAccessStrategy.Register<TestObjects.Node>();
-            to.MemberAccessStrategy.Register<TestObjects.MultipleNode>();
-
-            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(to));
-
-            Assert.Equal("{\"Name\":\"MultipleNode1\",\"Node1\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}},\"Node2\":{\"Name\":\"Object1\",\"NodeRef\":{\"Name\":\"Child1\",\"NodeRef\":\"Circular reference has been detected.\"}}}", result.ToStringValue());
-        }
-
-        [Fact]
         public async Task JsonShouldIgnoreStaticMembers()
         {
             var model = new JsonWithStaticMember { Id = 100 };
             var input = FluidValue.Create(model, TemplateOptions.Default);
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register<JsonWithStaticMember>();
 
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
             Assert.Equal("{\"Id\":100}", result.ToStringValue());
@@ -737,10 +807,94 @@ namespace Fluid.Tests
                 Bool = true
             };
             var options = new TemplateOptions();
-            options.MemberAccessStrategy.Register(model.GetType());
             var input = FluidValue.Create(model, options);
             var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
-            Assert.Equal("{\"Id\":1,\"WithoutIndexable\":null,\"Bool\":true}", result.ToStringValue());
+            Assert.Equal("{\"Id\":1,\"WithoutIndexable\":{\"Type\":6,\"Value\":{}},\"Bool\":true}", result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task JsonShouldWriteValuesWithCorrectDataTypeForJObjectInput()
+        {
+            var model = new JObject
+            {
+                ["a"] = true,
+                ["b"] = 1,
+                ["c"] = new DateTimeOffset(2017, 6, 8, 12, 53, 10, new TimeSpan(-7, 0, 0)),
+                ["d"] = "string",
+                ["e"] = null,
+                ["f"] = new JObject
+                {
+                    ["f_a"] = 1.2,
+                    ["f_b"] = false,
+                    ["f_c"] = ""
+                },
+                ["g"] = new JArray
+                {
+                    "val1", "val2"
+                }
+            };
+            var input = FluidValue.Create(model, TemplateOptions.Default);
+            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(TemplateOptions.Default));
+            var expected = "{\"a\":true,\"b\":1,\"c\":\"06/08/2017 12:53:10 -07:00\",\"d\":\"string\",\"e\":null,\"f\":{\"f_a\":1.2,\"f_b\":false,\"f_c\":\"\"},\"g\":[\"val1\",\"val2\"]}";
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task JsonShouldEncodeUnicodeChars()
+        {
+            var input = FluidValue.Create("你好，这是一条短信", TemplateOptions.Default);
+            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(TemplateOptions.Default));
+            var expected = @"""\u4F60\u597D\uFF0C\u8FD9\u662F\u4E00\u6761\u77ED\u4FE1""";
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task JsonShouldUseJsonSerializerOption()
+        {
+            var options = new TemplateOptions
+            {
+                JsonSerializerOptions = new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                }
+            };
+
+            var input = FluidValue.Create("你好，这是一条短信", options);
+            var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
+            var expected = @"""你好，这是一条短信""";
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Fact]
+        public async Task JsonShouldSerializeEnumsAsStrings()
+        {
+            var options = new TemplateOptions();
+
+            var input = FluidValue.Create(Domain.Colors.Red, options);
+            var context = new TemplateContext(options);
+            var result = await MiscFilters.Json(input, new FilterArguments(), context);
+
+            // Enum is converted to StringValue by default, so it's serialized as a string
+            Assert.Equal("\"Red\"", result.ToStringValue());
+        }
+        
+        [Fact]
+        public async Task JsonShouldSerializeEnumsInObjectsAsStrings()
+        {
+            var options = new TemplateOptions
+            {
+                JsonSerializerOptions = new JsonSerializerOptions
+                {
+                    Converters = { new JsonStringEnumConverter() }
+                }
+            };
+
+            var input = FluidValue.Create(new Person { EyesColor = Colors.Red }, options);
+            var context = new TemplateContext(options);
+            var result = await MiscFilters.Json(input, new FilterArguments(), context);
+
+            // Enum should be serialized as string ("Red")
+            Assert.Equal("{\"Firstname\":null,\"Lastname\":null,\"EyesColor\":\"Red\",\"Address\":null}", result.ToStringValue());
         }
 
         [Theory]
@@ -831,6 +985,50 @@ namespace Fluid.Tests
 
             // Assert
             Assert.Equal("c7ac4687585ab5d3d5030db5a5cfc959fdf4e608cc396f1f615db345e35adb9e", result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData(null, "Fluid", "")]
+        [InlineData("secret_key", null, "")]
+        [InlineData("", "", "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d")]
+        [InlineData("", "Fluid", "47ab4d87fabf7a7162d59c57298780904de9e245")]
+        [InlineData("secret_key", "Fluid", "1061ea276551355150b8581aa64dca829d41e357")]
+        public async Task HmacSha1(string key, string value, string expected)
+        {
+            // Arrange
+            FluidValue input = value is null
+                ? EmptyValue.Instance
+                : new StringValue(value);
+            var arguments = new FilterArguments(FluidValue.Create(key, TemplateOptions.Default));
+            var context = new TemplateContext();
+
+            // Act
+            var result = await MiscFilters.HmacSha1(input, arguments, context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData(null, "Fluid", "")]
+        [InlineData("secret_key", null, "")]
+        [InlineData("", "", "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad")]
+        [InlineData("", "Fluid", "e9f2db8bd3900c469e4b560227c5d53b48f644208a13de05bb400f7611d1a623")]
+        [InlineData("secret_key", "Fluid", "ac08ee5cdd007e1069680e93eb512049f5ff12afd0fe101de5c9b5043a047ea4")]
+        public async Task HmacSha256(string key, string value, string expected)
+        {
+            // Arrange
+            FluidValue input = value is null
+                ? EmptyValue.Instance
+                : new StringValue(value);
+            var arguments = new FilterArguments(FluidValue.Create(key, TemplateOptions.Default));
+            var context = new TemplateContext();
+
+            // Act
+            var result = await MiscFilters.HmacSha256(input, arguments, context);
+
+            // Assert
+            Assert.Equal(expected, result.ToStringValue());
         }
 
         public static class TestObjects

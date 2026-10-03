@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Concurrent;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MinimalApis.LiquidViews
@@ -14,8 +14,6 @@ namespace MinimalApis.LiquidViews
     {
         private readonly string _viewName;
         private readonly object _model;
-
-        private readonly static ConcurrentDictionary<string, string> _viewLocationsCache = new();
 
         public ActionViewResult(string viewName)
         {
@@ -35,8 +33,20 @@ namespace MinimalApis.LiquidViews
         {
             var fluidViewRenderer = httpContext.RequestServices.GetService<IFluidViewRenderer>();
             var options = httpContext.RequestServices.GetService<IOptions<FluidViewEngineOptions>>().Value;
+            var context = new TemplateContext(_model, options.TemplateOptions)
+            {
+                CancellationToken = httpContext.RequestAborted
+            };
+            context.Options.FileProvider =
+                options.PartialsFileProvider ??
+                options.ViewsFileProvider ??
+                options.TemplateOptions.FileProvider;
 
-            var viewPath = LocatePageFromViewLocations(_viewName, options);
+            var viewPath = await LocatePageFromViewLocationsAsync(
+                _viewName,
+                options,
+                context,
+                httpContext.RequestAborted);
 
             if (viewPath == null)
             {
@@ -47,31 +57,36 @@ namespace MinimalApis.LiquidViews
             httpContext.Response.StatusCode = 200;
             httpContext.Response.ContentType = ContentType;
 
-            var context = new TemplateContext(_model, options.TemplateOptions);
-            context.Options.FileProvider = options.PartialsFileProvider;
-
-            await using var sw = new StreamWriter(httpContext.Response.Body);
-            await fluidViewRenderer.RenderViewAsync(sw, viewPath, context);
-        }
-
-        private static string LocatePageFromViewLocations(string viewName, FluidViewEngineOptions options)
-        {
-            if (_viewLocationsCache.TryGetValue(viewName, out var cachedLocation) && cachedLocation != null)
+            var bufferSize = context.Options.OutputBufferSize;
+            if (bufferSize <= 0)
             {
-                return cachedLocation;
+                bufferSize = 16 * 1024;
             }
 
-            var fileProvider = options.ViewsFileProvider;
+            await using var output = new PipeWriterFluidOutput(
+                httpContext.Response.BodyWriter,
+                bufferSize,
+                httpContext.RequestAborted);
+            await fluidViewRenderer.RenderViewAsync(output, viewPath, context);
+            await output.FlushAsync();
+        }
+
+        private static async ValueTask<string> LocatePageFromViewLocationsAsync(
+            string viewName,
+            FluidViewEngineOptions options,
+            TemplateContext context,
+            CancellationToken cancellationToken)
+        {
+            var fileProvider = options.ViewsFileProvider ?? options.TemplateOptions.FileProvider;
 
             foreach (var location in options.ViewsLocationFormats)
             {
                 var viewFilename = Path.Combine(String.Format(location, viewName));
 
-                var fileInfo = fileProvider.GetFileInfo(viewFilename);
+                var fileInfo = await fileProvider.GetFileInfoAsync(viewFilename, context, cancellationToken);
 
-                if (fileInfo.Exists)
+                if (fileInfo != null)
                 {
-                    _viewLocationsCache[viewName] = viewFilename;
                     return viewFilename;
                 }
             }

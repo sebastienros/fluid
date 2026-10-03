@@ -1,8 +1,6 @@
-﻿using Parlot;
-using System;
-using System.Collections.Generic;
+using Fluid.Utils;
+using Parlot;
 using System.Globalization;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 
@@ -11,6 +9,7 @@ namespace Fluid.Values
     public sealed class StringValue : FluidValue, IEquatable<StringValue>
     {
         public static readonly StringValue Empty = new StringValue("");
+        public static readonly StringValue Space = new StringValue(" ");
 
         private static readonly StringValue[] CharToString = new StringValue[256];
 
@@ -20,7 +19,7 @@ namespace Fluid.Values
         {
             for (var i = 0; i < CharToString.Length; ++i)
             {
-                var c = (char) i;
+                var c = (char)i;
                 CharToString[i] = new StringValue(c.ToString());
             }
         }
@@ -49,7 +48,7 @@ namespace Fluid.Values
         internal static StringValue Create(char c)
         {
             var temp = CharToString;
-            if ((uint) c < (uint) temp.Length)
+            if ((uint)c < (uint)temp.Length)
             {
                 return temp[c];
             }
@@ -57,8 +56,13 @@ namespace Fluid.Values
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static StringValue Create(string s)
+        public static FluidValue Create(string s)
         {
+            if (s is null)
+            {
+                return NilValue.Instance;
+            }
+
             if (String.IsNullOrEmpty(s))
             {
                 return Empty;
@@ -70,9 +74,14 @@ namespace Fluid.Values
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static StringValue Create(string s, bool encode)
+        public static FluidValue Create(string s, bool encode)
         {
-            return Create(s, encode);
+            if (s is null)
+            {
+                return NilValue.Instance;
+            }
+
+            return new StringValue(s, encode);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -90,30 +99,31 @@ namespace Fluid.Values
 
         public override bool Equals(FluidValue other)
         {
-            if (other.Type == FluidValues.String) return _value == other.ToStringValue();
-            
-            // Delegating other types 
+            // Delegating special cases to other types
             if (other == BlankValue.Instance || other == NilValue.Instance || other == EmptyValue.Instance)
             {
                 return other.Equals(this);
             }
-            
-            return false;
+
+            if (other.Type != FluidValues.String)
+            {
+                return false;
+            }
+
+            return _value == other.ToStringValue();
         }
 
-        protected override FluidValue GetIndex(FluidValue index, TemplateContext context)
+        public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
             // Indexer on string values should return nil.
             return NilValue.Instance;
         }
 
-        protected override FluidValue GetValue(string name, TemplateContext context)
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         {
             return name switch
             {
                 "size" => NumberValue.Create(_value.Length),
-                "first" => _value.Length > 0 ? Create(_value[0]) : NilValue.Instance,
-                "last" => _value.Length > 0 ? Create(_value[_value.Length - 1]) : NilValue.Instance,
                 _ => NilValue.Instance,
             };
         }
@@ -143,29 +153,24 @@ namespace Fluid.Values
             return _value;
         }
 
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
-            AssertWriteToParameters(writer, encoder, cultureInfo);
+            AssertWriteToParameters(output, encoder, cultureInfo);
             if (string.IsNullOrEmpty(_value))
             {
-                return;
+                return default;
             }
 
             if (Encode)
             {
-                // perf: Don't use this overload
-                // encoder.Encode(writer, _value);
-
-                // Use a transient string instead of calling
-                // encoder.Encode(TextWriter) since it would
-                // call writer.Write on each char if the string
-                // has even a single char to encode
-                writer.Write(encoder.Encode(_value));
+                output.Write(encoder, _value);
             }
             else
             {
-                writer.Write(_value);
+                output.Write(_value);
             }
+
+            return default;
         }
 
         public override object ToObjectValue()
@@ -173,19 +178,20 @@ namespace Fluid.Values
             return _value;
         }
 
-        public override bool Contains(FluidValue value)
+        public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
         {
-            return _value.Contains(value.ToStringValue());
+            return new ValueTask<bool>(_value.Contains(value.ToStringValue(context)));
         }
 
-        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
+        public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
             yield return this;
+            await Task.CompletedTask;
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
-            return other is StringValue s && Equals(s);
+            return obj is StringValue s && Equals(s);
         }
 
         public bool Equals(StringValue other)

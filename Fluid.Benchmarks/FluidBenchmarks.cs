@@ -1,19 +1,21 @@
-﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes;
 
 namespace Fluid.Benchmarks
 {
     [MemoryDiagnoser]
     public class FluidBenchmarks : BaseBenchmarks
     {
-        private readonly TemplateOptions _options = new TemplateOptions();
+        private readonly TemplateOptions _options = new TemplateOptions(){ OutputBufferSize = 40 * 1024};
         private readonly FluidParser _parser  = new FluidParser();
         private readonly IFluidTemplate _fluidTemplate;
+        private readonly FluidParser _compiledParser = new FluidParser().Compile();
 
         public FluidBenchmarks()
         {
-            _options.MemberAccessStrategy.Register<Product>();
-            _options.MemberAccessStrategy.MemberNameStrategy = MemberNameStrategies.CamelCase;
+            _options.ModelNamesComparer = StringComparers.CamelCase;
             _parser.TryParse(ProductTemplate, out _fluidTemplate, out var _);
+
+            CheckBenchmark();
         }
 
         [Benchmark]
@@ -26,6 +28,18 @@ namespace Fluid.Benchmarks
         public override object ParseBig()
         {
             return _parser.Parse(BlogPostTemplate);
+        }
+
+        [Benchmark]
+        public object ParseCompiled()
+        {
+            return _compiledParser.Parse(ProductTemplate);
+        }
+
+        [Benchmark]
+        public object ParseBigCompiled()
+        {
+            return _compiledParser.Parse(BlogPostTemplate);
         }
 
         [Benchmark]

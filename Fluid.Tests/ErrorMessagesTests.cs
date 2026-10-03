@@ -1,4 +1,4 @@
-﻿using Fluid.Parser;
+using Fluid.Parser;
 using Xunit;
 
 namespace Fluid.Tests

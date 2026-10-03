@@ -1,167 +1,164 @@
-﻿using Fluid.Values;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using Fluid.Values;
 using System.Text.Encodings.Web;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
-    public class IncludeStatement : Statement
+#pragma warning disable CA1001 // Types that own disposable fields should be disposable
+    public sealed class IncludeStatement : Statement
+#pragma warning restore CA1001
     {
         public const string ViewExtension = ".liquid";
-        private readonly FluidParser _parser;
-        private volatile CachedTemplate _cachedTemplate;
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
-        public IncludeStatement(FluidParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
+        public IncludeStatement(FluidParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, IReadOnlyList<AssignStatement> assignStatements = null)
         {
-            _parser = parser;
+            Parser = parser;
             Path = path;
             With = with;
             For = @for;
             Alias = alias;
-            AssignStatements = assignStatements;
+            AssignStatements = assignStatements ?? [];
         }
 
+        public FluidParser Parser { get; }
         public Expression Path { get; }
-        public IList<AssignStatement> AssignStatements { get; }
+        public IReadOnlyList<AssignStatement> AssignStatements { get; }
         public Expression With { get; }
         public Expression For { get; }
         public string Alias { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             context.IncrementSteps();
 
             var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
+            var loadedTemplate = await TemplateLoader.LoadAsync(
+                Parser,
+                relativePath,
+                context,
+                context.Options.DefaultFileExtension);
+            relativePath = loadedTemplate.Path;
+            var template = loadedTemplate.Template;
 
-            if (!relativePath.EndsWith(ViewExtension, StringComparison.OrdinalIgnoreCase))
+            var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
+
+            // Unlike render, include shares scope with the parent template.
+            // Use a for-loop scope which passes through variable assignments to the parent.
+            // This allows variables assigned inside the include to persist in the outer scope.
+            using var scope = context.EnterScope(ScopeBehavior.WriteThrough);
+
+            if (With != null)
             {
-                relativePath += ViewExtension;
-            }
+                var with = await With.EvaluateAsync(context);
 
-            if (_cachedTemplate == null || !string.Equals(_cachedTemplate.Name, System.IO.Path.GetFileNameWithoutExtension(relativePath), StringComparison.Ordinal))
-            {
-                await _semaphore.WaitAsync();
+                // The bound variable is local to this include
+                context.LocalScope.SetOwnValue(Alias ?? identifier, with);
 
-                try
+                // Keyword arguments are local to the include
+                if (AssignStatements.Count > 0)
                 {
-                    if (_cachedTemplate == null || !string.Equals(_cachedTemplate.Name, System.IO.Path.GetFileNameWithoutExtension(relativePath), StringComparison.Ordinal))
+                    for (var i = 0; i < AssignStatements.Count; i++)
                     {
-
-                        var fileProvider = context.Options.FileProvider;
-
-                        var fileInfo = fileProvider.GetFileInfo(relativePath);
-
-                        if (fileInfo == null || !fileInfo.Exists)
-                        {
-                            throw new FileNotFoundException(relativePath);
-                        }
-
-                        var content = "";
-
-                        using (var stream = fileInfo.CreateReadStream())
-                        using (var streamReader = new StreamReader(stream))
-                        {
-                            content = await streamReader.ReadToEndAsync();
-                        }
-
-                        if (!_parser.TryParse(content, out var template, out var errors))
-                        {
-                            throw new ParseException(errors);
-                        }
-
-                        var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
-
-                        _cachedTemplate = new CachedTemplate(template, identifier);
+                        var stmt = AssignStatements[i];
+                        context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
                     }
                 }
-                finally
-                {
-                    _semaphore.Release();
-                }
-            }
 
-            try
+                return await RenderStatementsAsync(template, output, encoder, context);
+            }
+            else if (AssignStatements.Count > 0)
             {
-                context.EnterChildScope(); 
-                
-                if (With != null)
+                // Keyword arguments are local to the include - they should go out of scope after
+                for (var i = 0; i < AssignStatements.Count; i++)
                 {
-                    var with = await With.EvaluateAsync(context);
-
-                    context.SetValue(Alias ?? _cachedTemplate.Name, with);
-
-                    await _cachedTemplate.Template.RenderAsync(writer, encoder, context);
+                    var stmt = AssignStatements[i];
+                    context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
                 }
-                else if (AssignStatements != null)
-                {
-                    var length = AssignStatements.Count;
-                    for (var i = 0; i < length; i++)
-                    {
-                        await AssignStatements[i].WriteToAsync(writer, encoder, context);
-                    }
 
-                    await _cachedTemplate.Template.RenderAsync(writer, encoder, context);
-                }
-                else if (For != null)
-                {
-                    try
-                    {
-                        var forloop = new ForLoopValue();
-
-                        var list = (await For.EvaluateAsync(context)).Enumerate(context).ToList();
-
-                        var length = forloop.Length = list.Count;
-
-                        context.SetValue("forloop", forloop);
-
-                        for (var i = 0; i < length; i++)
-                        {
-                            context.IncrementSteps();
-
-                            var item = list[i];
-
-                            context.SetValue(Alias ?? _cachedTemplate.Name, item);
-
-                            // Set helper variables
-                            forloop.Index = i + 1;
-                            forloop.Index0 = i;
-                            forloop.RIndex = length - i - 1;
-                            forloop.RIndex0 = length - i;
-                            forloop.First = i == 0;
-                            forloop.Last = i == length - 1;
-
-                            await _cachedTemplate.Template.RenderAsync(writer, encoder, context);
-
-                            // Restore the forloop property after every statement in case it replaced it,
-                            // for instance if it contains a nested for loop
-                            context.SetValue("forloop", forloop);
-                        }
-                    }
-                    finally
-                    {
-                        context.LocalScope.Delete("forloop");
-                    }
-                }
-                else
-                {
-                    // no with, for or assignments, e.g. {% include 'products' %}
-                    await _cachedTemplate.Template.RenderAsync(writer, encoder, context);
-                }
+                return await RenderStatementsAsync(template, output, encoder, context);
             }
-            finally
+            else if (For != null)
             {
-                context.ReleaseScope();
+                var forloop = new ForLoopValue();
+
+                var evaluatedFor = await For.EvaluateAsync(context);
+
+                // Fast-path: avoid re-enumerating already materialized arrays.
+                IReadOnlyList<FluidValue> list = evaluatedFor is ArrayValue array
+                    ? array.Values
+                    : await evaluatedFor.EnumerateAsync(context).ToListAsync(context.CancellationToken);
+
+                var length = forloop.Length = list.Count;
+
+                context.LocalScope.SetOwnValue("forloop", forloop);
+
+                for (var i = 0; i < length; i++)
+                {
+                    context.IncrementSteps();
+
+                    var item = list[i];
+
+                    context.LocalScope.SetOwnValue(Alias ?? identifier, item);
+
+                    // Set helper variables
+                    forloop.Index = i + 1;
+                    forloop.Index0 = i;
+                    forloop.RIndex = length - i;
+                    forloop.RIndex0 = length - i - 1;
+                    forloop.First = i == 0;
+                    forloop.Last = i == length - 1;
+
+                    var completion = await RenderStatementsAsync(template, output, encoder, context);
+
+                    if (completion == Completion.Break)
+                    {
+                        break;
+                    }
+
+                    // Restore the forloop property after every statement in case it replaced it,
+                    // for instance if it contains a nested for loop
+                    context.LocalScope.SetOwnValue("forloop", forloop);
+                }
+
+                return Completion.Normal;
             }
 
+            // no with, for or assignments, e.g. {% include 'products' %}
+            return await RenderStatementsAsync(template, output, encoder, context);
+        }
+
+        /// <summary>
+        /// Renders template statements and returns the completion status.
+        /// This allows break/continue signals to propagate from included templates.
+        /// </summary>
+        private static async ValueTask<Completion> RenderStatementsAsync(IFluidTemplate template, IFluidOutput output, TextEncoder encoder, TemplateContext context)
+        {
+            if (template is IStatementList statementList)
+            {
+                var statements = statementList.Statements;
+                var count = statements.Count;
+                for (var i = 0; i < count; i++)
+                {
+                    var completion = await statements[i].WriteToAsync(output, encoder, context);
+
+                    if (completion != Completion.Normal)
+                    {
+                        return completion;
+                    }
+                }
+            }
+            else
+            {
+                // Fallback for non-standard template implementations
+                await template.RenderAsync(output, encoder, context);
+            }
+
+            context.CancellationToken.ThrowIfCancellationRequested();
+            await output.FlushAsync();
             return Completion.Normal;
         }
 
-        private record class CachedTemplate(IFluidTemplate Template, string Name);
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIncludeStatement(this);
 
+        private sealed record CachedTemplate(IFluidTemplate Template, string Name);
     }
 }

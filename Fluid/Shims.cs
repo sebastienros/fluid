@@ -1,21 +1,34 @@
-using System;
-using System.Runtime.CompilerServices;
-
 #nullable enable
 
 namespace Fluid
 {
+#if !NET6_0_OR_GREATER
     /// <summary>
-    /// Filling missing bits between netstandard2.0 and highers libs and frameworks.
+    /// Filling missing bits between netstandard2.0 and higher libs and frameworks.
     /// </summary>
     internal static class Shims
     {
-#if NETSTANDARD2_0
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static string[] Split(this string s, string? separator, StringSplitOptions options = StringSplitOptions.None)
         {
-            return s.Split(new[] {separator}, options);
+            return s.Split([separator], options);
         }
-#endif
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static bool EndsWith(this string s, char c)
+        {
+            return s.Length > 0 && s[^1] == c;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static bool Contains(this string s, char c)
+        {
+            return s.IndexOf(c) != -1;
+        }
     }
+#endif
+
+#if !NET9_0_OR_GREATER
+    internal sealed class Lock;
+#endif
 }

@@ -1,14 +1,11 @@
-﻿using System;
 using System.Globalization;
-using System.IO;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Fluid.Values
 {
     public sealed class FunctionValue : FluidValue
     {
-        public static readonly FunctionValue NoOp = new FunctionValue((_, _) => new ValueTask<FluidValue>(NilValue.Instance));
+        public static readonly FunctionValue NoOp = new FunctionValue((_, _) => NilValue.Instance);
         private readonly Func<FunctionArguments, TemplateContext, ValueTask<FluidValue>> _action;
 
         public FunctionValue(Func<FunctionArguments, TemplateContext, ValueTask<FluidValue>> asyncAction)
@@ -18,10 +15,10 @@ namespace Fluid.Values
 
         public FunctionValue(Func<FunctionArguments, TemplateContext, FluidValue> action)
         {
-            _action = (args, c) => new ValueTask<FluidValue>(action(args, c)); 
+            _action = (args, c) => action(args, c);
         }
 
-        public override FluidValues Type => FluidValues.Object;
+        public override FluidValues Type => FluidValues.Function;
 
         public override ValueTask<FluidValue> InvokeAsync(FunctionArguments arguments, TemplateContext context)
         {
@@ -58,20 +55,21 @@ namespace Fluid.Values
             return false;
         }
 
-        public override void WriteTo(TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
         {
             // A function value should be invoked and its result used instead.
-            // Calling write to is equivalent to renderding {{ alert }} instead of {{ alert() }}
+            // Calling write to is equivalent to rendering {{ alert }} instead of {{ alert() }}
+            return default;
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
-            return object.ReferenceEquals(this, other);
+            return object.ReferenceEquals(this, obj);
         }
 
         public override int GetHashCode()
         {
-            return _action == null ? 0 :_action.GetHashCode();
+            return _action == null ? 0 : _action.GetHashCode();
         }
     }
 }

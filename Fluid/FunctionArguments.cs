@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using Fluid.Values;
 
 namespace Fluid
@@ -7,7 +6,7 @@ namespace Fluid
     /// <summary>
     /// Represents the list of arguments of a function.
     /// </summary>
-    public class FunctionArguments
+    public sealed class FunctionArguments
     {
         public static readonly FunctionArguments Empty = new FunctionArguments();
 
@@ -63,18 +62,12 @@ namespace Fluid
         {
             if (name != null)
             {
-                if (_named == null)
-                {
-                    _named = new Dictionary<string, FluidValue>();
-                }
+                _named ??= new Dictionary<string, FluidValue>();
 
                 _named.Add(name, value);
             }
 
-            if (_positional == null)
-            {
-                _positional = new List<FluidValue>();
-            }
+            _positional ??= new List<FluidValue>();
 
             _positional.Add(value);
 
@@ -87,6 +80,11 @@ namespace Fluid
 
         internal object[] ValuesToObjectArray()
         {
+            if (_positional == null || _positional.Count == 0)
+            {
+                return Array.Empty<object>();
+            }
+
             var array = new object[_positional.Count];
             for (var i = 0; i < array.Length; ++i)
             {

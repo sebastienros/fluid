@@ -1,11 +1,9 @@
-﻿using System.IO;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
+﻿using System.Text.Encodings.Web;
 
 namespace Fluid
 {
     public interface IFluidTemplate
     {
-        ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context);
+        ValueTask RenderAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context);
     }
 }

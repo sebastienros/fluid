@@ -2,9 +2,14 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <NoWarn>$(NoWarn);NU5104</NoWarn>
+    <!-- Ignore vulnerable packages imported for benchmarking only -->
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
     <IsPackable>false</IsPackable>
+    <SignAssembly>false</SignAssembly>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>obj\$(Configuration)\$(TargetFramework)</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +20,7 @@
 
   <ItemGroup>
     <None Remove="blogpost.liquid" />
+    <None Remove="blogpost.mustache" />
     <None Remove="product.liquid" />
     <None Remove="product.mustache" />
   </ItemGroup>
@@ -23,18 +29,40 @@
     <EmbeddedResource Include="product.mustache" />
     <EmbeddedResource Include="product.liquid" />
     <EmbeddedResource Include="blogpost.liquid" />
+    <EmbeddedResource Include="blogpost.mustache" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.13.2" />
-    <PackageReference Include="DotLiquid" Version="2.2.656" />
-    <PackageReference Include="Liquid.NET" Version="0.10.0" />
-    <PackageReference Include="Scriban" Version="5.5.0" />
-    <PackageReference Include="Handlebars.Net" Version="2.1.2" />
+    <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="DotLiquid" />
+    <PackageReference Include="Liquid.NET" />
+    <PackageReference Include="Scriban" />
+    <PackageReference Include="Handlebars.Net" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" VersionOverride="10.0.5" />
     <ProjectReference Include="..\Fluid\Fluid.csproj" />
+    <ProjectReference Include="..\Fluid.SourceGenerator\Fluid.SourceGenerator.csproj"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Analyzer Include="..\Fluid.SourceGenerator\bin\$(Configuration)\netstandard2.0\Fluid.SourceGenerator.dll" />
+    <Analyzer Include="..\Fluid.SourceGenerator\bin\$(Configuration)\netstandard2.0\*.dll" />
+  </ItemGroup>
+
+  <Target Name="PreferNet10FluidRuntime" AfterTargets="Build">
+    <ItemGroup>
+      <_RuntimeOverrides Include="..\Fluid\bin\$(Configuration)\net10.0\Fluid.dll" />
+      <_RuntimeOverrides Include="..\Fluid\bin\$(Configuration)\net10.0\Parlot.dll" Condition="Exists('..\Fluid\bin\$(Configuration)\net10.0\Parlot.dll')" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_RuntimeOverrides)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <ItemGroup>
+    <AdditionalFiles Include="*.liquid" />
   </ItemGroup>
 
 </Project>

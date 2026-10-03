@@ -1,18 +1,15 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Fluid.Values;
+﻿using Fluid.Values;
 
 namespace Fluid.Ast
 {
-    public class FunctionCallSegment : MemberSegment
+    public sealed class FunctionCallSegment : MemberSegment
     {
         private static readonly FunctionArguments NonCacheableArguments = new();
-        private volatile FunctionArguments _cachedArguments = null;
+        private volatile FunctionArguments _cachedArguments;
 
         public FunctionCallSegment(IReadOnlyList<FunctionCallArgument> arguments)
         {
-            Arguments = arguments;
+            Arguments = arguments ?? [];
         }
 
         public IReadOnlyList<FunctionCallArgument> Arguments { get; }
@@ -55,6 +52,19 @@ namespace Fluid.Ast
             }
 
             return await value.InvokeAsync(arguments, context);
+        }
+
+        public override ValueTask<(FluidValue Value, bool UseModelFallback)> ResolveFromScopeAsync(TemplateContext context)
+        {
+            // FunctionCallSegment cannot be the first segment in a member expression
+            // It's always preceded by an identifier or indexer
+            throw new NotSupportedException("FunctionCallSegment cannot be the first segment in a member expression");
+        }
+
+        public override string GetSegmentName()
+        {
+            // For function call segments, return a generic representation
+            return "()";
         }
     }
 }

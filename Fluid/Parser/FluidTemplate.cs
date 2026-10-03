@@ -1,54 +1,41 @@
-﻿using Fluid.Ast;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
+﻿using System.Text.Encodings.Web;
+using Fluid.Ast;
+using Fluid.Utils;
 
 namespace Fluid.Parser
 {
-    public class FluidTemplate : IFluidTemplate
+    public sealed class FluidTemplate : IFluidTemplate, IStatementList
     {
-        private readonly List<Statement> _statements;
-
         public FluidTemplate(params Statement[] statements)
         {
-            _statements = new List<Statement>(statements ?? Array.Empty<Statement>());
+            Statements = statements ?? [];
         }
 
-        public FluidTemplate(List<Statement> statements)
+        public FluidTemplate(IReadOnlyList<Statement> statements)
         {
-            _statements = statements ?? throw new ArgumentNullException(nameof(statements));
+            Statements = statements ?? throw new ArgumentNullException(nameof(statements));
         }
 
-        public IReadOnlyList<Statement> Statements => _statements;
+        public IReadOnlyList<Statement> Statements { get; }
 
-        public ValueTask RenderAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public ValueTask RenderAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
-            if (writer == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(writer));
-            }
+            ArgumentNullException.ThrowIfNull(output);
+            ArgumentNullException.ThrowIfNull(encoder);
+            ArgumentNullException.ThrowIfNull(context);
 
-            if (encoder == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(encoder));
-            }
-
-            if (context == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(context));
-            }
+            context.CancellationToken.ThrowIfCancellationRequested();
+            output = LimitedFluidOutput.Create(output, context.MaxOutputSize);
 
             var count = Statements.Count;
             for (var i = 0; i < count; i++)
             {
-                var task = Statements[i].WriteToAsync(writer, encoder, context);
+                var task = Statements[i].WriteToAsync(output, encoder, context);
                 if (!task.IsCompletedSuccessfully)
                 {
                     return Awaited(
                         task,
-                        writer,
+                        output,
                         encoder,
                         context,
                         Statements,
@@ -56,12 +43,13 @@ namespace Fluid.Parser
                 }
             }
 
-            return new ValueTask();
+            context.CancellationToken.ThrowIfCancellationRequested();
+            return output.FlushAsync();
         }
 
         private static async ValueTask Awaited(
             ValueTask<Completion> task,
-            TextWriter writer,
+            IFluidOutput output,
             TextEncoder encoder,
             TemplateContext context,
             IReadOnlyList<Statement> statements,
@@ -70,8 +58,11 @@ namespace Fluid.Parser
             await task;
             for (var i = startIndex; i < statements.Count; i++)
             {
-                await statements[i].WriteToAsync(writer, encoder, context);
+                await statements[i].WriteToAsync(output, encoder, context);
             }
+
+            context.CancellationToken.ThrowIfCancellationRequested();
+            await output.FlushAsync();
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using Scriban;
+using Scriban;
 using Scriban.Runtime;
 
 namespace Fluid.Benchmarks
@@ -10,6 +10,8 @@ namespace Fluid.Benchmarks
         public ScribanBenchmarks()
         {
             _scribanTemplate = Template.ParseLiquid(ProductTemplate);
+
+            CheckBenchmark();
         }
 
         public override object Parse()

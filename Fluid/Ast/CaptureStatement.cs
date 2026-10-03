@@ -1,30 +1,48 @@
-﻿using Fluid.Utils;
+using Fluid.Utils;
 using Fluid.Values;
-using System.Collections.Generic;
-using System.IO;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
+using Fluid.SourceGeneration;
 
 namespace Fluid.Ast
 {
-    public class CaptureStatement : TagStatement
+    public sealed class CaptureStatement : TagStatement, ISourceable
     {
-        public CaptureStatement(string identifier, List<Statement> statements): base(statements)
+        private readonly bool _isWhitespaceOrCommentOnly;
+
+        public CaptureStatement(string identifier, IReadOnlyList<Statement> statements) : base(statements)
         {
             Identifier = identifier;
+            
+            _isWhitespaceOrCommentOnly = true;
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                if (!Statements[i].IsWhitespaceOrCommentOnly)
+                {
+                    _isWhitespaceOrCommentOnly = false;
+                    break;
+                }
+            }
         }
 
         public string Identifier { get; }
 
-        public override async ValueTask<Completion> WriteToAsync(TextWriter writer, TextEncoder encoder, TemplateContext context)
+        public override bool IsWhitespaceOrCommentOnly => true;
+
+        public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
+            if (_isWhitespaceOrCommentOnly)
+            {
+                context.SetValue(Identifier, StringValue.Empty);
+                return Completion.Normal;
+            }
+
             var completion = Completion.Normal;
 
-            using var sb = StringBuilderPool.GetInstance();
-            using var sw = new StringWriter(sb.Builder);
-            for (var i = 0; i < _statements.Count; i++)
+            using var captureBuffer = new BufferFluidOutput();
+            var captureOutput = LimitedFluidOutput.Create(captureBuffer, context.MaxOutputSize);
+            for (var i = 0; i < Statements.Count; i++)
             {
-                completion = await _statements[i].WriteToAsync(sw, encoder, context);
+                completion = await Statements[i].WriteToAsync(captureOutput, encoder, context);
 
                 if (completion != Completion.Normal)
                 {
@@ -34,18 +52,63 @@ namespace Fluid.Ast
                 }
             }
 
-            var result = sw.ToString();
+            FluidValue result = new StringValue(captureBuffer.ToString(), false);
 
             // Substitute the result if a custom callback is provided
             if (context.Captured != null)
             {
-                 result = await context.Captured.Invoke(Identifier, result);
+                result = await context.Captured.Invoke(Identifier, result, context);
             }
 
             // Don't encode captured blocks
-            context.SetValue(Identifier, new StringValue(result, false));
+            context.SetValue(Identifier, result);
 
             return completion;
+        }
+
+        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitCaptureStatement(this);
+
+        public void WriteTo(SourceGenerationContext context)
+        {
+            var identifierLit = SourceGenerationContext.ToCSharpStringLiteral(Identifier);
+
+            context.WriteLine("var completion = Completion.Normal;");
+            context.WriteLine("using var sw = new StringWriter();");
+            context.WriteLine("await using var captureBuffer = new TextWriterFluidOutput(sw, 16 * 1024, leaveOpen: true);");
+            context.WriteLine($"var captureOutput = LimitedFluidOutput.Create(captureBuffer, {context.ContextName}.MaxOutputSize);");
+
+            context.WriteLine($"for (var i = 0; i < {Statements.Count}; i++)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("switch (i)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    for (var i = 0; i < Statements.Count; i++)
+                    {
+                        var stmtMethod = context.GetStatementMethodName(Statements[i]);
+                        context.WriteLine($"case {i}: completion = await {stmtMethod}(captureOutput, {context.EncoderName}, {context.ContextName}); break;");
+                    }
+                    context.WriteLine("default: completion = Completion.Normal; break;");
+                }
+                context.WriteLine("}");
+
+                context.WriteLine("if (completion != Completion.Normal) break;");
+            }
+            context.WriteLine("}");
+
+            context.WriteLine("await captureBuffer.FlushAsync();");
+            context.WriteLine("FluidValue result = new StringValue(sw.ToString(), false);");
+            context.WriteLine($"if ({context.ContextName}.Captured != null)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"result = await {context.ContextName}.Captured.Invoke({identifierLit}, result, {context.ContextName});");
+            }
+            context.WriteLine("}");
+            context.WriteLine($"{context.ContextName}.SetValue({identifierLit}, result);");
+            context.WriteLine("return completion;");
         }
     }
 }

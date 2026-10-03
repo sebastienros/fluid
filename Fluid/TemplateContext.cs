@@ -1,15 +1,17 @@
-﻿using Fluid.Values;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
+using Fluid.Values;
+
+#nullable enable
 
 namespace Fluid
 {
     public class TemplateContext
     {
-        protected int _recursion = 0;
-        protected int _steps = 0;
+        protected int _recursion;
+        protected int _steps;
+        private Scope _localScope;
 
         /// <summary>
         /// Initializes a new instance of <see cref="TemplateContext"/>.
@@ -23,12 +25,13 @@ namespace Fluid
         /// </summary>
         /// <param name="model">The model.</param>
         /// <param name="options">The template options.</param>
-        /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
-        public TemplateContext(object model, TemplateOptions options, bool allowModelMembers = true) : this(options)
+        public TemplateContext(object model, TemplateOptions options) : this(options)
         {
-            if (model == null)
+            ArgumentNullException.ThrowIfNull(model);
+
+            if (!ReferenceEquals(options, TemplateOptions.Default))
             {
-                ExceptionHelper.ThrowArgumentNullException(nameof(model));
+                options.MemberAccessStrategy.RegisterGeneratedAccessor(model.GetType());
             }
 
             if (model is FluidValue fluidValue)
@@ -38,7 +41,6 @@ namespace Fluid
             else
             {
                 Model = FluidValue.Create(model, options);
-                AllowModelMembers = allowModelMembers;
             }
         }
 
@@ -46,28 +48,36 @@ namespace Fluid
         /// Initializes a new instance of <see cref="TemplateContext"/> with the specified <see cref="TemplateOptions"/>.
         /// </summary>
         /// <param name="options">The template options.</param>
-        public TemplateContext(TemplateOptions options)
+        /// <param name="modelNamesComparer">An optional <see cref="StringComparer"/> instance used when comparing model names.</param>
+        public TemplateContext(TemplateOptions options, StringComparer? modelNamesComparer = null)
         {
+            modelNamesComparer ??= options.ModelNamesComparer;
+
             Options = options;
-            LocalScope = new Scope(options.Scope);
-            RootScope = LocalScope;
+            _localScope = new Scope(options.GlobalValues, null, modelNamesComparer, null);
+            RootScope = _localScope;
             CultureInfo = options.CultureInfo;
+            MoneyOptions = options.MoneyOptions;
             TimeZone = options.TimeZone;
             Captured = options.Captured;
+            Assigned = options.Assigned;
+            Undefined = options.Undefined;
             Now = options.Now;
+            MaxSteps = options.MaxSteps;
+            MaxOutputSize = options.MaxOutputSize;
+            MaxCollectionSize = options.MaxCollectionSize;
+            ModelNamesComparer = modelNamesComparer;
+            JsonSerializerOptions = options.JsonSerializerOptions;
         }
 
         /// <summary>
-        /// Initializes a new instance of <see cref="TemplateContext"/> wih a model and option regiter its properties.
+        /// Initializes a new instance of <see cref="TemplateContext"/> with a model.
         /// </summary>
         /// <param name="model">The model.</param>
-        /// <param name="allowModelMembers">Whether the members of the model can be accessed by default.</param>
-        public TemplateContext(object model, bool allowModelMembers = true) : this()
+        /// <param name="modelNamesComparer">An optional <see cref="StringComparer"/> instance used when comparing model names.</param>
+        public TemplateContext(object model, StringComparer? modelNamesComparer = null) : this(TemplateOptions.Default, modelNamesComparer)
         {
-            if (model == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(model));
-            }
+            ArgumentNullException.ThrowIfNull(model);
 
             if (model is FluidValue fluidValue)
             {
@@ -76,7 +86,6 @@ namespace Fluid
             else
             {
                 Model = FluidValue.Create(model, TemplateOptions.Default);
-                AllowModelMembers = allowModelMembers;
             }
         }
 
@@ -86,9 +95,37 @@ namespace Fluid
         public TemplateOptions Options { get; protected set; }
 
         /// <summary>
+        /// Gets or sets the maximum number of steps a script can execute. Leave to 0 for unlimited.
+        /// </summary>
+        public int MaxSteps { get; set; } = TemplateOptions.Default.MaxSteps;
+
+        /// <summary>
+        /// Gets or sets the maximum number of characters a template or captured block can render.
+        /// Leave to 0 for unlimited.
+        /// </summary>
+        public int MaxOutputSize { get; set; } = TemplateOptions.Default.MaxOutputSize;
+
+        /// <summary>
+        /// Gets or sets the maximum number of items a template operation can materialize.
+        /// Leave to 0 for unlimited.
+        /// </summary>
+        public int MaxCollectionSize { get; set; } = TemplateOptions.Default.MaxCollectionSize;
+
+        /// <summary>
+        /// Gets <see cref="StringComparer"/> used when comparing model names.
+        /// </summary>
+        public StringComparer ModelNamesComparer { get; private set; }
+
+        /// <summary>
         /// Gets or sets the <see cref="CultureInfo"/> instance used to render locale values like dates and numbers.
         /// </summary>
         public CultureInfo CultureInfo { get; set; } = TemplateOptions.Default.CultureInfo;
+
+        /// <summary>
+        /// Gets or sets the options used by the money filters. Assigning a different instance allows
+        /// a currency to be selected per rendering, for example based on the current request.
+        /// </summary>
+        public MoneyOptions MoneyOptions { get; set; } = TemplateOptions.Default.MoneyOptions;
 
         /// <summary>
         /// Gets or sets the value to returned by the "now" keyword.
@@ -101,104 +138,154 @@ namespace Fluid
         public TimeZoneInfo TimeZone { get; set; } = TemplateOptions.Default.TimeZone;
 
         /// <summary>
+        /// Gets or sets the <see cref="JsonSerializerOptions"/> used by the <c>json</c> filter.
+        /// </summary>
+        public JsonSerializerOptions JsonSerializerOptions { get; set; } = TemplateOptions.Default.JsonSerializerOptions;
+
+        /// <summary>
+        /// Gets or sets the token used to cancel asynchronous template operations.
+        /// </summary>
+        public CancellationToken CancellationToken { get; set; }
+
+        /// <summary>
         /// Increments the number of statements the current template is processing.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void IncrementSteps()
         {
-            var maxSteps = Options.MaxSteps;
-            if (maxSteps > 0 && _steps++ > maxSteps)
+            CancellationToken.ThrowIfCancellationRequested();
+
+            if (MaxSteps > 0 && _steps++ > MaxSteps)
             {
                 ExceptionHelper.ThrowMaximumRecursionException();
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EnsureOutputSize(long size)
+        {
+            CancellationToken.ThrowIfCancellationRequested();
+
+            if (size < 0 || (MaxOutputSize > 0 && size > MaxOutputSize))
+            {
+                ExceptionHelper.ThrowMaximumOutputSizeException(MaxOutputSize);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EnsureCollectionSize(long size)
+        {
+            CancellationToken.ThrowIfCancellationRequested();
+
+            if (size < 0 || (MaxCollectionSize > 0 && size > MaxCollectionSize))
+            {
+                ExceptionHelper.ThrowMaximumCollectionSizeException(MaxCollectionSize);
+            }
+        }
+
         /// <summary>
-        /// Gets or sets the current scope.
+        /// Gets the current scope.
         /// </summary>
-        internal Scope LocalScope { get; set; }
+        public Scope LocalScope => _localScope;
 
         /// <summary>
         /// Gets or sets the root scope.
         /// </summary>
         internal Scope RootScope { get; set; }
 
-        private Dictionary<string, object> _ambientValues;
-
         /// <summary>
         /// Used to define custom object on this instance to be used in filters and statements
         /// but which are not available from the template.
         /// </summary>
-        public Dictionary<string, object> AmbientValues => _ambientValues ??= new Dictionary<string, object>();
+        public Dictionary<string, object> AmbientValues => field ??= [];
 
         /// <summary>
         /// Gets or sets a model object that is used to resolve properties in a template. This object is used if local and
-        /// global scopes are unsuccessfull.
+        /// global scopes are unsuccessful.
         /// </summary>
-        public FluidValue Model { get; }
-
-        /// <summary>
-        /// Whether the direct properties of the Model can be accessed without being registered. Default is <code>true</code>.
-        /// </summary>
-        public bool AllowModelMembers { get; set; } = true;
+        public FluidValue Model { get; } = NilValue.Instance;
 
         /// <summary>
         /// Gets or sets the delegate to execute when a Capture tag has been evaluated.
         /// </summary>
-        public Func<string, string, ValueTask<string>> Captured { get; set; }
+        public TemplateOptions.CapturedDelegate Captured { get; set; }
 
         /// <summary>
-        /// Creates a new isolated child scope. After than any value added to this content object will be released once
-        /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
+        /// Gets or sets the delegate to execute when an Assign tag has been evaluated.
         /// </summary>
-        public void EnterChildScope()
+        public TemplateOptions.AssignedDelegate Assigned { get; set; }
+
+        /// <summary>
+        /// Gets or sets the delegate to execute when an undefined value is used.
+        /// </summary>
+        public TemplateOptions.UndefinedDelegate Undefined { get; set; }
+
+        /// <summary>
+        /// Enters a scope with the specified lookup and assignment behavior.
+        /// </summary>
+        public ScopeLease EnterScope(ScopeBehavior behavior = ScopeBehavior.Local)
         {
-            if (Options.MaxRecursion > 0 && _recursion++ > Options.MaxRecursion)
+            return new ScopeLease(this, EnterScopeCore(behavior));
+        }
+
+        private Scope EnterScopeCore(ScopeBehavior behavior)
+        {
+            if (behavior != ScopeBehavior.Local &&
+                behavior != ScopeBehavior.WriteThrough &&
+                behavior != ScopeBehavior.Isolated)
+            {
+                throw new ArgumentOutOfRangeException(nameof(behavior));
+            }
+
+            if (Options.MaxRecursion > 0 && _recursion >= Options.MaxRecursion)
             {
                 ExceptionHelper.ThrowMaximumRecursionException();
-                return;
             }
 
-            LocalScope = new Scope(LocalScope);
+            _recursion++;
+
+            var previous = _localScope;
+            var parent = behavior == ScopeBehavior.Isolated ? RootScope : previous;
+            var assignmentTarget = behavior == ScopeBehavior.WriteThrough
+                ? previous.AssignmentScope
+                : null;
+
+            return _localScope = new Scope(parent, assignmentTarget, ModelNamesComparer, previous);
         }
 
-        /// <summary>
-        /// Creates a new for loop scope. After than any value added to this content object will be released once
-        /// <see cref="ReleaseScope" /> is called. The previous scope is linked such that its values are still available.
-        /// </summary>
-        public void EnterForLoopScope()
+        private void ReleaseScopeCore(Scope scope)
         {
-            if (Options.MaxRecursion > 0 && _recursion++ > Options.MaxRecursion)
+            if (!ReferenceEquals(_localScope, scope))
             {
-                ExceptionHelper.ThrowMaximumRecursionException();
-                return;
+                ExceptionHelper.ThrowInvalidOperationException("Scopes must be released in reverse order");
             }
 
-            LocalScope = new Scope(LocalScope, forLoopScope: true);
+            _recursion--;
+            _localScope = scope.Previous;
         }
 
         /// <summary>
-        /// Exits the current scope that has been created by <see cref="EnterChildScope" />
+        /// Restores the previous scope when disposed.
         /// </summary>
-        public void ReleaseScope()
+        public readonly struct ScopeLease : IDisposable
         {
-            if (_recursion > 0)
+            private readonly TemplateContext _context;
+            private readonly Scope _scope;
+
+            internal ScopeLease(TemplateContext context, Scope scope)
             {
-                _recursion--;
+                _context = context;
+                _scope = scope;
             }
 
-            LocalScope = LocalScope.Parent;
-
-            if (LocalScope == null)
+            /// <summary>
+            /// Restores the scope that was active before this lease was created.
+            /// </summary>
+            public void Dispose()
             {
-                ExceptionHelper.ThrowInvalidOperationException("ReleaseScope invoked without corresponding EnterChildScope");
-                return;
+                _context?.ReleaseScopeCore(_scope);
             }
         }
-
-        /// <summary>
-        /// Gets the names of the values.
-        /// </summary>
-        public IEnumerable<string> ValueNames => LocalScope.Properties;
 
         /// <summary>
         /// Gets a value from the context.
@@ -206,18 +293,18 @@ namespace Fluid
         /// <param name="name">The name of the value.</param>
         public FluidValue GetValue(string name)
         {
-            return LocalScope.GetValue(name);
+            return _localScope.GetValue(name);
         }
 
         /// <summary>
         /// Sets a value on the context.
         /// </summary>
         /// <param name="name">The name of the value.</param>
-        /// <param name="value">Teh value to set.</param>
+        /// <param name="value">The value to set.</param>
         /// <returns></returns>
         public TemplateContext SetValue(string name, FluidValue value)
         {
-            LocalScope.SetValue(name, value);
+            _localScope.SetValue(name, value);
             return this;
         }
     }

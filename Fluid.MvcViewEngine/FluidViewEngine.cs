@@ -48,7 +48,7 @@ namespace Fluid.MvcViewEngine
                 return ViewEngineResult.Found(viewName, fluidView);
             }
 
-            var fileProvider = _options.ViewsFileProvider ?? _hostingEnvironment.ContentRootFileProvider;
+            var fileProvider = _options.ViewLocationFileProvider ?? _hostingEnvironment.ContentRootFileProvider;
 
             List<string> checkedLocations = null;
 
@@ -134,15 +134,8 @@ namespace Fluid.MvcViewEngine
 
         public static string GetNormalizedRouteValue(ActionContext context, string key)
         {
-            if (context == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(context));
-            }
-
-            if (key == null)
-            {
-                ExceptionHelper.ThrowArgumentNullException(nameof(key));
-            }
+            ArgumentNullException.ThrowIfNull(context);
+            ArgumentNullException.ThrowIfNull(key);
 
             if (!context.RouteData.Values.TryGetValue(key, out object routeValue))
             {
