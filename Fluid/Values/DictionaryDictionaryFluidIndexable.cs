@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 
 namespace Fluid.Values
 {
@@ -28,7 +29,7 @@ namespace Fluid.Values
                     }
                     else
                     {
-                        yield return key.ToString();
+                        yield return ConvertKeyToString(key);
                     }
                 }
             }
@@ -43,8 +44,27 @@ namespace Fluid.Values
                 return true;
             }
 
+            foreach (var key in _dictionary.Keys)
+            {
+                if (key is not string && ConvertKeyToString(key) == name)
+                {
+                    value = FluidValue.Create(_dictionary[key], _options);
+                    return true;
+                }
+            }
+
             value = NilValue.Instance;
             return false;
+        }
+
+        private string ConvertKeyToString(object key)
+        {
+            return key switch
+            {
+                IFormattable formattable => formattable.ToString(null, _options.CultureInfo),
+                IConvertible convertible => convertible.ToString(_options.CultureInfo),
+                _ => key.ToString()
+            };
         }
     }
 }
