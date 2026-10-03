@@ -2,6 +2,7 @@ using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
 using System;
+using System.Threading.Tasks;
 
 namespace Fluid.Tests
 {
@@ -249,9 +250,36 @@ namespace Fluid.Tests
             Assert.Equal("6.0", result.Result.ToStringValue());
         }
 
+        [Fact]
+        public void Random_IsNotRegisteredByDefault()
+        {
+            var options = new TemplateOptions();
+
+            Assert.False(options.Filters.TryGetValue("random", out _));
+        }
+
+        [Fact]
+        public async Task Random_CanBeRegisteredExplicitly()
+        {
+            var options = new TemplateOptions { StrictFilters = true };
+            options.Filters.AddFilter("random", NumberFilters.Random);
+            var context = new TemplateContext(options);
+            var parser = new FluidParser();
+            Assert.True(parser.TryParse("{{ 0 | random: 7, 7 }}", out var template, out var error), error);
+
+            var result = await template.RenderAsync(context);
+
+            Assert.Equal("7", result);
+        }
+
         [Theory]
         [InlineData(1, 10)]
         [InlineData(-10, -1)]
+        [InlineData(0, 0)]
+        [InlineData(int.MinValue, int.MinValue)]
+        [InlineData(int.MaxValue, int.MaxValue)]
+        [InlineData(int.MaxValue - 1, int.MaxValue)]
+        [InlineData(int.MinValue, int.MaxValue)]
         public void Random(decimal min, decimal max)
         {
             var input = NumberValue.Create(0);
@@ -259,14 +287,20 @@ namespace Fluid.Tests
             var arguments = new FilterArguments([NumberValue.Create(min), NumberValue.Create(max)]);
             var context = new TemplateContext();
 
-            var result = NumberFilters.Random(input, arguments, context);
+            for (var i = 0; i < 100; i++)
+            {
+                var result = NumberFilters.Random(input, arguments, context);
 
-            Assert.InRange(result.Result.ToNumberValue(), min, max);
+                Assert.InRange(result.Result.ToNumberValue(), min, max);
+            }
         }
 
         [Theory]
         [InlineData(10, 1)]
         [InlineData(-1, -10)]
+        [InlineData(2, 1)]
+        [InlineData(-1, -2)]
+        [InlineData(int.MaxValue, int.MaxValue - 1)]
         public void Random_ThrowsException_IfMinimumIsGreaterThanMaximum(decimal min, decimal max)
         {
             var input = NumberValue.Create(0);
@@ -276,7 +310,7 @@ namespace Fluid.Tests
 
             var exception = Assert.Throws<ArgumentOutOfRangeException>(() => NumberFilters.Random(input, arguments, context));
 
-            Assert.Equal("'minValue' cannot be greater than maxValue. (Parameter 'minValue')", exception.Message);
+            Assert.Equal("arguments", exception.ParamName);
         }
     }
 }

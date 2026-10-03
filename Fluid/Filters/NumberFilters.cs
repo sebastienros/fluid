@@ -17,7 +17,6 @@ namespace Fluid.Filters
             filters.AddFilter("plus", Plus);
             filters.AddFilter("round", Round);
             filters.AddFilter("times", Times);
-            filters.AddFilter("random", Random);
 
             return filters;
         }
@@ -164,11 +163,17 @@ namespace Fluid.Filters
         {
             LiquidException.ThrowFilterArgumentsCount("random", expected: 2, arguments);
 
-            var min = arguments.At(0).ToNumberValue();
-            var max = arguments.At(1).ToNumberValue();
+            var minValue = (int)arguments.At(0).ToNumberValue();
+            var maxValue = (int)arguments.At(1).ToNumberValue();
+
+            if (minValue > maxValue)
+            {
+                throw new ArgumentOutOfRangeException(nameof(arguments), "The minimum cannot be greater than the maximum.");
+            }
 
             var random = new Random();
-            var value = random.Next((int)min, (int)max + 1);
+            var range = (long)maxValue - minValue + 1;
+            var value = minValue + (long)(random.NextDouble() * range);
 
             return NumberValue.Create(value);
         }
