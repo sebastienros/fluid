@@ -1,0 +1,154 @@
+using System;
+using System.Globalization;
+using System.Text.Json.Nodes;
+using System.Threading.Tasks;
+using Fluid.Values;
+using Xunit;
+
+namespace Fluid.Tests
+{
+    public class JsonNodeTests
+    {
+#if COMPILED
+        private static readonly FluidParser _parser = new FluidParser().Compile();
+#else
+        private static readonly FluidParser _parser = new FluidParser();
+#endif
+
+        [Fact]
+        public async Task JsonObjectModelSupportsCalculations()
+        {
+            var model = JsonNode.Parse("""
+                {
+                  "RiscObject": [
+                    {
+                      "GaranteeObject": [
+                        { "Price": 10.25 },
+                        { "Price": 20.5 }
+                      ]
+                    }
+                  ]
+                }
+                """).AsObject();
+
+            var template = _parser.Parse(
+                "{% assign total_price = 0 %}" +
+                "{% for guarantee in RiscObject[0].GaranteeObject %}" +
+                "{% assign total_price = total_price | plus: guarantee.Price %}" +
+                "{% endfor %}{{ total_price }}");
+
+            Assert.Equal("30.75", await template.RenderAsync(new TemplateContext(model)));
+        }
+
+        [Fact]
+        public void CustomValueConvertersTakePrecedenceForJsonValues()
+        {
+            var options = new TemplateOptions();
+            options.ValueConverters.Add(value => value is JsonValue ? "custom" : null);
+
+            var value = FluidValue.Create(JsonValue.Create(42), options);
+
+            Assert.Equal("custom", value.ToStringValue());
+        }
+
+        [Fact]
+        public void JsonValuesCreatedFromClrScalarsAreConverted()
+        {
+            var options = new TemplateOptions();
+
+            Assert.Equal(42, FluidValue.Create(JsonValue.Create(42), options).ToNumberValue());
+            Assert.Equal("hello", FluidValue.Create(JsonValue.Create("hello"), options).ToStringValue());
+            Assert.True(FluidValue.Create(JsonValue.Create(true), options).ToBooleanValue());
+        }
+
+        [Theory]
+        [InlineData("42", FluidValues.Number, "42")]
+        [InlineData("2147483648", FluidValues.Number, "2147483648")]
+        [InlineData("10.25", FluidValues.Number, "10.25")]
+        [InlineData("1e2", FluidValues.Number, "100")]
+        [InlineData("\"hello\"", FluidValues.String, "hello")]
+        [InlineData("\"\"", FluidValues.String, "")]
+        [InlineData("true", FluidValues.Boolean, "true")]
+        [InlineData("false", FluidValues.Boolean, "false")]
+        [InlineData("null", FluidValues.Nil, "")]
+        public void ParsedScalarsHaveLiquidTypes(string json, FluidValues type, string expected)
+        {
+            var value = FluidValue.Create(JsonNode.Parse(json), new TemplateOptions());
+
+            Assert.Equal(type, value.Type);
+            Assert.Equal(expected, value.ToStringValue());
+        }
+
+        [Theory]
+        [InlineData("fr-FR")]
+        [InlineData("en-US")]
+        public void ClrNumbersUseInvariantConversion(string culture)
+        {
+            var previousCulture = CultureInfo.CurrentCulture;
+            try
+            {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+                var options = new TemplateOptions();
+
+                Assert.Equal(10.25m, FluidValue.Create(JsonValue.Create(10.25m), options).ToNumberValue());
+                Assert.Equal(10.25m, FluidValue.Create(JsonValue.Create(10.25d), options).ToNumberValue());
+                Assert.Equal(10.25m, FluidValue.Create(JsonValue.Create(10.25f), options).ToNumberValue());
+                Assert.Equal(ulong.MaxValue, FluidValue.Create(JsonValue.Create(ulong.MaxValue), options).ToNumberValue());
+                Assert.Same(BooleanValue.False, FluidValue.Create(JsonValue.Create(false), options));
+                Assert.Same(NilValue.Instance, FluidValue.Create(JsonValue.Create((string)null), options));
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = previousCulture;
+            }
+        }
+
+        [Fact]
+        public async Task NestedObjectsAndArraysSupportLiquidOperations()
+        {
+            var model = JsonNode.Parse("""
+                { "data": { "values": [2, 3.5, null], "enabled": true, "disabled": false, "name": "hello" } }
+                """).AsObject();
+            var template = _parser.Parse(
+                "{{ data.values[0] | plus: data.values[1] }}|" +
+                "{{ data.values.size }}|" +
+                "{% if data.enabled %}yes{% endif %}|" +
+                "{% if data.disabled %}wrong{% else %}no{% endif %}|" +
+                "{% if data.values[2] == nil %}nil{% endif %}|" +
+                "{{ data.name | upcase }}");
+
+            Assert.Equal("5.5|3|yes|no|nil|HELLO", await template.RenderAsync(new TemplateContext(model)));
+        }
+
+        [Fact]
+        public async Task CustomConvertersOverrideNestedValues()
+        {
+            var options = new TemplateOptions();
+            options.ValueConverters.Add(value => value is JsonValue ? NumberValue.Create(7) : null);
+            var model = JsonNode.Parse("""{ "values": [1, 2] }""").AsObject();
+            var template = _parser.Parse("{{ values[0] | plus: values[1] }}");
+
+            Assert.Equal("14", await template.RenderAsync(new TemplateContext(model, options)));
+        }
+
+        [Fact]
+        public void ConverterResultsUseBuiltInJsonConversionWithoutRunningFurtherConverters()
+        {
+            var options = new TemplateOptions();
+            options.ValueConverters.Add(value => value is int number ? JsonValue.Create(number) : null);
+            options.ValueConverters.Add(value => throw new InvalidOperationException("Unexpected converter"));
+
+            Assert.Equal(42, FluidValue.Create(42, options).ToNumberValue());
+        }
+
+        [Fact]
+        public void CustomConvertersOverrideJsonContainers()
+        {
+            var options = new TemplateOptions();
+            options.ValueConverters.Add(value => value is JsonObject or JsonArray ? new StringValue("custom") : null);
+
+            Assert.Equal("custom", FluidValue.Create(new JsonObject(), options).ToStringValue());
+            Assert.Equal("custom", FluidValue.Create(new JsonArray(), options).ToStringValue());
+        }
+    }
+}
