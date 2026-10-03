@@ -210,7 +210,7 @@ namespace Fluid.Tests
         {
             // Navigate up from the test assembly location to find the repository root
             var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Fluid.sln")))
+            while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Fluid.slnx")))
             {
                 dir = dir.Parent;
             }
