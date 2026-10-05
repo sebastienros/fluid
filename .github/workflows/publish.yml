@@ -72,7 +72,7 @@ jobs:
         VERSION="${GITHUB_REF_NAME#v}"
         dotnet pack Fluid.Core.Tool --configuration Release -r ${{ matrix.rid }} --property:PackTool=true --property:Version=$VERSION --property:ContinuousIntegrationBuild=True --property:PackageOutputPath="${GITHUB_WORKSPACE}/tool-artifacts"
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: tool-${{ matrix.rid }}
         path: tool-artifacts/*.nupkg
