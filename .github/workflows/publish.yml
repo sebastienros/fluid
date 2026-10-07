@@ -94,7 +94,7 @@ jobs:
           10.0.x
         global-json-file: global.json
 
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v7
       with:
         pattern: tool-*
         path: tool-artifacts
