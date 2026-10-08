@@ -31,19 +31,34 @@ public sealed class CompositeFluidTemplate : IFluidTemplate, IStatementList
         context.CancellationToken.ThrowIfCancellationRequested();
         output = LimitedFluidOutput.Create(output, context.MaxOutputSize);
 
-        var count = Statements.Count;
-        for (var i = 0; i < count; i++)
+        context.EnterRender();
+        var exitRender = true;
+
+        try
         {
-            var task = Statements[i].WriteToAsync(output, encoder, context);
-            if (!task.IsCompletedSuccessfully)
+            var count = Statements.Count;
+            for (var i = 0; i < count; i++)
             {
-                return Awaited(
-                    task,
-                    output,
-                    encoder,
-                    context,
-                    Statements,
-                    startIndex: i + 1);
+                var task = Statements[i].WriteToAsync(output, encoder, context);
+                if (!task.IsCompletedSuccessfully)
+                {
+                    // The awaited continuation takes over leaving the render.
+                    exitRender = false;
+                    return Awaited(
+                        task,
+                        output,
+                        encoder,
+                        context,
+                        Statements,
+                        startIndex: i + 1);
+                }
+            }
+        }
+        finally
+        {
+            if (exitRender)
+            {
+                context.ExitRender();
             }
         }
 
@@ -59,10 +74,17 @@ public sealed class CompositeFluidTemplate : IFluidTemplate, IStatementList
         IReadOnlyList<Statement> statements,
         int startIndex)
     {
-        await task;
-        for (var i = startIndex; i < statements.Count; i++)
+        try
         {
-            await statements[i].WriteToAsync(output, encoder, context);
+            await task;
+            for (var i = startIndex; i < statements.Count; i++)
+            {
+                await statements[i].WriteToAsync(output, encoder, context);
+            }
+        }
+        finally
+        {
+            context.ExitRender();
         }
 
         context.CancellationToken.ThrowIfCancellationRequested();
