@@ -13,6 +13,13 @@ public class TemplateContext
     protected int _steps;
     private Scope _localScope;
 
+    // Partials resolved by the render in progress. A partial used in a loop would otherwise ask the
+    // file provider for the same path on every iteration, which for a physical provider is a file
+    // system call each time. Scoped to the outermost render so that a context reused for another
+    // render still picks up a file that changed in between.
+    private Dictionary<TemplateLoader.LoadedTemplateKey, TemplateLoader.LoadedTemplate>? _loadedTemplates;
+    private int _renderDepth;
+
     /// <summary>
     /// Initializes a new instance of <see cref="TemplateContext"/>.
     /// </summary>
@@ -181,6 +188,48 @@ public class TemplateContext
         {
             ExceptionHelper.ThrowMaximumCollectionSizeException(MaxCollectionSize);
         }
+    }
+
+    /// <summary>
+    /// Marks the start of a template render. Must be paired with <see cref="ExitRender"/>.
+    /// </summary>
+    internal void EnterRender()
+    {
+        _renderDepth++;
+    }
+
+    /// <summary>
+    /// Marks the end of a template render, forgetting the resolved partials once the outermost one ends.
+    /// </summary>
+    internal void ExitRender()
+    {
+        if (--_renderDepth == 0)
+        {
+            _loadedTemplates?.Clear();
+        }
+    }
+
+    internal bool TryGetLoadedTemplate(TemplateLoader.LoadedTemplateKey key, out TemplateLoader.LoadedTemplate loadedTemplate)
+    {
+        if (_loadedTemplates is null)
+        {
+            loadedTemplate = default;
+            return false;
+        }
+
+        return _loadedTemplates.TryGetValue(key, out loadedTemplate);
+    }
+
+    internal void SetLoadedTemplate(TemplateLoader.LoadedTemplateKey key, TemplateLoader.LoadedTemplate loadedTemplate)
+    {
+        // Outside of a template render there is nothing to tell when the entry should be dropped.
+        if (_renderDepth == 0)
+        {
+            return;
+        }
+
+        _loadedTemplates ??= [];
+        _loadedTemplates[key] = loadedTemplate;
     }
 
     /// <summary>

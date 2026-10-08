@@ -1144,6 +1144,43 @@ shape: ''";
         Assert.Equal(2, sourceLoader.GetReadCount("inner.liquid"));
     }
 
+    [Theory]
+    [InlineData("{% for i in (1..3) %}{% include 'inner' %}{% endfor %}")]
+    [InlineData("{% for i in (1..3) %}{% render 'inner' %}{% endfor %}")]
+    public async Task TemplateFileProvider_ShouldBeQueriedOncePerPartialInARender(string source)
+    {
+        var sourceLoader = new AsyncTemplateFileProvider()
+            .Add("inner.liquid", "x");
+        var options = new TemplateOptionsBuilder().WithFileProvider(sourceLoader).Build();
+        var context = new TemplateContext(options);
+        _parser.TryParse(source, out var template);
+
+        Assert.Equal("xxx", await template.RenderAsync(context));
+
+        // One probe for the bare name and one with the default extension, whatever the number of iterations.
+        Assert.Equal(["inner", "inner.liquid"], sourceLoader.RequestedPaths);
+
+        // Another render with the same context asks again, so a file changed in between is seen.
+        Assert.Equal("xxx", await template.RenderAsync(context));
+        Assert.Equal(["inner", "inner.liquid", "inner", "inner.liquid"], sourceLoader.RequestedPaths);
+    }
+
+    [Fact]
+    public async Task TemplateFileProvider_ShouldBeQueriedAgainAfterAFailedRender()
+    {
+        var sourceLoader = new AsyncTemplateFileProvider()
+            .Add("inner.liquid", "first");
+        var options = new TemplateOptionsBuilder().WithFileProvider(sourceLoader).Build();
+        var context = new TemplateContext(options);
+        _parser.TryParse("{% include 'inner' %}{% include 'missing' %}", out var template);
+
+        await Assert.ThrowsAsync<FileNotFoundException>(() => template.RenderAsync(context).AsTask());
+
+        sourceLoader.Add("inner.liquid", "second").Add("missing.liquid", "!");
+
+        Assert.Equal("second!", await template.RenderAsync(context));
+    }
+
     [Fact]
     public async Task TemplateFileProvider_ShouldCacheTemplateParsedResult()
     {

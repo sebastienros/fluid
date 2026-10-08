@@ -4,12 +4,49 @@ internal static class TemplateLoader
 {
     internal readonly record struct LoadedTemplate(string Path, IFluidTemplate Template);
 
-    public static async ValueTask<LoadedTemplate> LoadAsync(
+    internal readonly struct LoadedTemplateKey : IEquatable<LoadedTemplateKey>
+    {
+        public LoadedTemplateKey(FluidParser parser, string path)
+        {
+            Parser = parser;
+            Path = path;
+        }
+
+        public FluidParser Parser { get; }
+        public string Path { get; }
+
+        public bool Equals(LoadedTemplateKey other) =>
+            ReferenceEquals(Parser, other.Parser) && string.Equals(Path, other.Path, StringComparison.Ordinal);
+
+        public override bool Equals(object obj) => obj is LoadedTemplateKey other && Equals(other);
+
+        public override int GetHashCode() => Path.GetHashCode();
+    }
+
+    public static ValueTask<LoadedTemplate> LoadAsync(
         FluidParser parser,
         string path,
         TemplateContext context,
         string defaultFileExtension)
     {
+        var key = new LoadedTemplateKey(parser, path);
+
+        if (context.TryGetLoadedTemplate(key, out var loadedTemplate))
+        {
+            context.CancellationToken.ThrowIfCancellationRequested();
+            return new ValueTask<LoadedTemplate>(loadedTemplate);
+        }
+
+        return LoadCoreAsync(key, context, defaultFileExtension);
+    }
+
+    private static async ValueTask<LoadedTemplate> LoadCoreAsync(
+        LoadedTemplateKey key,
+        TemplateContext context,
+        string defaultFileExtension)
+    {
+        var parser = key.Parser;
+        var path = key.Path;
         var resolvedPath = path;
         var source = await GetSourceAsync(resolvedPath, context);
 
@@ -55,7 +92,9 @@ internal static class TemplateLoader
             context.Options.TemplateCache?.SetTemplate(cacheKey, source.LastModified, template);
         }
 
-        return new LoadedTemplate(resolvedPath, template);
+        var loadedTemplate = new LoadedTemplate(resolvedPath, template);
+        context.SetLoadedTemplate(key, loadedTemplate);
+        return loadedTemplate;
     }
 
     private static string GetDisplayPath(string path)
