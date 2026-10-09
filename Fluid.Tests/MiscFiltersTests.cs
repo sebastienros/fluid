@@ -340,6 +340,36 @@ namespace Fluid.Tests
         }
 
         [Theory]
+        [InlineData("%a", "d2")]
+        [InlineData("%A", "day2")]
+        [InlineData("%b", "m8")]
+        [InlineData("%B", "month8")]
+        [InlineData("%^a %^B", "D2 MONTH8")]
+        public async Task DateUsesTheCultureNames(string format, string expected)
+        {
+            // Names are set explicitly so the test doesn't depend on ICU data. The genitive names are
+            // different on purpose: the filter reads the regular ones.
+            var cultureInfo = new CultureInfo("en-US", useUserOverride: false);
+            var dateTimeFormat = cultureInfo.DateTimeFormat;
+            dateTimeFormat.AbbreviatedDayNames = ["d0", "d1", "d2", "d3", "d4", "d5", "d6"];
+            dateTimeFormat.DayNames = ["day0", "day1", "day2", "day3", "day4", "day5", "day6"];
+            dateTimeFormat.AbbreviatedMonthNames = ["m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10", "m11", "m12", ""];
+            dateTimeFormat.MonthNames = ["month1", "month2", "month3", "month4", "month5", "month6", "month7", "month8", "month9", "month10", "month11", "month12", ""];
+            dateTimeFormat.AbbreviatedMonthGenitiveNames = ["g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8", "g9", "g10", "g11", "g12", ""];
+            dateTimeFormat.MonthGenitiveNames = ["gen1", "gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8", "gen9", "gen10", "gen11", "gen12", ""];
+
+            var options = new TemplateOptions { CultureInfo = cultureInfo, TimeZone = TimeZoneInfo.Utc };
+            var context = new TemplateContext(options);
+
+            // A Tuesday in August.
+            var input = new DateTimeValue(new DateTimeOffset(2017, 8, 1, 17, 4, 36, TimeSpan.Zero));
+
+            var result = await MiscFilters.Date(input, new FilterArguments(new StringValue(format)), context);
+
+            Assert.Equal(expected, result.ToStringValue());
+        }
+
+        [Theory]
         [InlineData("2020-05-18T12:00:00+01:00", "%l:%M%P", "12:00pm")]
         [InlineData("2020-05-18T08:00:00+01:00", "%l:%M%P", " 8:00am")]
         [InlineData("2020-05-18T20:00:00+01:00", "%l:%M%P", " 8:00pm")]
