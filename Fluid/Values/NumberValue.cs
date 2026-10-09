@@ -144,7 +144,7 @@ public sealed class NumberValue : FluidValue, IEquatable<NumberValue>
         {
             // Default format.
         }
-        else if (_value * (10 * scale) % (10 * scale) == 0)
+        else if (decimal.Truncate(_value) == _value)
         {
             // If the decimal part is zero(s), write one only
             format = "F1";
@@ -195,7 +195,7 @@ public sealed class NumberValue : FluidValue, IEquatable<NumberValue>
             // If the scale is zero, we can write the value directly without formatting
             output.Write(encoder, _value.ToString(cultureInfo));
         }
-        else if (_value * (10 * scale) % (10 * scale) == 0)
+        else if (decimal.Truncate(_value) == _value)
         {
             // If the decimal part is zero(s), write one only
             output.Write(encoder, _value.ToString("F1", cultureInfo));
