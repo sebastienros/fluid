@@ -88,6 +88,31 @@ public class ArrayFiltersTests
     }
 
     [Fact]
+    public async Task FirstAndLast_DoNotCountAStepPerItem()
+    {
+        var input = FluidValue.Create(Enumerable.Range(1, 1000).ToArray(), TemplateOptions.Default);
+
+        var arguments = new FilterArguments();
+        var context = new TemplateContext { MaxSteps = 10 };
+
+        Assert.Equal(NumberValue.Create(1), await ArrayFilters.First(input, arguments, context));
+        Assert.Equal(NumberValue.Create(1000), await ArrayFilters.Last(input, arguments, context));
+    }
+
+    [Fact]
+    public async Task FirstAndLast_OnEnumerable()
+    {
+        // Not a list, so it is wrapped as an enumerable object rather than an array value.
+        var input = FluidValue.Create(Enumerable.Range(1, 3).Select(x => x * 10), TemplateOptions.Default);
+
+        var arguments = new FilterArguments();
+        var context = new TemplateContext();
+
+        Assert.Equal(NumberValue.Create(10), await ArrayFilters.First(input, arguments, context));
+        Assert.Equal(NumberValue.Create(30), await ArrayFilters.Last(input, arguments, context));
+    }
+
+    [Fact]
     public async Task Concat()
     {
         var input = ArrayValue.Create(new[] {

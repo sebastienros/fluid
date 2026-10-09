@@ -80,7 +80,19 @@ public static class ArrayFilters
 
         if (input.Type == FluidValues.Array)
         {
-            return GetFirstFromArrayAsync(input, context);
+            // Materialized arrays answer from the list, without an async enumerator.
+            var values = EnumerableObjectValue.GetMaterializedValues(input);
+            if (values is null)
+            {
+                return GetFirstFromArrayAsync(input, context);
+            }
+
+            if (values.Count == 0)
+            {
+                return NilValue.Instance;
+            }
+
+            return new ValueTask<FluidValue>(values[0]);
         }
 
         if (input.Type == FluidValues.Dictionary)
@@ -103,7 +115,19 @@ public static class ArrayFilters
 
         if (input.Type == FluidValues.Array)
         {
-            return GetLastFromArrayAsync(input, context);
+            // Materialized arrays answer from the list, instead of walking every item to reach the last one.
+            var values = EnumerableObjectValue.GetMaterializedValues(input);
+            if (values is null)
+            {
+                return GetLastFromArrayAsync(input, context);
+            }
+
+            if (values.Count == 0)
+            {
+                return NilValue.Instance;
+            }
+
+            return new ValueTask<FluidValue>(values[values.Count - 1]);
         }
 
         if (input.Type == FluidValues.String)
