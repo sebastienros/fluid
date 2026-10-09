@@ -122,7 +122,7 @@ namespace Fluid.Values
                 // If the scale is zero, we can write the value directly without formatting
                 task = writer.WriteAsync(encoder.Encode(_value.ToString(cultureInfo)));
             }
-            else if (_value * (10 * scale) % (10 * scale) == 0)
+            else if (decimal.Truncate(_value) == _value)
             {
                 // If the decimal part is zero(s), write one only
                 task = writer.WriteAsync(encoder.Encode(_value.ToString("F1", cultureInfo)));
