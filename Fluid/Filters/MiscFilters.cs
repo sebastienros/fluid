@@ -428,7 +428,7 @@ namespace Fluid.Filters
                             case 'a':
                                 string AbbreviatedDayName()
                                 {
-                                    return context.CultureInfo.DateTimeFormat.AbbreviatedDayNames[(int)value.DayOfWeek];
+                                    return context.CultureInfo.DateTimeFormat.GetAbbreviatedDayName(value.DayOfWeek);
                                 }
 
                                 var abbreviatedDayName = AbbreviatedDayName();
@@ -436,17 +436,17 @@ namespace Fluid.Filters
                                 break;
                             case 'A':
                                 {
-                                    var dayName = context.CultureInfo.DateTimeFormat.DayNames[(int)value.DayOfWeek];
+                                    var dayName = context.CultureInfo.DateTimeFormat.GetDayName(value.DayOfWeek);
                                     result.Append(upperCaseFlag ? dayName.ToUpper(context.CultureInfo) : dayName);
                                     break;
                                 }
                             case 'b':
-                                var abbreviatedMonthName = context.CultureInfo.DateTimeFormat.AbbreviatedMonthNames[value.Month - 1];
+                                var abbreviatedMonthName = context.CultureInfo.DateTimeFormat.GetAbbreviatedMonthName(value.Month);
                                 result.Append(upperCaseFlag ? abbreviatedMonthName.ToUpper(context.CultureInfo) : abbreviatedMonthName);
                                 break;
                             case 'B':
                                 {
-                                    var monthName = context.CultureInfo.DateTimeFormat.MonthNames[value.Month - 1];
+                                    var monthName = context.CultureInfo.DateTimeFormat.GetMonthName(value.Month);
                                     result.Append(upperCaseFlag ? monthName.ToUpper(context.CultureInfo) : monthName);
                                     break;
                                 }
