@@ -11,10 +11,23 @@ public sealed class IndexerSegment : MemberSegment
 
     public Expression Expression { get; }
 
-    public override async ValueTask<FluidValue> ResolveAsync(FluidValue value, TemplateContext context)
+    public override ValueTask<FluidValue> ResolveAsync(FluidValue value, TemplateContext context)
     {
-        var index = await Expression.EvaluateAsync(context);
-        return await value.GetIndexAsync(index, context);
+        var indexTask = Expression.EvaluateAsync(context);
+
+        // Stay synchronous when the index is, which it is for a literal or a variable.
+        if (indexTask.IsCompletedSuccessfully)
+        {
+            return value.GetIndexAsync(indexTask.Result, context);
+        }
+
+        return Awaited(indexTask, value, context);
+
+        static async ValueTask<FluidValue> Awaited(ValueTask<FluidValue> indexTask, FluidValue value, TemplateContext context)
+        {
+            var index = await indexTask;
+            return await value.GetIndexAsync(index, context);
+        }
     }
 
     public override async ValueTask<(FluidValue Value, bool UseModelFallback)> ResolveFromScopeAsync(TemplateContext context)

@@ -113,15 +113,25 @@ public static class NumberFilters
         var result = inputValue % divisor;
 
         // Preserve decimal format when divisor has decimal places or is from a string with decimal
-        // Check if the divisor string representation contains a decimal point
-        var divisorStr = divisorValue.ToStringValue();
-        if (divisorStr.Contains('.') && result == 0)
+        // Only a zero result needs it, so the divisor isn't inspected for any other.
+        if (result == 0 && HasDecimalPoint(divisorValue))
         {
             // Return 0 with one decimal place to match divisor format
             return NumberValue.Create(0.0m);
         }
 
         return NumberValue.Create(result);
+    }
+
+    private static bool HasDecimalPoint(FluidValue value)
+    {
+        // A number is written with a decimal point exactly when it has a scale.
+        if (value is NumberValue)
+        {
+            return NumberValue.GetScale(value.ToNumberValue()) != 0;
+        }
+
+        return value.ToStringValue().Contains('.');
     }
 
     public static ValueTask<FluidValue> Plus(FluidValue input, FilterArguments arguments, TemplateContext context)

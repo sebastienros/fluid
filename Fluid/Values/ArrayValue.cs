@@ -1,3 +1,4 @@
+using System.Text;
 using System.Globalization;
 using System.Text.Encodings.Web;
 
@@ -135,7 +136,30 @@ public sealed class ArrayValue : FluidValue
     public override string ToStringValue()
     {
         using var scope = RecursiveValueGuard.Enter(this);
-        return String.Join("", Values.Select(x => x.ToStringValue()));
+        return ConcatStringValues(Values);
+    }
+
+    internal static string ConcatStringValues(IReadOnlyList<FluidValue> values)
+    {
+        var count = values.Count;
+
+        if (count == 0)
+        {
+            return "";
+        }
+
+        if (count == 1)
+        {
+            return values[0].ToStringValue() ?? "";
+        }
+
+        var builder = new ValueStringBuilder(stackalloc char[256]);
+        for (var i = 0; i < count; i++)
+        {
+            builder.Append(values[i].ToStringValue());
+        }
+
+        return builder.ToString();
     }
 
     public override object ToObjectValue()
