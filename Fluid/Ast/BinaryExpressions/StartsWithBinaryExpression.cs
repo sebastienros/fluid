@@ -22,7 +22,7 @@ public sealed class StartsWithBinaryExpression : BinaryExpression, ISourceable
         }
         else
         {
-            comparisonResult = leftValue.ToStringValue().StartsWith(rightValue.ToStringValue());
+            comparisonResult = leftValue.ToStringValue().StartsWith(rightValue.ToStringValue(), StringComparison.Ordinal);
         }
 
         return BinaryExpressionFluidValue.Create(leftValue, comparisonResult);
@@ -51,7 +51,7 @@ public sealed class StartsWithBinaryExpression : BinaryExpression, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine("comparisonResult = leftValue.ToStringValue().StartsWith(rightValue.ToStringValue());");
+            context.WriteLine("comparisonResult = leftValue.ToStringValue().StartsWith(rightValue.ToStringValue(), StringComparison.Ordinal);");
         }
         context.WriteLine("}");
 
