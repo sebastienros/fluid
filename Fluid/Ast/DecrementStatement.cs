@@ -9,7 +9,11 @@ public sealed class DecrementStatement : Statement, ISourceable
     public DecrementStatement(string identifier)
     {
         Identifier = identifier ?? "";
+        _prefixedIdentifier = IncrementStatement.Prefix + Identifier;
     }
+
+    // The name the counter is stored under, which never changes for a statement.
+    private readonly string _prefixedIdentifier;
 
     public string Identifier { get; }
 
@@ -23,7 +27,7 @@ public sealed class DecrementStatement : Statement, ISourceable
         // Variable identifiers don't represent the same slots as inc/dec ones.
         // c.f. https://shopify.github.io/liquid/tags/variable/
 
-        var prefixedIdentifier = IncrementStatement.Prefix + Identifier;
+        var prefixedIdentifier = _prefixedIdentifier;
 
         var value = context.GetValue(prefixedIdentifier);
 
