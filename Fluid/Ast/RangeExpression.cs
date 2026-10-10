@@ -36,7 +36,7 @@ public sealed class RangeExpression : Expression, ISourceable
         }
     }
 
-    private static ArrayValue BuildArray(int start, int end, TemplateContext context)
+    internal static ArrayValue BuildArray(int start, int end, TemplateContext context)
     {
         // If end < start, we create an empty array
         var length = end < start ? 0L : (long)end - start + 1;
