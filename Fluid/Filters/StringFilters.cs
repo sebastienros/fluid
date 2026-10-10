@@ -130,7 +130,7 @@ public static class StringFilters
         var remove = arguments.At(0).ToStringValue();
         var value = input.ToStringValue();
 
-        var index = value.IndexOf(remove);
+        var index = value.IndexOf(remove, StringComparison.Ordinal);
 
         if (index != -1)
         {
@@ -161,7 +161,7 @@ public static class StringFilters
         var remove = arguments.At(0).ToStringValue();
         var value = input.ToStringValue();
 
-        var index = value.LastIndexOf(remove);
+        var index = value.LastIndexOf(remove, StringComparison.Ordinal);
 
         if (index != -1)
         {
@@ -179,7 +179,7 @@ public static class StringFilters
         var remove = arguments.At(0).ToStringValue();
         var insert = arguments.Count > 1 ? arguments.At(1).ToStringValue() : "";
 
-        var index = value.IndexOf(remove);
+        var index = value.IndexOf(remove, StringComparison.Ordinal);
 
         if (index == -1)
         {
@@ -250,7 +250,7 @@ public static class StringFilters
         var value = input.ToStringValue();
         var remove = arguments.At(0).ToStringValue();
 #endif
-        var index = value.LastIndexOf(remove);
+        var index = value.LastIndexOf(remove, StringComparison.Ordinal);
 
         if (index == -1)
         {
