@@ -106,7 +106,7 @@ internal sealed class EnumerableObjectValue : ObjectValueBase
 
     public override string ToStringValue()
     {
-        return String.Join("", Values.Select(x => x.ToStringValue()));
+        return ArrayValue.ConcatStringValues(Values);
     }
 
     public override object ToObjectValue() => Value;
