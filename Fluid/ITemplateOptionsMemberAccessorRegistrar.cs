@@ -1,17 +1,16 @@
 using System.ComponentModel;
 
-namespace Fluid
+namespace Fluid;
+
+/// <summary>
+/// Registers source-generated member accessors for the <see cref="TemplateOptions"/> built by a <see cref="TemplateOptionsBuilder"/>.
+/// </summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
+public interface ITemplateOptionsMemberAccessorRegistrar
 {
     /// <summary>
-    /// Registers source-generated member accessors for a <see cref="TemplateOptions"/> instance.
+    /// Registers source-generated member accessors on the specified <see cref="TemplateOptionsBuilder"/>.
     /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public interface ITemplateOptionsMemberAccessorRegistrar
-    {
-        /// <summary>
-        /// Registers source-generated member accessors for the specified <see cref="TemplateOptions"/> instance.
-        /// </summary>
-        /// <param name="options">The options instance to register accessors on.</param>
-        void RegisterMemberAccessors(TemplateOptions options);
-    }
+    /// <param name="builder">The builder to register accessors on.</param>
+    void RegisterMemberAccessors(TemplateOptionsBuilder builder);
 }

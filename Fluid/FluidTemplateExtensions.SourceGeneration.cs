@@ -1,12 +1,11 @@
 using Fluid.SourceGeneration;
 
-namespace Fluid
+namespace Fluid;
+
+public static partial class FluidTemplateExtensions
 {
-    public static partial class FluidTemplateExtensions
+    public static TemplateSource Compile(this IFluidTemplate template, SourceGenerationOptions options = null)
     {
-        public static TemplateSource Compile(this IFluidTemplate template, SourceGenerationOptions options = null)
-        {
-            return TemplateSourceGenerator.Generate(template, options);
-        }
+        return TemplateSourceGenerator.Generate(template, options);
     }
 }

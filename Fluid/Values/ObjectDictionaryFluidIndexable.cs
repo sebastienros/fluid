@@ -1,30 +1,29 @@
-﻿namespace Fluid.Values
+namespace Fluid.Values;
+
+public sealed class ObjectDictionaryFluidIndexable<T> : IFluidIndexable
 {
-    public sealed class ObjectDictionaryFluidIndexable<T> : IFluidIndexable
+    private readonly IDictionary<string, T> _dictionary;
+    private readonly TemplateOptions _options;
+
+    public ObjectDictionaryFluidIndexable(IDictionary<string, T> dictionary, TemplateOptions options)
     {
-        private readonly IDictionary<string, T> _dictionary;
-        private readonly TemplateOptions _options;
+        _dictionary = dictionary;
+        _options = options;
+    }
 
-        public ObjectDictionaryFluidIndexable(IDictionary<string, T> dictionary, TemplateOptions options)
+    public int Count => _dictionary.Count;
+
+    public IEnumerable<string> Keys => _dictionary.Keys;
+
+    public bool TryGetValue(string name, out FluidValue value)
+    {
+        if (_dictionary.TryGetValue(name, out var obj))
         {
-            _dictionary = dictionary;
-            _options = options;
+            value = FluidValue.Create(obj, _options);
+            return true;
         }
 
-        public int Count => _dictionary.Count;
-
-        public IEnumerable<string> Keys => _dictionary.Keys;
-
-        public bool TryGetValue(string name, out FluidValue value)
-        {
-            if (_dictionary.TryGetValue(name, out var obj))
-            {
-                value = FluidValue.Create(obj, _options);
-                return true;
-            }
-
-            value = NilValue.Instance;
-            return false;
-        }
+        value = NilValue.Instance;
+        return false;
     }
 }

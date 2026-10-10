@@ -1,7 +1,6 @@
-﻿namespace Fluid.Tests.Domain
+namespace Fluid.Tests.Domain;
+
+public class Employee : Person
 {
-    public class Employee : Person
-    {
-        public int Salary { get; set; }
-    }
+    public int Salary { get; set; }
 }

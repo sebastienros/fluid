@@ -1,9 +1,8 @@
-﻿namespace Fluid.Values
+namespace Fluid.Values;
+
+public interface IFluidIndexable
 {
-    public interface IFluidIndexable
-    {
-        int Count { get; }
-        IEnumerable<string> Keys { get; }
-        bool TryGetValue(string name, out FluidValue value);
-    }
+    int Count { get; }
+    IEnumerable<string> Keys { get; }
+    bool TryGetValue(string name, out FluidValue value);
 }

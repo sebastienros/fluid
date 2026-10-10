@@ -1,9 +1,8 @@
-﻿namespace Fluid.Accessors
+namespace Fluid.Accessors;
+
+public sealed class AsyncDelegateAccessor : AsyncDelegateAccessor<object, object>
 {
-    public sealed class AsyncDelegateAccessor : AsyncDelegateAccessor<object, object>
+    public AsyncDelegateAccessor(Func<object, string, Task<object>> getter) : base((obj, name, ctx) => getter(obj, name))
     {
-        public AsyncDelegateAccessor(Func<object, string, Task<object>> getter) : base((obj, name, ctx) => getter(obj, name))
-        {
-        }
     }
 }

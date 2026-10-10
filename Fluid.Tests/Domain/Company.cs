@@ -1,7 +1,6 @@
-﻿namespace Fluid.Tests.Domain
+namespace Fluid.Tests.Domain;
+
+public class Company
 {
-    public class Company 
-    {
-        public Employee Director { get; set; }
-    }
+    public Employee Director { get; set; }
 }

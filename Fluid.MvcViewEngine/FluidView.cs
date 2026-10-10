@@ -1,31 +1,30 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewEngines;
 
-namespace Fluid.MvcViewEngine
+namespace Fluid.MvcViewEngine;
+
+public class FluidView : IView
 {
-    public class FluidView : IView
+    private string _path;
+    private FluidRendering _fluidRendering;
+
+    public FluidView(string path, FluidRendering fluidRendering)
     {
-        private string _path;
-        private FluidRendering _fluidRendering;
+        _path = path;
+        _fluidRendering = fluidRendering;
+    }
 
-        public FluidView(string path, FluidRendering fluidRendering)
+    public string Path
+    {
+        get
         {
-            _path = path;
-            _fluidRendering = fluidRendering;
+            return _path;
         }
+    }
 
-        public string Path
-        {
-            get
-            {
-                return _path;
-            }
-        }
-
-        public async Task RenderAsync(ViewContext context)
-        {
-            await _fluidRendering.RenderAsync(context.Writer, Path, context);
-        }
+    public async Task RenderAsync(ViewContext context)
+    {
+        await _fluidRendering.RenderAsync(context.Writer, Path, context);
     }
 }

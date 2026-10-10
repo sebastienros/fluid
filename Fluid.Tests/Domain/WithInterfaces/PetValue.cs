@@ -1,61 +1,60 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 using System;
 using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
-namespace Fluid.Tests.Domain.WithInterfaces
+namespace Fluid.Tests.Domain.WithInterfaces;
+
+public class PetValue : FluidValue
 {
-    public class PetValue : FluidValue
+    private readonly IPet pet;
+
+    public override FluidValues Type { get; } = FluidValues.Object;
+
+    public PetValue(IPet pet)
     {
-        private readonly IPet pet;
+        this.pet = pet;
+    }
 
-        public override FluidValues Type { get; } = FluidValues.Object;
+    public override bool Equals(FluidValue other)
+    {
+        throw new NotImplementedException();
+    }
 
-        public PetValue(IPet pet)
+    public override bool ToBooleanValue()
+    {
+        throw new NotImplementedException();
+    }
+
+    public override decimal ToNumberValue()
+    {
+        throw new NotImplementedException();
+    }
+
+    public override object ToObjectValue()
+    {
+        throw new NotImplementedException();
+    }
+
+    public override string ToStringValue()
+    {
+        throw new NotImplementedException();
+    }
+
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
+    {
+        if (name == "Name")
         {
-            this.pet = pet;
+            return Create(pet.Name, context.Options);
         }
 
-        public override bool Equals(FluidValue other)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override bool ToBooleanValue()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override decimal ToNumberValue()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override object ToObjectValue()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override string ToStringValue()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
-        {
-            if (name == "Name")
-            {
-                return Create(pet.Name, context.Options);
-            }
-
-            return NilValue.Instance;
-        }
+        return NilValue.Instance;
     }
 }

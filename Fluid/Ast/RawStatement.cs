@@ -1,43 +1,42 @@
-﻿using Parlot;
+using Parlot;
 using System.Text.Encodings.Web;
 using Fluid.Utils;
 using Fluid.SourceGeneration;
 
-namespace Fluid.Ast
+namespace Fluid.Ast;
+
+public sealed class RawStatement : Statement, ISourceable
 {
-    public sealed class RawStatement : Statement, ISourceable
+    private readonly TextSpan _text;
+
+    public RawStatement(in TextSpan text)
     {
-        private readonly TextSpan _text;
+        _text = text;
+    }
 
-        public RawStatement(in TextSpan text)
+    public ref readonly TextSpan Text => ref _text;
+
+    public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+    {
+        context.IncrementSteps();
+
+        output.Write(_text.ToString());
+        return Statement.NormalCompletion;
+    }
+
+    protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitRawStatement(this);
+
+    public void WriteTo(SourceGenerationContext context)
+    {
+        var text = _text.ToString();
+        if (string.IsNullOrEmpty(text))
         {
-            _text = text;
-        }
-
-        public ref readonly TextSpan Text => ref _text;
-
-        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
-        {
-            context.IncrementSteps();
-
-            output.Write(_text.ToString());
-            return Statement.NormalCompletion;
-        }
-
-        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitRawStatement(this);
-
-        public void WriteTo(SourceGenerationContext context)
-        {
-            var text = _text.ToString();
-            if (string.IsNullOrEmpty(text))
-            {
-                context.WriteLine("return Completion.Normal;");
-                return;
-            }
-
-            context.WriteLine($"{context.ContextName}.IncrementSteps();");
-            context.WriteLine($"{context.WriterName}.Write({SourceGenerationContext.ToCSharpStringLiteral(text)});");
             context.WriteLine("return Completion.Normal;");
+            return;
         }
+
+        context.WriteLine($"{context.ContextName}.IncrementSteps();");
+        context.WriteLine($"{context.WriterName}.Write({SourceGenerationContext.ToCSharpStringLiteral(text)});");
+        context.WriteLine("return Completion.Normal;");
     }
 }

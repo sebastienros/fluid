@@ -1,13 +1,12 @@
 using System.Linq.Expressions;
 
-namespace Fluid
+namespace Fluid;
+
+internal static class ExpressionHelper
 {
-    internal static class ExpressionHelper
+    internal static string GetPropertyName<T, TProp>(Expression<Func<T, TProp>> expression)
     {
-        internal static string GetPropertyName<T, TProp>(Expression<Func<T, TProp>> expression)
-        {
-            var me = (MemberExpression)expression.Body;
-            return me.Member.Name;
-        }
+        var me = (MemberExpression)expression.Body;
+        return me.Member.Name;
     }
 }

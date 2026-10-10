@@ -1,69 +1,49 @@
-﻿using System.Text.Encodings.Web;
+using System.Text.Encodings.Web;
 using Fluid.SourceGeneration;
 
-namespace Fluid.Ast
-{
-    public sealed class ElseIfStatement : TagStatement, ISourceable
-    {
-        private readonly bool _isWhitespaceOrCommentOnly;
+namespace Fluid.Ast;
 
-        public ElseIfStatement(Expression condition, IReadOnlyList<Statement> statements) : base(statements)
+public sealed class ElseIfStatement : TagStatement, ISourceable
+{
+    private readonly bool _isWhitespaceOrCommentOnly;
+
+    public ElseIfStatement(Expression condition, IReadOnlyList<Statement> statements) : base(statements)
+    {
+        Condition = condition;
+
+        _isWhitespaceOrCommentOnly = true;
+        for (var i = 0; i < Statements.Count; i++)
         {
-            Condition = condition;
-            
-            _isWhitespaceOrCommentOnly = true;
-            for (var i = 0; i < Statements.Count; i++)
+            if (!Statements[i].IsWhitespaceOrCommentOnly)
             {
-                if (!Statements[i].IsWhitespaceOrCommentOnly)
-                {
-                    _isWhitespaceOrCommentOnly = false;
-                    break;
-                }
+                _isWhitespaceOrCommentOnly = false;
+                break;
             }
         }
+    }
 
-        public Expression Condition { get; }
+    public Expression Condition { get; }
 
-        public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
+    public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
 
-        public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+    public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+    {
+        if (_isWhitespaceOrCommentOnly)
         {
-            if (_isWhitespaceOrCommentOnly)
-            {
-                // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
-                for (var i = 0; i < Statements.Count; i++)
-                {
-                    var statement = Statements[i];
-                    
-                    // Skip writing TextSpanStatements (whitespace)
-                    if (statement is TextSpanStatement)
-                    {
-                        continue;
-                    }
-
-                    context.IncrementSteps();
-
-                    var task = statement.WriteToAsync(output, encoder, context);
-                    if (!task.IsCompletedSuccessfully)
-                    {
-                        return Awaited(task, i + 1, output, encoder, context);
-                    }
-
-                    var completion = task.Result;
-                    if (completion != Completion.Normal)
-                    {
-                        return Statement.FromCompletion(completion);
-                    }
-                }
-                return Statement.NormalCompletion;
-            }
-
-            // Process statements until next block or end of statements
+            // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
             for (var i = 0; i < Statements.Count; i++)
             {
+                var statement = Statements[i];
+
+                // Skip writing TextSpanStatements (whitespace)
+                if (statement is TextSpanStatement)
+                {
+                    continue;
+                }
+
                 context.IncrementSteps();
 
-                var task = Statements[i].WriteToAsync(output, encoder, context);
+                var task = statement.WriteToAsync(output, encoder, context);
                 if (!task.IsCompletedSuccessfully)
                 {
                     return Awaited(task, i + 1, output, encoder, context);
@@ -72,59 +52,78 @@ namespace Fluid.Ast
                 var completion = task.Result;
                 if (completion != Completion.Normal)
                 {
-                    // Stop processing the block statements
-                    // We return the completion to flow it to the outer loop
                     return Statement.FromCompletion(completion);
                 }
             }
-
             return Statement.NormalCompletion;
         }
 
-        private async ValueTask<Completion> Awaited(
-            ValueTask<Completion> task,
-            int startIndex,
-            IFluidOutput output,
-            TextEncoder encoder,
-            TemplateContext context)
+        // Process statements until next block or end of statements
+        for (var i = 0; i < Statements.Count; i++)
         {
-            var completion = await task;
+            context.IncrementSteps();
+
+            var task = Statements[i].WriteToAsync(output, encoder, context);
+            if (!task.IsCompletedSuccessfully)
+            {
+                return Awaited(task, i + 1, output, encoder, context);
+            }
+
+            var completion = task.Result;
+            if (completion != Completion.Normal)
+            {
+                // Stop processing the block statements
+                // We return the completion to flow it to the outer loop
+                return Statement.FromCompletion(completion);
+            }
+        }
+
+        return Statement.NormalCompletion;
+    }
+
+    private async ValueTask<Completion> Awaited(
+        ValueTask<Completion> task,
+        int startIndex,
+        IFluidOutput output,
+        TextEncoder encoder,
+        TemplateContext context)
+    {
+        var completion = await task;
+        if (completion != Completion.Normal)
+        {
+            // Stop processing the block statements
+            // We return the completion to flow it to the outer loop
+            return completion;
+        }
+        // Process statements until next block or end of statements
+        for (var index = startIndex; index < Statements.Count; index++)
+        {
+            context.IncrementSteps();
+            completion = await Statements[index].WriteToAsync(output, encoder, context);
             if (completion != Completion.Normal)
             {
                 // Stop processing the block statements
                 // We return the completion to flow it to the outer loop
                 return completion;
             }
-            // Process statements until next block or end of statements
-            for (var index = startIndex; index < Statements.Count; index++)
-            {
-                context.IncrementSteps();
-                completion = await Statements[index].WriteToAsync(output, encoder, context);
-                if (completion != Completion.Normal)
-                {
-                    // Stop processing the block statements
-                    // We return the completion to flow it to the outer loop
-                    return completion;
-                }
-            }
-
-            return Completion.Normal;
         }
 
-        protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitElseIfStatement(this);
+        return Completion.Normal;
+    }
 
-        public void WriteTo(SourceGenerationContext context)
+    protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitElseIfStatement(this);
+
+    public void WriteTo(SourceGenerationContext context)
+    {
+        context.WriteLine("var completion = Completion.Normal;");
+        for (var i = 0; i < Statements.Count; i++)
         {
-            context.WriteLine("var completion = Completion.Normal;");
-            for (var i = 0; i < Statements.Count; i++)
-            {
-                context.WriteLine($"{context.ContextName}.IncrementSteps();");
-                var stmtMethod = context.GetStatementMethodName(Statements[i]);
-                context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-                context.WriteLine("if (completion != Completion.Normal) return completion;");
-            }
-
-            context.WriteLine("return Completion.Normal;");
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+            var stmtMethod = context.GetStatementMethodName(Statements[i]);
+            context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+            context.WriteLine("if (completion != Completion.Normal) return completion;");
         }
+
+        context.WriteLine("return Completion.Normal;");
     }
 }

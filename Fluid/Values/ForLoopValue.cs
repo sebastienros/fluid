@@ -1,79 +1,84 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Encodings.Web;
 
-namespace Fluid.Values
+namespace Fluid.Values;
+
+public sealed class ForLoopValue : FluidValue
 {
-    public sealed class ForLoopValue : FluidValue
+    public static ForLoopValue Create() => new ForLoopValue();
+
+    private ForLoopValue()
     {
-        public int Length { get; set; }
-        public int Index { get; set; }
-        public int Index0 { get; set; }
-        public int RIndex { get; set; }
-        public int RIndex0 { get; set; }
-        public bool First { get; set; }
-        public bool Last { get; set; }
-        public string Identifier { get; set; }
-        public string Source { get; set; }
+    }
 
-        public ForLoopValue ParentLoop { get; set; }
+    public int Length { get; set; }
+    public int Index { get; set; }
+    public int Index0 { get; set; }
+    public int RIndex { get; set; }
+    public int RIndex0 { get; set; }
+    public bool First { get; set; }
+    public bool Last { get; set; }
+    public string Identifier { get; set; }
+    public string Source { get; set; }
 
-        /// <summary>
-        /// Gets or sets whether this forloop is from a render tag.
-        /// Render tag forloops should not be accessible as parentloop from nested for loops.
-        /// </summary>
-        public bool IsRenderLoop { get; set; }
+    public ForLoopValue ParentLoop { get; set; }
 
-        public int Count => Length;
+    /// <summary>
+    /// Gets or sets whether this forloop is from a render tag.
+    /// Render tag forloops should not be accessible as parentloop from nested for loops.
+    /// </summary>
+    public bool IsRenderLoop { get; set; }
 
-        public override FluidValues Type => FluidValues.Dictionary;
+    public int Count => Length;
 
-        public override bool Equals(FluidValue other)
+    public override FluidValues Type => FluidValues.Dictionary;
+
+    public override bool Equals(FluidValue other)
+    {
+        return false;
+    }
+
+    public override bool ToBooleanValue()
+    {
+        return false;
+    }
+
+    public override decimal ToNumberValue()
+    {
+        return Length;
+    }
+
+    public override object ToObjectValue()
+    {
+        return null;
+    }
+
+    public override string ToStringValue()
+    {
+        return "forloop";
+    }
+
+    public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
+    {
+        return name switch
         {
-            return false;
-        }
+            "length" => NumberValue.Create(Length),
+            "index" => NumberValue.Create(Index),
+            "index0" => NumberValue.Create(Index0),
+            "rindex" => NumberValue.Create(RIndex),
+            "rindex0" => NumberValue.Create(RIndex0),
+            "first" => BooleanValue.Create(First),
+            "last" => BooleanValue.Create(Last),
+            "parentloop" => ParentLoop is null ? NilValue.Instance : ParentLoop,
+            "name" => !string.IsNullOrEmpty(Identifier) && !string.IsNullOrEmpty(Source)
+                ? StringValue.Create(Identifier + "-" + Source)
+                : NilValue.Instance,
+            _ => NilValue.Instance,
+        };
+    }
 
-        public override bool ToBooleanValue()
-        {
-            return false;
-        }
-
-        public override decimal ToNumberValue()
-        {
-            return Length;
-        }
-
-        public override object ToObjectValue()
-        {
-            return null;
-        }
-
-        public override string ToStringValue()
-        {
-            return "forloop";
-        }
-
-        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
-        {
-            return name switch
-            {
-                "length" => NumberValue.Create(Length),
-                "index" => NumberValue.Create(Index),
-                "index0" => NumberValue.Create(Index0),
-                "rindex" => NumberValue.Create(RIndex),
-                "rindex0" => NumberValue.Create(RIndex0),
-                "first" => BooleanValue.Create(First),
-                "last" => BooleanValue.Create(Last),
-                "parentloop" => ParentLoop is null ? NilValue.Instance : ParentLoop,
-                "name" => !string.IsNullOrEmpty(Identifier) && !string.IsNullOrEmpty(Source) 
-                    ? new StringValue(Identifier + "-" + Source) 
-                    : NilValue.Instance,
-                _ => NilValue.Instance,
-            };
-        }
-
-        public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
-        {
-            return default;
-        }
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    {
+        return default;
     }
 }

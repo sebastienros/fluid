@@ -27,14 +27,14 @@ public class MemberAccessorGeneratorTests
             public static partial class FluidProfiles
             {
                 [FluidRegister(typeof(Person))]
-                public static partial void ApplyPublic(TemplateOptions options);
+                public static partial void ApplyPublic(TemplateOptionsBuilder builder);
             }
             """;
 
         var generated = RunGenerator(source);
 
         Assert.Contains("internal sealed class FluidRegisterAttribute", generated);
-        Assert.Contains("public static partial void ApplyPublic(global::Fluid.TemplateOptions options)", generated);
+        Assert.Contains("public static partial void ApplyPublic(global::Fluid.TemplateOptionsBuilder builder)", generated);
         Assert.Contains("strategy.Register(typeof(global::Person), \"*\", new global::Fluid.SourceGenerated.Person_GeneratedMemberAccessor());", generated);
         Assert.Contains(": global::Fluid.MemberAccessor", generated);
         Assert.Contains("comparer.Equals(name, \"FirstName\")", generated);
@@ -45,7 +45,7 @@ public class MemberAccessorGeneratorTests
     }
 
     [Fact]
-    public void ShouldGenerateIndependentProfilesForDifferentTemplateOptionsInstances()
+    public void ShouldGenerateIndependentProfilesForDifferentTemplateOptionsBuilders()
     {
         var source = """
             using Fluid;
@@ -63,17 +63,17 @@ public class MemberAccessorGeneratorTests
             public static partial class FluidProfiles
             {
                 [FluidRegister(typeof(PublicModel))]
-                public static partial void ApplyPublic(TemplateOptions options);
+                public static partial void ApplyPublic(TemplateOptionsBuilder builder);
 
                 [FluidRegister(typeof(AdminModel))]
-                public static partial void ApplyAdmin(TemplateOptions options);
+                public static partial void ApplyAdmin(TemplateOptionsBuilder builder);
             }
             """;
 
         var generated = RunGenerator(source);
 
-        Assert.Contains("public static partial void ApplyPublic(global::Fluid.TemplateOptions options)", generated);
-        Assert.Contains("public static partial void ApplyAdmin(global::Fluid.TemplateOptions options)", generated);
+        Assert.Contains("public static partial void ApplyPublic(global::Fluid.TemplateOptionsBuilder builder)", generated);
+        Assert.Contains("public static partial void ApplyAdmin(global::Fluid.TemplateOptionsBuilder builder)", generated);
         Assert.Contains("strategy.Register(typeof(global::PublicModel), \"*\", new global::Fluid.SourceGenerated.PublicModel_GeneratedMemberAccessor());", generated);
         Assert.Contains("strategy.Register(typeof(global::AdminModel), \"*\", new global::Fluid.SourceGenerated.AdminModel_GeneratedMemberAccessor());", generated);
     }
@@ -96,15 +96,15 @@ public class MemberAccessorGeneratorTests
 
             [FluidRegister(typeof(Person))]
             [FluidRegister(typeof(Address))]
-            public partial class PublicTemplateOptions : TemplateOptions
+            public partial class PublicTemplateOptionsBuilder : TemplateOptionsBuilder
             {
             }
             """;
 
         var generated = RunGenerator(source);
 
-        Assert.Contains("public partial class PublicTemplateOptions : global::Fluid.ITemplateOptionsMemberAccessorRegistrar", generated);
-        Assert.Contains("void global::Fluid.ITemplateOptionsMemberAccessorRegistrar.RegisterMemberAccessors(global::Fluid.TemplateOptions options)", generated);
+        Assert.Contains("public partial class PublicTemplateOptionsBuilder : global::Fluid.ITemplateOptionsMemberAccessorRegistrar", generated);
+        Assert.Contains("void global::Fluid.ITemplateOptionsMemberAccessorRegistrar.RegisterMemberAccessors(global::Fluid.TemplateOptionsBuilder builder)", generated);
         Assert.Contains("strategy.Register(typeof(global::Person), \"*\", new global::Fluid.SourceGenerated.Person_GeneratedMemberAccessor());", generated);
         Assert.Contains("strategy.Register(typeof(global::Address), \"*\", new global::Fluid.SourceGenerated.Address_GeneratedMemberAccessor());", generated);
     }

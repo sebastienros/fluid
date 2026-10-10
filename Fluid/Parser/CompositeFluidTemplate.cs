@@ -1,42 +1,49 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 using Fluid.Utils;
 using System.Text.Encodings.Web;
 
-namespace Fluid.Parser
+namespace Fluid.Parser;
+
+public sealed class CompositeFluidTemplate : IFluidTemplate, IStatementList
 {
-    public sealed class CompositeFluidTemplate : IFluidTemplate, IStatementList
+    public CompositeFluidTemplate(params IFluidTemplate[] templates)
     {
-        public CompositeFluidTemplate(params IFluidTemplate[] templates)
+        Templates = new List<IFluidTemplate>(templates);
+        Statements = CollectStatements(templates);
+    }
+
+    public CompositeFluidTemplate(IReadOnlyList<IFluidTemplate> templates)
+    {
+        Templates = new List<IFluidTemplate>(templates);
+        Statements = CollectStatements(templates);
+    }
+
+    public IReadOnlyList<IFluidTemplate> Templates { get; }
+
+    public IReadOnlyList<Statement> Statements { get; }
+
+    public ValueTask RenderAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(encoder);
+        ArgumentNullException.ThrowIfNull(context);
+
+        context.CancellationToken.ThrowIfCancellationRequested();
+        output = LimitedFluidOutput.Create(output, context.MaxOutputSize);
+
+        context.EnterRender();
+        var exitRender = true;
+
+        try
         {
-            Templates = new List<IFluidTemplate>(templates);
-            Statements = CollectStatements(templates);
-        }
-
-        public CompositeFluidTemplate(IReadOnlyList<IFluidTemplate> templates)
-        {
-            Templates = new List<IFluidTemplate>(templates);
-            Statements = CollectStatements(templates);
-        }
-
-        public IReadOnlyList<IFluidTemplate> Templates { get; }
-
-        public IReadOnlyList<Statement> Statements { get; }
-
-        public ValueTask RenderAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
-        {
-            ArgumentNullException.ThrowIfNull(output);
-            ArgumentNullException.ThrowIfNull(encoder);
-            ArgumentNullException.ThrowIfNull(context);
-
-            context.CancellationToken.ThrowIfCancellationRequested();
-            output = LimitedFluidOutput.Create(output, context.MaxOutputSize);
-
             var count = Statements.Count;
             for (var i = 0; i < count; i++)
             {
                 var task = Statements[i].WriteToAsync(output, encoder, context);
                 if (!task.IsCompletedSuccessfully)
                 {
+                    // The awaited continuation takes over leaving the render.
+                    exitRender = false;
                     return Awaited(
                         task,
                         output,
@@ -46,42 +53,56 @@ namespace Fluid.Parser
                         startIndex: i + 1);
                 }
             }
-
-            context.CancellationToken.ThrowIfCancellationRequested();
-            return output.FlushAsync();
+        }
+        finally
+        {
+            if (exitRender)
+            {
+                context.ExitRender();
+            }
         }
 
-        private static async ValueTask Awaited(
-            ValueTask<Completion> task,
-            IFluidOutput output,
-            TextEncoder encoder,
-            TemplateContext context,
-            IReadOnlyList<Statement> statements,
-            int startIndex)
+        context.CancellationToken.ThrowIfCancellationRequested();
+        return output.FlushAsync();
+    }
+
+    private static async ValueTask Awaited(
+        ValueTask<Completion> task,
+        IFluidOutput output,
+        TextEncoder encoder,
+        TemplateContext context,
+        IReadOnlyList<Statement> statements,
+        int startIndex)
+    {
+        try
         {
             await task;
             for (var i = startIndex; i < statements.Count; i++)
             {
                 await statements[i].WriteToAsync(output, encoder, context);
             }
-
-            context.CancellationToken.ThrowIfCancellationRequested();
-            await output.FlushAsync();
         }
-
-        private static List<Statement> CollectStatements(IEnumerable<IFluidTemplate> templates)
+        finally
         {
-            var statements = new List<Statement>();
-            
-            foreach (var template in templates)
-            {
-                if (template is IStatementList statementList)
-                {
-                    statements.AddRange(statementList.Statements);
-                }
-            }
-            
-            return statements;
+            context.ExitRender();
         }
+
+        context.CancellationToken.ThrowIfCancellationRequested();
+        await output.FlushAsync();
+    }
+
+    private static List<Statement> CollectStatements(IEnumerable<IFluidTemplate> templates)
+    {
+        var statements = new List<Statement>();
+
+        foreach (var template in templates)
+        {
+            if (template is IStatementList statementList)
+            {
+                statements.AddRange(statementList.Statements);
+            }
+        }
+
+        return statements;
     }
 }

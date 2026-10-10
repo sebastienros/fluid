@@ -1,332 +1,331 @@
 using System.Buffers;
 
-namespace Fluid.Utils
+namespace Fluid.Utils;
+
+public sealed class TextWriterFluidOutput : IFluidOutput, IDisposable, IAsyncDisposable
 {
-    public sealed class TextWriterFluidOutput : IFluidOutput, IDisposable, IAsyncDisposable
+    private readonly TextWriter _writer;
+    private readonly bool _leaveOpen;
+    private readonly bool _allowSynchronousIO;
+    private readonly CancellationToken _cancellationToken;
+    private readonly ArrayPool<char> _pool;
+    private char[] _buffer;
+    private int _index;
+
+    public TextWriterFluidOutput(
+        TextWriter writer,
+        int bufferSize,
+        bool leaveOpen = false,
+        ArrayPool<char> pool = null,
+        bool allowSynchronousIO = true)
+        : this(writer, bufferSize, default, leaveOpen, pool, allowSynchronousIO)
     {
-        private readonly TextWriter _writer;
-        private readonly bool _leaveOpen;
-        private readonly bool _allowSynchronousIO;
-        private readonly CancellationToken _cancellationToken;
-        private readonly ArrayPool<char> _pool;
-        private char[] _buffer;
-        private int _index;
+    }
 
-        public TextWriterFluidOutput(
-            TextWriter writer,
-            int bufferSize,
-            bool leaveOpen = false,
-            ArrayPool<char> pool = null,
-            bool allowSynchronousIO = true)
-            : this(writer, bufferSize, default, leaveOpen, pool, allowSynchronousIO)
+    public TextWriterFluidOutput(
+        TextWriter writer,
+        int bufferSize,
+        CancellationToken cancellationToken,
+        bool leaveOpen = false,
+        ArrayPool<char> pool = null,
+        bool allowSynchronousIO = true)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+#if NET8_0_OR_GREATER
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
+#else
+        if (bufferSize <= 0)
         {
+            throw new ArgumentOutOfRangeException(nameof(bufferSize));
+        }
+#endif
+
+        _writer = writer;
+        _leaveOpen = leaveOpen;
+        _allowSynchronousIO = allowSynchronousIO;
+        _cancellationToken = cancellationToken;
+        _pool = pool ?? ArrayPool<char>.Shared;
+        _buffer = _pool.Rent(bufferSize);
+    }
+
+    public void Advance(int count)
+    {
+#if NET8_0_OR_GREATER
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+#else
+        if (count < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count));
+        }
+#endif
+
+        _index += count;
+
+        if (_index >= _buffer.Length)
+        {
+            FlushCoreWithPolicy();
+        }
+    }
+
+    public Memory<char> GetMemory(int sizeHint = 0)
+    {
+        Ensure(sizeHint);
+        return _buffer.AsMemory(_index);
+    }
+
+    public Span<char> GetSpan(int sizeHint = 0)
+    {
+        Ensure(sizeHint);
+        return _buffer.AsSpan(_index);
+    }
+
+    public void Write(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return;
         }
 
-        public TextWriterFluidOutput(
-            TextWriter writer,
-            int bufferSize,
-            CancellationToken cancellationToken,
-            bool leaveOpen = false,
-            ArrayPool<char> pool = null,
-            bool allowSynchronousIO = true)
+        // If the payload is larger than the buffer, flush current and write directly.
+        if (value.Length >= _buffer.Length)
         {
-            ArgumentNullException.ThrowIfNull(writer);
-
-            #if NET8_0_OR_GREATER
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
-            #else
-            if (bufferSize <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(bufferSize));
-            }
-            #endif
-
-            _writer = writer;
-            _leaveOpen = leaveOpen;
-            _allowSynchronousIO = allowSynchronousIO;
-            _cancellationToken = cancellationToken;
-            _pool = pool ?? ArrayPool<char>.Shared;
-            _buffer = _pool.Rent(bufferSize);
+            FlushCoreWithPolicy();
+            WriteDirect(value);
+            return;
         }
 
-        public void Advance(int count)
+        WriteBuffered(value.AsSpan());
+    }
+
+    public void Write(char[] buffer, int index, int count)
+    {
+        ArgumentNullException.ThrowIfNull(buffer);
+
+        if (count == 0)
         {
-            #if NET8_0_OR_GREATER
-            ArgumentOutOfRangeException.ThrowIfNegative(count);
-            #else
-            if (count < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(count));
-            }
-            #endif
-
-            _index += count;
-
-            if (_index >= _buffer.Length)
-            {
-                FlushCoreWithPolicy();
-            }
+            return;
         }
 
-        public Memory<char> GetMemory(int sizeHint = 0)
+        // If the payload is larger than the buffer, flush current and write directly.
+        if (count >= _buffer.Length)
         {
-            Ensure(sizeHint);
-            return _buffer.AsMemory(_index);
+            FlushCoreWithPolicy();
+            WriteDirect(buffer, index, count);
+            return;
         }
 
-        public Span<char> GetSpan(int sizeHint = 0)
+        WriteBuffered(buffer.AsSpan(index, count));
+    }
+
+    public ValueTask FlushAsync()
+    {
+        _cancellationToken.ThrowIfCancellationRequested();
+
+        if (_index == 0)
         {
-            Ensure(sizeHint);
-            return _buffer.AsSpan(_index);
+            return default;
         }
 
-        public void Write(string value)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                return;
-            }
-
-            // If the payload is larger than the buffer, flush current and write directly.
-            if (value.Length >= _buffer.Length)
-            {
-                FlushCoreWithPolicy();
-                WriteDirect(value);
-                return;
-            }
-
-            WriteBuffered(value.AsSpan());
-        }
-
-        public void Write(char[] buffer, int index, int count)
-        {
-            ArgumentNullException.ThrowIfNull(buffer);
-
-            if (count == 0)
-            {
-                return;
-            }
-
-            // If the payload is larger than the buffer, flush current and write directly.
-            if (count >= _buffer.Length)
-            {
-                FlushCoreWithPolicy();
-                WriteDirect(buffer, index, count);
-                return;
-            }
-
-            WriteBuffered(buffer.AsSpan(index, count));
-        }
-
-        public ValueTask FlushAsync()
+        var task = WriteAsync(_buffer, 0, _index);
+        if (task.IsCompletedSuccessfully())
         {
             _cancellationToken.ThrowIfCancellationRequested();
-
-            if (_index == 0)
-            {
-                return default;
-            }
-
-            var task = WriteAsync(_buffer, 0, _index);
-            if (task.IsCompletedSuccessfully())
-            {
-                _cancellationToken.ThrowIfCancellationRequested();
-                _index = 0;
-                return default;
-            }
-
-            return Awaited(task, this);
-
-            static async ValueTask Awaited(Task t, TextWriterFluidOutput output)
-            {
-                await t.ConfigureAwait(false);
-                output._cancellationToken.ThrowIfCancellationRequested();
-                output._index = 0;
-            }
+            _index = 0;
+            return default;
         }
 
-        public void Dispose()
+        return Awaited(task, this);
+
+        static async ValueTask Awaited(Task t, TextWriterFluidOutput output)
         {
-            if (_buffer != null)
-            {
-                if (!_cancellationToken.IsCancellationRequested)
-                {
-                    FlushCoreSync();
-                }
+            await t.ConfigureAwait(false);
+            output._cancellationToken.ThrowIfCancellationRequested();
+            output._index = 0;
+        }
+    }
 
-                var toReturn = _buffer;
-                _buffer = null;
-                _pool.Return(toReturn);
+    public void Dispose()
+    {
+        if (_buffer != null)
+        {
+            if (!_cancellationToken.IsCancellationRequested)
+            {
+                FlushCoreSync();
             }
 
-            if (!_leaveOpen)
-            {
-                _writer.Dispose();
-            }
+            var toReturn = _buffer;
+            _buffer = null;
+            _pool.Return(toReturn);
         }
 
-        public async ValueTask DisposeAsync()
+        if (!_leaveOpen)
         {
-            if (_buffer != null)
-            {
-                if (!_cancellationToken.IsCancellationRequested)
-                {
-                    await FlushAsync();
-                }
+            _writer.Dispose();
+        }
+    }
 
-                var toReturn = _buffer;
-                _buffer = null;
-                _pool.Return(toReturn);
+    public async ValueTask DisposeAsync()
+    {
+        if (_buffer != null)
+        {
+            if (!_cancellationToken.IsCancellationRequested)
+            {
+                await FlushAsync();
             }
 
-            if (!_leaveOpen)
-            {
+            var toReturn = _buffer;
+            _buffer = null;
+            _pool.Return(toReturn);
+        }
+
+        if (!_leaveOpen)
+        {
 #if NETSTANDARD2_0
-                _writer.Dispose();
+            _writer.Dispose();
 #else
-                await _writer.DisposeAsync();
+            await _writer.DisposeAsync();
 #endif
-            }
+        }
+    }
+
+    private void Ensure(int sizeHint)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
+
+        if (sizeHint == 0)
+        {
+            return;
         }
 
-        private void Ensure(int sizeHint)
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(sizeHint, _buffer.Length);
+
+        if (_buffer.Length - _index < sizeHint)
         {
-            ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
-
-            if (sizeHint == 0)
-            {
-                return;
-            }
-
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(sizeHint, _buffer.Length);
-
-            if (_buffer.Length - _index < sizeHint)
-            {
-                FlushCoreWithPolicy();
-            }
+            FlushCoreWithPolicy();
         }
+    }
 
-        // Copies source chars into the internal buffer and flushes when full.
-        // This is the common buffered write path used by string and char[] overloads.
-        private void WriteBuffered(ReadOnlySpan<char> source)
+    // Copies source chars into the internal buffer and flushes when full.
+    // This is the common buffered write path used by string and char[] overloads.
+    private void WriteBuffered(ReadOnlySpan<char> source)
+    {
+        while (!source.IsEmpty)
         {
-            while (!source.IsEmpty)
-            {
-                if (_index == _buffer.Length)
-                {
-                    FlushCoreWithPolicy();
-                }
-
-                var writable = Math.Min(_buffer.Length - _index, source.Length);
-                source.Slice(0, writable).CopyTo(_buffer.AsSpan(_index, writable));
-
-                _index += writable;
-                source = source.Slice(writable);
-            }
-
             if (_index == _buffer.Length)
             {
                 FlushCoreWithPolicy();
             }
+
+            var writable = Math.Min(_buffer.Length - _index, source.Length);
+            source.Slice(0, writable).CopyTo(_buffer.AsSpan(_index, writable));
+
+            _index += writable;
+            source = source.Slice(writable);
         }
 
-        // Completes an async write from synchronous code paths and preserves original exceptions.
-        private static void CompleteSynchronously(Task task)
+        if (_index == _buffer.Length)
         {
-            if (!task.IsCompletedSuccessfully())
-            {
-                task.GetAwaiter().GetResult();
-            }
+            FlushCoreWithPolicy();
+        }
+    }
+
+    // Completes an async write from synchronous code paths and preserves original exceptions.
+    private static void CompleteSynchronously(Task task)
+    {
+        if (!task.IsCompletedSuccessfully())
+        {
+            task.GetAwaiter().GetResult();
+        }
+    }
+
+    // Flushes buffered data using the configured IO policy:
+    // sync writes when allowed, async API when synchronous IO is disallowed.
+    private void FlushCoreWithPolicy()
+    {
+        _cancellationToken.ThrowIfCancellationRequested();
+
+        if (_index == 0)
+        {
+            return;
         }
 
-        // Flushes buffered data using the configured IO policy:
-        // sync writes when allowed, async API when synchronous IO is disallowed.
-        private void FlushCoreWithPolicy()
+        if (_allowSynchronousIO)
         {
-            _cancellationToken.ThrowIfCancellationRequested();
-
-            if (_index == 0)
-            {
-                return;
-            }
-
-            if (_allowSynchronousIO)
-            {
-                _writer.Write(_buffer, 0, _index);
-            }
-            else
-            {
-                CompleteSynchronously(WriteAsync(_buffer, 0, _index));
-                _cancellationToken.ThrowIfCancellationRequested();
-            }
-
-            _index = 0;
-        }
-
-        // Always performs a synchronous flush. Used by synchronous Dispose() semantics.
-        private void FlushCoreSync()
-        {
-            if (_index == 0)
-            {
-                return;
-            }
-
             _writer.Write(_buffer, 0, _index);
-            _index = 0;
         }
-
-        // Writes large string payloads directly to the underlying writer, bypassing the buffer.
-        private void WriteDirect(string value)
+        else
         {
+            CompleteSynchronously(WriteAsync(_buffer, 0, _index));
             _cancellationToken.ThrowIfCancellationRequested();
-
-            if (_allowSynchronousIO)
-            {
-                _writer.Write(value);
-            }
-            else
-            {
-                CompleteSynchronously(WriteAsync(value));
-                _cancellationToken.ThrowIfCancellationRequested();
-            }
         }
 
-        // Writes large char[] payloads directly to the underlying writer, bypassing the buffer.
-        private void WriteDirect(char[] buffer, int index, int count)
+        _index = 0;
+    }
+
+    // Always performs a synchronous flush. Used by synchronous Dispose() semantics.
+    private void FlushCoreSync()
+    {
+        if (_index == 0)
         {
+            return;
+        }
+
+        _writer.Write(_buffer, 0, _index);
+        _index = 0;
+    }
+
+    // Writes large string payloads directly to the underlying writer, bypassing the buffer.
+    private void WriteDirect(string value)
+    {
+        _cancellationToken.ThrowIfCancellationRequested();
+
+        if (_allowSynchronousIO)
+        {
+            _writer.Write(value);
+        }
+        else
+        {
+            CompleteSynchronously(WriteAsync(value));
             _cancellationToken.ThrowIfCancellationRequested();
-
-            if (_allowSynchronousIO)
-            {
-                _writer.Write(buffer, index, count);
-            }
-            else
-            {
-                CompleteSynchronously(WriteAsync(buffer, index, count));
-                _cancellationToken.ThrowIfCancellationRequested();
-            }
         }
+    }
 
-        private Task WriteAsync(char[] buffer, int index, int count)
+    // Writes large char[] payloads directly to the underlying writer, bypassing the buffer.
+    private void WriteDirect(char[] buffer, int index, int count)
+    {
+        _cancellationToken.ThrowIfCancellationRequested();
+
+        if (_allowSynchronousIO)
         {
-#if NET8_0_OR_GREATER
-            if (_cancellationToken.CanBeCanceled)
-            {
-                return _writer.WriteAsync(buffer.AsMemory(index, count), _cancellationToken);
-            }
-#endif
-            return _writer.WriteAsync(buffer, index, count);
+            _writer.Write(buffer, index, count);
         }
-
-        private Task WriteAsync(string value)
+        else
         {
-#if NET8_0_OR_GREATER
-            if (_cancellationToken.CanBeCanceled)
-            {
-                return _writer.WriteAsync(value.AsMemory(), _cancellationToken);
-            }
-#endif
-            return _writer.WriteAsync(value);
+            CompleteSynchronously(WriteAsync(buffer, index, count));
+            _cancellationToken.ThrowIfCancellationRequested();
         }
+    }
+
+    private Task WriteAsync(char[] buffer, int index, int count)
+    {
+#if NET8_0_OR_GREATER
+        if (_cancellationToken.CanBeCanceled)
+        {
+            return _writer.WriteAsync(buffer.AsMemory(index, count), _cancellationToken);
+        }
+#endif
+        return _writer.WriteAsync(buffer, index, count);
+    }
+
+    private Task WriteAsync(string value)
+    {
+#if NET8_0_OR_GREATER
+        if (_cancellationToken.CanBeCanceled)
+        {
+            return _writer.WriteAsync(value.AsMemory(), _cancellationToken);
+        }
+#endif
+        return _writer.WriteAsync(value);
     }
 }

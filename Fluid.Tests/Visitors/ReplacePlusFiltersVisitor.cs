@@ -1,17 +1,16 @@
-﻿using Fluid.Ast;
+using Fluid.Ast;
 
-namespace Fluid.Tests.Visitors
+namespace Fluid.Tests.Visitors;
+
+internal class ReplacePlusFiltersVisitor : AstRewriter
 {
-    internal class ReplacePlusFiltersVisitor : AstRewriter
+    protected override Expression VisitFilterExpression(FilterExpression filterExpression)
     {
-        protected override Expression VisitFilterExpression(FilterExpression filterExpression)
+        if (filterExpression.Name == "plus")
         {
-            if (filterExpression.Name == "plus")
-            {
-                return new FilterExpression(filterExpression.Input, "minus", filterExpression.Parameters);
-            }
-
-            return filterExpression;
+            return new FilterExpression(filterExpression.Input, "minus", filterExpression.Parameters);
         }
+
+        return filterExpression;
     }
 }

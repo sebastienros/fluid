@@ -3,492 +3,490 @@ using Parlot;
 using Parlot.Fluent;
 using Parlot.Rewriting;
 
-namespace Fluid.Parser
+namespace Fluid.Parser;
+
+public struct ForModifier
 {
-    public struct ForModifier
+    public bool IsReversed;
+    public bool IsLimit;
+    public bool IsOffset;
+    public Expression Value;
+}
+
+public struct TableRowModifier
+{
+    public bool IsCols;
+    public bool IsLimit;
+    public bool IsOffset;
+    public Expression Value;
+}
+
+public readonly struct TagResult
+{
+    public static readonly TagResult TagOpen = new(true, false);
+    public static readonly TagResult TagOpenTrim = new(true, true);
+    public static readonly TagResult TagClose = new(false, false);
+    public static readonly TagResult TagCloseTrim = new(false, true);
+
+    public TagResult(bool open, bool trim)
     {
-        public bool IsReversed;
-        public bool IsLimit;
-        public bool IsOffset;
-        public Expression Value;
+        Open = open;
+        Trim = trim;
     }
 
-    public struct TableRowModifier
-    {
-        public bool IsCols;
-        public bool IsLimit;
-        public bool IsOffset;
-        public Expression Value;
-    }
+    public readonly bool Open;
+    public readonly bool Trim;
+}
 
-    public readonly struct TagResult
-    {
-        public static readonly TagResult TagOpen = new(true, false);
-        public static readonly TagResult TagOpenTrim = new(true, true);
-        public static readonly TagResult TagClose = new(false, false);
-        public static readonly TagResult TagCloseTrim = new(false, true);
+public static class TagParsers
+{
+    public static Parser<TagResult> TagStart() => new TagStartParser();
+    public static Parser<TagResult> TagEnd() => new TagEndParser();
+    public static Parser<TagResult> OutputTagStart() => new OutputTagStartParser();
+    public static Parser<TagResult> OutputTagEnd() => new OutputTagEndParser();
 
-        public TagResult(bool open, bool trim)
+    private sealed class TagStartParser : Parser<TagResult>
+    {
+        public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
         {
-            Open = open;
-            Trim = trim;
-        }
+            context.EnterParser(this);
 
-        public readonly bool Open;
-        public readonly bool Trim;
-    }
+            var start = context.Scanner.Cursor.Position;
 
-    public static class TagParsers
-    {
-        public static Parser<TagResult> TagStart() => new TagStartParser();
-        public static Parser<TagResult> TagEnd() => new TagEndParser();
-        public static Parser<TagResult> OutputTagStart() => new OutputTagStartParser();
-        public static Parser<TagResult> OutputTagEnd() => new OutputTagEndParser();
+            var p = (FluidParseContext)context;
 
-        private sealed class TagStartParser : Parser<TagResult>
-        {
-            public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
+            if (p.LiquidTagDepth > 0)
             {
-                context.EnterParser(this);
+                result.Set(start.Offset, context.Scanner.Cursor.Offset, TagResult.TagOpen);
 
-                var start = context.Scanner.Cursor.Position;
-
-                var p = (FluidParseContext)context;
-
-                if (p.LiquidTagDepth > 0)
-                {
-                    result.Set(start.Offset, context.Scanner.Cursor.Offset, TagResult.TagOpen);
-
-                    context.ExitParser(this);
-                    return true;
-                }
+                context.ExitParser(this);
+                return true;
+            }
 
 #if NET6_0_OR_GREATER
-                if (context.Scanner.ReadText("{%"))
+            if (context.Scanner.ReadText("{%"))
 #else
-                if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('%'))
+            if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('%'))
 #endif
+            {
+                var trim = context.Scanner.ReadChar('-');
+
+                if (p.PreviousTextSpanStatement != null)
                 {
-                    var trim = context.Scanner.ReadChar('-');
-
-                    if (p.PreviousTextSpanStatement != null)
+                    if (trim)
                     {
-                        if (trim)
-                        {
-                            p.PreviousTextSpanStatement.StripRight = true;
-                        }
-
-                        p.PreviousTextSpanStatement.NextIsTag = true;
-
-                        p.PreviousTextSpanStatement = null;
+                        p.PreviousTextSpanStatement.StripRight = true;
                     }
 
-                    result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagOpenTrim : TagResult.TagOpen);
+                    p.PreviousTextSpanStatement.NextIsTag = true;
 
-                    context.ExitParser(this);
-                    return true;
+                    p.PreviousTextSpanStatement = null;
                 }
-                else
-                {
-                    context.Scanner.Cursor.ResetPosition(start);
 
-                    context.ExitParser(this);
-                    return false;
-                }
+                result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagOpenTrim : TagResult.TagOpen);
+
+                context.ExitParser(this);
+                return true;
+            }
+            else
+            {
+                context.Scanner.Cursor.ResetPosition(start);
+
+                context.ExitParser(this);
+                return false;
             }
         }
+    }
 
-        /// <summary>
-        /// Search for `%}`, `-%}` to close a tag.
-        /// Also, if the tag is inside a `liquid` tag, it will only look for a new line to close the tag.
-        /// Note: In {% liquid %} tags, only \n (or \r\n) is valid for line termination, not \r alone.
-        /// </summary>
-        private sealed class TagEndParser : Parser<TagResult>
+    /// <summary>
+    /// Search for `%}`, `-%}` to close a tag.
+    /// Also, if the tag is inside a `liquid` tag, it will only look for a new line to close the tag.
+    /// Note: In {% liquid %} tags, only \n (or \r\n) is valid for line termination, not \r alone.
+    /// </summary>
+    private sealed class TagEndParser : Parser<TagResult>
+    {
+        public bool SkipWhitespace { get; set; } = true;
+
+        public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
         {
-            public bool SkipWhitespace { get; set; } = true;
+            var p = (FluidParseContext)context;
 
-            public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
+            var newLineIsPresent = false;
+
+            var start = context.Scanner.Cursor.Position;
+
+            if (SkipWhitespace)
             {
-                var p = (FluidParseContext)context;
-
-                var newLineIsPresent = false;
-
-                var start = context.Scanner.Cursor.Position;
-
-                if (SkipWhitespace)
+                if (p.LiquidTagDepth > 0)
                 {
-                    if (p.LiquidTagDepth > 0)
+                    var cursor = context.Scanner.Cursor;
+
+                    while (Character.IsWhiteSpace(cursor.Current))
                     {
-                        var cursor = context.Scanner.Cursor;
+                        cursor.Advance();
+                    }
 
-                        while (Character.IsWhiteSpace(cursor.Current))
-                        {
-                            cursor.Advance();
-                        }
+                    // In liquid tags, only \n is a valid line terminator (not \r alone)
+                    // \r\n is handled by first consuming \r as whitespace would fail, but \n will be found
+                    // Actually \r is not whitespace per Parlot, so we need to handle \r\n specially:
+                    // Skip \r if followed by \n (CRLF), then check for \n
+                    if (cursor.Current == '\r' && cursor.PeekNext() == '\n')
+                    {
+                        cursor.Advance(); // skip \r
+                    }
 
-                        // In liquid tags, only \n is a valid line terminator (not \r alone)
-                        // \r\n is handled by first consuming \r as whitespace would fail, but \n will be found
-                        // Actually \r is not whitespace per Parlot, so we need to handle \r\n specially:
-                        // Skip \r if followed by \n (CRLF), then check for \n
-                        if (cursor.Current == '\r' && cursor.PeekNext() == '\n')
-                        {
-                            cursor.Advance(); // skip \r
-                        }
+                    if (cursor.Current == '\n')
+                    {
+                        newLineIsPresent = true;
+                        cursor.Advance(); // consume the \n
 
-                        if (cursor.Current == '\n')
+                        // Continue consuming any additional newlines (\n or \r\n)
+                        while (cursor.Current == '\r' || cursor.Current == '\n')
                         {
-                            newLineIsPresent = true;
-                            cursor.Advance(); // consume the \n
-                            
-                            // Continue consuming any additional newlines (\n or \r\n)
-                            while (cursor.Current == '\r' || cursor.Current == '\n')
+                            if (cursor.Current == '\r' && cursor.PeekNext() == '\n')
                             {
-                                if (cursor.Current == '\r' && cursor.PeekNext() == '\n')
-                                {
-                                    cursor.Advance(); // skip \r of \r\n
-                                }
-                                if (cursor.Current == '\n')
-                                {
-                                    cursor.Advance();
-                                }
-                                else
-                                {
-                                    break; // standalone \r is not a valid line terminator
-                                }
+                                cursor.Advance(); // skip \r of \r\n
+                            }
+                            if (cursor.Current == '\n')
+                            {
+                                cursor.Advance();
+                            }
+                            else
+                            {
+                                break; // standalone \r is not a valid line terminator
                             }
                         }
                     }
-                    else
-                    {
-                        context.SkipWhiteSpace();
-                    }
                 }
-
-                bool trim;
-
-                if (p.LiquidTagDepth > 0)
+                else
                 {
-                    if (newLineIsPresent)
-                    {
-                        result.Set(start.Offset, context.Scanner.Cursor.Offset, TagResult.TagClose);
-                        return true;
-                    }
-                    else
-                    {
-                        trim = context.Scanner.ReadChar('-');
+                    context.SkipWhiteSpace();
+                }
+            }
+
+            bool trim;
+
+            if (p.LiquidTagDepth > 0)
+            {
+                if (newLineIsPresent)
+                {
+                    result.Set(start.Offset, context.Scanner.Cursor.Offset, TagResult.TagClose);
+                    return true;
+                }
+                else
+                {
+                    trim = context.Scanner.ReadChar('-');
 
 #if NET6_0_OR_GREATER
-                        if (context.Scanner.ReadText("%}"))
+                    if (context.Scanner.ReadText("%}"))
 #else
-                        if (context.Scanner.ReadChar('%') && context.Scanner.ReadChar('}'))
+                    if (context.Scanner.ReadChar('%') && context.Scanner.ReadChar('}'))
 #endif
-                        {
-                            p.StripNextTextSpanStatement = trim;
-                            p.PreviousTextSpanStatement = null;
-                            p.PreviousIsTag = true;
-                            p.PreviousIsOutput = false;
-
-                            context.Scanner.Cursor.ResetPosition(start);
-
-                            result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
-                            return true;
-                        }
+                    {
+                        p.StripNextTextSpanStatement = trim;
+                        p.PreviousTextSpanStatement = null;
+                        p.PreviousIsTag = true;
+                        p.PreviousIsOutput = false;
 
                         context.Scanner.Cursor.ResetPosition(start);
-                        return false;
+
+                        result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
+                        return true;
                     }
-                }
 
-                trim = context.Scanner.ReadChar('-');
-
-#if NET6_0_OR_GREATER
-                if (context.Scanner.ReadText("%}"))
-#else
-                if (context.Scanner.ReadChar('%') && context.Scanner.ReadChar('}'))
-#endif
-                {
-                    p.StripNextTextSpanStatement = trim;
-                    p.PreviousTextSpanStatement = null;
-                    p.PreviousIsTag = true;
-                    p.PreviousIsOutput = false;
-
-                    result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
-                    return true;
-                }
-                else
-                {
                     context.Scanner.Cursor.ResetPosition(start);
                     return false;
                 }
             }
-        }
 
-        private sealed class OutputTagStartParser : Parser<TagResult>
-        {
-            public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
-            {
-                var start = context.Scanner.Cursor.Position;
+            trim = context.Scanner.ReadChar('-');
 
 #if NET6_0_OR_GREATER
-                if (context.Scanner.ReadText("{{"))
+            if (context.Scanner.ReadText("%}"))
 #else
-                if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('{'))
+            if (context.Scanner.ReadChar('%') && context.Scanner.ReadChar('}'))
 #endif
-                {
-                    var trim = context.Scanner.ReadChar('-');
+            {
+                p.StripNextTextSpanStatement = trim;
+                p.PreviousTextSpanStatement = null;
+                p.PreviousIsTag = true;
+                p.PreviousIsOutput = false;
 
-                    var p = (FluidParseContext)context;
-
-                    if (p.PreviousTextSpanStatement != null)
-                    {
-                        if (trim)
-                        {
-                            p.PreviousTextSpanStatement.StripRight = true;
-                        }
-
-                        p.PreviousTextSpanStatement.NextIsOutput = true;
-
-                        p.PreviousTextSpanStatement = null;
-                    }
-
-
-                    result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagOpenTrim : TagResult.TagOpen);
-                    return true;
-                }
-                else
-                {
-                    context.Scanner.Cursor.ResetPosition(start);
-                    return false;
-                }
+                result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
+                return true;
             }
-        }
-
-        private sealed class OutputTagEndParser : Parser<TagResult>
-        {
-            public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
+            else
             {
-                context.EnterParser(this);
-
-                var start = context.Scanner.Cursor.Position;
-
-                context.SkipWhiteSpace();
-
-                var trim = context.Scanner.ReadChar('-');
-
-#if NET6_0_OR_GREATER
-                if (context.Scanner.ReadText("}}"))
-#else
-                if (context.Scanner.ReadChar('}') && context.Scanner.ReadChar('}'))
-#endif
-                {
-                    var p = (FluidParseContext)context;
-
-                    p.StripNextTextSpanStatement = trim;
-                    p.PreviousTextSpanStatement = null;
-                    p.PreviousIsTag = false;
-                    p.PreviousIsOutput = true;
-
-                    result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
-
-
-                    context.ExitParser(this);
-                    return true;
-                }
-                else
-                {
-                    context.Scanner.Cursor.ResetPosition(start);
-
-                    context.ExitParser(this);
-                    return false;
-                }
+                context.Scanner.Cursor.ResetPosition(start);
+                return false;
             }
         }
     }
 
-    public static class NonInlineLiquidTagParsers
+    private sealed class OutputTagStartParser : Parser<TagResult>
     {
-        public static Parser<TagResult> TagStart() => new TagStartParser();
-        public static Parser<TagResult> TagEnd() => new TagEndParser();
-        public static Parser<TagResult> OutputTagStart() => new OutputTagStartParser();
-        public static Parser<TagResult> OutputTagEnd() => new OutputTagEndParser();
-
-        private sealed class TagStartParser : Parser<TagResult>, ISeekable
+        public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
         {
-            public bool CanSeek => true;
-            public char[] ExpectedChars { get; set; } = ['{'];
-            public bool SkipWhitespace { get; } = false;
-
-            public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
-            {
-                context.EnterParser(this);
-
-                var start = context.Scanner.Cursor.Position;
-
-                var p = (FluidParseContext)context;
+            var start = context.Scanner.Cursor.Position;
 
 #if NET6_0_OR_GREATER
-                if (context.Scanner.ReadText("{%"))
+            if (context.Scanner.ReadText("{{"))
 #else
-                if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('%'))
+            if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('{'))
 #endif
-                {
-                    var trim = context.Scanner.ReadChar('-');
-
-                    if (p.PreviousTextSpanStatement != null)
-                    {
-                        if (trim)
-                        {
-                            p.PreviousTextSpanStatement.StripRight = true;
-                        }
-
-                        p.PreviousTextSpanStatement.NextIsTag = true;
-
-                        p.PreviousTextSpanStatement = null;
-                    }
-
-                    result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagOpenTrim : TagResult.TagOpen);
-
-                    context.ExitParser(this);
-                    return true;
-                }
-                else
-                {
-                    context.Scanner.Cursor.ResetPosition(start);
-
-                    context.ExitParser(this);
-                    return false;
-                }
-            }
-        }
-
-        private sealed class TagEndParser : Parser<TagResult>, ISeekable
-        {
-            public bool CanSeek => true;
-            public char[] ExpectedChars { get; set; } = ['-', '%'];
-            public bool SkipWhitespace { get; set; } = false;
-
-            public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
             {
-                var p = (FluidParseContext)context;
-
-                var start = context.Scanner.Cursor.Position;
-
-                bool trim;
-
-                trim = context.Scanner.ReadChar('-');
-
-#if NET6_0_OR_GREATER
-                if (context.Scanner.ReadText("%}"))
-#else
-                if (context.Scanner.ReadChar('%') && context.Scanner.ReadChar('}'))
-#endif
-                {
-                    p.StripNextTextSpanStatement = trim;
-                    p.PreviousTextSpanStatement = null;
-                    p.PreviousIsTag = true;
-                    p.PreviousIsOutput = false;
-
-                    result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
-                    return true;
-                }
-                else
-                {
-                    context.Scanner.Cursor.ResetPosition(start);
-                    return false;
-                }
-            }
-        }
-
-        private sealed class OutputTagStartParser : Parser<TagResult>, ISeekable
-        {
-            public bool CanSeek => true;
-
-            public char[] ExpectedChars { get; set; } = ['{'];
-
-            public bool SkipWhitespace { get; } = false;
-
-            public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
-            {
-                var start = context.Scanner.Cursor.Position;
-
-#if NET6_0_OR_GREATER
-                if (context.Scanner.ReadText("{{"))
-#else
-                if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('{'))
-#endif
-                {
-                    var trim = context.Scanner.ReadChar('-');
-
-                    var p = (FluidParseContext)context;
-
-                    if (p.PreviousTextSpanStatement != null)
-                    {
-                        if (trim)
-                        {
-                            p.PreviousTextSpanStatement.StripRight = true;
-                        }
-
-                        p.PreviousTextSpanStatement.NextIsOutput = true;
-
-                        p.PreviousTextSpanStatement = null;
-                    }
-
-
-                    result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagOpenTrim : TagResult.TagOpen);
-                    return true;
-                }
-                else
-                {
-                    context.Scanner.Cursor.ResetPosition(start);
-                    return false;
-                }
-            }
-        }
-
-        private sealed class OutputTagEndParser : Parser<TagResult>, ISeekable
-        {
-            public bool CanSeek => true;
-
-            public char[] ExpectedChars { get; set; } = ['-', '}'];
-
-            public bool SkipWhitespace { get; } = false;
-
-            public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
-            {
-                context.EnterParser(this);
-
-                var start = context.Scanner.Cursor.Position;
-
                 var trim = context.Scanner.ReadChar('-');
 
-#if NET6_0_OR_GREATER
-                if (context.Scanner.ReadText("}}"))
-#else
-                if (context.Scanner.ReadChar('}') && context.Scanner.ReadChar('}'))
-#endif
-                {
-                    var p = (FluidParseContext)context;
+                var p = (FluidParseContext)context;
 
-                    p.StripNextTextSpanStatement = trim;
+                if (p.PreviousTextSpanStatement != null)
+                {
+                    if (trim)
+                    {
+                        p.PreviousTextSpanStatement.StripRight = true;
+                    }
+
+                    p.PreviousTextSpanStatement.NextIsOutput = true;
+
                     p.PreviousTextSpanStatement = null;
-                    p.PreviousIsTag = false;
-                    p.PreviousIsOutput = true;
-
-                    result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
-
-
-                    context.ExitParser(this);
-                    return true;
                 }
-                else
-                {
-                    context.Scanner.Cursor.ResetPosition(start);
 
-                    context.ExitParser(this);
-                    return false;
-                }
+
+                result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagOpenTrim : TagResult.TagOpen);
+                return true;
+            }
+            else
+            {
+                context.Scanner.Cursor.ResetPosition(start);
+                return false;
             }
         }
     }
 
+    private sealed class OutputTagEndParser : Parser<TagResult>
+    {
+        public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
+        {
+            context.EnterParser(this);
+
+            var start = context.Scanner.Cursor.Position;
+
+            context.SkipWhiteSpace();
+
+            var trim = context.Scanner.ReadChar('-');
+
+#if NET6_0_OR_GREATER
+            if (context.Scanner.ReadText("}}"))
+#else
+            if (context.Scanner.ReadChar('}') && context.Scanner.ReadChar('}'))
+#endif
+            {
+                var p = (FluidParseContext)context;
+
+                p.StripNextTextSpanStatement = trim;
+                p.PreviousTextSpanStatement = null;
+                p.PreviousIsTag = false;
+                p.PreviousIsOutput = true;
+
+                result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
+
+
+                context.ExitParser(this);
+                return true;
+            }
+            else
+            {
+                context.Scanner.Cursor.ResetPosition(start);
+
+                context.ExitParser(this);
+                return false;
+            }
+        }
+    }
+}
+
+public static class NonInlineLiquidTagParsers
+{
+    public static Parser<TagResult> TagStart() => new TagStartParser();
+    public static Parser<TagResult> TagEnd() => new TagEndParser();
+    public static Parser<TagResult> OutputTagStart() => new OutputTagStartParser();
+    public static Parser<TagResult> OutputTagEnd() => new OutputTagEndParser();
+
+    private sealed class TagStartParser : Parser<TagResult>, ISeekable
+    {
+        public bool CanSeek => true;
+        public char[] ExpectedChars { get; set; } = ['{'];
+        public bool SkipWhitespace { get; } = false;
+
+        public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
+        {
+            context.EnterParser(this);
+
+            var start = context.Scanner.Cursor.Position;
+
+            var p = (FluidParseContext)context;
+
+#if NET6_0_OR_GREATER
+            if (context.Scanner.ReadText("{%"))
+#else
+            if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('%'))
+#endif
+            {
+                var trim = context.Scanner.ReadChar('-');
+
+                if (p.PreviousTextSpanStatement != null)
+                {
+                    if (trim)
+                    {
+                        p.PreviousTextSpanStatement.StripRight = true;
+                    }
+
+                    p.PreviousTextSpanStatement.NextIsTag = true;
+
+                    p.PreviousTextSpanStatement = null;
+                }
+
+                result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagOpenTrim : TagResult.TagOpen);
+
+                context.ExitParser(this);
+                return true;
+            }
+            else
+            {
+                context.Scanner.Cursor.ResetPosition(start);
+
+                context.ExitParser(this);
+                return false;
+            }
+        }
+    }
+
+    private sealed class TagEndParser : Parser<TagResult>, ISeekable
+    {
+        public bool CanSeek => true;
+        public char[] ExpectedChars { get; set; } = ['-', '%'];
+        public bool SkipWhitespace { get; set; } = false;
+
+        public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
+        {
+            var p = (FluidParseContext)context;
+
+            var start = context.Scanner.Cursor.Position;
+
+            bool trim;
+
+            trim = context.Scanner.ReadChar('-');
+
+#if NET6_0_OR_GREATER
+            if (context.Scanner.ReadText("%}"))
+#else
+            if (context.Scanner.ReadChar('%') && context.Scanner.ReadChar('}'))
+#endif
+            {
+                p.StripNextTextSpanStatement = trim;
+                p.PreviousTextSpanStatement = null;
+                p.PreviousIsTag = true;
+                p.PreviousIsOutput = false;
+
+                result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
+                return true;
+            }
+            else
+            {
+                context.Scanner.Cursor.ResetPosition(start);
+                return false;
+            }
+        }
+    }
+
+    private sealed class OutputTagStartParser : Parser<TagResult>, ISeekable
+    {
+        public bool CanSeek => true;
+
+        public char[] ExpectedChars { get; set; } = ['{'];
+
+        public bool SkipWhitespace { get; } = false;
+
+        public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
+        {
+            var start = context.Scanner.Cursor.Position;
+
+#if NET6_0_OR_GREATER
+            if (context.Scanner.ReadText("{{"))
+#else
+            if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('{'))
+#endif
+            {
+                var trim = context.Scanner.ReadChar('-');
+
+                var p = (FluidParseContext)context;
+
+                if (p.PreviousTextSpanStatement != null)
+                {
+                    if (trim)
+                    {
+                        p.PreviousTextSpanStatement.StripRight = true;
+                    }
+
+                    p.PreviousTextSpanStatement.NextIsOutput = true;
+
+                    p.PreviousTextSpanStatement = null;
+                }
+
+
+                result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagOpenTrim : TagResult.TagOpen);
+                return true;
+            }
+            else
+            {
+                context.Scanner.Cursor.ResetPosition(start);
+                return false;
+            }
+        }
+    }
+
+    private sealed class OutputTagEndParser : Parser<TagResult>, ISeekable
+    {
+        public bool CanSeek => true;
+
+        public char[] ExpectedChars { get; set; } = ['-', '}'];
+
+        public bool SkipWhitespace { get; } = false;
+
+        public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
+        {
+            context.EnterParser(this);
+
+            var start = context.Scanner.Cursor.Position;
+
+            var trim = context.Scanner.ReadChar('-');
+
+#if NET6_0_OR_GREATER
+            if (context.Scanner.ReadText("}}"))
+#else
+            if (context.Scanner.ReadChar('}') && context.Scanner.ReadChar('}'))
+#endif
+            {
+                var p = (FluidParseContext)context;
+
+                p.StripNextTextSpanStatement = trim;
+                p.PreviousTextSpanStatement = null;
+                p.PreviousIsTag = false;
+                p.PreviousIsOutput = true;
+
+                result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
+
+
+                context.ExitParser(this);
+                return true;
+            }
+            else
+            {
+                context.Scanner.Cursor.ResetPosition(start);
+
+                context.ExitParser(this);
+                return false;
+            }
+        }
+    }
 }

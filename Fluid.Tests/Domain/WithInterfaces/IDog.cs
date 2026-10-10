@@ -1,7 +1,6 @@
-﻿namespace Fluid.Tests.Domain.WithInterfaces
+namespace Fluid.Tests.Domain.WithInterfaces;
+
+public interface IDog : IAnimal
 {
-    public interface IDog : IAnimal
-    {
-        string Name { get; set; }
-    }
+    string Name { get; set; }
 }

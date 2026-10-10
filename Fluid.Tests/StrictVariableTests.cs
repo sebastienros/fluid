@@ -25,7 +25,7 @@ public class StrictVariableTests
     public async Task StrictVariables_ThrowsOnMissingVariable()
     {
         _parser.TryParse("{{ missing }}", out var template, out var _);
-        var options = new TemplateOptions { StrictVariables = true };
+        var options = new TemplateOptionsBuilder().WithStrictVariables(true).Build();
         var context = new TemplateContext(options);
         await Assert.ThrowsAsync<FluidException>(() => template.RenderAsync(context).AsTask());
     }
@@ -34,7 +34,7 @@ public class StrictVariableTests
     public async Task StrictVariables_DoesNotThrowWhenVariableExists()
     {
         _parser.TryParse("{{ existing }}", out var template, out var _);
-        var options = new TemplateOptions { StrictVariables = true };
+        var options = new TemplateOptionsBuilder().WithStrictVariables(true).Build();
         var context = new TemplateContext(options);
         context.SetValue("existing", "value");
         var result = await template.RenderAsync(context);
@@ -46,7 +46,7 @@ public class StrictVariableTests
     {
         _parser.TryParse("{{ nonExistingProperty }}", out var template, out var _);
 
-        var options = new TemplateOptions();
+        var options = new TemplateOptionsBuilder().Build();
         var context = new TemplateContext(options);
         var detected = false;
         context.Undefined = (path, type) =>
@@ -81,15 +81,14 @@ public class StrictVariableTests
         _parser.TryParse("{{ user.nonExistingProperty }}", out var template, out var _);
 
         Type missingType = null;
-        var options = new TemplateOptions
-        {
-            Undefined = (name, type) =>
+        var options = new TemplateOptionsBuilder()
+            .WithUndefined((name, type) =>
             {
                 Assert.Equal("nonExistingProperty", name);
                 missingType = type;
                 return ValueTask.FromResult<FluidValue>(NilValue.Instance);
-            }
-        };
+            })
+            .Build();
 
         var context = new TemplateContext(options);
         context.SetValue("user", new Person { Firstname = "John" });
@@ -105,15 +104,14 @@ public class StrictVariableTests
         _parser.TryParse("{{ company.Director.Occupation }}", out var template, out var _);
 
         Type missingType = null;
-        var options = new TemplateOptions
-        {
-            Undefined = (name, type) =>
+        var options = new TemplateOptionsBuilder()
+            .WithUndefined((name, type) =>
             {
                 Assert.Equal("Occupation", name);
                 missingType = type;
                 return ValueTask.FromResult<FluidValue>(NilValue.Instance);
-            }
-        };
+            })
+            .Build();
 
         var context = new TemplateContext(options);
         context.SetValue("company", new Company { Director = new Employee { Firstname = "John" } });
@@ -476,15 +474,14 @@ public class StrictVariableTests
         _parser.TryParse("{{ first }} {{ first }} {{ second }}", out var template, out var _);
 
         var paths = new List<string>();
-        var options = new TemplateOptions
-        {
-            Undefined = (name, type) =>
+        var options = new TemplateOptionsBuilder()
+            .WithUndefined((name, type) =>
             {
                 paths.Add(name);
                 Assert.Null(type);
                 return ValueTask.FromResult<FluidValue>(NilValue.Instance);
-            }
-        };
+            })
+            .Build();
 
         var context = new TemplateContext(options);
 
@@ -503,15 +500,14 @@ public class StrictVariableTests
         _parser.TryParse("{{ missing }}", out var template, out var _);
 
         var paths = new List<string>();
-        var options = new TemplateOptions
-        {
-            Undefined = (name, type) =>
+        var options = new TemplateOptionsBuilder()
+            .WithUndefined((name, type) =>
             {
                 paths.Add(name);
                 Assert.Null(type);
                 return ValueTask.FromResult<FluidValue>(NilValue.Instance);
-            }
-        };
+            })
+            .Build();
 
         var context = new TemplateContext(options);
 
@@ -526,14 +522,13 @@ public class StrictVariableTests
     {
         _parser.TryParse("{{ missing }} {{ another }}", out var template, out var _);
 
-        var options = new TemplateOptions
-        {
-            Undefined = (name, type) =>
+        var options = new TemplateOptionsBuilder()
+            .WithUndefined((name, type) =>
             {
                 // Return a custom default value for undefined variables
-                return ValueTask.FromResult<FluidValue>(new StringValue($"[{name} not found]"));
-            }
-        };
+                return ValueTask.FromResult<FluidValue>(StringValue.Create($"[{name} not found]"));
+            })
+            .Build();
 
         var context = new TemplateContext(options);
 
@@ -547,14 +542,14 @@ public class StrictVariableTests
         // This test verifies that the exception message contains the actual property name
         // rather than the type name like "Fluid.Ast.IdentifierSegment"
         _parser.TryParse("{{ event.userId }}", out var template, out var _);
-        var options = new TemplateOptions { StrictVariables = true };
+        var options = new TemplateOptionsBuilder().WithStrictVariables(true).Build();
         var context = new TemplateContext(options);
-        
+
         // Set event but without userId property
         context.SetValue("event", new { email = "test@example.com" });
-        
+
         var exception = await Assert.ThrowsAsync<FluidException>(() => template.RenderAsync(context).AsTask());
-        
+
         // The exception message should contain "userId"
         Assert.Contains("userId", exception.Message);
     }
@@ -564,14 +559,14 @@ public class StrictVariableTests
     {
         // Test that nested property access also shows the correct property name
         _parser.TryParse("{{ user.profile.avatar }}", out var template, out var _);
-        var options = new TemplateOptions { StrictVariables = true };
+        var options = new TemplateOptionsBuilder().WithStrictVariables(true).Build();
         var context = new TemplateContext(options);
-        
+
         // Set user with profile but without avatar property
         context.SetValue("user", new { profile = new { name = "John" } });
-        
+
         var exception = await Assert.ThrowsAsync<FluidException>(() => template.RenderAsync(context).AsTask());
-        
+
         // The exception message should contain "avatar"
         Assert.Contains("avatar", exception.Message);
     }
@@ -580,14 +575,13 @@ public class StrictVariableTests
     {
         var missingVariables = new List<string>();
 
-        var options = new TemplateOptions
-        {
-            Undefined = (name, type) =>
+        var options = new TemplateOptionsBuilder()
+            .WithUndefined((name, type) =>
             {
                 missingVariables.Add(name);
                 return ValueTask.FromResult<FluidValue>(NilValue.Instance);
-            }
-        };
+            })
+            .Build();
 
         return (options, missingVariables);
     }

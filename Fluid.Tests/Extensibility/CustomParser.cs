@@ -1,9 +1,8 @@
-﻿namespace Fluid.Tests.Extensibility
+namespace Fluid.Tests.Extensibility;
+
+public class CustomParser : FluidParser
 {
-    public class CustomParser : FluidParser
+    public CustomParser()
     {
-        public CustomParser()
-        {
-        }
     }
 }

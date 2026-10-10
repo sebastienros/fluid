@@ -5,26 +5,25 @@ using Xunit;
 using System.Threading.Tasks;
 using Fluid.Tests.Extensibility;
 
-namespace Fluid.Tests
-{
-    public class AssignmentCaptureTests
-    {
-        private static FluidParser _parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
+namespace Fluid.Tests;
 
-        [Fact]
-        public async Task Assign()
-        {
-            var source = @"
+public class AssignmentCaptureTests
+{
+    private static FluidParser _parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
+
+    [Fact]
+    public async Task Assign()
+    {
+        var source = @"
                 {%- assign a = 'b' %}{{a-}}
             ";
 
-            _parser.TryParse(source, out var template, out var error);
-            var context = new TemplateContext
-            {
-                Assigned = (identifier, value, context) => new StringValue(value.ToStringValue() + "_altered")
-            };
-            var result = await template.RenderAsync(context);
-            Assert.Equal("b_altered", result);
-        }
+        _parser.TryParse(source, out var template, out var error);
+        var context = new TemplateContext
+        {
+            Assigned = (identifier, value, context) => StringValue.Create(value.ToStringValue() + "_altered")
+        };
+        var result = await template.RenderAsync(context);
+        Assert.Equal("b_altered", result);
     }
 }

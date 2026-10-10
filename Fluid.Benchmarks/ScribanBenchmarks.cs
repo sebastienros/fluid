@@ -1,40 +1,39 @@
 using Scriban;
 using Scriban.Runtime;
 
-namespace Fluid.Benchmarks
+namespace Fluid.Benchmarks;
+
+public class ScribanBenchmarks : BaseBenchmarks
 {
-    public class ScribanBenchmarks : BaseBenchmarks
+    private Template _scribanTemplate;
+
+    public ScribanBenchmarks()
     {
-        private Template _scribanTemplate;
+        _scribanTemplate = Template.ParseLiquid(ProductTemplate);
 
-        public ScribanBenchmarks()
-        {
-            _scribanTemplate = Template.ParseLiquid(ProductTemplate);
+        CheckBenchmark();
+    }
 
-            CheckBenchmark();
-        }
+    public override object Parse()
+    {
+        return _scribanTemplate = Template.ParseLiquid(ProductTemplate);
+    }
 
-        public override object Parse()
-        {
-            return _scribanTemplate = Template.ParseLiquid(ProductTemplate);
-        }
+    public override object ParseBig()
+    {
+        return _scribanTemplate = Template.ParseLiquid(BlogPostTemplate);
+    }
 
-        public override object ParseBig()
-        {
-            return _scribanTemplate = Template.ParseLiquid(BlogPostTemplate);
-        }
+    public override string Render()
+    {
+        var scriptObject = new ScriptObject { { "products", Products } };
+        return _scribanTemplate.Render(scriptObject);
+    }
 
-        public override string Render()
-        {
-            var scriptObject = new ScriptObject { { "products", Products } };
-            return _scribanTemplate.Render(scriptObject);
-        }
-
-        public override string ParseAndRender()
-        {
-            var template = Template.ParseLiquid(ProductTemplate);
-            var scriptObject = new ScriptObject { { "products", Products } };
-            return template.Render(scriptObject);
-        }
+    public override string ParseAndRender()
+    {
+        var template = Template.ParseLiquid(ProductTemplate);
+        var scriptObject = new ScriptObject { { "products", Products } };
+        return template.Render(scriptObject);
     }
 }

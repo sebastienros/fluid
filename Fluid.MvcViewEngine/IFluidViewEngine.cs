@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc.ViewEngines;
+using Microsoft.AspNetCore.Mvc.ViewEngines;
 
-namespace Fluid.MvcViewEngine
+namespace Fluid.MvcViewEngine;
+
+public interface IFluidViewEngine : IViewEngine
 {
-    public interface IFluidViewEngine : IViewEngine
-    {
-    }
 }

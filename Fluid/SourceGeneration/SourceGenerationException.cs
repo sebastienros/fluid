@@ -1,13 +1,12 @@
-namespace Fluid.SourceGeneration
-{
-    public sealed class SourceGenerationException : Exception
-    {
-        public SourceGenerationException(string message) : base(message)
-        {
-        }
+namespace Fluid.SourceGeneration;
 
-        public SourceGenerationException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
+public sealed class SourceGenerationException : Exception
+{
+    public SourceGenerationException(string message) : base(message)
+    {
+    }
+
+    public SourceGenerationException(string message, Exception innerException) : base(message, innerException)
+    {
     }
 }

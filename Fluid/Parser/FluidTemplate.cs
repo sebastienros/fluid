@@ -1,38 +1,45 @@
-﻿using System.Text.Encodings.Web;
+using System.Text.Encodings.Web;
 using Fluid.Ast;
 using Fluid.Utils;
 
-namespace Fluid.Parser
+namespace Fluid.Parser;
+
+public sealed class FluidTemplate : IFluidTemplate, IStatementList
 {
-    public sealed class FluidTemplate : IFluidTemplate, IStatementList
+    public FluidTemplate(params Statement[] statements)
     {
-        public FluidTemplate(params Statement[] statements)
+        Statements = statements ?? [];
+    }
+
+    public FluidTemplate(IReadOnlyList<Statement> statements)
+    {
+        Statements = statements ?? throw new ArgumentNullException(nameof(statements));
+    }
+
+    public IReadOnlyList<Statement> Statements { get; }
+
+    public ValueTask RenderAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(encoder);
+        ArgumentNullException.ThrowIfNull(context);
+
+        context.CancellationToken.ThrowIfCancellationRequested();
+        output = LimitedFluidOutput.Create(output, context.MaxOutputSize);
+
+        context.EnterRender();
+        var exitRender = true;
+
+        try
         {
-            Statements = statements ?? [];
-        }
-
-        public FluidTemplate(IReadOnlyList<Statement> statements)
-        {
-            Statements = statements ?? throw new ArgumentNullException(nameof(statements));
-        }
-
-        public IReadOnlyList<Statement> Statements { get; }
-
-        public ValueTask RenderAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
-        {
-            ArgumentNullException.ThrowIfNull(output);
-            ArgumentNullException.ThrowIfNull(encoder);
-            ArgumentNullException.ThrowIfNull(context);
-
-            context.CancellationToken.ThrowIfCancellationRequested();
-            output = LimitedFluidOutput.Create(output, context.MaxOutputSize);
-
             var count = Statements.Count;
             for (var i = 0; i < count; i++)
             {
                 var task = Statements[i].WriteToAsync(output, encoder, context);
                 if (!task.IsCompletedSuccessfully)
                 {
+                    // The awaited continuation takes over leaving the render.
+                    exitRender = false;
                     return Awaited(
                         task,
                         output,
@@ -42,27 +49,41 @@ namespace Fluid.Parser
                         startIndex: i + 1);
                 }
             }
-
-            context.CancellationToken.ThrowIfCancellationRequested();
-            return output.FlushAsync();
+        }
+        finally
+        {
+            if (exitRender)
+            {
+                context.ExitRender();
+            }
         }
 
-        private static async ValueTask Awaited(
-            ValueTask<Completion> task,
-            IFluidOutput output,
-            TextEncoder encoder,
-            TemplateContext context,
-            IReadOnlyList<Statement> statements,
-            int startIndex)
+        context.CancellationToken.ThrowIfCancellationRequested();
+        return output.FlushAsync();
+    }
+
+    private static async ValueTask Awaited(
+        ValueTask<Completion> task,
+        IFluidOutput output,
+        TextEncoder encoder,
+        TemplateContext context,
+        IReadOnlyList<Statement> statements,
+        int startIndex)
+    {
+        try
         {
             await task;
             for (var i = startIndex; i < statements.Count; i++)
             {
                 await statements[i].WriteToAsync(output, encoder, context);
             }
-
-            context.CancellationToken.ThrowIfCancellationRequested();
-            await output.FlushAsync();
         }
+        finally
+        {
+            context.ExitRender();
+        }
+
+        context.CancellationToken.ThrowIfCancellationRequested();
+        await output.FlushAsync();
     }
 }

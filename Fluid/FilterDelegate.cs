@@ -1,6 +1,5 @@
-﻿using Fluid.Values;
+using Fluid.Values;
 
-namespace Fluid
-{
-    public delegate ValueTask<FluidValue> FilterDelegate(FluidValue input, FilterArguments arguments, TemplateContext context);
-}
+namespace Fluid;
+
+public delegate ValueTask<FluidValue> FilterDelegate(FluidValue input, FilterArguments arguments, TemplateContext context);

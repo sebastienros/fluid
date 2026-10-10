@@ -15,14 +15,14 @@ using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 using System.Threading;
 
-namespace Fluid.Tests
+namespace Fluid.Tests;
+
+public class FluidSourceGeneratorTests
 {
-    public class FluidSourceGeneratorTests
+    [Fact]
+    public async Task TemplatesAttribute_Generates_Properties_FromAdditionalFiles()
     {
-        [Fact]
-        public async Task TemplatesAttribute_Generates_Properties_FromAdditionalFiles()
-        {
-            var userSource = @"
+        var userSource = @"
 using Fluid;
 using Fluid.SourceGenerator;
 
@@ -34,34 +34,34 @@ public static partial class Templates
 }
 ";
 
-            var compilation = CreateCompilation(userSource);
+        var compilation = CreateCompilation(userSource);
 
-            var additional = ImmutableArray.Create<AdditionalText>(
-                new InMemoryAdditionalText("hello.liquid", "hi"),
-                new InMemoryAdditionalText("_ignore.liquid", "ignored"));
+        var additional = ImmutableArray.Create<AdditionalText>(
+            new InMemoryAdditionalText("hello.liquid", "hi"),
+            new InMemoryAdditionalText("_ignore.liquid", "ignored"));
 
-            var generator = new FluidTemplateGenerator();
-            GeneratorDriver driver = CSharpGeneratorDriver.Create(new[] { generator.AsSourceGenerator() }, additionalTexts: additional);
+        var generator = new FluidTemplateGenerator();
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(new[] { generator.AsSourceGenerator() }, additionalTexts: additional);
 
-            driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
 
-            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
 
-            var emit = EmitToAssembly(outputCompilation);
-            var template = (IFluidTemplate)emit.Assembly.GetType("MyApp.Templates")!
-                .GetProperty("Hello", BindingFlags.Public | BindingFlags.Static)!
-                .GetValue(null)!;
+        var emit = EmitToAssembly(outputCompilation);
+        var template = (IFluidTemplate)emit.Assembly.GetType("MyApp.Templates")!
+            .GetProperty("Hello", BindingFlags.Public | BindingFlags.Static)!
+            .GetValue(null)!;
 
-            var sw = new StringWriter();
-            await template.RenderAsync(sw, HtmlEncoder.Default, new TemplateContext());
+        var sw = new StringWriter();
+        await template.RenderAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
-            Assert.Equal("hi", sw.ToString());
-        }
+        Assert.Equal("hi", sw.ToString());
+    }
 
-        [Fact]
-        public async Task TemplatesAttribute_Compiles_Rendered_AdditionalFiles()
-        {
-            var userSource = @"
+    [Fact]
+    public async Task TemplatesAttribute_Compiles_Rendered_AdditionalFiles()
+    {
+        var userSource = @"
 using Fluid;
 using Fluid.SourceGenerator;
 
@@ -73,43 +73,43 @@ public static partial class Templates
 }
 ";
 
-            var compilation = CreateCompilation(userSource);
+        var compilation = CreateCompilation(userSource);
 
-            var additional = ImmutableArray.Create<AdditionalText>(
-                new InMemoryAdditionalText("hello.liquid", "{% render 'partial' %}"),
-                new InMemoryAdditionalText("partial.liquid", "hi"));
+        var additional = ImmutableArray.Create<AdditionalText>(
+            new InMemoryAdditionalText("hello.liquid", "{% render 'partial' %}"),
+            new InMemoryAdditionalText("partial.liquid", "hi"));
 
-            var generator = new FluidTemplateGenerator();
-            GeneratorDriver driver = CSharpGeneratorDriver.Create(new[] { generator.AsSourceGenerator() }, additionalTexts: additional);
+        var generator = new FluidTemplateGenerator();
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(new[] { generator.AsSourceGenerator() }, additionalTexts: additional);
 
-            driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
 
-            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
 
-            var emit = EmitToAssembly(outputCompilation);
-            var template = (IFluidTemplate)emit.Assembly.GetType("MyApp.Templates")!
-                .GetProperty("Hello", BindingFlags.Public | BindingFlags.Static)!
-                .GetValue(null)!;
+        var emit = EmitToAssembly(outputCompilation);
+        var template = (IFluidTemplate)emit.Assembly.GetType("MyApp.Templates")!
+            .GetProperty("Hello", BindingFlags.Public | BindingFlags.Static)!
+            .GetValue(null)!;
 
-            var sw = new StringWriter();
-            await template.RenderAsync(sw, HtmlEncoder.Default, new TemplateContext());
+        var sw = new StringWriter();
+        await template.RenderAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
-            Assert.Equal("hi", sw.ToString());
-        }
+        Assert.Equal("hi", sw.ToString());
+    }
 
-        [Fact]
-        public void GeneratorAssembly_EmbedsTemplateCompilerDependencies()
-        {
-            var resources = typeof(FluidTemplateGenerator).Assembly.GetManifestResourceNames();
+    [Fact]
+    public void GeneratorAssembly_EmbedsTemplateCompilerDependencies()
+    {
+        var resources = typeof(FluidTemplateGenerator).Assembly.GetManifestResourceNames();
 
-            Assert.Contains("Fluid.SourceGenerator.Dependencies.Fluid.SourceGenerator.Runtime.dll", resources);
-            Assert.Contains("Fluid.SourceGenerator.Dependencies.Parlot.dll", resources);
-        }
+        Assert.Contains("Fluid.SourceGenerator.Dependencies.Fluid.SourceGenerator.Runtime.dll", resources);
+        Assert.Contains("Fluid.SourceGenerator.Dependencies.Parlot.dll", resources);
+    }
 
-        [Fact]
-        public async Task TemplatesAttribute_ExcludePattern_Skips_Matches()
-        {
-            var userSource = @"
+    [Fact]
+    public async Task TemplatesAttribute_ExcludePattern_Skips_Matches()
+    {
+        var userSource = @"
 using Fluid;
 using Fluid.SourceGenerator;
 
@@ -121,105 +121,104 @@ public static partial class Templates
 }
 ";
 
-            var compilation = CreateCompilation(userSource);
+        var compilation = CreateCompilation(userSource);
 
-            var additional = ImmutableArray.Create<AdditionalText>(
-                new InMemoryAdditionalText("hello.liquid", "Hello from file"),
-                new InMemoryAdditionalText("_ignore.liquid", "Ignored"));
+        var additional = ImmutableArray.Create<AdditionalText>(
+            new InMemoryAdditionalText("hello.liquid", "Hello from file"),
+            new InMemoryAdditionalText("_ignore.liquid", "Ignored"));
 
-            var generator = new FluidTemplateGenerator();
-            GeneratorDriver driver = CSharpGeneratorDriver.Create(new[] { generator.AsSourceGenerator() }, additionalTexts: additional);
+        var generator = new FluidTemplateGenerator();
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(new[] { generator.AsSourceGenerator() }, additionalTexts: additional);
 
-            driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
 
-            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
 
-            var emit = EmitToAssembly(outputCompilation);
-            var templatesType = emit.Assembly.GetType("MyApp.Templates")!;
-            Assert.NotNull(templatesType.GetProperty("Hello", BindingFlags.Public | BindingFlags.Static));
-            Assert.Null(templatesType.GetProperty("Ignore", BindingFlags.Public | BindingFlags.Static));
+        var emit = EmitToAssembly(outputCompilation);
+        var templatesType = emit.Assembly.GetType("MyApp.Templates")!;
+        Assert.NotNull(templatesType.GetProperty("Hello", BindingFlags.Public | BindingFlags.Static));
+        Assert.Null(templatesType.GetProperty("Ignore", BindingFlags.Public | BindingFlags.Static));
 
-            var template = (IFluidTemplate)templatesType
-                .GetProperty("Hello", BindingFlags.Public | BindingFlags.Static)!
-                .GetValue(null)!;
+        var template = (IFluidTemplate)templatesType
+            .GetProperty("Hello", BindingFlags.Public | BindingFlags.Static)!
+            .GetValue(null)!;
 
-            var sw = new StringWriter();
-            await template.RenderAsync(sw, HtmlEncoder.Default, new TemplateContext());
+        var sw = new StringWriter();
+        await template.RenderAsync(sw, HtmlEncoder.Default, new TemplateContext());
 
-            Assert.Equal("Hello from file", sw.ToString());
-        }
+        Assert.Equal("Hello from file", sw.ToString());
+    }
 
-        private static CSharpCompilation CreateCompilation(string source)
+    private static CSharpCompilation CreateCompilation(string source)
+    {
+        var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
+
+        var references = new List<MetadataReference>
         {
-            var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
+            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Task).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(System.Buffers.IBufferWriter<>).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(TextEncoder).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(IFluidTemplate).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(FluidTemplateGenerator).Assembly.Location)
+        };
 
-            var references = new List<MetadataReference>
+        // Some BCL assemblies are not directly referenced by the above depending on runtime.
+        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            if (asm.IsDynamic || string.IsNullOrEmpty(asm.Location))
             {
-                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(Task).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(System.Buffers.IBufferWriter<>).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(TextEncoder).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(IFluidTemplate).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(FluidTemplateGenerator).Assembly.Location)
-            };
-
-            // Some BCL assemblies are not directly referenced by the above depending on runtime.
-            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                if (asm.IsDynamic || string.IsNullOrEmpty(asm.Location))
-                {
-                    continue;
-                }
-
-                // Avoid duplicates
-                if (references.Any(r => string.Equals(r.Display, asm.Location, StringComparison.OrdinalIgnoreCase)))
-                {
-                    continue;
-                }
-
-                if (asm.GetName().Name is "System.Runtime" or "netstandard")
-                {
-                    references.Add(MetadataReference.CreateFromFile(asm.Location));
-                }
+                continue;
             }
 
-            return CSharpCompilation.Create(
-                assemblyName: "MyApp.GeneratedTests",
-                syntaxTrees: new[] { syntaxTree },
-                references: references,
-                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-        }
-
-        private static (Assembly Assembly, ImmutableArray<Diagnostic> Diagnostics) EmitToAssembly(Compilation compilation)
-        {
-            using var peStream = new MemoryStream();
-            using var pdbStream = new MemoryStream();
-
-            var emitResult = compilation.Emit(peStream, pdbStream);
-
-            if (!emitResult.Success)
+            // Avoid duplicates
+            if (references.Any(r => string.Equals(r.Display, asm.Location, StringComparison.OrdinalIgnoreCase)))
             {
-                var diagText = string.Join("\n", emitResult.Diagnostics.Select(d => d.ToString()));
-                throw new InvalidOperationException(diagText);
+                continue;
             }
 
-            return (Assembly.Load(peStream.ToArray()), emitResult.Diagnostics);
-        }
-
-        private sealed class InMemoryAdditionalText : AdditionalText
-        {
-            private readonly SourceText _text;
-
-            public InMemoryAdditionalText(string path, string content)
+            if (asm.GetName().Name is "System.Runtime" or "netstandard")
             {
-                Path = path;
-                _text = SourceText.From(content, Encoding.UTF8);
+                references.Add(MetadataReference.CreateFromFile(asm.Location));
             }
-
-            public override string Path { get; }
-
-            public override SourceText GetText(CancellationToken cancellationToken = default) => _text;
         }
+
+        return CSharpCompilation.Create(
+            assemblyName: "MyApp.GeneratedTests",
+            syntaxTrees: new[] { syntaxTree },
+            references: references,
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+    }
+
+    private static (Assembly Assembly, ImmutableArray<Diagnostic> Diagnostics) EmitToAssembly(Compilation compilation)
+    {
+        using var peStream = new MemoryStream();
+        using var pdbStream = new MemoryStream();
+
+        var emitResult = compilation.Emit(peStream, pdbStream);
+
+        if (!emitResult.Success)
+        {
+            var diagText = string.Join("\n", emitResult.Diagnostics.Select(d => d.ToString()));
+            throw new InvalidOperationException(diagText);
+        }
+
+        return (Assembly.Load(peStream.ToArray()), emitResult.Diagnostics);
+    }
+
+    private sealed class InMemoryAdditionalText : AdditionalText
+    {
+        private readonly SourceText _text;
+
+        public InMemoryAdditionalText(string path, string content)
+        {
+            Path = path;
+            _text = SourceText.From(content, Encoding.UTF8);
+        }
+
+        public override string Path { get; }
+
+        public override SourceText GetText(CancellationToken cancellationToken = default) => _text;
     }
 }
