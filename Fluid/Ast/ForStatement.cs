@@ -15,6 +15,10 @@ public sealed class ForStatement : TagStatement, ISourceable
     // (with LINQ and string.Join) on every execution of the loop.
     private readonly string _staticContinueOffsetLiteral;
 
+    // The source when it is a range, and its `forloop.name` part, like "(1..3)", when the bounds are literals.
+    private readonly RangeExpression _rangeSource;
+    private readonly string _staticRangeSourceLiteral;
+
     // Statements never change after construction, and PrepareBuffer can only shrink a TextSpanStatement
     // by trimming whitespace, so a whitespace-only body stays whitespace-only.
     private readonly bool _suppressWhitespaceBody;
@@ -45,7 +49,18 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             _staticContinueOffsetLiteral = $"for_continue_{Identifier}-{_continueSourceLiteral}";
         }
-        else if (source is not RangeExpression)
+        else if (source is RangeExpression range)
+        {
+            _rangeSource = range;
+
+            // A range written with literal bounds, like (1..3), has a name that never changes either.
+            if (TryGetLiteralBound(range.From, out var from) && TryGetLiteralBound(range.To, out var to))
+            {
+                _staticRangeSourceLiteral = BuildRangeSourceLiteral(from, to);
+                _staticContinueOffsetLiteral = BuildRangeContinueOffsetLiteral(_staticRangeSourceLiteral);
+            }
+        }
+        else
         {
             // Fallback: stable within the current render (statement instance).
             _staticContinueOffsetLiteral = $"for_continue_{Identifier}-stmt_" + RuntimeHelpers.GetHashCode(this).ToString(CultureInfo.InvariantCulture);
@@ -65,12 +80,29 @@ public sealed class ForStatement : TagStatement, ISourceable
 
     public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        var evaluatedSource = await Source.EvaluateAsync(context);
-
         // The `offset: continue` feature uses a per-source key to store the absolute index
         // of the next item to render. In Liquid, this state is updated by every `for` loop
         // over the same source, even if the loop itself doesn't specify `offset: continue`.
-        var continueOffsetLiteral = _staticContinueOffsetLiteral ?? await BuildRangeContinueOffsetLiteralAsync((RangeExpression)Source, context);
+        var continueOffsetLiteral = _staticContinueOffsetLiteral;
+        var rangeSourceLiteral = _staticRangeSourceLiteral;
+
+        FluidValue evaluatedSource;
+
+        if (_rangeSource is not null && rangeSourceLiteral is null)
+        {
+            // The name of a range with computed bounds is only known now. Evaluate the bounds once,
+            // for both the name and the items, instead of once for each.
+            var from = Convert.ToInt32((await _rangeSource.From.EvaluateAsync(context)).ToNumberValue());
+            var to = Convert.ToInt32((await _rangeSource.To.EvaluateAsync(context)).ToNumberValue());
+
+            evaluatedSource = RangeExpression.BuildArray(from, to, context);
+            rangeSourceLiteral = BuildRangeSourceLiteral(from, to);
+            continueOffsetLiteral = BuildRangeContinueOffsetLiteral(rangeSourceLiteral);
+        }
+        else
+        {
+            evaluatedSource = await Source.EvaluateAsync(context);
+        }
 
         // Golden Liquid: empty strings are treated as empty collections
         if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue()))
@@ -150,11 +182,7 @@ public sealed class ForStatement : TagStatement, ISourceable
 
             var forloop = ForLoopValue.Create();
             forloop.Identifier = Identifier;
-            forloop.Source = _continueSourceLiteral is not null
-                ? _continueSourceLiteral
-                : Source is RangeExpression r
-                    ? $"({Convert.ToInt32((await r.From.EvaluateAsync(context)).ToNumberValue())}..{Convert.ToInt32((await r.To.EvaluateAsync(context)).ToNumberValue())})"
-                    : null;
+            forloop.Source = _continueSourceLiteral ?? rangeSourceLiteral;
 
             forloop.Length = count;
 
@@ -232,17 +260,39 @@ public sealed class ForStatement : TagStatement, ISourceable
         return Completion.Normal;
     }
 
+    private static string BuildRangeSourceLiteral(int from, int to)
+    {
+        return $"({from}..{to})";
+    }
+
     /// <summary>
-    /// Builds the key holding the `offset: continue` cursor for a range source, the only shape whose
-    /// `forloop.name` isn't known until the loop runs. Every other shape is precomputed in the constructor.
+    /// Builds the key holding the `offset: continue` cursor for a range source.
     /// </summary>
-    private async ValueTask<string> BuildRangeContinueOffsetLiteralAsync(RangeExpression r, TemplateContext context)
+    private string BuildRangeContinueOffsetLiteral(string rangeSourceLiteral)
     {
         // Key is based on Liquid's `forloop.name`: "{identifier}-{source}".
         // This means changing the loop variable changes the key.
-        var from = Convert.ToInt32((await r.From.EvaluateAsync(context)).ToNumberValue());
-        var to = Convert.ToInt32((await r.To.EvaluateAsync(context)).ToNumberValue());
-        return $"for_continue_{Identifier}-({from}..{to})";
+        return $"for_continue_{Identifier}-{rangeSourceLiteral}";
+    }
+
+    private static bool TryGetLiteralBound(Expression expression, out int bound)
+    {
+        bound = 0;
+
+        if (expression is not LiteralExpression { Value: NumberValue number })
+        {
+            return false;
+        }
+
+        // Left to the render when out of range, so that it fails there like any other range does.
+        var value = number.ToNumberValue();
+        if (value <= int.MinValue || value >= int.MaxValue)
+        {
+            return false;
+        }
+
+        bound = Convert.ToInt32(value);
+        return true;
     }
 
     private static async ValueTask<int> EvaluateIntegerArgumentAsync(string name, Expression expression, TemplateContext context)
