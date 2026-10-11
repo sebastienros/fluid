@@ -9,10 +9,54 @@ public sealed class StartsWithBinaryExpression : BinaryExpression, ISourceable
     {
     }
 
-    public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
+    public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
     {
-        var leftValue = await Left.EvaluateAsync(context);
-        var rightValue = await Right.EvaluateAsync(context);
+        var leftTask = Left.EvaluateAsync(context);
+        if (!leftTask.IsCompletedSuccessfully)
+        {
+            return Awaited(leftTask, default, context);
+        }
+
+        var rightTask = Right.EvaluateAsync(context);
+        if (!rightTask.IsCompletedSuccessfully)
+        {
+            return Awaited(leftTask, rightTask, context);
+        }
+
+        var leftValue = leftTask.Result;
+        var rightValue = rightTask.Result;
+
+        if (leftValue.Type != FluidValues.Array)
+        {
+            return BinaryExpressionFluidValue.Create(leftValue, CompareStrings(leftValue, rightValue));
+        }
+
+        // Stay synchronous when the array answers synchronously, which the built-in ones do.
+        var firstTask = leftValue.GetValueAsync("first", context);
+        if (firstTask.IsCompletedSuccessfully)
+        {
+            return BinaryExpressionFluidValue.Create(leftValue, firstTask.Result.Equals(rightValue));
+        }
+
+        return AwaitedArray(firstTask, leftValue, rightValue);
+
+        static async ValueTask<FluidValue> AwaitedArray(ValueTask<FluidValue> firstTask, FluidValue leftValue, FluidValue rightValue)
+        {
+            var first = await firstTask;
+            return BinaryExpressionFluidValue.Create(leftValue, first.Equals(rightValue));
+        }
+    }
+
+    private static bool CompareStrings(FluidValue leftValue, FluidValue rightValue)
+    {
+        return leftValue.ToStringValue().StartsWith(rightValue.ToStringValue(), StringComparison.Ordinal);
+    }
+
+    // The right operand is only started here when the left one had to be awaited first.
+    private async ValueTask<FluidValue> Awaited(ValueTask<FluidValue> leftTask, ValueTask<FluidValue>? startedRightTask, TemplateContext context)
+    {
+        var leftValue = await leftTask;
+        var rightValue = await (startedRightTask ?? Right.EvaluateAsync(context));
 
         bool comparisonResult;
         if (leftValue.Type == FluidValues.Array)
@@ -22,7 +66,7 @@ public sealed class StartsWithBinaryExpression : BinaryExpression, ISourceable
         }
         else
         {
-            comparisonResult = leftValue.ToStringValue().StartsWith(rightValue.ToStringValue(), StringComparison.Ordinal);
+            comparisonResult = CompareStrings(leftValue, rightValue);
         }
 
         return BinaryExpressionFluidValue.Create(leftValue, comparisonResult);
