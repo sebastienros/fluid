@@ -374,6 +374,32 @@ public class MiscFiltersTests
         Assert.Equal(expected, result.ToStringValue());
     }
 
+    [Theory]
+    [InlineData("%d|%-d|%_d|%4d|%_4d", "01|1| 1|0001|   1")]
+    [InlineData("%m|%-m|%e|%-e|%3e", "08|8| 1|1|  1")]
+    [InlineData("%H|%-H|%_H|%4H", "07|07|07|07")]
+    [InlineData("%I|%l|%-l", "07| 7|7")]
+    [InlineData("%M|%S|%L", "04|36|123")]
+    [InlineData("%Y|%6Y|%-Y|%y|%C", "2017|002017|2017|17|20")]
+    [InlineData("%j|%-j|%5j", "213|213|00213")]
+    [InlineData("%U|%W|%V", "31|31|31")]
+    [InlineData("%s|%12s", "1501571076|001501571076")]
+    [InlineData("%F %T", "2017-08-01 07:04:36")]
+    public async Task DateWritesNumbers(string format, string expected)
+    {
+        var options = new TemplateOptionsBuilder()
+            .WithCultureInfo(CultureInfo.InvariantCulture)
+            .WithTimeZone(TimeZoneInfo.Utc)
+            .Build();
+        var context = new TemplateContext(options);
+
+        var input = DateTimeValue.Create(new DateTimeOffset(2017, 8, 1, 7, 4, 36, 123, TimeSpan.Zero));
+
+        var result = await MiscFilters.Date(input, new FilterArguments(StringValue.Create(format)), context);
+
+        Assert.Equal(expected, result.ToStringValue());
+    }
+
     [Fact]
     public async Task DateLargeFormat()
     {
