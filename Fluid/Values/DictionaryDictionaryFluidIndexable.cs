@@ -7,20 +7,55 @@ namespace Fluid.Values;
 
 public sealed class DictionaryDictionaryFluidIndexable : IFluidIndexable
 {
-    // The integer type of the keys for each dictionary type, or TypeCode.Empty when the keys aren't
-    // all of one integer type. A wrapper is created every time a dictionary is read from a model, so
-    // the interfaces are only inspected once per type.
-    private static readonly ConcurrentDictionary<Type, TypeCode> _integerKeyTypes = new();
+    private enum KeyKind
+    {
+        // Keys of unknown or several types: a name can only be found by converting each key.
+        Other,
+        Integer,
+        Guid,
+        Char,
+        Enum
+    }
+
+    private sealed class KeyType
+    {
+        public static readonly KeyType Other = new(KeyKind.Other, TypeCode.Empty, null);
+
+        public KeyType(KeyKind kind, TypeCode typeCode, Type type)
+        {
+            Kind = kind;
+            TypeCode = typeCode;
+            Type = type;
+        }
+
+        public KeyKind Kind { get; }
+        public TypeCode TypeCode { get; }
+        public Type Type { get; }
+    }
+
+    private enum NameConversion
+    {
+        // The name is how this key is written.
+        Key,
+        // No key of this type is written like the name.
+        NotAKey,
+        // Can't tell without looking at the keys.
+        Unknown
+    }
+
+    // What the keys of each dictionary type are. A wrapper is created every time a dictionary is
+    // read from a model, so the interfaces are only inspected once per type.
+    private static readonly ConcurrentDictionary<Type, KeyType> _keyTypes = new();
 
     private readonly IDictionary _dictionary;
     private readonly TemplateOptions _options;
-    private readonly TypeCode _integerKeyType;
+    private readonly KeyType _keyType;
 
     public DictionaryDictionaryFluidIndexable(IDictionary dictionary, TemplateOptions options)
     {
         _dictionary = dictionary;
         _options = options;
-        _integerKeyType = _integerKeyTypes.GetOrAdd(dictionary.GetType(), static type => GetIntegerKeyType(type));
+        _keyType = _keyTypes.GetOrAdd(dictionary.GetType(), static type => GetKeyType(type));
     }
 
     public int Count => _dictionary.Count;
@@ -53,18 +88,23 @@ public sealed class DictionaryDictionaryFluidIndexable : IFluidIndexable
             return true;
         }
 
-        if (_integerKeyType != TypeCode.Empty)
+        if (_keyType.Kind != KeyKind.Other)
         {
-            // Every key is an integer of a known type, so the name can be turned back into the one
-            // key it could stand for instead of converting each key to a string to compare.
-            if (TryConvertNameToIntegerKey(name, out var integerKey) && _dictionary.Contains(integerKey))
+            // Every key is of one known type, so the name can be turned back into the one key it
+            // could stand for instead of converting each key to a string to compare.
+            var conversion = ConvertNameToKey(name, out var convertedKey);
+
+            if (conversion == NameConversion.Key && _dictionary.Contains(convertedKey))
             {
-                value = FluidValue.Create(_dictionary[integerKey], _options);
+                value = FluidValue.Create(_dictionary[convertedKey], _options);
                 return true;
             }
 
-            value = NilValue.Instance;
-            return false;
+            if (conversion != NameConversion.Unknown)
+            {
+                value = NilValue.Instance;
+                return false;
+            }
         }
 
         foreach (var key in _dictionary.Keys)
@@ -80,11 +120,67 @@ public sealed class DictionaryDictionaryFluidIndexable : IFluidIndexable
         return false;
     }
 
-    private bool TryConvertNameToIntegerKey(string name, out object key)
+    private NameConversion ConvertNameToKey(string name, out object key)
     {
         key = null;
 
-        if (_integerKeyType == TypeCode.UInt64)
+        switch (_keyType.Kind)
+        {
+            case KeyKind.Integer:
+                if (!TryConvertNameToInteger(name, out key))
+                {
+                    return NameConversion.NotAKey;
+                }
+
+                break;
+
+            case KeyKind.Guid:
+                if (!Guid.TryParse(name, out var guid))
+                {
+                    return NameConversion.NotAKey;
+                }
+
+                key = guid;
+                break;
+
+            case KeyKind.Char:
+                if (name.Length != 1)
+                {
+                    return NameConversion.NotAKey;
+                }
+
+                key = name[0];
+                break;
+
+            case KeyKind.Enum:
+                // A value without a name, or a combination of flags, is written in ways that
+                // can't be mapped back without the keys.
+                if (!Enum.IsDefined(_keyType.Type, name))
+                {
+                    return NameConversion.Unknown;
+                }
+
+                key = Enum.Parse(_keyType.Type, name);
+                break;
+
+            default:
+                return NameConversion.Unknown;
+        }
+
+        // Parsing accepts spellings a key is never written as, like "+5", "05" or a Guid in braces.
+        if (ConvertKeyToString(key) != name)
+        {
+            return NameConversion.NotAKey;
+        }
+
+        return NameConversion.Key;
+    }
+
+    private bool TryConvertNameToInteger(string name, out object key)
+    {
+        key = null;
+
+        if (_keyType.TypeCode == TypeCode.UInt64)
         {
             if (!ulong.TryParse(name, NumberStyles.None, _options.CultureInfo, out var unsigned))
             {
@@ -92,34 +188,30 @@ public sealed class DictionaryDictionaryFluidIndexable : IFluidIndexable
             }
 
             key = unsigned;
+            return true;
         }
-        else
+
+        if (!long.TryParse(name, NumberStyles.AllowLeadingSign, _options.CultureInfo, out var signed))
         {
-            if (!long.TryParse(name, NumberStyles.AllowLeadingSign, _options.CultureInfo, out var signed))
-            {
-                return false;
-            }
-
-            switch (_integerKeyType)
-            {
-                case TypeCode.SByte when signed >= sbyte.MinValue && signed <= sbyte.MaxValue: key = (sbyte)signed; break;
-                case TypeCode.Byte when signed >= byte.MinValue && signed <= byte.MaxValue: key = (byte)signed; break;
-                case TypeCode.Int16 when signed >= short.MinValue && signed <= short.MaxValue: key = (short)signed; break;
-                case TypeCode.UInt16 when signed >= ushort.MinValue && signed <= ushort.MaxValue: key = (ushort)signed; break;
-                case TypeCode.Int32 when signed >= int.MinValue && signed <= int.MaxValue: key = (int)signed; break;
-                case TypeCode.UInt32 when signed >= uint.MinValue && signed <= uint.MaxValue: key = (uint)signed; break;
-                case TypeCode.Int64: key = signed; break;
-                default: return false;
-            }
+            return false;
         }
 
-        // Parsing accepts spellings a key is never written as, like "+5" or "05".
-        return ConvertKeyToString(key) == name;
+        switch (_keyType.TypeCode)
+        {
+            case TypeCode.SByte when signed >= sbyte.MinValue && signed <= sbyte.MaxValue: key = (sbyte)signed; return true;
+            case TypeCode.Byte when signed >= byte.MinValue && signed <= byte.MaxValue: key = (byte)signed; return true;
+            case TypeCode.Int16 when signed >= short.MinValue && signed <= short.MaxValue: key = (short)signed; return true;
+            case TypeCode.UInt16 when signed >= ushort.MinValue && signed <= ushort.MaxValue: key = (ushort)signed; return true;
+            case TypeCode.Int32 when signed >= int.MinValue && signed <= int.MaxValue: key = (int)signed; return true;
+            case TypeCode.UInt32 when signed >= uint.MinValue && signed <= uint.MaxValue: key = (uint)signed; return true;
+            case TypeCode.Int64: key = signed; return true;
+            default: return false;
+        }
     }
 
-    private static TypeCode GetIntegerKeyType(Type dictionaryType)
+    private static KeyType GetKeyType(Type dictionaryType)
     {
-        var keyType = TypeCode.Empty;
+        Type keyType = null;
 
         foreach (var i in dictionaryType.GetInterfaces())
         {
@@ -129,22 +221,35 @@ public sealed class DictionaryDictionaryFluidIndexable : IFluidIndexable
             }
 
             // Keys of several types can't be mapped back from a name.
-            if (keyType != TypeCode.Empty)
+            if (keyType != null)
             {
-                return TypeCode.Empty;
+                return KeyType.Other;
             }
 
-            var type = i.GetGenericArguments()[0];
-            if (type.IsEnum)
-            {
-                return TypeCode.Empty;
-            }
-
-            keyType = Type.GetTypeCode(type);
+            keyType = i.GetGenericArguments()[0];
         }
 
-        switch (keyType)
+        if (keyType == null)
         {
+            return KeyType.Other;
+        }
+
+        if (keyType.IsEnum)
+        {
+            return new KeyType(KeyKind.Enum, TypeCode.Empty, keyType);
+        }
+
+        if (keyType == typeof(Guid))
+        {
+            return new KeyType(KeyKind.Guid, TypeCode.Empty, keyType);
+        }
+
+        var typeCode = Type.GetTypeCode(keyType);
+
+        switch (typeCode)
+        {
+            case TypeCode.Char:
+                return new KeyType(KeyKind.Char, typeCode, keyType);
             case TypeCode.SByte:
             case TypeCode.Byte:
             case TypeCode.Int16:
@@ -153,9 +258,9 @@ public sealed class DictionaryDictionaryFluidIndexable : IFluidIndexable
             case TypeCode.UInt32:
             case TypeCode.Int64:
             case TypeCode.UInt64:
-                return keyType;
+                return new KeyType(KeyKind.Integer, typeCode, keyType);
             default:
-                return TypeCode.Empty;
+                return KeyType.Other;
         }
     }
 

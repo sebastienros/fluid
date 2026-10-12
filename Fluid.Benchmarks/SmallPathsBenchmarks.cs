@@ -15,9 +15,14 @@ namespace Fluid.Benchmarks;
 public class SmallPathsBenchmarks
 {
     private readonly FluidValue _byId;
+    private readonly FluidValue _byGuid;
+    private readonly FluidValue _byDay;
+    private readonly string _guidKey;
     private readonly FluidValue _items;
     private readonly IFluidTemplate _counters;
     private readonly IFluidTemplate _integerKeyedDictionary;
+    private readonly IFluidTemplate _guidKeyedDictionary;
+    private readonly IFluidTemplate _enumKeyedDictionary;
     private readonly IFluidTemplate _modulo;
     private readonly IFluidTemplate _arrayToString;
     private readonly IFluidTemplate _contains;
@@ -26,11 +31,18 @@ public class SmallPathsBenchmarks
     public SmallPathsBenchmarks()
     {
         _byId = FluidValue.Create(Enumerable.Range(0, 1000).ToDictionary(i => i, i => "v" + i), TemplateOptions.Default);
+
+        var guids = Enumerable.Range(0, 1000).Select(i => new Guid(i, 0, 0, new byte[8])).ToArray();
+        _guidKey = guids[500].ToString();
+        _byGuid = FluidValue.Create(guids.Select((guid, i) => (guid, i)).ToDictionary(x => x.guid, x => "v" + x.i), TemplateOptions.Default);
+        _byDay = FluidValue.Create(Enum.GetValues<DayOfWeek>().ToDictionary(day => day, day => "v" + (int)day), TemplateOptions.Default);
         _items = FluidValue.Create(new[] { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j" }, TemplateOptions.Default);
 
         var parser = new FluidParser();
         _counters = parser.Parse("{% for i in (1..100) %}{% increment up %}{% decrement down %}{% endfor %}");
         _integerKeyedDictionary = parser.Parse("{% for i in (1..100) %}{{ byId[500] }}{% endfor %}");
+        _guidKeyedDictionary = parser.Parse("{% for i in (1..100) %}{{ byGuid[key] }}{% endfor %}");
+        _enumKeyedDictionary = parser.Parse("{% for i in (1..100) %}{{ byDay.Saturday }}{% endfor %}");
         _modulo = parser.Parse("{% for i in (1..100) %}{{ i | modulo: 7 }}{% endfor %}");
         _arrayToString = parser.Parse("{% for i in (1..100) %}{% assign s = items | append: '' %}{% endfor %}{{ s }}");
         _contains = parser.Parse("{% for i in (1..100) %}{% if text contains 'needle' %}y{% endif %}{% endfor %}");
@@ -38,6 +50,8 @@ public class SmallPathsBenchmarks
 
         Verify(nameof(Counters), Counters(), "0-11-2");
         Verify(nameof(IntegerKeyedDictionary), IntegerKeyedDictionary(), "v500v500");
+        Verify(nameof(GuidKeyedDictionary), GuidKeyedDictionary(), "v500v500");
+        Verify(nameof(EnumKeyedDictionary), EnumKeyedDictionary(), "v6v6");
         Verify(nameof(Modulo), Modulo(), "1234560");
         Verify(nameof(ArrayToString), ArrayToString(), "abcdefghij");
         Verify(nameof(Contains), Contains(), "yy");
@@ -62,6 +76,18 @@ public class SmallPathsBenchmarks
     public string IntegerKeyedDictionary()
     {
         return _integerKeyedDictionary.Render(new TemplateContext().SetValue("byId", _byId));
+    }
+
+    [Benchmark]
+    public string GuidKeyedDictionary()
+    {
+        return _guidKeyedDictionary.Render(new TemplateContext().SetValue("byGuid", _byGuid).SetValue("key", _guidKey));
+    }
+
+    [Benchmark]
+    public string EnumKeyedDictionary()
+    {
+        return _enumKeyedDictionary.Render(new TemplateContext().SetValue("byDay", _byDay));
     }
 
     [Benchmark]
