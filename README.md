@@ -856,6 +856,10 @@ To render a template with HTML encoding, use the `System.Text.Encodings.Web.Html
 
 This encoder is used by default for the MVC View engine.
 
+### Arrays
+
+An array written directly, as in `{{ tags }}`, is encoded item by item, the same way `{{ tags[0] }}` and `{{ tags | join: '' }}` are. Items that are marked as not encoded, for instance with `StringValue.Create(text, encode: false)`, are written as they are.
+
 ### Disabling encoding contextually
 
 When an encoder is defined, you can use a special `raw` filter or `{% raw %} ... {% endraw %}` tag to prevent a value from being encoded, for instance if you know that the content is HTML and is safe.

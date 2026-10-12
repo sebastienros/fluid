@@ -130,10 +130,7 @@ internal sealed class EnumerableObjectValue : ObjectValueBase
     {
         AssertWriteToParameters(output, encoder, cultureInfo);
 
-        foreach (var value in Values)
-        {
-            output.Write(value.ToStringValue());
-        }
+        ArrayValue.WriteItems(Values, output, encoder, cultureInfo);
 
         return default;
     }

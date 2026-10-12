@@ -125,12 +125,39 @@ public sealed class ArrayValue : FluidValue
         AssertWriteToParameters(output, encoder, cultureInfo);
 
         using var scope = RecursiveValueGuard.Enter(this);
-        foreach (var item in Values)
-        {
-            output.Write(item.ToStringValue());
-        }
+        WriteItems(Values, output, encoder, cultureInfo);
 
         return default;
+    }
+
+    /// <summary>
+    /// Writes the items of an array one after the other, encoding them like any other output.
+    /// </summary>
+    internal static void WriteItems(IReadOnlyList<FluidValue> values, IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    {
+        var count = values.Count;
+
+        for (var i = 0; i < count; i++)
+        {
+            var item = values[i];
+
+            switch (item)
+            {
+                // Marked as already safe, by the raw filter or a capture for instance.
+                case StringValue { Encode: false }:
+                    output.Write(item.ToStringValue());
+                    break;
+
+                // Nested arrays write their own items, so that each one is handled on its own.
+                case ArrayValue or EnumerableObjectValue:
+                    item.WriteToAsync(output, encoder, cultureInfo);
+                    break;
+
+                default:
+                    output.Write(encoder, item.ToStringValue());
+                    break;
+            }
+        }
     }
 
     public override string ToStringValue()
