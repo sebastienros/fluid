@@ -20,6 +20,9 @@ public class TemplateContext
     private Dictionary<TemplateLoader.LoadedTemplateKey, TemplateLoader.LoadedTemplate>? _loadedTemplates;
     private int _renderDepth;
 
+    // The output of the outermost render, which flushes it once when it ends.
+    private IFluidOutput? _renderOutput;
+
     /// <summary>
     /// Initializes a new instance of <see cref="TemplateContext"/>.
     /// </summary>
@@ -193,9 +196,12 @@ public class TemplateContext
     /// <summary>
     /// Marks the start of a template render. Must be paired with <see cref="ExitRender"/>.
     /// </summary>
-    internal void EnterRender()
+    internal void EnterRender(IFluidOutput output)
     {
-        _renderDepth++;
+        if (_renderDepth++ == 0)
+        {
+            _renderOutput = output;
+        }
     }
 
     /// <summary>
@@ -206,7 +212,17 @@ public class TemplateContext
         if (--_renderDepth == 0)
         {
             _loadedTemplates?.Clear();
+            _renderOutput = null;
         }
+    }
+
+    /// <summary>
+    /// Gets whether a render in progress writes to this output and will flush it when it ends, so
+    /// that a partial rendered into the same output doesn't need to flush it itself.
+    /// </summary>
+    internal bool IsFlushedByEnclosingRender(IFluidOutput output)
+    {
+        return _renderDepth > 0 && ReferenceEquals(_renderOutput, output);
     }
 
     internal bool TryGetLoadedTemplate(TemplateLoader.LoadedTemplateKey key, out TemplateLoader.LoadedTemplate loadedTemplate)
