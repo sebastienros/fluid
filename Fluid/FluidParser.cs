@@ -743,7 +743,7 @@ public class FluidParser
         {
             RefreshRegisteredTagParser();
             return x;
-        }).SkipAnd(KnownTagsList);
+        }).SkipAnd(KnownTagsList).AndSkip(Eof().ElseError(ErrorMessages.UnexpectedTrailingInput));
     }
 
     public Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);

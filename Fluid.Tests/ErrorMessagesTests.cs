@@ -96,6 +96,37 @@ public class ErrorMessagesTests
         Assert.Equal($"Expected text at (1:1)\nSource:\n{excerpt}", exception.Message);
     }
 
+    [Theory]
+    [InlineData("", 1, 1, "{% custom invalid %}")]
+    [InlineData("prefix", 1, 7, "prefix{% custom invalid %}")]
+    [InlineData("prefix\n", 2, 1, "{% custom invalid %}")]
+    [InlineData("prefix\r\n", 2, 1, "{% custom invalid %}")]
+    public void UnconsumedCustomTagReportsPosition(string prefix, int line, int column, string excerpt)
+    {
+        var parser = new FluidParser();
+        parser.RegisteredTags["custom"] = Parsers.Terms.Text("valid")
+            .AndSkip(Parsers.Terms.Text("%}"))
+            .Then<Statement>(_ => new NoOpStatement());
+        var source = prefix + "{% custom invalid %}\nnext line";
+
+        var context = new FluidParseContext(source);
+        Assert.False(parser.Grammar.TryParse(context, out var statements, out var parlotError));
+        Assert.Null(statements);
+        Assert.NotNull(parlotError);
+        Assert.Equal("Unexpected trailing input", parlotError.Message);
+        Assert.Equal(prefix.Length, parlotError.Position.Offset);
+        Assert.Equal(line, parlotError.Position.Line);
+        Assert.Equal(column, parlotError.Position.Column);
+
+        var exception = Assert.Throws<ParseException>(() => parser.Parse(source));
+        Assert.Equal(source, exception.TemplateSource);
+        Assert.Equal(parlotError.Position, exception.Position);
+        Assert.Equal($"Unexpected trailing input at ({line}:{column})\nSource:\n{excerpt}", exception.Message);
+        Assert.False(parser.TryParse(source, out var template, out var error));
+        Assert.Null(template);
+        Assert.Equal(exception.Message, error);
+    }
+
     [Fact]
     public void CustomParserExceptionGetsMissingMetadata()
     {
