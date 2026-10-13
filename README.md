@@ -858,7 +858,7 @@ This encoder is used by default for the MVC View engine.
 
 ### Arrays
 
-An array written directly, as in `{{ tags }}`, is encoded item by item, the same way `{{ tags[0] }}` and `{{ tags | join: '' }}` are. Items that are marked as not encoded, for instance with `StringValue.Create(text, encode: false)`, are written as they are.
+An array written directly, as in `{{ tags }}`, renders each item the same way as `{% for tag in tags %}{{ tag }}{% endfor %}`, including nested arrays and custom `FluidValue` renderers. Items that are marked as not encoded, for instance with `StringValue.Create(text, encode: false)`, are written as they are. Numbers use the render culture and the same formatting as individually rendered numbers (for example, `2.50` renders as `2.5` with the invariant culture).
 
 ### Disabling encoding contextually
 

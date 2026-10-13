@@ -124,39 +124,38 @@ public sealed class ArrayValue : FluidValue
     {
         AssertWriteToParameters(output, encoder, cultureInfo);
 
-        using var scope = RecursiveValueGuard.Enter(this);
-        WriteItems(Values, output, encoder, cultureInfo);
-
-        return default;
+        return WriteItemsAsync(this, Values, output, encoder, cultureInfo);
     }
 
     /// <summary>
     /// Writes the items of an array one after the other, encoding them like any other output.
     /// </summary>
-    internal static void WriteItems(IReadOnlyList<FluidValue> values, IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    internal static ValueTask WriteItemsAsync(FluidValue array, IReadOnlyList<FluidValue> values, IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo, int startIndex = 0)
     {
+        // The thread-local guard must be released before an asynchronous item suspends.
         var count = values.Count;
-
-        for (var i = 0; i < count; i++)
+        var i = startIndex;
+        ValueTask task = default;
+        using (RecursiveValueGuard.Enter(array))
         {
-            var item = values[i];
-
-            switch (item)
+            for (; i < count; i++)
             {
-                // Marked as already safe, by the raw filter or a capture for instance.
-                case StringValue { Encode: false }:
-                    output.Write(item.ToStringValue());
+                task = values[i].WriteToAsync(output, encoder, cultureInfo);
+                if (!task.IsCompletedSuccessfully)
+                {
                     break;
+                }
 
-                // Nested arrays write their own items, so that each one is handled on its own.
-                case ArrayValue or EnumerableObjectValue:
-                    item.WriteToAsync(output, encoder, cultureInfo);
-                    break;
-
-                default:
-                    output.Write(encoder, item.ToStringValue());
-                    break;
+                task.GetAwaiter().GetResult();
             }
+        }
+
+        return i < count ? Awaited(task, array, values, output, encoder, cultureInfo, i + 1) : default;
+
+        static async ValueTask Awaited(ValueTask task, FluidValue array, IReadOnlyList<FluidValue> values, IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo, int startIndex)
+        {
+            await task;
+            await WriteItemsAsync(array, values, output, encoder, cultureInfo, startIndex);
         }
     }
 
