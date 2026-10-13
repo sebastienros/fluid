@@ -57,6 +57,41 @@ public class MiscFiltersTests
         Assert.Equal(expected, result.ToObjectValue());
     }
 
+    [Theory]
+    // The default value is equal to the value of the named argument.
+    [InlineData("{{ missing | default: true, allow_false: true }}", "true")]
+    [InlineData("{{ missing | default: false, allow_false: false }}", "false")]
+    [InlineData("{{ nil | default: true, allow_false: true }}", "true")]
+    [InlineData("{{ '' | default: true, allow_false: true }}", "true")]
+    // The named argument comes first.
+    [InlineData("{{ missing | default: allow_false: true, true }}", "true")]
+    [InlineData("{{ missing | default: allow_false: true, 'x' }}", "x")]
+    // The input is kept when it has a value.
+    [InlineData("{{ false | default: true, allow_false: true }}", "false")]
+    [InlineData("{{ 'a' | default: true, allow_false: true }}", "a")]
+    // Unaffected cases.
+    [InlineData("{{ missing | default: 'x', allow_false: true }}", "x")]
+    [InlineData("{{ false | default: 'x' }}", "x")]
+    [InlineData("[{{ missing | default: allow_false: true }}]", "[]")]
+    public async Task DefaultUsesTheFirstUnnamedArgument(string source, string expected)
+    {
+        var template = new FluidParser().Parse(source);
+
+        Assert.Equal(expected, await template.RenderAsync(new TemplateContext()));
+    }
+
+    [Fact]
+    public void GetFirstPositionalGoesByPositionNotValue()
+    {
+        Assert.Equal(NilValue.Instance, new FilterArguments().GetFirstPositional());
+        Assert.Equal(NilValue.Instance, new FilterArguments().Add("name", BooleanValue.True).GetFirstPositional());
+
+        Assert.Equal(BooleanValue.True, new FilterArguments(BooleanValue.True, BooleanValue.False).GetFirstPositional());
+        Assert.Equal(BooleanValue.True, new FilterArguments().Add(BooleanValue.True).Add("name", BooleanValue.True).GetFirstPositional());
+        Assert.Equal(BooleanValue.True, new FilterArguments().Add("name", BooleanValue.True).Add(BooleanValue.True).GetFirstPositional());
+        Assert.Equal(NumberValue.Create(1), new FilterArguments().Add("a", NumberValue.Create(1)).Add("b", NumberValue.Create(2)).Add(NumberValue.Create(1)).GetFirstPositional());
+    }
+
     [Fact]
     public async Task CompactRemovesNilValues()
     {
