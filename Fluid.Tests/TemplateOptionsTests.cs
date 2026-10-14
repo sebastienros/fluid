@@ -10,11 +10,7 @@ namespace Fluid.Tests;
 
 public class TemplateOptionsTests
 {
-#if COMPILED
-    private static readonly FluidParser _parser = new FluidParser().Compile();
-#else
     private static readonly FluidParser _parser = new FluidParser();
-#endif
 
     private sealed class Model
     {

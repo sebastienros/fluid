@@ -1,4 +1,7 @@
 using Fluid.Ast;
+using Fluid.Parser;
+using Parlot.Fluent;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Fluid.Tests.Extensibility;
@@ -107,6 +110,107 @@ public class ExtensibilityTests
 
         Assert.Null(template);
         Assert.Contains("Unknown tag 'endhello'", error);
+    }
+
+    [Theory]
+    [InlineData("{% hello %}")]
+    [InlineData("{% if true %}{% hello %}{% endif %}")]
+    [InlineData("{% liquid\nhello\n%}")]
+    public void ShouldObserveDirectTagDictionaryChanges(string source)
+    {
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        parser.RegisterEmptyTag("first", static (output, encoder, context) =>
+        {
+            output.Write("first");
+            return Statement.Normal();
+        });
+        parser.RegisterEmptyTag("second", static (output, encoder, context) =>
+        {
+            output.Write("second");
+            return Statement.Normal();
+        });
+
+        parser.RegisteredTags["hello"] = parser.RegisteredTags["first"];
+        Assert.Equal("first", parser.Parse(source).Render());
+
+        parser.RegisteredTags["hello"] = parser.RegisteredTags["second"];
+        Assert.Equal("second", parser.Parse(source).Render());
+
+        Assert.True(parser.RegisteredTags.Remove("hello"));
+        parser.RegisteredTags["replacement"] = parser.RegisteredTags["first"];
+        Assert.Equal("first", parser.Parse(source.Replace("hello", "replacement")).Render());
+
+        parser.RegisteredTags["replacement"] = parser.RegisteredTags["second"];
+        Assert.True(parser.Grammar.TryParse(new FluidParseContext(source.Replace("hello", "replacement")), out var statements, out var error));
+        Assert.Null(error);
+        Assert.Equal("second", new FluidTemplate(statements).Render());
+    }
+
+    [Theory]
+    [InlineData("{% hello %}")]
+    [InlineData("{% liquid\nhello\n%}")]
+    public void ShouldRejectRemovedTags(string source)
+    {
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        parser.RegisteredTags["hello"] = parser.RegisteredTags["break"];
+        Assert.NotNull(parser.Parse(source));
+
+        Assert.True(parser.RegisteredTags.Remove("hello"));
+
+        Assert.False(parser.TryParse(source, out var template, out var error));
+        Assert.Null(template);
+        Assert.Contains("Unknown tag 'hello'", error);
+    }
+
+    [Fact]
+    public void ShouldParseRegisteredTagsConcurrently()
+    {
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        parser.RegisterEmptyTag("hello", static (output, encoder, context) =>
+        {
+            output.Write("hello");
+            return Statement.Normal();
+        });
+        const string source = "{% if true %}{% hello %}{% if true %}{% hello %}{% endif %}{% endif %}{% liquid\nhello\n%}{% hello %}";
+
+        Parallel.For(0, 100, _ => Assert.Equal("hellohellohellohello", parser.Parse(source).Render()));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ShouldBacktrackAfterCustomArgumentEof(bool standalone)
+    {
+        var parser = new FluidParser();
+        var argument = Parsers.Terms.Text("yes");
+        var first = standalone ? argument.AndSkip(Parsers.Eof()) : argument.Eof();
+        parser.RegisterParserTag("choice",
+            first.Or(argument.AndSkip(Parsers.Terms.Text("no"))),
+            static (value, output, encoder, context) =>
+            {
+                output.Write(value);
+                return Statement.Normal();
+            });
+
+        Assert.Equal("prefix\nyessuffix", parser.Parse("prefix\n{% choice yes no %}suffix").Render());
+    }
+
+    [Theory]
+    [InlineData("", "")]
+    [InlineData(" \r\n\t ", " \r\n\t ")]
+    [InlineData("plain\0text", "plain\0text")]
+    [InlineData("{% if true %}yes{% else %}no{% endif %} \n", "yes \n")]
+    [InlineData("{% liquid\nif true\necho 2\nendif\n%} \n", "2 \n")]
+    public void GrammarConsumesWholeTemplate(string source, string expected)
+    {
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        var context = new FluidParseContext(source);
+
+        Assert.True(parser.Grammar.TryParse(context, out var statements, out var error));
+        Assert.Null(error);
+        Assert.True(context.Scanner.Cursor.Eof);
+        Assert.Equal(source.Length, context.Scanner.Cursor.Offset);
+        Assert.Equal(expected, new FluidTemplate(statements).Render());
     }
 
     [Fact]
