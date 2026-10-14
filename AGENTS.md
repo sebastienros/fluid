@@ -7,6 +7,14 @@ Fluid is a .NET Liquid template engine. Reference implementation for ambiguous s
 - `main` targets an unreleased major version: API and behavior breaking changes are allowed. Prefer the right design over backward compatibility, and call out breaking changes in the PR description.
 - Maintenance branches of released versions must stay compatible (keep members with `[Obsolete]` instead of removing them).
 
+### Backports
+
+After a PR is merged, a collaborator with write access can comment `/backport to release/2.x`
+(or another existing target branch) on the source PR. `.github/workflows/backport.yml`
+uses Arcade's reusable workflow to create the backport branch and PR in this repository.
+Conflicts are reported on the source PR and must be resolved manually. The workflow uses
+`GITHUB_TOKEN`, so its pushes and PRs do not automatically trigger other workflows.
+
 ## Commands
 
 ```shell
