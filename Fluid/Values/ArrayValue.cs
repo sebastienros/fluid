@@ -124,13 +124,39 @@ public sealed class ArrayValue : FluidValue
     {
         AssertWriteToParameters(output, encoder, cultureInfo);
 
-        using var scope = RecursiveValueGuard.Enter(this);
-        foreach (var item in Values)
+        return WriteItemsAsync(this, Values, output, encoder, cultureInfo);
+    }
+
+    /// <summary>
+    /// Writes the items of an array one after the other, encoding them like any other output.
+    /// </summary>
+    internal static ValueTask WriteItemsAsync(FluidValue array, IReadOnlyList<FluidValue> values, IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo, int startIndex = 0)
+    {
+        // The thread-local guard must be released before an asynchronous item suspends.
+        var count = values.Count;
+        var i = startIndex;
+        ValueTask task = default;
+        using (RecursiveValueGuard.Enter(array))
         {
-            output.Write(item.ToStringValue());
+            for (; i < count; i++)
+            {
+                task = values[i].WriteToAsync(output, encoder, cultureInfo);
+                if (!task.IsCompletedSuccessfully)
+                {
+                    break;
+                }
+
+                task.GetAwaiter().GetResult();
+            }
         }
 
-        return default;
+        return i < count ? Awaited(task, array, values, output, encoder, cultureInfo, i + 1) : default;
+
+        static async ValueTask Awaited(ValueTask task, FluidValue array, IReadOnlyList<FluidValue> values, IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo, int startIndex)
+        {
+            await task;
+            await WriteItemsAsync(array, values, output, encoder, cultureInfo, startIndex);
+        }
     }
 
     public override string ToStringValue()

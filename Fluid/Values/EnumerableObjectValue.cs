@@ -130,12 +130,7 @@ internal sealed class EnumerableObjectValue : ObjectValueBase
     {
         AssertWriteToParameters(output, encoder, cultureInfo);
 
-        foreach (var value in Values)
-        {
-            output.Write(value.ToStringValue());
-        }
-
-        return default;
+        return ArrayValue.WriteItemsAsync(this, Values, output, encoder, cultureInfo);
     }
 
     public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
