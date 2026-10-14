@@ -605,8 +605,8 @@ public static class MiscFilters
                                 result.Append(upperCaseFlag ? value.ToString("F", context.CultureInfo).ToUpper(context.CultureInfo) : value.ToString("F", context.CultureInfo));
                                 break;
                             }
-                        case 'C': result.Append(Format(value.Year / 100, 2)); break;
-                        case 'd': result.Append(Format(value.Day, 2)); break;
+                        case 'C': AppendNumber(ref result, value.Year / 100, 2); break;
+                        case 'd': AppendNumber(ref result, value.Day, 2); break;
                         case 'D':
                             {
                                 var sb = new ValueStringBuilder(16);
@@ -615,7 +615,7 @@ public static class MiscFilters
                                 break;
                             }
                         case 'e':
-                            useSpaceForPaddingFlag = true; result.Append(Format(value.Day, 2));
+                            useSpaceForPaddingFlag = true; AppendNumber(ref result, value.Day, 2);
                             break;
                         case 'F':
                             {
@@ -628,21 +628,22 @@ public static class MiscFilters
                             {
                                 var week = context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstFullWeek, DayOfWeek.Monday);
                                 var year = week >= 52 && value.DateTime.Month == 1 ? value.Year - 1 : value.Year;
-                                result.Append(Format(year % 100));
+                                AppendNumber(ref result, year % 100);
                                 break;
                             }
                         case 'G':
                             {
                                 var week = context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstFullWeek, DayOfWeek.Monday);
                                 var year = week >= 52 && value.DateTime.Month == 1 ? value.Year - 1 : value.Year;
-                                result.Append(Format(year));
+                                AppendNumber(ref result, year);
                                 break;
                             }
                         case 'h':
                             ForStrf(value, "%b", ref result);
                             break;
                         case 'H':
-                            result.Append(value.ToString("HH"));
+                            result.Append((char)('0' + value.Hour / 10));
+                            result.Append((char)('0' + value.Hour % 10));
                             break;
                         case 'I':
                             {
@@ -653,10 +654,10 @@ public static class MiscFilters
                                     _ => value.Hour - 12
                                 };
 
-                                result.Append(Format(hour, 2));
+                                AppendNumber(ref result, hour, 2);
                                 break;
                             }
-                        case 'j': result.Append(Format(value.DayOfYear, 3)); break;
+                        case 'j': AppendNumber(ref result, value.DayOfYear, 3); break;
                         case 'k': result.Append(value.Hour.ToString(CultureInfo.InvariantCulture)); break;
                         case 'l':
                             {
@@ -668,13 +669,13 @@ public static class MiscFilters
                                     _ => value.Hour - 12
                                 };
 
-                                result.Append(Format(hour, 2));
+                                AppendNumber(ref result, hour, 2);
                                 break;
                             }
-                        case 'L': result.Append(Format(value.Millisecond, 3)); break;
-                        case 'm': result.Append(Format(value.Month, 2)); break;
+                        case 'L': AppendNumber(ref result, value.Millisecond, 3); break;
+                        case 'm': AppendNumber(ref result, value.Month, 2); break;
                         case 'M':
-                            result.Append(Format(value.Minute, 2));
+                            AppendNumber(ref result, value.Minute, 2);
                             break;
                         case 'n': result.Append(new String('\n', width ?? 1)); break;
                         case 'N':
@@ -698,9 +699,9 @@ public static class MiscFilters
                                 result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                 break;
                             }
-                        case 's': result.Append(Format(value.ToUnixTimeSeconds())); break;
+                        case 's': AppendNumber(ref result, value.ToUnixTimeSeconds()); break;
                         case 'S':
-                            result.Append(Format(value.Second, 2));
+                            AppendNumber(ref result, value.Second, 2);
                             break;
                         case 't': result.Append(new String('\t', width ?? 1)); break;
                         case 'T':
@@ -721,7 +722,7 @@ public static class MiscFilters
                                 {
                                     week = 0;
                                 }
-                                result.Append(Format(week, 2));
+                                AppendNumber(ref result, week, 2);
                                 break;
                             }
                         case 'v':
@@ -731,7 +732,7 @@ public static class MiscFilters
                                 result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                 break;
                             }
-                        case 'V': result.Append(Format(value.DayOfYear / 7 + 1, 2)); break;
+                        case 'V': AppendNumber(ref result, value.DayOfYear / 7 + 1, 2); break;
                         case 'w': result.Append(((int)value.DayOfWeek).ToString(context.CultureInfo)); break;
                         case 'W':
                             {
@@ -740,7 +741,7 @@ public static class MiscFilters
                                 {
                                     week = 0;
                                 }
-                                result.Append(Format(week, 2));
+                                AppendNumber(ref result, week, 2);
                                 break;
                             }
                         case 'x':
@@ -760,10 +761,10 @@ public static class MiscFilters
                                 break;
                             }
                         case 'y':
-                            result.Append(Format(value.Year % 100, 2));
+                            AppendNumber(ref result, value.Year % 100, 2);
                             break;
                         case 'Y':
-                            result.Append(Format(value.Year, 4));
+                            AppendNumber(ref result, value.Year, 4);
                             break;
                         case 'z':
                             {
@@ -794,6 +795,36 @@ public static class MiscFilters
                     upperCaseFlag = false;
                     useColonsForZeeDirectiveFlag = false;
                     width = null;
+
+                    // Writes the number straight into the result. Format below does the same through
+                    // two intermediate strings, and is kept as the reference and the fallback.
+                    void AppendNumber(ref ValueStringBuilder builder, long number, int defaultWidth = 0)
+                    {
+#if NET8_0_OR_GREATER
+                        Span<char> buffer = stackalloc char[24];
+
+                        if (number.TryFormat(buffer, out var length, default, context.CultureInfo))
+                        {
+                            ReadOnlySpan<char> digits = buffer.Slice(0, length);
+
+                            if (removeLeadingZerosFlag)
+                            {
+                                builder.Append(digits.TrimStart('0'));
+                                return;
+                            }
+
+                            var totalWidth = width == null ? defaultWidth : width.Value;
+                            if (totalWidth > digits.Length)
+                            {
+                                builder.Append(useSpaceForPaddingFlag ? ' ' : '0', totalWidth - digits.Length);
+                            }
+
+                            builder.Append(digits);
+                            return;
+                        }
+#endif
+                        builder.Append(Format(number, defaultWidth));
+                    }
 
                     string Format(long value, int defaultWidth = 0)
                     {

@@ -14,6 +14,10 @@ public sealed class FilterArguments
     private List<FluidValue> _positional;
     private Dictionary<string, FluidValue> _named;
 
+    // Named arguments are stored with the positional ones too, so the position of the first
+    // argument that was given without a name is remembered. -1 when there is none.
+    private int _firstPositionalIndex = -1;
+
     public int Count => _positional?.Count ?? 0;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -52,6 +56,11 @@ public sealed class FilterArguments
     public FilterArguments(params FluidValue[] values)
     {
         _positional = new List<FluidValue>(values);
+
+        if (_positional.Count > 0)
+        {
+            _firstPositionalIndex = 0;
+        }
     }
 
     public FilterArguments Add(FluidValue value)
@@ -70,6 +79,11 @@ public sealed class FilterArguments
 
         _positional ??= new List<FluidValue>();
 
+        if (name == null && _firstPositionalIndex == -1)
+        {
+            _firstPositionalIndex = _positional.Count;
+        }
+
         _positional.Add(value);
 
         return this;
@@ -79,26 +93,17 @@ public sealed class FilterArguments
 
     public IEnumerable<FluidValue> Values => _positional;
 
+    /// <summary>
+    /// Gets the first argument that was given without a name, whatever its value.
+    /// </summary>
     public FluidValue GetFirstPositional()
     {
-        if (_positional == null || _positional.Count == 0)
+        if (_firstPositionalIndex == -1)
         {
             return NilValue.Instance;
         }
 
-        // Get the set of values that are named arguments
-        var namedValues = new HashSet<FluidValue>(_named?.Values ?? Enumerable.Empty<FluidValue>());
-
-        // Find the first positional value that is not a named argument
-        foreach (var value in _positional)
-        {
-            if (!namedValues.Contains(value))
-            {
-                return value;
-            }
-        }
-
-        return NilValue.Instance;
+        return _positional[_firstPositionalIndex];
     }
 
     internal object[] ValuesToObjectArray()
