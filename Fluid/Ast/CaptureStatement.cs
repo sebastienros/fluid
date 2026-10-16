@@ -7,21 +7,9 @@ namespace Fluid.Ast;
 
 public sealed class CaptureStatement : TagStatement, ISourceable
 {
-    private readonly bool _isWhitespaceOrCommentOnly;
-
     public CaptureStatement(string identifier, IReadOnlyList<Statement> statements) : base(statements)
     {
         Identifier = identifier;
-
-        _isWhitespaceOrCommentOnly = true;
-        for (var i = 0; i < Statements.Count; i++)
-        {
-            if (!Statements[i].IsWhitespaceOrCommentOnly)
-            {
-                _isWhitespaceOrCommentOnly = false;
-                break;
-            }
-        }
     }
 
     public string Identifier { get; }
@@ -30,12 +18,6 @@ public sealed class CaptureStatement : TagStatement, ISourceable
 
     public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        if (_isWhitespaceOrCommentOnly)
-        {
-            context.SetValue(Identifier, StringValue.Empty);
-            return Completion.Normal;
-        }
-
         var completion = Completion.Normal;
 
         using var captureBuffer = new BufferFluidOutput();
