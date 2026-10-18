@@ -883,6 +883,8 @@ Not encoded: {{ html | raw }
 When using `capture` blocks, the inner content is flagged as 
 pre-encoded and won't be double-encoded if used in a `{{ }}` tag.
 
+The body of a `capture` always runs, so its tags take effect even when the result is empty or only whitespace: `{% capture x %}{% assign y = 2 %}{% endcapture %}` assigns `y`, whitespace is kept (`{% capture x %}  {% endcapture %}` stores two spaces), and `{% break %}` or `{% continue %}` in a capture stop the enclosing loop. The `TemplateOptionsBuilder.WithCaptured()` callback is invoked for every capture, including empty ones.
+
 ### Customizing JSON output
 
 The `json` filter uses `System.Text.Json.JsonSerializerOptions` to control the JSON output format. You can customize these options through `TemplateOptionsBuilder.WithJsonSerializerOptions` or `TemplateContext.JsonSerializerOptions`.
@@ -1610,6 +1612,22 @@ Bill
 ```
 
 The `-%}` strips the whitespace from the right side of the `assign` tag.
+
+### Blank blocks
+
+Like in Shopify Liquid, the whitespace of an `if`, `unless`, `case` or `else` block is not rendered when the block contains only whitespace, comments and tags that write nothing, such as `assign` or `capture`. Tags that write output, such as `increment`, `decrement` and `cycle`, keep the whitespace around them.
+
+```liquid
+[{% if true %} {% assign a = 1 %} {% endif %}]
+[{% if true %} {% increment a %} {% endif %}]
+```
+
+Outputs:
+
+```
+[]
+[ 0 ]
+```
 
 ## Template Options
 
