@@ -24,7 +24,7 @@ dotnet run -c Release --project Fluid.Benchmarks
 ```
 
 - Use `--property:`, never `/p:` (Git Bash on Windows mangles `/p:` and the run executes zero tests).
-- Parlot 2.x does not require runtime grammar compilation; `FluidParser.Compile()` is not available.
+- Parlot 2.0 does not require runtime grammar compilation; `FluidParser.Compile()` is not available.
 
 ## Golden Liquid tests
 
