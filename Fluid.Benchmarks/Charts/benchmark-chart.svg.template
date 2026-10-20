@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1051" height="400" viewBox="0 0 1051 400" role="img" aria-labelledby="title desc">
+  <title id="title">{{title}}</title>
+  <desc id="desc">{{desc}}</desc>
+  <defs>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #3f3f46; }
+      .tick { font-size: 11px; fill: #666; }
+      .axis-title { font-size: 13px; font-weight: 600; }
+      .grid { stroke: #dedede; stroke-width: 1; }
+      .axis { stroke: #8c8c8c; stroke-width: 1; }
+      .value { font-size: 11px; text-anchor: middle; fill: #666; }
+      .fluid-value { font-size: 11px; font-weight: 700; text-anchor: middle; fill: #125a87; }
+      .competitor { opacity: .52; }
+    </style>
+  </defs>
+  <rect width="1051" height="400" fill="#fff"/>
+
+  <g font-size="12">
+{{legend}}
+  </g>
+  <text x="525.5" y="59" text-anchor="middle" font-size="12" font-weight="600" fill="#666">Smaller is better ↓</text>
+
+  <g>
+{{duration}}
+  </g>
+
+  <g>
+{{memory}}
+  </g>
+</svg>
