@@ -38,6 +38,13 @@ public class SourceGenerationTests
     [InlineData("{% if 'x' contains nil %}yes{% else %}no{% endif %}", "no")]
     [InlineData("{{ 'a' == 'b' }}|{{ 'b' != 'a' }}|{{ 'abc' contains 'b' }}|{{ 'abc' startswith 'a' }}|{{ 'abc' endswith 'c' }}", "a|b|abc|abc|abc")]
     [InlineData("{% capture x %}&{% endcapture %}{{ x }}", "&")]
+    [InlineData("{% capture x %}{% increment a %}{% endcapture %}[{{ x }}]{% increment a %}", "[0]1")]
+    [InlineData("{% capture x %}{% cycle 'a', 'b' %}{% endcapture %}[{{ x }}]", "[a]")]
+    [InlineData("{% capture x %}{% assign y = 2 %}{% endcapture %}[{{ x }}{{ y }}]", "[2]")]
+    [InlineData("{% capture x %}  {% endcapture %}[{{ x }}]", "[  ]")]
+    [InlineData("{% capture x %}{% endcapture %}[{{ x }}]", "[]")]
+    [InlineData("{% for i in (1..3) %}{% capture x %}{% break %}{% endcapture %}{{ i }}{% endfor %}", "")]
+    [InlineData("{% if true %} {% increment a %} {% endif %}", " 0 ")]
     [InlineData("{{ 'a' | json }}", "&quot;a&quot;")]
     [InlineData("{% macro hello() %}hi{% endmacro %}{{ hello() }}", "hi")]
     public async Task GeneratedTemplate_MatchesRuntime(string liquid, string expected)

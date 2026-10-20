@@ -7,21 +7,9 @@ namespace Fluid.Ast;
 
 public sealed class CaptureStatement : TagStatement, ISourceable
 {
-    private readonly bool _isWhitespaceOrCommentOnly;
-
     public CaptureStatement(string identifier, IReadOnlyList<Statement> statements) : base(statements)
     {
         Identifier = identifier;
-
-        _isWhitespaceOrCommentOnly = true;
-        for (var i = 0; i < Statements.Count; i++)
-        {
-            if (!Statements[i].IsWhitespaceOrCommentOnly)
-            {
-                _isWhitespaceOrCommentOnly = false;
-                break;
-            }
-        }
     }
 
     public string Identifier { get; }
@@ -30,29 +18,32 @@ public sealed class CaptureStatement : TagStatement, ISourceable
 
     public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        if (_isWhitespaceOrCommentOnly)
-        {
-            context.SetValue(Identifier, StringValue.Empty);
-            return Completion.Normal;
-        }
-
         var completion = Completion.Normal;
+        FluidValue result = StringValue.Empty;
 
-        using var captureBuffer = new BufferFluidOutput();
-        var captureOutput = LimitedFluidOutput.Create(captureBuffer, context.MaxOutputSize);
-        for (var i = 0; i < Statements.Count; i++)
+        // Every statement runs, even those that write nothing (assign, comments), so only an empty body is skipped
+        if (Statements.Count > 0)
         {
-            completion = await Statements[i].WriteToAsync(captureOutput, encoder, context);
-
-            if (completion != Completion.Normal)
+            using var captureBuffer = new BufferFluidOutput();
+            var captureOutput = LimitedFluidOutput.Create(captureBuffer, context.MaxOutputSize);
+            for (var i = 0; i < Statements.Count; i++)
             {
-                // Stop processing the block statements
-                // We return the completion to flow it to the outer loop
-                break;
+                completion = await Statements[i].WriteToAsync(captureOutput, encoder, context);
+
+                if (completion != Completion.Normal)
+                {
+                    // Stop processing the block statements
+                    // We return the completion to flow it to the outer loop
+                    break;
+                }
+            }
+
+            var captured = captureBuffer.ToString();
+            if (captured.Length > 0)
+            {
+                result = StringValue.Create(captured, false);
             }
         }
-
-        FluidValue result = StringValue.Create(captureBuffer.ToString(), false);
 
         // Substitute the result if a custom callback is provided
         if (context.Captured != null)

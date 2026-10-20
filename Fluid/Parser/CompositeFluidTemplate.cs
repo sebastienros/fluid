@@ -31,7 +31,7 @@ public sealed class CompositeFluidTemplate : IFluidTemplate, IStatementList
         context.CancellationToken.ThrowIfCancellationRequested();
         output = LimitedFluidOutput.Create(output, context.MaxOutputSize);
 
-        context.EnterRender();
+        context.EnterRender(output);
         var exitRender = true;
 
         try
@@ -63,6 +63,13 @@ public sealed class CompositeFluidTemplate : IFluidTemplate, IStatementList
         }
 
         context.CancellationToken.ThrowIfCancellationRequested();
+
+        // A partial leaves the flush to the render it is part of.
+        if (context.IsFlushedByEnclosingRender(output))
+        {
+            return default;
+        }
+
         return output.FlushAsync();
     }
 
@@ -88,7 +95,11 @@ public sealed class CompositeFluidTemplate : IFluidTemplate, IStatementList
         }
 
         context.CancellationToken.ThrowIfCancellationRequested();
-        await output.FlushAsync();
+
+        if (!context.IsFlushedByEnclosingRender(output))
+        {
+            await output.FlushAsync();
+        }
     }
 
     private static List<Statement> CollectStatements(IEnumerable<IFluidTemplate> templates)

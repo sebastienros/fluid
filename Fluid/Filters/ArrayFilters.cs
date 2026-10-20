@@ -203,20 +203,20 @@ public static class ArrayFilters
 
         return ArrayValue.Create(concat);
 
+        // Nested arrays are flattened. Any other item, including nil and hashes, is kept as one item.
         static IEnumerable<FluidValue> Flatten(FluidValue value, TemplateContext context)
         {
             foreach (var item in value.Enumerate(context))
             {
-                if (value.Type != FluidValues.Array)
+                if (item.Type != FluidValues.Array)
                 {
-                    yield return value;
+                    yield return item;
+                    continue;
                 }
-                else
+
+                foreach (var subItem in Flatten(item, context))
                 {
-                    foreach (var subItem in Flatten(item, context))
-                    {
-                        yield return subItem;
-                    }
+                    yield return subItem;
                 }
             }
         }
@@ -915,10 +915,10 @@ public static class ArrayFilters
                 values.Add(new KeyValuePair<FluidValue, FluidValue>(item, await item.GetValueAsync(member, context)));
             }
 
-            // Sort with case-sensitive comparison, placing items with missing keys at the end
+            // Sort with case-sensitive comparison and numbers compared as numbers, placing items with missing keys at the end
             var orderedValues = values
                 .OrderBy(x => x.Value.IsNil() ? 1 : 0)
-                .ThenBy(x => x.Value, new LiquidSortComparer(caseSensitive: true, compareNumbersAsStrings: true))
+                .ThenBy(x => x.Value, new LiquidSortComparer(caseSensitive: true, compareNumbersAsStrings: false))
                 .Select(x => x.Key)
                 .ToArray();
 

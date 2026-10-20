@@ -861,6 +861,10 @@ To render a template with HTML encoding, use the `System.Text.Encodings.Web.Html
 
 This encoder is used by default for the MVC View engine.
 
+### Arrays
+
+An array written directly, as in `{{ tags }}`, renders each item the same way as `{% for tag in tags %}{{ tag }}{% endfor %}`, including nested arrays and custom `FluidValue` renderers. Items that are marked as not encoded, for instance with `StringValue.Create(text, encode: false)`, are written as they are. Numbers use the render culture and the same formatting as individually rendered numbers (for example, `2.50` renders as `2.5` with the invariant culture).
+
 ### Disabling encoding contextually
 
 When an encoder is defined, you can use a special `raw` filter or `{% raw %} ... {% endraw %}` tag to prevent a value from being encoded, for instance if you know that the content is HTML and is safe.
@@ -883,6 +887,8 @@ Not encoded: {{ html | raw }
 
 When using `capture` blocks, the inner content is flagged as 
 pre-encoded and won't be double-encoded if used in a `{{ }}` tag.
+
+The body of a `capture` always runs, so its tags take effect even when the result is empty or only whitespace: `{% capture x %}{% assign y = 2 %}{% endcapture %}` assigns `y`, whitespace is kept (`{% capture x %}  {% endcapture %}` stores two spaces), and `{% break %}` or `{% continue %}` in a capture stop the enclosing loop. The `TemplateOptionsBuilder.WithCaptured()` callback is invoked for every capture, including empty ones.
 
 ### Customizing JSON output
 
@@ -1619,6 +1625,22 @@ Bill
 ```
 
 The `-%}` strips the whitespace from the right side of the `assign` tag.
+
+### Blank blocks
+
+Like in Shopify Liquid, the whitespace of an `if`, `unless`, `case` or `else` block is not rendered when the block contains only whitespace, comments and tags that write nothing, such as `assign` or `capture`. Tags that write output, such as `increment`, `decrement` and `cycle`, keep the whitespace around them.
+
+```liquid
+[{% if true %} {% assign a = 1 %} {% endif %}]
+[{% if true %} {% increment a %} {% endif %}]
+```
+
+Outputs:
+
+```
+[]
+[ 0 ]
+```
 
 ## Template Options
 

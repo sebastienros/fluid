@@ -152,7 +152,12 @@ public sealed class IncludeStatement : Statement
         }
 
         context.CancellationToken.ThrowIfCancellationRequested();
-        await output.FlushAsync();
+
+        // The render this include is part of flushes the output when it ends.
+        if (!context.IsFlushedByEnclosingRender(output))
+        {
+            await output.FlushAsync();
+        }
         return Completion.Normal;
     }
 

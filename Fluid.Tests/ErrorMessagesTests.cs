@@ -45,7 +45,7 @@ public class ErrorMessagesTests
     [InlineData("{% assign a 'b' %}", 11, 1, 12)]
     [InlineData("hello\n{% assign a 'b' %}", 17, 2, 12)]
     [InlineData("hello\r\n{% assign a 'b' %}", 18, 2, 12)]
-    [InlineData("hello\r{% assign a 'b' %}", 17, 1, 17)]
+    [InlineData("hello\r{% assign a 'b' %}", 17, 1, 18)]
     [InlineData("{% assing hello = 'world' %}", 9, 1, 10)]
     [InlineData("hello\n{% assing hello = 'world' %}", 15, 2, 10)]
     [InlineData("{% liquid\n  assing x\n%}", 18, 2, 9)]

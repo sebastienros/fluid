@@ -15,6 +15,7 @@ public class DateFilterBenchmarks
     private readonly IFluidTemplate _abbreviatedNames;
     private readonly IFluidTemplate _fullNames;
     private readonly IFluidTemplate _numeric;
+    private readonly IFluidTemplate _numericWithFlags;
 
     public DateFilterBenchmarks()
     {
@@ -25,7 +26,10 @@ public class DateFilterBenchmarks
 
         Verify(nameof(AbbreviatedNames), AbbreviatedNames(), "Sat, Mar 09 2024");
         Verify(nameof(FullNames), FullNames(), "Saturday, March 09 2024");
+        _numericWithFlags = parser.Parse("{{ date | date: '%-d/%-m/%y %e %l:%M %6Y %j' }}");
+
         Verify(nameof(Numeric), Numeric(), "2024-03-09 14:05");
+        Verify(nameof(NumericWithFlags), NumericWithFlags(), "9/3/24  9  2:05 002024 069");
 
         static void Verify(string name, string result, string expected)
         {
@@ -46,6 +50,12 @@ public class DateFilterBenchmarks
     public string FullNames()
     {
         return _fullNames.Render(new TemplateContext().SetValue("date", _date));
+    }
+
+    [Benchmark]
+    public string NumericWithFlags()
+    {
+        return _numericWithFlags.Render(new TemplateContext().SetValue("date", _date));
     }
 
     [Benchmark]

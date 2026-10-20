@@ -151,15 +151,9 @@ public sealed class DictionaryValue : FluidValue
 
     public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
     {
-        foreach (var key in _value.Keys)
-        {
-            if (_value.TryGetValue(key, out var item) && item.Equals(value.ToObjectValue(context)))
-            {
-                return new ValueTask<bool>(true);
-            }
-        }
-
-        return new ValueTask<bool>(false);
+        // Liquid's `contains` on a hash checks its keys (Ruby's Hash#include?), looked up the same way
+        // `hash[key]` is.
+        return new ValueTask<bool>(_value.TryGetValue(value.ToStringValue(context), out _));
     }
 
     public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
