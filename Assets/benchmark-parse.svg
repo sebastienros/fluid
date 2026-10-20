@@ -41,14 +41,14 @@
     <line class="grid" x1="62" y1="84" x2="500" y2="84"/><text class="tick" x="52" y="88" text-anchor="end">1024</text>
     <line class="axis" x1="62" y1="84" x2="62" y2="342"/><line class="axis" x1="62" y1="342" x2="500" y2="342"/>
 
-    <rect x="88" y="322.6" width="72" height="19.4" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
-    <text class="fluid-value" x="124" y="315">1.685</text>
-    <rect class="competitor" x="193" y="308.4" width="72" height="33.6" rx="1" fill="#ff7f0e"/>
-    <text class="value" x="229" y="301">2.464</text>
-    <rect class="competitor" x="298" y="289.9" width="72" height="52.1" rx="1" fill="#2ca02c"/>
-    <text class="value" x="334" y="283">4.054</text>
-    <rect class="competitor" x="403" y="114.4" width="72" height="227.6" rx="1" fill="#d62728"/>
-    <text class="value" x="439" y="107">452.116</text>
+    <rect x="88" y="326.2" width="72" height="15.8" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="124" y="319">1.527</text>
+    <rect class="competitor" x="193" y="310" width="72" height="32" rx="1" fill="#ff7f0e"/>
+    <text class="value" x="229" y="303">2.363</text>
+    <rect class="competitor" x="298" y="291.4" width="72" height="50.6" rx="1" fill="#2ca02c"/>
+    <text class="value" x="334" y="284">3.889</text>
+    <rect class="competitor" x="403" y="112.1" width="72" height="229.9" rx="1" fill="#d62728"/>
+    <text class="value" x="439" y="105">480.942</text>
     <text class="axis-title" x="281" y="381" text-anchor="middle">Duration (Microseconds) · log₂ scale</text>
   </g>
 
@@ -56,22 +56,22 @@
     <line class="grid" x1="588" y1="342" x2="1026" y2="342"/><text class="tick" x="578" y="346" text-anchor="end">1</text>
     <line class="grid" x1="588" y1="309.8" x2="1026" y2="309.8"/><text class="tick" x="578" y="313.8" text-anchor="end">2</text>
     <line class="grid" x1="588" y1="277.5" x2="1026" y2="277.5"/><text class="tick" x="578" y="281.5" text-anchor="end">4</text>
-    <line class="grid" x1="588" y1="245.3" x2="1026" y2="245.3"/><text class="tick" x="578" y="249.3" text-anchor="end">8</text>
+    <line class="grid" x1="588" y1="245.2" x2="1026" y2="245.2"/><text class="tick" x="578" y="249.2" text-anchor="end">8</text>
     <line class="grid" x1="588" y1="213" x2="1026" y2="213"/><text class="tick" x="578" y="217" text-anchor="end">16</text>
     <line class="grid" x1="588" y1="180.8" x2="1026" y2="180.8"/><text class="tick" x="578" y="184.8" text-anchor="end">32</text>
     <line class="grid" x1="588" y1="148.5" x2="1026" y2="148.5"/><text class="tick" x="578" y="152.5" text-anchor="end">64</text>
-    <line class="grid" x1="588" y1="116.3" x2="1026" y2="116.3"/><text class="tick" x="578" y="120.3" text-anchor="end">128</text>
+    <line class="grid" x1="588" y1="116.2" x2="1026" y2="116.2"/><text class="tick" x="578" y="120.2" text-anchor="end">128</text>
     <line class="grid" x1="588" y1="84" x2="1026" y2="84"/><text class="tick" x="578" y="88" text-anchor="end">256</text>
     <line class="axis" x1="588" y1="84" x2="588" y2="342"/><line class="axis" x1="588" y1="342" x2="1026" y2="342"/>
 
-    <rect x="614" y="287.9" width="72" height="54.1" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
-    <text class="fluid-value" x="650" y="280">3.20</text>
+    <rect x="614" y="286.7" width="72" height="55.3" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="650" y="280">3.28</text>
     <rect class="competitor" x="719" y="234.8" width="72" height="107.2" rx="1" fill="#ff7f0e"/>
-    <text class="value" x="755" y="227">10.01</text>
+    <text class="value" x="755" y="228">10.01</text>
     <rect class="competitor" x="824" y="212.9" width="72" height="129.1" rx="1" fill="#2ca02c"/>
-    <text class="value" x="860" y="205">16.05</text>
-    <rect class="competitor" x="929" y="114.3" width="72" height="227.7" rx="1" fill="#d62728"/>
-    <text class="value" x="965" y="107">133.62</text>
+    <text class="value" x="860" y="206">16.05</text>
+    <rect class="competitor" x="929" y="114.2" width="72" height="227.8" rx="1" fill="#d62728"/>
+    <text class="value" x="965" y="107">133.89</text>
     <text class="axis-title" x="807" y="381" text-anchor="middle">Memory Allocation (Kilobytes) · log₂ scale</text>
   </g>
 </svg>

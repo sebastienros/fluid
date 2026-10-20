@@ -65,6 +65,10 @@ Performance is a primary goal (competes with DotLiquid, Scriban, Handlebars.Net)
 - Reuse existing patterns: `ValueStringBuilder`, `BufferFluidOutput`, cached singletons, the synchronous `ValueTask` fast path.
 - Benchmark with `Fluid.Benchmarks` before and after hot-path changes and report the numbers.
 
+### README benchmark results
+
+On a quiet machine, run `dotnet run -c Release --project Fluid.Benchmarks -- --filter '*ComparisonBenchmarks*'`, then `python3 Fluid.Benchmarks/Charts/generate_charts.py` to regenerate `Assets/benchmark-*.svg` and `.png` from the report (PNGs need Chrome or Edge). Then update the README "Benchmarks" section by hand: the summary sentences, test date, package versions and the Benchmark.NET table.
+
 ## Documentation
 
 `README.md` is both user docs and the NuGet readme: update it for any template-visible behavior change.
