@@ -67,9 +67,6 @@ public class StatementLocationTests
             AllowLiquidTag = true,
             AllowFunctions = true
         });
-#if COMPILED
-        parser.Compile();
-#endif
         return parser;
     }
 
@@ -126,17 +123,10 @@ public class StatementLocationTests
         AssertRange(source, statements[2], "suffix");
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void ShouldKeepLocationsUnavailableByDefault(bool compiled)
+    [Fact]
+    public void ShouldKeepLocationsUnavailableByDefault()
     {
         var parser = new FluidParser();
-        if (compiled)
-        {
-            parser.Compile();
-        }
-
         var visitor = new LocationVisitor();
         visitor.VisitTemplate(parser.Parse("text{% if true %}{{ 2 }}{% elsif false %}other{% else %}end{% endif %}"));
         Assert.NotEmpty(visitor.Statements);
@@ -151,18 +141,11 @@ public class StatementLocationTests
         Assert.Equal(0, manual.SourceLength);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void ShouldTrackWithLiquidModeDisabled(bool compiled)
+    [Fact]
+    public void ShouldTrackWithLiquidModeDisabled()
     {
         const string source = "prefix{{ \n 2 \n }}{%- assign x = 2 -%}suffix";
         var parser = new FluidParser(new FluidParserOptions { TrackStatementLocations = true });
-        if (compiled)
-        {
-            parser.Compile();
-        }
-
         var statements = Parse(parser, source);
         AssertRange(source, statements[1], "{{ \n 2 \n }}");
         AssertRange(source, statements[2], "{%- assign x = 2 -%}");
@@ -271,10 +254,8 @@ public class StatementLocationTests
         AssertRange(source, assignments[1], "b: 'value'");
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void ShouldTrackCustomRegistrations(bool compiled)
+    [Fact]
+    public void ShouldTrackCustomRegistrations()
     {
         var parser = new FluidViewParser(new FluidParserOptions { TrackStatementLocations = true });
         parser.RegisterEmptyTag("empty", (output, encoder, context) => Statement.Normal());
@@ -282,11 +263,6 @@ public class StatementLocationTests
         parser.RegisterExpressionTag("expression", (expression, output, encoder, context) => Statement.Normal());
         parser.RegisterExpressionBlock("expressionblock", (expression, statements, output, encoder, context) => Statement.Normal());
         parser.RegisteredTags["direct"] = Parlot.Fluent.Parsers.Terms.Text("%}").Then<Statement>(_ => new NoOpStatement());
-        if (compiled)
-        {
-            parser.Compile();
-        }
-
         foreach (var syntax in new[]
         {
             "{% empty %}", "{% block %}text{% endblock %}", "{% expression 2 %}",
@@ -309,9 +285,6 @@ public class StatementLocationTests
     {
         const string source = "{% partial 'x', a: 2 %}";
         var parser = new FluidViewParser(new FluidParserOptions { TrackStatementLocations = true });
-#if COMPILED
-        parser.Compile();
-#endif
         var visitor = new ParserVisitor();
         visitor.VisitTemplate(parser.Parse(source));
         var assignments = Assert.IsAssignableFrom<IReadOnlyList<AssignStatement>>(

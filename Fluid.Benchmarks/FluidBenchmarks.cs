@@ -11,7 +11,6 @@ public class FluidBenchmarks : BaseBenchmarks
         .Build();
     private readonly FluidParser _parser = new FluidParser();
     private readonly IFluidTemplate _fluidTemplate;
-    private readonly FluidParser _compiledParser = new FluidParser().Compile();
 
     public FluidBenchmarks()
     {
@@ -30,18 +29,6 @@ public class FluidBenchmarks : BaseBenchmarks
     public override object ParseBig()
     {
         return _parser.Parse(BlogPostTemplate);
-    }
-
-    [Benchmark]
-    public object ParseCompiled()
-    {
-        return _compiledParser.Parse(ProductTemplate);
-    }
-
-    [Benchmark]
-    public object ParseBigCompiled()
-    {
-        return _compiledParser.Parse(BlogPostTemplate);
     }
 
     [Benchmark]

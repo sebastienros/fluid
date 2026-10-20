@@ -72,9 +72,6 @@ public class ViewEngineTests
         _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Layout' %}Hi");
         _mockFileProvider.Add("Views/_Layout.liquid", "{% renderbody %}");
         _mockFileProvider.Add(invalidPath, source);
-#if COMPILED
-        _options.Parser.Compile();
-#endif
         var writer = new StringWriter();
 
         var exception = await Assert.ThrowsAsync<ParseException>(

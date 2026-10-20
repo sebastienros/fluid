@@ -9,11 +9,7 @@ namespace Fluid.Tests;
 
 public class StrictVariableTests
 {
-#if COMPILED
-    private static readonly FluidParser _parser = new FluidParser().Compile();
-#else
     private static readonly FluidParser _parser = new FluidParser();
-#endif
 
     [Fact]
     public async Task StrictVariables_DefaultBehaviorNoException()

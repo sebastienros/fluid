@@ -206,6 +206,11 @@ but not standalone CR). Exceptions created without parsing metadata may have a
 null source or position. The inherited `Exception.Source` property retains its standard
 meaning and does not contain the template text.
 
+The top-level grammar must consume the entire template. If a registered tag parser fails
+without providing its own diagnostic, Fluid reports `Unexpected trailing input` at the
+first unparsed character instead of accepting a partial template. Nested block grammars
+still stop before their closing tags.
+
 ### Model security
 
 Fluid templates can read public properties and fields from the model and from objects reachable through it. This is by design; a model passed to `TemplateContext` should be treated as the template's readable data boundary.
@@ -1295,6 +1300,14 @@ any custom parser construct. These can be the standard ones defined in the `Flui
 
 For instance, `RegisterParseTag(Primary.AndSkip(Comma).And(Primary), ...)` will expect two `Primary` elements separated by a comma. The delegate will then 
 be invoked with a `ValueTuple<Expression, Expression>` representing the two `Primary` expressions.
+
+With Parlot 2.0, `FluidParser.Compile()` is no longer available. Create and cache a `FluidParser` directly; no runtime grammar compilation step is required.
+
+When composing an EOF check with an error, use
+`parser.AndSkip(Parsers.Eof().ElseError("Unexpected trailing input"))` to report the
+first trailing character. `parser.Eof().ElseError(...)` instead reports the parser's
+starting position because `parser.Eof()` backtracks on failure. Use a non-error EOF
+check inside alternatives when failure should allow another branch to be tried.
 
 ### Registering a custom operator
 

@@ -14,9 +14,6 @@ public class StatementLocationBenchmarks
     [Params(false, true)]
     public bool TrackLocations { get; set; }
 
-    [Params(false, true)]
-    public bool Compiled { get; set; }
-
     [Params("product", "blogpost")]
     public string Template { get; set; }
 
@@ -24,11 +21,6 @@ public class StatementLocationBenchmarks
     public void Setup()
     {
         _parser = new FluidParser(new FluidParserOptions { TrackStatementLocations = TrackLocations });
-        if (Compiled)
-        {
-            _parser.Compile();
-        }
-
         using var stream = typeof(StatementLocationBenchmarks).Assembly.GetManifestResourceStream($"Fluid.Benchmarks.{Template}.liquid");
         using var reader = new StreamReader(stream);
         _source = reader.ReadToEnd();

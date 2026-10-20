@@ -10,11 +10,7 @@ namespace Fluid.Tests;
 
 public class ErrorMessagesTests
 {
-#if COMPILED
-    private static FluidParser _parser = new FluidParser().Compile();
-#else
     private static FluidParser _parser = new FluidParser();
-#endif
 
     [Theory]
     [InlineData("{% assign a 'b' %}", ErrorMessages.EqualAfterAssignIdentifier)]
@@ -49,7 +45,7 @@ public class ErrorMessagesTests
     [InlineData("{% assign a 'b' %}", 11, 1, 12)]
     [InlineData("hello\n{% assign a 'b' %}", 17, 2, 12)]
     [InlineData("hello\r\n{% assign a 'b' %}", 18, 2, 12)]
-    [InlineData("hello\r{% assign a 'b' %}", 17, 1, 17)]
+    [InlineData("hello\r{% assign a 'b' %}", 17, 1, 18)]
     [InlineData("{% assing hello = 'world' %}", 9, 1, 10)]
     [InlineData("hello\n{% assing hello = 'world' %}", 15, 2, 10)]
     [InlineData("{% liquid\n  assing x\n%}", 18, 2, 9)]
@@ -92,15 +88,43 @@ public class ErrorMessagesTests
                 .Then(x => (IReadOnlyList<Statement>)Array.Empty<Statement>())
                 .ElseError("Expected text")
         };
-#if COMPILED
-        parser = parser.Compile();
-#endif
 
         var exception = Assert.Throws<ParseException>(() => parser.Parse(source));
 
         Assert.Equal(source, exception.TemplateSource);
         Assert.Equal(TextPosition.Start, exception.Position);
         Assert.Equal($"Expected text at (1:1)\nSource:\n{excerpt}", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("", 1, 1, "{% custom invalid %}")]
+    [InlineData("prefix", 1, 7, "prefix{% custom invalid %}")]
+    [InlineData("prefix\n", 2, 1, "{% custom invalid %}")]
+    [InlineData("prefix\r\n", 2, 1, "{% custom invalid %}")]
+    public void UnconsumedCustomTagReportsPosition(string prefix, int line, int column, string excerpt)
+    {
+        var parser = new FluidParser();
+        parser.RegisteredTags["custom"] = Parsers.Terms.Text("valid")
+            .AndSkip(Parsers.Terms.Text("%}"))
+            .Then<Statement>(_ => new NoOpStatement());
+        var source = prefix + "{% custom invalid %}\nnext line";
+
+        var context = new FluidParseContext(source);
+        Assert.False(parser.Grammar.TryParse(context, out var statements, out var parlotError));
+        Assert.Null(statements);
+        Assert.NotNull(parlotError);
+        Assert.Equal("Unexpected trailing input", parlotError.Message);
+        Assert.Equal(prefix.Length, parlotError.Position.Offset);
+        Assert.Equal(line, parlotError.Position.Line);
+        Assert.Equal(column, parlotError.Position.Column);
+
+        var exception = Assert.Throws<ParseException>(() => parser.Parse(source));
+        Assert.Equal(source, exception.TemplateSource);
+        Assert.Equal(parlotError.Position, exception.Position);
+        Assert.Equal($"Unexpected trailing input at ({line}:{column})\nSource:\n{excerpt}", exception.Message);
+        Assert.False(parser.TryParse(source, out var template, out var error));
+        Assert.Null(template);
+        Assert.Equal(exception.Message, error);
     }
 
     [Fact]
@@ -112,9 +136,6 @@ public class ErrorMessagesTests
             Grammar = Parsers.Literals.Text("hello")
                 .Then(x => ThrowParseException(original))
         };
-#if COMPILED
-        parser = parser.Compile();
-#endif
 
         var exception = Assert.Throws<ParseException>(() => parser.Parse("hello"));
 
@@ -133,9 +154,6 @@ public class ErrorMessagesTests
             Grammar = Parsers.Literals.Text("hello")
                 .Then(x => ThrowParseException(original))
         };
-#if COMPILED
-        parser = parser.Compile();
-#endif
 
         var exception = Assert.Throws<ParseException>(() => parser.Parse("hello"));
 

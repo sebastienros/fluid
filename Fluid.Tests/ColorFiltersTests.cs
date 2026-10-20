@@ -9,11 +9,7 @@ namespace Fluid.Tests;
 
 public class ColorFiltersTests
 {
-#if COMPILED
-    private static readonly FluidParser _parser = new FluidParser().Compile();
-#else
     private static readonly FluidParser _parser = new FluidParser();
-#endif
 
     [Theory]
     [InlineData("#ffffff", "rgb(255, 255, 255)")]

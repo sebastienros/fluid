@@ -20,12 +20,11 @@ Conflicts are reported on the source PR and must be resolved manually. The workf
 ```shell
 dotnet build
 dotnet test                               # xUnit v3 on Microsoft.Testing.Platform
-dotnet test --property:Compiled=true      # second CI pass: compiled Parlot grammar
 dotnet run -c Release --project Fluid.Benchmarks
 ```
 
 - Use `--property:`, never `/p:` (Git Bash on Windows mangles `/p:` and the run executes zero tests).
-- CI runs both test passes. If a change passes only one, a grammar rule behaves differently once compiled (`COMPILED` constant swaps in `new FluidParser().Compile()`).
+- Parlot 2.0 does not require runtime grammar compilation; `FluidParser.Compile()` is not available.
 
 ## Golden Liquid tests
 

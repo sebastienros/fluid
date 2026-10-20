@@ -266,11 +266,7 @@ public class NumberFiltersTests
             .AddFilter("random", NumberFilters.Random)
             .Build();
         var context = new TemplateContext(options);
-#if COMPILED
-        var parser = new FluidParser().Compile();
-#else
         var parser = new FluidParser();
-#endif
         Assert.True(parser.TryParse("{{ 0 | random: 7, 7 }}", out var template, out var error), error);
 
         var result = await template.RenderAsync(context);
