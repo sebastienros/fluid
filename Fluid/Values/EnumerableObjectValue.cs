@@ -4,7 +4,7 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Values;
 
-internal sealed class EnumerableObjectValue : ObjectValueBase
+internal sealed class EnumerableObjectValue : ObjectValueBase, IFluidArray
 {
     public static EnumerableObjectValue Create(IEnumerable value, TemplateOptions options)
         => new EnumerableObjectValue(value, options);
@@ -25,15 +25,9 @@ internal sealed class EnumerableObjectValue : ObjectValueBase
 
     public override FluidValues Type => FluidValues.Array;
 
-    internal static IReadOnlyList<FluidValue> GetMaterializedValues(FluidValue value)
-    {
-        return value switch
-        {
-            ArrayValue array => array.Values,
-            EnumerableObjectValue enumerable => enumerable.Values,
-            _ => null
-        };
-    }
+    int IFluidArray.Count => Values.Count;
+
+    FluidValue IFluidArray.this[int index] => Values[index];
 
     public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
     {
@@ -80,8 +74,7 @@ internal sealed class EnumerableObjectValue : ObjectValueBase
             return Values.Count == 0;
         }
 
-        var otherValues = GetMaterializedValues(other);
-        if (otherValues is not null)
+        if (other is IFluidArray otherValues)
         {
             using var scope = RecursiveComparisonGuard.Enter(this, other);
 
@@ -92,7 +85,7 @@ internal sealed class EnumerableObjectValue : ObjectValueBase
 
             for (var i = 0; i < Values.Count; i++)
             {
-                if (!Values[i].Equals(otherValues[i]))
+                if (!Values[i].Equals(otherValues[i] ?? NilValue.Instance))
                 {
                     return false;
                 }

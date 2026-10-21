@@ -300,20 +300,13 @@ public static class StringFilters
                 return ArrayValue.Empty;
             }
 
-            var sourceArray = EnumerableObjectValue.GetMaterializedValues(input);
-
-            var sourceLength = sourceArray.Count;
-
-            if (requestedStartIndex < -sourceLength)
+            // Indexed arrays only read the items in the slice.
+            if (input is IFluidArray sourceArray)
             {
-                return ArrayValue.Empty;
+                return SliceArray(sourceArray, requestedStartIndex, requestedLength, context);
             }
 
-            var startIndex = requestedStartIndex < 0 ? Math.Max(sourceLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceLength);
-            var length = Math.Min(requestedLength, sourceLength - startIndex);
-
-            context.EnsureCollectionSize(length);
-            return ArrayValue.Create(sourceArray.Skip(startIndex).Take(length).ToArray());
+            return SliceArrayAsync(input, requestedStartIndex, requestedLength, context);
         }
         else
         {
@@ -338,6 +331,39 @@ public static class StringFilters
 
             return CreateStringValue(sourceString.Substring(startIndex, length), input);
         }
+    }
+
+    private static async ValueTask<FluidValue> SliceArrayAsync(FluidValue input, int requestedStartIndex, int requestedLength, TemplateContext context)
+    {
+        return SliceArray(await ArrayValue.ToFluidArrayAsync(input, context), requestedStartIndex, requestedLength, context);
+    }
+
+    private static ArrayValue SliceArray(IFluidArray sourceArray, int requestedStartIndex, int requestedLength, TemplateContext context)
+    {
+        var sourceLength = sourceArray.Count;
+
+        if (requestedStartIndex < -sourceLength)
+        {
+            return ArrayValue.Empty;
+        }
+
+        var startIndex = requestedStartIndex < 0 ? Math.Max(sourceLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceLength);
+        var length = Math.Min(requestedLength, sourceLength - startIndex);
+
+        if (length <= 0)
+        {
+            return ArrayValue.Empty;
+        }
+
+        context.EnsureCollectionSize(length);
+
+        var items = new FluidValue[length];
+        for (var i = 0; i < length; i++)
+        {
+            items[i] = sourceArray[startIndex + i] ?? NilValue.Instance;
+        }
+
+        return ArrayValue.Create(items);
     }
 
     public static ValueTask<FluidValue> Split(FluidValue input, FilterArguments arguments, TemplateContext context)

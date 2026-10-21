@@ -4,7 +4,7 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Values;
 
-public sealed class ArrayValue : FluidValue
+public sealed class ArrayValue : FluidValue, IFluidArray
 {
     public static readonly ArrayValue Empty = new ArrayValue([]);
 
@@ -34,8 +34,7 @@ public sealed class ArrayValue : FluidValue
             return Values.Count == 0;
         }
 
-        var otherValues = EnumerableObjectValue.GetMaterializedValues(other);
-        if (otherValues is not null)
+        if (other is IFluidArray otherValues)
         {
             using var scope = RecursiveComparisonGuard.Enter(this, other);
 
@@ -47,7 +46,7 @@ public sealed class ArrayValue : FluidValue
             for (var i = 0; i < Values.Count; i++)
             {
                 var item = Values[i];
-                var otherItem = otherValues[i];
+                var otherItem = otherValues[i] ?? NilValue.Instance;
 
                 if (!item.Equals(otherItem))
                 {
@@ -119,6 +118,32 @@ public sealed class ArrayValue : FluidValue
     }
 
     public IReadOnlyList<FluidValue> Values { get; }
+
+    int IFluidArray.Count => Values.Count;
+
+    FluidValue IFluidArray.this[int index] => Values[index];
+
+    /// <summary>
+    /// Returns the items of a value by index: an array value implementing <see cref="IFluidArray"/> is returned as is,
+    /// any other value is enumerated into a new <see cref="ArrayValue"/>.
+    /// </summary>
+    public static ValueTask<IFluidArray> ToFluidArrayAsync(FluidValue value, TemplateContext context)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullException.ThrowIfNull(context);
+
+        if (value is IFluidArray array && value.Type == FluidValues.Array)
+        {
+            return new ValueTask<IFluidArray>(array);
+        }
+
+        return Awaited(value, context);
+
+        static async ValueTask<IFluidArray> Awaited(FluidValue value, TemplateContext context)
+        {
+            return Create(await value.EnumerateAsync(context).ToListAsync(context.CancellationToken));
+        }
+    }
 
     public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
     {

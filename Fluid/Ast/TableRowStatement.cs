@@ -41,8 +41,7 @@ public sealed class TableRowStatement : TagStatement
             return Completion.Normal;
         }
 
-        IReadOnlyList<FluidValue> source = EnumerableObjectValue.GetMaterializedValues(evaluatedSource)
-            ?? await evaluatedSource.EnumerateAsync(context).ToListAsync(context.CancellationToken);
+        var source = await ArrayValue.ToFluidArrayAsync(evaluatedSource, context);
 
         if (source.Count == 0)
         {

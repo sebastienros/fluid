@@ -82,9 +82,7 @@ public sealed class IncludeStatement : Statement
 
             var evaluatedFor = await For.EvaluateAsync(context);
 
-            // Fast-path: avoid re-enumerating already materialized values.
-            IReadOnlyList<FluidValue> list = EnumerableObjectValue.GetMaterializedValues(evaluatedFor)
-                ?? await evaluatedFor.EnumerateAsync(context).ToListAsync(context.CancellationToken);
+            var list = await ArrayValue.ToFluidArrayAsync(evaluatedFor, context);
 
             var length = forloop.Length = list.Count;
 

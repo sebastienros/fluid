@@ -115,10 +115,9 @@ public sealed class ForStatement : TagStatement, ISourceable
             return Completion.Normal;
         }
 
-        // Fast-path: materialized array-like values avoid an extra list allocation.
-        // Avoid re-enumerating and allocating a new List<T> in this very hot path.
-        IReadOnlyList<FluidValue> source = EnumerableObjectValue.GetMaterializedValues(evaluatedSource)
-            ?? await evaluatedSource.EnumerateAsync(context).ToListAsync(context.CancellationToken);
+        // Indexed values are read by index, so limit, offset and reversed only read the items they render.
+        // Other values are enumerated into a list.
+        var source = await ArrayValue.ToFluidArrayAsync(evaluatedSource, context);
 
         if (source.Count == 0)
         {
@@ -358,12 +357,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
         context.WriteLine("}");
         context.WriteLine();
-        context.WriteLine("IReadOnlyList<FluidValue> source = evaluatedSource is ArrayValue array");
-        using (context.Indent())
-        {
-            context.WriteLine("? array.Values");
-            context.WriteLine($": await evaluatedSource.EnumerateAsync({context.ContextName}).ToListAsync({context.ContextName}.CancellationToken);");
-        }
+        context.WriteLine($"var source = await ArrayValue.ToFluidArrayAsync(evaluatedSource, {context.ContextName});");
         context.WriteLine("if (source.Count == 0)");
         context.WriteLine("{");
         using (context.Indent())
