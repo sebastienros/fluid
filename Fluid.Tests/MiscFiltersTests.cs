@@ -412,7 +412,7 @@ public class MiscFiltersTests
     [Theory]
     [InlineData("%d|%-d|%_d|%4d|%_4d", "01|1| 1|0001|   1")]
     [InlineData("%m|%-m|%e|%-e|%3e", "08|8| 1|1|  1")]
-    [InlineData("%H|%-H|%_H|%4H", "07|07|07|07")]
+    [InlineData("%H|%-H|%_H|%4H", "07|7| 7|0007")]
     [InlineData("%I|%l|%-l", "07| 7|7")]
     [InlineData("%M|%S|%L", "04|36|123")]
     [InlineData("%Y|%6Y|%-Y|%y|%C", "2017|002017|2017|17|20")]
