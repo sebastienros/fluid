@@ -534,6 +534,36 @@ Invoking the member `Bingo` on a `Person` instance will then return the string `
 
 > Note: This technique can also be used to substitute existing properties with other values or even computed data.
 
+### Custom array values
+
+A custom `FluidValue` whose `Type` is `FluidValues.Array` is enumerated with `EnumerateAsync`. If it also implements `IFluidArray`,
+`for`, `tablerow`, `include ... for`, `render ... for` and the `first`, `last` and `slice` filters read its items by index instead,
+so `limit`, `offset` and `reversed` only read the items they render. This lets a large collection convert its items on demand:
+
+```csharp
+public sealed class LazyArrayValue : FluidValue, IFluidArray
+{
+    private readonly IReadOnlyList<object> _items;
+    private readonly TemplateOptions _options;
+
+    public LazyArrayValue(IReadOnlyList<object> items, TemplateOptions options)
+    {
+        _items = items;
+        _options = options;
+    }
+
+    public int Count => _items.Count;
+
+    public FluidValue this[int index] => FluidValue.Create(_items[index], _options);
+
+    public override FluidValues Type => FluidValues.Array;
+
+    // EnumerateAsync, GetValueAsync ("size", "first", "last"), GetIndexAsync and the other members as usual
+}
+```
+
+`ArrayValue` and the arrays created from .NET collections implement `IFluidArray` too.
+
 <br>
 
 ## Handling undefined values

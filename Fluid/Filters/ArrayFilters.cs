@@ -80,9 +80,8 @@ public static class ArrayFilters
 
         if (input.Type == FluidValues.Array)
         {
-            // Materialized arrays answer from the list, without an async enumerator.
-            var values = EnumerableObjectValue.GetMaterializedValues(input);
-            if (values is null)
+            // Indexed arrays answer by index, without an async enumerator.
+            if (input is not IFluidArray values)
             {
                 return GetFirstFromArrayAsync(input, context);
             }
@@ -115,9 +114,8 @@ public static class ArrayFilters
 
         if (input.Type == FluidValues.Array)
         {
-            // Materialized arrays answer from the list, instead of walking every item to reach the last one.
-            var values = EnumerableObjectValue.GetMaterializedValues(input);
-            if (values is null)
+            // Indexed arrays answer by index, instead of walking every item to reach the last one.
+            if (input is not IFluidArray values)
             {
                 return GetLastFromArrayAsync(input, context);
             }

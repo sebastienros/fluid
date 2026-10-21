@@ -4,7 +4,7 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Values;
 
-public sealed class ArrayValue : FluidValue
+public sealed class ArrayValue : FluidValue, IFluidArray
 {
     public static readonly ArrayValue Empty = new ArrayValue([]);
 
@@ -34,8 +34,7 @@ public sealed class ArrayValue : FluidValue
             return Values.Count == 0;
         }
 
-        var otherValues = EnumerableObjectValue.GetMaterializedValues(other);
-        if (otherValues is not null)
+        if (other is IFluidArray otherValues)
         {
             using var scope = RecursiveComparisonGuard.Enter(this, other);
 
@@ -119,6 +118,28 @@ public sealed class ArrayValue : FluidValue
     }
 
     public IReadOnlyList<FluidValue> Values { get; }
+
+    int IFluidArray.Count => Values.Count;
+
+    FluidValue IFluidArray.this[int index] => Values[index];
+
+    /// <summary>
+    /// Returns the indexed items of an array-like value, materializing it only when it doesn't implement <see cref="IFluidArray"/>.
+    /// </summary>
+    internal static ValueTask<IFluidArray> ToFluidArrayAsync(FluidValue value, TemplateContext context)
+    {
+        if (value is IFluidArray array)
+        {
+            return new ValueTask<IFluidArray>(array);
+        }
+
+        return Awaited(value, context);
+
+        static async ValueTask<IFluidArray> Awaited(FluidValue value, TemplateContext context)
+        {
+            return Create(await value.EnumerateAsync(context).ToListAsync(context.CancellationToken));
+        }
+    }
 
     public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
     {

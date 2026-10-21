@@ -120,7 +120,7 @@ public sealed class RenderStatement : Statement, ISourceable
         var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
 
         FluidValue withValue = null;
-        IReadOnlyList<FluidValue> list = null;
+        IFluidArray list = null;
 
         if (With != null)
         {
@@ -129,8 +129,7 @@ public sealed class RenderStatement : Statement, ISourceable
         else if (For != null)
         {
             var evaluatedFor = await For.EvaluateAsync(context);
-            list = EnumerableObjectValue.GetMaterializedValues(evaluatedFor)
-                ?? await evaluatedFor.EnumerateAsync(context).ToListAsync(context.CancellationToken);
+            list = await ArrayValue.ToFluidArrayAsync(evaluatedFor, context);
         }
 
         // Liquid evaluates named argument expressions in the caller before creating the isolated context.
@@ -235,11 +234,10 @@ public sealed class RenderStatement : Statement, ISourceable
         {
             var forExpr = context.GetExpressionMethodName(For);
             context.WriteLine($"var evaluatedFor = await {forExpr}({context.ContextName});");
-            context.WriteLine("IReadOnlyList<FluidValue> list = evaluatedFor is ArrayValue array");
+            context.WriteLine("IFluidArray list = evaluatedFor as IFluidArray");
             using (context.Indent())
             {
-                context.WriteLine("? array.Values");
-                context.WriteLine($": await evaluatedFor.EnumerateAsync({context.ContextName}).ToListAsync({context.ContextName}.CancellationToken);");
+                context.WriteLine($"?? ArrayValue.Create(await evaluatedFor.EnumerateAsync({context.ContextName}).ToListAsync({context.ContextName}.CancellationToken));");
             }
         }
 
