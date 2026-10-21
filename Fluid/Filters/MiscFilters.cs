@@ -626,24 +626,19 @@ public static class MiscFilters
                             }
                         case 'g':
                             {
-                                var week = context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstFullWeek, DayOfWeek.Monday);
-                                var year = week >= 52 && value.DateTime.Month == 1 ? value.Year - 1 : value.Year;
-                                AppendNumber(ref result, year % 100);
+                                AppendNumber(ref result, GetIsoWeekYear(value.DateTime) % 100, 2);
                                 break;
                             }
                         case 'G':
                             {
-                                var week = context.CultureInfo.Calendar.GetWeekOfYear(value.DateTime, CalendarWeekRule.FirstFullWeek, DayOfWeek.Monday);
-                                var year = week >= 52 && value.DateTime.Month == 1 ? value.Year - 1 : value.Year;
-                                AppendNumber(ref result, year);
+                                AppendNumber(ref result, GetIsoWeekYear(value.DateTime));
                                 break;
                             }
                         case 'h':
                             ForStrf(value, "%b", ref result);
                             break;
                         case 'H':
-                            result.Append((char)('0' + value.Hour / 10));
-                            result.Append((char)('0' + value.Hour % 10));
+                            AppendNumber(ref result, value.Hour, 2);
                             break;
                         case 'I':
                             {
@@ -658,7 +653,10 @@ public static class MiscFilters
                                 break;
                             }
                         case 'j': AppendNumber(ref result, value.DayOfYear, 3); break;
-                        case 'k': result.Append(value.Hour.ToString(CultureInfo.InvariantCulture)); break;
+                        case 'k':
+                            useSpaceForPaddingFlag = true;
+                            AppendNumber(ref result, value.Hour, 2);
+                            break;
                         case 'l':
                             {
                                 useSpaceForPaddingFlag = true;
@@ -680,7 +678,8 @@ public static class MiscFilters
                         case 'n': result.Append(new String('\n', width ?? 1)); break;
                         case 'N':
                             width ??= 9;
-                            var v = (value.Ticks % 10000000).ToString(context.CultureInfo);
+                            // Ticks hold seven fractional digits, which keep their leading zeros.
+                            var v = (value.Ticks % 10000000).ToString("D7", CultureInfo.InvariantCulture);
                             result.Append(v.Length >= width ? v.Substring(0, width.Value) : v.PadRight(width.Value, '0'));
                             break;
                         case 'p': result.Append(value.ToString("tt", context.CultureInfo).ToUpper(context.CultureInfo)); break;
@@ -732,7 +731,7 @@ public static class MiscFilters
                                 result.Append(upperCaseFlag ? sb.ToString().ToUpper(context.CultureInfo) : sb.ToString());
                                 break;
                             }
-                        case 'V': AppendNumber(ref result, value.DayOfYear / 7 + 1, 2); break;
+                        case 'V': AppendNumber(ref result, GetIsoWeekOfYear(value.DateTime), 2); break;
                         case 'w': result.Append(((int)value.DayOfWeek).ToString(context.CultureInfo)); break;
                         case 'W':
                             {
@@ -807,9 +806,11 @@ public static class MiscFilters
                         {
                             ReadOnlySpan<char> digits = buffer.Slice(0, length);
 
+                            // The flag drops the padding. The number itself has no leading zeros to remove,
+                            // and zero is still written as "0".
                             if (removeLeadingZerosFlag)
                             {
-                                builder.Append(digits.TrimStart('0'));
+                                builder.Append(digits);
                                 return;
                             }
 
@@ -832,7 +833,7 @@ public static class MiscFilters
 
                         if (removeLeadingZerosFlag)
                         {
-                            return stringValue.TrimStart('0');
+                            return stringValue;
                         }
 
                         return stringValue.PadLeft(width == null ? defaultWidth : width.Value, useSpaceForPaddingFlag ? ' ' : '0');
@@ -840,6 +841,61 @@ public static class MiscFilters
                 }
             }
         }
+    }
+
+    // ISO 8601 weeks start on Monday, and week 1 is the one holding the year's first Thursday, so
+    // the first and last days of a year can belong to a week of the next or previous year.
+    // ISOWeek does this on .NET Core 3.0 and later, but not on netstandard2.0.
+    private static int GetIsoWeekOfYear(DateTime date)
+    {
+        var week = GetUncorrectedIsoWeek(date);
+
+        if (week < 1)
+        {
+            return GetIsoWeeksInYear(date.Year - 1);
+        }
+
+        if (week > GetIsoWeeksInYear(date.Year))
+        {
+            return 1;
+        }
+
+        return week;
+    }
+
+    private static int GetIsoWeekYear(DateTime date)
+    {
+        var week = GetUncorrectedIsoWeek(date);
+
+        if (week < 1)
+        {
+            return date.Year - 1;
+        }
+
+        if (week > GetIsoWeeksInYear(date.Year))
+        {
+            return date.Year + 1;
+        }
+
+        return date.Year;
+    }
+
+    private static int GetUncorrectedIsoWeek(DateTime date)
+    {
+        var isoDayOfWeek = date.DayOfWeek == DayOfWeek.Sunday ? 7 : (int)date.DayOfWeek;
+        return (date.DayOfYear - isoDayOfWeek + 10) / 7;
+    }
+
+    private static int GetIsoWeeksInYear(int year)
+    {
+        static int DayOfWeekOfLastDay(int y) => (y + y / 4 - y / 100 + y / 400) % 7;
+
+        if (DayOfWeekOfLastDay(year) == 4 || DayOfWeekOfLastDay(year - 1) == 3)
+        {
+            return 53;
+        }
+
+        return 52;
     }
 
     public static ValueTask<FluidValue> FormatDate(FluidValue input, FilterArguments arguments, TemplateContext context)
