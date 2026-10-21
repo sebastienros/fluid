@@ -610,6 +610,18 @@ public class ArrayFiltersTests
     }
 
     [Fact]
+    public async Task SumWithNestedCollections()
+    {
+        var options = new TemplateOptionsBuilder().Build();
+        var context = new TemplateContext(options);
+        var input = FluidValue.Create(new List<List<int>> { new() { 1, 2 }, new() { 3 } }, options);
+
+        var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
+
+        Assert.Equal(6, result.ToNumberValue());
+    }
+
+    [Fact]
     public async Task SumWithMixedValues()
     {
         var input = ArrayValue.Create(new FluidValue[] {

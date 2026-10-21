@@ -1036,14 +1036,7 @@ public static class ArrayFilters
 
         if (arguments.Count == 0)
         {
-            var numbers = input.EnumerateAsync(context).Select(x => x switch
-            {
-                ArrayValue => Sum(x, arguments, context).Result.ToNumberValue(),
-                NumberValue or StringValue => x.ToNumberValue(),
-                _ => 0
-            });
-
-            return NumberValue.Create(await numbers.SumAsync());
+            return NumberValue.Create(await SumItemsAsync(input, context));
         }
 
         var member = arguments.At(0);
@@ -1068,6 +1061,26 @@ public static class ArrayFilters
         }
 
         return NumberValue.Create(sumList.Sum());
+    }
+
+    /// <summary>
+    /// Sums the numbers and numeric strings of an array, including the items of nested arrays of any kind.
+    /// </summary>
+    private static async ValueTask<decimal> SumItemsAsync(FluidValue input, TemplateContext context)
+    {
+        decimal sum = 0;
+
+        await foreach (var item in input.EnumerateAsync(context))
+        {
+            sum += item switch
+            {
+                NumberValue or StringValue => item.ToNumberValue(),
+                _ when item.Type == FluidValues.Array => await SumItemsAsync(item, context),
+                _ => 0
+            };
+        }
+
+        return sum;
     }
 }
 
