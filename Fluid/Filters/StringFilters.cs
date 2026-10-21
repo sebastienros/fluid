@@ -360,7 +360,7 @@ public static class StringFilters
         var items = new FluidValue[length];
         for (var i = 0; i < length; i++)
         {
-            items[i] = sourceArray[startIndex + i];
+            items[i] = sourceArray[startIndex + i] ?? NilValue.Instance;
         }
 
         return ArrayValue.Create(items);

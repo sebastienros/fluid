@@ -46,7 +46,7 @@ public sealed class ArrayValue : FluidValue, IFluidArray
             for (var i = 0; i < Values.Count; i++)
             {
                 var item = Values[i];
-                var otherItem = otherValues[i];
+                var otherItem = otherValues[i] ?? NilValue.Instance;
 
                 if (!item.Equals(otherItem))
                 {
@@ -124,11 +124,15 @@ public sealed class ArrayValue : FluidValue, IFluidArray
     FluidValue IFluidArray.this[int index] => Values[index];
 
     /// <summary>
-    /// Returns the indexed items of an array-like value, materializing it only when it doesn't implement <see cref="IFluidArray"/>.
+    /// Returns the items of a value by index: an array value implementing <see cref="IFluidArray"/> is returned as is,
+    /// any other value is enumerated into a new <see cref="ArrayValue"/>.
     /// </summary>
-    internal static ValueTask<IFluidArray> ToFluidArrayAsync(FluidValue value, TemplateContext context)
+    public static ValueTask<IFluidArray> ToFluidArrayAsync(FluidValue value, TemplateContext context)
     {
-        if (value is IFluidArray array)
+        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullException.ThrowIfNull(context);
+
+        if (value is IFluidArray array && value.Type == FluidValues.Array)
         {
             return new ValueTask<IFluidArray>(array);
         }

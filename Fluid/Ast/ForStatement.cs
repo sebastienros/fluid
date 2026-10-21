@@ -357,11 +357,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
         context.WriteLine("}");
         context.WriteLine();
-        context.WriteLine("IFluidArray source = evaluatedSource as IFluidArray");
-        using (context.Indent())
-        {
-            context.WriteLine($"?? ArrayValue.Create(await evaluatedSource.EnumerateAsync({context.ContextName}).ToListAsync({context.ContextName}.CancellationToken));");
-        }
+        context.WriteLine($"var source = await ArrayValue.ToFluidArrayAsync(evaluatedSource, {context.ContextName});");
         context.WriteLine("if (source.Count == 0)");
         context.WriteLine("{");
         using (context.Indent())

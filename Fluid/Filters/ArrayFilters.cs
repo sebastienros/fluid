@@ -91,7 +91,7 @@ public static class ArrayFilters
                 return NilValue.Instance;
             }
 
-            return new ValueTask<FluidValue>(values[0]);
+            return new ValueTask<FluidValue>(values[0] ?? NilValue.Instance);
         }
 
         if (input.Type == FluidValues.Dictionary)
@@ -125,7 +125,7 @@ public static class ArrayFilters
                 return NilValue.Instance;
             }
 
-            return new ValueTask<FluidValue>(values[values.Count - 1]);
+            return new ValueTask<FluidValue>(values[values.Count - 1] ?? NilValue.Instance);
         }
 
         if (input.Type == FluidValues.String)

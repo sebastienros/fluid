@@ -245,6 +245,44 @@ public class SourceGenerationTests
         Assert.Equal(runtimeWriter.ToString(), generatedWriter.ToString());
     }
 
+    [Theory]
+    [InlineData("{% for i in items offset: 2 limit: 2 %}{{ i }},{% endfor %}", "2,3,", 2)]
+    [InlineData("{% for i in items reversed limit: 2 %}{{ i }},{% endfor %}", "1,0,", 2)]
+    [InlineData("{% render 'item' for items %}", "0,1,2,3,4,", 5)]
+    public async Task GeneratedLoops_ReadIndexedArraysByIndex(string liquid, string expected, int conversions)
+    {
+        var provider = new MockFileProvider().Add("item", "{{ item }},").Add("item.liquid", "{{ item }},");
+        var instance = CompileTemplate(liquid, provider);
+        var options = new TemplateOptionsBuilder().WithFileProvider(provider).Build();
+
+        var items = new FluidArrayTests.CountingArrayValue(5);
+        var indexedWriter = new StringWriter();
+        await instance.RenderAsync(indexedWriter, HtmlEncoder.Default, new TemplateContext(options).SetValue("items", items));
+
+        var enumerableWriter = new StringWriter();
+        await instance.RenderAsync(enumerableWriter, HtmlEncoder.Default, new TemplateContext(options).SetValue("items", new FluidArrayTests.EnumerableOnlyArrayValue(5)));
+
+        Assert.Equal(expected, indexedWriter.ToString());
+        Assert.Equal(conversions, items.Conversions);
+        Assert.Equal(0, items.Enumerations);
+        Assert.Equal(expected, enumerableWriter.ToString());
+    }
+
+    private static IFluidTemplate CompileTemplate(string liquid, MockFileProvider provider)
+    {
+        var template = new FluidParser().Parse(liquid);
+        var source = template.Compile(new SourceGenerationOptions
+        {
+            Namespace = "Fluid.Tests.Generated",
+            ClassName = "T" + Guid.NewGuid().ToString("N"),
+            FileProvider = provider
+        });
+
+        var generated = CompileToAssembly(source.SourceCode);
+        var type = generated.GetType(source.FullTypeName, throwOnError: true);
+        return (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
+    }
+
     private static Assembly CompileToAssembly(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));

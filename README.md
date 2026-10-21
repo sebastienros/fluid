@@ -562,7 +562,9 @@ public sealed class LazyArrayValue : FluidValue, IFluidArray
 }
 ```
 
-`ArrayValue` and the arrays created from .NET collections implement `IFluidArray` too.
+Return `NilValue.Instance` for a missing item; `null` is read as `nil`. `ArrayValue` and the arrays created from .NET collections
+implement `IFluidArray` too, and are equal to any `IFluidArray` with equal items: override `Equals(FluidValue)` and `GetHashCode()`
+the same way, comparing and hashing the items, so that `a == b` and `b == a` agree.
 
 <br>
 

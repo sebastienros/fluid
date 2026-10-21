@@ -13,13 +13,17 @@ public class FluidArrayTests
     /// <summary>
     /// A host array that converts its items on demand and counts the conversions.
     /// </summary>
-    private sealed class CountingArrayValue : FluidValue, IFluidArray
+    internal sealed class CountingArrayValue : FluidValue, IFluidArray
     {
         private readonly int _count;
+        private readonly FluidValues _type;
+        private readonly int _nullIndex;
 
-        public CountingArrayValue(int count)
+        public CountingArrayValue(int count, FluidValues type = FluidValues.Array, int nullIndex = -1)
         {
             _count = count;
+            _type = type;
+            _nullIndex = nullIndex;
         }
 
         public int Conversions { get; private set; }
@@ -33,11 +37,11 @@ public class FluidArrayTests
             get
             {
                 Conversions++;
-                return NumberValue.Create(index);
+                return index == _nullIndex ? null : NumberValue.Create(index);
             }
         }
 
-        public override FluidValues Type => FluidValues.Array;
+        public override FluidValues Type => _type;
 
         public override bool Equals(FluidValue other) => ReferenceEquals(this, other);
 
@@ -73,7 +77,7 @@ public class FluidArrayTests
     /// <summary>
     /// A host array that can only be enumerated.
     /// </summary>
-    private sealed class EnumerableOnlyArrayValue : FluidValue
+    internal sealed class EnumerableOnlyArrayValue : FluidValue
     {
         private readonly int _count;
 
@@ -207,6 +211,54 @@ public class FluidArrayTests
         var output = await _parser.Parse(source).RenderAsync(context);
 
         Assert.Equal(expected, output);
+    }
+
+    [Theory]
+    [InlineData("{{ items | first }}|", 0)]
+    [InlineData("{{ items | last }}|", 2)]
+    [InlineData("{{ items | slice: 0, 3 | join: ',' }}|", 1)]
+    [InlineData("{% for i in items %}{{ i }},{% endfor %}|", 1)]
+    public async Task NullItemsAreReadAsNil(string source, int nullIndex)
+    {
+        var items = new CountingArrayValue(3, nullIndex: nullIndex);
+        var context = new TemplateContext().SetValue("items", items);
+
+        var output = await _parser.Parse(source).RenderAsync(context);
+
+        Assert.DoesNotContain(nullIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), output);
+        Assert.EndsWith("|", output);
+    }
+
+    [Fact]
+    public void ArraysEqualIndexedArraysWithNullItems()
+    {
+        var items = new CountingArrayValue(2, nullIndex: 1);
+
+        Assert.True(ArrayValue.Create([NumberValue.Create(0), NilValue.Instance]).Equals(items));
+    }
+
+    [Fact]
+    public async Task ValuesThatAreNotArraysAreNotReadByIndex()
+    {
+        var items = new CountingArrayValue(3, FluidValues.Object);
+        var context = new TemplateContext().SetValue("items", items);
+
+        var output = await _parser.Parse("{% for i in items limit: 1 %}{{ i }}{% endfor %}").RenderAsync(context);
+
+        Assert.Equal("0", output);
+        Assert.Equal(1, items.Enumerations);
+    }
+
+    [Fact]
+    public async Task ArraysCompareWithIndexedArraysInTemplates()
+    {
+        var context = new TemplateContext()
+            .SetValue("items", new CountingArrayValue(2))
+            .SetValue("array", ArrayValue.Create([NumberValue.Create(0), NumberValue.Create(1)]));
+
+        var output = await _parser.Parse("{% if array == items %}equal{% endif %}").RenderAsync(context);
+
+        Assert.Equal("equal", output);
     }
 
     [Fact]

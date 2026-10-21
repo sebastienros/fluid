@@ -85,7 +85,7 @@ internal sealed class EnumerableObjectValue : ObjectValueBase, IFluidArray
 
             for (var i = 0; i < Values.Count; i++)
             {
-                if (!Values[i].Equals(otherValues[i]))
+                if (!Values[i].Equals(otherValues[i] ?? NilValue.Instance))
                 {
                     return false;
                 }

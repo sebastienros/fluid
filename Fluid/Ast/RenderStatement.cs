@@ -234,11 +234,7 @@ public sealed class RenderStatement : Statement, ISourceable
         {
             var forExpr = context.GetExpressionMethodName(For);
             context.WriteLine($"var evaluatedFor = await {forExpr}({context.ContextName});");
-            context.WriteLine("IFluidArray list = evaluatedFor as IFluidArray");
-            using (context.Indent())
-            {
-                context.WriteLine($"?? ArrayValue.Create(await evaluatedFor.EnumerateAsync({context.ContextName}).ToListAsync({context.ContextName}.CancellationToken));");
-            }
+            context.WriteLine($"var list = await ArrayValue.ToFluidArrayAsync(evaluatedFor, {context.ContextName});");
         }
 
         EmitEvaluateAssignStatements();
