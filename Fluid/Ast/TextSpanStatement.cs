@@ -7,7 +7,9 @@ namespace Fluid.Ast;
 
 public sealed class TextSpanStatement : Statement, ISourceable
 {
-    private bool _isBufferPrepared;
+    // Volatile: the flag is read without the lock, and must not be seen set before _preparedBuffer is (on ARM64 it
+    // could, and a concurrent render would write nothing).
+    private volatile bool _isBufferPrepared;
     private readonly Lock _synLock = new();
     private TextSpan _text;
     internal string _preparedBuffer;
