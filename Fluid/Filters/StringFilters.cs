@@ -55,14 +55,18 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("capitalize", expected: 0, arguments);
 
-        var source = input.ToStringValue().ToCharArray();
+        var source = input.ToStringValue();
 
-        if (source.Length > 0 && char.IsLetter(source[0]))
+        if (source.Length == 0)
         {
-            source[0] = char.ToUpper(source[0], context.CultureInfo);
+            return CreateStringValue(source, input);
         }
 
-        return CreateStringValue(new string(source), input);
+        // Like Ruby's String#capitalize: the first character upper case, the rest lower case.
+        var first = char.ToUpper(source[0], context.CultureInfo);
+        var rest = source.Substring(1).ToLower(context.CultureInfo);
+
+        return CreateStringValue(first + rest, input);
     }
 
     public static ValueTask<FluidValue> Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
