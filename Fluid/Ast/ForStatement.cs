@@ -146,6 +146,14 @@ public sealed class ForStatement : TagStatement, ISourceable
             }
         }
 
+        // Liquid starts a negative offset at the first item, but still ends the slice at offset + limit.
+        var itemsBeforeFirst = 0;
+        if (startIndex < 0)
+        {
+            itemsBeforeFirst = -startIndex;
+            startIndex = 0;
+        }
+
         var count = Math.Max(0, source.Count - startIndex);
 
         if (Limit is not null)
@@ -155,7 +163,7 @@ public sealed class ForStatement : TagStatement, ISourceable
             // Limit can be negative
             if (limit >= 0)
             {
-                count = Math.Min(count, limit);
+                count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));
             }
             else
             {
@@ -386,6 +394,16 @@ public sealed class ForStatement : TagStatement, ISourceable
             }
         }
 
+        context.WriteLine("var itemsBeforeFirst = 0;");
+        context.WriteLine("if (startIndex < 0)");
+        context.WriteLine("{");
+        using (context.Indent())
+        {
+            context.WriteLine("itemsBeforeFirst = -startIndex;");
+            context.WriteLine("startIndex = 0;");
+        }
+        context.WriteLine("}");
+
         context.WriteLine("var count = Math.Max(0, source.Count - startIndex);");
         if (Limit is not null)
         {
@@ -395,7 +413,7 @@ public sealed class ForStatement : TagStatement, ISourceable
             context.WriteLine("{");
             using (context.Indent())
             {
-                context.WriteLine("count = Math.Min(count, limit);");
+                context.WriteLine("count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));");
             }
             context.WriteLine("}");
             context.WriteLine("else");

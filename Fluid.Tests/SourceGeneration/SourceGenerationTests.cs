@@ -268,6 +268,20 @@ public class SourceGenerationTests
         Assert.Equal(expected, enumerableWriter.ToString());
     }
 
+    [Theory]
+    [InlineData("{% for i in items offset: -1 %}{{ i }},{% endfor %}", "0,1,2,3,4,")]
+    [InlineData("{% for i in items offset: -1 limit: 2 %}{{ i }},{% endfor %}", "0,")]
+    [InlineData("{% for i in items offset: -3 limit: 2 %}{{ i }},{% else %}none{% endfor %}", "none")]
+    public async Task GeneratedLoops_StartANegativeOffsetAtTheFirstItem(string liquid, string expected)
+    {
+        var instance = CompileTemplate(liquid, new MockFileProvider());
+
+        var writer = new StringWriter();
+        await instance.RenderAsync(writer, HtmlEncoder.Default, new TemplateContext().SetValue("items", new[] { 0, 1, 2, 3, 4 }));
+
+        Assert.Equal(expected, writer.ToString());
+    }
+
     private static IFluidTemplate CompileTemplate(string liquid, MockFileProvider provider)
     {
         var template = new FluidParser().Parse(liquid);
