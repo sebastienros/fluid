@@ -38,8 +38,8 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 - [Command line tool](#command-line-tool)
 - [NativeAOT and trimming](#nativeaot-and-trimming)
 - [Source generator](#source-generator)
-- [Allow-listing object members](#allow-listing-object-members)
-- [Handling undefined variables](#handling-undefined-variables)
+- [Custom member accessors]([#custom-member-accessors)
+- [Handling undefined variables](#handling-undefined-values)
 - [Execution limits](#execution-limits)
 - [Converting CLR types](#converting-clr-types)
 - [Encoding](#encoding)
@@ -54,6 +54,7 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 - [Functions](#functions)
 - [Visiting and altering a template](#visiting-and-altering-a-template)
 - [Performance](#performance)
+- [Testing / Verification](#testing--verification)
 - [Used by](#used-by)
 
 <br>
@@ -2116,6 +2117,10 @@ WarmupCount=3
 ```
 
 </details>
+
+## Testing / Verification
+
+When creating tests, or questioning the results of a template, please verify the official Ruby implementation by using their showcase website: https://shopify.dev/docs/api/liquid
 
 ## Used by
 
