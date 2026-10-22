@@ -596,7 +596,8 @@ public static class StringFilters
         long resultLength = 0;
 
         var length = source.Length;
-        for (var i = 0; i < length && chunks.Count < size;)
+        var i = 0;
+        while (i < length && chunks.Count < size)
         {
             while (i < length && char.IsWhiteSpace(source[i]))
             {
@@ -623,11 +624,21 @@ public static class StringFilters
             chunks.Add(source.Substring(start, chunkLength));
         }
 
-        if (chunks.Count >= size)
+        // Only text left after the last kept word means words were dropped. Otherwise, like
+        // Liquid, the input is returned as it is, whitespace included.
+        while (i < length && char.IsWhiteSpace(source[i]))
         {
-            context.EnsureOutputSize(resultLength + ellipsis.Length);
-            chunks[^1] += ellipsis;
+            context.IncrementSteps();
+            i++;
         }
+
+        if (i == length)
+        {
+            return input;
+        }
+
+        context.EnsureOutputSize(resultLength + ellipsis.Length);
+        chunks[^1] += ellipsis;
 
         return CreateStringValue(string.Join(" ", chunks), input);
     }
