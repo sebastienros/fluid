@@ -55,6 +55,14 @@ public sealed class TableRowStatement : TagStatement
             startIndex = await EvaluateIntegerArgumentAsync("offset", Offset, context);
         }
 
+        // Liquid starts a negative offset at the first item, but still ends the slice at offset + limit.
+        var itemsBeforeFirst = 0;
+        if (startIndex < 0)
+        {
+            itemsBeforeFirst = -startIndex;
+            startIndex = 0;
+        }
+
         var count = Math.Max(0, source.Count - startIndex);
 
         if (Limit is not null)
@@ -62,7 +70,7 @@ public sealed class TableRowStatement : TagStatement
             var limit = await EvaluateIntegerArgumentAsync("limit", Limit, context);
             if (limit >= 0)
             {
-                count = Math.Min(count, limit);
+                count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));
             }
         }
 
