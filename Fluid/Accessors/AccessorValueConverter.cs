@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using Fluid.Values;
 
 namespace Fluid.Accessors;
@@ -27,8 +28,8 @@ internal static class AccessorValueConverter
             TypeCode.Int32 => NumberValue.Create((int)value),
             TypeCode.UInt64 => NumberValue.Create((ulong)value),
             TypeCode.Int64 => NumberValue.Create((long)value),
-            TypeCode.Double => NumberValue.Create((decimal)(double)value),
-            TypeCode.Single => NumberValue.Create((decimal)(float)value),
+            TypeCode.Double => NumberConversions.CreateNumber((double)value),
+            TypeCode.Single => NumberConversions.CreateNumber((float)value),
             TypeCode.Decimal => NumberValue.Create((decimal)value),
             TypeCode.DateTime => DateTimeValue.Create((DateTime)value),
             TypeCode.String => StringValue.Create((string)value),

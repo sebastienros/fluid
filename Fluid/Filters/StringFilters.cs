@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using Fluid.Values;
 
 namespace Fluid.Filters;
@@ -280,7 +281,7 @@ public static class StringFilters
             throw new ArgumentException("Slice: offset argument is an invalid number");
         }
 
-        var requestedStartIndex = Convert.ToInt32(firstArgument.ToNumberValue());
+        var requestedStartIndex = NumberConversions.ToInt32Saturated(firstArgument.ToNumberValue());
         var requestedLength = 1;
 
         if (arguments.Count > 1)
@@ -290,7 +291,7 @@ public static class StringFilters
             {
                 throw new ArgumentException("Slice: length argument is not a number");
             }
-            requestedLength = secondArgument.IsNil() ? 1 : Convert.ToInt32(secondArgument.ToNumberValue());
+            requestedLength = secondArgument.IsNil() ? 1 : NumberConversions.ToInt32Saturated(secondArgument.ToNumberValue());
         }
 
         if (input.Type == FluidValues.Array)
@@ -325,7 +326,7 @@ public static class StringFilters
             }
 
             var startIndex = requestedStartIndex < 0 ? Math.Max(sourceStringLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceStringLength);
-            var length = requestedLength + startIndex > sourceStringLength
+            var length = requestedLength > sourceStringLength - startIndex
                 ? sourceStringLength - startIndex
                 : requestedLength;
 
@@ -511,7 +512,7 @@ public static class StringFilters
         }
         else
         {
-            length = Convert.ToInt32(firstArg.ToNumberValue());
+            length = NumberConversions.ToInt32Saturated(firstArg.ToNumberValue());
         }
 
         if (inputStr.Length <= length)
@@ -567,7 +568,7 @@ public static class StringFilters
         }
         else
         {
-            size = Convert.ToInt32(firstArg.ToNumberValue());
+            size = NumberConversions.ToInt32Saturated(firstArg.ToNumberValue());
         }
 
         if (size <= 0)

@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using Fluid.Values;
 using System.Runtime.CompilerServices;
 using Fluid.SourceGeneration;
@@ -25,8 +26,8 @@ public sealed class RangeExpression : Expression, ISourceable
 
         if (startTask.IsCompletedSuccessfully && endTask.IsCompletedSuccessfully)
         {
-            start = Convert.ToInt32(startTask.Result.ToNumberValue());
-            end = Convert.ToInt32(endTask.Result.ToNumberValue());
+            start = ToBound(startTask.Result);
+            end = ToBound(endTask.Result);
 
             return BuildArray(start, end, context);
         }
@@ -36,12 +37,33 @@ public sealed class RangeExpression : Expression, ISourceable
         }
     }
 
+    /// <summary>
+    /// Converts a bound of a range, which has to fit in an int since the range is materialized.
+    /// </summary>
+    internal static int ToBound(FluidValue value)
+    {
+        var number = value.ToNumberValue();
+
+        if (number >= int.MaxValue + 0.5m || number <= int.MinValue - 0.5m)
+        {
+            throw new LiquidException($"The range bound {value.ToStringValue()} is out of range.");
+        }
+
+        return Convert.ToInt32(number);
+    }
+
     internal static ArrayValue BuildArray(int start, int end, TemplateContext context)
     {
         // If end < start, we create an empty array
         var length = end < start ? 0L : (long)end - start + 1;
         context.EnsureCollectionSize(length);
-        var list = new FluidValue[checked((int)length)];
+
+        if (length > int.MaxValue)
+        {
+            throw new LiquidException($"The range ({start}..{end}) has too many items.");
+        }
+
+        var list = new FluidValue[length];
 
         for (var i = 0; i < list.Length; i++)
         {
@@ -58,8 +80,8 @@ public sealed class RangeExpression : Expression, ISourceable
         ValueTask<FluidValue> rightTask,
         TemplateContext context)
     {
-        var start = Convert.ToInt32((await leftTask).ToNumberValue());
-        var end = Convert.ToInt32((await rightTask).ToNumberValue());
+        var start = ToBound(await leftTask);
+        var end = ToBound(await rightTask);
 
         return BuildArray(start, end, context);
     }

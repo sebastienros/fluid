@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
@@ -193,9 +194,9 @@ public abstract class FluidValue : IEquatable<FluidValue>
             case TypeCode.Int64:
                 return NumberValue.Create((long)value);
             case TypeCode.Double:
-                return NumberValue.Create((decimal)(double)value);
+                return NumberConversions.CreateNumber((double)value);
             case TypeCode.Single:
-                return NumberValue.Create((decimal)(float)value);
+                return NumberConversions.CreateNumber((float)value);
             case TypeCode.Decimal:
                 return NumberValue.Create((decimal)value);
             case TypeCode.Empty:

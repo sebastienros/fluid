@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using Fluid.Values;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -40,8 +41,8 @@ public sealed class PropertyInfoAccessor : MemberAccessor
             TypeCode.Int32 => (int x, TemplateOptions _) => NumberValue.Create(x),
             TypeCode.UInt64 => (ulong x, TemplateOptions _) => NumberValue.Create(x),
             TypeCode.Int64 => (long x, TemplateOptions _) => NumberValue.Create(x),
-            TypeCode.Double => (double x, TemplateOptions _) => NumberValue.Create((decimal)x),
-            TypeCode.Single => (float x, TemplateOptions _) => NumberValue.Create((decimal)x),
+            TypeCode.Double => (double x, TemplateOptions _) => NumberConversions.CreateNumber(x),
+            TypeCode.Single => (float x, TemplateOptions _) => NumberConversions.CreateNumber(x),
             TypeCode.Decimal => (decimal x, TemplateOptions _) => NumberValue.Create(x),
             TypeCode.DateTime => (DateTime x, TemplateOptions _) => DateTimeValue.Create(x),
             TypeCode.String => (string x, TemplateOptions _) => StringValue.Create(x),
