@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using System.Text;
 using System.Globalization;
 using System.Text.Encodings.Web;
@@ -92,7 +93,12 @@ public sealed class ArrayValue : FluidValue, IFluidArray
 
     public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
     {
-        var i = (int)index.ToNumberValue();
+        // An index too large for an int can't name an item.
+        if (!NumberConversions.TryTruncateToInt32(index.ToNumberValue(), out var i))
+        {
+            return NilValue.Instance;
+        }
+
 
         if (i < 0)
         {

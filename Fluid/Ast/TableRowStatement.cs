@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using Fluid.Values;
 using System.Globalization;
 using System.Text.Encodings.Web;
@@ -155,8 +156,8 @@ public sealed class TableRowStatement : TagStatement
 
         if (value.Type == FluidValues.Number)
         {
-            // Use (int) cast to truncate toward zero like Ruby's to_i
-            return (int)value.ToNumberValue();
+            // Truncate toward zero like Ruby's to_i. A value too large for an int means all or none.
+            return NumberConversions.ToInt32Saturated(decimal.Truncate(value.ToNumberValue()));
         }
 
         if (value.Type == FluidValues.String)
