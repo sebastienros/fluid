@@ -23,13 +23,24 @@ public sealed class CycleStatement : Statement, ISourceable
         if (Group is null)
         {
             // Shopify Liquid quirk: unnamed cycles that include lookups have independent counters per call site,
-            // even if they evaluate to the same values. Literal-only unnamed cycles share counters.
-            var hasLookup = Values.Any(static e => e is MemberExpression);
+            // even if they evaluate to the same values. Literal-only unnamed cycles with the same values share counters.
+            var literalsOnly = Values.All(static e => e is LiteralExpression);
 
-            _unnamedKey = hasLookup
-                ? "cycle_stmt_" + RuntimeHelpers.GetHashCode(this)
-                : "cycle_" + string.Join(",", Values.Select(static e => e.ToString()));
+            _unnamedKey = literalsOnly
+                ? "cycle_" + string.Join(",", Values.Select(static e => GetLiteralKey(((LiteralExpression)e).Value)))
+                : "cycle_stmt_" + RuntimeHelpers.GetHashCode(this);
         }
+    }
+
+    // Strings are quoted, so that 'a,b' differs from 'a', 'b' and '1' differs from 1.
+    private static string GetLiteralKey(FluidValue value)
+    {
+        if (value is StringValue)
+        {
+            return "'" + value.ToStringValue().Replace("'", "''") + "'";
+        }
+
+        return value.ToStringValue();
     }
 
     public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)

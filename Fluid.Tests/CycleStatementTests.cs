@@ -153,6 +153,6 @@ public class CycleStatementTests
             await group2.WriteToAsync(sw, HtmlEncoder.Default, context);
         }
 
-        Assert.Equal("aecdbfaecd", sw.ToString());
+        Assert.Equal("adbecfadbe", sw.ToString());
     }
 }
