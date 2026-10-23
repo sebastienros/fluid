@@ -167,7 +167,7 @@ public class TemplateContext
 
         if (MaxSteps > 0 && _steps++ > MaxSteps)
         {
-            ExceptionHelper.ThrowMaximumRecursionException();
+            ExceptionHelper.ThrowMaximumStepsException(MaxSteps);
         }
     }
 
