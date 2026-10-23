@@ -41,7 +41,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         Reversed = reversed;
         Else = elseStatement;
 
-        OffsetIsContinue = Offset is MemberExpression l && l.Segments.Count == 1 && ((IdentifierSegment)l.Segments[0]).Identifier == "continue";
+        OffsetIsContinue = Offset is MemberExpression l && l.Segments.Count == 1 && l.Segments[0] is IdentifierSegment { Identifier: "continue" };
         _continueSourceLiteral = source is MemberExpression m
             ? string.Join(".", m.Segments.Select(s => (s as IdentifierSegment)?.Identifier).Where(s => s != null))
             : null;
