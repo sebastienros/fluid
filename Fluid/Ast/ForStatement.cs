@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using Fluid.Values;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -92,8 +93,8 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             // The name of a range with computed bounds is only known now. Evaluate the bounds once,
             // for both the name and the items, instead of once for each.
-            var from = Convert.ToInt32((await _rangeSource.From.EvaluateAsync(context)).ToNumberValue());
-            var to = Convert.ToInt32((await _rangeSource.To.EvaluateAsync(context)).ToNumberValue());
+            var from = RangeExpression.ToBound(await _rangeSource.From.EvaluateAsync(context));
+            var to = RangeExpression.ToBound(await _rangeSource.To.EvaluateAsync(context));
 
             evaluatedSource = RangeExpression.BuildArray(from, to, context);
             rangeSourceLiteral = BuildRangeSourceLiteral(from, to);
@@ -145,6 +146,14 @@ public sealed class ForStatement : TagStatement, ISourceable
             }
         }
 
+        // Liquid starts a negative offset at the first item, but still ends the slice at offset + limit.
+        var itemsBeforeFirst = 0;
+        if (startIndex < 0)
+        {
+            itemsBeforeFirst = -startIndex;
+            startIndex = 0;
+        }
+
         var count = Math.Max(0, source.Count - startIndex);
 
         if (Limit is not null)
@@ -154,7 +163,7 @@ public sealed class ForStatement : TagStatement, ISourceable
             // Limit can be negative
             if (limit >= 0)
             {
-                count = Math.Min(count, limit);
+                count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));
             }
             else
             {
@@ -300,7 +309,7 @@ public sealed class ForStatement : TagStatement, ISourceable
 
         if (value.Type == FluidValues.Number)
         {
-            return Convert.ToInt32(value.ToNumberValue());
+            return NumberConversions.ToInt32Saturated(value.ToNumberValue());
         }
 
         if (value.Type == FluidValues.String)
@@ -385,6 +394,16 @@ public sealed class ForStatement : TagStatement, ISourceable
             }
         }
 
+        context.WriteLine("var itemsBeforeFirst = 0;");
+        context.WriteLine("if (startIndex < 0)");
+        context.WriteLine("{");
+        using (context.Indent())
+        {
+            context.WriteLine("itemsBeforeFirst = -startIndex;");
+            context.WriteLine("startIndex = 0;");
+        }
+        context.WriteLine("}");
+
         context.WriteLine("var count = Math.Max(0, source.Count - startIndex);");
         if (Limit is not null)
         {
@@ -394,7 +413,7 @@ public sealed class ForStatement : TagStatement, ISourceable
             context.WriteLine("{");
             using (context.Indent())
             {
-                context.WriteLine("count = Math.Min(count, limit);");
+                context.WriteLine("count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));");
             }
             context.WriteLine("}");
             context.WriteLine("else");

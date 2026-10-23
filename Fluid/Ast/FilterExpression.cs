@@ -11,13 +11,16 @@ public sealed class FilterExpression : Expression, ISourceable
         Input = input;
         Name = name;
         Parameters = parameters ?? [];
+        _canBeCached = Parameters.All(x => x.Expression is LiteralExpression);
     }
 
     public Expression Input { get; }
     public string Name { get; }
     public IReadOnlyList<FilterArgument> Parameters { get; }
 
-    private volatile bool _canBeCached = true;
+    // Whether the arguments can be cached: when all the parameters are literals. Decided once, as concurrent first
+    // renders must not race on it (a render could cache arguments that are not literals for all the others).
+    private readonly bool _canBeCached;
     private volatile FilterArguments _cachedArguments;
 
     // Monomorphic inline cache of the resolved filter. Filters are looked up by name in a dictionary
@@ -80,12 +83,10 @@ public sealed class FilterExpression : Expression, ISourceable
 
     private async ValueTask<FluidValue> EvaluateWithArgumentsAsync(TemplateContext context)
     {
-        // The arguments can be cached if all the parameters are LiteralExpression
         var arguments = new FilterArguments();
 
         foreach (var parameter in Parameters)
         {
-            _canBeCached = _canBeCached && parameter.Expression is LiteralExpression;
             arguments.Add(parameter.Name, await parameter.Expression.EvaluateAsync(context));
         }
 

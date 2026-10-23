@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using Fluid.Values;
 
 namespace Fluid.Filters;
@@ -55,14 +56,18 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("capitalize", expected: 0, arguments);
 
-        var source = input.ToStringValue().ToCharArray();
+        var source = input.ToStringValue();
 
-        if (source.Length > 0 && char.IsLetter(source[0]))
+        if (source.Length == 0)
         {
-            source[0] = char.ToUpper(source[0], context.CultureInfo);
+            return CreateStringValue(source, input);
         }
 
-        return CreateStringValue(new string(source), input);
+        // Like Ruby's String#capitalize: the first character upper case, the rest lower case.
+        var first = char.ToUpper(source[0], context.CultureInfo);
+        var rest = source.Substring(1).ToLower(context.CultureInfo);
+
+        return CreateStringValue(first + rest, input);
     }
 
     public static ValueTask<FluidValue> Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -280,7 +285,7 @@ public static class StringFilters
             throw new ArgumentException("Slice: offset argument is an invalid number");
         }
 
-        var requestedStartIndex = Convert.ToInt32(firstArgument.ToNumberValue());
+        var requestedStartIndex = NumberConversions.ToInt32Saturated(firstArgument.ToNumberValue());
         var requestedLength = 1;
 
         if (arguments.Count > 1)
@@ -290,7 +295,7 @@ public static class StringFilters
             {
                 throw new ArgumentException("Slice: length argument is not a number");
             }
-            requestedLength = secondArgument.IsNil() ? 1 : Convert.ToInt32(secondArgument.ToNumberValue());
+            requestedLength = secondArgument.IsNil() ? 1 : NumberConversions.ToInt32Saturated(secondArgument.ToNumberValue());
         }
 
         if (input.Type == FluidValues.Array)
@@ -325,7 +330,7 @@ public static class StringFilters
             }
 
             var startIndex = requestedStartIndex < 0 ? Math.Max(sourceStringLength + requestedStartIndex, 0) : Math.Min(requestedStartIndex, sourceStringLength);
-            var length = requestedLength + startIndex > sourceStringLength
+            var length = requestedLength > sourceStringLength - startIndex
                 ? sourceStringLength - startIndex
                 : requestedLength;
 
@@ -511,7 +516,7 @@ public static class StringFilters
         }
         else
         {
-            length = Convert.ToInt32(firstArg.ToNumberValue());
+            length = NumberConversions.ToInt32Saturated(firstArg.ToNumberValue());
         }
 
         if (inputStr.Length <= length)
@@ -567,7 +572,7 @@ public static class StringFilters
         }
         else
         {
-            size = Convert.ToInt32(firstArg.ToNumberValue());
+            size = NumberConversions.ToInt32Saturated(firstArg.ToNumberValue());
         }
 
         if (size <= 0)
@@ -596,7 +601,8 @@ public static class StringFilters
         long resultLength = 0;
 
         var length = source.Length;
-        for (var i = 0; i < length && chunks.Count < size;)
+        var i = 0;
+        while (i < length && chunks.Count < size)
         {
             while (i < length && char.IsWhiteSpace(source[i]))
             {
@@ -623,11 +629,21 @@ public static class StringFilters
             chunks.Add(source.Substring(start, chunkLength));
         }
 
-        if (chunks.Count >= size)
+        // Only text left after the last kept word means words were dropped. Otherwise, like
+        // Liquid, the input is returned as it is, whitespace included.
+        while (i < length && char.IsWhiteSpace(source[i]))
         {
-            context.EnsureOutputSize(resultLength + ellipsis.Length);
-            chunks[^1] += ellipsis;
+            context.IncrementSteps();
+            i++;
         }
+
+        if (i == length)
+        {
+            return input;
+        }
+
+        context.EnsureOutputSize(resultLength + ellipsis.Length);
+        chunks[^1] += ellipsis;
 
         return CreateStringValue(string.Join(" ", chunks), input);
     }

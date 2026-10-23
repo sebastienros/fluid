@@ -211,14 +211,10 @@ public abstract class ObjectValueBase : FluidValue
         var members = name.Split(MemberSeparators);
         var target = Value;
         FluidValue value = null;
-        List<string> segments = context.Undefined is not null ? [] : null;
 
-        foreach (var prop in members)
+        for (var i = 0; i < members.Length; i++)
         {
-            if (context.Undefined is not null)
-            {
-                segments.Add(prop);
-            }
+            var prop = members[i];
 
             if (target == null)
             {
@@ -229,13 +225,14 @@ public abstract class ObjectValueBase : FluidValue
 
             if (accessor == null)
             {
+                // The path up to and including the member that wasn't found.
                 if (context.Options.StrictVariables)
                 {
-                    throw new FluidException($"Undefined variable '{string.Join(".", segments)}'");
+                    throw new FluidException($"Undefined variable '{string.Join(".", members, 0, i + 1)}'");
                 }
                 if (context.Undefined is not null)
                 {
-                    return await context.Undefined.Invoke(string.Join(".", segments), target.GetType());
+                    return await context.Undefined.Invoke(string.Join(".", members, 0, i + 1), target.GetType());
                 }
                 return UndefinedValue.Instance;
             }
