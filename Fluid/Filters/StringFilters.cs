@@ -99,7 +99,6 @@ public static class StringFilters
         long resultLength = value.Length;
         for (var i = 0; i < value.Length; i++)
         {
-            context.IncrementSteps();
             if (value[i] == '\n')
             {
                 resultLength += 6;
@@ -231,7 +230,6 @@ public static class StringFilters
             var index = 0;
             while ((index = value.IndexOf(oldValue, index, StringComparison.Ordinal)) >= 0)
             {
-                context.IncrementSteps();
                 occurrences++;
                 index += oldValue.Length;
             }
@@ -399,7 +397,6 @@ public static class StringFilters
 
             for (var i = 0; i < stringInput.Length; i++)
             {
-                context.IncrementSteps();
                 strings[i] = stringInput[i].ToString();
             }
         }
@@ -411,7 +408,6 @@ public static class StringFilters
 
             for (var i = 0; i < stringInput.Length; i++)
             {
-                context.IncrementSteps();
                 if (char.IsWhiteSpace(stringInput[i]))
                 {
                     if (start != -1)
@@ -441,7 +437,6 @@ public static class StringFilters
             var index = 0;
             while ((index = stringInput.IndexOf(separator, index, StringComparison.Ordinal)) >= 0)
             {
-                context.IncrementSteps();
                 parts++;
                 context.EnsureCollectionSize(parts);
                 index += separator.Length;
@@ -454,7 +449,6 @@ public static class StringFilters
         var values = new FluidValue[strings.Length];
         for (var i = 0; i < strings.Length; i++)
         {
-            context.IncrementSteps();
             values[i] = StringValue.Create(strings[i]);
         }
 
@@ -606,7 +600,6 @@ public static class StringFilters
         {
             while (i < length && char.IsWhiteSpace(source[i]))
             {
-                context.IncrementSteps();
                 i++;
             }
 
@@ -618,7 +611,6 @@ public static class StringFilters
             var start = i;
             while (i < length && !char.IsWhiteSpace(source[i]))
             {
-                context.IncrementSteps();
                 i++;
             }
 
@@ -633,7 +625,6 @@ public static class StringFilters
         // Liquid, the input is returned as it is, whitespace included.
         while (i < length && char.IsWhiteSpace(source[i]))
         {
-            context.IncrementSteps();
             i++;
         }
 
