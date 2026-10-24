@@ -272,6 +272,7 @@ public class SourceGenerationTests
     [InlineData("{% for i in items offset: -1 %}{{ i }},{% endfor %}", "0,1,2,3,4,")]
     [InlineData("{% for i in items offset: -1 limit: 2 %}{{ i }},{% endfor %}", "0,")]
     [InlineData("{% for i in items offset: -3 limit: 2 %}{{ i }},{% else %}none{% endfor %}", "none")]
+    [InlineData("{% for i in items offset: -1 limit: 2 %}{{ i }},{% endfor %}|{% for i in items offset: continue %}{{ i }},{% endfor %}", "0,|0,1,2,3,4,")]
     public async Task GeneratedLoops_StartANegativeOffsetAtTheFirstItem(string liquid, string expected)
     {
         var instance = CompileTemplate(liquid, new MockFileProvider());
