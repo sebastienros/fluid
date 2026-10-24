@@ -112,6 +112,12 @@ public static class NumberFilters
         var divisor = divisorValue.ToNumberValue();
         var result = inputValue % divisor;
 
+        // Liquid uses Ruby's modulo, whose result has the sign of the divisor: -7 % 3 is 2.
+        if (result != 0 && (result < 0) != (divisor < 0))
+        {
+            result += divisor;
+        }
+
         // Preserve decimal format when divisor has decimal places or is from a string with decimal
         // Only a zero result needs it, so the divisor isn't inspected for any other.
         if (result == 0 && HasDecimalPoint(divisorValue))
