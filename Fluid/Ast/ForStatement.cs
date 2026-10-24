@@ -259,9 +259,11 @@ public sealed class ForStatement : TagStatement, ISourceable
             }
 
             // Persist the continue cursor to the end of the intended slice, regardless of early break.
+            // Like Liquid, it is the offset as written plus the items in the slice, so a negative
+            // offset counts from where it was, not from the first item.
             if (continueOffsetLiteral != null)
             {
-                context.SetValue(continueOffsetLiteral, endIndexExclusive);
+                context.SetValue(continueOffsetLiteral, endIndexExclusive - itemsBeforeFirst);
             }
         }
 
@@ -491,7 +493,7 @@ public sealed class ForStatement : TagStatement, ISourceable
                 context.WriteLine("if (completion == Completion.Break) break;");
             }
             context.WriteLine("}");
-            context.WriteLine($"{context.ContextName}.SetValue({continueOffsetLiteralName}, endIndexExclusive);");
+            context.WriteLine($"{context.ContextName}.SetValue({continueOffsetLiteralName}, endIndexExclusive - itemsBeforeFirst);");
         }
         context.WriteLine("}");
         context.WriteLine("finally");
