@@ -449,14 +449,74 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("escape", expected: 0, arguments);
 
-        return StringValue.Create(WebUtility.HtmlEncode(input.ToStringValue()), encode: false);
+        return StringValue.Create(EscapeHtml(input.ToStringValue(), once: false), encode: false);
     }
 
     public static ValueTask<FluidValue> EscapeOnce(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("escape", expected: 0, arguments);
 
-        return StringValue.Create(WebUtility.HtmlEncode(WebUtility.HtmlDecode(input.ToStringValue())), encode: false);
+        return StringValue.Create(EscapeHtml(input.ToStringValue(), once: true), encode: false);
+    }
+
+    // Like Liquid (CGI.escapeHTML), only & < > " and ' are escaped; other characters, such as
+    // accented letters, are kept as they are. With once, an & that starts a named or decimal
+    // character reference is kept, as Liquid's /&(?!([a-zA-Z]+|(#\d+));)/ does.
+    private static string EscapeHtml(string value, bool once)
+    {
+        var first = value.AsSpan().IndexOfAny("&<>\"'".AsSpan());
+        if (first < 0)
+        {
+            return value;
+        }
+
+        var result = value.Length < 200
+            ? new ValueStringBuilder(stackalloc char[256])
+            : new ValueStringBuilder(value.Length + 16);
+
+        result.Append(value.AsSpan(0, first));
+
+        for (var i = first; i < value.Length; i++)
+        {
+            var c = value[i];
+            switch (c)
+            {
+                case '&' when !once || !IsCharacterReference(value.AsSpan(i + 1)):
+                    result.Append("&amp;");
+                    break;
+                case '<':
+                    result.Append("&lt;");
+                    break;
+                case '>':
+                    result.Append("&gt;");
+                    break;
+                case '"':
+                    result.Append("&quot;");
+                    break;
+                case '\'':
+                    result.Append("&#39;");
+                    break;
+                default:
+                    result.Append(c);
+                    break;
+            }
+        }
+
+        return result.ToString();
+    }
+
+    private static bool IsCharacterReference(ReadOnlySpan<char> value)
+    {
+        var numeric = value.Length > 0 && value[0] == '#';
+        var start = numeric ? 1 : 0;
+        var i = start;
+
+        while (i < value.Length && (numeric ? value[i] is >= '0' and <= '9' : value[i] is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z')))
+        {
+            i++;
+        }
+
+        return i > start && i < value.Length && value[i] == ';';
     }
 
     public static ValueTask<FluidValue> ChangeTimeZone(FluidValue input, FilterArguments arguments, TemplateContext context)
