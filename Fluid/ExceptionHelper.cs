@@ -105,6 +105,13 @@ internal static class ExceptionHelper
 
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ThrowMaximumStepsException(int maximum)
+    {
+        throw new InvalidOperationException($"The maximum number of {maximum} steps has been reached.");
+    }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static void ThrowMaximumOutputSizeException(int maximum)
     {
         throw new InvalidOperationException($"The maximum template output size of {maximum} characters has been reached.");
