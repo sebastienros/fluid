@@ -48,7 +48,10 @@ public sealed class MacroStatement : TagStatement, ISourceable
                 // Apply all arguments from the invocation.
                 // As soon as a named argument is used, all subsequent ones need a name too.
 
-                for (var i = 0; i < args.Count; i++)
+                // Arguments beyond the ones the macro declares are ignored, as in source-generated templates.
+                var count = Math.Min(args.Count, Arguments.Count);
+
+                for (var i = 0; i < count; i++)
                 {
                     var positionalName = Arguments[i].Name;
 
