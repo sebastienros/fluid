@@ -282,6 +282,35 @@ public class SourceGenerationTests
         Assert.Equal(expected, writer.ToString());
     }
 
+    [Theory]
+    [InlineData("{% for i in (1..99999999999) %}{% endfor %}", "The range bound 99999999999 is out of range.")]
+    [InlineData("{% assign r = (-99999999999..1) %}", "The range bound -99999999999 is out of range.")]
+    [InlineData("{% for i in (-2000000000..2000000000) %}{% endfor %}", "The range (-2000000000..2000000000) has too many items.")]
+    public async Task GeneratedRanges_ThrowALiquidExceptionWhenTooLarge(string liquid, string message)
+    {
+        var instance = CompileTemplate(liquid, new MockFileProvider());
+
+        var exception = await Assert.ThrowsAsync<LiquidException>(
+            () => instance.RenderAsync(new StringWriter(), HtmlEncoder.Default, new TemplateContext()).AsTask());
+
+        Assert.Equal(message, exception.Message);
+    }
+
+    [Theory]
+    [InlineData("{% for i in (1..3) %}{{ i }}{% endfor %}", "123")]
+    [InlineData("{% for i in (first..last) %}{{ i }}{% endfor %}", "234")]
+    [InlineData("{% assign r = (3..1) %}[{{ r | size }}]", "[0]")]
+    public async Task GeneratedRanges_RenderLikeTheInterpreter(string liquid, string expected)
+    {
+        var instance = CompileTemplate(liquid, new MockFileProvider());
+        var context = new TemplateContext().SetValue("first", 2).SetValue("last", 4);
+
+        var writer = new StringWriter();
+        await instance.RenderAsync(writer, HtmlEncoder.Default, context);
+
+        Assert.Equal(expected, writer.ToString());
+    }
+
     private static IFluidTemplate CompileTemplate(string liquid, MockFileProvider provider)
     {
         var template = new FluidParser().Parse(liquid);
