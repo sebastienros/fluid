@@ -384,12 +384,6 @@ public static class StringFilters
             return ArrayValue.Empty;
         }
 
-        // Golden Liquid: if the input exactly matches the separator, the result is empty
-        if (separator.Length != 0 && stringInput == separator)
-        {
-            return ArrayValue.Empty;
-        }
-
         if (separator == "")
         {
             context.EnsureCollectionSize(stringInput.Length);
@@ -443,6 +437,18 @@ public static class StringFilters
             }
 
             strings = stringInput.Split(separator, StringSplitOptions.None);
+
+            // Like Ruby's String#split, drop trailing empty strings: "a,b," gives ["a", "b"].
+            var length = strings.Length;
+            while (length > 0 && strings[length - 1].Length == 0)
+            {
+                length--;
+            }
+
+            if (length < strings.Length)
+            {
+                Array.Resize(ref strings, length);
+            }
         }
 
         context.EnsureCollectionSize(strings.Length);
