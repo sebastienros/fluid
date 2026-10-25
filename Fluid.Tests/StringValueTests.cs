@@ -98,4 +98,13 @@ public class StringValueTests
             await template.RenderAsync(context, HtmlEncoder.Default));
         Assert.True(Assert.IsType<StringValue>(StringValue.Create(text)).Encode);
     }
+
+    [Theory]
+    [InlineData("{% assign s = 'hello' %}{{ s.first }}|{{ s.last }}|{{ s['first'] }}", "h|o|")]
+    [InlineData("{% assign s = '' %}[{{ s.first }}][{{ s.last }}]", "[][]")]
+    public void ShouldReturnFirstAndLastCharactersOfStrings(string source, string expected)
+    {
+        Assert.True(new FluidParser().TryParse(source, out var template, out var errors), errors);
+        Assert.Equal(expected, template.Render());
+    }
 }
