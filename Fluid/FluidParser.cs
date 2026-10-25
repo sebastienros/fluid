@@ -336,8 +336,10 @@ public class FluidParser
         var ContinueTag = TagEnd.Then<Statement>(x => new ContinueStatement()).ElseError("Invalid 'continue' tag");
         ContinueTag.Name = "ContinueTag";
 
+        var CommentBody = new CommentBodyParser(AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true));
+
         var CommentTag = TagEnd
-                    .SkipAnd(AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true))
+                    .SkipAnd(CommentBody)
                     .AndSkip(CreateTag("endcomment").ElseError($"'{{% endcomment %}}' was expected"))
                     .Then<Statement>(x => new CommentStatement(x))
                     .ElseError("Invalid 'comment' tag")
@@ -499,7 +501,7 @@ public class FluidParser
 
         // Parser for optional comment tags only (used between case blocks)
         var OptionalComment = TagStart.SkipAnd(Terms.Text("comment")).SkipAnd(TagEnd)
-            .SkipAnd(AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true))
+            .SkipAnd(CommentBody)
             .AndSkip(CreateTag("endcomment"))
             .Then<Statement>(x => new CommentStatement(x));
 

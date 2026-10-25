@@ -32,15 +32,6 @@ public class GoldenLiquidTests
         ["id:tags_liquid_single_line_comment_tag"] = "Skipping: `{% liquid %}` comment/endcomment special-case parsing not implemented",
         ["id:tags_liquid_multi-line_comment_tag"] = "Skipping: `{% liquid %}` multi-line comment/endcomment special-case parsing not implemented",
 
-        // Nested comment blocks and special comment parsing: Shopify Liquid tracks comment nesting depth
-        // and handles raw/incomplete/malformed tags specially inside comments. Implementing this would
-        // require a custom comment parser with state tracking.
-        ["id:tags_comment_nested_comment_blocks"] = "Nested comment block tracking not implemented",
-        ["id:tags_comment_nested_comment_blocks_with_nested_tags"] = "Nested comment block tracking not implemented",
-        ["id:tags_comment_raw_inside_comment_block"] = "Raw tag handling inside comment blocks not implemented",
-        ["id:tags_comment_incomplete_tags_are_not_parsed"] = "Incomplete tag detection inside comments not implemented",
-        ["id:tags_comment_malformed_tags_are_not_parsed"] = "Malformed tag detection inside comments not implemented",
-
         // Inline comment multi-line enforcement: Shopify requires # on each line for multi-line inline comments
         ["id:tags_inline_comment_enforce_leading_hash"] = "Multi-line inline comment validation not implemented",
 
