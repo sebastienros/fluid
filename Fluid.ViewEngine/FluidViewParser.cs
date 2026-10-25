@@ -73,7 +73,7 @@ public class FluidViewParser : FluidParser
 
         RegisterExpressionTag("layout", static async (pathExpression, output, encoder, context) =>
         {
-            var layoutPath = (await pathExpression.EvaluateAsync(context)).ToStringValue();
+            var layoutPath = (await pathExpression.EvaluateAsync(context)).ToStringValue(context);
 
             // If '' is assigned, remove any Layout, for instance to override one defined in a _viewstart
             if (string.IsNullOrEmpty(layoutPath))
@@ -98,7 +98,7 @@ public class FluidViewParser : FluidParser
 
         RegisterParserTag("partial", partialExpression, static async (partialStatement, output, encoder, context) =>
         {
-            var relativePartialPath = (await partialStatement.Expression.EvaluateAsync(context)).ToStringValue();
+            var relativePartialPath = (await partialStatement.Expression.EvaluateAsync(context)).ToStringValue(context);
 
             context.IncrementSteps();
 

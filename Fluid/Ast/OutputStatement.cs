@@ -24,7 +24,7 @@ public sealed class OutputStatement : Statement, ISourceable
             TemplateContext ctx)
         {
             var value = await t;
-            await value.WriteToAsync(o, enc, ctx.CultureInfo);
+            await value.WriteToAsync(o, enc, ctx);
             return Completion.Normal;
         }
 
@@ -33,7 +33,7 @@ public sealed class OutputStatement : Statement, ISourceable
         var task = Expression.EvaluateAsync(context);
         if (task.IsCompletedSuccessfully)
         {
-            var valueTask = task.Result.WriteToAsync(output, encoder, context.CultureInfo);
+            var valueTask = task.Result.WriteToAsync(output, encoder, context);
 
             if (valueTask.IsCompletedSuccessfully)
             {
@@ -65,7 +65,7 @@ public sealed class OutputStatement : Statement, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine($"var valueTask = task.Result.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName}.CultureInfo);");
+            context.WriteLine($"var valueTask = task.Result.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
             context.WriteLine("if (valueTask.IsCompletedSuccessfully)");
             context.WriteLine("{");
             using (context.Indent())
@@ -94,7 +94,7 @@ public sealed class OutputStatement : Statement, ISourceable
         using (context.Indent())
         {
             context.WriteLine("var value = await t;");
-            context.WriteLine("await value.WriteToAsync(w, enc, ctx.CultureInfo);");
+            context.WriteLine("await value.WriteToAsync(w, enc, ctx);");
             context.WriteLine("return Completion.Normal;");
         }
         context.WriteLine("}");

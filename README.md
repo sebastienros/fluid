@@ -397,7 +397,7 @@ Here is the `downcase` filter as defined in Fluid.
 ```csharp
 public static ValueTask<FluidValue> Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
 {
-    return StringValue.Create(input.ToStringValue().ToLower());
+    return StringValue.Create(input.ToStringValue(context).ToLower());
 }
 ```
 
@@ -1243,7 +1243,7 @@ parser.RegisterExpressionBlock("repeat", async (value, statements, writer, encod
 {
     var fluidValue = await value.EvaluateAsync(context);
 
-    for (var i = 0; i < fluidValue.ToNumberValue(); i++)
+    for (var i = 0; i < fluidValue.ToNumberValue(context); i++)
     {
         await statements.RenderStatementsAsync(writer, encoder, context);
     }
@@ -1305,7 +1305,7 @@ namespace Fluid.Tests.Extensibility
             var leftValue = await Left.EvaluateAsync(context);
             var rightValue = await Right.EvaluateAsync(context);
 
-            return BooleanValue.Create(leftValue.ToBooleanValue() ^ rightValue.ToBooleanValue());
+            return BooleanValue.Create(leftValue.ToBooleanValue(context) ^ rightValue.ToBooleanValue(context));
         }
     }
 }
@@ -1751,8 +1751,8 @@ A `FunctionValue` type is also available to provide out-of-the-box functions. It
 ```c#
 var lowercase = FunctionValue.Create((args, context) =>
 {
-  var firstArg = args.At(0).ToStringValue();
-  var lower = firstArg.ToLowerCase();
+  var firstArg = args.At(0).ToStringValue(context);
+  var lower = firstArg.ToLowerInvariant();
   return StringValue.Create(lower);
 });
 

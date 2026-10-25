@@ -48,7 +48,7 @@ internal sealed class EnumerableObjectValue : ObjectValueBase, IFluidArray
     public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
     {
         // An index too large for an int can't name an item.
-        if (!NumberConversions.TryTruncateToInt32(index.ToNumberValue(), out var i))
+        if (!NumberConversions.TryTruncateToInt32(index.ToNumberValue(context), out var i))
         {
             return NilValue.Instance;
         }
@@ -64,9 +64,9 @@ internal sealed class EnumerableObjectValue : ObjectValueBase, IFluidArray
             : NilValue.Instance;
     }
 
-    public override bool ToBooleanValue() => true;
+    public override bool ToBooleanValue(TemplateContext context) => true;
 
-    public override decimal ToNumberValue() => Values.Count;
+    public override decimal ToNumberValue(TemplateContext context) => Values.Count;
 
     public override bool Equals(FluidValue other)
     {
@@ -103,12 +103,12 @@ internal sealed class EnumerableObjectValue : ObjectValueBase, IFluidArray
         return other.Type == FluidValues.Empty && Values.Count == 0;
     }
 
-    public override string ToStringValue()
+    public override string ToStringValue(TemplateContext context)
     {
-        return ArrayValue.ConcatStringValues(Values);
+        return ArrayValue.ConcatStringValues(Values, context);
     }
 
-    public override object ToObjectValue() => Value;
+    public override object ToObjectValue(TemplateContext context) => Value;
 
     public override bool Equals(object obj) => obj is FluidValue other && Equals(other);
 
@@ -125,20 +125,11 @@ internal sealed class EnumerableObjectValue : ObjectValueBase, IFluidArray
         return hashCode.ToHashCode();
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        AssertWriteToParameters(output, encoder, cultureInfo);
+        AssertWriteToParameters(output, encoder, context);
 
-        return ArrayValue.WriteItemsAsync(this, Values, output, encoder, cultureInfo);
-    }
-
-    public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
-    {
-        foreach (var value in Values)
-        {
-            context?.IncrementSteps();
-            yield return value;
-        }
+        return ArrayValue.WriteItemsAsync(this, Values, output, encoder, context);
     }
 
     public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)

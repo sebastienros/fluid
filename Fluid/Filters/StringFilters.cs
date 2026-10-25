@@ -46,8 +46,8 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("append", expected: 1, arguments);
 
-        var left = input.ToStringValue();
-        var right = arguments.At(0).ToStringValue();
+        var left = input.ToStringValue(context);
+        var right = arguments.At(0).ToStringValue(context);
         context.EnsureOutputSize((long)left.Length + right.Length);
         return CreateStringValue(left + right, input);
     }
@@ -56,7 +56,7 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("capitalize", expected: 0, arguments);
 
-        var source = input.ToStringValue();
+        var source = input.ToStringValue(context);
 
         if (source.Length == 0)
         {
@@ -74,28 +74,28 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("downcase", expected: 0, arguments);
 
-        return CreateStringValue(input.ToStringValue().ToLower(context.CultureInfo), input);
+        return CreateStringValue(input.ToStringValue(context).ToLower(context.CultureInfo), input);
     }
 
     public static ValueTask<FluidValue> LStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("lstrip", expected: 0, arguments);
 
-        return CreateStringValue(input.ToStringValue().TrimStart(), input);
+        return CreateStringValue(input.ToStringValue(context).TrimStart(), input);
     }
 
     public static ValueTask<FluidValue> RStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("rstrip", expected: 0, arguments);
 
-        return CreateStringValue(input.ToStringValue().TrimEnd(), input);
+        return CreateStringValue(input.ToStringValue(context).TrimEnd(), input);
     }
 
     public static ValueTask<FluidValue> NewLineToBr(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("newline_to_br", expected: 0, arguments);
 
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         long resultLength = value.Length;
         for (var i = 0; i < value.Length; i++)
         {
@@ -121,8 +121,8 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("prepend", expected: 1, arguments);
 
-        var left = arguments.At(0).ToStringValue();
-        var right = input.ToStringValue();
+        var left = arguments.At(0).ToStringValue(context);
+        var right = input.ToStringValue(context);
         context.EnsureOutputSize((long)left.Length + right.Length);
         return CreateStringValue(left + right, input);
     }
@@ -131,8 +131,8 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("remove_first", expected: 1, arguments);
 
-        var remove = arguments.At(0).ToStringValue();
-        var value = input.ToStringValue();
+        var remove = arguments.At(0).ToStringValue(context);
+        var value = input.ToStringValue(context);
 
         var index = value.IndexOf(remove, StringComparison.Ordinal);
 
@@ -148,22 +148,22 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("remove", expected: 1, arguments);
 
-        var argument = arguments.At(0).ToStringValue();
+        var argument = arguments.At(0).ToStringValue(context);
 
         if (String.IsNullOrEmpty(argument))
         {
-            return CreateStringValue(input.ToStringValue(), input);
+            return CreateStringValue(input.ToStringValue(context), input);
         }
 
-        return CreateStringValue(input.ToStringValue().Replace(argument, ""), input);
+        return CreateStringValue(input.ToStringValue(context).Replace(argument, ""), input);
     }
 
     public static ValueTask<FluidValue> RemoveLast(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("remove_last", expected: 1, arguments);
 
-        var remove = arguments.At(0).ToStringValue();
-        var value = input.ToStringValue();
+        var remove = arguments.At(0).ToStringValue(context);
+        var value = input.ToStringValue(context);
 
         var index = value.LastIndexOf(remove, StringComparison.Ordinal);
 
@@ -179,9 +179,9 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("replace_first", min: 1, max: 2, arguments);
 
-        var value = input.ToStringValue();
-        var remove = arguments.At(0).ToStringValue();
-        var insert = arguments.Count > 1 ? arguments.At(1).ToStringValue() : "";
+        var value = input.ToStringValue(context);
+        var remove = arguments.At(0).ToStringValue(context);
+        var insert = arguments.Count > 1 ? arguments.At(1).ToStringValue(context) : "";
 
         var index = value.IndexOf(remove, StringComparison.Ordinal);
 
@@ -199,9 +199,9 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("replace", min: 1, max: 2, arguments);
 
-        var value = input.ToStringValue();
-        var oldValue = arguments.At(0).ToStringValue();
-        var newValue = arguments.At(1).ToStringValue();
+        var value = input.ToStringValue(context);
+        var oldValue = arguments.At(0).ToStringValue(context);
+        var newValue = arguments.At(1).ToStringValue(context);
 
         // .NET throws when oldValue is empty, but Liquid treats this as an insertion between every character.
         if (oldValue.Length == 0)
@@ -245,13 +245,13 @@ public static class StringFilters
         LiquidException.ThrowFilterArgumentsCount("replace_last", expected: 2, arguments);
 
 #if NET6_0_OR_GREATER
-        var valueString = input.ToStringValue();
-        var removeString = arguments.At(0).ToStringValue();
+        var valueString = input.ToStringValue(context);
+        var removeString = arguments.At(0).ToStringValue(context);
         var value = valueString.AsSpan();
         var remove = removeString.AsSpan();
 #else
-        var value = input.ToStringValue();
-        var remove = arguments.At(0).ToStringValue();
+        var value = input.ToStringValue(context);
+        var remove = arguments.At(0).ToStringValue(context);
 #endif
         var index = value.LastIndexOf(remove, StringComparison.Ordinal);
 
@@ -261,11 +261,11 @@ public static class StringFilters
         }
 
 #if NET6_0_OR_GREATER
-        var insert = arguments.At(1).ToStringValue();
+        var insert = arguments.At(1).ToStringValue(context);
         context.EnsureOutputSize((long)value.Length - remove.Length + insert.Length);
         var concat = string.Concat(value.Slice(0, index), insert, value.Slice(index + remove.Length));
 #else
-        var insert = arguments.At(1).ToStringValue();
+        var insert = arguments.At(1).ToStringValue(context);
         context.EnsureOutputSize((long)value.Length - remove.Length + insert.Length);
         var concat = string.Concat(value.Substring(0, index), insert, value.Substring(index + remove.Length));
 #endif
@@ -278,22 +278,22 @@ public static class StringFilters
 
         var firstArgument = arguments.At(0);
 
-        if (!firstArgument.IsInteger())
+        if (!firstArgument.IsInteger(context))
         {
             throw new ArgumentException("Slice: offset argument is an invalid number");
         }
 
-        var requestedStartIndex = NumberConversions.ToInt32Saturated(firstArgument.ToNumberValue());
+        var requestedStartIndex = NumberConversions.ToInt32Saturated(firstArgument.ToNumberValue(context));
         var requestedLength = 1;
 
         if (arguments.Count > 1)
         {
             var secondArgument = arguments.At(1);
-            if (!secondArgument.IsNil() && !secondArgument.IsInteger())
+            if (!secondArgument.IsNil() && !secondArgument.IsInteger(context))
             {
                 throw new ArgumentException("Slice: length argument is not a number");
             }
-            requestedLength = secondArgument.IsNil() ? 1 : NumberConversions.ToInt32Saturated(secondArgument.ToNumberValue());
+            requestedLength = secondArgument.IsNil() ? 1 : NumberConversions.ToInt32Saturated(secondArgument.ToNumberValue(context));
         }
 
         if (input.Type == FluidValues.Array)
@@ -318,7 +318,7 @@ public static class StringFilters
                 return BlankValue.Instance;
             }
 
-            var sourceString = input.ToStringValue();
+            var sourceString = input.ToStringValue(context);
 
             var sourceStringLength = sourceString.Length;
 
@@ -375,8 +375,8 @@ public static class StringFilters
 
         string[] strings;
 
-        var stringInput = input.ToStringValue();
-        var separator = arguments.At(0).ToStringValue();
+        var stringInput = input.ToStringValue(context);
+        var separator = arguments.At(0).ToStringValue(context);
 
         // Golden Liquid: splitting an empty string yields an empty array
         if (stringInput.Length == 0)
@@ -465,14 +465,14 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("strip", expected: 0, arguments);
 
-        return CreateStringValue(input.ToStringValue().Trim(), input);
+        return CreateStringValue(input.ToStringValue(context).Trim(), input);
     }
 
     public static ValueTask<FluidValue> StripNewLines(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("strip_newlines", expected: 0, arguments);
 
-        var result = input.ToStringValue();
+        var result = input.ToStringValue(context);
 
         if (result.Contains('\r'))
         {
@@ -495,7 +495,7 @@ public static class StringFilters
             return StringValue.Empty;
         }
 
-        var inputStr = input.ToStringValue();
+        var inputStr = input.ToStringValue(context);
 
         if (inputStr == null)
         {
@@ -516,7 +516,7 @@ public static class StringFilters
         }
         else
         {
-            length = NumberConversions.ToInt32Saturated(firstArg.ToNumberValue());
+            length = NumberConversions.ToInt32Saturated(firstArg.ToNumberValue(context));
         }
 
         if (inputStr.Length <= length)
@@ -538,7 +538,7 @@ public static class StringFilters
         }
         else
         {
-            ellipsisStr = secondArg.ToStringValue();
+            ellipsisStr = secondArg.ToStringValue(context);
         }
 
         var l = Math.Max(0, length - ellipsisStr.Length);
@@ -556,7 +556,7 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("truncate_words", min: 0, max: 2, arguments);
 
-        var source = input.ToStringValue();
+        var source = input.ToStringValue(context);
 
         // If first argument is not provided, use default of 15
         // If first argument is nil (undefined variable), throw error per Golden Liquid spec
@@ -572,7 +572,7 @@ public static class StringFilters
         }
         else
         {
-            size = NumberConversions.ToInt32Saturated(firstArg.ToNumberValue());
+            size = NumberConversions.ToInt32Saturated(firstArg.ToNumberValue(context));
         }
 
         if (size <= 0)
@@ -594,7 +594,7 @@ public static class StringFilters
         }
         else
         {
-            ellipsis = secondArg.ToStringValue();
+            ellipsis = secondArg.ToStringValue(context);
         }
 
         var chunks = new List<string>();
@@ -649,6 +649,6 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("upcase", expected: 0, arguments);
 
-        return CreateStringValue(input.ToStringValue().ToUpper(context.CultureInfo), input);
+        return CreateStringValue(input.ToStringValue(context).ToUpper(context.CultureInfo), input);
     }
 }

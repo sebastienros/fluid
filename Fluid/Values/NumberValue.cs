@@ -67,7 +67,8 @@ public sealed class NumberValue : FluidValue, IEquatable<NumberValue>
             return false;
         }
 
-        return _value == other.ToNumberValue();
+        // Built-in values are compared directly, any other value of the same kind compares itself.
+        return other is NumberValue n ? _value == n._value : other.Equals(this);
     }
 
     public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
@@ -110,24 +111,34 @@ public sealed class NumberValue : FluidValue, IEquatable<NumberValue>
         return Create((number >> bitIndex) & 1L);
     }
 
-    public override bool ToBooleanValue()
+    public override bool ToBooleanValue(TemplateContext context)
     {
         return true;
     }
 
-    public override decimal ToNumberValue()
+    /// <summary>
+    /// Gets the number, which doesn't depend on a <see cref="TemplateContext"/>.
+    /// </summary>
+    internal decimal Value => _value;
+
+    /// <summary>
+    /// Gets the number as written in a template, or in the invariant culture.
+    /// </summary>
+    internal string InvariantText => _text ?? _value.ToString(CultureInfo.InvariantCulture);
+
+    public override decimal ToNumberValue(TemplateContext context)
     {
         return _value;
     }
 
-    public override string ToStringValue()
+    public override string ToStringValue(TemplateContext context)
     {
-        return _text ?? _value.ToString(CultureInfo.InvariantCulture);
+        return InvariantText;
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        AssertWriteToParameters(output, encoder, cultureInfo);
+        AssertWriteToParameters(output, encoder, context);
 
         if (_text is not null)
         {
@@ -156,7 +167,7 @@ public sealed class NumberValue : FluidValue, IEquatable<NumberValue>
         }
 
         Span<char> scratch = stackalloc char[64];
-        if (_value.TryFormat(scratch, out var written, format, cultureInfo))
+        if (_value.TryFormat(scratch, out var written, format, context.CultureInfo))
         {
             output.Write(encoder, scratch.Slice(0, written));
             return default;
@@ -169,7 +180,7 @@ public sealed class NumberValue : FluidValue, IEquatable<NumberValue>
         try
         {
             var span = rented.AsSpan();
-            if (_value.TryFormat(span, out written, format, cultureInfo))
+            if (_value.TryFormat(span, out written, format, context.CultureInfo))
             {
                 output.Write(encoder, span.Slice(0, written));
                 return default;
@@ -178,11 +189,11 @@ public sealed class NumberValue : FluidValue, IEquatable<NumberValue>
             // Last resort: string formatting.
             if (format.IsEmpty)
             {
-                output.Write(encoder, _value.ToString(cultureInfo));
+                output.Write(encoder, _value.ToString(context.CultureInfo));
             }
             else
             {
-                output.Write(encoder, _value.ToString(format.ToString(), cultureInfo));
+                output.Write(encoder, _value.ToString(format.ToString(), context.CultureInfo));
             }
         }
         finally
@@ -193,29 +204,24 @@ public sealed class NumberValue : FluidValue, IEquatable<NumberValue>
         if (scale == 0)
         {
             // If the scale is zero, we can write the value directly without formatting
-            output.Write(encoder, _value.ToString(cultureInfo));
+            output.Write(encoder, _value.ToString(context.CultureInfo));
         }
         else if (decimal.Truncate(_value) == _value)
         {
             // If the decimal part is zero(s), write one only
-            output.Write(encoder, _value.ToString("F1", cultureInfo));
+            output.Write(encoder, _value.ToString("F1", context.CultureInfo));
         }
         else
         {
             // For larger scales, we use G29 to avoid trailing zeros
-            output.Write(encoder, _value.ToString("G29", cultureInfo));
+            output.Write(encoder, _value.ToString("G29", context.CultureInfo));
         }
 #endif
 
         return default;
     }
 
-    public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
-    {
-        return [this];
-    }
-
-    public override object ToObjectValue()
+    public override object ToObjectValue(TemplateContext context)
     {
         return _value;
     }

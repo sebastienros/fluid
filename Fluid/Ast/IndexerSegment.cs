@@ -34,7 +34,7 @@ public sealed class IndexerSegment : MemberSegment
     {
         // Evaluate the expression to get the key
         var key = await Expression.EvaluateAsync(context);
-        var keyString = key.ToStringValue();
+        var keyString = key.ToStringValue(context);
 
         // Look up the variable in scope
         var value = context.LocalScope.GetValue(keyString);

@@ -34,7 +34,7 @@ public static class ArrayFilters
             return input;
         }
 
-        var separator = arguments.Count > 0 ? arguments.At(0).ToStringValue() : " ";
+        var separator = arguments.Count > 0 ? arguments.At(0).ToStringValue(context) : " ";
 
         var list = new List<string>();
         long outputLength = 0;
@@ -53,7 +53,7 @@ public static class ArrayFilters
                 continue;
             }
 
-            var s = item.ToStringValue();
+            var s = item.ToStringValue(context);
 
             // Skip non-string items that stringify to empty (e.g., empty arrays)
             if (s.Length == 0 && item.Type != FluidValues.String)
@@ -101,7 +101,7 @@ public static class ArrayFilters
 
         if (input.Type == FluidValues.String)
         {
-            var value = input.ToStringValue();
+            var value = input.ToStringValue(context);
             return value.Length == 0 ? StringValue.Empty : StringValue.Create(value[0].ToString());
         }
 
@@ -130,7 +130,7 @@ public static class ArrayFilters
 
         if (input.Type == FluidValues.String)
         {
-            var value = input.ToStringValue();
+            var value = input.ToStringValue(context);
             return value.Length == 0 ? StringValue.Empty : StringValue.Create(value[^1].ToString());
         }
 
@@ -174,11 +174,7 @@ public static class ArrayFilters
 
         if (input.Type == FluidValues.Array)
         {
-            foreach (var item in Flatten(input, context))
-            {
-                context.EnsureCollectionSize((long)concat.Count + 1);
-                concat.Add(item);
-            }
+            await FlattenAsync(input, concat, context);
         }
         else if (input.Type != FluidValues.Nil)
         {
@@ -188,11 +184,7 @@ public static class ArrayFilters
 
         if (arg.Type == FluidValues.Array)
         {
-            foreach (var item in Flatten(arg, context))
-            {
-                context.EnsureCollectionSize((long)concat.Count + 1);
-                concat.Add(item);
-            }
+            await FlattenAsync(arg, concat, context);
         }
         else
         {
@@ -202,20 +194,18 @@ public static class ArrayFilters
         return ArrayValue.Create(concat);
 
         // Nested arrays are flattened. Any other item, including nil and hashes, is kept as one item.
-        static IEnumerable<FluidValue> Flatten(FluidValue value, TemplateContext context)
+        static async ValueTask FlattenAsync(FluidValue value, List<FluidValue> target, TemplateContext context)
         {
-            foreach (var item in value.Enumerate(context))
+            await foreach (var item in value.EnumerateAsync(context))
             {
-                if (item.Type != FluidValues.Array)
+                if (item.Type == FluidValues.Array)
                 {
-                    yield return item;
+                    await FlattenAsync(item, target, context);
                     continue;
                 }
 
-                foreach (var subItem in Flatten(item, context))
-                {
-                    yield return subItem;
-                }
+                context.EnsureCollectionSize((long)target.Count + 1);
+                target.Add(item);
             }
         }
     }
@@ -286,7 +276,7 @@ public static class ArrayFilters
         }
         else if (input.Type == FluidValues.String)
         {
-            var value = input.ToStringValue();
+            var value = input.ToStringValue(context);
             if (String.IsNullOrEmpty(value))
             {
                 return StringValue.Empty;
@@ -333,7 +323,7 @@ public static class ArrayFilters
             return ArrayValue.Empty;
         }
 
-        var memberName = member.ToStringValue();
+        var memberName = member.ToStringValue(context);
 
         // Second argument is the value to match
         var targetValue = arguments.At(1);
@@ -371,7 +361,7 @@ public static class ArrayFilters
     public static async ValueTask<FluidValue> Find(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         // First argument is the property name or substring to match
-        var member = arguments.At(0).ToStringValue();
+        var member = arguments.At(0).ToStringValue(context);
 
         // Second argument is the value to match (optional)
         var targetValue = arguments.At(1);
@@ -380,12 +370,12 @@ public static class ArrayFilters
         // Handle string input - check for substring match
         if (input.Type == FluidValues.String)
         {
-            var inputString = input.ToStringValue();
+            var inputString = input.ToStringValue(context);
 
             if (hasTargetValue)
             {
                 // When target value is specified, check if input contains both member and target as substrings
-                if (inputString.Contains(member) && inputString.Contains(targetValue.ToStringValue()))
+                if (inputString.Contains(member) && inputString.Contains(targetValue.ToStringValue(context)))
                 {
                     return input;
                 }
@@ -438,12 +428,12 @@ public static class ArrayFilters
 
             if (item.Type == FluidValues.String)
             {
-                var itemString = item.ToStringValue();
+                var itemString = item.ToStringValue(context);
 
                 if (hasTargetValue)
                 {
                     // For strings in array with target value, do exact match
-                    if (targetValue.Type == FluidValues.String && itemString == targetValue.ToStringValue())
+                    if (targetValue.Type == FluidValues.String && itemString == targetValue.ToStringValue(context))
                     {
                         return item;
                     }
@@ -485,7 +475,7 @@ public static class ArrayFilters
     public static async ValueTask<FluidValue> FindIndex(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         // First argument is the property name or substring to match
-        var member = arguments.At(0).ToStringValue();
+        var member = arguments.At(0).ToStringValue(context);
 
         // Second argument is the value to match (optional)
         var targetValue = arguments.At(1);
@@ -494,12 +484,12 @@ public static class ArrayFilters
         // Handle string input - check for substring match
         if (input.Type == FluidValues.String)
         {
-            var inputString = input.ToStringValue();
+            var inputString = input.ToStringValue(context);
 
             if (hasTargetValue)
             {
                 // When target value is specified, check if input contains both member and target as substrings
-                if (inputString.Contains(member) && inputString.Contains(targetValue.ToStringValue()))
+                if (inputString.Contains(member) && inputString.Contains(targetValue.ToStringValue(context)))
                 {
                     return NumberValue.Create(0);
                 }
@@ -554,12 +544,12 @@ public static class ArrayFilters
 
             if (item.Type == FluidValues.String)
             {
-                var itemString = item.ToStringValue();
+                var itemString = item.ToStringValue(context);
 
                 if (hasTargetValue)
                 {
                     // For strings in array with target value, do exact match
-                    if (targetValue.Type == FluidValues.String && itemString == targetValue.ToStringValue())
+                    if (targetValue.Type == FluidValues.String && itemString == targetValue.ToStringValue(context))
                     {
                         return NumberValue.Create(index);
                     }
@@ -615,7 +605,7 @@ public static class ArrayFilters
                 // When checking array with a string argument
                 if (firstArg.Type == FluidValues.String)
                 {
-                    var searchStr = firstArg.ToStringValue();
+                    var searchStr = firstArg.ToStringValue(context);
                     var hasNonString = false;
 
                     await foreach (var item in input.EnumerateAsync(context))
@@ -628,7 +618,7 @@ public static class ArrayFilters
 
                         if (item.Type == FluidValues.String)
                         {
-                            var itemStr = item.ToStringValue();
+                            var itemStr = item.ToStringValue(context);
 
                             // Check for substring match
                             if (itemStr.Contains(searchStr))
@@ -664,15 +654,15 @@ public static class ArrayFilters
             // For objects/hashes: check if key exists
             else if (input.Type == FluidValues.Object || input.Type == FluidValues.Dictionary)
             {
-                var key = firstArg.ToStringValue();
+                var key = firstArg.ToStringValue(context);
                 var value = await input.GetValueAsync(key, context);
                 return value.IsNil() ? BooleanValue.False : BooleanValue.True;
             }
             // For strings: check if substring exists
             else if (input.Type == FluidValues.String)
             {
-                var str = input.ToStringValue();
-                var search = firstArg.ToStringValue();
+                var str = input.ToStringValue(context);
+                var search = firstArg.ToStringValue(context);
                 return str.Contains(search) ? BooleanValue.True : BooleanValue.False;
             }
 
@@ -681,7 +671,7 @@ public static class ArrayFilters
         // Two arguments case: property name and value to match
         else
         {
-            var propertyName = firstArg.ToStringValue();
+            var propertyName = firstArg.ToStringValue(context);
             var targetValue = arguments.At(1);
 
             // For arrays: check if any item has property with matching value
@@ -745,7 +735,7 @@ public static class ArrayFilters
             return ArrayValue.Create([]);
         }
 
-        var memberStr = member.ToStringValue();
+        var memberStr = member.ToStringValue(context);
 
         // Second argument is the value to reject
         var targetValue = arguments.At(1);
@@ -844,7 +834,7 @@ public static class ArrayFilters
         // Special handling for string items: check substring match
         if (item.Type == FluidValues.String)
         {
-            var stringValue = item.ToStringValue();
+            var stringValue = item.ToStringValue(context);
             if (stringValue.Contains(memberStr))
             {
                 // Substring found - treat as truthy
@@ -904,7 +894,7 @@ public static class ArrayFilters
         // If argument is provided but is nil, treat as no argument
         if (arguments.Count > 0 && !arguments.At(0).IsNil())
         {
-            var member = arguments.At(0).ToStringValue();
+            var member = arguments.At(0).ToStringValue(context);
 
             var values = new List<KeyValuePair<FluidValue, FluidValue>>();
 
@@ -916,7 +906,7 @@ public static class ArrayFilters
             // Sort with case-sensitive comparison and numbers compared as numbers, placing items with missing keys at the end
             var orderedValues = values
                 .OrderBy(x => x.Value.IsNil() ? 1 : 0)
-                .ThenBy(x => x.Value, new LiquidSortComparer(caseSensitive: true, compareNumbersAsStrings: false))
+                .ThenBy(x => x.Value, new LiquidSortComparer(caseSensitive: true, compareNumbersAsStrings: false, context))
                 .Select(x => x.Key)
                 .ToArray();
 
@@ -941,7 +931,7 @@ public static class ArrayFilters
                 throw new InvalidOperationException("Cannot sort array with incompatible types");
             }
 
-            return ArrayValue.Create(values.OrderBy(x => x, new LiquidSortComparer(caseSensitive: true, compareNumbersAsStrings: false)).ToArray());
+            return ArrayValue.Create(values.OrderBy(x => x, new LiquidSortComparer(caseSensitive: true, compareNumbersAsStrings: false, context)).ToArray());
         }
     }
 
@@ -957,7 +947,7 @@ public static class ArrayFilters
         // If argument is provided but is nil, treat as no argument
         if (arguments.Count > 0 && !arguments.At(0).IsNil())
         {
-            var member = arguments.At(0).ToStringValue();
+            var member = arguments.At(0).ToStringValue(context);
 
             var values = new List<KeyValuePair<FluidValue, FluidValue>>();
 
@@ -969,7 +959,7 @@ public static class ArrayFilters
             // Sort with case-insensitive comparison, placing items with missing keys at the end
             var orderedValues = values
                 .OrderBy(x => x.Value.IsNil() ? 1 : 0)
-                .ThenBy(x => x.Value, new LiquidSortComparer(caseSensitive: false, compareNumbersAsStrings: true))
+                .ThenBy(x => x.Value, new LiquidSortComparer(caseSensitive: false, compareNumbersAsStrings: true, context))
                 .Select(x => x.Key)
                 .ToArray();
 
@@ -994,7 +984,7 @@ public static class ArrayFilters
                 throw new InvalidOperationException("Cannot sort array with incompatible types");
             }
 
-            return ArrayValue.Create(values.OrderBy(x => x, new LiquidSortComparer(caseSensitive: false, compareNumbersAsStrings: false)).ToArray());
+            return ArrayValue.Create(values.OrderBy(x => x, new LiquidSortComparer(caseSensitive: false, compareNumbersAsStrings: false, context)).ToArray());
         }
     }
 
@@ -1012,7 +1002,7 @@ public static class ArrayFilters
             return ArrayValue.Create(await input.EnumerateAsync(context).Distinct().ToArrayAsync());
         }
 
-        var property = arguments.At(0).ToStringValue();
+        var property = arguments.At(0).ToStringValue(context);
         var seen = new HashSet<FluidValue>();
         var result = new List<FluidValue>();
 
@@ -1048,8 +1038,8 @@ public static class ArrayFilters
                 case ObjectValue:
                 case DictionaryValue:
                     {
-                        var value = await item.GetValueAsync(member.ToStringValue(), context);
-                        sumList.Add(value.ToNumberValue());
+                        var value = await item.GetValueAsync(member.ToStringValue(context), context);
+                        sumList.Add(value.ToNumberValue(context));
                         break;
                     }
                 default:
@@ -1072,7 +1062,7 @@ public static class ArrayFilters
         {
             sum += item switch
             {
-                NumberValue or StringValue => item.ToNumberValue(),
+                NumberValue or StringValue => item.ToNumberValue(context),
                 _ when item.Type == FluidValues.Array => await SumItemsAsync(item, context),
                 _ => 0
             };
@@ -1086,11 +1076,13 @@ internal sealed class LiquidSortComparer : IComparer<FluidValue>
 {
     private readonly bool _caseSensitive;
     private readonly bool _compareNumbersAsStrings;
+    private readonly TemplateContext _context;
 
-    public LiquidSortComparer(bool caseSensitive, bool compareNumbersAsStrings)
+    public LiquidSortComparer(bool caseSensitive, bool compareNumbersAsStrings, TemplateContext context)
     {
         _caseSensitive = caseSensitive;
         _compareNumbersAsStrings = compareNumbersAsStrings;
+        _context = context;
     }
 
     public int Compare(FluidValue x, FluidValue y)
@@ -1103,14 +1095,14 @@ internal sealed class LiquidSortComparer : IComparer<FluidValue>
         // If both are numbers and we should compare them numerically
         if (!_compareNumbersAsStrings && x.Type == FluidValues.Number && y.Type == FluidValues.Number)
         {
-            var xNum = x.ToNumberValue();
-            var yNum = y.ToNumberValue();
+            var xNum = x.ToNumberValue(_context);
+            var yNum = y.ToNumberValue(_context);
             return xNum.CompareTo(yNum);
         }
 
         // Otherwise, compare as strings
-        var xStr = x.ToStringValue();
-        var yStr = y.ToStringValue();
+        var xStr = x.ToStringValue(_context);
+        var yStr = y.ToStringValue(_context);
 
         if (_caseSensitive)
         {

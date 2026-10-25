@@ -14,7 +14,7 @@ internal class ReplaceTwosVisitor : AstRewriter
 
     protected override Expression VisitLiteralExpression(LiteralExpression literalExpression)
     {
-        if (literalExpression.Value is NumberValue n && n.ToNumberValue() == 2)
+        if (literalExpression.Value is NumberValue n && n.ToNumberValue(new TemplateContext()) == 2)
         {
             return new LiteralExpression(_replacement);
         }

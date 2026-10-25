@@ -27,7 +27,7 @@ public sealed class FromStatement : Statement, ISourceable
 
     public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        var relativePath = GetTemplatePath((await Path.EvaluateAsync(context)).ToStringValue());
+        var relativePath = GetTemplatePath((await Path.EvaluateAsync(context)).ToStringValue(context));
 
         var loadedTemplate = await TemplateLoader.LoadAsync(Parser, relativePath, context, defaultFileExtension: null);
 

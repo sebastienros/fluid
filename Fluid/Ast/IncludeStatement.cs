@@ -31,7 +31,7 @@ public sealed class IncludeStatement : Statement, ISourceable
     {
         context.IncrementSteps();
 
-        var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
+        var relativePath = (await Path.EvaluateAsync(context)).ToStringValue(context);
         var loadedTemplate = await TemplateLoader.LoadAsync(
             Parser,
             relativePath,

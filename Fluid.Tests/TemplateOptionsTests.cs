@@ -101,7 +101,7 @@ public class TemplateOptionsTests
         Assert.True(options.Filters.TryGetValue("first", out _));
         Assert.False(options.Filters.TryGetValue("second", out _));
         Assert.Single(options.ValueConverters);
-        Assert.Equal("one", options.GlobalValues["g"].ToStringValue());
+        Assert.Equal("one", options.GlobalValues["g"].ToStringValue(new TemplateContext()));
 
         var template = _parser.Parse("{{ m.Name }}");
         Assert.Equal("one", template.Render(new TemplateContext(options).SetValue("m", new Model())));
@@ -164,8 +164,8 @@ public class TemplateOptionsTests
         // A context writes to its own scope and never to the shared global values.
         var context = new TemplateContext(options);
         context.SetValue("g", "changed");
-        Assert.Equal("one", options.GlobalValues["g"].ToStringValue());
-        Assert.Equal("one", new TemplateContext(options).GetValue("g").ToStringValue());
+        Assert.Equal("one", options.GlobalValues["g"].ToStringValue(context));
+        Assert.Equal("one", new TemplateContext(options).GetValue("g").ToStringValue(context));
     }
 
     [Fact]
@@ -239,8 +239,8 @@ public class TemplateOptionsTests
         Assert.True(derived.Filters.TryGetValue("second", out _));
         Assert.Single(original.ValueConverters);
         Assert.Equal(2, derived.ValueConverters.Count);
-        Assert.Equal("one", original.GlobalValues["g"].ToStringValue());
-        Assert.Equal("two", derived.GlobalValues["g"].ToStringValue());
+        Assert.Equal("one", original.GlobalValues["g"].ToStringValue(new TemplateContext()));
+        Assert.Equal("two", derived.GlobalValues["g"].ToStringValue(new TemplateContext()));
 
         var template = _parser.Parse("{{ m.Name }}");
         Assert.Equal("original", template.Render(new TemplateContext(original).SetValue("m", new Model())));

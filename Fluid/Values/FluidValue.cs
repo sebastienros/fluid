@@ -14,7 +14,7 @@ namespace Fluid.Values;
 public abstract class FluidValue : IEquatable<FluidValue>
 #pragma warning restore CA1067
 {
-    public virtual ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public virtual ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
         return default;
     }
@@ -30,54 +30,22 @@ public abstract class FluidValue : IEquatable<FluidValue>
     private static HashSet<Type> _plainObjectTypeCache = [];
 
     [Conditional("DEBUG")]
-    protected static void AssertWriteToParameters(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    protected static void AssertWriteToParameters(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(encoder);
-        ArgumentNullException.ThrowIfNull(cultureInfo);
+        ArgumentNullException.ThrowIfNull(context);
     }
 
     public abstract bool Equals(FluidValue other);
 
-    [Obsolete("Use ToBooleanValue(TemplateContext) instead.")]
-    public abstract bool ToBooleanValue();
+    public abstract bool ToBooleanValue(TemplateContext context);
 
-    [Obsolete("Use ToNumberValue(TemplateContext) instead.")]
-    public abstract decimal ToNumberValue();
+    public abstract decimal ToNumberValue(TemplateContext context);
 
-    [Obsolete("Use ToStringValue(TemplateContext) instead.")]
-    public abstract string ToStringValue();
+    public abstract string ToStringValue(TemplateContext context);
 
-    [Obsolete("Use ToObjectValue(TemplateContext) instead.")]
-    public abstract object ToObjectValue();
-
-    public virtual bool ToBooleanValue(TemplateContext context)
-    {
-#pragma warning disable CS0618 // Type or member is obsolete
-        return ToBooleanValue();
-#pragma warning restore CS0618 // Type or member is obsolete
-    }
-
-    public virtual decimal ToNumberValue(TemplateContext context)
-    {
-#pragma warning disable CS0618 // Type or member is obsolete
-        return ToNumberValue();
-#pragma warning restore CS0618 // Type or member is obsolete
-    }
-
-    public virtual string ToStringValue(TemplateContext context)
-    {
-#pragma warning disable CS0618 // Type or member is obsolete
-        return ToStringValue();
-#pragma warning restore CS0618 // Type or member is obsolete
-    }
-
-    public virtual object ToObjectValue(TemplateContext context)
-    {
-#pragma warning disable CS0618 // Type or member is obsolete
-        return ToObjectValue();
-#pragma warning restore CS0618 // Type or member is obsolete
-    }
+    public abstract object ToObjectValue(TemplateContext context);
 
     public virtual ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
     {
@@ -101,28 +69,21 @@ public abstract class FluidValue : IEquatable<FluidValue>
         return false;
     }
 
-    public bool IsInteger()
+    public bool IsInteger(TemplateContext context)
     {
         // Maps to https://github.com/Shopify/liquid/blob/1feaa6381300d56e2c71b49ad8fee0d4b625147b/lib/liquid/utils.rb#L38
 
         if (Type == FluidValues.Number)
         {
-            return NumberValue.GetScale(ToNumberValue()) == 0;
+            return NumberValue.GetScale(ToNumberValue(context)) == 0;
         }
 
-        if (IsNil())
-        {
-            return false;
-        }
+        return !IsNil() && IsIntegerString(ToStringValue(context));
+    }
 
-        var s = ToStringValue();
-
-        if (String.IsNullOrWhiteSpace(s))
-        {
-            return false;
-        }
-
-        return int.TryParse(s, out var _);
+    private static bool IsIntegerString(string s)
+    {
+        return !String.IsNullOrWhiteSpace(s) && int.TryParse(s, out var _);
     }
 
     public static FluidValue Create(object value, TemplateOptions options)
@@ -375,13 +336,6 @@ public abstract class FluidValue : IEquatable<FluidValue>
         };
     }
 
-    [Obsolete("Use ContainsAsync(FluidValue, TemplateContext) instead.")]
-    public virtual bool Contains(FluidValue value)
-    {
-        // Used by the 'contains' keyword
-        return ContainsAsync(value, null).GetAwaiter().GetResult();
-    }
-
     public virtual ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
     {
         // Used by the 'contains' keyword
@@ -392,12 +346,6 @@ public abstract class FluidValue : IEquatable<FluidValue>
     {
         await Task.CompletedTask;
         yield break;
-    }
-
-    [Obsolete("Use EnumerateAsync instead")]
-    public virtual IEnumerable<FluidValue> Enumerate(TemplateContext context)
-    {
-        return EnumerateAsync(context).ToEnumerable();
     }
 
     public static implicit operator ValueTask<FluidValue>(FluidValue value)

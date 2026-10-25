@@ -93,8 +93,8 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             // The name of a range with computed bounds is only known now. Evaluate the bounds once,
             // for both the name and the items, instead of once for each.
-            var from = RangeExpression.ToBound(await _rangeSource.From.EvaluateAsync(context));
-            var to = RangeExpression.ToBound(await _rangeSource.To.EvaluateAsync(context));
+            var from = RangeExpression.ToBound(await _rangeSource.From.EvaluateAsync(context), context);
+            var to = RangeExpression.ToBound(await _rangeSource.To.EvaluateAsync(context), context);
 
             evaluatedSource = RangeExpression.BuildArray(from, to, context);
             rangeSourceLiteral = BuildRangeSourceLiteral(from, to);
@@ -106,7 +106,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
 
         // Golden Liquid: empty strings are treated as empty collections
-        if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue()))
+        if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue(context)))
         {
             if (Else != null)
             {
@@ -138,7 +138,7 @@ public sealed class ForStatement : TagStatement, ISourceable
             {
                 startIndex = continueOffsetLiteral is null
                     ? 0
-                    : (int)context.GetValue(continueOffsetLiteral).ToNumberValue();
+                    : (int)context.GetValue(continueOffsetLiteral).ToNumberValue(context);
             }
             else
             {
@@ -293,7 +293,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
 
         // Left to the render when out of range, so that it fails there like any other range does.
-        var value = number.ToNumberValue();
+        var value = number.Value;
         if (value <= int.MinValue || value >= int.MaxValue)
         {
             return false;
@@ -309,12 +309,12 @@ public sealed class ForStatement : TagStatement, ISourceable
 
         if (value.Type == FluidValues.Number)
         {
-            return NumberConversions.ToInt32Saturated(value.ToNumberValue());
+            return NumberConversions.ToInt32Saturated(value.ToNumberValue(context));
         }
 
         if (value.Type == FluidValues.String)
         {
-            var s = value.ToStringValue().Trim();
+            var s = value.ToStringValue(context).Trim();
             if (int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
             {
                 return parsed;
@@ -344,7 +344,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             var fromExpr = context.GetExpressionMethodName(range.From);
             var toExpr = context.GetExpressionMethodName(range.To);
-            context.WriteLine($"var {continueOffsetLiteralName} = \"for_continue_{Identifier}-(\" + global::Fluid.Ast.RangeExpression.GetBound(await {fromExpr}({context.ContextName})).ToString(CultureInfo.InvariantCulture) + \"..\" + global::Fluid.Ast.RangeExpression.GetBound(await {toExpr}({context.ContextName})).ToString(CultureInfo.InvariantCulture) + \")\";");
+            context.WriteLine($"var {continueOffsetLiteralName} = \"for_continue_{Identifier}-(\" + global::Fluid.Ast.RangeExpression.GetBound(await {fromExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \"..\" + global::Fluid.Ast.RangeExpression.GetBound(await {toExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \")\";");
         }
         else
         {

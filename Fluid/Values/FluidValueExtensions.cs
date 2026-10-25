@@ -55,7 +55,7 @@ public static class FluidValueExtensions
         {
             var timeZoneProvided = false;
 
-            var stringValue = input.ToStringValue();
+            var stringValue = input.ToStringValue(context);
 
             if (stringValue == Now || stringValue == Today)
             {
@@ -137,7 +137,7 @@ public static class FluidValueExtensions
         }
         else if (input.Type == FluidValues.Number)
         {
-            var milliseconds = input.ToNumberValue() * 1000;
+            var milliseconds = input.ToNumberValue(context) * 1000;
             try
             {
                 var dateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)milliseconds);
@@ -152,11 +152,11 @@ public static class FluidValueExtensions
         }
         else if (input.Type == FluidValues.DateTime)
         {
-            result = (DateTimeOffset)input.ToObjectValue();
+            result = (DateTimeOffset)input.ToObjectValue(context);
         }
         else
         {
-            switch (input.ToObjectValue())
+            switch (input.ToObjectValue(context))
             {
                 case DateTime dateTime:
                     result = dateTime;

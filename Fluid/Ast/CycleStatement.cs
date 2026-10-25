@@ -35,12 +35,14 @@ public sealed class CycleStatement : Statement, ISourceable
     // Strings are quoted, so that 'a,b' differs from 'a', 'b' and '1' differs from 1.
     private static string GetLiteralKey(FluidValue value)
     {
-        if (value is StringValue)
+        // Literals are parsed before any TemplateContext exists. Nil, empty and blank are written as "".
+        return value switch
         {
-            return "'" + value.ToStringValue().Replace("'", "''") + "'";
-        }
-
-        return value.ToStringValue();
+            StringValue s => "'" + s.Value.Replace("'", "''") + "'",
+            NumberValue n => n.InvariantText,
+            BooleanValue b => b.Value ? "true" : "false",
+            _ => "",
+        };
     }
 
     public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
@@ -70,7 +72,7 @@ public sealed class CycleStatement : Statement, ISourceable
             value = NilValue.Instance;
         }
 
-        await value.WriteToAsync(output, encoder, context.CultureInfo);
+        await value.WriteToAsync(output, encoder, context);
 
         iteration++;
         if (Values.Count == 0 || iteration >= Values.Count)
@@ -92,7 +94,7 @@ public sealed class CycleStatement : Statement, ISourceable
 
         var groupValue = await Group.EvaluateAsync(context);
         // Ruby Liquid uses the evaluated object as a hash key (nil is valid). We approximate this with a string key.
-        return "named_" + (groupValue.IsNil() ? string.Empty : groupValue.ToStringValue());
+        return "named_" + (groupValue.IsNil() ? string.Empty : groupValue.ToStringValue(context));
     }
 
     protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitCycleStatement(this);
@@ -146,7 +148,7 @@ public sealed class CycleStatement : Statement, ISourceable
         }
         context.WriteLine("}");
         context.WriteLine("register[key] = iteration;");
-        context.WriteLine($"await value.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName}.CultureInfo);");
+        context.WriteLine($"await value.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
         context.WriteLine("return Completion.Normal;");
     }
 }

@@ -13,15 +13,15 @@ public sealed class AddBinaryExpression : BinaryExpression, ISourceable
     {
         if (leftValue is StringValue)
         {
-            var left = leftValue.ToStringValue();
-            var right = rightValue.ToStringValue();
+            var left = leftValue.ToStringValue(context);
+            var right = rightValue.ToStringValue(context);
             context.EnsureOutputSize((long)left.Length + right.Length);
             return StringValue.Create(left + right);
         }
 
         if (leftValue is NumberValue)
         {
-            return NumberValue.Create(leftValue.ToNumberValue() + rightValue.ToNumberValue());
+            return NumberValue.Create(leftValue.ToNumberValue(context) + rightValue.ToNumberValue(context));
         }
 
         return NilValue.Instance;

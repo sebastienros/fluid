@@ -27,8 +27,8 @@ public sealed class RangeExpression : Expression, ISourceable
 
         if (startTask.IsCompletedSuccessfully && endTask.IsCompletedSuccessfully)
         {
-            start = ToBound(startTask.Result);
-            end = ToBound(endTask.Result);
+            start = ToBound(startTask.Result, context);
+            end = ToBound(endTask.Result, context);
 
             return BuildArray(start, end, context);
         }
@@ -41,13 +41,13 @@ public sealed class RangeExpression : Expression, ISourceable
     /// <summary>
     /// Converts a bound of a range, which has to fit in an int since the range is materialized.
     /// </summary>
-    internal static int ToBound(FluidValue value)
+    internal static int ToBound(FluidValue value, TemplateContext context)
     {
-        var number = value.ToNumberValue();
+        var number = value.ToNumberValue(context);
 
         if (number >= int.MaxValue + 0.5m || number <= int.MinValue - 0.5m)
         {
-            throw new LiquidException($"The range bound {value.ToStringValue()} is out of range.");
+            throw new LiquidException($"The range bound {value.ToStringValue(context)} is out of range.");
         }
 
         return Convert.ToInt32(number);
@@ -57,7 +57,7 @@ public sealed class RangeExpression : Expression, ISourceable
     /// Converts a range bound. Used by source-generated templates, which can only call public members.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static int GetBound(FluidValue value) => ToBound(value);
+    public static int GetBound(FluidValue value, TemplateContext context) => ToBound(value, context);
 
     /// <summary>
     /// Creates the items of a range. Used by source-generated templates, which can only call public members.
@@ -93,8 +93,8 @@ public sealed class RangeExpression : Expression, ISourceable
         ValueTask<FluidValue> rightTask,
         TemplateContext context)
     {
-        var start = ToBound(await leftTask);
-        var end = ToBound(await rightTask);
+        var start = ToBound(await leftTask, context);
+        var end = ToBound(await rightTask, context);
 
         return BuildArray(start, end, context);
     }
@@ -108,8 +108,8 @@ public sealed class RangeExpression : Expression, ISourceable
 
         // The same checks as the interpreter: bounds out of the int range and ranges with too many
         // items throw a LiquidException.
-        context.WriteLine($"var start = global::Fluid.Ast.RangeExpression.GetBound(await {fromMethod}({context.ContextName}));");
-        context.WriteLine($"var end = global::Fluid.Ast.RangeExpression.GetBound(await {toMethod}({context.ContextName}));");
+        context.WriteLine($"var start = global::Fluid.Ast.RangeExpression.GetBound(await {fromMethod}({context.ContextName}), {context.ContextName});");
+        context.WriteLine($"var end = global::Fluid.Ast.RangeExpression.GetBound(await {toMethod}({context.ContextName}), {context.ContextName});");
         context.WriteLine($"return global::Fluid.Ast.RangeExpression.CreateRange(start, end, {context.ContextName});");
     }
 }

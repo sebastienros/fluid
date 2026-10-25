@@ -36,37 +36,38 @@ public sealed class BooleanValue : FluidValue
             return false;
         }
 
-        return _value == other.ToBooleanValue();
+        // Built-in values are compared directly, any other value of the same kind compares itself.
+        return other is BooleanValue b ? _value == b._value : other.Equals(this);
     }
 
-    public override bool ToBooleanValue()
+    /// <summary>
+    /// Gets the boolean, which doesn't depend on a <see cref="TemplateContext"/>.
+    /// </summary>
+    internal bool Value => _value;
+
+    public override bool ToBooleanValue(TemplateContext context)
     {
         return _value;
     }
 
-    public override decimal ToNumberValue()
+    public override decimal ToNumberValue(TemplateContext context)
     {
         return _value ? 1 : 0;
     }
 
-    public override string ToStringValue()
+    public override string ToStringValue(TemplateContext context)
     {
         return _value ? "true" : "false";
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        AssertWriteToParameters(output, encoder, cultureInfo);
-        output.Write(encoder, ToStringValue());
+        AssertWriteToParameters(output, encoder, context);
+        output.Write(encoder, _value ? "true" : "false");
         return default;
     }
 
-    public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
-    {
-        return [this];
-    }
-
-    public override object ToObjectValue()
+    public override object ToObjectValue(TemplateContext context)
     {
         return _value ? BoxedTrue : BoxedFalse;
     }

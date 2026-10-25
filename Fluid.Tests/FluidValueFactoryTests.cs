@@ -48,7 +48,7 @@ public class FluidValueFactoryTests
 
         items.Add(NumberValue.Create(1));
         Assert.Single(value.Values);
-        Assert.Equal(1, value.Values[0].ToNumberValue());
+        Assert.Equal(1, value.Values[0].ToNumberValue(new TemplateContext()));
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class FluidValueFactoryTests
         var culture = CultureInfo.GetCultureInfo("fr-FR");
         var options = new TemplateOptionsBuilder().WithCultureInfo(culture).Build();
 
-        Assert.Equal(12.5m.ToString(culture), FluidValue.Create(new FormattableNumber(), options).ToStringValue());
+        Assert.Equal(12.5m.ToString(culture), FluidValue.Create(new FormattableNumber(), options).ToStringValue(new TemplateContext()));
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class FluidValueFactoryTests
         var span = TimeSpan.FromHours(1);
         var expected = DateTimeOffset.FromUnixTimeMilliseconds((long)span.TotalMilliseconds).ToOffset(zone.BaseUtcOffset);
 
-        Assert.Equal(expected, FluidValue.Create(span, options).ToObjectValue());
+        Assert.Equal(expected, FluidValue.Create(span, options).ToObjectValue(new TemplateContext()));
     }
 
     [Fact]
@@ -134,8 +134,8 @@ public class FluidValueFactoryTests
 
         Assert.Equal(FluidValues.Array, value.Type);
         Assert.Equal(3, calls);
-        Assert.Equal(2, (await value.GetIndexAsync(NumberValue.Create(0), context)).ToNumberValue());
-        Assert.Equal(4, (await value.GetValueAsync("last", context)).ToNumberValue());
+        Assert.Equal(2, (await value.GetIndexAsync(NumberValue.Create(0), context)).ToNumberValue(context));
+        Assert.Equal(4, (await value.GetValueAsync("last", context)).ToNumberValue(context));
         Assert.Equal(3, calls);
     }
 
@@ -145,10 +145,10 @@ public class FluidValueFactoryTests
         var date = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
         var offset = new DateTimeOffset(date).ToOffset(TimeSpan.FromHours(2));
 
-        Assert.Equal(new DateTimeOffset(date), DateTimeValue.Create(date).ToObjectValue());
-        Assert.Equal(offset, DateTimeValue.Create(offset).ToObjectValue());
-        Assert.Equal(DateTime.MinValue.Ticks, ((DateTimeOffset)DateTimeValue.Create(DateTime.MinValue).ToObjectValue()).Ticks);
-        Assert.Equal(DateTime.MaxValue.Ticks, ((DateTimeOffset)DateTimeValue.Create(DateTime.MaxValue).ToObjectValue()).Ticks);
+        Assert.Equal(new DateTimeOffset(date), DateTimeValue.Create(date).ToObjectValue(new TemplateContext()));
+        Assert.Equal(offset, DateTimeValue.Create(offset).ToObjectValue(new TemplateContext()));
+        Assert.Equal(DateTime.MinValue.Ticks, ((DateTimeOffset)DateTimeValue.Create(DateTime.MinValue).ToObjectValue(new TemplateContext())).Ticks);
+        Assert.Equal(DateTime.MaxValue.Ticks, ((DateTimeOffset)DateTimeValue.Create(DateTime.MaxValue).ToObjectValue(new TemplateContext())).Ticks);
         Assert.Equal(DateTimeValue.Create(date), FluidValue.Create(date, TemplateOptions.Default));
         Assert.Equal(DateTimeValue.Create(offset), FluidValue.Create(offset, TemplateOptions.Default));
     }
@@ -164,8 +164,8 @@ public class FluidValueFactoryTests
         });
 
         Assert.Equal(0, calls);
-        Assert.Equal(42, value.ToNumberValue());
-        Assert.Equal(42, value.ToNumberValue());
+        Assert.Equal(42, value.ToNumberValue(new TemplateContext()));
+        Assert.Equal(42, value.ToNumberValue(new TemplateContext()));
         Assert.Equal(1, calls);
     }
 
@@ -211,8 +211,8 @@ public class FluidValueFactoryTests
     public async Task ComparisonFactoryShouldPreserveTruthinessAndRenderedOperand()
     {
         var value = BinaryExpressionFluidValue.Create(StringValue.Create("&"), false);
-        Assert.False(value.ToBooleanValue());
-        Assert.Equal("false", value.ToStringValue());
+        Assert.False(value.ToBooleanValue(new TemplateContext()));
+        Assert.Equal("false", value.ToStringValue(new TemplateContext()));
         Assert.True(BinaryExpressionFluidValue.Create(null, true).IsNil());
 
         var context = new TemplateContext().SetValue("value", value);

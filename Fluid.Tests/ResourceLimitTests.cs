@@ -204,7 +204,7 @@ public class ResourceLimitTests
         var array = ArrayValue.Create(values);
         values.Add(array);
 
-        var exception = Assert.Throws<InvalidOperationException>(() => array.ToStringValue());
+        var exception = Assert.Throws<InvalidOperationException>(() => array.ToStringValue(new TemplateContext()));
 
         Assert.Contains("circular", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

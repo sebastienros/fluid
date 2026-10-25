@@ -90,12 +90,12 @@ public class MemberAccessStrategyTests
         strategy.Register<Class1, object>((instance, name) => "first");
 
         var first = strategy.GetAccessor(typeof(DerivedClass1), "custom", StringComparer.Ordinal);
-        Assert.Equal("first", (await first.GetAsync(new DerivedClass1(), "custom", new TemplateContext())).ToObjectValue());
+        Assert.Equal("first", (await first.GetAsync(new DerivedClass1(), "custom", new TemplateContext())).ToObjectValue(new TemplateContext()));
 
         strategy.Register<Class1, object>((instance, name) => "second");
 
         var second = strategy.GetAccessor(typeof(DerivedClass1), "custom", StringComparer.Ordinal);
-        Assert.Equal("second", (await second.GetAsync(new DerivedClass1(), "custom", new TemplateContext())).ToObjectValue());
+        Assert.Equal("second", (await second.GetAsync(new DerivedClass1(), "custom", new TemplateContext())).ToObjectValue(new TemplateContext()));
     }
 
     [Fact]
@@ -181,9 +181,9 @@ public class MemberAccessStrategyTests
 
         var objectValue = FluidValue.Create(obj, options);
 
-        Assert.Equal("1", (await objectValue.GetValueAsync("a", context)).ToObjectValue());
-        Assert.Equal("2", (await objectValue.GetValueAsync("a.b", context)).ToObjectValue());
-        Assert.Null((await objectValue.GetValueAsync("a.c", context)).ToObjectValue());
+        Assert.Equal("1", (await objectValue.GetValueAsync("a", context)).ToObjectValue(context));
+        Assert.Equal("2", (await objectValue.GetValueAsync("a.b", context)).ToObjectValue(context));
+        Assert.Null((await objectValue.GetValueAsync("a.c", context)).ToObjectValue(context));
     }
 
     [Fact]

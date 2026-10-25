@@ -85,14 +85,14 @@ public static class MoneyFilters
         var options = context.MoneyOptions ?? TemplateOptions.Default.MoneyOptions;
         var culture = context.CultureInfo ?? CultureInfo.InvariantCulture;
 
-        var amount = input.ToNumberValue();
+        var amount = input.ToNumberValue(context);
 
         if (options.AmountsInCents)
         {
             amount /= 100M;
         }
 
-        var currency = ResolveCurrency(arguments, options, culture);
+        var currency = ResolveCurrency(arguments, options, culture, context);
         var numberFormat = options.GetNumberFormat(culture, currency);
 
         switch (style)
@@ -160,7 +160,7 @@ public static class MoneyFilters
         return Math.Round(amount, digits, MidpointRounding.AwayFromZero);
     }
 
-    private static MoneyCurrency ResolveCurrency(FilterArguments arguments, MoneyOptions options, CultureInfo culture)
+    private static MoneyCurrency ResolveCurrency(FilterArguments arguments, MoneyOptions options, CultureInfo culture, TemplateContext context)
     {
         var argument = arguments["currency"];
 
@@ -169,7 +169,7 @@ public static class MoneyFilters
             argument = arguments.At(0);
         }
 
-        var code = argument.IsNil() ? null : argument.ToStringValue();
+        var code = argument.IsNil() ? null : argument.ToStringValue(context);
 
         if (string.IsNullOrEmpty(code))
         {

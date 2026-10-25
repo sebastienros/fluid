@@ -37,7 +37,7 @@ public sealed class TableRowStatement : TagStatement
         var evaluatedSource = await Source.EvaluateAsync(context);
 
         // Empty strings are treated as empty collections
-        if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue()))
+        if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue(context)))
         {
             return Completion.Normal;
         }
@@ -165,12 +165,12 @@ public sealed class TableRowStatement : TagStatement
         if (value.Type == FluidValues.Number)
         {
             // Truncate toward zero like Ruby's to_i. A value too large for an int means all or none.
-            return NumberConversions.ToInt32Saturated(decimal.Truncate(value.ToNumberValue()));
+            return NumberConversions.ToInt32Saturated(decimal.Truncate(value.ToNumberValue(context)));
         }
 
         if (value.Type == FluidValues.String)
         {
-            var s = value.ToStringValue().Trim();
+            var s = value.ToStringValue(context).Trim();
             if (int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
             {
                 return parsed;

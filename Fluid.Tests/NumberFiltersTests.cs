@@ -23,7 +23,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Abs(input, arguments, context);
 
-        Assert.Equal(expectedResult, result.Result.ToNumberValue());
+        Assert.Equal(expectedResult, result.Result.ToNumberValue(context));
     }
 
     [Theory]
@@ -39,7 +39,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.AtLeast(input, arguments, context);
 
-        Assert.Equal(expectedResult, result.Result.ToNumberValue());
+        Assert.Equal(expectedResult, result.Result.ToNumberValue(context));
     }
 
     [Theory]
@@ -54,7 +54,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.AtMost(input, arguments, context);
 
-        Assert.Equal(expectedResult, result.Result.ToNumberValue());
+        Assert.Equal(expectedResult, result.Result.ToNumberValue(context));
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Ceil(input, arguments, context);
 
-        Assert.Equal(5, result.Result.ToNumberValue());
+        Assert.Equal(5, result.Result.ToNumberValue(context));
     }
 
     [Theory]
@@ -86,7 +86,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.DividedBy(input, arguments, context);
 
-        Assert.Equal(expected, result.Result.ToNumberValue());
+        Assert.Equal(expected, result.Result.ToNumberValue(context));
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Floor(input, arguments, context);
 
-        Assert.Equal(4, result.Result.ToNumberValue());
+        Assert.Equal(4, result.Result.ToNumberValue(context));
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Minus(input, arguments, context);
 
-        Assert.Equal(3, result.Result.ToNumberValue());
+        Assert.Equal(3, result.Result.ToNumberValue(context));
     }
 
     [Theory]
@@ -127,7 +127,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Minus(inputA, inputB, context);
 
-        Assert.Equal(expectedResult, result.Result.ToNumberValue());
+        Assert.Equal(expectedResult, result.Result.ToNumberValue(context));
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Modulo(input, arguments, context);
 
-        Assert.Equal(2, result.Result.ToNumberValue());
+        Assert.Equal(2, result.Result.ToNumberValue(context));
     }
 
     [Fact]
@@ -164,7 +164,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Plus(input, arguments, context);
 
-        Assert.Equal(9, result.Result.ToNumberValue());
+        Assert.Equal(9, result.Result.ToNumberValue(context));
     }
 
     [Theory]
@@ -179,7 +179,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Plus(inputA, inputB, context);
 
-        Assert.Equal(expectedResult, result.Result.ToNumberValue());
+        Assert.Equal(expectedResult, result.Result.ToNumberValue(context));
     }
 
     [Fact]
@@ -192,7 +192,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Plus(input, arguments, context);
 
-        Assert.Equal(9, result.Result.ToNumberValue());
+        Assert.Equal(9, result.Result.ToNumberValue(context));
     }
 
     [Fact]
@@ -205,7 +205,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Round(input, arguments, context);
 
-        Assert.Equal(4.12M, result.Result.ToNumberValue());
+        Assert.Equal(4.12M, result.Result.ToNumberValue(context));
     }
 
     [Fact]
@@ -218,7 +218,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Times(input, arguments, context);
 
-        Assert.Equal("18", result.Result.ToStringValue());
+        Assert.Equal("18", result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -233,7 +233,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Times(inputA, inputB, context);
 
-        Assert.Equal(expectedResult, result.Result.ToNumberValue());
+        Assert.Equal(expectedResult, result.Result.ToNumberValue(context));
     }
 
     [Fact]
@@ -246,8 +246,8 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Times(input, arguments, context);
 
-        Assert.Equal(6, result.Result.ToNumberValue());
-        Assert.Equal("6.0", result.Result.ToStringValue());
+        Assert.Equal(6, result.Result.ToNumberValue(context));
+        Assert.Equal("6.0", result.Result.ToStringValue(context));
     }
 
     [Fact]
@@ -293,7 +293,7 @@ public class NumberFiltersTests
         {
             var result = NumberFilters.Random(input, arguments, context);
 
-            Assert.InRange(result.Result.ToNumberValue(), min, max);
+            Assert.InRange(result.Result.ToNumberValue(context), min, max);
         }
     }
 

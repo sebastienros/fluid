@@ -99,13 +99,13 @@ public class CustomArrayBenchmarks
 
         public override bool Equals(FluidValue other) => ReferenceEquals(this, other);
 
-        public override bool ToBooleanValue() => true;
+        public override bool ToBooleanValue(TemplateContext context) => true;
 
-        public override decimal ToNumberValue() => Data.Length;
+        public override decimal ToNumberValue(TemplateContext context) => Data.Length;
 
-        public override string ToStringValue() => "";
+        public override string ToStringValue(TemplateContext context) => "";
 
-        public override object ToObjectValue() => Data;
+        public override object ToObjectValue(TemplateContext context) => Data;
 
         public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {

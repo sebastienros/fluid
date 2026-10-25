@@ -45,22 +45,13 @@ public class FluidArrayTests
 
         public override bool Equals(FluidValue other) => ReferenceEquals(this, other);
 
-        public override bool ToBooleanValue() => true;
+        public override bool ToBooleanValue(TemplateContext context) => true;
 
-        public override decimal ToNumberValue() => _count;
+        public override decimal ToNumberValue(TemplateContext context) => _count;
 
-        public override string ToStringValue() => "";
+        public override string ToStringValue(TemplateContext context) => "";
 
-        public override object ToObjectValue() => this;
-
-        public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
-        {
-            Enumerations++;
-            for (var i = 0; i < _count; i++)
-            {
-                yield return this[i];
-            }
-        }
+        public override object ToObjectValue(TemplateContext context) => this;
 
         public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
@@ -90,13 +81,13 @@ public class FluidArrayTests
 
         public override bool Equals(FluidValue other) => ReferenceEquals(this, other);
 
-        public override bool ToBooleanValue() => true;
+        public override bool ToBooleanValue(TemplateContext context) => true;
 
-        public override decimal ToNumberValue() => _count;
+        public override decimal ToNumberValue(TemplateContext context) => _count;
 
-        public override string ToStringValue() => "";
+        public override string ToStringValue(TemplateContext context) => "";
 
-        public override object ToObjectValue() => this;
+        public override object ToObjectValue(TemplateContext context) => this;
 
         public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)
         {
@@ -281,8 +272,8 @@ public class FluidArrayTests
         var indexedEnumerable = Assert.IsAssignableFrom<IFluidArray>(enumerable);
 
         Assert.Equal(2, indexedArray.Count);
-        Assert.Equal(2, indexedArray[1].ToNumberValue());
+        Assert.Equal(2, indexedArray[1].ToNumberValue(new TemplateContext()));
         Assert.Equal(2, indexedEnumerable.Count);
-        Assert.Equal(2, indexedEnumerable[1].ToNumberValue());
+        Assert.Equal(2, indexedEnumerable[1].ToNumberValue(new TemplateContext()));
     }
 }

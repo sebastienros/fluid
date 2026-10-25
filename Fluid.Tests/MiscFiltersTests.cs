@@ -29,7 +29,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Default(input, arguments, context);
 
-        Assert.Equal("foo", result.ToStringValue());
+        Assert.Equal("foo", result.ToStringValue(context));
     }
 
     [Theory]
@@ -54,7 +54,7 @@ public class MiscFiltersTests
         var context = new TemplateContext();
         var result = await MiscFilters.Default("empty" == input as string ? EmptyValue.Instance : FluidValue.Create(input, TemplateOptions.Default), arguments, context);
 
-        Assert.Equal(expected, result.ToObjectValue());
+        Assert.Equal(expected, result.ToObjectValue(context));
     }
 
     [Theory]
@@ -121,7 +121,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.UrlEncode(input, arguments, context);
 
-        Assert.Equal("john%40liquid.com", result.ToStringValue());
+        Assert.Equal("john%40liquid.com", result.ToStringValue(context));
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.UrlDecode(input, arguments, context);
 
-        Assert.Equal("john@liquid.com", result.ToStringValue());
+        Assert.Equal("john@liquid.com", result.ToStringValue(context));
     }
 
     [Theory]
@@ -150,7 +150,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Base64Encode(input, arguments, context);
 
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Theory]
@@ -166,7 +166,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Base64Decode(input, arguments, context);
 
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Theory]
@@ -184,7 +184,7 @@ public class MiscFiltersTests
         var result = await MiscFilters.Base64UrlSafeEncode(input, arguments, context);
 
         // Assert
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Theory]
@@ -202,7 +202,7 @@ public class MiscFiltersTests
         var result = await MiscFilters.Base64UrlSafeDecode(input, arguments, context);
 
         // Assert
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Theory]
@@ -219,7 +219,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.StripHtml(input, arguments, context);
 
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Fact]
@@ -232,7 +232,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Escape(input, arguments, context);
 
-        Assert.Equal("Have you read &#39;James &amp; the Giant Peach&#39;?", result.ToStringValue());
+        Assert.Equal("Have you read &#39;James &amp; the Giant Peach&#39;?", result.ToStringValue(context));
     }
 
     [Fact]
@@ -245,7 +245,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.EscapeOnce(input, arguments, context);
 
-        Assert.Equal("1 &lt; 2 &amp; 3", result.ToStringValue());
+        Assert.Equal("1 &lt; 2 &amp; 3", result.ToStringValue(context));
     }
 
     [Fact]
@@ -373,7 +373,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, arguments, context);
 
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Theory]
@@ -406,7 +406,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, new FilterArguments(StringValue.Create(format)), context);
 
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Theory]
@@ -432,7 +432,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, new FilterArguments(StringValue.Create(format)), context);
 
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Fact]
@@ -447,7 +447,7 @@ public class MiscFiltersTests
             new FilterArguments(StringValue.Create(format)),
             new TemplateContext());
 
-        Assert.Equal(Repetitions * 8, result.ToStringValue().Length);
+        Assert.Equal(Repetitions * 8, result.ToStringValue(new TemplateContext()).Length);
     }
 
     [Theory]
@@ -469,7 +469,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, arguments, context);
 
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Theory]
@@ -486,7 +486,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.ChangeTimeZone(input, arguments, context);
 
-        Assert.Equal(expected, ((DateTimeOffset)result.ToObjectValue()).ToString("yyyy-MM-ddTHH:mm:ssK"));
+        Assert.Equal(expected, ((DateTimeOffset)result.ToObjectValue(context)).ToString("yyyy-MM-ddTHH:mm:ssK"));
     }
 
     [Fact]
@@ -509,7 +509,7 @@ public class MiscFiltersTests
         Assert.Equal("Custom", resolvedId);
         Assert.Equal(
             "2020-05-18T05:13:09+03:00",
-            ((DateTimeOffset)result.ToObjectValue()).ToString("yyyy-MM-ddTHH:mm:ssK"));
+            ((DateTimeOffset)result.ToObjectValue(new TemplateContext())).ToString("yyyy-MM-ddTHH:mm:ssK"));
     }
 
     [Theory]
@@ -530,7 +530,7 @@ public class MiscFiltersTests
 
         var date = await MiscFilters.Date(input, new FilterArguments(StringValue.Create(RoundTripDateTimePattern)), context);
 
-        Assert.Equal(expected, date.ToStringValue());
+        Assert.Equal(expected, date.ToStringValue(context));
     }
 
     [Theory]
@@ -549,7 +549,7 @@ public class MiscFiltersTests
         var result = await MiscFilters.ChangeTimeZone(input, timeZoneArgument, context);
         result = await MiscFilters.Date(result, formatArgument, context);
 
-        Assert.Equal(expected, result.ToStringValue().Trim());
+        Assert.Equal(expected, result.ToStringValue(context).Trim());
     }
 
     [Fact]
@@ -564,7 +564,7 @@ public class MiscFiltersTests
         var date = await MiscFilters.ChangeTimeZone(input, new FilterArguments(StringValue.Create("local")), context);
         var formatted = await MiscFilters.Date(date, new FilterArguments(StringValue.Create(RoundTripDateTimePattern)), context);
 
-        Assert.Equal("2022-12-13T12:02:18.399-08:00", formatted.ToStringValue());
+        Assert.Equal("2022-12-13T12:02:18.399-08:00", formatted.ToStringValue(context));
     }
 
     [Fact]
@@ -582,7 +582,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, arguments, context);
 
-        Assert.Equal("08/01/17", result.ToStringValue());
+        Assert.Equal("08/01/17", result.ToStringValue(context));
     }
 
     [Fact]
@@ -600,7 +600,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, arguments, context);
 
-        Assert.Equal("08/01/17", result.ToStringValue());
+        Assert.Equal("08/01/17", result.ToStringValue(context));
     }
 
     [Fact]
@@ -618,7 +618,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.FormatDate(input, arguments, context);
 
-        Assert.Equal("08/01/2017", result.ToStringValue());
+        Assert.Equal("08/01/2017", result.ToStringValue(context));
     }
 
     [Fact]
@@ -636,7 +636,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, arguments, context);
 
-        Assert.Equal("08/01/17", result.ToStringValue());
+        Assert.Equal("08/01/17", result.ToStringValue(context));
     }
 
     [Fact]
@@ -647,7 +647,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.FormatString(input, FilterArguments.Empty, context);
 
-        Assert.Equal("literal text", result.ToStringValue());
+        Assert.Equal("literal text", result.ToStringValue(context));
     }
 
     [Fact]
@@ -664,7 +664,7 @@ public class MiscFiltersTests
         var result = await MiscFilters.Date(input, FilterArguments.Empty, context);
 
         Assert.IsType<DateTimeValue>(result);
-        Assert.Equal("2017-08-01 00:00:00Z", result.ToStringValue());
+        Assert.Equal("2017-08-01 00:00:00Z", result.ToStringValue(context));
     }
 
     [Theory]
@@ -682,7 +682,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, format, context);
 
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Theory]
@@ -698,7 +698,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, format, context);
 
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Fact]
@@ -710,7 +710,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, format, context);
 
-        Assert.Equal("1970-01-01T00:00:00.000-08:00", result.ToStringValue());
+        Assert.Equal("1970-01-01T00:00:00.000-08:00", result.ToStringValue(context));
     }
 
     [Fact]
@@ -724,7 +724,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, format, context);
 
-        Assert.Equal("18000", result.ToStringValue());
+        Assert.Equal("18000", result.ToStringValue(context));
     }
 
     [Fact]
@@ -738,7 +738,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, format, context);
 
-        Assert.Equal("18000", result.ToStringValue());
+        Assert.Equal("18000", result.ToStringValue(context));
     }
 
     [Fact]
@@ -753,13 +753,13 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, format, context);
 
-        Assert.Equal("-0800", result.ToStringValue());
+        Assert.Equal("-0800", result.ToStringValue(context));
 
         input = StringValue.Create("2021-06-01 00:00:00");
 
         result = await MiscFilters.Date(input, format, context);
 
-        Assert.Equal("-0700", result.ToStringValue());
+        Assert.Equal("-0700", result.ToStringValue(context));
     }
 
     [Fact]
@@ -774,7 +774,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, format, context);
 
-        Assert.Equal("Wed Dec 31 19:00:00 -05:00 1969", result.ToStringValue());
+        Assert.Equal("Wed Dec 31 19:00:00 -05:00 1969", result.ToStringValue(context));
     }
 
     [Fact]
@@ -797,8 +797,8 @@ public class MiscFiltersTests
             .Build());
         var resultUS = await MiscFilters.Date(input, arguments, context);
 
-        Assert.Equal("08/01/2017", resultFR.ToStringValue());
-        Assert.Equal("01/08/2017", resultUS.ToStringValue());
+        Assert.Equal("08/01/2017", resultFR.ToStringValue(context));
+        Assert.Equal("01/08/2017", resultUS.ToStringValue(context));
     }
 
     [Fact]
@@ -829,9 +829,9 @@ public class MiscFiltersTests
         context = new TemplateContext { CultureInfo = enUsCultureInfo, TimeZone = TimeZoneInfo.Utc };
         var resultUS = await MiscFilters.Date(input, arguments, context);
 
-        Assert.Equal("7 ŞUBAT 2017 SALI 00:00:00", resultTR.ToStringValue());
-        Assert.Equal("MARDI 7 FÉVRIER 2017 00:00:00", resultFR.ToStringValue());
-        Assert.Equal("SUNDAY, JULY 2, 2017 12:00:00 AM", resultUS.ToStringValue());
+        Assert.Equal("7 ŞUBAT 2017 SALI 00:00:00", resultTR.ToStringValue(context));
+        Assert.Equal("MARDI 7 FÉVRIER 2017 00:00:00", resultFR.ToStringValue(context));
+        Assert.Equal("SUNDAY, JULY 2, 2017 12:00:00 AM", resultUS.ToStringValue(context));
     }
 
     [Theory]
@@ -854,7 +854,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Handleize(input, arguments, context);
 
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Fact]
@@ -863,7 +863,7 @@ public class MiscFiltersTests
         var value = new string('a', 377_000);
         var result = await MiscFilters.Handleize(StringValue.Create(value), new FilterArguments(), new TemplateContext());
 
-        Assert.Equal(value, result.ToStringValue());
+        Assert.Equal(value, result.ToStringValue(new TemplateContext()));
     }
 
     [Theory]
@@ -888,7 +888,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Json(input, arguments, context);
 
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Fact]
@@ -899,7 +899,7 @@ public class MiscFiltersTests
         var options = new TemplateOptionsBuilder().Build();
 
         var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
-        Assert.Equal("{\"Id\":100}", result.ToStringValue());
+        Assert.Equal("{\"Id\":100}", result.ToStringValue(new TemplateContext()));
     }
 
     [Fact]
@@ -914,7 +914,7 @@ public class MiscFiltersTests
         var options = new TemplateOptionsBuilder().Build();
         var input = FluidValue.Create(model, options);
         var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
-        Assert.Equal("{\"Id\":1,\"WithoutIndexable\":{\"Type\":6,\"Value\":{}},\"Bool\":true}", result.ToStringValue());
+        Assert.Equal("{\"Id\":1,\"WithoutIndexable\":{\"Type\":6,\"Value\":{}},\"Bool\":true}", result.ToStringValue(new TemplateContext()));
     }
 
     [Fact]
@@ -941,7 +941,7 @@ public class MiscFiltersTests
         var input = FluidValue.Create(model, TemplateOptions.Default);
         var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(TemplateOptions.Default));
         var expected = "{\"a\":true,\"b\":1,\"c\":\"06/08/2017 12:53:10 -07:00\",\"d\":\"string\",\"e\":null,\"f\":{\"f_a\":1.2,\"f_b\":false,\"f_c\":\"\"},\"g\":[\"val1\",\"val2\"]}";
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(new TemplateContext()));
     }
 
     [Fact]
@@ -950,7 +950,7 @@ public class MiscFiltersTests
         var input = FluidValue.Create("你好，这是一条短信", TemplateOptions.Default);
         var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(TemplateOptions.Default));
         var expected = @"""\u4F60\u597D\uFF0C\u8FD9\u662F\u4E00\u6761\u77ED\u4FE1""";
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(new TemplateContext()));
     }
 
     [Fact]
@@ -966,7 +966,7 @@ public class MiscFiltersTests
         var input = FluidValue.Create("你好，这是一条短信", options);
         var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
         var expected = @"""你好，这是一条短信""";
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(new TemplateContext()));
     }
 
     [Fact]
@@ -979,7 +979,7 @@ public class MiscFiltersTests
         var result = await MiscFilters.Json(input, new FilterArguments(), context);
 
         // Enum is converted to StringValue by default, so it's serialized as a string
-        Assert.Equal("\"Red\"", result.ToStringValue());
+        Assert.Equal("\"Red\"", result.ToStringValue(context));
     }
 
     [Fact]
@@ -997,7 +997,7 @@ public class MiscFiltersTests
         var result = await MiscFilters.Json(input, new FilterArguments(), context);
 
         // Enum should be serialized as string ("Red")
-        Assert.Equal("{\"Firstname\":null,\"Lastname\":null,\"EyesColor\":\"Red\",\"Address\":null}", result.ToStringValue());
+        Assert.Equal("{\"Firstname\":null,\"Lastname\":null,\"EyesColor\":\"Red\",\"Address\":null}", result.ToStringValue(context));
     }
 
     [Theory]
@@ -1022,7 +1022,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.FormatNumber(FluidValue.Create(input, context.Options), arguments, context);
 
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Theory]
@@ -1042,7 +1042,7 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.FormatString(FluidValue.Create(input, context.Options), arguments, context);
 
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Fact]
@@ -1057,7 +1057,7 @@ public class MiscFiltersTests
         var result = await MiscFilters.MD5(input, arguments, context);
 
         // Assert
-        Assert.Equal("c2e7db5ac7ab74ea4bb9a7a89d251f3a", result.ToStringValue());
+        Assert.Equal("c2e7db5ac7ab74ea4bb9a7a89d251f3a", result.ToStringValue(context));
     }
 
     [Fact]
@@ -1072,7 +1072,7 @@ public class MiscFiltersTests
         var result = await MiscFilters.Sha1(input, arguments, context);
 
         // Assert
-        Assert.Equal("8bc9b7abbb676300656203a17863a0f0b8a2c2bf", result.ToStringValue());
+        Assert.Equal("8bc9b7abbb676300656203a17863a0f0b8a2c2bf", result.ToStringValue(context));
     }
 
     [Fact]
@@ -1087,7 +1087,7 @@ public class MiscFiltersTests
         var result = await MiscFilters.Sha256(input, arguments, context);
 
         // Assert
-        Assert.Equal("c7ac4687585ab5d3d5030db5a5cfc959fdf4e608cc396f1f615db345e35adb9e", result.ToStringValue());
+        Assert.Equal("c7ac4687585ab5d3d5030db5a5cfc959fdf4e608cc396f1f615db345e35adb9e", result.ToStringValue(context));
     }
 
     [Theory]
@@ -1109,7 +1109,7 @@ public class MiscFiltersTests
         var result = await MiscFilters.HmacSha1(input, arguments, context);
 
         // Assert
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     [Theory]
@@ -1131,7 +1131,7 @@ public class MiscFiltersTests
         var result = await MiscFilters.HmacSha256(input, arguments, context);
 
         // Assert
-        Assert.Equal(expected, result.ToStringValue());
+        Assert.Equal(expected, result.ToStringValue(context));
     }
 
     public static class TestObjects

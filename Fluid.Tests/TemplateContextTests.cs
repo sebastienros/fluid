@@ -40,9 +40,9 @@ public class TemplateContextTests
         context.SetValue("o2", "new o2");
         context.SetValue("o3", "o3");
 
-        Assert.Equal("o1", context.GetValue("o1").ToStringValue());
-        Assert.Equal("new o2", context.GetValue("o2").ToStringValue());
-        Assert.Equal("o3", context.GetValue("o3").ToStringValue());
+        Assert.Equal("o1", context.GetValue("o1").ToStringValue(context));
+        Assert.Equal("new o2", context.GetValue("o2").ToStringValue(context));
+        Assert.Equal("o3", context.GetValue("o3").ToStringValue(context));
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public class TemplateContextTests
 
         template.Render(context);
 
-        Assert.Equal("World", context.GetValue("text1").ToStringValue());
+        Assert.Equal("World", context.GetValue("text1").ToStringValue(context));
         Assert.DoesNotContain("greetings", context.LocalScope.Properties);
         Assert.DoesNotContain("foo", context.LocalScope.Properties);
     }
@@ -163,7 +163,7 @@ public class TemplateContextTests
         var context = new TemplateContext(StringComparer.OrdinalIgnoreCase);
         context.SetValue("PageState", "insert");
 
-        Assert.Equal("insert", context.GetValue("pageState").ToStringValue());
+        Assert.Equal("insert", context.GetValue("pageState").ToStringValue(context));
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public class TemplateContextTests
         var context = new TemplateContext(options);
         context.SetValue("PageState", "insert");
 
-        Assert.Equal("insert", context.GetValue("pageState").ToStringValue());
+        Assert.Equal("insert", context.GetValue("pageState").ToStringValue(context));
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public class TemplateContextTests
         context.SetValue("CASE", "upper");
         context.SetValue("Case", "mixed");
 
-        Assert.Equal("lowerupper", context.GetValue("case").ToStringValue() + context.GetValue("CASE").ToStringValue());
+        Assert.Equal("lowerupper", context.GetValue("case").ToStringValue(context) + context.GetValue("CASE").ToStringValue(context));
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public class TemplateContextTests
         using var scope = context.EnterScope();
         context.SetValue("PageState", "insert");
 
-        Assert.Equal("insert", context.GetValue("pageState").ToStringValue());
+        Assert.Equal("insert", context.GetValue("pageState").ToStringValue(context));
     }
 
     [Fact]
@@ -213,8 +213,8 @@ public class TemplateContextTests
 
             using (context.EnterScope(ScopeBehavior.Isolated))
             {
-                Assert.Equal("root", context.GetValue("root").ToStringValue());
-                Assert.Equal("global", context.GetValue("global").ToStringValue());
+                Assert.Equal("root", context.GetValue("root").ToStringValue(context));
+                Assert.Equal("global", context.GetValue("global").ToStringValue(context));
                 Assert.True(context.GetValue("outer").IsNil());
             }
 
@@ -225,7 +225,7 @@ public class TemplateContextTests
             }
 
             Assert.True(context.GetValue("temporary").IsNil());
-            Assert.Equal("persisted", context.GetValue("persisted").ToStringValue());
+            Assert.Equal("persisted", context.GetValue("persisted").ToStringValue(context));
         }
 
         Assert.True(context.GetValue("outer").IsNil());
@@ -262,7 +262,7 @@ public class TemplateContextTests
         Assert.False(value.Equals(EmptyValue.Instance));
 
         // NilValue converts to boolean false
-        Assert.False(value.ToBooleanValue());
+        Assert.False(value.ToBooleanValue(context));
     }
 
     [Fact]

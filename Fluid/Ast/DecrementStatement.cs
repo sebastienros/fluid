@@ -35,12 +35,12 @@ public sealed class DecrementStatement : Statement, ISourceable
         }
         else
         {
-            value = NumberValue.Create(value.ToNumberValue() - 1);
+            value = NumberValue.Create(value.ToNumberValue(context) - 1);
         }
 
         context.SetValue(prefixedIdentifier, value);
 
-        await value.WriteToAsync(output, encoder, context.CultureInfo);
+        await value.WriteToAsync(output, encoder, context);
 
         return Completion.Normal;
     }
@@ -56,7 +56,7 @@ public sealed class DecrementStatement : Statement, ISourceable
         context.WriteLine($"var value = {context.ContextName}.GetValue(prefixedIdentifier);");
         context.WriteLine($"if (value.IsNil()) value = NumberValue.Create(-1); else value = NumberValue.Create(value.ToNumberValue({context.ContextName}) - 1);");
         context.WriteLine($"{context.ContextName}.SetValue(prefixedIdentifier, value);");
-        context.WriteLine($"await value.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName}.CultureInfo);");
+        context.WriteLine($"await value.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
         context.WriteLine("return Completion.Normal;");
     }
 }

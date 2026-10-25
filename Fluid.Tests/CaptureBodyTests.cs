@@ -71,7 +71,7 @@ public class CaptureBodyTests
         var options = new TemplateOptionsBuilder()
             .WithCaptured((identifier, value, context) =>
             {
-                calls.Add(identifier + "=" + value.ToStringValue());
+                calls.Add(identifier + "=" + value.ToStringValue(context));
                 return new ValueTask<FluidValue>(StringValue.Create("replaced"));
             })
             .Build();

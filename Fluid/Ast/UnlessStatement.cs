@@ -56,7 +56,7 @@ public sealed class UnlessStatement : TagStatement, ISourceable
 
     public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        var result = (await Condition.EvaluateAsync(context)).ToBooleanValue();
+        var result = (await Condition.EvaluateAsync(context)).ToBooleanValue(context);
 
         if (!result)
         {
@@ -105,7 +105,7 @@ public sealed class UnlessStatement : TagStatement, ISourceable
             for (var i = 0; i < ElseIfs.Count; i++)
             {
                 var elseIf = ElseIfs[i];
-                var elseIfResult = (await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue();
+                var elseIfResult = (await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue(context);
 
                 if (elseIfResult)
                 {

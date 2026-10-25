@@ -30,13 +30,13 @@ internal sealed class SerializableFluidValue : FluidValue
 
     public override bool Equals(FluidValue other) => _inner.Equals(other);
 
-    public override bool ToBooleanValue() => _inner.ToBooleanValue();
+    public override bool ToBooleanValue(TemplateContext context) => _inner.ToBooleanValue(context);
 
-    public override decimal ToNumberValue() => _inner.ToNumberValue();
+    public override decimal ToNumberValue(TemplateContext context) => _inner.ToNumberValue(context);
 
-    public override string ToStringValue() => _inner.ToStringValue();
+    public override string ToStringValue(TemplateContext context) => _inner.ToStringValue(context);
 
-    public override object ToObjectValue() => _inner.ToObjectValue();
+    public override object ToObjectValue(TemplateContext context) => _inner.ToObjectValue(context);
 
     public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
         => _inner.GetValueAsync(name, context);
@@ -49,6 +49,6 @@ internal sealed class SerializableFluidValue : FluidValue
 
     public override bool IsNil() => _inner.IsNil();
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
-        => _inner.WriteToAsync(output, encoder, cultureInfo);
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
+        => _inner.WriteToAsync(output, encoder, context);
 }

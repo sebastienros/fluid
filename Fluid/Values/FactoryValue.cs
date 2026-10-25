@@ -56,19 +56,19 @@ public sealed class FactoryValue : FluidValue
         return _factory.Value.IsNil();
     }
 
-    public override bool ToBooleanValue()
+    public override bool ToBooleanValue(TemplateContext context)
     {
-        return _factory.Value.ToBooleanValue();
+        return _factory.Value.ToBooleanValue(context);
     }
 
-    public override decimal ToNumberValue()
+    public override decimal ToNumberValue(TemplateContext context)
     {
-        return _factory.Value.ToNumberValue();
+        return _factory.Value.ToNumberValue(context);
     }
 
-    public override object ToObjectValue()
+    public override object ToObjectValue(TemplateContext context)
     {
-        return _factory.Value.ToObjectValue();
+        return _factory.Value.ToObjectValue(context);
     }
 
     public override string ToString()
@@ -76,14 +76,14 @@ public sealed class FactoryValue : FluidValue
         return _factory.Value.ToString();
     }
 
-    public override string ToStringValue()
+    public override string ToStringValue(TemplateContext context)
     {
-        return _factory.Value.ToStringValue();
+        return _factory.Value.ToStringValue(context);
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        AssertWriteToParameters(output, encoder, cultureInfo);
-        return _factory.Value.WriteToAsync(output, encoder, cultureInfo);
+        AssertWriteToParameters(output, encoder, context);
+        return _factory.Value.WriteToAsync(output, encoder, context);
     }
 }

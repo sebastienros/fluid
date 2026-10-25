@@ -18,31 +18,35 @@ public sealed class BlankValue : FluidValue
         if (other == this) return true;
         if (other == BooleanValue.False) return true;
         if (other == EmptyValue.Instance) return false;
-        if (other.ToObjectValue() == null) return true;
-        if (other.Type == FluidValues.String && string.IsNullOrWhiteSpace(other.ToStringValue())) return true;
-        if (other.Type == FluidValues.Array && other.ToNumberValue() == 0) return true;
-        if (other.Type == FluidValues.Dictionary && other.ToNumberValue() == 0) return true;
+        if (other.IsNil()) return true;
 
-        return false;
+        // Built-in values are compared directly, any other value of the same kind compares itself.
+        return other.Type switch
+        {
+            FluidValues.String => other is StringValue s ? string.IsNullOrWhiteSpace(s.Value) : other.Equals(this),
+            FluidValues.Array => other is IFluidArray array ? array.Count == 0 : other.Equals(this),
+            FluidValues.Dictionary => other is DictionaryValue dictionary ? dictionary.Count == 0 : other.Equals(this),
+            _ => false,
+        };
     }
 
-    public override bool ToBooleanValue()
+    public override bool ToBooleanValue(TemplateContext context)
     {
         // The only values that are falsy in Liquid are nil and false
         return true;
     }
 
-    public override decimal ToNumberValue()
+    public override decimal ToNumberValue(TemplateContext context)
     {
         return 0;
     }
 
-    public override object ToObjectValue()
+    public override object ToObjectValue(TemplateContext context)
     {
         return "";
     }
 
-    public override string ToStringValue()
+    public override string ToStringValue(TemplateContext context)
     {
         return "";
     }
@@ -52,7 +56,7 @@ public sealed class BlankValue : FluidValue
         return true;
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
         return default;
     }

@@ -1237,7 +1237,7 @@ shape: ''";
             .WithFileProvider(new DelegateTemplateFileProvider(async (path, context, cancellationToken) =>
             {
                 await Task.Yield();
-                var tenant = context.GetValue("tenant").ToStringValue();
+                var tenant = context.GetValue("tenant").ToStringValue(context);
                 return new TemplateSourceInfo(
                     lastModified,
                     cancellationToken => new ValueTask<Stream>(

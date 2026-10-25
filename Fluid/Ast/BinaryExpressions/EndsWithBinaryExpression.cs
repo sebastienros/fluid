@@ -28,7 +28,7 @@ public sealed class EndsWithBinaryExpression : BinaryExpression, ISourceable
 
         if (leftValue.Type != FluidValues.Array)
         {
-            return BinaryExpressionFluidValue.Create(leftValue, CompareStrings(leftValue, rightValue));
+            return BinaryExpressionFluidValue.Create(leftValue, CompareStrings(leftValue, rightValue, context));
         }
 
         // Stay synchronous when the array answers synchronously, which the built-in ones do.
@@ -47,9 +47,9 @@ public sealed class EndsWithBinaryExpression : BinaryExpression, ISourceable
         }
     }
 
-    private static bool CompareStrings(FluidValue leftValue, FluidValue rightValue)
+    private static bool CompareStrings(FluidValue leftValue, FluidValue rightValue, TemplateContext context)
     {
-        return leftValue.ToStringValue().EndsWith(rightValue.ToStringValue(), StringComparison.Ordinal);
+        return leftValue.ToStringValue(context).EndsWith(rightValue.ToStringValue(context), StringComparison.Ordinal);
     }
 
     // The right operand is only started here when the left one had to be awaited first.
@@ -66,7 +66,7 @@ public sealed class EndsWithBinaryExpression : BinaryExpression, ISourceable
         }
         else
         {
-            comparisonResult = CompareStrings(leftValue, rightValue);
+            comparisonResult = CompareStrings(leftValue, rightValue, context);
         }
 
         return BinaryExpressionFluidValue.Create(leftValue, comparisonResult);

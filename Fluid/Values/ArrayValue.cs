@@ -94,7 +94,7 @@ public sealed class ArrayValue : FluidValue, IFluidArray
     public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
     {
         // An index too large for an int can't name an item.
-        if (!NumberConversions.TryTruncateToInt32(index.ToNumberValue(), out var i))
+        if (!NumberConversions.TryTruncateToInt32(index.ToNumberValue(context), out var i))
         {
             return NilValue.Instance;
         }
@@ -113,12 +113,12 @@ public sealed class ArrayValue : FluidValue, IFluidArray
         return NilValue.Instance;
     }
 
-    public override bool ToBooleanValue()
+    public override bool ToBooleanValue(TemplateContext context)
     {
         return true;
     }
 
-    public override decimal ToNumberValue()
+    public override decimal ToNumberValue(TemplateContext context)
     {
         return Values.Count;
     }
@@ -151,17 +151,17 @@ public sealed class ArrayValue : FluidValue, IFluidArray
         }
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        AssertWriteToParameters(output, encoder, cultureInfo);
+        AssertWriteToParameters(output, encoder, context);
 
-        return WriteItemsAsync(this, Values, output, encoder, cultureInfo);
+        return WriteItemsAsync(this, Values, output, encoder, context);
     }
 
     /// <summary>
     /// Writes the items of an array one after the other, encoding them like any other output.
     /// </summary>
-    internal static ValueTask WriteItemsAsync(FluidValue array, IReadOnlyList<FluidValue> values, IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo, int startIndex = 0)
+    internal static ValueTask WriteItemsAsync(FluidValue array, IReadOnlyList<FluidValue> values, IFluidOutput output, TextEncoder encoder, TemplateContext context, int startIndex = 0)
     {
         // The thread-local guard must be released before an asynchronous item suspends.
         var count = values.Count;
@@ -171,7 +171,7 @@ public sealed class ArrayValue : FluidValue, IFluidArray
         {
             for (; i < count; i++)
             {
-                task = values[i].WriteToAsync(output, encoder, cultureInfo);
+                task = values[i].WriteToAsync(output, encoder, context);
                 if (!task.IsCompletedSuccessfully)
                 {
                     break;
@@ -181,22 +181,22 @@ public sealed class ArrayValue : FluidValue, IFluidArray
             }
         }
 
-        return i < count ? Awaited(task, array, values, output, encoder, cultureInfo, i + 1) : default;
+        return i < count ? Awaited(task, array, values, output, encoder, context, i + 1) : default;
 
-        static async ValueTask Awaited(ValueTask task, FluidValue array, IReadOnlyList<FluidValue> values, IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo, int startIndex)
+        static async ValueTask Awaited(ValueTask task, FluidValue array, IReadOnlyList<FluidValue> values, IFluidOutput output, TextEncoder encoder, TemplateContext context, int startIndex)
         {
             await task;
-            await WriteItemsAsync(array, values, output, encoder, cultureInfo, startIndex);
+            await WriteItemsAsync(array, values, output, encoder, context, startIndex);
         }
     }
 
-    public override string ToStringValue()
+    public override string ToStringValue(TemplateContext context)
     {
         using var scope = RecursiveValueGuard.Enter(this);
-        return ConcatStringValues(Values);
+        return ConcatStringValues(Values, context);
     }
 
-    internal static string ConcatStringValues(IReadOnlyList<FluidValue> values)
+    internal static string ConcatStringValues(IReadOnlyList<FluidValue> values, TemplateContext context)
     {
         var count = values.Count;
 
@@ -207,22 +207,22 @@ public sealed class ArrayValue : FluidValue, IFluidArray
 
         if (count == 1)
         {
-            return values[0].ToStringValue() ?? "";
+            return values[0].ToStringValue(context) ?? "";
         }
 
         var builder = new ValueStringBuilder(stackalloc char[256]);
         for (var i = 0; i < count; i++)
         {
-            builder.Append(values[i].ToStringValue());
+            builder.Append(values[i].ToStringValue(context));
         }
 
         return builder.ToString();
     }
 
-    public override object ToObjectValue()
+    public override object ToObjectValue(TemplateContext context)
     {
         using var scope = RecursiveValueGuard.Enter(this);
-        return Values.Select(x => x.ToObjectValue()).ToArray();
+        return Values.Select(x => x.ToObjectValue(context)).ToArray();
     }
 
     public override ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)

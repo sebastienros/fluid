@@ -535,7 +535,7 @@ public class ViewEngineTests
 
             if (path == "Home/_ViewStart.liquid")
             {
-                var tenant = context.GetValue("tenant").ToStringValue();
+                var tenant = context.GetValue("tenant").ToStringValue(context);
                 return new TemplateSourceInfo(
                     lastModified,
                     _ => new ValueTask<Stream>(

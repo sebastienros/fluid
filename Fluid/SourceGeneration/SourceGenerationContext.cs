@@ -74,10 +74,7 @@ public sealed class SourceGenerationContext
     {
         if (expression is LiteralExpression { Value: StringValue stringValue })
         {
-            // No TemplateContext exists at build time, and a string value doesn't depend on it.
-#pragma warning disable CS0618
-            value = stringValue.ToStringValue();
-#pragma warning restore CS0618
+            value = stringValue.Value;
             return true;
         }
 

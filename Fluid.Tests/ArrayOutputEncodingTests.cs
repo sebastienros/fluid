@@ -177,12 +177,12 @@ public class ArrayOutputEncodingTests
         public TaskCompletionSource Completion { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public override string ToStringValue() => "not the rendered value";
+        public override string ToStringValue(TemplateContext context) => "not the rendered value";
 
-        public override async ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+        public override async ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
         {
             await Completion.Task;
-            await StringValue.Create(Markup).WriteToAsync(output, encoder, cultureInfo);
+            await StringValue.Create(Markup).WriteToAsync(output, encoder, context);
         }
     }
 }

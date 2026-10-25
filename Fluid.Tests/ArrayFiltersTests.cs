@@ -24,7 +24,7 @@ public class ArrayFiltersTests
 
         var result = ArrayFilters.Join(input, arguments, context);
 
-        Assert.Equal("a, b, c", result.Result.ToStringValue());
+        Assert.Equal("a, b, c", result.Result.ToStringValue(context));
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class ArrayFiltersTests
 
         var result = await ArrayFilters.Concat(input, arguments, context);
 
-        Assert.Equal("a", (await result.EnumerateAsync(context).FirstAsync(cancellationToken: TestContext.Current.CancellationToken)).ToStringValue());
+        Assert.Equal("a", (await result.EnumerateAsync(context).FirstAsync(cancellationToken: TestContext.Current.CancellationToken)).ToStringValue(context));
         Assert.Equal(4, await result.EnumerateAsync(context).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
@@ -283,9 +283,9 @@ public class ArrayFiltersTests
 
         var enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(3, enumerated.Count());
-        Assert.Equal("a", ((dynamic)enumerated.ElementAt(0).ToObjectValue()).Title);
-        Assert.Equal("b", ((dynamic)enumerated.ElementAt(1).ToObjectValue()).Title);
-        Assert.Equal("c", ((dynamic)enumerated.ElementAt(2).ToObjectValue()).Title);
+        Assert.Equal("a", ((dynamic)enumerated.ElementAt(0).ToObjectValue(context)).Title);
+        Assert.Equal("b", ((dynamic)enumerated.ElementAt(1).ToObjectValue(context)).Title);
+        Assert.Equal("c", ((dynamic)enumerated.ElementAt(2).ToObjectValue(context)).Title);
 
         arguments = new FilterArguments().Add(StringValue.Create("Address.Zip"));
 
@@ -296,9 +296,9 @@ public class ArrayFiltersTests
 
         enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(3, enumerated.Count());
-        Assert.Equal("b", ((dynamic)enumerated.ElementAt(0).ToObjectValue()).Title);
-        Assert.Equal("c", ((dynamic)enumerated.ElementAt(1).ToObjectValue()).Title);
-        Assert.Equal("a", ((dynamic)enumerated.ElementAt(2).ToObjectValue()).Title);
+        Assert.Equal("b", ((dynamic)enumerated.ElementAt(0).ToObjectValue(context)).Title);
+        Assert.Equal("c", ((dynamic)enumerated.ElementAt(1).ToObjectValue(context)).Title);
+        Assert.Equal("a", ((dynamic)enumerated.ElementAt(2).ToObjectValue(context)).Title);
     }
 
     [Fact]
@@ -318,9 +318,9 @@ public class ArrayFiltersTests
 
         var enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(3, enumerated.Count());
-        Assert.Equal("B", enumerated.ElementAt(0).ToStringValue());
-        Assert.Equal("a", enumerated.ElementAt(1).ToStringValue());
-        Assert.Equal("c", enumerated.ElementAt(2).ToStringValue());
+        Assert.Equal("B", enumerated.ElementAt(0).ToStringValue(context));
+        Assert.Equal("a", enumerated.ElementAt(1).ToStringValue(context));
+        Assert.Equal("c", enumerated.ElementAt(2).ToStringValue(context));
     }
 
     [Fact]
@@ -340,9 +340,9 @@ public class ArrayFiltersTests
 
         var enumerated = await result.EnumerateAsync(context).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(3, enumerated.Count());
-        Assert.Equal("a", enumerated.ElementAt(0).ToStringValue());
-        Assert.Equal("B", enumerated.ElementAt(1).ToStringValue());
-        Assert.Equal("c", enumerated.ElementAt(2).ToStringValue());
+        Assert.Equal("a", enumerated.ElementAt(0).ToStringValue(context));
+        Assert.Equal("B", enumerated.ElementAt(1).ToStringValue(context));
+        Assert.Equal("c", enumerated.ElementAt(2).ToStringValue(context));
     }
 
     [Fact]
@@ -547,7 +547,7 @@ public class ArrayFiltersTests
 
         var result = await ArrayFilters.Sum(input, arguments, context);
 
-        Assert.Equal(102, result.ToNumberValue());
+        Assert.Equal(102, result.ToNumberValue(context));
     }
 
     [Fact]
@@ -564,7 +564,7 @@ public class ArrayFiltersTests
 
         var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
 
-        Assert.Equal(102, result.ToNumberValue());
+        Assert.Equal(102, result.ToNumberValue(context));
     }
 
     [Fact]
@@ -582,7 +582,7 @@ public class ArrayFiltersTests
 
         var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
 
-        Assert.Equal(10, result.ToNumberValue());
+        Assert.Equal(10, result.ToNumberValue(context));
     }
 
     [Fact]
@@ -606,7 +606,7 @@ public class ArrayFiltersTests
 
         var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
 
-        Assert.Equal(10, result.ToNumberValue());
+        Assert.Equal(10, result.ToNumberValue(context));
     }
 
     [Fact]
@@ -618,7 +618,7 @@ public class ArrayFiltersTests
 
         var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
 
-        Assert.Equal(6, result.ToNumberValue());
+        Assert.Equal(6, result.ToNumberValue(context));
     }
 
     [Fact]
@@ -636,7 +636,7 @@ public class ArrayFiltersTests
 
         var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
 
-        Assert.Equal(1, result.ToNumberValue());
+        Assert.Equal(1, result.ToNumberValue(context));
     }
 
     [Fact]
@@ -679,7 +679,7 @@ public class ArrayFiltersTests
 
         var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
 
-        Assert.Equal(0.0m, result.ToNumberValue());
+        Assert.Equal(0.0m, result.ToNumberValue(context));
     }
 
     [Fact]
@@ -696,7 +696,7 @@ public class ArrayFiltersTests
 
         var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
 
-        Assert.Equal(0.6m, result.ToNumberValue());
+        Assert.Equal(0.6m, result.ToNumberValue(context));
     }
 
     [Fact]
@@ -713,7 +713,7 @@ public class ArrayFiltersTests
 
         var result = await ArrayFilters.Sum(input, new FilterArguments(), context);
 
-        Assert.Equal(-0.4m, result.ToNumberValue());
+        Assert.Equal(-0.4m, result.ToNumberValue(context));
     }
 
     [Theory]
@@ -757,7 +757,7 @@ public class ArrayFiltersTests
 
         var result = await ArrayFilters.Sum(input, arguments, context);
 
-        Assert.Equal(expectedValue, result.ToNumberValue());
+        Assert.Equal(expectedValue, result.ToNumberValue(context));
     }
 
     [Fact]
@@ -862,7 +862,7 @@ public class ArrayFiltersTests
 
         var result1 = await ArrayFilters.FindIndex(input, arguments1, context);
 
-        Assert.Equal(0, result1.ToNumberValue());
+        Assert.Equal(0, result1.ToNumberValue(context));
 
         var arguments2 = new FilterArguments()
             .Add(StringValue.Create("Pinned"))
@@ -871,7 +871,7 @@ public class ArrayFiltersTests
 
         var result2 = await ArrayFilters.FindIndex(input, arguments2, context);
 
-        Assert.Equal(1, result2.ToNumberValue());
+        Assert.Equal(1, result2.ToNumberValue(context));
 
         var arguments3 = new FilterArguments()
             .Add(StringValue.Create("Title"))
@@ -879,7 +879,7 @@ public class ArrayFiltersTests
 
         var result3 = await ArrayFilters.FindIndex(input, arguments3, context);
 
-        Assert.Equal(2, result3.ToNumberValue());
+        Assert.Equal(2, result3.ToNumberValue(context));
 
         var arguments4 = new FilterArguments();
 
@@ -974,28 +974,4 @@ public class ArrayFiltersTests
         Assert.Equal(BooleanValue.False, result);
     }
 
-    [Fact]
-#pragma warning disable CS0618 // Type or member is obsolete
-    public void Enumerate_Obsolete_WorksCorrectly()
-#pragma warning restore CS0618
-    {
-        // Arrange
-        var input = ArrayValue.Create(new[] {
-            StringValue.Create("a"),
-            StringValue.Create("b"),
-            StringValue.Create("c")
-        });
-        var context = new TemplateContext();
-
-        // Act
-#pragma warning disable CS0618 // Type or member is obsolete
-        var result = input.Enumerate(context).ToList();
-#pragma warning restore CS0618
-
-        // Assert
-        Assert.Equal(3, result.Count);
-        Assert.Equal("a", result[0].ToStringValue());
-        Assert.Equal("b", result[1].ToStringValue());
-        Assert.Equal("c", result[2].ToStringValue());
-    }
 }

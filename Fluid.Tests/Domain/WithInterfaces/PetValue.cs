@@ -23,27 +23,27 @@ public class PetValue : FluidValue
         throw new NotImplementedException();
     }
 
-    public override bool ToBooleanValue()
+    public override bool ToBooleanValue(TemplateContext context)
     {
         throw new NotImplementedException();
     }
 
-    public override decimal ToNumberValue()
+    public override decimal ToNumberValue(TemplateContext context)
     {
         throw new NotImplementedException();
     }
 
-    public override object ToObjectValue()
+    public override object ToObjectValue(TemplateContext context)
     {
         throw new NotImplementedException();
     }
 
-    public override string ToStringValue()
+    public override string ToStringValue(TemplateContext context)
     {
         throw new NotImplementedException();
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
         throw new NotImplementedException();
     }

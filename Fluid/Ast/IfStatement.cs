@@ -61,7 +61,7 @@ public sealed class IfStatement : TagStatement, ISourceable
         var conditionTask = Condition.EvaluateAsync(context);
         if (conditionTask.IsCompletedSuccessfully)
         {
-            var result = conditionTask.Result.ToBooleanValue();
+            var result = conditionTask.Result.ToBooleanValue(context);
 
             if (result)
             {
@@ -126,7 +126,7 @@ public sealed class IfStatement : TagStatement, ISourceable
                         return AwaitedElseBranch(elseIf, elseIfConditionTask, elseIfTask: null, output, encoder, context, i + 1);
                     }
 
-                    if (elseIfConditionTask.Result.ToBooleanValue())
+                    if (elseIfConditionTask.Result.ToBooleanValue(context))
                     {
                         var writeTask = elseIf.WriteToAsync(output, encoder, context);
                         if (!writeTask.IsCompletedSuccessfully)
@@ -166,7 +166,7 @@ public sealed class IfStatement : TagStatement, ISourceable
         TemplateContext context,
         int statementStartIndex)
     {
-        var result = (await conditionTask).ToBooleanValue();
+        var result = (await conditionTask).ToBooleanValue(context);
 
         if (result)
         {
@@ -210,7 +210,7 @@ public sealed class IfStatement : TagStatement, ISourceable
         TemplateContext context,
         int startIndex)
     {
-        var condition = (await conditionTask).ToBooleanValue();
+        var condition = (await conditionTask).ToBooleanValue(context);
         if (condition)
         {
             return await (elseIfTask ?? elseIf.WriteToAsync(output, encoder, context));
@@ -219,7 +219,7 @@ public sealed class IfStatement : TagStatement, ISourceable
         for (var i = startIndex; i < ElseIfs.Count; i++)
         {
             elseIf = ElseIfs[i];
-            if ((await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue())
+            if ((await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue(context))
             {
                 return await elseIf.WriteToAsync(output, encoder, context);
             }
