@@ -95,7 +95,7 @@ public sealed class EndsWithBinaryExpression : BinaryExpression, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine("comparisonResult = leftValue.ToStringValue().EndsWith(rightValue.ToStringValue(), StringComparison.Ordinal);");
+            context.WriteLine("comparisonResult = leftValue.ToStringValue(context).EndsWith(rightValue.ToStringValue(context), StringComparison.Ordinal);");
         }
         context.WriteLine("}");
 

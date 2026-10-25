@@ -24,7 +24,7 @@ public sealed class OrBinaryExpression : BinaryExpression, ISourceable
 
         context.WriteLine($"var leftValue = await {leftExpr}({context.ContextName});");
         context.WriteLine($"var rightValue = await {rightExpr}({context.ContextName});");
-        context.WriteLine("var comparisonResult = leftValue.ToBooleanValue() || rightValue.ToBooleanValue();");
+        context.WriteLine("var comparisonResult = leftValue.ToBooleanValue(context) || rightValue.ToBooleanValue(context);");
         context.WriteLine("return BinaryExpressionFluidValue.Create(leftValue, comparisonResult);");
     }
 }

@@ -1,17 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Fluid;
 using Fluid.SourceGenerator;
+using Fluid.Tests.Mocks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Xunit;
 using System.Threading;
 
@@ -149,6 +153,302 @@ public static partial class Templates
         Assert.Equal("Hello from file", sw.ToString());
     }
 
+    [Fact]
+    public async Task TemplatesAttribute_Supports_Class_In_Global_Namespace()
+    {
+        var userSource = @"
+using Fluid.SourceGenerator;
+
+[FluidTemplates(""**/*.liquid"")]
+public static partial class Templates
+{
+}
+";
+
+        var (outputCompilation, diagnostics) = RunGenerator(userSource, new InMemoryAdditionalText("hello.liquid", "hi"));
+
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        Assert.Equal("hi", await RenderAsync(EmitToAssembly(outputCompilation).Assembly, "Templates", "Hello"));
+    }
+
+    [Fact]
+    public async Task TemplatesAttribute_Reports_Unsupported_Template_And_Generates_Others()
+    {
+        var userSource = @"
+using Fluid.SourceGenerator;
+
+namespace MyApp;
+
+[FluidTemplates(""**/*.liquid"")]
+public static partial class Templates
+{
+}
+";
+
+        var (outputCompilation, diagnostics) = RunGenerator(
+            userSource,
+            new InMemoryAdditionalText("hello.liquid", "hi"),
+            new InMemoryAdditionalText("table.liquid", "{% tablerow i in (1..2) %}{{ i }}{% endtablerow %}"),
+            new InMemoryAdditionalText("missing.liquid", "{% render 'unknown' %}"));
+
+        var errors = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+        Assert.Equal(2, errors.Count);
+        Assert.All(errors, d => Assert.Equal("FLUIDSG106", d.Id));
+        Assert.Contains(errors, d => d.GetMessage().Contains("table.liquid") && d.GetMessage().Contains("TableRowStatement"));
+        Assert.Contains(errors, d => d.GetMessage().Contains("missing.liquid") && d.GetMessage().Contains("unknown"));
+
+        var assembly = EmitToAssembly(outputCompilation).Assembly;
+        var templatesType = assembly.GetType("MyApp.Templates")!;
+        Assert.Null(templatesType.GetProperty("Table", BindingFlags.Public | BindingFlags.Static));
+        Assert.Null(templatesType.GetProperty("Missing", BindingFlags.Public | BindingFlags.Static));
+        Assert.Equal("hi", await RenderAsync(assembly, "MyApp.Templates", "Hello"));
+    }
+
+    [Theory]
+    [InlineData("{% case x %}{% when 1 %}one{% endcase %}")]
+    [InlineData("{% case x %}{% when 1 %}one{% else %}other{% endcase %}")]
+    [InlineData("{% if x %}a{% elsif y %}b{% else %}c{% endif %}{% unless x %}d{% endunless %}")]
+    [InlineData("{% for i in (1..3) %}{% if i == 2 %}{% continue %}{% endif %}{{ forloop.index }}{% else %}none{% endfor %}")]
+    [InlineData("{% assign a = 'x' | upcase %}{% capture b %}{{ a }}{% endcapture %}{{ b }}{% cycle 'c', 'd' %}")]
+    [InlineData("{% increment c %}{% decrement d %}{% raw %}{{ e }}{% endraw %}{% comment %}f{% endcomment %}{% echo 'g' %}")]
+    public void TemplatesAttribute_Generates_Code_Without_Warnings(string source)
+    {
+        var userSource = @"
+using Fluid.SourceGenerator;
+
+namespace MyApp;
+
+[FluidTemplates(""**/*.liquid"")]
+public static partial class Templates
+{
+}
+";
+
+        var (outputCompilation, diagnostics) = RunGenerator(userSource, new InMemoryAdditionalText("template.liquid", source));
+
+        Assert.Empty(diagnostics);
+        Assert.Empty(outputCompilation.GetDiagnostics().Where(d => d.Severity >= DiagnosticSeverity.Warning));
+    }
+
+    [Theory]
+    [InlineData("{% for i in (1..3) %}{% if i == 2 %}{% continue %}{% endif %}{{ i }}{% endfor %}", "13")]
+    [InlineData("{% for i in (1..3) %}{% if i == 2 %}{% break %}{% endif %}{{ i }}{% endfor %}", "1")]
+    [InlineData("{% for i in (1..2) %}{% endfor %}done", "done")]
+    public async Task TemplatesAttribute_Loops_Honor_Break_And_Continue(string source, string expected)
+    {
+        var userSource = @"
+using Fluid.SourceGenerator;
+
+namespace MyApp;
+
+[FluidTemplates(""**/*.liquid"")]
+public static partial class Templates
+{
+}
+";
+
+        var (outputCompilation, diagnostics) = RunGenerator(userSource, new InMemoryAdditionalText("loop.liquid", source));
+
+        Assert.Empty(diagnostics);
+        Assert.Equal(expected, await RenderAsync(EmitToAssembly(outputCompilation).Assembly, "MyApp.Templates", "Loop"));
+    }
+
+    [Fact]
+    public async Task Compiled_Templates_Render_Like_Interpreted_Templates()
+    {
+        var files = new Dictionary<string, string>
+        {
+            // Whitespace control, with the markers and with TemplateOptions.Trimming and Greedy
+            ["t1.liquid"] = "a {%- assign x = 1 -%} b",
+            ["t2.liquid"] = "{{- 'x' -}}  y \n {{ 'z' }} \n",
+            ["t3.liquid"] = "a\n  {% if true %}\n  b\n  {% endif %}\n c",
+            ["t4.liquid"] = "  {{ 'v' }}  \n  {% for i in (1..2) %} {{ i }} {% endfor %}  \n",
+            ["t5.liquid"] = "\n\n  {%- if true -%}  \n  x  \n  {%- endif %}\n\n",
+            ["t6.liquid"] = "{% if true %}   {% endif %}|{% for i in (1..2) %}\n{% endfor %}|",
+
+            // include shares the scope, takes arguments and lets break and continue reach the loop
+            ["t7.liquid"] = "{% include 'p_set' %}{{ v }}|{% include 'p_echo' with 'w' %}|{% include 'p_echo', p_echo: 'kw' %}",
+            ["t8.liquid"] = "{% include 'p_echo' for (1..3) %}|{% include 'p_echo' for (1..2) as other %}",
+            ["t9.liquid"] = "{% for i in (1..4) %}{% include 'p_skip' %}{{ i }}{% endfor %}",
+            ["t10.liquid"] = "{% render 'p_echo' with 'r' %}|{% assign v = 1 %}{% render 'p_set' %}{{ v }}",
+
+            // macros, local and imported
+            ["t11.liquid"] = "{% macro hello(name, greeting = 'Hi') %}{{ greeting }} {{ name }}{% endmacro %}{{ hello('Ada') }} {{ hello('Bob', greeting = 'Yo') }}",
+            ["t12.liquid"] = "{% from 'p_macros' import hello %}{{ hello('Ada') }}",
+            ["t13.liquid"] = "{% from 'p_macros' %}{{ hello('Ada') }} {{ bye('Bob') }}",
+
+            ["p_set.liquid"] = "{% assign v = 'set' %}",
+            ["p_echo.liquid"] = "[{{ p_echo }}{{ other }}]",
+            ["p_skip.liquid"] = "{% if i == 2 %}{% continue %}{% endif %}{% if i == 4 %}{% break %}{% endif %}",
+            ["p_macros.liquid"] = "{% macro hello(name) %}Hello {{ name }}{% endmacro %}{% macro bye(name) %}Bye {{ name }}{% endmacro %}",
+        };
+
+        var userSource = @"
+using Fluid.SourceGenerator;
+
+namespace MyApp;
+
+[FluidTemplates(""**/*.liquid"", AllowFunctions = true)]
+public static partial class Templates
+{
+}
+";
+
+        var (outputCompilation, diagnostics) = RunGenerator(
+            userSource,
+            files.Select(x => (AdditionalText)new InMemoryAdditionalText(x.Key, x.Value)).ToArray());
+
+        Assert.Empty(diagnostics);
+        Assert.Empty(outputCompilation.GetDiagnostics().Where(d => d.Severity >= DiagnosticSeverity.Warning));
+
+        var templatesType = EmitToAssembly(outputCompilation).Assembly.GetType("MyApp.Templates")!;
+        var parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
+        var fileProvider = new MockFileProvider();
+        foreach (var file in files)
+        {
+            fileProvider.Add(file.Key, file.Value);
+        }
+
+        var trimmings = new[] { TrimmingFlags.None, TrimmingFlags.TagLeft | TrimmingFlags.TagRight, TrimmingFlags.OutputLeft | TrimmingFlags.OutputRight, TrimmingFlags.TagLeft | TrimmingFlags.OutputRight };
+        var mismatches = new List<string>();
+
+        foreach (var file in files.Where(x => x.Key.StartsWith('t')))
+        {
+            var compiled = (IFluidTemplate)templatesType
+                .GetProperty(Path.GetFileNameWithoutExtension(file.Key).ToUpperInvariant(), BindingFlags.Public | BindingFlags.Static)!
+                .GetValue(null)!;
+
+            foreach (var trimming in trimmings)
+            {
+                foreach (var greedy in new[] { true, false })
+                {
+                    var options = new TemplateOptionsBuilder()
+                        .WithFileProvider(fileProvider)
+                        .WithTrimming(trimming)
+                        .WithGreedy(greedy)
+                        .Build();
+
+                    // An interpreted template keeps the whitespace of the first options it's rendered with.
+                    var expected = await parser.Parse(file.Value).RenderAsync(new TemplateContext(options));
+                    var actual = await compiled.RenderAsync(new TemplateContext(options));
+
+                    if (expected != actual)
+                    {
+                        mismatches.Add($"{file.Key} ({trimming}, greedy: {greedy}): expected '{expected}', got '{actual}'");
+                    }
+                }
+            }
+        }
+
+        Assert.True(mismatches.Count == 0, string.Join(Environment.NewLine, mismatches));
+    }
+
+    [Fact]
+    public void TemplatesAttribute_Reports_Include_With_Dynamic_Path()
+    {
+        var userSource = @"
+using Fluid.SourceGenerator;
+
+namespace MyApp;
+
+[FluidTemplates(""**/*.liquid"")]
+public static partial class Templates
+{
+}
+";
+
+        var (_, diagnostics) = RunGenerator(userSource, new InMemoryAdditionalText("hello.liquid", "{% assign name = 'x' %}{% include name %}"));
+
+        var error = Assert.Single(diagnostics);
+        Assert.Equal("FLUIDSG106", error.Id);
+        Assert.Contains("dynamic path", error.GetMessage());
+    }
+
+    [Fact]
+    public async Task TemplatesFolder_Makes_Paths_Relative()
+    {
+        var userSource = @"
+using Fluid.SourceGenerator;
+
+namespace MyApp;
+
+[FluidTemplates(""*.liquid"")]
+public static partial class Templates
+{
+}
+";
+
+        var compilation = CreateCompilation(userSource);
+        var additional = ImmutableArray.Create<AdditionalText>(
+            new InMemoryAdditionalText("/app/Templates/hello.liquid", "{% render 'partials/footer' %}"),
+            new InMemoryAdditionalText("/app/Templates/partials/footer.liquid", "footer"),
+            new InMemoryAdditionalText("/app/Other/other.liquid", "other"));
+
+        var optionsProvider = new GlobalOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.ProjectDir"] = "/app/",
+            ["build_property.FluidTemplatesFolder"] = "Templates"
+        });
+
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(
+            new[] { new FluidTemplateGenerator().AsSourceGenerator() },
+            additionalTexts: additional,
+            optionsProvider: optionsProvider);
+
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+
+        Assert.Empty(diagnostics);
+
+        var assembly = EmitToAssembly(outputCompilation).Assembly;
+        Assert.Null(assembly.GetType("MyApp.Templates")!.GetProperty("Other", BindingFlags.Public | BindingFlags.Static));
+        Assert.Equal("footer", await RenderAsync(assembly, "MyApp.Templates", "Hello"));
+    }
+
+    [Fact]
+    public void Package_Makes_TemplatesFolder_Visible_To_Generator()
+    {
+        var project = XDocument.Load(Path.Combine(FindRepositoryRoot(), "Fluid.SourceGenerator", "Fluid.SourceGenerator.csproj"));
+        var packedProps = project.Descendants("None")
+            .Single(e => (string)e.Attribute("Include") == @"build\Fluid.SourceGenerator.props");
+
+        Assert.Equal("build;buildTransitive", (string)packedProps.Attribute("PackagePath"));
+
+        var props = XDocument.Load(Path.Combine(FindRepositoryRoot(), "Fluid.SourceGenerator", "build", "Fluid.SourceGenerator.props"));
+        Assert.Contains(props.Descendants("CompilerVisibleProperty"), e => (string)e.Attribute("Include") == "FluidTemplatesFolder");
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory != null && !File.Exists(Path.Combine(directory.FullName, "Fluid.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        return directory?.FullName ?? throw new InvalidOperationException("Repository root not found.");
+    }
+
+    private static (Compilation Compilation, ImmutableArray<Diagnostic> Diagnostics) RunGenerator(string userSource, params AdditionalText[] additionalTexts)
+    {
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(
+            new[] { new FluidTemplateGenerator().AsSourceGenerator() },
+            additionalTexts: additionalTexts);
+
+        driver.RunGeneratorsAndUpdateCompilation(CreateCompilation(userSource), out var outputCompilation, out var diagnostics);
+        return (outputCompilation, diagnostics);
+    }
+
+    private static async Task<string> RenderAsync(Assembly assembly, string typeName, string propertyName)
+    {
+        var template = (IFluidTemplate)assembly.GetType(typeName)!
+            .GetProperty(propertyName, BindingFlags.Public | BindingFlags.Static)!
+            .GetValue(null)!;
+
+        var sw = new StringWriter();
+        await template.RenderAsync(sw, HtmlEncoder.Default, new TemplateContext());
+        return sw.ToString();
+    }
+
     private static CSharpCompilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
@@ -160,6 +460,7 @@ public static partial class Templates
             MetadataReference.CreateFromFile(typeof(Task).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Buffers.IBufferWriter<>).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(TextEncoder).Assembly.Location),
+            MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(typeof(object).Assembly.Location)!, "System.Collections.dll")),
             MetadataReference.CreateFromFile(typeof(IFluidTemplate).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(FluidTemplateGenerator).Assembly.Location)
         };
@@ -220,5 +521,33 @@ public static partial class Templates
         public override string Path { get; }
 
         public override SourceText GetText(CancellationToken cancellationToken = default) => _text;
+    }
+
+    private sealed class GlobalOptionsProvider : AnalyzerConfigOptionsProvider
+    {
+        public GlobalOptionsProvider(Dictionary<string, string> values)
+        {
+            GlobalOptions = new DictionaryOptions(values);
+        }
+
+        public override AnalyzerConfigOptions GlobalOptions { get; }
+
+        public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => DictionaryOptions.Empty;
+
+        public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => DictionaryOptions.Empty;
+    }
+
+    private sealed class DictionaryOptions : AnalyzerConfigOptions
+    {
+        public static readonly DictionaryOptions Empty = new(new Dictionary<string, string>());
+
+        private readonly Dictionary<string, string> _values;
+
+        public DictionaryOptions(Dictionary<string, string> values)
+        {
+            _values = values;
+        }
+
+        public override bool TryGetValue(string key, [NotNullWhen(true)] out string value) => _values.TryGetValue(key, out value);
     }
 }

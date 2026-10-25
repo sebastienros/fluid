@@ -353,7 +353,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
 
         context.WriteLine($"var evaluatedSource = await {sourceExpr}({context.ContextName});");
-        context.WriteLine("if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue()))");
+        context.WriteLine("if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue(context)))");
         context.WriteLine("{");
         using (context.Indent())
         {
@@ -479,16 +479,24 @@ public sealed class ForStatement : TagStatement, ISourceable
                 context.WriteLine("forloop.First = iteration == 0;");
                 context.WriteLine("forloop.Last = iteration == count - 1;");
 
-                context.WriteLine("var completion = Completion.Normal;");
-                for (var s = 0; s < Statements.Count; s++)
+                // Like the interpreter, a body that is only whitespace isn't written.
+                var statements = _suppressWhitespaceBody ? [] : Statements;
+
+                // Declared only when used, an unused variable is a warning in the generated code.
+                if (statements.Count > 0)
                 {
-                    var stmtMethod = context.GetStatementMethodName(Statements[s]);
-                    context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-                    context.WriteLine("if (completion != Completion.Normal) break;");
+                    context.WriteLine("var completion = Completion.Normal;");
                 }
 
-                context.WriteLine("if (completion == Completion.Continue) continue;");
-                context.WriteLine("if (completion == Completion.Break) break;");
+                for (var s = 0; s < statements.Count; s++)
+                {
+                    var stmtMethod = context.GetStatementMethodName(statements[s]);
+                    context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+
+                    // The statements are emitted inline in the loop body, so each one leaves or skips the iteration itself.
+                    context.WriteLine("if (completion == Completion.Break) break;");
+                    context.WriteLine("if (completion == Completion.Continue) continue;");
+                }
             }
             context.WriteLine("}");
             context.WriteLine($"{context.ContextName}.SetValue({continueOffsetLiteralName}, endIndexExclusive);");

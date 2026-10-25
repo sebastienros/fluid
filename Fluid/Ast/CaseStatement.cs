@@ -138,13 +138,24 @@ public sealed class CaseStatement : TagStatement, ISourceable
 
         context.WriteLine($"{context.ContextName}.IncrementSteps();");
         context.WriteLine($"var value = await {exprMethod}({context.ContextName});");
-        context.WriteLine("var hasMatched = false;");
+        // Only an else block reads the flag; declaring it otherwise emits an unused variable warning.
+        var tracksMatch = false;
+        for (var b = 0; b < _blocks.Count; b++)
+        {
+            tracksMatch |= _blocks[b] is ElseBlock;
+        }
+
+        if (tracksMatch)
+        {
+            context.WriteLine("var hasMatched = false;");
+        }
 
         for (var b = 0; b < _blocks.Count; b++)
         {
             var block = _blocks[b];
             if (block is WhenBlock whenBlock)
             {
+                var whenStatements = SourceGenerationContext.GetWrittenStatements(whenBlock.Statements, _isWhitespaceOrCommentOnly);
                 for (var o = 0; o < whenBlock.Options.Count; o++)
                 {
                     var optionExpr = context.GetExpressionMethodName(whenBlock.Options[o]);
@@ -152,11 +163,20 @@ public sealed class CaseStatement : TagStatement, ISourceable
                     context.WriteLine("{");
                     using (context.Indent())
                     {
-                        context.WriteLine("hasMatched = true;");
-                        context.WriteLine("var completion = Completion.Normal;");
-                        for (var s = 0; s < whenBlock.Statements.Count; s++)
+                        if (tracksMatch)
                         {
-                            var stmtMethod = context.GetStatementMethodName(whenBlock.Statements[s]);
+                            context.WriteLine("hasMatched = true;");
+                        }
+
+                        // Declared only when used, an unused variable is a warning in the generated code.
+                        if (whenStatements.Count > 0)
+                        {
+                            context.WriteLine("var completion = Completion.Normal;");
+                        }
+
+                        for (var s = 0; s < whenStatements.Count; s++)
+                        {
+                            var stmtMethod = context.GetStatementMethodName(whenStatements[s]);
                             context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
                             context.WriteLine("if (completion != Completion.Normal) return completion;");
                         }
@@ -166,14 +186,20 @@ public sealed class CaseStatement : TagStatement, ISourceable
             }
             else if (block is ElseBlock elseBlock)
             {
+                var elseStatements = SourceGenerationContext.GetWrittenStatements(elseBlock.Statements, _isWhitespaceOrCommentOnly);
                 context.WriteLine("if (!hasMatched)");
                 context.WriteLine("{");
                 using (context.Indent())
                 {
-                    context.WriteLine("var completion = Completion.Normal;");
-                    for (var s = 0; s < elseBlock.Statements.Count; s++)
+                    // Declared only when used, an unused variable is a warning in the generated code.
+                    if (elseStatements.Count > 0)
                     {
-                        var stmtMethod = context.GetStatementMethodName(elseBlock.Statements[s]);
+                        context.WriteLine("var completion = Completion.Normal;");
+                    }
+
+                    for (var s = 0; s < elseStatements.Count; s++)
+                    {
+                        var stmtMethod = context.GetStatementMethodName(elseStatements[s]);
                         context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
                         context.WriteLine("if (completion != Completion.Normal) return completion;");
                     }

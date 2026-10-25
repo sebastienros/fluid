@@ -134,15 +134,22 @@ public sealed class UnlessStatement : TagStatement, ISourceable
     public void WriteTo(SourceGenerationContext context)
     {
         var conditionExpr = context.GetExpressionMethodName(Condition);
-        context.WriteLine($"var result = (await {conditionExpr}({context.ContextName})).ToBooleanValue();");
+        context.WriteLine($"var result = (await {conditionExpr}({context.ContextName})).ToBooleanValue(context);");
         context.WriteLine("if (!result)");
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine("var completion = Completion.Normal;");
-            for (var i = 0; i < Statements.Count; i++)
+            var statements = SourceGenerationContext.GetWrittenStatements(Statements, IsWhitespaceOrCommentOnly);
+
+            // Declared only when used, an unused variable is a warning in the generated code.
+            if (statements.Count > 0)
             {
-                var stmtMethod = context.GetStatementMethodName(Statements[i]);
+                context.WriteLine("var completion = Completion.Normal;");
+            }
+
+            for (var i = 0; i < statements.Count; i++)
+            {
+                var stmtMethod = context.GetStatementMethodName(statements[i]);
                 context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
                 context.WriteLine("if (completion != Completion.Normal) return completion;");
             }
@@ -155,7 +162,7 @@ public sealed class UnlessStatement : TagStatement, ISourceable
             var elseIf = ElseIfs[i];
             var elseIfCondition = context.GetExpressionMethodName(elseIf.Condition);
             var elseIfStatement = context.GetStatementMethodName(elseIf);
-            context.WriteLine($"if ((await {elseIfCondition}({context.ContextName})).ToBooleanValue())");
+            context.WriteLine($"if ((await {elseIfCondition}({context.ContextName})).ToBooleanValue(context))");
             context.WriteLine("{");
             using (context.Indent())
             {

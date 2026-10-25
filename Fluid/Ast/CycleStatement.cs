@@ -109,7 +109,7 @@ public sealed class CycleStatement : Statement, ISourceable
         {
             var groupExpr = context.GetExpressionMethodName(Group);
             context.WriteLine($"var groupValue = await {groupExpr}({context.ContextName});");
-            context.WriteLine("var key = \"named_\" + (groupValue.IsNil() ? string.Empty : groupValue.ToStringValue());");
+            context.WriteLine("var key = \"named_\" + (groupValue.IsNil() ? string.Empty : groupValue.ToStringValue(context));");
         }
 
         context.WriteLine($"if (!{context.ContextName}.AmbientValues.TryGetValue(\"{CycleRegisterKey}\", out var registerObj) || registerObj is not Dictionary<string, int> register)");

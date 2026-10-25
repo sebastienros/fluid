@@ -114,7 +114,7 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
                 context.WriteLine("throw new LiquidException(\"comparison of String with other type failed\");");
             }
             context.WriteLine("}");
-            context.WriteLine("var comparison = string.Compare(leftValue.ToStringValue(), rightValue.ToStringValue(), StringComparison.Ordinal);");
+            context.WriteLine("var comparison = string.Compare(leftValue.ToStringValue(context), rightValue.ToStringValue(context), StringComparison.Ordinal);");
             context.WriteLine($"comparisonResult = {strict} ? comparison > 0 : comparison >= 0;");
         }
         context.WriteLine("}");

@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Fluid.Ast;
+using Fluid.Values;
 
 namespace Fluid.SourceGeneration;
 
@@ -40,7 +41,48 @@ public sealed class SourceGenerationContext
             return typeName;
         }
 
-        throw new SourceGenerationException($"No compiled template was registered for render path '{path}'.");
+        throw new SourceGenerationException($"No compiled template was registered for path '{path}'.");
+    }
+
+    /// <summary>
+    /// Gets the statements a block writes. Like the interpreter, a block that only contains whitespace, comments and
+    /// tags such as <c>assign</c> doesn't write its text.
+    /// </summary>
+    public static IReadOnlyList<Statement> GetWrittenStatements(IReadOnlyList<Statement> statements, bool isBlank)
+    {
+        if (!isBlank)
+        {
+            return statements;
+        }
+
+        var result = new List<Statement>(statements.Count);
+        for (var i = 0; i < statements.Count; i++)
+        {
+            if (statements[i] is not TextSpanStatement)
+            {
+                result.Add(statements[i]);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Gets the value of a string literal, such as the path of an <c>include</c>, which is known at build time.
+    /// </summary>
+    public static bool TryGetLiteralString(Expression expression, out string value)
+    {
+        if (expression is LiteralExpression { Value: StringValue stringValue })
+        {
+            // No TemplateContext exists at build time, and a string value doesn't depend on it.
+#pragma warning disable CS0618
+            value = stringValue.ToStringValue();
+#pragma warning restore CS0618
+            return true;
+        }
+
+        value = null;
+        return false;
     }
 
     public Type ModelType => Options.ModelType;

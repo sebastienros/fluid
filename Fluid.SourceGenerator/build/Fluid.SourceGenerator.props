@@ -1,0 +1,8 @@
+<Project>
+
+  <!-- Makes the templates folder setting readable by the template generator. -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="FluidTemplatesFolder" />
+  </ItemGroup>
+
+</Project>

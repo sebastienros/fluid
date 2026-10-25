@@ -66,91 +66,99 @@ public sealed class TextSpanStatement : Statement, ISourceable
                     (NextIsOutput && (trimming & TrimmingFlags.OutputLeft) != 0)
                     ;
 
-                var span = _text.Buffer;
-                var start = 0;
-                var end = _text.Length - 1;
-
-                // Does this text need to have its left part trimmed?
-                if (StripLeft)
-                {
-                    var firstNewLine = -1;
-
-                    for (var i = start; i <= end; i++)
-                    {
-                        var c = span[_text.Offset + i];
-
-                        if (Character.IsWhiteSpaceOrNewLine(c))
-                        {
-                            start++;
-
-                            if (firstNewLine == -1 && (c == '\n'))
-                            {
-                                firstNewLine = start;
-                            }
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-
-                    if (!options.Greedy)
-                    {
-                        if (firstNewLine != -1)
-                        {
-                            start = firstNewLine;
-                        }
-                    }
-                }
-
-                // Does this text need to have its right part trimmed?
-                if (StripRight)
-                {
-                    var lastNewLine = -1;
-
-                    for (var i = end; i >= start; i--)
-                    {
-                        var c = span[_text.Offset + i];
-
-                        if (Character.IsWhiteSpaceOrNewLine(c))
-                        {
-                            if (lastNewLine == -1 && c == '\n')
-                            {
-                                lastNewLine = end;
-                            }
-
-                            end--;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-
-                    if (!options.Greedy)
-                    {
-                        if (lastNewLine != -1)
-                        {
-                            end = lastNewLine;
-                        }
-                    }
-                }
-                if (end - start + 1 == 0)
-                {
-                    _text = "";
-                }
-                else if (start != 0 || end != _text.Length - 1)
-                {
-                    var offset = _text.Offset;
-                    var buffer = _text.Buffer;
-
-                    _text = new TextSpan(buffer, offset + start, end - start + 1);
-                }
-
+                _text = Trim(_text, StripLeft, StripRight, options.Greedy);
                 _preparedBuffer = _text.ToString();
                 _isBufferPrepared = true;
             }
         }
+    }
+
+    /// <summary>
+    /// Removes the whitespace on each requested side, the way the <c>-</c> markers and <see cref="TrimmingFlags"/> do.
+    /// </summary>
+    internal static TextSpan Trim(TextSpan text, bool stripLeft, bool stripRight, bool greedy)
+    {
+        var span = text.Buffer;
+        var start = 0;
+        var end = text.Length - 1;
+
+        // Does this text need to have its left part trimmed?
+        if (stripLeft)
+        {
+            var firstNewLine = -1;
+
+            for (var i = start; i <= end; i++)
+            {
+                var c = span[text.Offset + i];
+
+                if (Character.IsWhiteSpaceOrNewLine(c))
+                {
+                    start++;
+
+                    if (firstNewLine == -1 && (c == '\n'))
+                    {
+                        firstNewLine = start;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (!greedy)
+            {
+                if (firstNewLine != -1)
+                {
+                    start = firstNewLine;
+                }
+            }
+        }
+
+        // Does this text need to have its right part trimmed?
+        if (stripRight)
+        {
+            var lastNewLine = -1;
+
+            for (var i = end; i >= start; i--)
+            {
+                var c = span[text.Offset + i];
+
+                if (Character.IsWhiteSpaceOrNewLine(c))
+                {
+                    if (lastNewLine == -1 && c == '\n')
+                    {
+                        lastNewLine = end;
+                    }
+
+                    end--;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (!greedy)
+            {
+                if (lastNewLine != -1)
+                {
+                    end = lastNewLine;
+                }
+            }
+        }
+        if (end - start + 1 == 0)
+        {
+            return "";
+        }
+
+        if (start != 0 || end != text.Length - 1)
+        {
+            return new TextSpan(text.Buffer, text.Offset + start, end - start + 1);
+        }
+
+        return text;
+
     }
 
     protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitTextSpanStatement(this);
@@ -178,17 +186,103 @@ public sealed class TextSpanStatement : Statement, ISourceable
 
     public void WriteTo(SourceGenerationContext context)
     {
-        // Source generation assumes TemplateOptions.Trimming == TrimmingFlags.None.
-        // Emit the raw text span as a cached static string without allocating _text.ToString().
-        if (_text.Length == 0)
+        WriteTextTo(context);
+        context.WriteLine("return Completion.Normal;");
+    }
+
+    /// <summary>
+    /// Emits the code writing this text, without returning a completion.
+    /// </summary>
+    internal void WriteTextTo(SourceGenerationContext context)
+    {
+        // TemplateOptions.Trimming and Greedy are only known at render time. Every text they can produce is
+        // computed here, and the generated code picks one. Most spans have a single variant, written directly.
+        var leftTerms = new List<string>(2);
+        if (!StripLeft)
         {
-            context.WriteLine("return Completion.Normal;");
+            if (PreviousIsTag) leftTerms.Add("(trimming & TrimmingFlags.TagRight) != 0");
+            if (PreviousIsOutput) leftTerms.Add("(trimming & TrimmingFlags.OutputRight) != 0");
+        }
+
+        var rightTerms = new List<string>(2);
+        if (!StripRight)
+        {
+            if (NextIsTag) rightTerms.Add("(trimming & TrimmingFlags.TagLeft) != 0");
+            if (NextIsOutput) rightTerms.Add("(trimming & TrimmingFlags.OutputLeft) != 0");
+        }
+
+        var leftCondition = leftTerms.Count > 0 ? string.Join(" || ", leftTerms) : null;
+        var rightCondition = rightTerms.Count > 0 ? string.Join(" || ", rightTerms) : null;
+        var greedyCondition = StripLeft || StripRight || leftCondition != null || rightCondition != null
+            ? $"{context.ContextName}.Options.Greedy"
+            : null;
+
+        var hasEmptyVariant = false;
+        var hasTextVariant = false;
+
+        string Variant(bool stripLeft, bool stripRight, bool greedy)
+        {
+            var text = Trim(_text, stripLeft, stripRight, greedy);
+            if (text.Length == 0)
+            {
+                hasEmptyVariant = true;
+                return "string.Empty";
+            }
+
+            hasTextVariant = true;
+            return context.GetOrAddStaticString(text.Buffer, text.Offset, text.Length);
+        }
+
+        static string Select(string condition, string whenTrue, string whenFalse)
+            => whenTrue == whenFalse ? whenTrue : $"(({condition}) ? {whenTrue} : {whenFalse})";
+
+        string SelectRight(bool stripLeft, bool greedy)
+            => rightCondition == null
+                ? Variant(stripLeft, StripRight, greedy)
+                : Select(rightCondition, Variant(stripLeft, true, greedy), Variant(stripLeft, false, greedy));
+
+        string SelectLeft(bool greedy)
+            => leftCondition == null
+                ? SelectRight(StripLeft, greedy)
+                : Select(leftCondition, SelectRight(true, greedy), SelectRight(false, greedy));
+
+        var expression = greedyCondition == null
+            ? SelectLeft(greedy: true)
+            : Select(greedyCondition, SelectLeft(greedy: true), SelectLeft(greedy: false));
+
+        if (!hasTextVariant)
+        {
             return;
         }
 
-        var textField = context.GetOrAddStaticString(_text.Buffer, _text.Offset, _text.Length);
-        context.WriteLine($"{context.ContextName}.IncrementSteps();");
-        context.WriteLine($"{context.WriterName}.Write({textField});");
-        context.WriteLine("return Completion.Normal;");
+        // A single variant is a field name or string.Empty, a choice is a conditional expression.
+        if (!hasEmptyVariant && expression[0] != '(')
+        {
+            context.WriteLine($"{context.ContextName}.IncrementSteps();");
+            context.WriteLine($"{context.WriterName}.Write({expression});");
+            return;
+        }
+
+        context.WriteLine("{");
+        using (context.Indent())
+        {
+            if (leftCondition != null || rightCondition != null)
+            {
+                context.WriteLine($"var trimming = {context.ContextName}.Options.Trimming;");
+            }
+
+            context.WriteLine($"var text = {expression};");
+
+            // The interpreter doesn't count a step for a text that was trimmed away.
+            context.WriteLine("if (text.Length != 0)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"{context.ContextName}.IncrementSteps();");
+                context.WriteLine($"{context.WriterName}.Write(text);");
+            }
+            context.WriteLine("}");
+        }
+        context.WriteLine("}");
     }
 }

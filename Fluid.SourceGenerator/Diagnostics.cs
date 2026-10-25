@@ -20,6 +20,15 @@ internal static class Diagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor TemplateCompilationFailedRule = new(
+        id: "FLUIDSG106",
+        title: "Fluid template compilation failed",
+        messageFormat: "Template '{0}' could not be compiled: {1}",
+        category: "Fluid.SourceGenerator",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static Diagnostic ClassMustBePartial(Location location) => Diagnostic.Create(ClassMustBePartialRule, location);
     public static Diagnostic TemplateParseFailed(Location location, string template, string errors) => Diagnostic.Create(TemplateParseFailedRule, location, template, errors);
+    public static Diagnostic TemplateCompilationFailed(Location location, string template, string error) => Diagnostic.Create(TemplateCompilationFailedRule, location, template, error);
 }

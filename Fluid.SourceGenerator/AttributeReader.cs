@@ -50,6 +50,19 @@ internal static class AttributeReader
         return null;
     }
 
+    public static bool GetNamedBool(AttributeData attribute, string name)
+    {
+        foreach (var kv in attribute.NamedArguments)
+        {
+            if (string.Equals(kv.Key, name, StringComparison.Ordinal) && kv.Value.Value is bool b)
+            {
+                return b;
+            }
+        }
+
+        return false;
+    }
+
     public static string[]? GetNamedStringArray(AttributeData attribute, string name)
     {
         foreach (var kv in attribute.NamedArguments)

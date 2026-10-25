@@ -95,7 +95,7 @@ public sealed class StartsWithBinaryExpression : BinaryExpression, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine("comparisonResult = leftValue.ToStringValue().StartsWith(rightValue.ToStringValue(), StringComparison.Ordinal);");
+            context.WriteLine("comparisonResult = leftValue.ToStringValue(context).StartsWith(rightValue.ToStringValue(context), StringComparison.Ordinal);");
         }
         context.WriteLine("}");
 

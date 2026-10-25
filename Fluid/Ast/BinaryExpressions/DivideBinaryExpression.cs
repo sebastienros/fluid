@@ -40,9 +40,9 @@ public sealed class DivideBinaryExpression : BinaryExpression, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine("var rightNumber = rightValue.ToNumberValue();");
+            context.WriteLine("var rightNumber = rightValue.ToNumberValue(context);");
             context.WriteLine("if (rightNumber == 0) return NilValue.Instance;");
-            context.WriteLine("return NumberValue.Create(leftValue.ToNumberValue() / rightNumber);");
+            context.WriteLine("return NumberValue.Create(leftValue.ToNumberValue(context) / rightNumber);");
         }
         context.WriteLine("}");
 

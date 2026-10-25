@@ -141,7 +141,7 @@ public sealed class MacroStatement : TagStatement, ISourceable
                 context.WriteLine("{");
                 using (context.Indent())
                 {
-                    context.WriteLine("string positionalName = null;");
+                    context.WriteLine("string? positionalName = null;");
                     // Generate positional name mapping from Arguments
                     for (var i = 0; i < Arguments.Count; i++)
                     {
