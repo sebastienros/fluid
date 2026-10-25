@@ -2122,6 +2122,14 @@ WarmupCount=3
 
 When creating tests, or questioning the results of a template, please verify the official Ruby implementation by using their showcase website: https://shopify.dev/docs/api/liquid
 
+The same check can be run from the command line with `scripts/shopify-liquid.cs`, which renders a template with Shopify's engine and can diff the result with Fluid's (`-c`):
+
+```shell
+dotnet run scripts/shopify-liquid.cs -- -c -e '{{ "a,b" | split: "," | join: "-" }}'
+```
+
+Run it with `--help` for all options. Templates must be self-contained (use `assign` or `capture`) since custom data can't be passed to Shopify.
+
 ## Used by
 
 Fluid is known to be used in the following projects:
