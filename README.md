@@ -49,6 +49,7 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 - [Time zones](#time-zones)
 - [Customizing tags and blocks](#customizing-tags-and-blocks)
 - [ASP.NET MVC View Engine](#aspnet-mvc-view-engine)
+- [Ranges](#ranges)
 - [Whitespace control](#whitespace-control)
 - [Custom filters](#custom-filters)
 - [Functions](#functions)
@@ -1553,6 +1554,22 @@ requiring ASP.NET MVC. This is useful to provide the same experience when buildi
 Use the class `FluidViewRenderer : IFluidViewRenderer` and `FluidViewEngineOptions`. 
 
 
+
+## Ranges
+
+Like in Shopify Liquid, a range such as `(1..5)` iterates like an array of numbers, but it isn't one: it renders as `1..5`, string filters like `slice` or `upcase` use that string, it can't be read by index, and `first` and `last` return its bounds.
+
+```liquid
+{{ (1..5) }}|{{ (1..5) | join: "-" }}|{{ (1..5) | slice: 1, 3 }}
+```
+
+Outputs:
+
+```
+1..5|1-2-3-4-5|..5
+```
+
+Literal bounds are truncated, e.g. `(2.7..4)` is `(2..4)`, and string bounds are converted like Ruby's `to_i`. A bound from a variable that is not an integer, such as `2.3` or `true`, is an error.
 
 ## Whitespace control
 

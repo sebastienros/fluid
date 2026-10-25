@@ -300,6 +300,8 @@ public class SourceGenerationTests
 
     [Theory]
     [InlineData("{% for i in (1..3) %}{{ i }}{% endfor %}", "123")]
+    [InlineData("{% for i in (0..5) offset: 1 limit: -1 %}{{ i }}{% endfor %}[{% for i in (0..5) offset: -2 limit: 3 %}{{ i }}{% endfor %}]", "[0]")]
+    [InlineData("{{ (1..5) }}|{{ (1..5) | slice: 1, 3 }}|{% for i in (2.7..4) %}{{ i }}{% endfor %}|{{ (2.7..4) | join }}", "1..5|..5|234|2 3 4")]
     [InlineData("{% for i in (first..last) %}{{ i }}{% endfor %}", "234")]
     [InlineData("{% assign r = (3..1) %}[{{ r | size }}]", "[0]")]
     public async Task GeneratedRanges_RenderLikeTheInterpreter(string liquid, string expected)
