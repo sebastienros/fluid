@@ -5,17 +5,18 @@ using Parlot.Rewriting;
 namespace Fluid.Parser;
 
 /// <summary>
-/// A parser for variable signatures as defined in Shopify Liquid.
+/// A parser for variable signatures as defined in Shopify Liquid, i.e. one or more <c>\(?[\w\-\.\[\]]\)?</c>.
 /// This parser is more permissive than IdentifierParser and allows:
 /// - Digit-only identifiers (e.g., "123")
 /// - Identifiers starting with digits (e.g., "2foo")
-/// - Regular identifiers with letters, digits, underscores, and hyphens
+/// - Hyphens, dots and square brackets (e.g., "a-b", "a.b[0]"), which are part of the name
+/// - Parentheses around any character (e.g., "(a)(b)")
 /// 
 /// This is used by capture, assign, increment, and decrement tags.
 /// </summary>
 public sealed class VariableSignatureParser : Parser<TextSpan>, ISeekable
 {
-    public const string StartChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+    public const string StartChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-.[](";
 
     public bool CanSeek => true;
 
@@ -28,62 +29,51 @@ public sealed class VariableSignatureParser : Parser<TextSpan>, ISeekable
         context.EnterParser(this);
         var cursor = context.Scanner.Cursor;
 
-        var current = cursor.Current;
-
         var start = cursor.Position;
         var lastDashPosition = cursor.Position;
         var lastIsDash = false;
-        var hasAnyChar = false;
 
-        // Must start with a letter, digit, or underscore
-        if (IsValidStartChar(current))
-        {
-            hasAnyChar = true;
-        }
-        else
-        {
-            // Doesn't start with a valid character
-            context.ExitParser(this);
-            return false;
-        }
-
-        cursor.Advance();
-
-        // Read while it's a valid identifier part
         while (!cursor.Eof)
         {
-            current = cursor.Current;
+            var current = cursor.Current;
 
-            if (IsValidStartChar(current))
+            if (current == '(' && IsSignatureChar(cursor.PeekNext()))
             {
-                lastIsDash = false;
+                cursor.Advance();
+                current = cursor.Current;
             }
-            else if (current == '-')
-            {
-                lastDashPosition = cursor.Position;
-                lastIsDash = true;
-            }
-            else
+            else if (!IsSignatureChar(current))
             {
                 break;
             }
 
+            lastIsDash = current == '-';
+
+            if (lastIsDash)
+            {
+                lastDashPosition = cursor.Position;
+            }
+
             cursor.Advance();
+
+            if (cursor.Current == ')')
+            {
+                lastIsDash = false;
+                cursor.Advance();
+            }
         }
 
         var end = cursor.Offset;
 
         // Exclude the trailing '-' if it is next to an end tag
         // c.f. https://github.com/sebastienros/fluid/issues/347
-        current = cursor.Current;
-
-        if (lastIsDash && !cursor.Eof && (current == '%' || current == '}'))
+        if (lastIsDash && !cursor.Eof && (cursor.Current == '%' || cursor.Current == '}'))
         {
             end--;
             cursor.ResetPosition(lastDashPosition);
         }
 
-        if (!hasAnyChar)
+        if (end == start.Offset)
         {
             // Invalid identifier - no characters found
             cursor.ResetPosition(start);
@@ -97,9 +87,9 @@ public sealed class VariableSignatureParser : Parser<TextSpan>, ISeekable
         return true;
     }
 
-    private static bool IsValidStartChar(char ch)
+    private static bool IsSignatureChar(char ch)
         => (ch >= 'a' && ch <= 'z') ||
            (ch >= 'A' && ch <= 'Z') ||
            (ch >= '0' && ch <= '9') ||
-           (ch == '_');
+           ch is '_' or '-' or '.' or '[' or ']';
 }

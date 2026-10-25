@@ -47,6 +47,7 @@ public class SourceGenerationTests
     [InlineData("{% if true %} {% increment a %} {% endif %}", " 0 ")]
     [InlineData("{{ 'a' | json }}", "&quot;a&quot;")]
     [InlineData("{% macro hello() %}hi{% endmacro %}{{ hello() }}", "hi")]
+    [InlineData("{% assign (a.b)[0]-c = 'x' %}{% capture (d)(e) %}y{% endcapture %}{{ ['(a.b)[0]-c'] }}{{ ['(d)(e)'] }}", "xy")]
     public async Task GeneratedTemplate_MatchesRuntime(string liquid, string expected)
     {
         var parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
