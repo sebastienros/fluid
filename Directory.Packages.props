@@ -25,8 +25,9 @@
     <GlobalPackageReference Include="PolySharp" Version="1.16.0" PrivateAssets="all" />
     <!-- TFM specific reference since they could lift some framework dependencies -->
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Abstractions" Version="$(MicrosoftExtensionsFileProvidersAbstractionsPackageVersion)" />
+    <!-- Built into net10.0, keep it aligned with Microsoft.Bcl.AsyncInterfaces -->
+    <PackageVersion Include="System.Linq.AsyncEnumerable" Version="10.0.13" />
     <!-- Only used with netstandard2.0 -->
-    <PackageVersion Include="System.Linq.Async" Version="6.0.3" />
     <PackageVersion Include="System.CommandLine" Version="2.0.13" />
     <PackageVersion Include="System.Text.Json" Version="8.0.6" />
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />

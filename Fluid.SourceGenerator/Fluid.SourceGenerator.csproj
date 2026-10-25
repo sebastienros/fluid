@@ -45,7 +45,9 @@
       <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
                          Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'Microsoft.Bcl.AsyncInterfaces'" />
       <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
-                         Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'System.Linq.Async'" />
+                         Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'System.Linq.AsyncEnumerable'" />
+      <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
+                         Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'Microsoft.Bcl.Memory'" />
     </ItemGroup>
 
     <ItemGroup>
