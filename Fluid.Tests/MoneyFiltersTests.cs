@@ -249,18 +249,18 @@ public class MoneyFiltersTests
     {
         var context = CreateContext();
 
-        Assert.Equal("", MoneyFilters.Money(NilValue.Instance, FilterArguments.Empty, context).Result.ToStringValue());
-        Assert.Equal("", MoneyFilters.Money(BlankValue.Instance, FilterArguments.Empty, context).Result.ToStringValue());
-        Assert.Equal("", MoneyFilters.Money(EmptyValue.Instance, FilterArguments.Empty, context).Result.ToStringValue());
-        Assert.Equal("", MoneyFilters.MoneyWithCurrency(NilValue.Instance, FilterArguments.Empty, context).Result.ToStringValue());
-        Assert.Equal("", MoneyFilters.MoneyWithoutCurrency(NilValue.Instance, FilterArguments.Empty, context).Result.ToStringValue());
-        Assert.Equal("", MoneyFilters.MoneyWithoutTrailingZeros(NilValue.Instance, FilterArguments.Empty, context).Result.ToStringValue());
+        Assert.Equal("", MoneyFilters.Money(NilValue.Instance, FilterArguments.Empty, context).Result.ToStringValue(context));
+        Assert.Equal("", MoneyFilters.Money(BlankValue.Instance, FilterArguments.Empty, context).Result.ToStringValue(context));
+        Assert.Equal("", MoneyFilters.Money(EmptyValue.Instance, FilterArguments.Empty, context).Result.ToStringValue(context));
+        Assert.Equal("", MoneyFilters.MoneyWithCurrency(NilValue.Instance, FilterArguments.Empty, context).Result.ToStringValue(context));
+        Assert.Equal("", MoneyFilters.MoneyWithoutCurrency(NilValue.Instance, FilterArguments.Empty, context).Result.ToStringValue(context));
+        Assert.Equal("", MoneyFilters.MoneyWithoutTrailingZeros(NilValue.Instance, FilterArguments.Empty, context).Result.ToStringValue(context));
     }
 
     [Fact]
     public void StringValuesAreParsed()
     {
-        Assert.Equal("$10.50", MoneyFilters.Money(StringValue.Create("10.50"), FilterArguments.Empty, CreateContext()).Result.ToStringValue());
+        Assert.Equal("$10.50", MoneyFilters.Money(StringValue.Create("10.50"), FilterArguments.Empty, CreateContext()).Result.ToStringValue(new TemplateContext()));
     }
 
     [Fact]
@@ -323,7 +323,7 @@ public class MoneyFiltersTests
     {
         context ??= CreateContext();
 
-        return filter(NumberValue.Create(value), arguments ?? FilterArguments.Empty, context).Result.ToStringValue();
+        return filter(NumberValue.Create(value), arguments ?? FilterArguments.Empty, context).Result.ToStringValue(context);
     }
 
     /// <summary>

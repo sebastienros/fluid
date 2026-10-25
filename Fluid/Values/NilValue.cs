@@ -27,25 +27,25 @@ public abstract class BaseNilValue : FluidValue
             return true;
         }
 
-        return other.ToObjectValue() == null;
+        return other.IsNil();
     }
 
-    public override bool ToBooleanValue()
+    public override bool ToBooleanValue(TemplateContext context)
     {
         return false;
     }
 
-    public override decimal ToNumberValue()
+    public override decimal ToNumberValue(TemplateContext context)
     {
         return 0;
     }
 
-    public override object ToObjectValue()
+    public override object ToObjectValue(TemplateContext context)
     {
         return null;
     }
 
-    public override string ToStringValue()
+    public override string ToStringValue(TemplateContext context)
     {
         return "";
     }
@@ -55,7 +55,7 @@ public abstract class BaseNilValue : FluidValue
         return true;
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
         return default;
     }

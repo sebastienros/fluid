@@ -105,13 +105,11 @@ public class FluidValueTemplateContextTests
 
         public override bool Equals(FluidValue other) => false;
 
-        public override bool ToBooleanValue() => _value != 0;
+        public override bool ToBooleanValue(TemplateContext context) => _value != 0;
 
-        public override decimal ToNumberValue() => _value;
+        public override string ToStringValue(TemplateContext context) => _value.ToString();
 
-        public override string ToStringValue() => _value.ToString();
-
-        public override object ToObjectValue() => _value;
+        public override object ToObjectValue(TemplateContext context) => _value;
 
         // Override to use TemplateContext
         public override decimal ToNumberValue(TemplateContext context)
@@ -122,11 +120,11 @@ public class FluidValueTemplateContextTests
                 var multiplier = context.GetValue("multiplier");
                 if (multiplier != null && multiplier.Type == FluidValues.Number)
                 {
-                    return _value * multiplier.ToNumberValue();
+                    return _value * multiplier.ToNumberValue(context);
                 }
             }
 
-            return base.ToNumberValue(context);
+            return _value;
         }
     }
 }

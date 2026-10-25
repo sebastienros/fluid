@@ -36,22 +36,22 @@ public sealed class FunctionValue : FluidValue
         return false;
     }
 
-    public override bool ToBooleanValue()
+    public override bool ToBooleanValue(TemplateContext context)
     {
         return true;
     }
 
-    public override decimal ToNumberValue()
+    public override decimal ToNumberValue(TemplateContext context)
     {
         return 0;
     }
 
-    public override object ToObjectValue()
+    public override object ToObjectValue(TemplateContext context)
     {
         return "";
     }
 
-    public override string ToStringValue()
+    public override string ToStringValue(TemplateContext context)
     {
         return "";
     }
@@ -61,7 +61,7 @@ public sealed class FunctionValue : FluidValue
         return false;
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
         // A function value should be invoked and its result used instead.
         // Calling write to is equivalent to rendering {{ alert }} instead of {{ alert() }}

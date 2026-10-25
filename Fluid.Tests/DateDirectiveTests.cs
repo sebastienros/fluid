@@ -18,7 +18,7 @@ public class DateDirectiveTests
 
         var result = await MiscFilters.Date(DateTimeValue.Create(date), new FilterArguments(StringValue.Create(format)), new TemplateContext(options));
 
-        return result.ToStringValue();
+        return result.ToStringValue(new TemplateContext());
     }
 
     private static DateTimeOffset At(int year, int month, int day, int hour = 0, int minute = 0, int second = 0, int millisecond = 0) =>

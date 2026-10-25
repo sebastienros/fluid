@@ -177,7 +177,7 @@ public class TemplateTests
     public async Task ShouldCustomizeCaptures()
     {
         _parser.TryParse("{% capture foo %}hello <br /> world{% endcapture %}{{ foo }}", out var template, out var error);
-        var result = await template.RenderAsync(new TemplateContext { Captured = (identifier, captured, context) => StringValue.Create(captured.ToStringValue().ToUpper(), false) }, HtmlEncoder.Default);
+        var result = await template.RenderAsync(new TemplateContext { Captured = (identifier, captured, context) => StringValue.Create(captured.ToStringValue(context).ToUpper(), false) }, HtmlEncoder.Default);
         Assert.Equal("HELLO <BR /> WORLD", result);
     }
 
@@ -301,18 +301,18 @@ public class TemplateTests
                 var increment = 1;
                 if (args.Count > 0)
                 {
-                    increment = (int)args.At(0).ToNumberValue();
+                    increment = (int)args.At(0).ToNumberValue(new TemplateContext());
                 }
 
-                return NumberValue.Create(i.ToNumberValue() + increment);
+                return NumberValue.Create(i.ToNumberValue(new TemplateContext()) + increment);
             })
             .AddFilter("append", (i, args, ctx) =>
             {
-                var s = i.ToStringValue();
+                var s = i.ToStringValue(new TemplateContext());
 
                 for (var k = 0; k < args.Count; k++)
                 {
-                    s += args.At(k).ToStringValue();
+                    s += args.At(k).ToStringValue(new TemplateContext());
                 }
 
                 return StringValue.Create(s);
@@ -678,7 +678,7 @@ public class TemplateTests
 
         public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
         {
-            return Create(((Person)Value).Firstname + " " + index.ToStringValue(), context.Options);
+            return Create(((Person)Value).Firstname + " " + index.ToStringValue(context), context.Options);
         }
 
         public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
@@ -853,7 +853,7 @@ turtle
             .AddFilter("query", async (input, arguments, ctx) =>
             {
                 await Task.Delay(10);
-                return FluidValue.Create(input.ToStringValue() + arguments.At(0).ToStringValue(), ctx.Options);
+                return FluidValue.Create(input.ToStringValue(new TemplateContext()) + arguments.At(0).ToStringValue(new TemplateContext()), ctx.Options);
             })
             .Build();
         var context = new TemplateContext(options);

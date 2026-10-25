@@ -14,9 +14,9 @@ public class StandardFilterTests
     [Fact]
     public async Task TestSize()
     {
-        Assert.Equal(3, (await ArrayFilters.Size(FluidValue.Create(new[] { 1, 2, 3 }, TemplateOptions.Default), FilterArguments.Empty, new TemplateContext())).ToNumberValue());
-        Assert.Equal(0, (await ArrayFilters.Size(FluidValue.Create(new int[0], TemplateOptions.Default), FilterArguments.Empty, new TemplateContext())).ToNumberValue());
-        Assert.Equal(0, (await ArrayFilters.Size(NilValue.Instance, FilterArguments.Empty, new TemplateContext())).ToNumberValue());
+        Assert.Equal(3, (await ArrayFilters.Size(FluidValue.Create(new[] { 1, 2, 3 }, TemplateOptions.Default), FilterArguments.Empty, new TemplateContext())).ToNumberValue(new TemplateContext()));
+        Assert.Equal(0, (await ArrayFilters.Size(FluidValue.Create(new int[0], TemplateOptions.Default), FilterArguments.Empty, new TemplateContext())).ToNumberValue(new TemplateContext()));
+        Assert.Equal(0, (await ArrayFilters.Size(NilValue.Instance, FilterArguments.Empty, new TemplateContext())).ToNumberValue(new TemplateContext()));
     }
 
     [Theory]
@@ -24,7 +24,7 @@ public class StandardFilterTests
     [InlineData("", null)]
     public void TestDowncase(string expected, object input)
     {
-        Assert.Equal(expected, StringFilters.Downcase(FluidValue.Create(input, TemplateOptions.Default), FilterArguments.Empty, new TemplateContext()).Result.ToObjectValue());
+        Assert.Equal(expected, StringFilters.Downcase(FluidValue.Create(input, TemplateOptions.Default), FilterArguments.Empty, new TemplateContext()).Result.ToObjectValue(new TemplateContext()));
     }
 
     [Theory]
@@ -32,7 +32,7 @@ public class StandardFilterTests
     [InlineData("", null)]
     public void TestUpcase(string expected, object input)
     {
-        Assert.Equal(expected, StringFilters.Upcase(FluidValue.Create(input, TemplateOptions.Default), FilterArguments.Empty, new TemplateContext()).Result.ToObjectValue());
+        Assert.Equal(expected, StringFilters.Upcase(FluidValue.Create(input, TemplateOptions.Default), FilterArguments.Empty, new TemplateContext()).Result.ToObjectValue(new TemplateContext()));
     }
 
     [Theory]
@@ -50,7 +50,7 @@ public class StandardFilterTests
     [InlineData("oob", "foobar", "1", "3")]
     public void TestSlice(string expected, object input, params object[] arguments)
     {
-        Assert.Equal(expected, StringFilters.Slice(FluidValue.Create(input, TemplateOptions.Default), arguments.ToFilterArguments(), new TemplateContext()).Result.ToObjectValue());
+        Assert.Equal(expected, StringFilters.Slice(FluidValue.Create(input, TemplateOptions.Default), arguments.ToFilterArguments(), new TemplateContext()).Result.ToObjectValue(new TemplateContext()));
     }
 
     [Theory]
@@ -58,7 +58,7 @@ public class StandardFilterTests
     [InlineData("foobar", 0, "")]
     public void TestSliceArgument(object input, params object[] arguments)
     {
-        Assert.Throws<ArgumentException>(() => StringFilters.Slice(FluidValue.Create(input, TemplateOptions.Default), arguments.ToFilterArguments(), new TemplateContext()).Result.ToObjectValue());
+        Assert.Throws<ArgumentException>(() => StringFilters.Slice(FluidValue.Create(input, TemplateOptions.Default), arguments.ToFilterArguments(), new TemplateContext()).Result.ToObjectValue(new TemplateContext()));
     }
 
     [Theory]
@@ -80,7 +80,7 @@ public class StandardFilterTests
         Assert.IsType<ArrayValue>(result.Result);
 
         string resultString = "";
-        foreach (var c in result.Result.ToObjectValue() as object[])
+        foreach (var c in result.Result.ToObjectValue(new TemplateContext()) as object[])
         {
             resultString += c.ToString();
         }
@@ -102,6 +102,6 @@ public class StandardFilterTests
             : length != null
                 ? new FilterArguments(FluidValue.Create(length, TemplateOptions.Default))
                 : new FilterArguments();
-        Assert.Equal(expected, StringFilters.Truncate(FluidValue.Create(input, TemplateOptions.Default), args, new TemplateContext()).Result.ToObjectValue());
+        Assert.Equal(expected, StringFilters.Truncate(FluidValue.Create(input, TemplateOptions.Default), args, new TemplateContext()).Result.ToObjectValue(new TemplateContext()));
     }
 }

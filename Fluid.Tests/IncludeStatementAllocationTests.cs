@@ -77,8 +77,8 @@ public class IncludeStatementAllocationTests
         await include.WriteToAsync(writer, NullEncoder.Default, context);
 
         Assert.Equal("inner-item|inner-value", writer.ToString());
-        Assert.Equal("outer-item", context.GetValue("item").ToStringValue());
-        Assert.Equal("outer-value", context.GetValue("value").ToStringValue());
+        Assert.Equal("outer-item", context.GetValue("item").ToStringValue(context));
+        Assert.Equal("outer-value", context.GetValue("value").ToStringValue(context));
     }
 
     [Theory]
@@ -118,7 +118,7 @@ public class IncludeStatementAllocationTests
         Assert.Equal("render failed", exception.Message);
         Assert.Same(rootScope, context.LocalScope);
         Assert.IsType<UndefinedValue>(context.GetValue("argument"));
-        Assert.Equal("outer", context.GetValue("existing").ToStringValue());
+        Assert.Equal("outer", context.GetValue("existing").ToStringValue(context));
     }
 
     [Fact]
@@ -144,7 +144,7 @@ public class IncludeStatementAllocationTests
         Assert.Equal("evaluation failed", exception.Message);
         Assert.Same(rootScope, context.LocalScope);
         Assert.IsType<UndefinedValue>(context.GetValue("argument"));
-        Assert.Equal("outer", context.GetValue("existing").ToStringValue());
+        Assert.Equal("outer", context.GetValue("existing").ToStringValue(context));
     }
 
     [Fact]

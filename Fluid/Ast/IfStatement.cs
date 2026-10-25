@@ -61,7 +61,7 @@ public sealed class IfStatement : TagStatement, ISourceable
         var conditionTask = Condition.EvaluateAsync(context);
         if (conditionTask.IsCompletedSuccessfully)
         {
-            var result = conditionTask.Result.ToBooleanValue();
+            var result = conditionTask.Result.ToBooleanValue(context);
 
             if (result)
             {
@@ -126,7 +126,7 @@ public sealed class IfStatement : TagStatement, ISourceable
                         return AwaitedElseBranch(elseIf, elseIfConditionTask, elseIfTask: null, output, encoder, context, i + 1);
                     }
 
-                    if (elseIfConditionTask.Result.ToBooleanValue())
+                    if (elseIfConditionTask.Result.ToBooleanValue(context))
                     {
                         var writeTask = elseIf.WriteToAsync(output, encoder, context);
                         if (!writeTask.IsCompletedSuccessfully)
@@ -166,7 +166,7 @@ public sealed class IfStatement : TagStatement, ISourceable
         TemplateContext context,
         int statementStartIndex)
     {
-        var result = (await conditionTask).ToBooleanValue();
+        var result = (await conditionTask).ToBooleanValue(context);
 
         if (result)
         {
@@ -210,7 +210,7 @@ public sealed class IfStatement : TagStatement, ISourceable
         TemplateContext context,
         int startIndex)
     {
-        var condition = (await conditionTask).ToBooleanValue();
+        var condition = (await conditionTask).ToBooleanValue(context);
         if (condition)
         {
             return await (elseIfTask ?? elseIf.WriteToAsync(output, encoder, context));
@@ -219,7 +219,7 @@ public sealed class IfStatement : TagStatement, ISourceable
         for (var i = startIndex; i < ElseIfs.Count; i++)
         {
             elseIf = ElseIfs[i];
-            if ((await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue())
+            if ((await elseIf.Condition.EvaluateAsync(context)).ToBooleanValue(context))
             {
                 return await elseIf.WriteToAsync(output, encoder, context);
             }
@@ -238,15 +238,22 @@ public sealed class IfStatement : TagStatement, ISourceable
     public void WriteTo(SourceGenerationContext context)
     {
         var conditionExpr = context.GetExpressionMethodName(Condition);
-        context.WriteLine($"var result = (await {conditionExpr}({context.ContextName})).ToBooleanValue();");
+        context.WriteLine($"var result = (await {conditionExpr}({context.ContextName})).ToBooleanValue(context);");
         context.WriteLine("if (result)");
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine("var completion = Completion.Normal;");
-            for (var i = 0; i < Statements.Count; i++)
+            var statements = SourceGenerationContext.GetWrittenStatements(Statements, IsWhitespaceOrCommentOnly);
+
+            // Declared only when used, an unused variable is a warning in the generated code.
+            if (statements.Count > 0)
             {
-                var stmtMethod = context.GetStatementMethodName(Statements[i]);
+                context.WriteLine("var completion = Completion.Normal;");
+            }
+
+            for (var i = 0; i < statements.Count; i++)
+            {
+                var stmtMethod = context.GetStatementMethodName(statements[i]);
                 context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
                 context.WriteLine("if (completion != Completion.Normal) return completion;");
             }
@@ -260,7 +267,7 @@ public sealed class IfStatement : TagStatement, ISourceable
             var elseIf = ElseIfs[i];
             var elseIfCondExpr = context.GetExpressionMethodName(elseIf.Condition);
             var elseIfStmt = context.GetStatementMethodName(elseIf);
-            context.WriteLine($"if ((await {elseIfCondExpr}({context.ContextName})).ToBooleanValue())");
+            context.WriteLine($"if ((await {elseIfCondExpr}({context.ContextName})).ToBooleanValue(context))");
             context.WriteLine("{");
             using (context.Indent())
             {

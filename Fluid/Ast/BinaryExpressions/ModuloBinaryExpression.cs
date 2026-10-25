@@ -9,10 +9,10 @@ public sealed class ModuloBinaryExpression : BinaryExpression, ISourceable
     {
     }
 
-    internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+    internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue, TemplateContext context)
     {
         return leftValue is NumberValue && rightValue is NumberValue
-            ? NumberValue.Create(leftValue.ToNumberValue() % rightValue.ToNumberValue())
+            ? NumberValue.Create(leftValue.ToNumberValue(context) % rightValue.ToNumberValue(context))
             : NilValue.Instance;
     }
 
@@ -26,7 +26,7 @@ public sealed class ModuloBinaryExpression : BinaryExpression, ISourceable
         context.WriteLine($"var leftValue = await {leftExpr}({context.ContextName});");
         context.WriteLine($"var rightValue = await {rightExpr}({context.ContextName});");
         context.WriteLine("return leftValue is NumberValue && rightValue is NumberValue");
-        context.WriteLine("    ? NumberValue.Create(leftValue.ToNumberValue() % rightValue.ToNumberValue())");
+        context.WriteLine("    ? NumberValue.Create(leftValue.ToNumberValue(context) % rightValue.ToNumberValue(context))");
         context.WriteLine("    : NilValue.Instance;");
     }
 }

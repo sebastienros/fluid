@@ -53,7 +53,7 @@ public class ColorFiltersTests
         var result = ColorFilters.ToRgb(input, FilterArguments.Empty, context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToStringValue());
+        Assert.Equal(expected, result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -73,7 +73,7 @@ public class ColorFiltersTests
         var result = ColorFilters.ToRgb(input, FilterArguments.Empty, context);
 
         // Assert
-        Assert.Equal("rgba(222, 30, 28, 0.5)", result.Result.ToStringValue());
+        Assert.Equal("rgba(222, 30, 28, 0.5)", result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -119,7 +119,7 @@ public class ColorFiltersTests
         var result = ColorFilters.ToHex(input, FilterArguments.Empty, context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToStringValue());
+        Assert.Equal(expected, result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -139,7 +139,7 @@ public class ColorFiltersTests
         var result = ColorFilters.ToHex(input, FilterArguments.Empty, context);
 
         // Assert
-        Assert.Equal("#de1e1c", result.Result.ToStringValue());
+        Assert.Equal("#de1e1c", result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -170,7 +170,7 @@ public class ColorFiltersTests
         var result = ColorFilters.ToHsl(input, FilterArguments.Empty, context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToStringValue());
+        Assert.Equal(expected, result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -190,7 +190,7 @@ public class ColorFiltersTests
         var result = ColorFilters.ToHsl(input, FilterArguments.Empty, context);
 
         // Assert
-        Assert.Equal("hsla(12, 98%, 25%, 0.5)", result.Result.ToStringValue());
+        Assert.Equal("hsla(12, 98%, 25%, 0.5)", result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -236,7 +236,7 @@ public class ColorFiltersTests
         var result = ColorFilters.ColorExtract(input, arguments.ToFilterArguments(), context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToStringValue());
+        Assert.Equal(expected, result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -259,7 +259,7 @@ public class ColorFiltersTests
         var result = ColorFilters.ColorExtract(input, new FilterArguments(arguments), context);
 
         // Assert
-        Assert.Equal("0.5", result.Result.ToStringValue());
+        Assert.Equal("0.5", result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -294,7 +294,7 @@ public class ColorFiltersTests
         var result = ColorFilters.ColorModify(input, arguments.ToFilterArguments(), context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToStringValue());
+        Assert.Equal(expected, result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -318,7 +318,7 @@ public class ColorFiltersTests
         var result = ColorFilters.ColorModify(input, new FilterArguments(arguments), context);
 
         // Assert
-        Assert.Equal("hsla(100, 38%, 54%, 0.8)", result.Result.ToStringValue());
+        Assert.Equal("hsla(100, 38%, 54%, 0.8)", result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -335,7 +335,7 @@ public class ColorFiltersTests
         var result = ColorFilters.CalculateBrightness(input, FilterArguments.Empty, context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToNumberValue());
+        Assert.Equal(expected, result.Result.ToNumberValue(context));
     }
 
     [Theory]
@@ -352,7 +352,7 @@ public class ColorFiltersTests
         var result = ColorFilters.ColorSaturate(input, arguments.ToFilterArguments(), context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToStringValue());
+        Assert.Equal(expected, result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -369,7 +369,7 @@ public class ColorFiltersTests
         var result = ColorFilters.ColorDesaturate(input, arguments.ToFilterArguments(), context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToStringValue());
+        Assert.Equal(expected, result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -386,7 +386,7 @@ public class ColorFiltersTests
         var result = ColorFilters.ColorLighten(input, arguments.ToFilterArguments(), context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToStringValue());
+        Assert.Equal(expected, result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -403,7 +403,7 @@ public class ColorFiltersTests
         var result = ColorFilters.ColorDarken(input, arguments.ToFilterArguments(), context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToStringValue());
+        Assert.Equal(expected, result.Result.ToStringValue(context));
     }
 
     [Theory]
@@ -420,7 +420,7 @@ public class ColorFiltersTests
         var result = ColorFilters.GetColorDifference(input, arguments.ToFilterArguments(), context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToNumberValue());
+        Assert.Equal(expected, result.Result.ToNumberValue(context));
     }
 
     [Theory]
@@ -437,7 +437,7 @@ public class ColorFiltersTests
         var result = ColorFilters.GetColorBrightnessDifference(input, arguments.ToFilterArguments(), context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToNumberValue());
+        Assert.Equal(expected, result.Result.ToNumberValue(context));
     }
 
     [Theory]
@@ -454,7 +454,7 @@ public class ColorFiltersTests
         var result = ColorFilters.GetColorContrast(input, arguments.ToFilterArguments(), context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToNumberValue());
+        Assert.Equal(expected, result.Result.ToNumberValue(context));
     }
 
     [Theory]

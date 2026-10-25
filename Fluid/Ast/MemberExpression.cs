@@ -171,7 +171,45 @@ public sealed class MemberExpression : Expression, ISourceable
 
     public void WriteTo(SourceGenerationContext context)
     {
-        var initial = (IdentifierSegment)_segments[0];
+        if (_segments[0] is IndexerSegment rootIndexer)
+        {
+            // A variable whose name is computed, like {{ [name] }}, resolved like IndexerSegment.ResolveFromScopeAsync.
+            var keyExpr = context.GetExpressionMethodName(rootIndexer.Expression);
+            context.WriteLine($"var key = (await {keyExpr}({context.ContextName})).ToStringValue({context.ContextName});");
+            context.WriteLine($"var value = {context.ContextName}.LocalScope.GetValue(key);");
+            context.WriteLine("var start = 1;");
+            context.WriteLine("if (value.IsNil())");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"var incDecValue = {context.ContextName}.LocalScope.GetValue({SourceGenerationContext.ToCSharpStringLiteral(IncrementStatement.Prefix)} + key);");
+                context.WriteLine("if (!incDecValue.IsNil())");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("value = incDecValue;");
+                }
+                context.WriteLine("}");
+                context.WriteLine($"else if (!{context.ContextName}.Model.IsNil())");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine($"value = await {context.ContextName}.Model.GetValueAsync(key, {context.ContextName});");
+                }
+                context.WriteLine("}");
+            }
+            context.WriteLine("}");
+
+            WriteSegmentsTo(context);
+            return;
+        }
+
+        if (_segments[0] is not IdentifierSegment initial)
+        {
+            SourceGenerationContext.ThrowNotSourceable(_segments[0]);
+            return;
+        }
+
         var initialIdentifierLiteral = SourceGenerationContext.ToCSharpStringLiteral(initial.Identifier);
 
         context.WriteLine($"var value = {context.ContextName}.LocalScope.GetValue({initialIdentifierLiteral});");
@@ -232,6 +270,11 @@ public sealed class MemberExpression : Expression, ISourceable
         }
         context.WriteLine("}");
 
+        WriteSegmentsTo(context);
+    }
+
+    private void WriteSegmentsTo(SourceGenerationContext context)
+    {
         context.WriteLine();
         context.WriteLine($"for (var i = start; i < {_segments.Length}; i++)");
         context.WriteLine("{");

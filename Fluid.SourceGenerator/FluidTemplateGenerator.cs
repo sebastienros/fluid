@@ -140,14 +140,19 @@ public sealed class FluidTemplateGenerator : IIncrementalGenerator
         }
 
         var templateResolver = AdditionalFilesTemplateProvider.BuildTemplateResolver(templates);
-        var parser = new FluidParser();
+        var parser = new FluidParser(new FluidParserOptions
+        {
+            AllowFunctions = AttributeReader.GetNamedBool(templatesAttribute, "AllowFunctions"),
+            AllowParentheses = AttributeReader.GetNamedBool(templatesAttribute, "AllowParentheses"),
+            AllowLiquidTag = AttributeReader.GetNamedBool(templatesAttribute, "AllowLiquidTag"),
+            AllowTrailingQuestionMark = AttributeReader.GetNamedBool(templatesAttribute, "AllowTrailingQuestionMark"),
+        });
 
         // Compiled templates are emitted into a separate namespace to avoid polluting the user type.
-        var compiledNamespace = generatedNamespaceOverride ?? (classSymbol.ContainingNamespace?.ToDisplayString() ?? "") + ".FluidTemplates";
-        if (compiledNamespace.StartsWith(".", System.StringComparison.Ordinal))
-        {
-            compiledNamespace = "FluidTemplates";
-        }
+        var compiledNamespace = generatedNamespaceOverride
+            ?? (classSymbol.ContainingNamespace is { IsGlobalNamespace: false } containingNamespace
+                ? containingNamespace.ToDisplayString() + ".FluidTemplates"
+                : "FluidTemplates");
 
         var propertyMap = new Dictionary<string, string>(System.StringComparer.Ordinal);
         var usedPropertyNames = new HashSet<string>(System.StringComparer.Ordinal);
@@ -162,7 +167,6 @@ public sealed class FluidTemplateGenerator : IIncrementalGenerator
 
             var propertyName = NameHelper.GetPropertyName(tpl.Path);
             propertyName = NameHelper.EnsureUnique(propertyName, usedPropertyNames);
-            usedPropertyNames.Add(propertyName);
 
             var className = NameHelper.SanitizeIdentifier(classSymbol.Name + "_" + propertyName + "_Template");
 
@@ -173,7 +177,19 @@ public sealed class FluidTemplateGenerator : IIncrementalGenerator
                 TemplateContentResolver = templateResolver
             };
 
-            var compiled = TemplateSourceGenerator.Generate(parsedTemplate, sourceOptions);
+            TemplateSource compiled;
+            try
+            {
+                compiled = TemplateSourceGenerator.Generate(parsedTemplate, sourceOptions);
+            }
+            catch (SourceGenerationException e)
+            {
+                // Report the template and keep generating the others, instead of failing the whole generator.
+                context.ReportDiagnostic(Diagnostics.TemplateCompilationFailed(location, tpl.Path, e.Message));
+                continue;
+            }
+
+            usedPropertyNames.Add(propertyName);
             context.AddSource($"{classSymbol.Name}.{propertyName}.FluidTemplate.g.cs", compiled.SourceCode);
             propertyMap[propertyName] = "global::" + compiled.FullTypeName;
         }
@@ -209,6 +225,26 @@ namespace Fluid.SourceGenerator
         /// Optional namespace for the compiled template types.
         /// </summary>
         public string? Namespace { get; set; }
+
+        /// <summary>
+        /// Parses the templates with <c>FluidParserOptions.AllowFunctions</c>, enabling the <c>macro</c> and <c>from</c> tags.
+        /// </summary>
+        public bool AllowFunctions { get; set; }
+
+        /// <summary>
+        /// Parses the templates with <c>FluidParserOptions.AllowParentheses</c>.
+        /// </summary>
+        public bool AllowParentheses { get; set; }
+
+        /// <summary>
+        /// Parses the templates with <c>FluidParserOptions.AllowLiquidTag</c>.
+        /// </summary>
+        public bool AllowLiquidTag { get; set; }
+
+        /// <summary>
+        /// Parses the templates with <c>FluidParserOptions.AllowTrailingQuestionMark</c>.
+        /// </summary>
+        public bool AllowTrailingQuestionMark { get; set; }
     }
 }
 ";

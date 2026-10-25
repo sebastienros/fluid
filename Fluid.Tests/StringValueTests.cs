@@ -17,7 +17,7 @@ public class StringValueTests
         var stringValue = StringValue.Create(value);
 
         // Assert
-        Assert.Equal(expected, stringValue.ToStringValue());
+        Assert.Equal(expected, stringValue.ToStringValue(new TemplateContext()));
         Assert.Equal(isEmpty, stringValue.Equals(StringValue.Empty));
     }
 
@@ -37,7 +37,7 @@ public class StringValueTests
         var stringValue = Assert.IsType<StringValue>(StringValue.Create("a", encode));
 
         // Assert
-        Assert.Equal("a", stringValue.ToStringValue());
+        Assert.Equal("a", stringValue.ToStringValue(new TemplateContext()));
         Assert.Equal(encode, stringValue.Encode);
     }
 
@@ -63,7 +63,7 @@ public class StringValueTests
             Assert.Same(value, StringValue.Create(text));
             Assert.Same(value, StringValue.Create(text, true));
             Assert.Same(value, FluidValue.Create(text, TemplateOptions.Default));
-            Assert.Equal(text, value.ToStringValue());
+            Assert.Equal(text, value.ToStringValue(new TemplateContext()));
             Assert.True(Assert.IsType<StringValue>(value).Encode);
         }
     }
@@ -74,7 +74,7 @@ public class StringValueTests
     public void UncachedStringsShouldPreserveText(string text)
     {
         var value = StringValue.Create(text);
-        Assert.Equal(text, value.ToStringValue());
+        Assert.Equal(text, value.ToStringValue(new TemplateContext()));
         Assert.NotSame(value, StringValue.Create(text));
     }
 

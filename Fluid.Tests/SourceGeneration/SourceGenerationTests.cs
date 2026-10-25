@@ -137,10 +137,10 @@ public class SourceGenerationTests
     }
 
     [Fact]
-    public async Task GeneratedTemplate_RejectsTrimming()
+    public async Task GeneratedTemplate_AppliesTrimming()
     {
         var parser = new FluidParser();
-        var template = parser.Parse("Hello {{ name }}");
+        var template = parser.Parse("Hello {{ 'name' }} !");
         var source = template.Compile(new SourceGenerationOptions
         {
             Namespace = "Fluid.Tests.Generated",
@@ -152,9 +152,10 @@ public class SourceGenerationTests
         var instance = (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
         var context = new TemplateContext(new TemplateOptionsBuilder().WithTrimming(TrimmingFlags.OutputLeft).Build());
 
-        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => instance.RenderAsync(new FlushTrackingOutput(), HtmlEncoder.Default, context).AsTask());
+        var output = new StringWriter();
+        await instance.RenderAsync(output, HtmlEncoder.Default, context);
 
-        Assert.Contains("Trimming", ex.Message, StringComparison.Ordinal);
+        Assert.Equal("Helloname !", output.ToString());
     }
 
     [Fact]

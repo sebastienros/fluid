@@ -1,10 +1,11 @@
+using Fluid.SourceGeneration;
 using Fluid.Values;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast;
 
 #pragma warning disable CA1001 // Types that own disposable fields should be disposable
-public sealed class IncludeStatement : Statement
+public sealed class IncludeStatement : Statement, ISourceable
 #pragma warning restore CA1001
 {
     public const string ViewExtension = ".liquid";
@@ -30,7 +31,7 @@ public sealed class IncludeStatement : Statement
     {
         context.IncrementSteps();
 
-        var relativePath = (await Path.EvaluateAsync(context)).ToStringValue();
+        var relativePath = (await Path.EvaluateAsync(context)).ToStringValue(context);
         var loadedTemplate = await TemplateLoader.LoadAsync(
             Parser,
             relativePath,
@@ -160,6 +161,93 @@ public sealed class IncludeStatement : Statement
     }
 
     protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitIncludeStatement(this);
+
+    public void WriteTo(SourceGenerationContext context)
+    {
+        if (!SourceGenerationContext.TryGetLiteralString(Path, out var path))
+        {
+            throw new SourceGenerationException("An 'include' tag with a dynamic path is not compatible with source generation.");
+        }
+
+        // The included template is compiled ahead-of-time and writes in this template's scope and output.
+        var templateTypeName = context.GetRenderTemplateTypeName(path);
+        var ctx = context.ContextName;
+        var call = $"await {templateTypeName}.WriteStatementsAsync({context.WriterName}, {context.EncoderName}, {ctx})";
+        var variableName = SourceGenerationContext.ToCSharpStringLiteral(Alias ?? System.IO.Path.GetFileNameWithoutExtension(path));
+
+        void EmitAssignStatements()
+        {
+            for (var i = 0; i < AssignStatements.Count; i++)
+            {
+                var assignStatement = AssignStatements[i];
+                var valueExpr = context.GetExpressionMethodName(assignStatement.Value);
+                context.WriteLine($"{ctx}.LocalScope.SetOwnValue({SourceGenerationContext.ToCSharpStringLiteral(assignStatement.Identifier)}, await {valueExpr}({ctx}));");
+            }
+        }
+
+        context.WriteLine($"{ctx}.IncrementSteps();");
+        context.WriteLine($"using var scope = {ctx}.EnterScope(ScopeBehavior.WriteThrough);");
+
+        if (With != null)
+        {
+            var withExpr = context.GetExpressionMethodName(With);
+            context.WriteLine($"{ctx}.LocalScope.SetOwnValue({variableName}, await {withExpr}({ctx}));");
+            EmitAssignStatements();
+            context.WriteLine($"return {call};");
+        }
+        else if (AssignStatements.Count > 0)
+        {
+            EmitAssignStatements();
+            context.WriteLine($"return {call};");
+        }
+        else if (For != null)
+        {
+            // Nothing reads the forloop variable of most loops, which then don't create or update it.
+            var usesForLoop = context.UsesForLoop(this);
+
+            var forExpr = context.GetExpressionMethodName(For);
+            context.WriteLine($"var list = await ArrayValue.ToFluidArrayAsync(await {forExpr}({ctx}), {ctx});");
+            context.WriteLine("var length = list.Count;");
+
+            if (usesForLoop)
+            {
+                context.WriteLine("var forloop = ForLoopValue.Create();");
+                context.WriteLine("forloop.Length = length;");
+                context.WriteLine($"{ctx}.LocalScope.SetOwnValue(\"forloop\", forloop);");
+            }
+
+            context.WriteLine("for (var i = 0; i < length; i++)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"{ctx}.IncrementSteps();");
+                context.WriteLine($"{ctx}.LocalScope.SetOwnValue({variableName}, list[i]);");
+
+                if (usesForLoop)
+                {
+                    context.WriteLine("forloop.Index = i + 1;");
+                    context.WriteLine("forloop.Index0 = i;");
+                    context.WriteLine("forloop.RIndex = length - i;");
+                    context.WriteLine("forloop.RIndex0 = length - i - 1;");
+                    context.WriteLine("forloop.First = i == 0;");
+                    context.WriteLine("forloop.Last = i == length - 1;");
+                }
+
+                context.WriteLine($"if ({call} == Completion.Break) break;");
+
+                if (usesForLoop)
+                {
+                    context.WriteLine($"{ctx}.LocalScope.SetOwnValue(\"forloop\", forloop);");
+                }
+            }
+            context.WriteLine("}");
+            context.WriteLine("return Completion.Normal;");
+        }
+        else
+        {
+            context.WriteLine($"return {call};");
+        }
+    }
 
     private sealed record CachedTemplate(IFluidTemplate Template, string Name);
 }

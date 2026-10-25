@@ -29,32 +29,32 @@ public sealed class BinaryExpressionFluidValue : FluidValue
         return _leftOperand.Equals(other);
     }
 
-    public override bool ToBooleanValue()
+    public override bool ToBooleanValue(TemplateContext context)
     {
         // Return the comparison result for conditional logic
         return _comparisonResult;
     }
 
-    public override decimal ToNumberValue()
+    public override decimal ToNumberValue(TemplateContext context)
     {
-        return _leftOperand.ToNumberValue();
+        return _leftOperand.ToNumberValue(context);
     }
 
-    public override string ToStringValue()
+    public override string ToStringValue(TemplateContext context)
     {
         // When converted to string (e.g., for filters), return the boolean result as string
         return _comparisonResult ? "true" : "false";
     }
 
-    public override object ToObjectValue()
+    public override object ToObjectValue(TemplateContext context)
     {
-        return _leftOperand.ToObjectValue();
+        return _leftOperand.ToObjectValue(context);
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
         // Delegate rendering to the left operand
-        return _leftOperand.WriteToAsync(output, encoder, cultureInfo);
+        return _leftOperand.WriteToAsync(output, encoder, context);
     }
 
     public override bool IsNil()

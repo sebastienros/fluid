@@ -68,12 +68,12 @@ public class ForStatementTests
         var t = new TemplateContext();
         t.SetValue("z", 0);
 
-        Assert.Equal(0, t.GetValue("z").ToNumberValue());
+        Assert.Equal(0, t.GetValue("z").ToNumberValue(new TemplateContext()));
 
         var sw = new StringWriter();
         await e.WriteToAsync(sw, HtmlEncoder.Default, t);
 
-        Assert.Equal(1, t.GetValue("z").ToNumberValue());
+        Assert.Equal(1, t.GetValue("z").ToNumberValue(new TemplateContext()));
     }
 
     [Fact]

@@ -9,9 +9,9 @@ public sealed class AndBinaryExpression : BinaryExpression, ISourceable
     {
     }
 
-    internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+    internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue, TemplateContext context)
     {
-        var comparisonResult = leftValue.ToBooleanValue() && rightValue.ToBooleanValue();
+        var comparisonResult = leftValue.ToBooleanValue(context) && rightValue.ToBooleanValue(context);
         return BinaryExpressionFluidValue.Create(leftValue, comparisonResult);
     }
 
@@ -24,7 +24,7 @@ public sealed class AndBinaryExpression : BinaryExpression, ISourceable
 
         context.WriteLine($"var leftValue = await {leftExpr}({context.ContextName});");
         context.WriteLine($"var rightValue = await {rightExpr}({context.ContextName});");
-        context.WriteLine("var comparisonResult = leftValue.ToBooleanValue() && rightValue.ToBooleanValue();");
+        context.WriteLine("var comparisonResult = leftValue.ToBooleanValue(context) && rightValue.ToBooleanValue(context);");
         context.WriteLine("return BinaryExpressionFluidValue.Create(leftValue, comparisonResult);");
     }
 }

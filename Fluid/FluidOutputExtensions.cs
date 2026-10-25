@@ -94,15 +94,15 @@ public static class FluidOutputExtensions
     }
 #endif
 
-    public static async ValueTask WriteToAsync(this FluidValue value, TextWriter writer, TextEncoder encoder, CultureInfo cultureInfo)
+    public static async ValueTask WriteToAsync(this FluidValue value, TextWriter writer, TextEncoder encoder, TemplateContext context)
     {
         ArgumentNullException.ThrowIfNull(value);
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(encoder);
-        ArgumentNullException.ThrowIfNull(cultureInfo);
+        ArgumentNullException.ThrowIfNull(context);
 
         await using var output = new TextWriterFluidOutput(writer, bufferSize: 16 * 1024, leaveOpen: true);
-        await value.WriteToAsync(output, encoder, cultureInfo);
+        await value.WriteToAsync(output, encoder, context);
         await output.FlushAsync();
     }
 

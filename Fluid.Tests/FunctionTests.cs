@@ -49,7 +49,7 @@ public class FunctionTests
         _parser.TryParse(source, out var template, out var error);
         Assert.True(template != null, error);
         var context = new TemplateContext();
-        context.SetValue("a", FunctionValue.Create((args, c) => StringValue.Create(new String(args.At(0).ToStringValue()[0], (int)args.At(1).ToNumberValue()))));
+        context.SetValue("a", FunctionValue.Create((args, c) => StringValue.Create(new String(args.At(0).ToStringValue(context)[0], (int)args.At(1).ToNumberValue(context)))));
 
         // Use a loop to exercise the arguments cache
         for (var i = 0; i < 10; i++)
@@ -67,7 +67,7 @@ public class FunctionTests
         _parser.TryParse(source, out var template, out var error);
         Assert.True(template != null, error);
         var context = new TemplateContext();
-        context.SetValue("a", FunctionValue.Create((args, c) => StringValue.Create(new String(args["c"].ToStringValue()[0], (int)args["r"].ToNumberValue()))));
+        context.SetValue("a", FunctionValue.Create((args, c) => StringValue.Create(new String(args["c"].ToStringValue(context)[0], (int)args["r"].ToNumberValue(context)))));
 
         // Use a loop to exercise the arguments cache
         for (var i = 0; i < 10; i++)
@@ -85,7 +85,7 @@ public class FunctionTests
         _parser.TryParse(source, out var template, out var error);
         Assert.True(template != null, error);
         var context = new TemplateContext();
-        context.SetValue("a", FunctionValue.Create((args, c) => StringValue.Create(new String(args.At(0).ToStringValue()[0], (int)args["r"].ToNumberValue()))));
+        context.SetValue("a", FunctionValue.Create((args, c) => StringValue.Create(new String(args.At(0).ToStringValue(context)[0], (int)args["r"].ToNumberValue(context)))));
         context.SetValue("b", FunctionValue.Create((args, c) => StringValue.Create("hello")));
 
         // Use a loop to exercise the arguments cache

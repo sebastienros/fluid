@@ -26,7 +26,7 @@ public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
         var leftValue = leftTask.Result;
         var rightValue = rightTask.Result;
 
-        if (IsNilOrFalse(leftValue) || IsNilOrFalse(rightValue))
+        if (IsNilOrFalse(leftValue, context) || IsNilOrFalse(rightValue, context))
         {
             return BinaryExpressionFluidValue.Create(leftValue, false);
         }
@@ -48,9 +48,9 @@ public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
 
     // Shopify Liquid behavior: `contains` returns false if either operand is nil/false.
     // (see Liquid::Condition operators['contains'] guard: `if left && right && left.respond_to?(:include?)`).
-    private static bool IsNilOrFalse(FluidValue value)
+    private static bool IsNilOrFalse(FluidValue value, TemplateContext context)
     {
-        return value.IsNil() || (value.Type == FluidValues.Boolean && !value.ToBooleanValue());
+        return value.IsNil() || (value.Type == FluidValues.Boolean && !value.ToBooleanValue(context));
     }
 
     // The right operand is only started here when the left one had to be awaited first.
@@ -59,7 +59,7 @@ public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
         var leftValue = await leftTask;
         var rightValue = await (startedRightTask ?? Right.EvaluateAsync(context));
 
-        if (IsNilOrFalse(leftValue) || IsNilOrFalse(rightValue))
+        if (IsNilOrFalse(leftValue, context) || IsNilOrFalse(rightValue, context))
         {
             return BinaryExpressionFluidValue.Create(leftValue, false);
         }
@@ -77,8 +77,8 @@ public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
 
         context.WriteLine($"var leftValue = await {leftExpr}({context.ContextName});");
         context.WriteLine($"var rightValue = await {rightExpr}({context.ContextName});");
-        context.WriteLine("if (leftValue.IsNil() || (leftValue.Type == FluidValues.Boolean && !leftValue.ToBooleanValue())");
-        context.WriteLine("    || rightValue.IsNil() || (rightValue.Type == FluidValues.Boolean && !rightValue.ToBooleanValue()))");
+        context.WriteLine("if (leftValue.IsNil() || (leftValue.Type == FluidValues.Boolean && !leftValue.ToBooleanValue(context))");
+        context.WriteLine("    || rightValue.IsNil() || (rightValue.Type == FluidValues.Boolean && !rightValue.ToBooleanValue(context)))");
         context.WriteLine("{");
         using (context.Indent())
         {

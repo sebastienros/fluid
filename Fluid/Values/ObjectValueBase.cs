@@ -238,7 +238,7 @@ public abstract class ObjectValueBase : FluidValue
             }
 
             value = await accessor.GetAsync(target, prop, context);
-            target = value?.ToObjectValue();
+            target = value?.ToObjectValue(context);
         }
 
         return value ?? NilValue.Instance;
@@ -246,15 +246,15 @@ public abstract class ObjectValueBase : FluidValue
 
     public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
     {
-        return GetValueAsync(index.ToStringValue(), context);
+        return GetValueAsync(index.ToStringValue(context), context);
     }
 
-    public override bool ToBooleanValue()
+    public override bool ToBooleanValue(TemplateContext context)
     {
         return Value != null;
     }
 
-    public override decimal ToNumberValue()
+    public override decimal ToNumberValue(TemplateContext context)
     {
         try
         {
@@ -266,11 +266,11 @@ public abstract class ObjectValueBase : FluidValue
         }
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        AssertWriteToParameters(output, encoder, cultureInfo);
+        AssertWriteToParameters(output, encoder, context);
 
-        var value = ToStringValue();
+        var value = ToStringValue(context);
 
         if (string.IsNullOrEmpty(value))
         {
@@ -281,17 +281,12 @@ public abstract class ObjectValueBase : FluidValue
         return default;
     }
 
-    public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
-    {
-        return [this];
-    }
-
-    public override string ToStringValue()
+    public override string ToStringValue(TemplateContext context)
     {
         return Convert.ToString(Value);
     }
 
-    public override object ToObjectValue()
+    public override object ToObjectValue(TemplateContext context)
     {
         return Value;
     }

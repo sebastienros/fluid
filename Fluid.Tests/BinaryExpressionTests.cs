@@ -445,13 +445,13 @@ public class BinaryExpressionTests
 
         public override bool Equals(FluidValue other) => false;
 
-        public override bool ToBooleanValue() => true;
+        public override bool ToBooleanValue(TemplateContext context) => true;
 
-        public override decimal ToNumberValue() => _values.Length;
+        public override decimal ToNumberValue(TemplateContext context) => _values.Length;
 
-        public override string ToStringValue() => string.Join(",", _values);
+        public override string ToStringValue(TemplateContext context) => string.Join(",", _values);
 
-        public override object ToObjectValue() => _values;
+        public override object ToObjectValue(TemplateContext context) => _values;
 
         public override async ValueTask<bool> ContainsAsync(FluidValue value, TemplateContext context)
         {

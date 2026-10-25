@@ -17,6 +17,11 @@ public sealed class DictionaryValue : FluidValue
 
     public override FluidValues Type => FluidValues.Dictionary;
 
+    /// <summary>
+    /// Gets the number of entries, which doesn't depend on a <see cref="TemplateContext"/>.
+    /// </summary>
+    internal int Count => _value.Count;
+
     public override bool Equals(FluidValue other)
     {
         if (ReferenceEquals(this, other))
@@ -89,7 +94,7 @@ public sealed class DictionaryValue : FluidValue
 
     public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
     {
-        var name = index.ToStringValue();
+        var name = index.ToStringValue(context);
 
         if (!_value.TryGetValue(name, out var value))
         {
@@ -99,21 +104,21 @@ public sealed class DictionaryValue : FluidValue
         return value;
     }
 
-    public override bool ToBooleanValue()
+    public override bool ToBooleanValue(TemplateContext context)
     {
         return true;
     }
 
-    public override decimal ToNumberValue()
+    public override decimal ToNumberValue(TemplateContext context)
     {
         return _value.Count;
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        AssertWriteToParameters(output, encoder, cultureInfo);
+        AssertWriteToParameters(output, encoder, context);
 
-        var value = ToStringValue();
+        var value = ToStringValue(context);
         if (string.IsNullOrEmpty(value))
         {
             return default;
@@ -123,7 +128,12 @@ public sealed class DictionaryValue : FluidValue
         return default;
     }
 
-    public override string ToStringValue()
+    public override string ToStringValue(TemplateContext context)
+    {
+        return FormatStringValue(value => value.ToStringValue(context));
+    }
+
+    private string FormatStringValue(Func<FluidValue, string> toString)
     {
         using var scope = RecursiveValueGuard.Enter(this);
 
@@ -137,13 +147,13 @@ public sealed class DictionaryValue : FluidValue
         {
             if (_value.TryGetValue(key, out var value))
             {
-                items.Add($"\"{key}\":{value.ToStringValue()}");
+                items.Add($"\"{key}\":{toString(value)}");
             }
         }
         return "{" + string.Join(",", items) + "}";
     }
 
-    public override object ToObjectValue()
+    public override object ToObjectValue(TemplateContext context)
     {
         using var scope = RecursiveValueGuard.Enter(this);
         return _value;

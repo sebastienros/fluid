@@ -106,7 +106,7 @@ public sealed class FilterArguments
         return _positional[_firstPositionalIndex];
     }
 
-    internal object[] ValuesToObjectArray()
+    internal object[] ValuesToObjectArray(TemplateContext context)
     {
         if (_positional == null || _positional.Count == 0)
         {
@@ -116,7 +116,7 @@ public sealed class FilterArguments
         var array = new object[_positional.Count];
         for (var i = 0; i < array.Length; ++i)
         {
-            array[i] = _positional[i].ToObjectValue();
+            array[i] = _positional[i].ToObjectValue(context);
         }
 
         return array;

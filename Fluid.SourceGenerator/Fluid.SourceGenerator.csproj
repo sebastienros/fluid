@@ -45,7 +45,9 @@
       <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
                          Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'Microsoft.Bcl.AsyncInterfaces'" />
       <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
-                         Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'System.Linq.Async'" />
+                         Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'System.Linq.AsyncEnumerable'" />
+      <_EmbedAnalyzerDep Include="@(ReferenceCopyLocalPaths)"
+                         Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'Microsoft.Bcl.Memory'" />
     </ItemGroup>
 
     <ItemGroup>
@@ -60,6 +62,9 @@
           Pack="true"
           PackagePath="analyzers/dotnet/cs"
           Visible="false" />
+    <None Include="build\Fluid.SourceGenerator.props"
+          Pack="true"
+          PackagePath="build;buildTransitive" />
   </ItemGroup>
 
 </Project>

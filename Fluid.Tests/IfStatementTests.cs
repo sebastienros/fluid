@@ -227,7 +227,7 @@ public class IfStatementTests
 
         await e.WriteToAsync(new StringWriter(), HtmlEncoder.Default, context);
 
-        Assert.Equal("value", context.GetValue("x").ToStringValue());
+        Assert.Equal("value", context.GetValue("x").ToStringValue(context));
     }
 
     [Fact]
@@ -250,7 +250,7 @@ public class IfStatementTests
 
         await e.WriteToAsync(new StringWriter(), HtmlEncoder.Default, context);
 
-        Assert.Equal("value", context.GetValue("x").ToStringValue());
+        Assert.Equal("value", context.GetValue("x").ToStringValue(context));
     }
 }
 

@@ -58,16 +58,16 @@ public sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
                 writer.WriteEndArray();
                 break;
             case FluidValues.Boolean:
-                writer.WriteBooleanValue(actualValue.ToBooleanValue());
+                writer.WriteBooleanValue(actualValue.ToBooleanValue(context));
                 break;
             case FluidValues.Nil:
                 writer.WriteNullValue();
                 break;
             case FluidValues.Number:
-                writer.WriteNumberValue(actualValue.ToNumberValue());
+                writer.WriteNumberValue(actualValue.ToNumberValue(context));
                 break;
             case FluidValues.Dictionary:
-                if (actualValue.ToObjectValue() is not IFluidIndexable dict)
+                if (actualValue.ToObjectValue(context) is not IFluidIndexable dict)
                 {
                     writer.WriteNullValue();
                     break;
@@ -91,13 +91,13 @@ public sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
                 writer.WriteEndObject();
                 break;
             case FluidValues.Object:
-                JsonSerializer.Serialize(writer, actualValue.ToObjectValue(), options);
+                JsonSerializer.Serialize(writer, actualValue.ToObjectValue(context), options);
                 break;
             case FluidValues.DateTime:
-                writer.WriteStringValue((DateTimeOffset)actualValue.ToObjectValue());
+                writer.WriteStringValue((DateTimeOffset)actualValue.ToObjectValue(context));
                 break;
             case FluidValues.String:
-                writer.WriteStringValue(actualValue.ToStringValue());
+                writer.WriteStringValue(actualValue.ToStringValue(context));
                 break;
             case FluidValues.Blank:
                 writer.WriteStringValue(string.Empty);

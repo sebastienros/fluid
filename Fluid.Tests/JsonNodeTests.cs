@@ -88,7 +88,7 @@ public class JsonNodeTests
 
         var value = FluidValue.Create(JsonValue.Create(42), options);
 
-        Assert.Equal("custom", value.ToStringValue());
+        Assert.Equal("custom", value.ToStringValue(new TemplateContext()));
     }
 
     [Fact]
@@ -96,9 +96,9 @@ public class JsonNodeTests
     {
         var options = new TemplateOptionsBuilder().Build();
 
-        Assert.Equal(42, FluidValue.Create(JsonValue.Create(42), options).ToNumberValue());
-        Assert.Equal("hello", FluidValue.Create(JsonValue.Create("hello"), options).ToStringValue());
-        Assert.Equal("hello", FluidValue.Create(JsonValue.Create<object>("hello"), options).ToStringValue());
-        Assert.True(FluidValue.Create(JsonValue.Create(true), options).ToBooleanValue());
+        Assert.Equal(42, FluidValue.Create(JsonValue.Create(42), options).ToNumberValue(new TemplateContext()));
+        Assert.Equal("hello", FluidValue.Create(JsonValue.Create("hello"), options).ToStringValue(new TemplateContext()));
+        Assert.Equal("hello", FluidValue.Create(JsonValue.Create<object>("hello"), options).ToStringValue(new TemplateContext()));
+        Assert.True(FluidValue.Create(JsonValue.Create(true), options).ToBooleanValue(new TemplateContext()));
     }
 }

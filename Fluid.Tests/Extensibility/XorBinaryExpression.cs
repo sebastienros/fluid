@@ -15,6 +15,6 @@ public class XorBinaryExpression : BinaryExpression
         var leftValue = await Left.EvaluateAsync(context);
         var rightValue = await Right.EvaluateAsync(context);
 
-        return BooleanValue.Create(leftValue.ToBooleanValue() ^ rightValue.ToBooleanValue());
+        return BooleanValue.Create(leftValue.ToBooleanValue(context) ^ rightValue.ToBooleanValue(context));
     }
 }

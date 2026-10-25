@@ -112,7 +112,8 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
             return false;
         }
 
-        return _value == other.ToStringValue();
+        // Built-in values are compared directly, any other value of the same kind compares itself.
+        return other is StringValue s ? _value == s._value : other.Equals(this);
     }
 
     public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
@@ -130,12 +131,17 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
         };
     }
 
-    public override bool ToBooleanValue()
+    public override bool ToBooleanValue(TemplateContext context)
     {
         return true;
     }
 
-    public override decimal ToNumberValue()
+    public override decimal ToNumberValue(TemplateContext context)
+    {
+        return ParseNumber();
+    }
+
+    private decimal ParseNumber()
     {
         if (_value == "")
         {
@@ -150,14 +156,19 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
         return 0;
     }
 
-    public override string ToStringValue()
+    /// <summary>
+    /// Gets the string, which doesn't depend on a <see cref="TemplateContext"/>.
+    /// </summary>
+    internal string Value => _value;
+
+    public override string ToStringValue(TemplateContext context)
     {
         return _value;
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        AssertWriteToParameters(output, encoder, cultureInfo);
+        AssertWriteToParameters(output, encoder, context);
         if (string.IsNullOrEmpty(_value))
         {
             return default;
@@ -175,7 +186,7 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
         return default;
     }
 
-    public override object ToObjectValue()
+    public override object ToObjectValue(TemplateContext context)
     {
         return _value;
     }

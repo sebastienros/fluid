@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Fluid.Ast;
+using Fluid.Values;
 
 namespace Fluid.SourceGeneration;
 
@@ -40,10 +41,56 @@ public sealed class SourceGenerationContext
             return typeName;
         }
 
-        throw new SourceGenerationException($"No compiled template was registered for render path '{path}'.");
+        throw new SourceGenerationException($"No compiled template was registered for path '{path}'.");
+    }
+
+    /// <summary>
+    /// Gets the statements a block writes. Like the interpreter, a block that only contains whitespace, comments and
+    /// tags such as <c>assign</c> doesn't write its text.
+    /// </summary>
+    public static IReadOnlyList<Statement> GetWrittenStatements(IReadOnlyList<Statement> statements, bool isBlank)
+    {
+        if (!isBlank)
+        {
+            return statements;
+        }
+
+        var result = new List<Statement>(statements.Count);
+        for (var i = 0; i < statements.Count; i++)
+        {
+            if (statements[i] is not TextSpanStatement)
+            {
+                result.Add(statements[i]);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Gets the value of a string literal, such as the path of an <c>include</c>, which is known at build time.
+    /// </summary>
+    public static bool TryGetLiteralString(Expression expression, out string value)
+    {
+        if (expression is LiteralExpression { Value: StringValue stringValue })
+        {
+            value = stringValue.Value;
+            return true;
+        }
+
+        value = null;
+        return false;
     }
 
     public Type ModelType => Options.ModelType;
+
+    internal ForLoopUsageAnalysis ForLoopUsage { get; set; }
+
+    /// <summary>
+    /// Gets whether a loop has to maintain its <c>forloop</c> variable, because something can read it.
+    /// </summary>
+    /// <param name="loop">A <see cref="ForStatement"/>, or a <see cref="RenderStatement"/> or <see cref="IncludeStatement"/> with a <c>for</c> argument.</param>
+    public bool UsesForLoop(Statement loop) => ForLoopUsage?.UsesForLoop(loop) ?? true;
 
     public string WriterName { get; set; } = "writer";
     public string EncoderName { get; set; } = "encoder";

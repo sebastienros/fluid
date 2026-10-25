@@ -93,8 +93,8 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             // The name of a range with computed bounds is only known now. Evaluate the bounds once,
             // for both the name and the items, instead of once for each.
-            var from = RangeExpression.ToBound(await _rangeSource.From.EvaluateAsync(context));
-            var to = RangeExpression.ToBound(await _rangeSource.To.EvaluateAsync(context));
+            var from = RangeExpression.ToBound(await _rangeSource.From.EvaluateAsync(context), context);
+            var to = RangeExpression.ToBound(await _rangeSource.To.EvaluateAsync(context), context);
 
             evaluatedSource = RangeExpression.BuildArray(from, to, context);
             rangeSourceLiteral = BuildRangeSourceLiteral(from, to);
@@ -106,7 +106,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
 
         // Golden Liquid: empty strings are treated as empty collections
-        if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue()))
+        if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue(context)))
         {
             if (Else != null)
             {
@@ -138,7 +138,7 @@ public sealed class ForStatement : TagStatement, ISourceable
             {
                 startIndex = continueOffsetLiteral is null
                     ? 0
-                    : (int)context.GetValue(continueOffsetLiteral).ToNumberValue();
+                    : (int)context.GetValue(continueOffsetLiteral).ToNumberValue(context);
             }
             else
             {
@@ -293,7 +293,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
 
         // Left to the render when out of range, so that it fails there like any other range does.
-        var value = number.ToNumberValue();
+        var value = number.Value;
         if (value <= int.MinValue || value >= int.MaxValue)
         {
             return false;
@@ -309,12 +309,12 @@ public sealed class ForStatement : TagStatement, ISourceable
 
         if (value.Type == FluidValues.Number)
         {
-            return NumberConversions.ToInt32Saturated(value.ToNumberValue());
+            return NumberConversions.ToInt32Saturated(value.ToNumberValue(context));
         }
 
         if (value.Type == FluidValues.String)
         {
-            var s = value.ToStringValue().Trim();
+            var s = value.ToStringValue(context).Trim();
             if (int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
             {
                 return parsed;
@@ -344,7 +344,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             var fromExpr = context.GetExpressionMethodName(range.From);
             var toExpr = context.GetExpressionMethodName(range.To);
-            context.WriteLine($"var {continueOffsetLiteralName} = \"for_continue_{Identifier}-(\" + global::Fluid.Ast.RangeExpression.GetBound(await {fromExpr}({context.ContextName})).ToString(CultureInfo.InvariantCulture) + \"..\" + global::Fluid.Ast.RangeExpression.GetBound(await {toExpr}({context.ContextName})).ToString(CultureInfo.InvariantCulture) + \")\";");
+            context.WriteLine($"var {continueOffsetLiteralName} = \"for_continue_{Identifier}-(\" + global::Fluid.Ast.RangeExpression.GetBound(await {fromExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \"..\" + global::Fluid.Ast.RangeExpression.GetBound(await {toExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \")\";");
         }
         else
         {
@@ -353,7 +353,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
 
         context.WriteLine($"var evaluatedSource = await {sourceExpr}({context.ContextName});");
-        context.WriteLine("if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue()))");
+        context.WriteLine("if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue(context)))");
         context.WriteLine("{");
         using (context.Indent())
         {
@@ -438,7 +438,14 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
         context.WriteLine("}");
 
-        context.WriteLine($"var parentLoop = {context.ContextName}.LocalScope.GetValue(\"forloop\");");
+        // Nothing reads the forloop variable of most loops, which then don't create or update it.
+        var usesForLoop = context.UsesForLoop(this);
+
+        if (usesForLoop)
+        {
+            context.WriteLine($"var parentLoop = {context.ContextName}.LocalScope.GetValue(\"forloop\");");
+        }
+
         context.WriteLine($"using var scope = {context.ContextName}.EnterScope(ScopeBehavior.WriteThrough);");
         context.WriteLine("try");
         context.WriteLine("{");
@@ -449,19 +456,23 @@ public sealed class ForStatement : TagStatement, ISourceable
                 : "null";
 
             context.WriteLine("var endIndexExclusive = startIndex + count;");
-            context.WriteLine("var forloop = ForLoopValue.Create();");
-            context.WriteLine($"forloop.Identifier = {identifierLit};");
-            context.WriteLine($"forloop.Source = {sourceLiteral};");
-            context.WriteLine("var length = forloop.Length = count;");
-            context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue(\"forloop\", forloop);");
-            context.WriteLine("if (!parentLoop.IsNil() && parentLoop is ForLoopValue parentForLoop && !parentForLoop.IsRenderLoop)");
-            context.WriteLine("{");
-            using (context.Indent())
+
+            if (usesForLoop)
             {
-                context.WriteLine("forloop.ParentLoop = parentForLoop;");
-                context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue(\"parentloop\", parentForLoop);");
+                context.WriteLine("var forloop = ForLoopValue.Create();");
+                context.WriteLine($"forloop.Identifier = {identifierLit};");
+                context.WriteLine($"forloop.Source = {sourceLiteral};");
+                context.WriteLine("forloop.Length = count;");
+                context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue(\"forloop\", forloop);");
+                context.WriteLine("if (!parentLoop.IsNil() && parentLoop is ForLoopValue parentForLoop && !parentForLoop.IsRenderLoop)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("forloop.ParentLoop = parentForLoop;");
+                    context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue(\"parentloop\", parentForLoop);");
+                }
+                context.WriteLine("}");
             }
-            context.WriteLine("}");
 
             context.WriteLine("for (var iteration = 0; iteration < count; iteration++)");
             context.WriteLine("{");
@@ -471,24 +482,35 @@ public sealed class ForStatement : TagStatement, ISourceable
                 context.WriteLine($"var itemIndex = {(Reversed ? "endIndexExclusive - 1 - iteration" : "startIndex + iteration")};");
                 context.WriteLine("var item = source[itemIndex];");
                 context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue({identifierLit}, item);");
-                context.WriteLine("// Set helper variables");
-                context.WriteLine("forloop.Index = iteration + 1;");
-                context.WriteLine("forloop.Index0 = iteration;");
-                context.WriteLine("forloop.RIndex = count - iteration;");
-                context.WriteLine("forloop.RIndex0 = count - iteration - 1;");
-                context.WriteLine("forloop.First = iteration == 0;");
-                context.WriteLine("forloop.Last = iteration == count - 1;");
 
-                context.WriteLine("var completion = Completion.Normal;");
-                for (var s = 0; s < Statements.Count; s++)
+                if (usesForLoop)
                 {
-                    var stmtMethod = context.GetStatementMethodName(Statements[s]);
-                    context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-                    context.WriteLine("if (completion != Completion.Normal) break;");
+                    context.WriteLine("forloop.Index = iteration + 1;");
+                    context.WriteLine("forloop.Index0 = iteration;");
+                    context.WriteLine("forloop.RIndex = count - iteration;");
+                    context.WriteLine("forloop.RIndex0 = count - iteration - 1;");
+                    context.WriteLine("forloop.First = iteration == 0;");
+                    context.WriteLine("forloop.Last = iteration == count - 1;");
                 }
 
-                context.WriteLine("if (completion == Completion.Continue) continue;");
-                context.WriteLine("if (completion == Completion.Break) break;");
+                // Like the interpreter, a body that is only whitespace isn't written.
+                var statements = _suppressWhitespaceBody ? [] : Statements;
+
+                // Declared only when used, an unused variable is a warning in the generated code.
+                if (statements.Count > 0)
+                {
+                    context.WriteLine("var completion = Completion.Normal;");
+                }
+
+                for (var s = 0; s < statements.Count; s++)
+                {
+                    var stmtMethod = context.GetStatementMethodName(statements[s]);
+                    context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+
+                    // The statements are emitted inline in the loop body, so each one leaves or skips the iteration itself.
+                    context.WriteLine("if (completion == Completion.Break) break;");
+                    context.WriteLine("if (completion == Completion.Continue) continue;");
+                }
             }
             context.WriteLine("}");
             context.WriteLine($"{context.ContextName}.SetValue({continueOffsetLiteralName}, endIndexExclusive);");

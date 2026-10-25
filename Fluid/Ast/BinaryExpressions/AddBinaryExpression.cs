@@ -13,15 +13,15 @@ public sealed class AddBinaryExpression : BinaryExpression, ISourceable
     {
         if (leftValue is StringValue)
         {
-            var left = leftValue.ToStringValue();
-            var right = rightValue.ToStringValue();
+            var left = leftValue.ToStringValue(context);
+            var right = rightValue.ToStringValue(context);
             context.EnsureOutputSize((long)left.Length + right.Length);
             return StringValue.Create(left + right);
         }
 
         if (leftValue is NumberValue)
         {
-            return NumberValue.Create(leftValue.ToNumberValue() + rightValue.ToNumberValue());
+            return NumberValue.Create(leftValue.ToNumberValue(context) + rightValue.ToNumberValue(context));
         }
 
         return NilValue.Instance;
@@ -41,8 +41,8 @@ public sealed class AddBinaryExpression : BinaryExpression, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine("var left = leftValue.ToStringValue();");
-            context.WriteLine("var right = rightValue.ToStringValue();");
+            context.WriteLine("var left = leftValue.ToStringValue(context);");
+            context.WriteLine("var right = rightValue.ToStringValue(context);");
             context.WriteLine($"{context.ContextName}.EnsureOutputSize((long)left.Length + right.Length);");
             context.WriteLine("return StringValue.Create(left + right);");
         }
@@ -52,7 +52,7 @@ public sealed class AddBinaryExpression : BinaryExpression, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine("return NumberValue.Create(leftValue.ToNumberValue() + rightValue.ToNumberValue());");
+            context.WriteLine("return NumberValue.Create(leftValue.ToNumberValue(context) + rightValue.ToNumberValue(context));");
         }
         context.WriteLine("}");
 

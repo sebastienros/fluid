@@ -38,13 +38,13 @@ public sealed class IncrementStatement : Statement, ISourceable
         }
         else
         {
-            current = value.ToNumberValue();
+            current = value.ToNumberValue(context);
         }
 
         var nextValue = NumberValue.Create(current + 1);
 
         // Increment renders the value before incrementing it.
-        var task = value.WriteToAsync(output, encoder, context.CultureInfo);
+        var task = value.WriteToAsync(output, encoder, context);
         if (task.IsCompletedSuccessfully)
         {
             context.SetValue(prefixedIdentifier, nextValue);
@@ -88,7 +88,7 @@ public sealed class IncrementStatement : Statement, ISourceable
         context.WriteLine("}");
         context.WriteLine("var nextValue = NumberValue.Create(current + 1);");
         context.WriteLine($"{context.ContextName}.SetValue(prefixedIdentifier, nextValue);");
-        context.WriteLine($"await value.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName}.CultureInfo);");
+        context.WriteLine($"await value.WriteToAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
         context.WriteLine("return Completion.Normal;");
     }
 }

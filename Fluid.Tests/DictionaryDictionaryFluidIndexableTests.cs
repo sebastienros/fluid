@@ -22,7 +22,7 @@ public class DictionaryDictionaryFluidIndexableTests
 
         var value = FluidValue.Create(items, new TemplateOptionsBuilder().Build());
 
-        var castedValue = value.ToObjectValue() as IFluidIndexable;
+        var castedValue = value.ToObjectValue(new TemplateContext()) as IFluidIndexable;
 
         Assert.NotNull(castedValue);
 
@@ -43,7 +43,7 @@ public class DictionaryDictionaryFluidIndexableTests
 
         var value = FluidValue.Create(items, new TemplateOptionsBuilder().Build());
 
-        var castedValue = value.ToObjectValue() as IFluidIndexable;
+        var castedValue = value.ToObjectValue(new TemplateContext()) as IFluidIndexable;
 
         Assert.NotNull(castedValue);
 
@@ -62,7 +62,7 @@ public class DictionaryDictionaryFluidIndexableTests
 
         var value = FluidValue.Create(items, new TemplateOptionsBuilder().Build());
 
-        Assert.Equal(items.Count, value.ToNumberValue());
+        Assert.Equal(items.Count, value.ToNumberValue(new TemplateContext()));
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class DictionaryDictionaryFluidIndexableTests
     {
         var value = FluidValue.Create(new Dictionary<string, string>(), new TemplateOptionsBuilder().Build());
 
-        Assert.Equal(0, value.ToNumberValue());
+        Assert.Equal(0, value.ToNumberValue(new TemplateContext()));
     }
 
     [Fact]

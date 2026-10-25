@@ -37,8 +37,8 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 - [Preview packages](#preview-packages)
 - [Command line tool](#command-line-tool)
 - [NativeAOT and trimming](#nativeaot-and-trimming)
-- [Source generator](#source-generator)
-- [Custom member accessors]([#custom-member-accessors)
+- [Custom member accessors](#custom-member-accessors)
+- [Source generators](#source-generators)
 - [Handling undefined variables](#handling-undefined-values)
 - [Execution limits](#execution-limits)
 - [Converting CLR types](#converting-clr-types)
@@ -253,7 +253,7 @@ Fluid works when targeting NativeAOT and trimmed deployments.
 
 1. Build `TemplateOptions` once (for example, at app startup) and reuse the instance.
 2. Register custom mappings with `TemplateOptionsBuilder.ConfigureMemberAccess(strategy => strategy.Register<T...>(...))`. Built options reject further registrations.
-3. Pass a statically typed model and custom options to `TemplateContext`, or use `[FluidRegister]` for types that are not visible at a context construction site.
+3. Use the [model accessor generator](#model-accessors) so that models are read without reflection.
 4. Validate your app with AOT/trim publish settings:
 
 ```shell
@@ -275,45 +275,6 @@ NativeAOT compatibility and trimming compatibility are related but separate. Flu
 | A reflection-discovered `Task<T>` member | Avoid in trimmed NativeAOT applications because the reflection fallback uses runtime dynamic binding to read the result. A generated or custom accessor handles `Task<T>` without dynamic binding. |
 
 Source generation covers public readable properties and public fields that can be referenced from generated code. Members that cannot be generated continue through the normal registration and reflection fallback paths. If any required member uses a fallback path, validate the published application rather than assuming that source generation preserved it.
-
-### Source generation (optional)
-
-When the `Fluid.SourceGenerator` analyzer is enabled, Fluid can generate strongly-typed member accessors for model types discovered at compile time.
-
-The model type is inferred automatically when its compile-time and runtime types match and it is passed with custom options:
-
-```csharp
-var options = new TemplateOptionsBuilder().Build();
-var context = new TemplateContext(person, options);
-```
-
-The generated accessor is activated on the `DefaultMemberAccessStrategy` of the options instance passed to that constructor. Explicit registrations made with `TemplateOptionsBuilder.ConfigureMemberAccess` still take precedence. The one-argument `TemplateContext(model)` constructor does not infer or activate a model accessor because it uses the shared `TemplateOptions.Default` instance.
-
-Use `FluidRegisterAttribute` when a model is passed as `object`, is created outside the compilation using the source generator, or when nested model types also need generated accessors. The recommended explicit pattern is to declare a custom `TemplateOptionsBuilder` subclass and add one attribute per model type:
-
-```csharp
-using Fluid;
-
-[FluidRegister(typeof(Person))]
-[FluidRegister(typeof(Address))]
-public partial class PublicTemplateOptionsBuilder : TemplateOptionsBuilder
-{
-}
-```
-
-Use the generated builder type like any other `TemplateOptionsBuilder`:
-
-```csharp
-var options = new PublicTemplateOptionsBuilder().Build();
-```
-
-The generated registrations are applied automatically to each `PublicTemplateOptionsBuilder` instance, before any registration made on it. Runtime registrations still work and can be added normally:
-
-```csharp
-var options = new PublicTemplateOptionsBuilder()
-    .ConfigureMemberAccess(strategy => strategy.Register<Product, object>((product, name) => product.Name))
-    .Build();
-```
 
 ### Custom member accessors
 
@@ -340,52 +301,59 @@ var options = new TemplateOptionsBuilder()
 
 The protected `CreateValueTask` overloads convert synchronous, `Task<T>`, and `ValueTask<T>` results using the `TemplateOptions.ValueConverters` configured for the current context. Return `NilValue.Instance` for a Liquid `nil` value; a null `FluidValue` is reserved as the accessor's not-handled result.
 
-Alternatively, explicit profile methods can apply generated registrations to any `TemplateOptionsBuilder` instance:
-
-```csharp
-public static partial class FluidProfiles
-{
-    [FluidRegister(typeof(Person))]
-    [FluidRegister(typeof(Address))]
-    public static partial void ApplyPublic(TemplateOptionsBuilder builder);
-}
-```
-
-Use it with any builder instance:
-
-```csharp
-var builder = new TemplateOptionsBuilder();
-FluidProfiles.ApplyPublic(builder);
-var options = builder.Build();
-```
-
 <br>
 
-## Source generator
+## Source generators
 
-Fluid includes a Roslyn source generator (project: `Fluid.SourceGenerator`) that can compile Liquid templates at build time and expose them as strongly-typed static properties.
+The `Fluid.SourceGenerator` package contains two independent source generators. You can use either one, or both:
 
-This is useful when you want:
+- [Model accessors](#model-accessors) read the properties of your .NET types without reflection.
+- [Compiled templates](#compiled-templates) turn `.liquid` files into C# code at build time.
 
-- Parse errors to fail the build.
-- Startup-time and runtime parsing eliminated.
-- Easy access to templates via generated members.
-
-### MSBuild setup
-
-1) Reference the generator as an analyzer.
-
-If you use a project reference:
+Add the package to the project that renders the templates:
 
 ```xml
 <ItemGroup>
-  <ProjectReference Include="../Fluid.SourceGenerator/Fluid.SourceGenerator.csproj"
-                    OutputItemType="Analyzer"
-                    ReferenceOutputAssembly="false" />
+  <PackageReference Include="Fluid.SourceGenerator" Version="..." />
 </ItemGroup>
 ```
 
-2) Provide templates to the generator using `AdditionalFiles`.
+### Model accessors
+
+Without this generator, Fluid uses reflection to read the members of your models. That works in most applications. Use the generator when the application is published with NativeAOT or trimming, where reflection can fail because the trimmer removed the members. It also avoids building accessors at runtime. The generator can't help with types that aren't known at compile time, such as types loaded dynamically: those still go through reflection or an explicit registration.
+
+List the model types on a `partial` class that derives from `TemplateOptionsBuilder`:
+
+```csharp
+[FluidRegister(typeof(Person))]
+[FluidRegister(typeof(Address))]
+public partial class AppTemplateOptionsBuilder : TemplateOptionsBuilder
+{
+}
+```
+
+Then build the options from it:
+
+```csharp
+var options = new AppTemplateOptionsBuilder().Build();
+
+var context = new TemplateContext(options);
+context.SetValue("person", person);
+```
+
+Templates can now read the public properties, public fields and parameterless methods of `Person` and `Address`, for example `{{ person.Address.City }}`.
+
+When you write `new TemplateContext(person, options)` with a concrete type and custom options, the generator detects `Person` on its own and reads its properties and fields without an attribute. Nested types such as `Address`, and models passed as `object`, still need `[FluidRegister]`.
+
+See [Model accessor generator](https://github.com/sebastienros/fluid/blob/main/docs/model-accessor-generator.md) for profile methods, the exact rules and the diagnostics.
+
+### Compiled templates
+
+This generator parses `.liquid` files at build time and compiles each one into a C# class. Use it for templates that ship with the application, such as emails, reports or generated code. A syntax error then fails the build instead of a request, and the application doesn't parse anything at startup. It can't be used for templates that are only known at runtime: templates stored in a database, edited by users or loaded from disk after deployment. Parse those with `FluidParser` as usual.
+
+Compiled templates can't use custom tags or custom operators, and don't support the `tablerow`, `ifchanged` and `doc` tags. An `include` or `from` tag needs a literal path. Options such as filters, value converters, member access and `Trimming` are applied at render time, so they work as usual. Loops only maintain the `forloop` variable when the template can read it, so .NET code that reads it from the `TemplateContext` (other than a custom filter or function) doesn't see it.
+
+Declare the templates as additional files:
 
 ```xml
 <ItemGroup>
@@ -393,62 +361,29 @@ If you use a project reference:
 </ItemGroup>
 ```
 
-3) (Optional) Set the templates root folder.
-
-When set, the generator:
-
-- Only considers `AdditionalFiles` under this folder.
-- Matches glob patterns relative to that folder.
-
-```xml
-<PropertyGroup>
-  <FluidTemplatesFolder>Templates</FluidTemplatesFolder>
-</PropertyGroup>
-```
-
-### Usage
-
-Annotate a `partial` class with `FluidTemplates`, using include and optional exclude glob patterns. Each matching file generates a dedicated static property returning an `IFluidTemplate`.
+Then annotate a `partial` class with the files to compile:
 
 ```csharp
 using Fluid.SourceGenerator;
 
 namespace MyApp;
 
-[FluidTemplates("**/*.liquid", Exclude = new[] { "_*.liquid" })]
+[FluidTemplates("Templates/*.liquid")]
 public static partial class Templates
 {
 }
 ```
 
-With templates like:
-
-- `Templates/hello.liquid`
-- `Templates/_layout.liquid`
-
-The generator will create:
-
-- `Templates.Hello` (compiled from `hello.liquid`)
-
-### Glob patterns
-
-The generator supports a simple glob syntax:
-
-- `*` matches within a path segment.
-- `?` matches a single character within a path segment.
-- `**` matches across directories (e.g. `**/*.liquid`).
-
-Multiple include patterns are supported via the attribute constructor:
+Each matching file becomes a property: `Templates/welcome-email.liquid` becomes `Templates.WelcomeEmail`, an `IFluidTemplate` that renders like a parsed template:
 
 ```csharp
-[FluidTemplates("**/*.liquid", "**/*.txt")]
+var context = new TemplateContext(options);
+context.SetValue("name", "Ada");
+
+var html = await Templates.WelcomeEmail.RenderAsync(context);
 ```
 
-### Notes
-
-- Property names are derived from the file name (without extension) and converted to PascalCase. If multiple files would produce the same property name, a numeric suffix is appended.
-- `{% render %}` dependencies are resolved against the same set of `AdditionalFiles` (the generator also registers `.liquid` templates without the extension for convenience).
-- Source-generated templates currently require `TemplateOptions.Trimming` to be `TrimmingFlags.None`.
+See [Compiled template generator](https://github.com/sebastienros/fluid/blob/main/docs/template-generator.md) for glob patterns, the templates folder, parser options such as `AllowFunctions` for macros, the `render`, `include` and `from` tags, naming rules and the diagnostics.
 
 <br>
 
@@ -462,7 +397,7 @@ Here is the `downcase` filter as defined in Fluid.
 ```csharp
 public static ValueTask<FluidValue> Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
 {
-    return StringValue.Create(input.ToStringValue().ToLower());
+    return StringValue.Create(input.ToStringValue(context).ToLower());
 }
 ```
 
@@ -1308,7 +1243,7 @@ parser.RegisterExpressionBlock("repeat", async (value, statements, writer, encod
 {
     var fluidValue = await value.EvaluateAsync(context);
 
-    for (var i = 0; i < fluidValue.ToNumberValue(); i++)
+    for (var i = 0; i < fluidValue.ToNumberValue(context); i++)
     {
         await statements.RenderStatementsAsync(writer, encoder, context);
     }
@@ -1370,7 +1305,7 @@ namespace Fluid.Tests.Extensibility
             var leftValue = await Left.EvaluateAsync(context);
             var rightValue = await Right.EvaluateAsync(context);
 
-            return BooleanValue.Create(leftValue.ToBooleanValue() ^ rightValue.ToBooleanValue());
+            return BooleanValue.Create(leftValue.ToBooleanValue(context) ^ rightValue.ToBooleanValue(context));
         }
     }
 }
@@ -1816,8 +1751,8 @@ A `FunctionValue` type is also available to provide out-of-the-box functions. It
 ```c#
 var lowercase = FunctionValue.Create((args, context) =>
 {
-  var firstArg = args.At(0).ToStringValue();
-  var lower = firstArg.ToLowerCase();
+  var firstArg = args.At(0).ToStringValue(context);
+  var lower = firstArg.ToLowerInvariant();
   return StringValue.Create(lower);
 });
 

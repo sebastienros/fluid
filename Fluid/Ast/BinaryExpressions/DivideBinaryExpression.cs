@@ -9,18 +9,18 @@ public sealed class DivideBinaryExpression : BinaryExpression, ISourceable
     {
     }
 
-    internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue)
+    internal override FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue, TemplateContext context)
     {
         if (leftValue is NumberValue && rightValue is NumberValue)
         {
-            var rightNumber = rightValue.ToNumberValue();
+            var rightNumber = rightValue.ToNumberValue(context);
 
             if (rightNumber == 0)
             {
                 return NilValue.Instance;
             }
 
-            return NumberValue.Create(leftValue.ToNumberValue() / rightNumber);
+            return NumberValue.Create(leftValue.ToNumberValue(context) / rightNumber);
         }
 
         return NilValue.Instance;
@@ -40,9 +40,9 @@ public sealed class DivideBinaryExpression : BinaryExpression, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine("var rightNumber = rightValue.ToNumberValue();");
+            context.WriteLine("var rightNumber = rightValue.ToNumberValue(context);");
             context.WriteLine("if (rightNumber == 0) return NilValue.Instance;");
-            context.WriteLine("return NumberValue.Create(leftValue.ToNumberValue() / rightNumber);");
+            context.WriteLine("return NumberValue.Create(leftValue.ToNumberValue(context) / rightNumber);");
         }
         context.WriteLine("}");
 

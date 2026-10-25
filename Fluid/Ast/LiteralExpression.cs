@@ -39,20 +39,20 @@ public sealed class LiteralExpression : Expression, ISourceable
 
         if (Value is BooleanValue b)
         {
-            context.WriteLine(b.ToBooleanValue() ? "return BooleanValue.True;" : "return BooleanValue.False;");
+            context.WriteLine(b.Value ? "return BooleanValue.True;" : "return BooleanValue.False;");
             return;
         }
 
-        if (Value is NumberValue)
+        if (Value is NumberValue number)
         {
-            var n = Value.ToNumberValue().ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var n = number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
             context.WriteLine($"return NumberValue.Create({n}m);");
             return;
         }
 
-        if (Value is StringValue)
+        if (Value is StringValue stringValue)
         {
-            var s = Value.ToStringValue();
+            var s = stringValue.Value;
             context.WriteLine($"return {context.GetOrAddStaticStringValue(s)};");
             return;
         }

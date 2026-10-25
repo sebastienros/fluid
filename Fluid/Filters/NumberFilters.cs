@@ -25,15 +25,15 @@ public static class NumberFilters
     {
         LiquidException.ThrowFilterArgumentsCount("abs", expected: 0, arguments);
 
-        return NumberValue.Create(Math.Abs(input.ToNumberValue()));
+        return NumberValue.Create(Math.Abs(input.ToNumberValue(context)));
     }
 
     public static ValueTask<FluidValue> AtLeast(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("at_least", expected: 1, arguments);
 
-        var firstValue = arguments.At(0).ToNumberValue();
-        var inputValue = input.ToNumberValue();
+        var firstValue = arguments.At(0).ToNumberValue(context);
+        var inputValue = input.ToNumberValue(context);
 
         return inputValue < firstValue ? NumberValue.Create(firstValue) : NumberValue.Create(inputValue);
     }
@@ -42,8 +42,8 @@ public static class NumberFilters
     {
         LiquidException.ThrowFilterArgumentsCount("at_most", expected: 1, arguments);
 
-        var firstValue = arguments.At(0).ToNumberValue();
-        var inputValue = input.ToNumberValue();
+        var firstValue = arguments.At(0).ToNumberValue(context);
+        var inputValue = input.ToNumberValue(context);
 
         return inputValue > firstValue ? NumberValue.Create(firstValue) : NumberValue.Create(inputValue);
     }
@@ -52,7 +52,7 @@ public static class NumberFilters
     {
         LiquidException.ThrowFilterArgumentsCount("ceil", expected: 0, arguments);
 
-        return NumberValue.Create(decimal.Ceiling(input.ToNumberValue()));
+        return NumberValue.Create(decimal.Ceiling(input.ToNumberValue(context)));
     }
 
     public static ValueTask<FluidValue> DividedBy(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -60,8 +60,8 @@ public static class NumberFilters
         LiquidException.ThrowFilterArgumentsCount("divided_by", expected: 1, arguments);
 
         var first = arguments.At(0);
-        decimal divisor = first.ToNumberValue();
-        decimal dividend = input.ToNumberValue();
+        decimal divisor = first.ToNumberValue(context);
+        decimal dividend = input.ToNumberValue(context);
 
         // The result is rounded down to the nearest integer(that is, the floor) if BOTH the divisor AND dividend are integers.
         // https://shopify.github.io/liquid/filters/divided_by/
@@ -93,23 +93,23 @@ public static class NumberFilters
     {
         LiquidException.ThrowFilterArgumentsCount("floor", expected: 0, arguments);
 
-        return NumberValue.Create(decimal.Floor(input.ToNumberValue()));
+        return NumberValue.Create(decimal.Floor(input.ToNumberValue(context)));
     }
 
     public static ValueTask<FluidValue> Minus(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("minus", expected: 1, arguments);
 
-        return NumberValue.Create(input.ToNumberValue() - arguments.At(0).ToNumberValue());
+        return NumberValue.Create(input.ToNumberValue(context) - arguments.At(0).ToNumberValue(context));
     }
 
     public static ValueTask<FluidValue> Modulo(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("modulo", expected: 1, arguments);
 
-        var inputValue = input.ToNumberValue();
+        var inputValue = input is NumberValue inputNumber ? inputNumber.Value : input.ToNumberValue(context);
         var divisorValue = arguments.At(0);
-        var divisor = divisorValue.ToNumberValue();
+        var divisor = divisorValue is NumberValue divisorNumber ? divisorNumber.Value : divisorValue.ToNumberValue(context);
         var result = inputValue % divisor;
 
         // Liquid uses Ruby's modulo, whose result has the sign of the divisor: -7 % 3 is 2.
@@ -120,7 +120,7 @@ public static class NumberFilters
 
         // Preserve decimal format when divisor has decimal places or is from a string with decimal
         // Only a zero result needs it, so the divisor isn't inspected for any other.
-        if (result == 0 && HasDecimalPoint(divisorValue))
+        if (result == 0 && HasDecimalPoint(divisorValue, context))
         {
             // Return 0 with one decimal place to match divisor format
             return NumberValue.Create(0.0m);
@@ -129,31 +129,31 @@ public static class NumberFilters
         return NumberValue.Create(result);
     }
 
-    private static bool HasDecimalPoint(FluidValue value)
+    private static bool HasDecimalPoint(FluidValue value, TemplateContext context)
     {
         // A number is written with a decimal point exactly when it has a scale.
         if (value is NumberValue)
         {
-            return NumberValue.GetScale(value.ToNumberValue()) != 0;
+            return NumberValue.GetScale(value.ToNumberValue(context)) != 0;
         }
 
-        return value.ToStringValue().Contains('.');
+        return value.ToStringValue(context).Contains('.');
     }
 
     public static ValueTask<FluidValue> Plus(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("plus", expected: 1, arguments);
 
-        return NumberValue.Create(input.ToNumberValue() + arguments.At(0).ToNumberValue());
+        return NumberValue.Create(input.ToNumberValue(context) + arguments.At(0).ToNumberValue(context));
     }
 
     public static ValueTask<FluidValue> Round(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("round", min: 0, max: 1, arguments);
 
-        var digits = Convert.ToInt32(arguments.At(0).Or(NumberValue.Zero).ToNumberValue());
+        var digits = Convert.ToInt32(arguments.At(0).Or(NumberValue.Zero).ToNumberValue(context));
 
-        var value = input.ToNumberValue();
+        var value = input.ToNumberValue(context);
 
         // Liquid rounds halves away from zero (2.5 is 3), where Math.Round defaults to the nearest even number.
         if (digits < 0)
@@ -173,15 +173,15 @@ public static class NumberFilters
 
         var first = arguments.At(0);
 
-        return NumberValue.Create(input.ToNumberValue() * first.ToNumberValue());
+        return NumberValue.Create(input.ToNumberValue(context) * first.ToNumberValue(context));
     }
 
     public static ValueTask<FluidValue> Random(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("random", expected: 2, arguments);
 
-        var minValue = (int)arguments.At(0).ToNumberValue();
-        var maxValue = (int)arguments.At(1).ToNumberValue();
+        var minValue = (int)arguments.At(0).ToNumberValue(context);
+        var maxValue = (int)arguments.At(1).ToNumberValue(context);
 
         if (minValue > maxValue)
         {

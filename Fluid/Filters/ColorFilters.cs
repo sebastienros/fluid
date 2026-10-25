@@ -27,7 +27,7 @@ public static class ColorFilters
 
     public static ValueTask<FluidValue> ToRgb(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         if (HexColor.TryParse(value, out HexColor hexColor))
         {
             var rgbColor = (RgbColor)hexColor;
@@ -48,7 +48,7 @@ public static class ColorFilters
 
     public static ValueTask<FluidValue> ToHex(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         if (RgbColor.TryParse(value, out RgbColor rgbColor))
         {
             var hexColor = (HexColor)rgbColor;
@@ -69,7 +69,7 @@ public static class ColorFilters
 
     public static ValueTask<FluidValue> ToHsl(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         if (HexColor.TryParse(value, out HexColor hexColor))
         {
             var hslColor = (HslColor)hexColor;
@@ -90,7 +90,7 @@ public static class ColorFilters
 
     public static ValueTask<FluidValue> ColorExtract(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         RgbColor rgbColor;
         HslColor hslColor;
         if (HexColor.TryParse(value, out HexColor hexColor))
@@ -111,7 +111,7 @@ public static class ColorFilters
             return EmptyValue.Instance;
         }
 
-        return arguments.At(0).ToStringValue() switch
+        return arguments.At(0).ToStringValue(context) switch
         {
             "alpha" => StringValue.Create(rgbColor.A.ToString(CultureInfo.InvariantCulture)),
             "red" => StringValue.Create(rgbColor.R.ToString(CultureInfo.InvariantCulture)),
@@ -126,7 +126,7 @@ public static class ColorFilters
 
     public static ValueTask<FluidValue> ColorModify(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         bool isRgb = false;
         bool isHsl = false;
         bool isHex = false;
@@ -153,12 +153,12 @@ public static class ColorFilters
             return EmptyValue.Instance;
         }
 
-        var modifiedValue = arguments.At(1).ToNumberValue();
+        var modifiedValue = arguments.At(1).ToNumberValue(context);
         if (isRgb)
         {
             hslColor = (HslColor)rgbColor;
 
-            return arguments.At(0).ToStringValue() switch
+            return arguments.At(0).ToStringValue(context) switch
             {
                 "alpha" => StringValue.Create(new RgbColor(rgbColor.R, rgbColor.G, rgbColor.B, (double)modifiedValue).ToString()),
                 "red" => StringValue.Create(new RgbColor((int)modifiedValue, rgbColor.G, rgbColor.B, rgbColor.A).ToString()),
@@ -174,7 +174,7 @@ public static class ColorFilters
         {
             rgbColor = (RgbColor)hslColor;
 
-            return arguments.At(0).ToStringValue() switch
+            return arguments.At(0).ToStringValue(context) switch
             {
                 "alpha" => StringValue.Create(((HslColor)new RgbColor(rgbColor.R, rgbColor.G, rgbColor.B, (double)modifiedValue)).ToString()),
                 "red" => StringValue.Create(((HslColor)new RgbColor((int)modifiedValue, rgbColor.G, rgbColor.B, rgbColor.A)).ToString()),
@@ -191,7 +191,7 @@ public static class ColorFilters
             rgbColor = (RgbColor)hexColor;
             hslColor = (HslColor)hexColor;
 
-            return arguments.At(0).ToStringValue() switch
+            return arguments.At(0).ToStringValue(context) switch
             {
                 "alpha" => StringValue.Create(new RgbColor(rgbColor.R, rgbColor.G, rgbColor.B, (double)modifiedValue).ToString()),
                 "red" => StringValue.Create(((HexColor)new RgbColor((int)modifiedValue, rgbColor.G, rgbColor.B, rgbColor.A)).ToString()),
@@ -212,7 +212,7 @@ public static class ColorFilters
 
     public static ValueTask<FluidValue> CalculateBrightness(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         RgbColor rgbColor;
         if (HexColor.TryParse(value, out HexColor hexColor))
         {
@@ -238,7 +238,7 @@ public static class ColorFilters
 
     public static ValueTask<FluidValue> ColorSaturate(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         bool isHex = false;
         bool isHsl = false;
         bool isRgb = false;
@@ -265,13 +265,13 @@ public static class ColorFilters
         {
             hslColor = (HslColor)hexColor;
 
-            var saturation = (hslColor.S * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+            var saturation = (hslColor.S * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue(context))) / 100.0;
 
             return StringValue.Create(((HexColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
         }
         else if (isHsl)
         {
-            var saturation = (hslColor.S * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+            var saturation = (hslColor.S * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue(context))) / 100.0;
 
             return StringValue.Create(new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A).ToString());
         }
@@ -279,7 +279,7 @@ public static class ColorFilters
         {
             hslColor = (HslColor)rgbColor;
 
-            var saturation = (hslColor.S * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+            var saturation = (hslColor.S * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue(context))) / 100.0;
 
             return StringValue.Create(((RgbColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
         }
@@ -292,7 +292,7 @@ public static class ColorFilters
 
     public static ValueTask<FluidValue> ColorDesaturate(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         bool isHex = false;
         bool isHsl = false;
         bool isRgb = false;
@@ -319,13 +319,13 @@ public static class ColorFilters
         {
             hslColor = (HslColor)hexColor;
 
-            var saturation = (hslColor.S * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+            var saturation = (hslColor.S * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue(context))) / 100.0;
 
             return StringValue.Create(((HexColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
         }
         else if (isHsl)
         {
-            var saturation = (hslColor.S * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+            var saturation = (hslColor.S * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue(context))) / 100.0;
 
             return StringValue.Create(new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A).ToString());
         }
@@ -333,7 +333,7 @@ public static class ColorFilters
         {
             hslColor = (HslColor)rgbColor;
 
-            var saturation = (hslColor.S * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+            var saturation = (hslColor.S * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue(context))) / 100.0;
 
             return StringValue.Create(((RgbColor)new HslColor(hslColor.H, saturation, hslColor.L, hslColor.A)).ToString());
         }
@@ -346,7 +346,7 @@ public static class ColorFilters
 
     public static ValueTask<FluidValue> ColorLighten(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         bool isHex = false;
         bool isHsl = false;
         bool isRgb = false;
@@ -373,13 +373,13 @@ public static class ColorFilters
         {
             hslColor = (HslColor)hexColor;
 
-            var lightness = (hslColor.L * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+            var lightness = (hslColor.L * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue(context))) / 100.0;
 
             return StringValue.Create(((HexColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
         }
         else if (isHsl)
         {
-            var lightness = (hslColor.L * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+            var lightness = (hslColor.L * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue(context))) / 100.0;
 
             return StringValue.Create(new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A).ToString());
         }
@@ -387,7 +387,7 @@ public static class ColorFilters
         {
             hslColor = (HslColor)rgbColor;
 
-            var lightness = (hslColor.L * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+            var lightness = (hslColor.L * 100.0 + Convert.ToDouble(arguments.At(0).ToNumberValue(context))) / 100.0;
 
             return StringValue.Create(((RgbColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
         }
@@ -400,7 +400,7 @@ public static class ColorFilters
 
     public static ValueTask<FluidValue> ColorDarken(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         bool isHex = false;
         bool isHsl = false;
         bool isRgb = false;
@@ -428,13 +428,13 @@ public static class ColorFilters
         {
             hslColor = (HslColor)hexColor;
 
-            var lightness = (hslColor.L * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+            var lightness = (hslColor.L * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue(context))) / 100.0;
 
             return StringValue.Create(((HexColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
         }
         else if (isHsl)
         {
-            var lightness = (hslColor.L * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+            var lightness = (hslColor.L * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue(context))) / 100.0;
 
             return StringValue.Create(new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A).ToString());
         }
@@ -442,7 +442,7 @@ public static class ColorFilters
         {
             hslColor = (HslColor)rgbColor;
 
-            var lightness = (hslColor.L * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue())) / 100.0;
+            var lightness = (hslColor.L * 100.0 - Convert.ToDouble(arguments.At(0).ToNumberValue(context))) / 100.0;
 
             return StringValue.Create(((RgbColor)new HslColor(hslColor.H, hslColor.S, lightness, hslColor.A)).ToString());
         }
@@ -455,8 +455,8 @@ public static class ColorFilters
 
     public static ValueTask<FluidValue> GetColorDifference(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var rgbColor1 = GetRgbColor(input.ToStringValue());
-        var rgbColor2 = GetRgbColor(arguments.At(0).ToStringValue());
+        var rgbColor1 = GetRgbColor(input.ToStringValue(context));
+        var rgbColor2 = GetRgbColor(arguments.At(0).ToStringValue(context));
         if (rgbColor1.Equals(RgbColor.Empty) || rgbColor2.Equals(RgbColor.Empty))
         {
             return EmptyValue.Instance;
@@ -473,8 +473,8 @@ public static class ColorFilters
 
     public static ValueTask<FluidValue> GetColorBrightnessDifference(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var rgbColor1 = GetRgbColor(input.ToStringValue());
-        var rgbColor2 = GetRgbColor(arguments.At(0).ToStringValue());
+        var rgbColor1 = GetRgbColor(input.ToStringValue(context));
+        var rgbColor2 = GetRgbColor(arguments.At(0).ToStringValue(context));
         if (rgbColor1.Equals(RgbColor.Empty) || rgbColor2.Equals(RgbColor.Empty))
         {
             return EmptyValue.Instance;
@@ -491,8 +491,8 @@ public static class ColorFilters
 
     public static ValueTask<FluidValue> GetColorContrast(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var rgbColor1 = GetRgbColor(input.ToStringValue());
-        var rgbColor2 = GetRgbColor(arguments.At(0).ToStringValue());
+        var rgbColor1 = GetRgbColor(input.ToStringValue(context));
+        var rgbColor2 = GetRgbColor(arguments.At(0).ToStringValue(context));
         if (rgbColor1.Equals(RgbColor.Empty) || rgbColor2.Equals(RgbColor.Empty))
         {
             return EmptyValue.Instance;

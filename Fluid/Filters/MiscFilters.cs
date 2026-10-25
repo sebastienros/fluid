@@ -53,7 +53,7 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("handleize", expected: 0, arguments);
 
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         var result = new ValueStringBuilder(stackalloc char[512]);
         var lastIndex = value.Length - 1;
 
@@ -155,7 +155,7 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("raw", expected: 0, arguments);
 
-        var stringValue = StringValue.Create(input.ToStringValue(), false);
+        var stringValue = StringValue.Create(input.ToStringValue(context), false);
 
         return stringValue;
     }
@@ -179,7 +179,7 @@ public static class MiscFilters
                 continue;
             }
 
-            if (!member.IsNil() && (await value.GetValueAsync(member.ToStringValue(), context)).IsNil())
+            if (!member.IsNil() && (await value.GetValueAsync(member.ToStringValue(context), context)).IsNil())
             {
                 continue;
             }
@@ -194,7 +194,7 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("url_encode", expected: 0, arguments);
 
-        var encoded = WebUtility.UrlEncode(input.ToStringValue());
+        var encoded = WebUtility.UrlEncode(input.ToStringValue(context));
         // WebUtility.UrlEncode doesn't encode ! but Shopify's Liquid does
         encoded = encoded?.Replace("!", "%21");
         return StringValue.Create(encoded);
@@ -204,14 +204,14 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("url_decode", expected: 0, arguments);
 
-        return StringValue.Create(WebUtility.UrlDecode(input.ToStringValue()));
+        return StringValue.Create(WebUtility.UrlDecode(input.ToStringValue(context)));
     }
 
     public static ValueTask<FluidValue> Base64Encode(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("base64_encode", expected: 0, arguments);
 
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
 
         if (String.IsNullOrEmpty(value))
         {
@@ -227,7 +227,7 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("base64_decode", expected: 0, arguments);
 
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
 
         return String.IsNullOrEmpty(value)
             ? StringValue.Empty
@@ -238,7 +238,7 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("base64_url_safe_encode", expected: 0, arguments);
 
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         if (String.IsNullOrEmpty(value))
         {
             return StringValue.Empty;
@@ -277,7 +277,7 @@ public static class MiscFilters
             throw new LiquidException("base64_url_safe_decode expects a string");
         }
 
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         if (String.IsNullOrEmpty(value))
         {
             return StringValue.Empty;
@@ -323,7 +323,7 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("strip_html", expected: 0, arguments);
 
-        var html = input.ToStringValue();
+        var html = input.ToStringValue(context);
         if (String.IsNullOrEmpty(html))
         {
             return StringValue.Empty;
@@ -449,14 +449,14 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("escape", expected: 0, arguments);
 
-        return StringValue.Create(EscapeHtml(input.ToStringValue(), once: false), encode: false);
+        return StringValue.Create(EscapeHtml(input.ToStringValue(context), once: false), encode: false);
     }
 
     public static ValueTask<FluidValue> EscapeOnce(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("escape", expected: 0, arguments);
 
-        return StringValue.Create(EscapeHtml(input.ToStringValue(), once: true), encode: false);
+        return StringValue.Create(EscapeHtml(input.ToStringValue(context), once: true), encode: false);
     }
 
     // Like Liquid (CGI.escapeHTML), only & < > " and ' are escaped; other characters, such as
@@ -549,7 +549,7 @@ public static class MiscFilters
             return NilValue.Instance;
         }
 
-        var timeZone = arguments.At(0).ToStringValue();
+        var timeZone = arguments.At(0).ToStringValue(context);
 
         TimeZoneInfo timeZoneInfo;
 
@@ -594,7 +594,7 @@ public static class MiscFilters
             return DateTimeValue.Create(value);
         }
 
-        var format = arguments.At(0).ToStringValue();
+        var format = arguments.At(0).ToStringValue(context);
 
         var result = new ValueStringBuilder(stackalloc char[128]);
 
@@ -988,13 +988,13 @@ public static class MiscFilters
             return NilValue.Instance;
         }
 
-        var format = arguments.At(0).ToStringValue();
+        var format = arguments.At(0).ToStringValue(context);
 
         var culture = context.CultureInfo;
 
         if (!arguments.At(1).IsNil())
         {
-            culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue()) ?? context.CultureInfo;
+            culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue(context)) ?? context.CultureInfo;
         }
 
         return StringValue.Create(value.ToString(format, culture));
@@ -1017,16 +1017,16 @@ public static class MiscFilters
             return NilValue.Instance;
         }
 
-        var format = arguments.At(0).ToStringValue();
+        var format = arguments.At(0).ToStringValue(context);
 
         var culture = context.CultureInfo;
 
         if (!arguments.At(1).IsNil())
         {
-            culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue()) ?? context.CultureInfo;
+            culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue(context)) ?? context.CultureInfo;
         }
 
-        return StringValue.Create(input.ToNumberValue().ToString(format, culture));
+        return StringValue.Create(input.ToNumberValue(context).ToString(format, culture));
     }
 
     public static ValueTask<FluidValue> FormatString(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -1036,16 +1036,16 @@ public static class MiscFilters
             return NilValue.Instance;
         }
 
-        var format = input.ToStringValue();
+        var format = input.ToStringValue(context);
 
         var culture = context.CultureInfo;
 
         if (arguments.HasNamed("culture"))
         {
-            culture = CultureInfo.CreateSpecificCulture(arguments["culture"].ToStringValue()) ?? context.CultureInfo;
+            culture = CultureInfo.CreateSpecificCulture(arguments["culture"].ToStringValue(context)) ?? context.CultureInfo;
         }
 
-        var parameters = arguments.ValuesToObjectArray();
+        var parameters = arguments.ValuesToObjectArray(context);
 
         return StringValue.Create(string.Format(culture, format, parameters));
     }
@@ -1054,7 +1054,7 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("md5", expected: 0, arguments);
 
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         if (string.IsNullOrEmpty(value))
         {
             return StringValue.Empty;
@@ -1086,7 +1086,7 @@ public static class MiscFilters
 
     public static ValueTask<FluidValue> Sha1(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         if (string.IsNullOrEmpty(value))
         {
             return StringValue.Empty;
@@ -1119,7 +1119,7 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("sha256", expected: 0, arguments);
 
-        var value = input.ToStringValue();
+        var value = input.ToStringValue(context);
         if (string.IsNullOrEmpty(value))
         {
             return StringValue.Empty;
@@ -1144,11 +1144,11 @@ public static class MiscFilters
 #endif
     }
 
-    public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("HMACSHA1", input, arguments);
+    public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("HMACSHA1", input, arguments, context);
 
-    public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("HMACSHA256", input, arguments);
+    public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("HMACSHA256", input, arguments, context);
 
-    private static ValueTask<FluidValue> ComputeHmac(string algorithm, FluidValue input, FilterArguments arguments)
+    private static ValueTask<FluidValue> ComputeHmac(string algorithm, FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         var key = arguments.At(0);
         if (key.IsNil() || input.IsNil())
@@ -1156,8 +1156,8 @@ public static class MiscFilters
             return StringValue.Empty;
         }
 
-        var value = input.ToStringValue();
-        var keyBytes = Encoding.UTF8.GetBytes(key.ToStringValue());
+        var value = input.ToStringValue(context);
+        var keyBytes = Encoding.UTF8.GetBytes(key.ToStringValue(context));
 
 #if NET6_0_OR_GREATER
 #pragma warning disable CA5350

@@ -15,33 +15,32 @@ public sealed class EmptyValue : FluidValue
 
     public override bool Equals(FluidValue other)
     {
-        if (other.Type == FluidValues.String && other.ToStringValue() == "") return true;
-        if (other.Type == FluidValues.Array && other.ToNumberValue() == 0) return true;
-        if (other.Type == FluidValues.Dictionary && other.ToNumberValue() == 0) return true;
-        if (other == BlankValue.Instance) return false;
-        if (other == EmptyValue.Instance) return true;
-        if (other == NilValue.Instance) return false;
-        if (other == UndefinedValue.Instance) return false;
-
-        return false;
+        // Built-in values are compared directly, any other value of the same kind compares itself.
+        return other.Type switch
+        {
+            FluidValues.String => other is StringValue s ? s.Value == "" : other.Equals(this),
+            FluidValues.Array => other is IFluidArray array ? array.Count == 0 : other.Equals(this),
+            FluidValues.Dictionary => other is DictionaryValue dictionary ? dictionary.Count == 0 : other.Equals(this),
+            _ => ReferenceEquals(other, this),
+        };
     }
 
-    public override bool ToBooleanValue()
+    public override bool ToBooleanValue(TemplateContext context)
     {
         return true;
     }
 
-    public override decimal ToNumberValue()
+    public override decimal ToNumberValue(TemplateContext context)
     {
         return 0;
     }
 
-    public override object ToObjectValue()
+    public override object ToObjectValue(TemplateContext context)
     {
         return "";
     }
 
-    public override string ToStringValue()
+    public override string ToStringValue(TemplateContext context)
     {
         return "";
     }
@@ -51,7 +50,7 @@ public sealed class EmptyValue : FluidValue
         return true;
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
         return default;
     }

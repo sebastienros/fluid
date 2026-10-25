@@ -73,34 +73,29 @@ public sealed class DateTimeValue : FluidValue
         return _value.Equals(((DateTimeValue)other)._value);
     }
 
-    public override bool ToBooleanValue()
+    public override bool ToBooleanValue(TemplateContext context)
     {
         return true;
     }
 
-    public override decimal ToNumberValue()
+    public override decimal ToNumberValue(TemplateContext context)
     {
         return _value.Ticks;
     }
 
-    public override string ToStringValue()
+    public override string ToStringValue(TemplateContext context)
     {
         return _value.ToString("u", CultureInfo.InvariantCulture);
     }
 
-    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, CultureInfo cultureInfo)
+    public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        AssertWriteToParameters(output, encoder, cultureInfo);
-        output.Write(_value.ToString("u", cultureInfo));
+        AssertWriteToParameters(output, encoder, context);
+        output.Write(_value.ToString("u", context.CultureInfo));
         return default;
     }
 
-    public override IEnumerable<FluidValue> Enumerate(TemplateContext context)
-    {
-        return [this];
-    }
-
-    public override object ToObjectValue()
+    public override object ToObjectValue(TemplateContext context)
     {
         return _value;
     }
