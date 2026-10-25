@@ -464,7 +464,7 @@ public static class MiscFilters
     // character reference is kept, as Liquid's /&(?!([a-zA-Z]+|(#\d+));)/ does.
     private static string EscapeHtml(string value, bool once)
     {
-        var first = value.AsSpan().IndexOfAny("&<>\"'".AsSpan());
+        var first = IndexOfHtmlSpecialChar(value.AsSpan());
         if (first < 0)
         {
             return value;
@@ -479,6 +479,14 @@ public static class MiscFilters
         for (var i = first; i < value.Length; i++)
         {
             var c = value[i];
+
+            // All the special characters are below '>', so most characters skip the switch.
+            if (c > '>')
+            {
+                result.Append(c);
+                continue;
+            }
+
             switch (c)
             {
                 case '&' when !once || !IsCharacterReference(value.AsSpan(i + 1)):
@@ -504,6 +512,14 @@ public static class MiscFilters
 
         return result.ToString();
     }
+
+#if NET8_0_OR_GREATER
+    private static readonly SearchValues<char> HtmlSpecialChars = SearchValues.Create("&<>\"'");
+
+    private static int IndexOfHtmlSpecialChar(ReadOnlySpan<char> value) => value.IndexOfAny(HtmlSpecialChars);
+#else
+    private static int IndexOfHtmlSpecialChar(ReadOnlySpan<char> value) => value.IndexOfAny("&<>\"'".AsSpan());
+#endif
 
     private static bool IsCharacterReference(ReadOnlySpan<char> value)
     {
