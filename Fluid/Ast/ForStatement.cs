@@ -438,7 +438,14 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
         context.WriteLine("}");
 
-        context.WriteLine($"var parentLoop = {context.ContextName}.LocalScope.GetValue(\"forloop\");");
+        // Nothing reads the forloop variable of most loops, which then don't create or update it.
+        var usesForLoop = context.UsesForLoop(this);
+
+        if (usesForLoop)
+        {
+            context.WriteLine($"var parentLoop = {context.ContextName}.LocalScope.GetValue(\"forloop\");");
+        }
+
         context.WriteLine($"using var scope = {context.ContextName}.EnterScope(ScopeBehavior.WriteThrough);");
         context.WriteLine("try");
         context.WriteLine("{");
@@ -449,19 +456,23 @@ public sealed class ForStatement : TagStatement, ISourceable
                 : "null";
 
             context.WriteLine("var endIndexExclusive = startIndex + count;");
-            context.WriteLine("var forloop = ForLoopValue.Create();");
-            context.WriteLine($"forloop.Identifier = {identifierLit};");
-            context.WriteLine($"forloop.Source = {sourceLiteral};");
-            context.WriteLine("var length = forloop.Length = count;");
-            context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue(\"forloop\", forloop);");
-            context.WriteLine("if (!parentLoop.IsNil() && parentLoop is ForLoopValue parentForLoop && !parentForLoop.IsRenderLoop)");
-            context.WriteLine("{");
-            using (context.Indent())
+
+            if (usesForLoop)
             {
-                context.WriteLine("forloop.ParentLoop = parentForLoop;");
-                context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue(\"parentloop\", parentForLoop);");
+                context.WriteLine("var forloop = ForLoopValue.Create();");
+                context.WriteLine($"forloop.Identifier = {identifierLit};");
+                context.WriteLine($"forloop.Source = {sourceLiteral};");
+                context.WriteLine("forloop.Length = count;");
+                context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue(\"forloop\", forloop);");
+                context.WriteLine("if (!parentLoop.IsNil() && parentLoop is ForLoopValue parentForLoop && !parentForLoop.IsRenderLoop)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine("forloop.ParentLoop = parentForLoop;");
+                    context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue(\"parentloop\", parentForLoop);");
+                }
+                context.WriteLine("}");
             }
-            context.WriteLine("}");
 
             context.WriteLine("for (var iteration = 0; iteration < count; iteration++)");
             context.WriteLine("{");
@@ -471,13 +482,16 @@ public sealed class ForStatement : TagStatement, ISourceable
                 context.WriteLine($"var itemIndex = {(Reversed ? "endIndexExclusive - 1 - iteration" : "startIndex + iteration")};");
                 context.WriteLine("var item = source[itemIndex];");
                 context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue({identifierLit}, item);");
-                context.WriteLine("// Set helper variables");
-                context.WriteLine("forloop.Index = iteration + 1;");
-                context.WriteLine("forloop.Index0 = iteration;");
-                context.WriteLine("forloop.RIndex = count - iteration;");
-                context.WriteLine("forloop.RIndex0 = count - iteration - 1;");
-                context.WriteLine("forloop.First = iteration == 0;");
-                context.WriteLine("forloop.Last = iteration == count - 1;");
+
+                if (usesForLoop)
+                {
+                    context.WriteLine("forloop.Index = iteration + 1;");
+                    context.WriteLine("forloop.Index0 = iteration;");
+                    context.WriteLine("forloop.RIndex = count - iteration;");
+                    context.WriteLine("forloop.RIndex0 = count - iteration - 1;");
+                    context.WriteLine("forloop.First = iteration == 0;");
+                    context.WriteLine("forloop.Last = iteration == count - 1;");
+                }
 
                 // Like the interpreter, a body that is only whitespace isn't written.
                 var statements = _suppressWhitespaceBody ? [] : Statements;

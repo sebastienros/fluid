@@ -351,7 +351,7 @@ See [Model accessor generator](https://github.com/sebastienros/fluid/blob/main/d
 
 This generator parses `.liquid` files at build time and compiles each one into a C# class. Use it for templates that ship with the application, such as emails, reports or generated code. A syntax error then fails the build instead of a request, and the application doesn't parse anything at startup. It can't be used for templates that are only known at runtime: templates stored in a database, edited by users or loaded from disk after deployment. Parse those with `FluidParser` as usual.
 
-Compiled templates can't use custom tags or custom operators, and don't support the `tablerow`, `ifchanged` and `doc` tags. An `include` or `from` tag needs a literal path. Options such as filters, value converters, member access and `Trimming` are applied at render time, so they work as usual.
+Compiled templates can't use custom tags or custom operators, and don't support the `tablerow`, `ifchanged` and `doc` tags. An `include` or `from` tag needs a literal path. Options such as filters, value converters, member access and `Trimming` are applied at render time, so they work as usual. Loops only maintain the `forloop` variable when the template can read it, so .NET code that reads it from the `TemplateContext` (other than a custom filter or function) doesn't see it.
 
 Declare the templates as additional files:
 

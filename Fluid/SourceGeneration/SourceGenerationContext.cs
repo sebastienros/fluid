@@ -84,6 +84,14 @@ public sealed class SourceGenerationContext
 
     public Type ModelType => Options.ModelType;
 
+    internal ForLoopUsageAnalysis ForLoopUsage { get; set; }
+
+    /// <summary>
+    /// Gets whether a loop has to maintain its <c>forloop</c> variable, because something can read it.
+    /// </summary>
+    /// <param name="loop">A <see cref="ForStatement"/>, or a <see cref="RenderStatement"/> or <see cref="IncludeStatement"/> with a <c>for</c> argument.</param>
+    public bool UsesForLoop(Statement loop) => ForLoopUsage?.UsesForLoop(loop) ?? true;
+
     public string WriterName { get; set; } = "writer";
     public string EncoderName { get; set; } = "encoder";
     public string ContextName { get; set; } = "context";

@@ -122,6 +122,18 @@ The templates referenced by `render`, `include` and `from` are compiled with the
 - The target must be an additional file, but doesn't need to match the `[FluidTemplates]` patterns. Partials can be excluded so they don't get their own property.
 - The `TemplateOptions.FileProvider` isn't used: changing a file requires a new build.
 
+## The forloop variable
+
+A loop only creates and updates its `forloop` variable when something can read it, which makes the other loops cheaper. The generator looks at everything that runs inside the loop:
+
+- the loop body, including `forloop.parentloop` and `parentloop` in inner loops;
+- the templates it includes, which share its scope (a template rendered with `render` is isolated and only sees the loop of a `render ... for`);
+- the macros it calls, which run in the scope of the call.
+
+When the loop runs something the generator can't look into, it keeps the variable: a filter that isn't built in, a function that isn't a macro of the template, or a variable whose name is computed, like `{{ [name] }}`.
+
+The only code that can't be followed is .NET code reading the variable from the `TemplateContext` outside of a filter or function call, for instance a custom member accessor, a value converter, a context callback such as `TemplateContext.Assigned`, or a custom `FluidValue`. In a compiled template, such code sees no `forloop` unless the template itself uses it. A built-in filter replaced with `AddFilter` is also treated as built in.
+
 ## Errors
 
 | Error | Cause |

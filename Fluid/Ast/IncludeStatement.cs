@@ -202,25 +202,43 @@ public sealed class IncludeStatement : Statement, ISourceable
         }
         else if (For != null)
         {
+            // Nothing reads the forloop variable of most loops, which then don't create or update it.
+            var usesForLoop = context.UsesForLoop(this);
+
             var forExpr = context.GetExpressionMethodName(For);
-            context.WriteLine("var forloop = ForLoopValue.Create();");
             context.WriteLine($"var list = await ArrayValue.ToFluidArrayAsync(await {forExpr}({ctx}), {ctx});");
-            context.WriteLine("var length = forloop.Length = list.Count;");
-            context.WriteLine($"{ctx}.LocalScope.SetOwnValue(\"forloop\", forloop);");
+            context.WriteLine("var length = list.Count;");
+
+            if (usesForLoop)
+            {
+                context.WriteLine("var forloop = ForLoopValue.Create();");
+                context.WriteLine("forloop.Length = length;");
+                context.WriteLine($"{ctx}.LocalScope.SetOwnValue(\"forloop\", forloop);");
+            }
+
             context.WriteLine("for (var i = 0; i < length; i++)");
             context.WriteLine("{");
             using (context.Indent())
             {
                 context.WriteLine($"{ctx}.IncrementSteps();");
                 context.WriteLine($"{ctx}.LocalScope.SetOwnValue({variableName}, list[i]);");
-                context.WriteLine("forloop.Index = i + 1;");
-                context.WriteLine("forloop.Index0 = i;");
-                context.WriteLine("forloop.RIndex = length - i;");
-                context.WriteLine("forloop.RIndex0 = length - i - 1;");
-                context.WriteLine("forloop.First = i == 0;");
-                context.WriteLine("forloop.Last = i == length - 1;");
+
+                if (usesForLoop)
+                {
+                    context.WriteLine("forloop.Index = i + 1;");
+                    context.WriteLine("forloop.Index0 = i;");
+                    context.WriteLine("forloop.RIndex = length - i;");
+                    context.WriteLine("forloop.RIndex0 = length - i - 1;");
+                    context.WriteLine("forloop.First = i == 0;");
+                    context.WriteLine("forloop.Last = i == length - 1;");
+                }
+
                 context.WriteLine($"if ({call} == Completion.Break) break;");
-                context.WriteLine($"{ctx}.LocalScope.SetOwnValue(\"forloop\", forloop);");
+
+                if (usesForLoop)
+                {
+                    context.WriteLine($"{ctx}.LocalScope.SetOwnValue(\"forloop\", forloop);");
+                }
             }
             context.WriteLine("}");
             context.WriteLine("return Completion.Normal;");

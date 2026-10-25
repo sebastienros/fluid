@@ -257,10 +257,18 @@ public sealed class RenderStatement : Statement, ISourceable
         else if (For != null)
         {
             EmitApplyAssignStatements();
-            context.WriteLine("var forloop = ForLoopValue.Create();");
-            context.WriteLine("forloop.IsRenderLoop = true;");
-            context.WriteLine("var length = forloop.Length = list.Count;");
-            context.WriteLine($"{context.ContextName}.SetValue(\"forloop\", forloop);");
+            // Nothing reads the forloop variable of most loops, which then don't create or update it.
+            var usesForLoop = context.UsesForLoop(this);
+
+            context.WriteLine("var length = list.Count;");
+
+            if (usesForLoop)
+            {
+                context.WriteLine("var forloop = ForLoopValue.Create();");
+                context.WriteLine("forloop.IsRenderLoop = true;");
+                context.WriteLine("forloop.Length = length;");
+                context.WriteLine($"{context.ContextName}.SetValue(\"forloop\", forloop);");
+            }
 
             context.WriteLine("for (var i = 0; i < length; i++)");
             context.WriteLine("{");
@@ -278,14 +286,22 @@ public sealed class RenderStatement : Statement, ISourceable
                     context.WriteLine($"{context.ContextName}.SetValue(identifier, item);");
                 }
 
-                context.WriteLine("forloop.Index = i + 1;");
-                context.WriteLine("forloop.Index0 = i;");
-                context.WriteLine("forloop.RIndex = length - i;");
-                context.WriteLine("forloop.RIndex0 = length - i - 1;");
-                context.WriteLine("forloop.First = i == 0;");
-                context.WriteLine("forloop.Last = i == length - 1;");
+                if (usesForLoop)
+                {
+                    context.WriteLine("forloop.Index = i + 1;");
+                    context.WriteLine("forloop.Index0 = i;");
+                    context.WriteLine("forloop.RIndex = length - i;");
+                    context.WriteLine("forloop.RIndex0 = length - i - 1;");
+                    context.WriteLine("forloop.First = i == 0;");
+                    context.WriteLine("forloop.Last = i == length - 1;");
+                }
+
                 context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-                context.WriteLine($"{context.ContextName}.SetValue(\"forloop\", forloop);");
+
+                if (usesForLoop)
+                {
+                    context.WriteLine($"{context.ContextName}.SetValue(\"forloop\", forloop);");
+                }
             }
             context.WriteLine("}");
         }

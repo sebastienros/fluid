@@ -30,19 +30,24 @@ public static class TemplateSourceGenerator
 
         // Map render path -> generated type name
         var renderTypeNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        var referencedTemplates = new Dictionary<string, IStatementList>(StringComparer.Ordinal);
         foreach (var kv in renderTemplates)
         {
             renderTypeNames[kv.Key] = kv.Value.ClassName;
+            referencedTemplates[kv.Key] = kv.Value.Template;
         }
 
+        // Loops only maintain their forloop variable when something can read it.
+        var forLoopUsage = ForLoopUsageAnalysis.Analyze(rootStatementList, referencedTemplates);
+
         // Emit root class
-        WriteTemplateClass(sb, options, options.ClassName, rootStatementList, renderTypeNames);
+        WriteTemplateClass(sb, options, options.ClassName, rootStatementList, renderTypeNames, forLoopUsage);
 
         // Emit subtemplate classes
         foreach (var kv in renderTemplates)
         {
             sb.AppendLine();
-            WriteTemplateClass(sb, options, kv.Value.ClassName, kv.Value.Template, renderTypeNames, isPartial: true);
+            WriteTemplateClass(sb, options, kv.Value.ClassName, kv.Value.Template, renderTypeNames, forLoopUsage, isPartial: true);
         }
 
         sb.AppendLine("}");
@@ -76,9 +81,10 @@ public static class TemplateSourceGenerator
         string className,
         IStatementList statementList,
         IReadOnlyDictionary<string, string> renderTemplateTypeNames,
+        ForLoopUsageAnalysis forLoopUsage,
         bool isPartial = false)
     {
-        var ctx = new SourceGenerationContext(sb, options, renderTemplateTypeNames);
+        var ctx = new SourceGenerationContext(sb, options, renderTemplateTypeNames) { ForLoopUsage = forLoopUsage };
 
         using (ctx.Indent())
         {
