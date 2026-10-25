@@ -1,3 +1,4 @@
+using System.Text;
 using Fluid.Utils;
 using Fluid.Values;
 
@@ -33,6 +34,7 @@ public static class StringFilters
         filters.AddFilter("replace_last", ReplaceLast);
         filters.AddFilter("slice", Slice);
         filters.AddFilter("split", Split);
+        filters.AddFilter("squish", Squish);
         filters.AddFilter("strip", Strip);
         filters.AddFilter("strip_newlines", StripNewLines);
         filters.AddFilter("truncate", Truncate);
@@ -459,6 +461,42 @@ public static class StringFilters
         }
 
         return ArrayValue.Create(values);
+    }
+
+    public static ValueTask<FluidValue> Squish(FluidValue input, FilterArguments arguments, TemplateContext context)
+    {
+        LiquidException.ThrowFilterArgumentsCount("squish", expected: 0, arguments);
+
+        if (input.IsNil())
+        {
+            return NilValue.Instance;
+        }
+
+        // Like Ruby's strip.gsub(/\s+/, ' '): trim, then collapse each whitespace run into a single space.
+        var source = input.ToStringValue(context);
+        var builder = new StringBuilder(source.Length);
+        var pendingSpace = false;
+
+        foreach (var c in source)
+        {
+            if (IsAsciiWhiteSpace(c))
+            {
+                pendingSpace = builder.Length > 0;
+                continue;
+            }
+
+            if (pendingSpace)
+            {
+                builder.Append(' ');
+                pendingSpace = false;
+            }
+
+            builder.Append(c);
+        }
+
+        return CreateStringValue(builder.Length == source.Length ? source : builder.ToString(), input);
+
+        static bool IsAsciiWhiteSpace(char c) => c is ' ' or '\t' or '\n' or '\v' or '\f' or '\r';
     }
 
     public static ValueTask<FluidValue> Strip(FluidValue input, FilterArguments arguments, TemplateContext context)

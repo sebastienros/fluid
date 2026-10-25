@@ -87,6 +87,31 @@ public class StringFiltersTests
         Assert.Equal("Hello World", result.Result.ToStringValue(context));
     }
 
+    [Theory]
+    [InlineData("   Hello World   ", "Hello World")]
+    [InlineData(" Hello  \n\t\r\n World!  ", "Hello World!")]
+    [InlineData("HelloWorld!", "HelloWorld!")]
+    [InlineData(" \n\t\r", "")]
+    public void Squish(string value, string expected)
+    {
+        var input = StringValue.Create(value);
+
+        var arguments = new FilterArguments();
+        var context = new TemplateContext();
+
+        var result = StringFilters.Squish(input, arguments, context);
+
+        Assert.Equal(expected, result.Result.ToStringValue(context));
+    }
+
+    [Fact]
+    public void SquishNilReturnsNil()
+    {
+        var result = StringFilters.Squish(NilValue.Instance, new FilterArguments(), new TemplateContext());
+
+        Assert.IsType<NilValue>(result.Result);
+    }
+
     [Fact]
     public void StripNewLines()
     {
