@@ -1569,7 +1569,7 @@ Outputs:
 1..5|1-2-3-4-5|..5
 ```
 
-Literal bounds are truncated, e.g. `(2.7..4)` is `(2..4)`, and string bounds are converted like Ruby's `to_i`. A bound from a variable that is not an integer, such as `2.3` or `true`, is an error.
+Literal bounds are truncated, e.g. `(2.7..4)` is `(2..4)`, and string bounds are converted to numbers and truncated. A bound from a variable that is not an integer, such as `2.3` or `true`, is an error.
 
 ## Whitespace control
 
