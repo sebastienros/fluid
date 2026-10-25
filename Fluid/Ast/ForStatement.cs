@@ -344,7 +344,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             var fromExpr = context.GetExpressionMethodName(range.From);
             var toExpr = context.GetExpressionMethodName(range.To);
-            context.WriteLine($"var {continueOffsetLiteralName} = \"for_continue_{Identifier}-(\" + Convert.ToInt32((await {fromExpr}({context.ContextName})).ToNumberValue({context.ContextName})).ToString(CultureInfo.InvariantCulture) + \"..\" + Convert.ToInt32((await {toExpr}({context.ContextName})).ToNumberValue({context.ContextName})).ToString(CultureInfo.InvariantCulture) + \")\";");
+            context.WriteLine($"var {continueOffsetLiteralName} = \"for_continue_{Identifier}-(\" + global::Fluid.Ast.RangeExpression.GetBound(await {fromExpr}({context.ContextName})).ToString(CultureInfo.InvariantCulture) + \"..\" + global::Fluid.Ast.RangeExpression.GetBound(await {toExpr}({context.ContextName})).ToString(CultureInfo.InvariantCulture) + \")\";");
         }
         else
         {
