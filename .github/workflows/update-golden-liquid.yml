@@ -14,6 +14,7 @@ jobs:
     permissions:
       actions: write
       contents: write
+      issues: write
       pull-requests: write
     env:
       PR_CHECKS_WORKFLOW: pr.yml
@@ -34,7 +35,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LATEST_HASH=$(gh api repos/jg-rp/golden-liquid/commits -f per_page=1 --jq '.[0].sha')
+          LATEST_HASH=$(gh api -X GET repos/jg-rp/golden-liquid/commits -f per_page=1 --jq '.[0].sha')
           echo "hash=$LATEST_HASH" >> $GITHUB_OUTPUT
           echo "Latest hash: $LATEST_HASH"
 
@@ -148,3 +149,31 @@ jobs:
             --repo "${{ github.repository }}" \
             --auto \
             "$merge_flag"
+
+      - name: Report failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: Golden Liquid update workflow is failing
+        run: |
+          # Comment on the open issue instead of filing a new one every week.
+          issue_number=$(gh issue list \
+            --repo "${{ github.repository }}" \
+            --state open \
+            --search "\"$TITLE\" in:title" \
+            --json number,title \
+            --jq '.[] | select(.title == env.TITLE) | .number' | head -n 1)
+
+          if [ -n "$issue_number" ]; then
+            gh issue comment "$issue_number" \
+              --repo "${{ github.repository }}" \
+              --body "Failed again: $RUN_URL"
+          else
+            gh issue create \
+              --repo "${{ github.repository }}" \
+              --title "$TITLE" \
+              --body "The scheduled update of the Golden Liquid test suite failed: $RUN_URL
+
+          Until this is fixed, \`.github/golden-liquid-version.txt\` stays pinned and new Golden Liquid tests are not run. Close this issue once the workflow passes again."
+          fi
