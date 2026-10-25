@@ -1,5 +1,5 @@
-using System.Text;
 using Fluid.Utils;
+using System.Text;
 using Fluid.Values;
 
 namespace Fluid.Filters;
@@ -474,7 +474,7 @@ public static class StringFilters
 
         // Like Ruby's strip.gsub(/\s+/, ' '): trim, then collapse each whitespace run into a single space.
         var source = input.ToStringValue(context);
-        var builder = new StringBuilder(source.Length);
+        var builder = new ValueStringBuilder(stackalloc char[256]);
         var pendingSpace = false;
 
         foreach (var c in source)
@@ -494,7 +494,14 @@ public static class StringFilters
             builder.Append(c);
         }
 
-        return CreateStringValue(builder.Length == source.Length ? source : builder.ToString(), input);
+        if (builder.Length == source.Length)
+        {
+            // Nothing was removed.
+            builder.Dispose();
+            return CreateStringValue(source, input);
+        }
+
+        return CreateStringValue(builder.ToString(), input);
 
         static bool IsAsciiWhiteSpace(char c) => c is ' ' or '\t' or '\n' or '\v' or '\f' or '\r';
     }
