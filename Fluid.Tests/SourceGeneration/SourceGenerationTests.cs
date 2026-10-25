@@ -22,6 +22,7 @@ public class SourceGenerationTests
     [InlineData("Hello", "Hello")]
     [InlineData("{{ 1 }}", "1")]
     [InlineData("{{ '' }}{{ 'a' }}{{ 'hello' }}", "ahello")]
+    [InlineData("{{ ' Hello \n\t World!  ' | squish }}", "Hello World!")]
     [InlineData("{% assign x = 1 %}{{ x }}", "1")]
     [InlineData("{% if true %}a{% else %}b{% endif %}", "a")]
     [InlineData("{% unless false %}a{% endunless %}", "a")]
