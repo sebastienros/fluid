@@ -93,8 +93,8 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             // The name of a range with computed bounds is only known now. Evaluate the bounds once,
             // for both the name and the items, instead of once for each.
-            var from = RangeExpression.ToBound(await _rangeSource.From.EvaluateAsync(context), _rangeSource.From is LiteralExpression, context);
-            var to = RangeExpression.ToBound(await _rangeSource.To.EvaluateAsync(context), _rangeSource.To is LiteralExpression, context);
+            var from = RangeExpression.ToBound(await _rangeSource.From.EvaluateAsync(context), context);
+            var to = RangeExpression.ToBound(await _rangeSource.To.EvaluateAsync(context), context);
 
             evaluatedSource = RangeExpression.CreateRangeValue(from, to, context);
             rangeSourceLiteral = BuildRangeSourceLiteral(from, to);
@@ -294,8 +294,7 @@ public sealed class ForStatement : TagStatement, ISourceable
             return false;
         }
 
-        // Truncated like RangeExpression does with literal bounds.
-        bound = (int)Math.Truncate(value);
+        bound = Convert.ToInt32(value);
         return true;
     }
 
@@ -340,7 +339,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             var fromExpr = context.GetExpressionMethodName(range.From);
             var toExpr = context.GetExpressionMethodName(range.To);
-            context.WriteLine($"var {continueOffsetLiteralName} = \"for_continue_{Identifier}-(\" + global::Fluid.Ast.RangeExpression.GetBound(await {fromExpr}({context.ContextName}), {(range.From is LiteralExpression ? "true" : "false")}, {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \"..\" + global::Fluid.Ast.RangeExpression.GetBound(await {toExpr}({context.ContextName}), {(range.To is LiteralExpression ? "true" : "false")}, {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \")\";");
+            context.WriteLine($"var {continueOffsetLiteralName} = \"for_continue_{Identifier}-(\" + global::Fluid.Ast.RangeExpression.GetBound(await {fromExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \"..\" + global::Fluid.Ast.RangeExpression.GetBound(await {toExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \")\";");
         }
         else
         {

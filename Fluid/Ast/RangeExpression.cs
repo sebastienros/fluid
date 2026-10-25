@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.ComponentModel;
 using Fluid.Utils;
 using Fluid.Values;
@@ -28,23 +27,23 @@ public sealed class RangeExpression : Expression, ISourceable
 
         if (startTask.IsCompletedSuccessfully && endTask.IsCompletedSuccessfully)
         {
-            start = ToBound(startTask.Result, From is LiteralExpression, context);
-            end = ToBound(endTask.Result, To is LiteralExpression, context);
+            start = ToBound(startTask.Result, context);
+            end = ToBound(endTask.Result, context);
 
             return CreateRangeValue(start, end, context);
         }
         else
         {
-            return Awaited(startTask, endTask, this, context);
+            return Awaited(startTask, endTask, context);
         }
     }
 
     /// <summary>
-    /// Converts a bound of a range like Liquid, to an int.
-    /// Literal numbers are truncated. Nil and strings are converted like Ruby's <c>to_i</c>, and other values
-    /// must be integers (a float from a variable is an error).
+    /// Converts a bound of a range to an int, like Liquid: nil is 0, strings are converted to numbers and truncated,
+    /// and any other value must be an integer (a float from a variable is an error).
+    /// Literal bounds are already truncated by the parser.
     /// </summary>
-    internal static int ToBound(FluidValue value, bool isLiteral, TemplateContext context)
+    internal static int ToBound(FluidValue value, TemplateContext context)
     {
         switch (value.Type)
         {
@@ -54,71 +53,14 @@ public sealed class RangeExpression : Expression, ISourceable
                 return 0;
 
             case FluidValues.String:
-                return ParseLeadingInteger(value.ToStringValue(context), value, context);
+                return CheckBound(decimal.Truncate(value.ToNumberValue(context)), value, context);
 
-            case FluidValues.Number:
-                var number = value.ToNumberValue(context);
-
-                if (!isLiteral && NumberValue.GetScale(number) != 0)
-                {
-                    throw new LiquidException($"Invalid integer '{value.ToStringValue(context)}' in range expression.");
-                }
-
-                return CheckBound(Math.Truncate(number), value, context);
+            case FluidValues.Number when value.IsInteger(context):
+                return CheckBound(value.ToNumberValue(context), value, context);
 
             default:
-                // Like Ruby's Integer(value.to_s).
-                var text = value.ToStringValue(context);
-
-                if (!decimal.TryParse(text, NumberStyles.AllowLeadingSign | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite, CultureInfo.InvariantCulture, out var integer))
-                {
-                    throw new LiquidException($"Invalid integer '{text}' in range expression.");
-                }
-
-                return CheckBound(integer, value, context);
+                throw new LiquidException($"Invalid integer '{value.ToStringValue(context)}' in range expression.");
         }
-    }
-
-    // Like Ruby's String#to_i: optional leading whitespace and sign, then digits, and 0 if there are none.
-    private static int ParseLeadingInteger(string text, FluidValue value, TemplateContext context)
-    {
-        var i = 0;
-
-        while (i < text.Length && (char.IsWhiteSpace(text[i])))
-        {
-            i++;
-        }
-
-        var negative = false;
-
-        if (i < text.Length && (text[i] == '-' || text[i] == '+'))
-        {
-            negative = text[i] == '-';
-            i++;
-        }
-
-        decimal result = 0;
-
-        for (; i < text.Length; i++)
-        {
-            var c = text[i];
-
-            if (c >= '0' && c <= '9')
-            {
-                result = result * 10 + (c - '0');
-
-                if (result > int.MaxValue + 1m)
-                {
-                    break;
-                }
-            }
-            else if (c != '_' || i + 1 >= text.Length || text[i + 1] < '0' || text[i + 1] > '9' || text[i - 1] < '0' || text[i - 1] > '9')
-            {
-                break;
-            }
-        }
-
-        return CheckBound(negative ? -result : result, value, context);
     }
 
     /// <summary>
@@ -138,7 +80,7 @@ public sealed class RangeExpression : Expression, ISourceable
     /// Converts a range bound. Used by source-generated templates, which can only call public members.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static int GetBound(FluidValue value, bool isLiteral, TemplateContext context) => ToBound(value, isLiteral, context);
+    public static int GetBound(FluidValue value, TemplateContext context) => ToBound(value, context);
 
     /// <summary>
     /// Creates a range. Used by source-generated templates, which can only call public members.
@@ -164,11 +106,10 @@ public sealed class RangeExpression : Expression, ISourceable
     private static async ValueTask<FluidValue> Awaited(
         ValueTask<FluidValue> leftTask,
         ValueTask<FluidValue> rightTask,
-        RangeExpression range,
         TemplateContext context)
     {
-        var start = ToBound(await leftTask, range.From is LiteralExpression, context);
-        var end = ToBound(await rightTask, range.To is LiteralExpression, context);
+        var start = ToBound(await leftTask, context);
+        var end = ToBound(await rightTask, context);
 
         return CreateRangeValue(start, end, context);
     }
@@ -182,8 +123,8 @@ public sealed class RangeExpression : Expression, ISourceable
 
         // The same checks as the interpreter: bounds out of the int range and ranges with too many
         // items throw a LiquidException.
-        context.WriteLine($"var start = global::Fluid.Ast.RangeExpression.GetBound(await {fromMethod}({context.ContextName}), {(From is LiteralExpression ? "true" : "false")}, {context.ContextName});");
-        context.WriteLine($"var end = global::Fluid.Ast.RangeExpression.GetBound(await {toMethod}({context.ContextName}), {(To is LiteralExpression ? "true" : "false")}, {context.ContextName});");
+        context.WriteLine($"var start = global::Fluid.Ast.RangeExpression.GetBound(await {fromMethod}({context.ContextName}), {context.ContextName});");
+        context.WriteLine($"var end = global::Fluid.Ast.RangeExpression.GetBound(await {toMethod}({context.ContextName}), {context.ContextName});");
         context.WriteLine($"return global::Fluid.Ast.RangeExpression.CreateRange(start, end, {context.ContextName});");
     }
 }
