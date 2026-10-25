@@ -10,6 +10,8 @@ using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Fluid;
+using Fluid.Ast.BinaryExpressions;
+using Fluid.SourceGeneration;
 using Fluid.SourceGenerator;
 using Fluid.Tests.Mocks;
 using Microsoft.CodeAnalysis;
@@ -206,11 +208,28 @@ public static partial class Templates
 
     [Theory]
     [InlineData("{% case x %}{% when 1 %}one{% endcase %}")]
-    [InlineData("{% case x %}{% when 1 %}one{% else %}other{% endcase %}")]
-    [InlineData("{% if x %}a{% elsif y %}b{% else %}c{% endif %}{% unless x %}d{% endunless %}")]
-    [InlineData("{% for i in (1..3) %}{% if i == 2 %}{% continue %}{% endif %}{{ forloop.index }}{% else %}none{% endfor %}")]
-    [InlineData("{% assign a = 'x' | upcase %}{% capture b %}{{ a }}{% endcapture %}{{ b }}{% cycle 'c', 'd' %}")]
+    [InlineData("{% case x %}{% when 1, 2 %}one{% when 'a' or 'b' %}two{% else %}other{% endcase %}")]
+    [InlineData("{% case x %}{% when 1 %}   {% endcase %}")]
+    [InlineData("{% if x %}a{% elsif y %}b{% else %}c{% endif %}{% unless x %}d{% elsif y %}e{% else %}f{% endunless %}")]
+    [InlineData("{% if x %}  {% assign a = 1 %}  {% else %}  {% endif %}")]
+    [InlineData("{% for i in (1..3) %}{% if i == 2 %}{% continue %}{% endif %}{{ forloop.index }}{{ forloop.rindex0 }}{{ forloop.first }}{% else %}none{% endfor %}")]
+    [InlineData("{% for i in items limit: 2 offset: 1 reversed %}{{ i }}{% endfor %}{% for i in items offset: continue %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in 'abc' %}{{ i }}{% endfor %}{% for i in (1..2) %}{% for j in (1..2) %}{{ forloop.parentloop.index }}{% break %}{% endfor %}{% endfor %}")]
+    [InlineData("{% for i in (1..2) %}\n{% endfor %}")]
+    [InlineData("{% assign a = 'x' | upcase %}{% capture b %}{{ a }}{% endcapture %}{{ b }}{% cycle 'c', 'd' %}{% cycle 'g': 'e', 'f' %}")]
     [InlineData("{% increment c %}{% decrement d %}{% raw %}{{ e }}{% endraw %}{% comment %}f{% endcomment %}{% echo 'g' %}")]
+    [InlineData("{% liquid\nassign a = 1\necho a\nif a == 1\necho 'one'\nendif\n%}")]
+    [InlineData("{% if 1 < 2 and 2 > 1 or 3 <= 3 and 3 >= 4 %}y{% endif %}{% if 'abc' contains 'b' and items contains 1 %}c{% endif %}")]
+    [InlineData("{% if 'abc' startswith 'a' and 'abc' endswith 'c' %}s{% endif %}{% if x == nil and x != empty and x == blank %}n{% endif %}")]
+    [InlineData("{% if 'b' > 'a' and 'a' < 'b' and true and false == false %}t{% endif %}{{ 1.5 }}{{ -3 }}{{ (1..x) | join: ',' }}")]
+    [InlineData("{% if (1 == 1) and (2 > 1 or false) %}p{% endif %}")]
+    [InlineData("{{ items[0] }}{{ items.first }}{{ items.size }}{{ page.title | default: 'none' | truncate: 3, '' }}{{ page['title'] }}")]
+    [InlineData("{{ 'a,b' | split: ',' | join: '-' }}{{ 12.345 | round: 2 }}{{ 'x' | append: page.title }}{{ items | where: 'a', 1 | map: 'b' | first }}")]
+    [InlineData("{% macro field(name, type = 'text') %}<input name=\"{{ name }}\" type=\"{{ type }}\">{% endmacro %}{{ field('a') }}{{ field('b', type = 'password') }}")]
+    [InlineData("{% render 'partial' %}{% render 'partial' with 'w' as p %}{% render 'partial' for items as p %}{% render 'partial', p: 1 %}")]
+    [InlineData("{% include 'partial' %}{% include 'partial' with 'w' as p %}{% include 'partial' for items as p %}{% include 'partial', p: 1 %}")]
+    [InlineData("{% from 'macros' import field %}{{ field('a') }}{% from 'macros' %}")]
+    [InlineData("  {%- if x -%}  {{- 'a' -}}  {%- endif -%}  \n  {{ 'b' }}  ")]
     public void TemplatesAttribute_Generates_Code_Without_Warnings(string source)
     {
         var userSource = @"
@@ -218,16 +237,43 @@ using Fluid.SourceGenerator;
 
 namespace MyApp;
 
-[FluidTemplates(""**/*.liquid"")]
+[FluidTemplates(""template.liquid"", AllowFunctions = true, AllowLiquidTag = true, AllowParentheses = true)]
 public static partial class Templates
 {
 }
 ";
 
-        var (outputCompilation, diagnostics) = RunGenerator(userSource, new InMemoryAdditionalText("template.liquid", source));
+        var (outputCompilation, diagnostics) = RunGenerator(
+            userSource,
+            new InMemoryAdditionalText("template.liquid", source),
+            new InMemoryAdditionalText("partial.liquid", "[{{ p }}]{% if p %}{% endif %}"),
+            new InMemoryAdditionalText("macros.liquid", "{% macro field(name) %}{{ name }}{% endmacro %}"));
 
         Assert.Empty(diagnostics);
+
+        // Users shouldn't have to suppress anything in the generated code: no obsolete API (CS0618) and no unused
+        // variable (CS0219), at the warning level of the latest SDK.
         Assert.Empty(outputCompilation.GetDiagnostics().Where(d => d.Severity >= DiagnosticSeverity.Warning));
+    }
+
+    [Fact]
+    public void Custom_Arithmetic_Operators_Generate_Code_Without_Warnings()
+    {
+        // The arithmetic expressions are only created by operators an application registers, and are compiled with
+        // the TemplateSourceGenerator API rather than the source generator, which uses its own parser.
+        var parser = new FluidParser();
+        parser.RegisteredOperators["plus"] = (a, b) => new AddBinaryExpression(a, b);
+        parser.RegisteredOperators["minus"] = (a, b) => new SubtractBinaryExpression(a, b);
+        parser.RegisteredOperators["times"] = (a, b) => new MultiplyBinaryExpression(a, b);
+        parser.RegisteredOperators["divided"] = (a, b) => new DivideBinaryExpression(a, b);
+        parser.RegisteredOperators["modulo"] = (a, b) => new ModuloBinaryExpression(a, b);
+
+        var template = parser.Parse("{{ 1 plus 2 }}{{ 'a' plus 'b' }}{{ 3 minus 1 }}{{ 2 times 3 }}{{ 6 divided 4 }}{{ 7 modulo 3 }}");
+        var source = template.Compile(new SourceGenerationOptions { Namespace = "MyApp", ClassName = "Arithmetic" });
+
+        var compilation = CreateCompilation(source.SourceCode);
+
+        Assert.Empty(compilation.GetDiagnostics().Where(d => d.Severity >= DiagnosticSeverity.Warning));
     }
 
     [Theory]
@@ -489,7 +535,7 @@ public static partial class Templates
             assemblyName: "MyApp.GeneratedTests",
             syntaxTrees: new[] { syntaxTree },
             references: references,
-            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, warningLevel: 9999));
     }
 
     private static (Assembly Assembly, ImmutableArray<Diagnostic> Diagnostics) EmitToAssembly(Compilation compilation)
