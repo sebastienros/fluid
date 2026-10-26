@@ -438,7 +438,7 @@ public class ForStatementTests
     }
 
     [Fact]
-    public async Task NegativeLimitShouldStripFromEnd()
+    public async Task NegativeLimitShouldRenderNothing()
     {
         var context = new TemplateContext()
                 .SetValue("limit", -3)
@@ -459,7 +459,7 @@ public class ForStatementTests
         var sw = new StringWriter();
         await e.WriteToAsync(sw, HtmlEncoder.Default, context);
 
-        Assert.Equal("123456", sw.ToString());
+        Assert.Equal("", sw.ToString());
     }
 
     static Statement CreateMemberStatement(string p)

@@ -298,7 +298,8 @@ public static class StringFilters
             requestedLength = secondArgument.IsNil() ? 1 : NumberConversions.ToInt32Saturated(secondArgument.ToNumberValue(context));
         }
 
-        if (input.Type == FluidValues.Array)
+        // Like Liquid, a range is sliced as its string representation, e.g. "1..5".
+        if (input.Type == FluidValues.Array && input is not RangeValue)
         {
             if (requestedLength <= 0)
             {

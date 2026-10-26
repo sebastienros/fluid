@@ -151,13 +151,17 @@ public class FluidParser
             .Then(x => new MemberExpression([x.Item1, .. x.Item2]));
         Member.Name = "Member";
 
+        // Like Liquid, literal range bounds are truncated: (2.7..4) is (2..4).
+        var RangeBound = Terms.Decimal().Then<Expression>(x => new LiteralExpression(NumberValue.Create(decimal.Truncate(x))));
+        RangeBound.Name = "RangeBound";
+
         var Range = LParen
             .SkipAnd(OneOf(
                 Member.AndSkip(Terms.Text("..")),
                 Integer.AndSkip(Terms.Text("..")),
-                Number.AndSkip(Terms.Text(".."))
+                RangeBound.AndSkip(Terms.Text(".."))
             ))
-            .And(OneOf(Number, Member.Then<Expression>(x => x)))
+            .And(OneOf(RangeBound, Member.Then<Expression>(x => x)))
             .AndSkip(RParen)
             .Then<Expression>(x => new RangeExpression(x.Item1, x.Item2));
         Range.Name = "Range";

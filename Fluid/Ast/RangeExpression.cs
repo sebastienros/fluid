@@ -30,7 +30,7 @@ public sealed class RangeExpression : Expression, ISourceable
             start = ToBound(startTask.Result, context);
             end = ToBound(endTask.Result, context);
 
-            return BuildArray(start, end, context);
+            return CreateRangeValue(start, end, context);
         }
         else
         {
@@ -39,18 +39,41 @@ public sealed class RangeExpression : Expression, ISourceable
     }
 
     /// <summary>
-    /// Converts a bound of a range, which has to fit in an int since the range is materialized.
+    /// Converts a bound of a range to an int, like Liquid: nil is 0, strings are converted to numbers and truncated,
+    /// and any other value must be an integer (a float from a variable is an error).
+    /// Literal bounds are already truncated by the parser.
     /// </summary>
     internal static int ToBound(FluidValue value, TemplateContext context)
     {
-        var number = value.ToNumberValue(context);
+        switch (value.Type)
+        {
+            case FluidValues.Nil:
+            case FluidValues.Empty:
+            case FluidValues.Blank:
+                return 0;
 
-        if (number >= int.MaxValue + 0.5m || number <= int.MinValue - 0.5m)
+            case FluidValues.String:
+                return CheckBound(decimal.Truncate(value.ToNumberValue(context)), value, context);
+
+            case FluidValues.Number when value.IsInteger(context):
+                return CheckBound(value.ToNumberValue(context), value, context);
+
+            default:
+                throw new LiquidException($"Invalid integer '{value.ToStringValue(context)}' in range expression.");
+        }
+    }
+
+    /// <summary>
+    /// Checks that a bound fits in an int, since the items of a range are counted with an int.
+    /// </summary>
+    private static int CheckBound(decimal number, FluidValue value, TemplateContext context)
+    {
+        if (number > int.MaxValue || number < int.MinValue)
         {
             throw new LiquidException($"The range bound {value.ToStringValue(context)} is out of range.");
         }
 
-        return Convert.ToInt32(number);
+        return (int)number;
     }
 
     /// <summary>
@@ -60,14 +83,14 @@ public sealed class RangeExpression : Expression, ISourceable
     public static int GetBound(FluidValue value, TemplateContext context) => ToBound(value, context);
 
     /// <summary>
-    /// Creates the items of a range. Used by source-generated templates, which can only call public members.
+    /// Creates a range. Used by source-generated templates, which can only call public members.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static ArrayValue CreateRange(int start, int end, TemplateContext context) => BuildArray(start, end, context);
+    public static RangeValue CreateRange(int start, int end, TemplateContext context) => CreateRangeValue(start, end, context);
 
-    internal static ArrayValue BuildArray(int start, int end, TemplateContext context)
+    internal static RangeValue CreateRangeValue(int start, int end, TemplateContext context)
     {
-        // If end < start, we create an empty array
+        // If end < start, the range is empty
         var length = end < start ? 0L : (long)end - start + 1;
         context.EnsureCollectionSize(length);
 
@@ -76,15 +99,7 @@ public sealed class RangeExpression : Expression, ISourceable
             throw new LiquidException($"The range ({start}..{end}) has too many items.");
         }
 
-        var list = new FluidValue[length];
-
-        for (var i = 0; i < list.Length; i++)
-        {
-            context.IncrementSteps();
-            list[i] = NumberValue.Create(start + i);
-        }
-
-        return ArrayValue.Create(list);
+        return RangeValue.Create(start, end);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -96,7 +111,7 @@ public sealed class RangeExpression : Expression, ISourceable
         var start = ToBound(await leftTask, context);
         var end = ToBound(await rightTask, context);
 
-        return BuildArray(start, end, context);
+        return CreateRangeValue(start, end, context);
     }
 
     protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitRangeExpression(this);

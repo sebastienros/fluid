@@ -78,6 +78,12 @@ public static class ArrayFilters
     {
         LiquidException.ThrowFilterArgumentsCount("first", expected: 0, arguments);
 
+        // Like Ruby's Range#first, the start of a range is returned even if it is empty.
+        if (input is RangeValue range)
+        {
+            return NumberValue.Create(range.Start);
+        }
+
         if (input.Type == FluidValues.Array)
         {
             // Indexed arrays answer by index, without an async enumerator.
@@ -111,6 +117,11 @@ public static class ArrayFilters
     public static ValueTask<FluidValue> Last(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("last", expected: 0, arguments);
+
+        if (input is RangeValue range)
+        {
+            return NumberValue.Create(range.End);
+        }
 
         if (input.Type == FluidValues.Array)
         {
