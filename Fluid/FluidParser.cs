@@ -336,7 +336,51 @@ public class FluidParser
         var ContinueTag = TagEnd.Then<Statement>(x => new ContinueStatement()).ElseError("Invalid 'continue' tag");
         ContinueTag.Name = "ContinueTag";
 
-        var CommentBody = new CommentBodyParser(AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true));
+        // Like Shopify, the body of a comment is read as tags, outputs and text, the same way as a template.
+        // The tags don't need to be valid, but nested comment and raw blocks must be balanced, and an endcomment
+        // inside an incomplete tag or output (e.g. '{{ {% endcomment %}') doesn't close the comment.
+        var TagClose = Literals.Text("%}");
+
+        // A tag named 'name', from '{%' to the first '%}', e.g. '{%- name anything -%}'.
+        Parser<TextSpan> NamedTag(string name) => Capture(Literals.Text("{%")
+            .SkipAnd(ZeroOrOne(Literals.Char('-')))
+            .SkipAnd(Literals.AnyOf(" \t\n\v\f\r", minSize: 0))
+            .SkipAnd(Literals.Keyword(name))
+            .SkipAnd(AnyCharBefore(TagClose, canBeEmpty: true, failOnEof: true))
+            .SkipAnd(TagClose));
+
+        var EndRaw = NamedTag("endraw");
+        var RawInComment = Capture(NamedTag("raw")
+            .SkipAnd(AnyCharBefore(EndRaw, canBeEmpty: true, failOnEof: true).AndSkip(EndRaw).ElseError($"'{{% endraw %}}' was expected")));
+
+        // Any other tag. An unclosed '{%' is read alone.
+        var TagInComment = Capture(Literals.Text("{%")
+            .SkipAnd(ZeroOrOne(AnyCharBefore(TagClose, canBeEmpty: true, failOnEof: true).SkipAnd(TagClose))));
+
+        // An output ends at the first '}' or '}}', unless a '{%' comes first: then it extends to the next '%}'.
+        var OutputInComment = Capture(Literals.Text("{{")
+            .SkipAnd(AnyCharBefore(OneOf(Literals.Text("}"), Literals.Text("{%")), canBeEmpty: true))
+            .SkipAnd(ZeroOrOne(OneOf(
+                Capture(Literals.Text("}}")),
+                Capture(Literals.Text("}")),
+                TagInComment))));
+
+        var TextInComment = AnyCharBefore(OneOf(Literals.Text("{{"), Literals.Text("{%")));
+
+        var EndComment = NamedTag("endcomment");
+
+        var ShopifyCommentBody = Recursive<TextSpan>(body => Capture(ZeroOrMany(OneOf(
+            Capture(NamedTag("comment").SkipAnd(body).AndSkip(EndComment.ElseError($"'{{% endcomment %}}' was expected"))),
+            RawInComment,
+            Not(EndComment).SkipAnd(TagInComment),
+            OutputInComment,
+            TextInComment))));
+
+        // Inside a {% liquid %} tag, the comment ends at the first endcomment line.
+        var CommentBody = If<FluidParseContext, TextSpan>(
+            static context => context.LiquidTagDepth > 0,
+            AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true),
+            ShopifyCommentBody);
 
         var CommentTag = TagEnd
                     .SkipAnd(CommentBody)
