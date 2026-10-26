@@ -26,4 +26,17 @@ public class AssignmentCaptureTests
         var result = await template.RenderAsync(context);
         Assert.Equal("b_altered", result);
     }
+
+    [Theory]
+    [InlineData("{% assign aA1_-.[] = 'hello' %}{{ ['aA1_-.[]'] }}", "hello")]
+    [InlineData("{% assign (aA1_-.[])(a)(foo) = 'hello' %}{{ ['(aA1_-.[])(a)(foo)'] }}", "hello")]
+    [InlineData("{% assign a.b = 'hello' %}{{ ['a.b'] }}|{{ a.b }}|{{ a }}", "hello||")]
+    [InlineData("{% capture x[0] %}hello{% endcapture %}{{ ['x[0]'] }}", "hello")]
+    [InlineData("{% increment a.b %}{% increment a.b %}{{ ['a.b'] }}", "012")]
+    [InlineData("{% increment x-%} {{ x }}", "01")]
+    public void ShouldAcceptShopifyVariableSignatures(string source, string expected)
+    {
+        Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+        Assert.Equal(expected, template.Render());
+    }
 }
