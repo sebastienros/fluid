@@ -151,13 +151,17 @@ public class FluidParser
             .Then(x => new MemberExpression([x.Item1, .. x.Item2]));
         Member.Name = "Member";
 
+        // Like Liquid, literal range bounds are truncated: (2.7..4) is (2..4).
+        var RangeBound = Terms.Decimal().Then<Expression>(x => new LiteralExpression(NumberValue.Create(decimal.Truncate(x))));
+        RangeBound.Name = "RangeBound";
+
         var Range = LParen
             .SkipAnd(OneOf(
                 Member.AndSkip(Terms.Text("..")),
                 Integer.AndSkip(Terms.Text("..")),
-                Number.AndSkip(Terms.Text(".."))
+                RangeBound.AndSkip(Terms.Text(".."))
             ))
-            .And(OneOf(Number, Member.Then<Expression>(x => x)))
+            .And(OneOf(RangeBound, Member.Then<Expression>(x => x)))
             .AndSkip(RParen)
             .Then<Expression>(x => new RangeExpression(x.Item1, x.Item2));
         Range.Name = "Range";
@@ -336,8 +340,54 @@ public class FluidParser
         var ContinueTag = TagEnd.Then<Statement>(x => new ContinueStatement()).ElseError("Invalid 'continue' tag");
         ContinueTag.Name = "ContinueTag";
 
+        // Like Shopify, the body of a comment is read as tags, outputs and text, the same way as a template.
+        // The tags don't need to be valid, but nested comment and raw blocks must be balanced, and an endcomment
+        // inside an incomplete tag or output (e.g. '{{ {% endcomment %}') doesn't close the comment.
+        var TagClose = Literals.Text("%}");
+
+        // A tag named 'name', from '{%' to the first '%}', e.g. '{%- name anything -%}'.
+        Parser<TextSpan> NamedTag(string name) => Capture(Literals.Text("{%")
+            .SkipAnd(ZeroOrOne(Literals.Char('-')))
+            .SkipAnd(Literals.AnyOf(" \t\n\v\f\r", minSize: 0))
+            .SkipAnd(Literals.Keyword(name))
+            .SkipAnd(AnyCharBefore(TagClose, canBeEmpty: true, failOnEof: true))
+            .SkipAnd(TagClose));
+
+        var EndRaw = NamedTag("endraw");
+        var RawInComment = Capture(NamedTag("raw")
+            .SkipAnd(AnyCharBefore(EndRaw, canBeEmpty: true, failOnEof: true).AndSkip(EndRaw).ElseError($"'{{% endraw %}}' was expected")));
+
+        // Any other tag. An unclosed '{%' is read alone.
+        var TagInComment = Capture(Literals.Text("{%")
+            .SkipAnd(ZeroOrOne(AnyCharBefore(TagClose, canBeEmpty: true, failOnEof: true).SkipAnd(TagClose))));
+
+        // An output ends at the first '}' or '}}', unless a '{%' comes first: then it extends to the next '%}'.
+        var OutputInComment = Capture(Literals.Text("{{")
+            .SkipAnd(AnyCharBefore(OneOf(Literals.Text("}"), Literals.Text("{%")), canBeEmpty: true))
+            .SkipAnd(ZeroOrOne(OneOf(
+                Capture(Literals.Text("}}")),
+                Capture(Literals.Text("}")),
+                TagInComment))));
+
+        var TextInComment = AnyCharBefore(OneOf(Literals.Text("{{"), Literals.Text("{%")));
+
+        var EndComment = NamedTag("endcomment");
+
+        var ShopifyCommentBody = Recursive<TextSpan>(body => Capture(ZeroOrMany(OneOf(
+            Capture(NamedTag("comment").SkipAnd(body).AndSkip(EndComment.ElseError($"'{{% endcomment %}}' was expected"))),
+            RawInComment,
+            Not(EndComment).SkipAnd(TagInComment),
+            OutputInComment,
+            TextInComment))));
+
+        // Inside a {% liquid %} tag, the comment ends at the first endcomment line.
+        var CommentBody = If<FluidParseContext, TextSpan>(
+            static context => context.LiquidTagDepth > 0,
+            AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true),
+            ShopifyCommentBody);
+
         var CommentTag = TagEnd
-                    .SkipAnd(AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true))
+                    .SkipAnd(CommentBody)
                     .AndSkip(CreateTag("endcomment").ElseError($"'{{% endcomment %}}' was expected"))
                     .Then<Statement>(x => new CommentStatement(x))
                     .ElseError("Invalid 'comment' tag")
@@ -499,7 +549,7 @@ public class FluidParser
 
         // Parser for optional comment tags only (used between case blocks)
         var OptionalComment = TagStart.SkipAnd(Terms.Text("comment")).SkipAnd(TagEnd)
-            .SkipAnd(AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true))
+            .SkipAnd(CommentBody)
             .AndSkip(CreateTag("endcomment"))
             .Then<Statement>(x => new CommentStatement(x));
 

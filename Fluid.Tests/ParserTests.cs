@@ -201,6 +201,27 @@ public class ParserTests
         Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as CommentStatement).Text.ToString());
     }
 
+    [Theory]
+    [InlineData("{% comment %}a{% comment %}b{% endcomment %}c{% endcomment %}after", "after")]
+    [InlineData("{% comment %}{% raw %}{% endcomment %}{% endraw %}{% endcomment %}after", "after")]
+    [InlineData("{% comment %}{{ x {% endcomment %}y{% endcomment %}after", "after")]
+    [InlineData("{% comment %}{% endraw %}{% if %}{% endcomment -%}  after", "after")]
+    public void ShouldParseNestedCommentBlocks(string source, string expected)
+    {
+        Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+        Assert.Equal(expected, template.Render());
+    }
+
+    [Theory]
+    [InlineData("{% comment %}{% comment %}{% endcomment %}")]
+    [InlineData("{% comment %}{% raw %}{% endcomment %}")]
+    [InlineData("{% comment %}{{ {% endcomment %}")]
+    [InlineData("{% comment %}{% assign foo = '1'{% endcomment %}")]
+    public void ShouldNotParseUnbalancedCommentBlocks(string source)
+    {
+        Assert.False(_parser.TryParse(source, out _, out _));
+    }
+
     [Fact]
     public void ShouldParseInlineComment()
     {

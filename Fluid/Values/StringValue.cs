@@ -127,6 +127,9 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
         return name switch
         {
             "size" => NumberValue.Create(_value.Length),
+            // Like Shopify, 'first' and 'last' return the first and last characters.
+            "first" => _value.Length == 0 ? Empty : Create(_value[0]),
+            "last" => _value.Length == 0 ? Empty : Create(_value[_value.Length - 1]),
             _ => NilValue.Instance,
         };
     }

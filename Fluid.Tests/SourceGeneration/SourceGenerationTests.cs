@@ -22,8 +22,10 @@ public class SourceGenerationTests
     [InlineData("Hello", "Hello")]
     [InlineData("{{ 1 }}", "1")]
     [InlineData("{{ '' }}{{ 'a' }}{{ 'hello' }}", "ahello")]
+    [InlineData("{{ ' Hello \n\t World!  ' | squish }}", "Hello World!")]
     [InlineData("{% assign x = 1 %}{{ x }}", "1")]
     [InlineData("{% if true %}a{% else %}b{% endif %}", "a")]
+    [InlineData("{% comment %}{% comment %}{% endcomment %}{% raw %}{% endcomment %}{% endraw %}{% endcomment %}after", "after")]
     [InlineData("{% unless false %}a{% endunless %}", "a")]
     [InlineData("{% unless true %}a{% elsif true %}b{% else %}c{% endunless %}", "b")]
     [InlineData("{% for i in (1..3) %}{{ i }}{% endfor %}", "123")]
@@ -33,6 +35,7 @@ public class SourceGenerationTests
     [InlineData("{% increment x %}{% increment x %}{% decrement x %}", "011")]
     [InlineData("{% increment x %}{{ x }}", "01")]
     [InlineData("{% case 2 %}{% when 1 %}a{% when 2 %}b{% else %}c{% endcase %}", "b")]
+    [InlineData("{% assign s = 'hello' %}{{ s.first }}{{ s.last }}[{{ s['first'] }}]", "ho[]")]
     [InlineData("{% if 2 > 1 and 2 >= 2 and 1 < 2 and 2 <= 2 %}yes{% endif %}", "yes")]
     [InlineData("{% if '' == empty and '' == blank %}yes{% endif %}", "yes")]
     [InlineData("{% if 'x' contains nil %}yes{% else %}no{% endif %}", "no")]
@@ -47,6 +50,7 @@ public class SourceGenerationTests
     [InlineData("{% if true %} {% increment a %} {% endif %}", " 0 ")]
     [InlineData("{{ 'a' | json }}", "&quot;a&quot;")]
     [InlineData("{% macro hello() %}hi{% endmacro %}{{ hello() }}", "hi")]
+    [InlineData("{% assign (a.b)[0]-c = 'x' %}{% capture (d)(e) %}y{% endcapture %}{{ ['(a.b)[0]-c'] }}{{ ['(d)(e)'] }}", "xy")]
     public async Task GeneratedTemplate_MatchesRuntime(string liquid, string expected)
     {
         var parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
@@ -299,9 +303,28 @@ public class SourceGenerationTests
     }
 
     [Theory]
+    [InlineData("{{ (x..5) | join }}", "Invalid integer '2.3' in range expression.")]
+    [InlineData("{% for i in (1..x) %}{{ i }}{% endfor %}", "Invalid integer '2.3' in range expression.")]
+    [InlineData("{{ (b..5) | join }}", "Invalid integer 'true' in range expression.")]
+    public async Task GeneratedRanges_ThrowALiquidExceptionForNonIntegerBounds(string liquid, string message)
+    {
+        var instance = CompileTemplate(liquid, new MockFileProvider());
+        var context = new TemplateContext().SetValue("x", 2.3m).SetValue("b", true);
+
+        var exception = await Assert.ThrowsAsync<LiquidException>(
+            () => instance.RenderAsync(new StringWriter(), HtmlEncoder.Default, context).AsTask());
+
+        Assert.Equal(message, exception.Message);
+    }
+
+    [Theory]
     [InlineData("{% for i in (1..3) %}{{ i }}{% endfor %}", "123")]
+    [InlineData("{% for i in (0..5) offset: 1 limit: -1 %}{{ i }}{% endfor %}[{% for i in (0..5) offset: -2 limit: 3 %}{{ i }}{% endfor %}]", "[0]")]
+    [InlineData("{{ (1..5) }}|{{ (1..5) | slice: 1, 3 }}|{% for i in (2.7..4) %}{{ i }}{% endfor %}|{{ (2.7..4) | join }}", "1..5|..5|234|2 3 4")]
     [InlineData("{% for i in (first..last) %}{{ i }}{% endfor %}", "234")]
     [InlineData("{% assign r = (3..1) %}[{{ r | size }}]", "[0]")]
+    [InlineData("{% assign s = ' 2.7' %}{{ (s..4) | join }}|{% assign t = 'foo' %}{{ (t..1) | join }}|{{ (nothing..1) | join }}", "2 3 4|0 1|0 1")]
+    [InlineData("{% assign r = (5..1) %}{{ r.first }}{{ r.last }}{{ r | first }}{{ r | last }}{{ r[0] }}|{% assign r = (1..5) %}{% if r contains 3.5 %}y{% endif %}", "5151|y")]
     public async Task GeneratedRanges_RenderLikeTheInterpreter(string liquid, string expected)
     {
         var instance = CompileTemplate(liquid, new MockFileProvider());

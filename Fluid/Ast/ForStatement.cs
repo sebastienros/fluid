@@ -96,7 +96,7 @@ public sealed class ForStatement : TagStatement, ISourceable
             var from = RangeExpression.ToBound(await _rangeSource.From.EvaluateAsync(context), context);
             var to = RangeExpression.ToBound(await _rangeSource.To.EvaluateAsync(context), context);
 
-            evaluatedSource = RangeExpression.BuildArray(from, to, context);
+            evaluatedSource = RangeExpression.CreateRangeValue(from, to, context);
             rangeSourceLiteral = BuildRangeSourceLiteral(from, to);
             continueOffsetLiteral = BuildRangeContinueOffsetLiteral(rangeSourceLiteral);
         }
@@ -160,15 +160,8 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             var limit = await EvaluateIntegerArgumentAsync("limit", Limit, context);
 
-            // Limit can be negative
-            if (limit >= 0)
-            {
-                count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));
-            }
-            else
-            {
-                count = Math.Max(0, count + limit);
-            }
+            // Like Liquid, the slice ends at offset + limit, so a negative limit renders nothing.
+            count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));
         }
 
         if (count == 0)
@@ -411,20 +404,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             var limitExpr = context.GetExpressionMethodName(Limit);
             context.WriteLine($"var limit = (int)(await {limitExpr}({context.ContextName})).ToNumberValue({context.ContextName});");
-            context.WriteLine("if (limit >= 0)");
-            context.WriteLine("{");
-            using (context.Indent())
-            {
-                context.WriteLine("count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));");
-            }
-            context.WriteLine("}");
-            context.WriteLine("else");
-            context.WriteLine("{");
-            using (context.Indent())
-            {
-                context.WriteLine("count = Math.Max(0, count + limit);");
-            }
-            context.WriteLine("}");
+            context.WriteLine("count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));");
         }
 
         context.WriteLine("if (count == 0)");

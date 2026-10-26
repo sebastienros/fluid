@@ -69,10 +69,9 @@ public sealed class TableRowStatement : TagStatement
         if (Limit is not null)
         {
             var limit = await EvaluateIntegerArgumentAsync("limit", Limit, context);
-            if (limit >= 0)
-            {
-                count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));
-            }
+
+            // Like Liquid, the slice ends at offset + limit, so a negative limit renders nothing.
+            count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));
         }
 
         if (count == 0)

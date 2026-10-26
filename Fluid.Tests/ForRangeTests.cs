@@ -22,6 +22,35 @@ public class ForRangeTests
     }
 
     [Theory]
+    [InlineData("{{ (1..5) }}|{{ (5..1) }}", "1..5|5..1")]
+    [InlineData("{{ (1..5) | join: '#' }}|{{ (1..5) | reverse | join: '#' }}|{{ (1..5) | size }}", "1#2#3#4#5|5#4#3#2#1|5")]
+    [InlineData("{{ (1..5) | slice: 1, 3 }}|{{ (1..5) | upcase }}|{{ (1..3) | json }}", "..5|1..5|[1,2,3]")]
+    [InlineData("{% assign r = (1..5) %}{{ r.first }}|{{ r.last }}|{{ r.size }}|{{ r[1] }}|{{ r | first }}|{{ r | last }}", "1|5|5||1|5")]
+    [InlineData("{% assign r = (5..1) %}{{ r.first }}|{{ r.last }}|{{ r.size }}|{{ r | first }}|{{ r | last }}", "5|1|0|5|1")]
+    [InlineData("{% assign r = (1..5) %}{% if r contains 3.5 %}y{% endif %}{% if r contains 6 %}n{% endif %}{% for i in r reversed %}{{ i }}{% endfor %}", "y54321")]
+    [InlineData("{% assign a = (1..3) %}{% assign b = (1..3) %}{% if a == b %}eq{% endif %}", "eq")]
+    [InlineData("{{ (2.7..4) | join }}|{{ (s..4) | join }}|{{ (t..2) | join }}|{{ (nothing..1) | join }}", "2 3 4|2 3 4|0 1 2|0 1")]
+    public async Task RangesBehaveLikeLiquidRanges(string source, string expected)
+    {
+        var template = _parser.Parse(source);
+        var context = new TemplateContext().SetValue("s", " 2.7").SetValue("t", "foo");
+
+        Assert.Equal(expected, await template.RenderAsync(context));
+    }
+
+    [Theory]
+    [InlineData("{{ (x..5) | join }}")]
+    [InlineData("{% for i in (1..x) %}{{ i }}{% endfor %}")]
+    [InlineData("{{ (b..5) | join }}")]
+    public async Task NonIntegerRangeBoundsFromVariablesAreErrors(string source)
+    {
+        var template = _parser.Parse(source);
+        var context = new TemplateContext().SetValue("x", 2.3m).SetValue("b", true);
+
+        await Assert.ThrowsAsync<LiquidException>(() => template.RenderAsync(context).AsTask());
+    }
+
+    [Theory]
     [InlineData("{% for i in (1..3) %}{{ forloop.name }} {% endfor %}", "i-(1..3) i-(1..3) i-(1..3) ")]
     [InlineData("{% for i in (first..last) %}{{ forloop.name }} {% endfor %}", "i-(2..3) i-(2..3) ")]
     [InlineData("{% for i in (first..3) %}{{ forloop.name }} {% endfor %}", "i-(2..3) i-(2..3) ")]
