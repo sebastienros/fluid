@@ -25,6 +25,7 @@ public class SourceGenerationTests
     [InlineData("{{ ' Hello \n\t World!  ' | squish }}", "Hello World!")]
     [InlineData("{% assign x = 1 %}{{ x }}", "1")]
     [InlineData("{% if true %}a{% else %}b{% endif %}", "a")]
+    [InlineData("{% comment %}{% comment %}{% endcomment %}{% raw %}{% endcomment %}{% endraw %}{% endcomment %}after", "after")]
     [InlineData("{% unless false %}a{% endunless %}", "a")]
     [InlineData("{% unless true %}a{% elsif true %}b{% else %}c{% endunless %}", "b")]
     [InlineData("{% for i in (1..3) %}{{ i }}{% endfor %}", "123")]
