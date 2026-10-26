@@ -21,7 +21,7 @@ jobs:
       issues: write
       pull-requests: write
       actions: write
-    uses: dotnet/arcade/.github/workflows/backport-base.yml@7103cc604358625941ee1d105e662f0d697085c6
+    uses: dotnet/arcade/.github/workflows/backport-base.yml@ea982189bb40e0f9bae13e31f3fd1db4c5c8283c
     with:
       repository_owners: 'sebastienros'
       pr_description_template: |
