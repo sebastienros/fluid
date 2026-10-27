@@ -28,6 +28,29 @@ public class MacroArgumentTests
         Assert.Equal(expected, await _parser.Parse(Macro + call).RenderAsync(new TemplateContext()));
     }
 
+    [Theory]
+    [InlineData("{{ m(c = 3) }}", "[|B|3]")]
+    [InlineData("{{ m(b = 2) }}", "[|2|C]")]
+    [InlineData("{{ m(1, c = 3) }}", "[1|B|3]")]
+    [InlineData("{{ m(c = 3, a = 1) }}", "[1|B|3]")]
+    [InlineData("{{ m(1, 2) }}", "[1|2|C]")]
+    // An argument without a name after a named one has no position to fill.
+    [InlineData("{{ m(b = 2, 9) }}", "[|2|C]")]
+    public async Task NamedArgumentsGoToTheirParameter(string call, string expected)
+    {
+        const string macro = "{% macro m(a, b='B', c='C') %}[{{ a }}|{{ b }}|{{ c }}]{% endmacro %}";
+
+        Assert.Equal(expected, await _parser.Parse(macro + call).RenderAsync(new TemplateContext()));
+    }
+
+    [Fact]
+    public async Task NamedArgumentIsNotAssignedToTheFirstParameter()
+    {
+        var template = _parser.Parse("{% macro greet(first, last) %}[{{ first }} {{ last }}]{% endmacro %}{{ greet(last = 'Lee') }}");
+
+        Assert.Equal("[ Lee]", await template.RenderAsync(new TemplateContext()));
+    }
+
     [Fact]
     public async Task MacroWithoutParametersIgnoresArguments()
     {

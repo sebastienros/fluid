@@ -43,27 +43,22 @@ public sealed class MacroStatement : TagStatement, ISourceable
                     context.SetValue(a.Key, a.Value);
                 }
 
-                var namedArguments = false;
+                // A named argument goes to the parameter with that name. The arguments before the first
+                // named one fill the parameters in order, and the others keep their default. Arguments
+                // beyond the ones the macro declares are ignored.
+                var positionalCount = args.PositionalCount;
 
-                // Apply all arguments from the invocation.
-                // As soon as a named argument is used, all subsequent ones need a name too.
-
-                // Arguments beyond the ones the macro declares are ignored, as in source-generated templates.
-                var count = Math.Min(args.Count, Arguments.Count);
-
-                for (var i = 0; i < count; i++)
+                for (var i = 0; i < Arguments.Count; i++)
                 {
-                    var positionalName = Arguments[i].Name;
+                    var name = Arguments[i].Name;
 
-                    namedArguments |= args.HasNamed(positionalName);
-
-                    if (!namedArguments)
+                    if (args.HasNamed(name))
                     {
-                        context.SetValue(positionalName, args.At(i));
+                        context.SetValue(name, args[name]);
                     }
-                    else
+                    else if (i < positionalCount)
                     {
-                        context.SetValue(positionalName, args[positionalName]);
+                        context.SetValue(name, args.At(i));
                     }
                 }
 
@@ -136,36 +131,14 @@ public sealed class MacroStatement : TagStatement, ISourceable
                 }
                 context.WriteLine("}");
 
-                context.WriteLine("var namedArguments = false;");
-                context.WriteLine("for (var i = 0; i < args.Count; i++)");
-                context.WriteLine("{");
-                using (context.Indent())
+                // Same binding as the interpreter, unrolled per parameter.
+                context.WriteLine("var positionalCount = args.PositionalCount;");
+                for (var i = 0; i < Arguments.Count; i++)
                 {
-                    context.WriteLine("string? positionalName = null;");
-                    // Generate positional name mapping from Arguments
-                    for (var i = 0; i < Arguments.Count; i++)
-                    {
-                        var nameLit = SourceGenerationContext.ToCSharpStringLiteral(Arguments[i].Name);
-                        context.WriteLine($"if (i == {i}) positionalName = {nameLit};");
-                    }
-
-                    context.WriteLine("namedArguments |= positionalName != null && args.HasNamed(positionalName);");
-                    context.WriteLine("if (!namedArguments)");
-                    context.WriteLine("{");
-                    using (context.Indent())
-                    {
-                        context.WriteLine($"if (positionalName != null) {context.ContextName}.SetValue(positionalName, args.At(i));");
-                    }
-                    context.WriteLine("}");
-                    context.WriteLine("else");
-                    context.WriteLine("{");
-                    using (context.Indent())
-                    {
-                        context.WriteLine($"if (positionalName != null) {context.ContextName}.SetValue(positionalName, args[positionalName]);");
-                    }
-                    context.WriteLine("}");
+                    var nameLit = SourceGenerationContext.ToCSharpStringLiteral(Arguments[i].Name);
+                    context.WriteLine($"if (args.HasNamed({nameLit})) {context.ContextName}.SetValue({nameLit}, args[{nameLit}]);");
+                    context.WriteLine($"else if (positionalCount > {i}) {context.ContextName}.SetValue({nameLit}, args.At({i}));");
                 }
-                context.WriteLine("}");
 
                 context.WriteLine("var completion = Completion.Normal;");
                 context.WriteLine($"for (var si = 0; si < {Statements.Count}; si++)");

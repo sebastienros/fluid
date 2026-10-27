@@ -34,4 +34,16 @@ public class ForOffsetExpressionTests
     {
         Assert.Equal(expected, await RenderAsync(source));
     }
+
+    [Theory]
+    // Checked against Shopify Liquid: an offset past the end moves the continue cursor there.
+    [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 5 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "1|E|")]
+    [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 3 limit: 2 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "1|E|")]
+    // A limit of zero or less leaves it where it was.
+    [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 2 limit: 0 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "1|E|23")]
+    [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items limit: -1 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "1|E|23")]
+    public async Task EmptySliceUpdatesContinueCursor(string source, string expected)
+    {
+        Assert.Equal(expected, await RenderAsync(source));
+    }
 }

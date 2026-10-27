@@ -137,6 +137,32 @@ public class ArrayFiltersTests
     }
 
     [Fact]
+    public async Task ConcatFlattensOnlyTheInput()
+    {
+        // Liquid flattens the input but keeps nested arrays in the argument as items.
+        var input = ArrayValue.Create(new FluidValue[] {
+            StringValue.Create("a"),
+            ArrayValue.Create(new[] { StringValue.Create("b") })
+            });
+
+        var arguments = new FilterArguments().Add(
+            ArrayValue.Create(new FluidValue[] {
+                StringValue.Create("1"),
+                ArrayValue.Create(new[] { StringValue.Create("2"), StringValue.Create("3") })
+                })
+        );
+
+        var context = new TemplateContext();
+
+        var result = (ArrayValue)await ArrayFilters.Concat(input, arguments, context);
+
+        Assert.Equal(4, result.Values.Count);
+        Assert.Equal("b", result.Values[1].ToStringValue(context));
+        Assert.Equal(FluidValues.Array, result.Values[3].Type);
+        Assert.Equal("23", result.Values[3].ToStringValue(context));
+    }
+
+    [Fact]
     public async Task ConcatSingleValue()
     {
         var input = StringValue.Create("a");
