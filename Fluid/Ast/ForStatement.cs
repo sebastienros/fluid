@@ -329,6 +329,13 @@ public sealed class ForStatement : TagStatement, ISourceable
         var continueOffsetLiteralName = context.GetUniqueId("continueOffsetLiteral");
         string continueOffsetLit = null;
 
+        // Nothing reads the forloop variable of most loops, which then don't create or update it.
+        var usesForLoop = context.UsesForLoop(this);
+
+        // For a range, the "(from..to)" part of forloop.name, which is only known once the bounds are evaluated.
+        // It is only built when the loop has a forloop variable to name.
+        string rangeSourceName = null;
+
         if (!string.IsNullOrEmpty(_continueSourceLiteral))
         {
             continueOffsetLit = SourceGenerationContext.ToCSharpStringLiteral($"for_continue_{Identifier}-{_continueSourceLiteral}");
@@ -338,7 +345,26 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             var fromExpr = context.GetExpressionMethodName(range.From);
             var toExpr = context.GetExpressionMethodName(range.To);
-            context.WriteLine($"var {continueOffsetLiteralName} = \"for_continue_{Identifier}-(\" + global::Fluid.Ast.RangeExpression.GetBound(await {fromExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \"..\" + global::Fluid.Ast.RangeExpression.GetBound(await {toExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \")\";");
+            if (_staticRangeSourceLiteral != null)
+            {
+                // Literal bounds: the name is a constant of the generated code.
+                rangeSourceName = SourceGenerationContext.ToCSharpStringLiteral(_staticRangeSourceLiteral);
+                context.WriteLine($"var {continueOffsetLiteralName} = {SourceGenerationContext.ToCSharpStringLiteral(_staticContinueOffsetLiteral)};");
+            }
+            else
+            {
+                var rangeText = $"\"(\" + global::Fluid.Ast.RangeExpression.GetBound(await {fromExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \"..\" + global::Fluid.Ast.RangeExpression.GetBound(await {toExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \")\"";
+
+                // Only build the name separately when the loop has a forloop variable to name.
+                if (usesForLoop)
+                {
+                    rangeSourceName = context.GetUniqueId("rangeSource");
+                    context.WriteLine($"var {rangeSourceName} = {rangeText};");
+                    rangeText = rangeSourceName;
+                }
+
+                context.WriteLine($"var {continueOffsetLiteralName} = {SourceGenerationContext.ToCSharpStringLiteral($"for_continue_{Identifier}-")} + {rangeText};");
+            }
         }
         else
         {
@@ -415,9 +441,6 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
         context.WriteLine("}");
 
-        // Nothing reads the forloop variable of most loops, which then don't create or update it.
-        var usesForLoop = context.UsesForLoop(this);
-
         if (usesForLoop)
         {
             context.WriteLine($"var parentLoop = {context.ContextName}.LocalScope.GetValue(\"forloop\");");
@@ -428,9 +451,15 @@ public sealed class ForStatement : TagStatement, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            var sourceLiteral = _continueSourceLiteral != null
-                ? SourceGenerationContext.ToCSharpStringLiteral(_continueSourceLiteral)
-                : "null";
+            var sourceLiteral = "null";
+            if (_continueSourceLiteral != null)
+            {
+                sourceLiteral = SourceGenerationContext.ToCSharpStringLiteral(_continueSourceLiteral);
+            }
+            else if (rangeSourceName != null)
+            {
+                sourceLiteral = rangeSourceName;
+            }
 
             context.WriteLine("var endIndexExclusive = startIndex + count;");
 

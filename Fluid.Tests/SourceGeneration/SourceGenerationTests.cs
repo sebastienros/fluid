@@ -350,6 +350,22 @@ public class SourceGenerationTests
     }
 
     [Theory]
+    [InlineData("{% for i in (1..2) %}{{ forloop.name }} {% endfor %}", "i-(1..2) i-(1..2) ")]
+    [InlineData("{% for i in (first..last) %}{{ forloop.name }} {% endfor %}", "i-(2..3) i-(2..3) ")]
+    [InlineData("{% for i in (-1..0) %}{{ forloop.name }} {% endfor %}", "i-(-1..0) i-(-1..0) ")]
+    [InlineData("{% for i in (1..4) limit: 2 %}{{ i }}{% endfor %}|{% for i in (1..4) offset: continue %}{{ i }}{% endfor %}", "12|34")]
+    public async Task GeneratedRangeLoops_NameTheirSource(string liquid, string expected)
+    {
+        var instance = CompileTemplate(liquid, new MockFileProvider());
+        var context = new TemplateContext().SetValue("first", 2).SetValue("last", 3);
+
+        var writer = new StringWriter();
+        await instance.RenderAsync(writer, HtmlEncoder.Default, context);
+
+        Assert.Equal(expected, writer.ToString());
+    }
+
+    [Theory]
     [InlineData("{{ m(c = 3) }}", "[|B|3]")]
     [InlineData("{{ m(b = 2) }}", "[|2|C]")]
     [InlineData("{{ m(1, c = 3) }}", "[1|B|3]")]
