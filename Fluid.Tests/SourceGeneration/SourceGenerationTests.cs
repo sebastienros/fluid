@@ -336,9 +336,29 @@ public class SourceGenerationTests
         Assert.Equal(expected, writer.ToString());
     }
 
-    private static IFluidTemplate CompileTemplate(string liquid, MockFileProvider provider)
+    [Theory]
+    [InlineData("{{ m(c = 3) }}", "[|B|3]")]
+    [InlineData("{{ m(b = 2) }}", "[|2|C]")]
+    [InlineData("{{ m(1, c = 3) }}", "[1|B|3]")]
+    [InlineData("{{ m(c = 3, a = 1) }}", "[1|B|3]")]
+    [InlineData("{{ m(1, 2) }}", "[1|2|C]")]
+    // An argument without a name after a named one has no position to fill.
+    [InlineData("{{ m(b = 2, 9) }}", "[|2|C]")]
+    public async Task GeneratedMacros_BindNamedArgumentsByName(string call, string expected)
     {
-        var template = new FluidParser().Parse(liquid);
+        const string macro = "{% macro m(a, b='B', c='C') %}[{{ a }}|{{ b }}|{{ c }}]{% endmacro %}";
+        var parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
+        var instance = CompileTemplate(macro + call, new MockFileProvider(), parser);
+
+        var writer = new StringWriter();
+        await instance.RenderAsync(writer, HtmlEncoder.Default, new TemplateContext());
+
+        Assert.Equal(expected, writer.ToString());
+    }
+
+    private static IFluidTemplate CompileTemplate(string liquid, MockFileProvider provider, FluidParser parser = null)
+    {
+        var template = (parser ?? new FluidParser()).Parse(liquid);
         var source = template.Compile(new SourceGenerationOptions
         {
             Namespace = "Fluid.Tests.Generated",

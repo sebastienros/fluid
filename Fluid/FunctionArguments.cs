@@ -13,7 +13,27 @@ public sealed class FunctionArguments
     private List<FluidValue> _positional;
     private Dictionary<string, FluidValue> _named;
 
+    // The position of the first named argument, or -1 when every argument is positional.
+    private int _firstNamedIndex = -1;
+
     public int Count => _positional?.Count ?? 0;
+
+    /// <summary>
+    /// Gets the number of arguments given without a name before the first named one. Named arguments
+    /// are also stored in order, so <see cref="At(int)"/> below this count reads a positional one.
+    /// </summary>
+    public int PositionalCount
+    {
+        get
+        {
+            if (_firstNamedIndex == -1)
+            {
+                return Count;
+            }
+
+            return _firstNamedIndex;
+        }
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public FluidValue At(int index)
@@ -65,6 +85,11 @@ public sealed class FunctionArguments
             _named ??= new Dictionary<string, FluidValue>();
 
             _named.Add(name, value);
+
+            if (_firstNamedIndex == -1)
+            {
+                _firstNamedIndex = Count;
+            }
         }
 
         _positional ??= new List<FluidValue>();
