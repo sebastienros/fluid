@@ -330,6 +330,9 @@ public sealed class ForStatement : TagStatement, ISourceable
         var continueOffsetLiteralName = context.GetUniqueId("continueOffsetLiteral");
         string continueOffsetLit = null;
 
+        // For a range, the "(from..to)" part of forloop.name, which is only known once the bounds are evaluated.
+        string rangeSourceName = null;
+
         if (!string.IsNullOrEmpty(_continueSourceLiteral))
         {
             continueOffsetLit = SourceGenerationContext.ToCSharpStringLiteral($"for_continue_{Identifier}-{_continueSourceLiteral}");
@@ -339,7 +342,9 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             var fromExpr = context.GetExpressionMethodName(range.From);
             var toExpr = context.GetExpressionMethodName(range.To);
-            context.WriteLine($"var {continueOffsetLiteralName} = \"for_continue_{Identifier}-(\" + global::Fluid.Ast.RangeExpression.GetBound(await {fromExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \"..\" + global::Fluid.Ast.RangeExpression.GetBound(await {toExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \")\";");
+            rangeSourceName = context.GetUniqueId("rangeSource");
+            context.WriteLine($"var {rangeSourceName} = \"(\" + global::Fluid.Ast.RangeExpression.GetBound(await {fromExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \"..\" + global::Fluid.Ast.RangeExpression.GetBound(await {toExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \")\";");
+            context.WriteLine($"var {continueOffsetLiteralName} = {SourceGenerationContext.ToCSharpStringLiteral($"for_continue_{Identifier}-")} + {rangeSourceName};");
         }
         else
         {
@@ -433,9 +438,15 @@ public sealed class ForStatement : TagStatement, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            var sourceLiteral = _continueSourceLiteral != null
-                ? SourceGenerationContext.ToCSharpStringLiteral(_continueSourceLiteral)
-                : "null";
+            var sourceLiteral = "null";
+            if (_continueSourceLiteral != null)
+            {
+                sourceLiteral = SourceGenerationContext.ToCSharpStringLiteral(_continueSourceLiteral);
+            }
+            else if (rangeSourceName != null)
+            {
+                sourceLiteral = rangeSourceName;
+            }
 
             context.WriteLine("var endIndexExclusive = startIndex + count;");
 
