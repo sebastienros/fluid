@@ -995,7 +995,7 @@ public static class ArrayFilters
                 throw new InvalidOperationException("Cannot sort array with incompatible types");
             }
 
-            return ArrayValue.Create(values.OrderBy(x => x, new LiquidSortComparer(caseSensitive: false, compareNumbersAsStrings: false, context)).ToArray());
+            return ArrayValue.Create(values.OrderBy(x => x, new LiquidSortComparer(caseSensitive: false, compareNumbersAsStrings: true, context)).ToArray());
         }
     }
 
