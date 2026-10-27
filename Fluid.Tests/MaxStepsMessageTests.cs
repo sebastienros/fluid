@@ -24,6 +24,18 @@ public class MaxStepsMessageTests
     }
 
     [Fact]
+    public void MaxStepsAllowsExactlyThatManySteps()
+    {
+        var context = new TemplateContext { MaxSteps = 3 };
+
+        context.IncrementSteps();
+        context.IncrementSteps();
+        context.IncrementSteps();
+
+        Assert.Throws<InvalidOperationException>(context.IncrementSteps);
+    }
+
+    [Fact]
     public async Task ExceedingMaxRecursionStillSaysSo()
     {
         var options = new TemplateOptionsBuilder().WithMaxRecursion(3).Build();
