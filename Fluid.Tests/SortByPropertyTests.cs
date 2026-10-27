@@ -44,6 +44,13 @@ public class SortByPropertyTests
         Assert.Equal("10 100 9 ", await RenderAsync(source, 10, 9, 100));
     }
 
+    [Fact]
+    public async Task SortNaturalWithoutPropertyComparesNumbersAsStrings()
+    {
+        // Checked against Shopify Liquid.
+        Assert.Equal("10,11,8,9", await _parser.Parse("{{ (8..11) | sort_natural | join: ',' }}").RenderAsync(new TemplateContext()));
+    }
+
     [Theory]
     [InlineData("sort")]
     [InlineData("sort_natural")]
