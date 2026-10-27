@@ -289,6 +289,19 @@ public class SourceGenerationTests
     }
 
     [Theory]
+    [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 7 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "0|E|")]
+    [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 3 limit: 0 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "0|E|1234")]
+    public async Task GeneratedLoops_EmptySliceUpdatesContinueCursor(string liquid, string expected)
+    {
+        var instance = CompileTemplate(liquid, new MockFileProvider());
+
+        var writer = new StringWriter();
+        await instance.RenderAsync(writer, HtmlEncoder.Default, new TemplateContext().SetValue("items", new[] { 0, 1, 2, 3, 4 }));
+
+        Assert.Equal(expected, writer.ToString());
+    }
+
+    [Theory]
     [InlineData("{% for i in (1..99999999999) %}{% endfor %}", "The range bound 99999999999 is out of range.")]
     [InlineData("{% assign r = (-99999999999..1) %}", "The range bound -99999999999 is out of range.")]
     [InlineData("{% for i in (-2000000000..2000000000) %}{% endfor %}", "The range (-2000000000..2000000000) has too many items.")]

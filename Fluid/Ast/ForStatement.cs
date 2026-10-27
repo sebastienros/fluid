@@ -120,16 +120,6 @@ public sealed class ForStatement : TagStatement, ISourceable
         // Other values are enumerated into a list.
         var source = await ArrayValue.ToFluidArrayAsync(evaluatedSource, context);
 
-        if (source.Count == 0)
-        {
-            if (Else != null)
-            {
-                await Else.WriteToAsync(output, encoder, context);
-            }
-
-            return Completion.Normal;
-        }
-
         // Apply options
         var startIndex = 0;
         if (Offset is not null)
@@ -155,10 +145,12 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
 
         var count = Math.Max(0, source.Count - startIndex);
+        var limitIsEmpty = false;
 
         if (Limit is not null)
         {
             var limit = await EvaluateIntegerArgumentAsync("limit", Limit, context);
+            limitIsEmpty = limit <= 0;
 
             // Like Liquid, the slice ends at offset + limit, so a negative limit renders nothing.
             count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));
@@ -166,6 +158,13 @@ public sealed class ForStatement : TagStatement, ISourceable
 
         if (count == 0)
         {
+            // Like Liquid, an offset past the end still moves the continue cursor, to the offset as written,
+            // but a limit of zero or less doesn't.
+            if (continueOffsetLiteral != null && !limitIsEmpty)
+            {
+                context.SetValue(continueOffsetLiteral, startIndex - itemsBeforeFirst);
+            }
+
             if (Else != null)
             {
                 await Else.WriteToAsync(output, encoder, context);
@@ -362,19 +361,6 @@ public sealed class ForStatement : TagStatement, ISourceable
         context.WriteLine("}");
         context.WriteLine();
         context.WriteLine($"var source = await ArrayValue.ToFluidArrayAsync(evaluatedSource, {context.ContextName});");
-        context.WriteLine("if (source.Count == 0)");
-        context.WriteLine("{");
-        using (context.Indent())
-        {
-            if (Else != null)
-            {
-                var elseStmt = context.GetStatementMethodName(Else);
-                context.WriteLine($"await {elseStmt}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-            }
-            context.WriteLine("return Completion.Normal;");
-        }
-        context.WriteLine("}");
-
         context.WriteLine("var startIndex = 0;");
         if (Offset is not null)
         {
@@ -400,10 +386,12 @@ public sealed class ForStatement : TagStatement, ISourceable
         context.WriteLine("}");
 
         context.WriteLine("var count = Math.Max(0, source.Count - startIndex);");
+        context.WriteLine("var limitIsEmpty = false;");
         if (Limit is not null)
         {
             var limitExpr = context.GetExpressionMethodName(Limit);
             context.WriteLine($"var limit = (int)(await {limitExpr}({context.ContextName})).ToNumberValue({context.ContextName});");
+            context.WriteLine("limitIsEmpty = limit <= 0;");
             context.WriteLine("count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));");
         }
 
@@ -411,6 +399,13 @@ public sealed class ForStatement : TagStatement, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
+            context.WriteLine("if (!limitIsEmpty)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"{context.ContextName}.SetValue({continueOffsetLiteralName}, startIndex - itemsBeforeFirst);");
+            }
+            context.WriteLine("}");
             if (Else != null)
             {
                 var elseStmt = context.GetStatementMethodName(Else);
