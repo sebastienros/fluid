@@ -193,13 +193,11 @@ public static class ArrayFilters
             concat.Add(input);
         }
 
-        if (arg.Type == FluidValues.Array)
+        // Like Liquid, only the input is flattened: nested arrays in the argument stay as items.
+        await foreach (var item in arg.EnumerateAsync(context))
         {
-            await FlattenAsync(arg, concat, context);
-        }
-        else
-        {
-            concat.Add(arg);
+            context.EnsureCollectionSize((long)concat.Count + 1);
+            concat.Add(item);
         }
 
         return ArrayValue.Create(concat);
