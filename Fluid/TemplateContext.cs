@@ -165,7 +165,7 @@ public class TemplateContext
     {
         CancellationToken.ThrowIfCancellationRequested();
 
-        if (MaxSteps > 0 && _steps++ > MaxSteps)
+        if (MaxSteps > 0 && ++_steps > MaxSteps)
         {
             ExceptionHelper.ThrowMaximumStepsException(MaxSteps);
         }
