@@ -93,8 +93,16 @@ public sealed class ArrayValue : FluidValue, IFluidArray
 
     public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
     {
-        // An index too large for an int can't name an item.
-        if (!NumberConversions.TryTruncateToInt32(index.ToNumberValue(context), out var i))
+        // Like Liquid, only an integer names an item: a string or a number with a fraction, even 1.0, doesn't.
+        // An index too large for an int can't name one either.
+        if (index.Type != FluidValues.Number)
+        {
+            return NilValue.Instance;
+        }
+
+        var number = index.ToNumberValue(context);
+
+        if (NumberValue.GetScale(number) != 0 || !NumberConversions.TryTruncateToInt32(number, out var i))
         {
             return NilValue.Instance;
         }
