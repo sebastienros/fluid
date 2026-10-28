@@ -47,6 +47,10 @@ public class SourceGenerationTests
     [InlineData("{% capture x %}  {% endcapture %}[{{ x }}]", "[  ]")]
     [InlineData("{% capture x %}{% endcapture %}[{{ x }}]", "[]")]
     [InlineData("{% for i in (1..3) %}{% capture x %}{% break %}{% endcapture %}{{ i }}{% endfor %}", "")]
+    // Like Liquid, a break or continue outside of a loop ends the template.
+    [InlineData("a{% break %}b", "a")]
+    [InlineData("a{% continue %}b", "a")]
+    [InlineData("a{% if true %}{% break %}{% endif %}b{{ 'c' }}", "a")]
     [InlineData("{% if true %} {% increment a %} {% endif %}", " 0 ")]
     [InlineData("{{ 'a' | json }}", "&quot;a&quot;")]
     [InlineData("{% macro hello() %}hi{% endmacro %}{{ hello() }}", "hi")]
