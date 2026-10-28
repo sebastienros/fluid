@@ -102,6 +102,11 @@ public sealed class DateTimeValue : FluidValue
 
     public override bool Equals(object obj)
     {
+        if (obj is FluidValue fluidValue)
+        {
+            return Equals(fluidValue);
+        }
+
         // The is operator will return false if null
         if (obj is DateTimeOffset otherValue)
         {
