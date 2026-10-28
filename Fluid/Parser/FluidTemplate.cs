@@ -48,6 +48,12 @@ public sealed class FluidTemplate : IFluidTemplate, IStatementList
                         Statements,
                         startIndex: i + 1);
                 }
+
+                // Like Liquid, a break or continue outside of a loop ends the template.
+                if (task.Result != Completion.Normal)
+                {
+                    break;
+                }
             }
         }
         finally
@@ -79,10 +85,10 @@ public sealed class FluidTemplate : IFluidTemplate, IStatementList
     {
         try
         {
-            await task;
-            for (var i = startIndex; i < statements.Count; i++)
+            var completion = await task;
+            for (var i = startIndex; i < statements.Count && completion == Completion.Normal; i++)
             {
-                await statements[i].WriteToAsync(output, encoder, context);
+                completion = await statements[i].WriteToAsync(output, encoder, context);
             }
         }
         finally

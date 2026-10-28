@@ -112,8 +112,16 @@ public static class TemplateSourceGenerator
                             continue;
                         }
 
+                        // Like Liquid, a break or continue outside of a loop ends the template.
                         var methodName = ctx.GetStatementMethodName(statement);
-                        ctx.WriteLine($"_ = await {methodName}(writer, encoder, context);");
+                        ctx.WriteLine($"if (await {methodName}(writer, encoder, context) != Completion.Normal)");
+                        ctx.WriteLine("{");
+                        using (ctx.Indent())
+                        {
+                            ctx.WriteLine("await writer.FlushAsync();");
+                            ctx.WriteLine("return;");
+                        }
+                        ctx.WriteLine("}");
                     }
 
                     ctx.WriteLine("context.CancellationToken.ThrowIfCancellationRequested();");
