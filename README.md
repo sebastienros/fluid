@@ -349,7 +349,9 @@ See [Model accessor generator](https://github.com/sebastienros/fluid/blob/main/d
 
 ### Compiled templates
 
-This generator parses `.liquid` files at build time and compiles each one into a C# class. Use it for templates that ship with the application, such as emails, reports or generated code. A syntax error then fails the build instead of a request, and the application doesn't parse anything at startup. It can't be used for templates that are only known at runtime: templates stored in a database, edited by users or loaded from disk after deployment. Parse those with `FluidParser` as usual.
+This generator parses `.liquid` files at build time and compiles each one into a C# class. Use it for templates that ship with the application, such as emails, reports or generated code. A syntax error then fails the build instead of a request, the application doesn't parse anything at startup, and the templates render faster than parsed ones (see [Compiled templates and static engines](#compiled-templates-and-static-engines)).
+
+The template has to be known when the application is compiled: changing it means rebuilding and redeploying the application. So it can't be used for templates that are only known at runtime: templates stored in a database, edited by users or loaded from disk after deployment. Parse those with `FluidParser` as usual. Both kinds of templates use the same syntax and render the same output, so an application can compile the templates it ships with and parse the others.
 
 Compiled templates can't use custom tags or custom operators, and don't support the `tablerow`, `ifchanged` and `doc` tags. An `include` or `from` tag needs a literal path. Options such as filters, value converters, member access and `Trimming` are applied at render time, so they work as usual. Loops only maintain the `forloop` variable when the template can read it, so .NET code that reads it from the `TemplateContext` (other than a custom filter or function) doesn't see it.
 
@@ -2045,7 +2047,6 @@ WarmupCount=3
 | Handlebars_ParseBig          | 387.351 us | 1,895.4987 us | 103.8987 us |  56.43 |   13.11 | 16.6016 |  7.8125 |    140 KB |       10.69 |
 |                              |            |               |             |        |         |         |         |           |             |
 | Fluid_Render                 |  15.992 us |     1.8538 us |   0.1016 us |   1.00 |    0.01 |  4.4250 |  0.0610 |  36.27 KB |        1.00 |
-| Fluid_SourceGenerated_Render |  28.288 us |     1.2897 us |   0.0707 us |   1.77 |    0.01 |  5.9509 |  0.0610 |  48.78 KB |        1.34 |
 | Scriban_Render               |  71.868 us |     9.3512 us |   0.5126 us |   4.49 |    0.04 | 17.0898 |  2.4414 | 140.74 KB |        3.88 |
 | DotLiquid_Render             | 162.893 us |    13.5017 us |   0.7401 us |  10.19 |    0.07 | 80.5664 | 15.3809 | 659.18 KB |       18.17 |
 | Handlebars_Render            |  21.485 us |     0.1949 us |   0.0107 us |   1.34 |    0.01 | 14.5874 |       - | 119.31 KB |        3.29 |
