@@ -354,6 +354,4 @@ public sealed class RenderStatement : Statement, ISourceable
             context.SetValue(entry.Key, entry.Value);
         }
     }
-
-    private sealed record CachedTemplate(IFluidTemplate Template, string Name);
 }
