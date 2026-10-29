@@ -43,6 +43,33 @@ public class Utf8FluidOutputTests
     }
 
     [Fact]
+    public async Task BuffersSmallWritesAcrossBufferBoundaries()
+    {
+        var writer = new ArrayBufferWriter<byte>();
+        await using var output = new Utf8FluidOutput(writer, minimumCharBufferSize: 8);
+
+        output.Write("abc");
+
+        // Short writes are buffered until the buffer is full or flushed.
+        Assert.Equal(0, writer.WrittenCount);
+
+        var expected = new StringBuilder("abc");
+        for (var i = 0; i < 10; i++)
+        {
+            // The surrogate pair ends up split between two encoded chunks.
+            foreach (var text in new[] { "\u4e16x", "\ud83d", "\ude80", "yz" })
+            {
+                output.Write(text);
+                expected.Append(text);
+            }
+        }
+
+        await output.FlushAsync();
+
+        Assert.Equal(expected.ToString(), Decode(writer));
+    }
+
+    [Fact]
     public async Task ContinuesWritingAfterIntermediateFlush()
     {
         var writer = new ArrayBufferWriter<byte>();
