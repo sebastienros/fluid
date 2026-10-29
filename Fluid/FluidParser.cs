@@ -463,8 +463,8 @@ public class FluidParser
         IncludeAssignStatement = TrackStatement(IncludeAssignStatement, skipLeadingWhitespace: true);
 
         var IncludeTag = OneOf(
-                    Primary.AndSkip(Terms.Text("with")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Else(default(string))).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3)),
-                    Primary.AndSkip(Terms.Text("for")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Else(default(string))).Then(x => new IncludeStatement(this, x.Item1, @for: x.Item2, alias: x.Item3)),
+                    Primary.AndSkip(Terms.Text("with")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Else(default(string))).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Else(default(IReadOnlyList<AssignStatement>))).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3, assignStatements: x.Item4 ?? [])),
+                    Primary.AndSkip(Terms.Text("for")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Else(default(string))).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Else(default(IReadOnlyList<AssignStatement>))).Then(x => new IncludeStatement(this, x.Item1, @for: x.Item2, alias: x.Item3, assignStatements: x.Item4 ?? [])),
                     Primary
                         .And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Else(default(IReadOnlyList<AssignStatement>)))
                         .AndSkip(Comma.Optional())
