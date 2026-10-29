@@ -7,7 +7,6 @@ namespace Fluid.Benchmarks;
 public class ComparisonBenchmarks
 {
     private readonly FluidBenchmarks _fluidBenchmarks = new FluidBenchmarks();
-    private readonly SourceGeneratedFluidBenchmarks _fluidSourceGeneratedBenchmarks = new SourceGeneratedFluidBenchmarks();
     private readonly HandlebarsBenchmarks _handlebarsBenchmarks = new HandlebarsBenchmarks();
     private readonly DotLiquidBenchmarks _dotLiquidBenchmarks = new DotLiquidBenchmarks();
     private readonly LiquidNetBenchmarks _liquidNetBenchmarks = new LiquidNetBenchmarks();
@@ -29,12 +28,6 @@ public class ComparisonBenchmarks
     public string Fluid_Render()
     {
         return _fluidBenchmarks.Render();
-    }
-
-    [Benchmark, BenchmarkCategory("Render")]
-    public string Fluid_SourceGenerated_Render()
-    {
-        return _fluidSourceGeneratedBenchmarks.Render();
     }
 
     [Benchmark, BenchmarkCategory("Parse")]

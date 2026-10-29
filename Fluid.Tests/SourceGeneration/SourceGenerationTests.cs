@@ -55,6 +55,14 @@ public class SourceGenerationTests
     [InlineData("{{ 'a' | json }}", "&quot;a&quot;")]
     [InlineData("{% macro hello() %}hi{% endmacro %}{{ hello() }}", "hi")]
     [InlineData("{% assign (a.b)[0]-c = 'x' %}{% capture (d)(e) %}y{% endcapture %}{{ ['(a.b)[0]-c'] }}{{ ['(d)(e)'] }}", "xy")]
+    [InlineData("{% for i in (1..3) %}a{% endfor %}", "aaa")]
+    [InlineData("{% if true %}a{% endif %}{% unless false %}b{% endunless %}{% if false %}{% else %}c{% endif %}", "abc")]
+    [InlineData("{% case 1 %}{% when 1 %}a{% else %}b{% endcase %}{% case 2 %}{% when 1 %}a{% else %}b{% endcase %}", "ab")]
+    [InlineData("{{ 'a,b' | split: ',' | join: '-' }}", "a-b")]
+    [InlineData("{% assign x = 'b' %}{{ 'a' | append: x }}", "ab")]
+    [InlineData("{{ false | default: 'x', allow_false: true }}|{{ nil | default: 'x', allow_false: true }}", "false|x")]
+    [InlineData("{{ 'a' | missing_filter: 1 }}", "a")]
+    [InlineData("{{ 1.50 }}|{{ 2 | times: 1.50 }}|{{ 'a' | append: nil }}{{ 'b' | append: true }}", "1.5|3.0|abtrue")]
     public async Task GeneratedTemplate_MatchesRuntime(string liquid, string expected)
     {
         var parser = new FluidParser(new FluidParserOptions { AllowFunctions = true });
@@ -79,6 +87,73 @@ public class SourceGenerationTests
 
         Assert.Equal(expected, runtimeWriter.ToString());
         Assert.Equal(expected, generatedWriter.ToString());
+    }
+
+    [Fact]
+    public async Task GeneratedTemplate_ResolvesMembersOfAlternatingTypes()
+    {
+        var template = new FluidParser().Parse("{{ item.Name }}{{ item.Name | upcase }}");
+
+        var source = template.Compile(new SourceGenerationOptions
+        {
+            Namespace = "Fluid.Tests.Generated",
+            ClassName = "T" + Guid.NewGuid().ToString("N")
+        });
+
+        var generated = CompileToAssembly(source.SourceCode);
+        var type = generated.GetType(source.FullTypeName, throwOnError: true);
+        var instance = (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
+
+        var options = new TemplateOptionsBuilder()
+            .ConfigureMemberAccess(strategy =>
+            {
+                strategy.Register<NamedA, string>("Name", m => m.Name);
+                strategy.Register<NamedB, string>("Name", m => m.Name);
+            })
+            .Build();
+
+        // The call sites cache the accessors they resolve, and stop caching when the type keeps changing.
+        for (var i = 0; i < 10; i++)
+        {
+            object item = i % 2 == 0 ? new NamedA() : new NamedB();
+            var context = new TemplateContext(options).SetValue("item", item);
+
+            var writer = new StringWriter();
+            await instance.RenderAsync(writer, HtmlEncoder.Default, context);
+
+            Assert.Equal(i % 2 == 0 ? "aA" : "bB", writer.ToString());
+        }
+    }
+
+    private sealed class NamedA
+    {
+        public string Name => "a";
+    }
+
+    private sealed class NamedB
+    {
+        public string Name => "b";
+    }
+
+    [Fact]
+    public async Task GeneratedTemplate_StrictFilters_ThrowsOnMissingFilter()
+    {
+        var template = new FluidParser().Parse("{{ 'a' | missing_filter: 1 }}");
+
+        var source = template.Compile(new SourceGenerationOptions
+        {
+            Namespace = "Fluid.Tests.Generated",
+            ClassName = "T" + Guid.NewGuid().ToString("N")
+        });
+
+        var generated = CompileToAssembly(source.SourceCode);
+        var type = generated.GetType(source.FullTypeName, throwOnError: true);
+        var instance = (IFluidTemplate)Activator.CreateInstance(type, nonPublic: true);
+        var context = new TemplateContext(new TemplateOptionsBuilder().WithStrictFilters(true).Build());
+
+        var ex = await Assert.ThrowsAsync<FluidException>(() => instance.RenderAsync(new StringWriter(), HtmlEncoder.Default, context).AsTask());
+
+        Assert.Contains("missing_filter", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -424,7 +499,8 @@ public class SourceGenerationTests
             assemblyName: "Fluid.Generated." + Guid.NewGuid().ToString("N"),
             syntaxTrees: new[] { syntaxTree },
             references: references.DistinctBy(r => ((PortableExecutableReference)r).FilePath),
-            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release));
+            // Warnings are errors, as generated code is compiled in projects that treat them so.
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release, generalDiagnosticOption: ReportDiagnostic.Error));
 
         using var peStream = new MemoryStream();
         var emit = compilation.Emit(peStream);

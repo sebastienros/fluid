@@ -1,0 +1,11 @@
+@inherits RazorSlice<List<Product>>
+<ul id='products'>
+@foreach (var product in Model)
+{
+    <li>
+      <h2>@product.Name</h2>
+           Only @product.Price
+           @StaticRenderingHelpers.Truncate(product.Description, 15)
+    </li>
+}
+</ul>

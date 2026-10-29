@@ -3,7 +3,7 @@ using Fluid.SourceGeneration;
 
 namespace Fluid.Ast;
 
-public sealed class FilterExpression : Expression, ISourceable
+public sealed class FilterExpression : Expression, ISynchronousSourceable
 {
     public FilterExpression(Expression input, string name, IReadOnlyList<FilterArgument> parameters)
     {
@@ -11,6 +11,7 @@ public sealed class FilterExpression : Expression, ISourceable
         Name = name;
         Parameters = parameters ?? [];
         _canBeCached = Parameters.All(x => x.Expression is LiteralExpression);
+        _callSite = new FilterCallSite(name);
     }
 
     public Expression Input { get; }
@@ -22,31 +23,8 @@ public sealed class FilterExpression : Expression, ISourceable
     private readonly bool _canBeCached;
     private volatile FilterArguments _cachedArguments;
 
-    // Monomorphic inline cache of the resolved filter. Filters are looked up by name in a dictionary
-    // shared by every call site, so a template that invokes the same filter in a loop pays for the
-    // string hashing once instead of once per iteration. The cache is invalidated when the collection
-    // instance or its version changes, so filters registered after the first render are still picked up.
-    private sealed class FilterCacheEntry
-    {
-        /// <summary>
-        /// Marks a call site that misses too often to be worth caching -- typically one template
-        /// rendered against several sets of options. Without it such a site would allocate a
-        /// replacement entry on every filter invocation.
-        /// </summary>
-        public static readonly FilterCacheEntry Disabled = new();
-
-        public FilterCollection Collection;
-        public int Version;
-        public FilterDelegate Filter;
-        public int Misses;
-    }
-
-    /// <summary>
-    /// How many times a call site may re-resolve its filter before it stops caching.
-    /// </summary>
-    private const int MaxMisses = 4;
-
-    private volatile FilterCacheEntry _filterCache;
+    // Resolves the filter by name and caches it, see FilterCallSite.
+    private readonly FilterCallSite _callSite;
 
     public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
     {
@@ -67,7 +45,7 @@ public sealed class FilterExpression : Expression, ISourceable
         catch (Exception e)
         {
             // EvaluateAsync used to be async, so even a synchronous input failure faulted its task.
-            return Faulted(e);
+            return FilterCallSite.Faulted(e);
         }
 
         if (!inputTask.IsCompletedSuccessfully)
@@ -77,7 +55,7 @@ public sealed class FilterExpression : Expression, ISourceable
 
         // Nothing was awaited: invoke the filter directly and forward its ValueTask, so a synchronous
         // filter (the vast majority) doesn't allocate an async state machine.
-        return InvokeFilter(inputTask.Result, arguments, context);
+        return _callSite.InvokeAsync(inputTask.Result, arguments, context);
     }
 
     private async ValueTask<FluidValue> EvaluateWithArgumentsAsync(TemplateContext context)
@@ -97,78 +75,45 @@ public sealed class FilterExpression : Expression, ISourceable
 
         var input = await Input.EvaluateAsync(context);
 
-        return await InvokeFilter(input, arguments, context);
+        return await _callSite.InvokeAsync(input, arguments, context);
     }
 
     private async ValueTask<FluidValue> AwaitedInput(ValueTask<FluidValue> inputTask, FilterArguments arguments, TemplateContext context)
     {
         var input = await inputTask;
-        return await InvokeFilter(input, arguments, context);
-    }
-
-    private ValueTask<FluidValue> InvokeFilter(FluidValue input, FilterArguments arguments, TemplateContext context)
-    {
-        var filters = context.Options.Filters;
-        var cache = _filterCache;
-
-        FilterDelegate filter;
-
-        if (ReferenceEquals(cache, FilterCacheEntry.Disabled))
-        {
-            filters.TryGetValue(Name, out filter);
-        }
-        else if (cache is not null && ReferenceEquals(cache.Collection, filters) && cache.Version == filters.Version)
-        {
-            filter = cache.Filter;
-        }
-        else
-        {
-            // Read the version before the lookup so a concurrent mutation invalidates the entry
-            // on the next evaluation instead of being silently baked in.
-            var version = filters.Version;
-            filters.TryGetValue(Name, out filter);
-
-            var misses = (cache?.Misses ?? 0) + 1;
-
-            _filterCache = misses > MaxMisses
-                ? FilterCacheEntry.Disabled
-                : new FilterCacheEntry { Collection = filters, Version = version, Filter = filter, Misses = misses };
-        }
-
-        if (filter is null)
-        {
-            // When a filter is not defined, return the input unless strict filters are enabled
-            if (context.Options.StrictFilters)
-            {
-                // Faulted rather than thrown: this method is no longer async, and callers that start
-                // a render and await it later would otherwise see the throw escape at the call site.
-                return Faulted(new FluidException($"Undefined filter '{Name}'"));
-            }
-
-            return new ValueTask<FluidValue>(input);
-        }
-
-        try
-        {
-            return filter(input, arguments, context);
-        }
-        catch (Exception e)
-        {
-            // Same reason: a filter that throws before its first await used to fault the task.
-            return Faulted(e);
-        }
-    }
-
-    private static ValueTask<FluidValue> Faulted(Exception exception)
-    {
-        return new ValueTask<FluidValue>(Task.FromException<FluidValue>(exception));
+        return await _callSite.InvokeAsync(input, arguments, context);
     }
 
     protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitFilterExpression(this);
 
+    // Whether all the arguments are literals the generated code can build once.
+    private bool HasLiteralArguments => _canBeCached && Parameters.All(p => SourceGenerationContext.IsSourceableLiteral(((LiteralExpression)p.Expression).Value));
+
+    bool ISynchronousSourceable.IsSynchronous => HasLiteralArguments;
+
     public void WriteTo(SourceGenerationContext context)
     {
         var inputExpr = context.GetExpressionMethodName(Input);
+
+        // Like the interpreter, the filter is resolved once per call site, and literal arguments are only built once.
+        var callSite = context.GetOrAddStaticField("global::Fluid.Ast.FilterCallSite", "Filter_", $"new global::Fluid.Ast.FilterCallSite({SourceGenerationContext.ToCSharpStringLiteral(Name)})");
+
+        if (TryGetLiteralArguments(context, out var literalArguments))
+        {
+            // Like the interpreter, the filter is invoked directly when the input completes synchronously.
+            context.WriteLine($"var input = {inputExpr}({context.ContextName});");
+            context.WriteLine("if (!input.IsCompletedSuccessfully)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"return Awaited(input, {context.ContextName});");
+            }
+            context.WriteLine("}");
+            context.WriteLine($"return {callSite}.InvokeAsync(input.Result, {literalArguments}, {context.ContextName});");
+            context.WriteLine();
+            context.WriteLine($"static async ValueTask<FluidValue> Awaited(ValueTask<FluidValue> input, TemplateContext {context.ContextName}) => await {callSite}.InvokeAsync(await input, {literalArguments}, {context.ContextName});");
+            return;
+        }
 
         context.WriteLine("var arguments = new FilterArguments();");
         for (var i = 0; i < Parameters.Count; i++)
@@ -180,21 +125,27 @@ public sealed class FilterExpression : Expression, ISourceable
         }
 
         context.WriteLine($"var input = await {inputExpr}({context.ContextName});");
-        context.WriteLine($"if (!{context.ContextName}.Options.Filters.TryGetValue({SourceGenerationContext.ToCSharpStringLiteral(Name)}, out var filter))");
-        context.WriteLine("{");
-        using (context.Indent())
-        {
-            context.WriteLine($"if ({context.ContextName}.Options.StrictFilters)");
-            context.WriteLine("{");
-            using (context.Indent())
-            {
-                context.WriteLine($"throw new FluidException(\"Undefined filter '{Name}'\");");
-            }
-            context.WriteLine("}");
-            context.WriteLine("return input;");
-        }
-        context.WriteLine("}");
+        context.WriteLine($"return await {callSite}.InvokeAsync(input, arguments, {context.ContextName});");
+    }
 
-        context.WriteLine("return await filter(input, arguments, context);");
+    private bool TryGetLiteralArguments(SourceGenerationContext context, out string fieldName)
+    {
+        fieldName = null;
+
+        if (!HasLiteralArguments)
+        {
+            return false;
+        }
+
+        var initializer = new System.Text.StringBuilder("new FilterArguments()");
+        foreach (var parameter in Parameters)
+        {
+            context.TryGetLiteralValue(((LiteralExpression)parameter.Expression).Value, out var literal);
+
+            initializer.Append(".Add(").Append(SourceGenerationContext.ToCSharpStringLiteral(parameter.Name)).Append(", ").Append(literal).Append(')');
+        }
+
+        fieldName = context.GetOrAddStaticField("FilterArguments", "Args_", initializer.ToString());
+        return true;
     }
 }

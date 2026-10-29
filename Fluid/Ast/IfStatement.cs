@@ -245,18 +245,7 @@ public sealed class IfStatement : TagStatement, ISourceable
         {
             var statements = SourceGenerationContext.GetWrittenStatements(Statements, IsWhitespaceOrCommentOnly);
 
-            // Declared only when used, an unused variable is a warning in the generated code.
-            if (statements.Count > 0)
-            {
-                context.WriteLine("var completion = Completion.Normal;");
-            }
-
-            for (var i = 0; i < statements.Count; i++)
-            {
-                var stmtMethod = context.GetStatementMethodName(statements[i]);
-                context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-                context.WriteLine("if (completion != Completion.Normal) return completion;");
-            }
+            context.WriteStatements(statements);
             context.WriteLine("return Completion.Normal;");
         }
         context.WriteLine("}");

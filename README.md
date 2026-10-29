@@ -349,7 +349,9 @@ See [Model accessor generator](https://github.com/sebastienros/fluid/blob/main/d
 
 ### Compiled templates
 
-This generator parses `.liquid` files at build time and compiles each one into a C# class. Use it for templates that ship with the application, such as emails, reports or generated code. A syntax error then fails the build instead of a request, and the application doesn't parse anything at startup. It can't be used for templates that are only known at runtime: templates stored in a database, edited by users or loaded from disk after deployment. Parse those with `FluidParser` as usual.
+This generator parses `.liquid` files at build time and compiles each one into a C# class. Use it for templates that ship with the application, such as emails, reports or generated code. A syntax error then fails the build instead of a request, the application doesn't parse anything at startup, and the templates render faster than parsed ones (see [Compiled templates and static engines](#compiled-templates-and-static-engines)).
+
+The template has to be known when the application is compiled: changing it means rebuilding and redeploying the application. So it can't be used for templates that are only known at runtime: templates stored in a database, edited by users or loaded from disk after deployment. Parse those with `FluidParser` as usual. Both kinds of templates use the same syntax and render the same output, so an application can compile the templates it ships with and parse the others.
 
 Compiled templates can't use custom tags or custom operators, and don't support the `tablerow`, `ifchanged` and `doc` tags. An `include` or `from` tag needs a literal path. Options such as filters, value converters, member access and `Trimming` are applied at render time, so they work as usual. Loops only maintain the `forloop` variable when the template can read it, so .NET code that reads it from the `TemplateContext` (other than a custom filter or function) doesn't see it.
 
@@ -2045,11 +2047,59 @@ WarmupCount=3
 | Handlebars_ParseBig          | 387.351 us | 1,895.4987 us | 103.8987 us |  56.43 |   13.11 | 16.6016 |  7.8125 |    140 KB |       10.69 |
 |                              |            |               |             |        |         |         |         |           |             |
 | Fluid_Render                 |  15.992 us |     1.8538 us |   0.1016 us |   1.00 |    0.01 |  4.4250 |  0.0610 |  36.27 KB |        1.00 |
-| Fluid_SourceGenerated_Render |  28.288 us |     1.2897 us |   0.0707 us |   1.77 |    0.01 |  5.9509 |  0.0610 |  48.78 KB |        1.34 |
 | Scriban_Render               |  71.868 us |     9.3512 us |   0.5126 us |   4.49 |    0.04 | 17.0898 |  2.4414 | 140.74 KB |        3.88 |
 | DotLiquid_Render             | 162.893 us |    13.5017 us |   0.7401 us |  10.19 |    0.07 | 80.5664 | 15.3809 | 659.18 KB |       18.17 |
 | Handlebars_Render            |  21.485 us |     0.1949 us |   0.0107 us |   1.34 |    0.01 | 14.5874 |       - | 119.31 KB |        3.29 |
 ```
+
+</details>
+
+#### Compiled templates and static engines
+
+Some engines compile templates into the application instead of reading them at runtime. This benchmark compares Fluid's [compiled templates](#compiled-templates), [RazorSlices](https://github.com/DamianEdwards/RazorSlices) and [Lissic](https://github.com/gendeg/Lissic) with Fluid rendering a parsed template, and with the same page written by hand in C#. Each one renders the product template with 100 products and HTML-encodes the values, either to a string or as UTF-8 to a buffer, like an HTTP response body.
+
+- Compiled Fluid templates take 26% less time than parsed ones (20% less to UTF-8) and allocate the same memory.
+- RazorSlices takes 19% less time than Fluid to render a string, and allocates 51% more. It is the fastest engine to UTF-8, taking 59% less time and allocating 70% less.
+- Lissic takes as long as Fluid, and allocates 2 to 3.5 times as much, when each render copies the products into the template classes it generates. When the same model is built once and reused, it takes 48% less time and allocates nothing.
+- Hand-written C# takes 59% less time, for reference.
+
+These engines are faster because the compiler reads the template, not the application. In exchange, the template has to be part of the application's source code: changing it means rebuilding and redeploying, and it can't be provided by users, stored in a database or edited after deployment. Fluid can do both: compile the templates that ship with the application, and parse the others, with the same syntax and the same output. Each engine also has its own constraints:
+
+- Fluid's compiled templates are Liquid templates and render like parsed ones, except for a few unsupported features listed in [compiled templates](#compiled-templates).
+- RazorSlices templates are Razor, so they contain C# code and can never come from users. RazorSlices requires ASP.NET Core.
+- Lissic templates have no expressions or conditions, only a choice between branches by a value. The data has to be copied into the classes it generates, and values are only HTML-encoded with a filter.
+
+Tested on 10/29/2026 on a cloud VM, so compare the ratios rather than the times with the results above, with
+- RazorSlices 0.12.2
+- Lissic 0.1.4
+
+<details>
+
+<summary>Benchmark.NET data</summary>
+
+```
+
+BenchmarkDotNet v0.15.8, Linux Ubuntu 24.04.5 LTS (Noble Numbat)
+Intel Xeon Processor 2.10GHz, 1 CPU, 4 logical and 4 physical cores
+.NET SDK 10.0.403
+  [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+  DefaultJob : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+
+
+```
+| Method                           | Categories | Mean     | Error    | StdDev   | Median   | Ratio | RatioSD | Gen0   | Gen1   | Allocated | Alloc Ratio |
+|--------------------------------- |----------- |---------:|---------:|---------:|---------:|------:|--------:|-------:|-------:|----------:|------------:|
+| Fluid_Render                     | String     | 37.68 μs | 1.223 μs | 3.588 μs | 36.84 μs |  1.01 |    0.13 | 0.2441 |      - |   37144 B |        1.00 |
+| Fluid_SourceGenerated_Render     | String     | 27.73 μs | 0.690 μs | 2.011 μs | 27.45 μs |  0.74 |    0.09 | 0.2441 |      - |   37080 B |        1.00 |
+| RazorSlices_Render               | String     | 30.43 μs | 0.901 μs | 2.599 μs | 29.98 μs |  0.81 |    0.10 | 0.3662 |      - |   56112 B |        1.51 |
+| Lissic_Render                    | String     | 38.65 μs | 0.851 μs | 2.496 μs | 38.34 μs |  1.03 |    0.11 | 0.6104 | 0.0610 |   84744 B |        2.28 |
+| HandWritten_Render               | String     | 15.35 μs | 0.306 μs | 0.772 μs | 15.39 μs |  0.41 |    0.04 | 0.3204 | 0.0153 |   44720 B |        1.20 |
+|                                  |            |          |          |          |          |       |         |        |        |           |             |
+| Fluid_RenderUtf8                 | Utf8       | 39.82 μs | 1.079 μs | 3.147 μs | 39.06 μs |  1.01 |    0.11 | 0.1221 |      - |   19064 B |        1.00 |
+| Fluid_SourceGenerated_RenderUtf8 | Utf8       | 31.47 μs | 1.012 μs | 2.936 μs | 30.68 μs |  0.80 |    0.10 | 0.1221 |      - |   19000 B |        1.00 |
+| RazorSlices_RenderUtf8           | Utf8       | 16.37 μs | 0.611 μs | 1.782 μs | 15.69 μs |  0.41 |    0.05 | 0.0305 |      - |    5792 B |        0.30 |
+| Lissic_RenderUtf8                | Utf8       | 38.34 μs | 0.907 μs | 2.661 μs | 38.18 μs |  0.97 |    0.10 | 0.4883 | 0.0610 |   67280 B |        3.53 |
+| Lissic_PrebuiltModel_RenderUtf8  | Utf8       | 20.51 μs | 0.571 μs | 1.639 μs | 20.25 μs |  0.52 |    0.06 |      - |      - |         - |        0.00 |
 
 </details>
 

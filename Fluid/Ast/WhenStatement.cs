@@ -34,18 +34,7 @@ public sealed class WhenStatement : TagStatement, ISourceable
 
     public void WriteTo(SourceGenerationContext context)
     {
-        // Declared only when used, an unused variable is a warning in the generated code.
-        if (Statements.Count > 0)
-        {
-            context.WriteLine("var completion = Completion.Normal;");
-        }
-
-        for (var i = 0; i < Statements.Count; i++)
-        {
-            var stmtMethod = context.GetStatementMethodName(Statements[i]);
-            context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-            context.WriteLine("if (completion != Completion.Normal) return completion;");
-        }
+        context.WriteStatements(Statements);
 
         context.WriteLine("return Completion.Normal;");
     }

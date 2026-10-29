@@ -83,6 +83,8 @@ Performance is a primary goal (competes with DotLiquid, Scriban, Handlebars.Net)
 
 On a quiet machine, run `dotnet run -c Release --project Fluid.Benchmarks -- --filter '*ComparisonBenchmarks*'`, then `python3 Fluid.Benchmarks/Charts/generate_charts.py` to regenerate `Assets/benchmark-*.svg` and `.png` from the report (PNGs need Chrome or Edge). Then update the README "Benchmarks" section by hand: the summary sentences, test date, package versions and the Benchmark.NET table.
 
+The README "Compiled templates and static engines" section comes from `--filter '*StaticRenderingBenchmarks*'` (Fluid's compiled templates, RazorSlices and Lissic against a parsed template); update its summary, versions and table by hand too.
+
 ## Documentation
 
 `README.md` is both user docs and the NuGet readme: update it for any template-visible behavior change.

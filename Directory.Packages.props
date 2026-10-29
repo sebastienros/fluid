@@ -43,6 +43,8 @@
     <PackageVersion Include="Liquid.NET" Version="0.10.0" />
     <PackageVersion Include="Scriban" Version="7.5.3" />
     <PackageVersion Include="Handlebars.Net" Version="2.4.3" />
+    <PackageVersion Include="Lissic" Version="0.1.4" />
+    <PackageVersion Include="RazorSlices" Version="0.12.2" />
     <!-- Testing -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />

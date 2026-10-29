@@ -4,7 +4,7 @@ using Fluid.SourceGeneration;
 
 namespace Fluid.Ast;
 
-public sealed class TextSpanStatement : Statement, ISourceable
+public sealed class TextSpanStatement : Statement, ISynchronousSourceable
 {
     // Volatile: the flag is read without the lock, and must not be seen set before _preparedBuffer is (on ARM64 it
     // could, and a concurrent render would write nothing).
@@ -186,8 +186,10 @@ public sealed class TextSpanStatement : Statement, ISourceable
     public void WriteTo(SourceGenerationContext context)
     {
         WriteTextTo(context);
-        context.WriteLine("return Completion.Normal;");
+        context.WriteLine("return new ValueTask<Completion>(Completion.Normal);");
     }
+
+    bool ISynchronousSourceable.IsSynchronous => true;
 
     /// <summary>
     /// Emits the code writing this text, without returning a completion.

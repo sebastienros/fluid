@@ -502,16 +502,21 @@ public sealed class ForStatement : TagStatement, ISourceable
                 // Like the interpreter, a body that is only whitespace isn't written.
                 var statements = _suppressWhitespaceBody ? [] : Statements;
 
-                // Declared only when used, an unused variable is a warning in the generated code.
-                if (statements.Count > 0)
-                {
-                    context.WriteLine("var completion = Completion.Normal;");
-                }
+                // Declared on first use, an unused variable is a warning in the generated code.
+                var declared = false;
 
                 for (var s = 0; s < statements.Count; s++)
                 {
+                    // Text always completes normally, it is written inline.
+                    if (statements[s] is TextSpanStatement textSpan)
+                    {
+                        textSpan.WriteTextTo(context);
+                        continue;
+                    }
+
                     var stmtMethod = context.GetStatementMethodName(statements[s]);
-                    context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                    context.WriteLine($"{(declared ? "" : "var ")}completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                    declared = true;
 
                     // The statements are emitted inline in the loop body, so each one leaves or skips the iteration itself.
                     context.WriteLine("if (completion == Completion.Break) break;");
