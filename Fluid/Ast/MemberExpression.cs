@@ -3,7 +3,7 @@ using Fluid.SourceGeneration;
 
 namespace Fluid.Ast;
 
-public sealed class MemberExpression : Expression, ISourceable
+public sealed class MemberExpression : Expression, ISynchronousSourceable
 {
     private readonly MemberSegment[] _segments;
 
@@ -169,8 +169,21 @@ public sealed class MemberExpression : Expression, ISourceable
 
     protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitMemberExpression(this);
 
+    // A path of identifiers, like a.b.c, is evaluated by an expression that the generated code builds once.
+    bool ISynchronousSourceable.IsSynchronous => _segments.All(s => s is IdentifierSegment);
+
     public void WriteTo(SourceGenerationContext context)
     {
+        if (((ISynchronousSourceable)this).IsSynchronous)
+        {
+            // The interpreter's evaluation completes synchronously when the members do, and its segments cache the
+            // accessors they resolve. Each call site gets its own expression, and so its own caches.
+            var segments = string.Join(", ", _segments.Select(s => $"new global::Fluid.Ast.IdentifierSegment({SourceGenerationContext.ToCSharpStringLiteral(((IdentifierSegment)s).Identifier)})"));
+            var field = context.AddStaticField("global::Fluid.Ast.MemberExpression", "Member_", $"new global::Fluid.Ast.MemberExpression(new global::Fluid.Ast.MemberSegment[] {{ {segments} }})");
+            context.WriteLine($"return {field}.EvaluateAsync({context.ContextName});");
+            return;
+        }
+
         if (_segments[0] is IndexerSegment rootIndexer)
         {
             // A variable whose name is computed, like {{ [name] }}, resolved like IndexerSegment.ResolveFromScopeAsync.
@@ -289,8 +302,9 @@ public sealed class MemberExpression : Expression, ISourceable
                 {
                     if (segment is IdentifierSegment id)
                     {
-                        var nameLit = SourceGenerationContext.ToCSharpStringLiteral(id.Identifier);
-                        context.WriteLine($"value = await value.GetValueAsync({nameLit}, {context.ContextName});");
+                        // A segment per call site caches the accessor it resolves, like the interpreter's.
+                        var segmentField = context.AddStaticField("global::Fluid.Ast.IdentifierSegment", "Segment_", $"new global::Fluid.Ast.IdentifierSegment({SourceGenerationContext.ToCSharpStringLiteral(id.Identifier)})");
+                        context.WriteLine($"value = await {segmentField}.ResolveAsync(value, {context.ContextName});");
                         context.WriteLine("if (value.IsNil())");
                         context.WriteLine("{");
                         using (context.Indent())

@@ -168,18 +168,7 @@ public sealed class CaseStatement : TagStatement, ISourceable
                             context.WriteLine("hasMatched = true;");
                         }
 
-                        // Declared only when used, an unused variable is a warning in the generated code.
-                        if (whenStatements.Count > 0)
-                        {
-                            context.WriteLine("var completion = Completion.Normal;");
-                        }
-
-                        for (var s = 0; s < whenStatements.Count; s++)
-                        {
-                            var stmtMethod = context.GetStatementMethodName(whenStatements[s]);
-                            context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-                            context.WriteLine("if (completion != Completion.Normal) return completion;");
-                        }
+                        context.WriteStatements(whenStatements);
                     }
                     context.WriteLine("}");
                 }
@@ -191,18 +180,7 @@ public sealed class CaseStatement : TagStatement, ISourceable
                 context.WriteLine("{");
                 using (context.Indent())
                 {
-                    // Declared only when used, an unused variable is a warning in the generated code.
-                    if (elseStatements.Count > 0)
-                    {
-                        context.WriteLine("var completion = Completion.Normal;");
-                    }
-
-                    for (var s = 0; s < elseStatements.Count; s++)
-                    {
-                        var stmtMethod = context.GetStatementMethodName(elseStatements[s]);
-                        context.WriteLine($"completion = await {stmtMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-                        context.WriteLine("if (completion != Completion.Normal) return completion;");
-                    }
+                    context.WriteStatements(elseStatements);
                 }
                 context.WriteLine("}");
             }

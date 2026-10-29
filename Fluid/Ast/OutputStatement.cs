@@ -4,7 +4,7 @@ using Fluid.SourceGeneration;
 
 namespace Fluid.Ast;
 
-public sealed class OutputStatement : Statement, ISourceable
+public sealed class OutputStatement : Statement, ISynchronousSourceable
 {
     public OutputStatement(Expression expression)
     {
@@ -54,6 +54,8 @@ public sealed class OutputStatement : Statement, ISourceable
 
     protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitOutputStatement(this);
 
+    bool ISynchronousSourceable.IsSynchronous => true;
+
     public void WriteTo(SourceGenerationContext context)
     {
         var exprMethod = context.GetExpressionMethodName(Expression);
@@ -70,11 +72,11 @@ public sealed class OutputStatement : Statement, ISourceable
             context.WriteLine("{");
             using (context.Indent())
             {
-                context.WriteLine("return Completion.Normal;");
+                context.WriteLine("return new ValueTask<Completion>(Completion.Normal);");
             }
             context.WriteLine("}");
 
-            context.WriteLine("return await AwaitedWriteTo(valueTask);");
+            context.WriteLine("return AwaitedWriteTo(valueTask);");
             context.WriteLine();
             context.WriteLine("static async ValueTask<Completion> AwaitedWriteTo(ValueTask t)");
             context.WriteLine("{");
@@ -87,7 +89,7 @@ public sealed class OutputStatement : Statement, ISourceable
         }
         context.WriteLine("}");
 
-        context.WriteLine($"return await Awaited(task, {context.WriterName}, {context.EncoderName}, {context.ContextName});");
+        context.WriteLine($"return Awaited(task, {context.WriterName}, {context.EncoderName}, {context.ContextName});");
         context.WriteLine();
         context.WriteLine("static async ValueTask<Completion> Awaited(ValueTask<FluidValue> t, IFluidOutput w, TextEncoder enc, TemplateContext ctx)");
         context.WriteLine("{");

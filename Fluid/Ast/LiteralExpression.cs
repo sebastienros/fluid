@@ -3,7 +3,7 @@ using Fluid.SourceGeneration;
 
 namespace Fluid.Ast;
 
-public sealed class LiteralExpression : Expression, ISourceable
+public sealed class LiteralExpression : Expression, ISynchronousSourceable
 {
     public LiteralExpression(FluidValue value)
     {
@@ -19,46 +19,15 @@ public sealed class LiteralExpression : Expression, ISourceable
 
     public void WriteTo(SourceGenerationContext context)
     {
-        if (Value is NilValue)
+        if (!context.TryGetLiteralValue(Value, out var literal))
         {
-            context.WriteLine("return NilValue.Instance;");
-            return;
+            SourceGenerationContext.ThrowNotSourceable(Value);
         }
 
-        if (Value is EmptyValue)
-        {
-            context.WriteLine("return EmptyValue.Instance;");
-            return;
-        }
-
-        if (Value is BlankValue)
-        {
-            context.WriteLine("return BlankValue.Instance;");
-            return;
-        }
-
-        if (Value is BooleanValue b)
-        {
-            context.WriteLine(b.Value ? "return BooleanValue.True;" : "return BooleanValue.False;");
-            return;
-        }
-
-        if (Value is NumberValue number)
-        {
-            var n = number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            context.WriteLine($"return NumberValue.Create({n}m);");
-            return;
-        }
-
-        if (Value is StringValue stringValue)
-        {
-            var s = stringValue.Value;
-            context.WriteLine($"return {context.GetOrAddStaticStringValue(s)};");
-            return;
-        }
-
-        SourceGenerationContext.ThrowNotSourceable(Value);
+        context.WriteLine($"return new ValueTask<FluidValue>({literal});");
     }
+
+    bool ISynchronousSourceable.IsSynchronous => true;
 
     protected internal override Expression Accept(AstVisitor visitor) => visitor.VisitLiteralExpression(this);
 }

@@ -169,6 +169,37 @@ public sealed class SourceGenerationContext
         return name;
     }
 
+    /// <summary>
+    /// Writes the statements of a block, returning the completion of the first one that doesn't complete normally.
+    /// Text spans, which always do, are written inline instead of calling a method.
+    /// </summary>
+    /// <param name="statements">The statements to write.</param>
+    /// <param name="incrementSteps">Whether each statement increments the steps of the template.</param>
+    internal void WriteStatements(IReadOnlyList<Statement> statements, bool incrementSteps = false)
+    {
+        // Declared on first use, an unused variable is a warning in the generated code.
+        var declared = false;
+
+        for (var i = 0; i < statements.Count; i++)
+        {
+            if (incrementSteps)
+            {
+                WriteLine($"{ContextName}.IncrementSteps();");
+            }
+
+            if (statements[i] is TextSpanStatement textSpan)
+            {
+                textSpan.WriteTextTo(this);
+                continue;
+            }
+
+            var methodName = GetStatementMethodName(statements[i]);
+            WriteLine($"{(declared ? "" : "var ")}completion = await {methodName}({WriterName}, {EncoderName}, {ContextName});");
+            WriteLine("if (completion != Completion.Normal) return completion;");
+            declared = true;
+        }
+    }
+
     public IReadOnlyList<Statement> PendingStatements => _pendingStatements;
     public IReadOnlyList<Expression> PendingExpressions => _pendingExpressions;
 
@@ -201,6 +232,73 @@ public sealed class SourceGenerationContext
         _staticStrings[key] = name;
         _staticMembers.Add(new StaticMember("FluidValue", name, $"StringValue.Create({literal})"));
         return name;
+    }
+
+    /// <summary>
+    /// Adds a static readonly field to the generated class and returns its name. Fields with the same type and
+    /// initializer are shared, so it is only meant for immutable or thread-safe values.
+    /// </summary>
+    public string GetOrAddStaticField(string typeName, string prefix, string initializer)
+    {
+        var key = typeName + ":" + initializer;
+        if (_staticStrings.TryGetValue(key, out var name))
+        {
+            return name;
+        }
+
+        name = AddStaticField(typeName, prefix, initializer);
+        _staticStrings[key] = name;
+        return name;
+    }
+
+    /// <summary>
+    /// Adds a static readonly field to the generated class that is not shared with other call sites, like one that
+    /// caches what a single call site resolves at render time, and returns its name.
+    /// </summary>
+    public string AddStaticField(string typeName, string prefix, string initializer)
+    {
+        var name = GetUniqueId(prefix);
+        _staticMembers.Add(new StaticMember(typeName, name, initializer));
+        return name;
+    }
+
+    /// <summary>
+    /// Gets whether <see cref="TryGetLiteralValue"/> supports a value.
+    /// </summary>
+    public static bool IsSourceableLiteral(FluidValue value)
+        => value is NilValue or EmptyValue or BlankValue or BooleanValue or NumberValue or StringValue;
+
+    /// <summary>
+    /// Gets a C# expression returning a literal value without allocating, like the name of a static field holding it.
+    /// </summary>
+    public bool TryGetLiteralValue(FluidValue value, out string expression)
+    {
+        switch (value)
+        {
+            case NilValue:
+                expression = "NilValue.Instance";
+                return true;
+            case EmptyValue:
+                expression = "EmptyValue.Instance";
+                return true;
+            case BlankValue:
+                expression = "BlankValue.Instance";
+                return true;
+            case BooleanValue b:
+                expression = b.Value ? "BooleanValue.True" : "BooleanValue.False";
+                return true;
+            case NumberValue number:
+                // The literal keeps the scale of the number, which is part of its identity in Liquid (1.0 is not 1).
+                var n = number.Value.ToString(CultureInfo.InvariantCulture);
+                expression = GetOrAddStaticField("FluidValue", "NumVal_", $"NumberValue.Create({n}m)");
+                return true;
+            case StringValue stringValue:
+                expression = GetOrAddStaticStringValue(stringValue.Value);
+                return true;
+            default:
+                expression = null;
+                return false;
+        }
     }
 
     public void WriteStaticMembers()
