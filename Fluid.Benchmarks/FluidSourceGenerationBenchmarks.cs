@@ -9,7 +9,12 @@ namespace Fluid.Benchmarks;
 [MemoryDiagnoser]
 public class FluidSourceGenerationBenchmarks : BaseBenchmarks
 {
-    private readonly TemplateOptions _options = new BenchmarkTemplateOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
+    // Parsed templates read the products with the default, reflection-based accessors. Their accessors could be
+    // source-generated too, with BenchmarkTemplateOptionsBuilder, like the source-generated templates do.
+    private readonly TemplateOptions _options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
+
+    // Source-generated templates read the products with source-generated accessors.
+    private readonly TemplateOptions _sourceGeneratedOptions = new BenchmarkTemplateOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
 
     private readonly FluidParser _parser = new FluidParser();
 
@@ -108,7 +113,7 @@ public class FluidSourceGenerationBenchmarks : BaseBenchmarks
     [Benchmark]
     public string Render_SourceGenerated()
     {
-        var context = new TemplateContext(_options).SetValue("products", Products);
+        var context = new TemplateContext(_sourceGeneratedOptions).SetValue("products", Products);
         return _sourceGeneratedTemplate.Render(context);
     }
 
@@ -122,7 +127,7 @@ public class FluidSourceGenerationBenchmarks : BaseBenchmarks
     [Benchmark]
     public string RenderBig_SourceGenerated()
     {
-        var context = new TemplateContext(_options).SetValue("products", Products);
+        var context = new TemplateContext(_sourceGeneratedOptions).SetValue("products", Products);
         return _sourceGeneratedBigTemplate.Render(context);
     }
 }
