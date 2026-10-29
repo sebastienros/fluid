@@ -84,6 +84,44 @@ public class MemberAccessStrategyTests
     }
 
     [Fact]
+    public void WildcardAccessorCanResolveADedicatedMemberAccessor()
+    {
+        var resolving = new ResolvingMemberAccessor();
+        var options = new TemplateOptionsBuilder()
+            .WithModelNamesComparer(StringComparers.CamelCase)
+            .ConfigureMemberAccess(strategy => strategy.Register(typeof(Class1), "*", resolving))
+            .Build();
+
+        // The name is matched with the comparer of the options.
+        Assert.Same(resolving.Property1, options.MemberAccessStrategy.GetAccessor(typeof(Class1), "property1", StringComparers.CamelCase));
+
+        // Names it doesn't resolve still go to the wildcard accessor.
+        Assert.Same(resolving, options.MemberAccessStrategy.GetAccessor(typeof(Class1), "other", StringComparers.CamelCase));
+
+        var template = _parser.Parse("{{ item.property1 }}|{{ item.other }}");
+        Assert.Equal("dedicated|wildcard", template.Render(new TemplateContext(options).SetValue("item", new Class1())));
+    }
+
+    [Fact]
+    public void GeneratedAccessorsShouldResolveEachMemberOnce()
+    {
+        var options = new RegisteredPersonOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
+        var strategy = options.MemberAccessStrategy;
+
+        // Each member gets its own accessor, so templates don't compare names on every access.
+        var firstName = strategy.GetAccessor(typeof(RegisteredPerson), "firstName", StringComparers.CamelCase);
+        var lastName = strategy.GetAccessor(typeof(RegisteredPerson), "lastName", StringComparers.CamelCase);
+
+        Assert.NotSame(firstName, lastName);
+        Assert.Same(firstName, strategy.GetAccessor(typeof(RegisteredPerson), "FirstName", StringComparers.CamelCase));
+
+        var template = _parser.Parse("{{ p.firstName }} {{ p.lastName }} {{ p.age }}");
+        var person = new RegisteredPerson { FirstName = "Ada", LastName = "Lovelace", Age = 36 };
+
+        Assert.Equal("Ada Lovelace 36", template.Render(new TemplateContext(options).SetValue("p", person)));
+    }
+
+    [Fact]
     public async Task BaseRegistrationChangesShouldInvalidateDerivedAccessors()
     {
         var strategy = new DefaultMemberAccessStrategy();
@@ -507,6 +545,29 @@ public sealed class GeneratedTemplateOptionsBuilder : TemplateOptionsBuilder, IT
     {
         builder.ConfigureMemberAccess(strategy => strategy.Register(typeof(GeneratedModel), "*", new FixedMemberAccessor("generated")));
     }
+}
+
+public sealed class ResolvingMemberAccessor : MemberAccessor
+{
+    public MemberAccessor Property1 { get; } = new FixedMemberAccessor("dedicated");
+
+    public override ValueTask<FluidValue> GetAsync(object obj, string name, TemplateContext context)
+        => CreateValueTask("wildcard", context);
+
+    public override MemberAccessor ResolveMember(string name, StringComparer comparer)
+        => comparer.Equals(name, nameof(Class1.Property1)) ? Property1 : this;
+}
+
+public sealed class RegisteredPerson
+{
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public int Age { get; set; }
+}
+
+[FluidRegister(typeof(RegisteredPerson))]
+public partial class RegisteredPersonOptionsBuilder : TemplateOptionsBuilder
+{
 }
 
 public sealed class FixedMemberAccessor : MemberAccessor

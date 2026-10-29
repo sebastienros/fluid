@@ -22,6 +22,16 @@ public abstract class MemberAccessor
     /// <returns>The resolved Fluid value, or <c>null</c> when the accessor did not handle the name.</returns>
     public abstract ValueTask<FluidValue> GetAsync(object obj, string name, TemplateContext context);
 
+    /// <summary>
+    /// Gets the accessor to use for a member. An accessor registered for several members, like the ones the source
+    /// generator writes, can return one dedicated to the member, so that the name is matched once when the member is
+    /// resolved instead of on every access.
+    /// </summary>
+    /// <param name="name">The member name requested by the template.</param>
+    /// <param name="comparer">The comparer of member names, <see cref="TemplateOptions.ModelNamesComparer"/>.</param>
+    /// <returns>An accessor for the member, or this instance.</returns>
+    public virtual MemberAccessor ResolveMember(string name, StringComparer comparer) => this;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static ValueTask<FluidValue> CreateValueTask(bool value, TemplateContext context)
         => new(!context.Options.HasValueConverters

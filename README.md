@@ -301,6 +301,8 @@ var options = new TemplateOptionsBuilder()
 
 The protected `CreateValueTask` overloads convert synchronous, `Task<T>`, and `ValueTask<T>` results using the `TemplateOptions.ValueConverters` configured for the current context. Return `NilValue.Instance` for a Liquid `nil` value; a null `FluidValue` is reserved as the accessor's not-handled result.
 
+An accessor registered for all the members of a type, with the `"*"` name, receives the member name on every access. To match it only once, override `ResolveMember(name, comparer)` and return an accessor dedicated to that member, which Fluid then caches; return `this` for the names it doesn't handle. The accessors written by the [source generator](#model-accessors) work this way.
+
 <br>
 
 ## Source generators
