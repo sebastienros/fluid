@@ -34,7 +34,7 @@ public class FluidBenchmarks : BaseBenchmarks
     [Benchmark]
     public override string Render()
     {
-        var context = new TemplateContext(ViewModel, _options);
+        var context = new TemplateContext(_options).SetValue("products", Products);
         return _fluidTemplate.Render(context);
     }
 
@@ -42,7 +42,7 @@ public class FluidBenchmarks : BaseBenchmarks
     public override string ParseAndRender()
     {
         _parser.TryParse(ProductTemplate, out var template);
-        var context = new TemplateContext(ViewModel, _options);
+        var context = new TemplateContext(_options).SetValue("products", Products);
         return template.Render(context);
     }
 }

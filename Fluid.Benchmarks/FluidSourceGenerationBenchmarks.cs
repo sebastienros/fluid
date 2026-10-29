@@ -101,28 +101,28 @@ public class FluidSourceGenerationBenchmarks : BaseBenchmarks
     [Benchmark(Baseline = true)]
     public string Render_RuntimeParsed()
     {
-        var context = new TemplateContext(ViewModel, _options);
+        var context = new TemplateContext(_options).SetValue("products", Products);
         return _runtimeTemplate.Render(context);
     }
 
     [Benchmark]
     public string Render_SourceGenerated()
     {
-        var context = new TemplateContext(ViewModel, _options);
+        var context = new TemplateContext(_options).SetValue("products", Products);
         return _sourceGeneratedTemplate.Render(context);
     }
 
     [Benchmark]
     public string RenderBig_RuntimeParsed()
     {
-        var context = new TemplateContext(ViewModel, _options);
+        var context = new TemplateContext(_options).SetValue("products", Products);
         return _runtimeBigTemplate.Render(context);
     }
 
     [Benchmark]
     public string RenderBig_SourceGenerated()
     {
-        var context = new TemplateContext(ViewModel, _options);
+        var context = new TemplateContext(_options).SetValue("products", Products);
         return _sourceGeneratedBigTemplate.Render(context);
     }
 }

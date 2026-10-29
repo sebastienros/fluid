@@ -1,8 +1,8 @@
 namespace Fluid.Benchmarks;
 
 /// <summary>
-/// Builds options with source-generated accessors for the benchmark models. The view model is detected from
-/// <c>new TemplateContext(model, options)</c>, the products it contains have to be registered.
+/// Builds options that read the products with source-generated accessors, like an application using the model
+/// accessor generator.
 /// </summary>
 [FluidRegister(typeof(Product))]
 public partial class BenchmarkTemplateOptionsBuilder : TemplateOptionsBuilder

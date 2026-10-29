@@ -25,7 +25,7 @@ public class SourceGeneratedFluidBenchmarks : BaseBenchmarks
     [Benchmark]
     public override string Render()
     {
-        var context = new TemplateContext(ViewModel, _options);
+        var context = new TemplateContext(_options).SetValue("products", Products);
         return _productTemplate.Render(context);
     }
 
@@ -34,7 +34,7 @@ public class SourceGeneratedFluidBenchmarks : BaseBenchmarks
     [Benchmark]
     public string RenderBig()
     {
-        var context = new TemplateContext(ViewModel, _options);
+        var context = new TemplateContext(_options).SetValue("products", Products);
         return _blogPostTemplate.Render(context);
     }
 }

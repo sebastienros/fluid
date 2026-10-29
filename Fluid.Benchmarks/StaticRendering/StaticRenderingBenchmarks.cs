@@ -94,14 +94,14 @@ public class StaticRenderingBenchmarks : BaseBenchmarks
     [Benchmark(Baseline = true), BenchmarkCategory("String")]
     public string Fluid_Render()
     {
-        var context = new TemplateContext(ViewModel, _options);
+        var context = new TemplateContext(_options).SetValue("products", Products);
         return _fluidTemplate.Render(context, HtmlEncoder.Default);
     }
 
     [Benchmark, BenchmarkCategory("String")]
     public string Fluid_SourceGenerated_Render()
     {
-        var context = new TemplateContext(ViewModel, _options);
+        var context = new TemplateContext(_options).SetValue("products", Products);
         return _sourceGeneratedTemplate.Render(context, HtmlEncoder.Default);
     }
 
@@ -145,7 +145,7 @@ public class StaticRenderingBenchmarks : BaseBenchmarks
     public void Fluid_RenderUtf8()
     {
         _buffer.Reset();
-        var context = new TemplateContext(ViewModel, _options);
+        var context = new TemplateContext(_options).SetValue("products", Products);
         _fluidTemplate.RenderAsync(_buffer, HtmlEncoder.Default, context).GetAwaiter().GetResult();
     }
 
@@ -153,7 +153,7 @@ public class StaticRenderingBenchmarks : BaseBenchmarks
     public void Fluid_SourceGenerated_RenderUtf8()
     {
         _buffer.Reset();
-        var context = new TemplateContext(ViewModel, _options);
+        var context = new TemplateContext(_options).SetValue("products", Products);
         _sourceGeneratedTemplate.RenderAsync(_buffer, HtmlEncoder.Default, context).GetAwaiter().GetResult();
     }
 
