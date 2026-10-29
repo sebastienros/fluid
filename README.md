@@ -2058,12 +2058,19 @@ WarmupCount=3
 
 #### Compiled templates and static engines
 
-Some engines compile templates into the application instead of reading them at runtime. This benchmark compares Fluid's [compiled templates](#compiled-templates), [RazorSlices](https://github.com/DamianEdwards/RazorSlices) and [Lissic](https://github.com/gendeg/Lissic) with Fluid rendering a parsed template, and with the same page written by hand in C#. Each one renders the product template with 100 products and HTML-encodes the values, either to a string or as UTF-8 to a buffer, like an HTTP response body.
+Some engines compile templates into the application instead of reading them at runtime. This benchmark compares Fluid's [compiled templates](#compiled-templates), [RazorSlices](https://github.com/DamianEdwards/RazorSlices) and [Lissic](https://github.com/gendeg/Lissic) with Fluid rendering a parsed template, and with the same page written by hand in C#. Each one renders the product template with 100 products and HTML-encodes the values. Compiled Fluid templates read the products with [source-generated accessors](#model-accessors), parsed ones with the default accessors.
 
-- Compiled Fluid templates take 26% less time than parsed ones (20% less to UTF-8) and allocate the same memory.
-- RazorSlices takes 19% less time than Fluid to render a string, and allocates 51% more. It is the fastest engine to UTF-8, taking 59% less time and allocating 70% less.
-- Lissic takes as long as Fluid, and allocates 2 to 3.5 times as much, when each render copies the products into the template classes it generates. When the same model is built once and reused, it takes 48% less time and allocates nothing.
-- Hand-written C# takes 59% less time, for reference.
+**Render: renders the product template to a string**
+
+Compiled Fluid templates take 30% less time than parsed ones and allocate the same memory. RazorSlices takes 22% less time than parsed Fluid templates and allocates 51% more, and Lissic takes as long and allocates 2.3 times as much. Hand-written C# takes 59% less time, for reference.
+
+![Compiled templates and static engines render benchmark comparison](Assets/benchmark-static-render.png)
+
+**Render to UTF-8: renders the product template as UTF-8 to a buffer, like an HTTP response body**
+
+Compiled Fluid templates take 31% less time than parsed ones. RazorSlices is the fastest engine, taking 55% less time than parsed Fluid templates and allocating 70% less. Lissic takes 10% longer and allocates 3.5 times as much when each render copies the products into the template classes it generates. When the same model is built once and reused, it takes 43% less time and allocates nothing.
+
+![Compiled templates and static engines UTF-8 render benchmark comparison](Assets/benchmark-static-render-utf8.png)
 
 These engines are faster because the compiler reads the template, not the application. In exchange, the template has to be part of the application's source code: changing it means rebuilding and redeploying, and it can't be provided by users, stored in a database or edited after deployment. Fluid can do both: compile the templates that ship with the application, and parse the others, with the same syntax and the same output. Each engine also has its own constraints:
 
@@ -2091,17 +2098,17 @@ Intel Xeon Processor 2.10GHz, 1 CPU, 4 logical and 4 physical cores
 ```
 | Method                           | Categories | Mean     | Error    | StdDev   | Median   | Ratio | RatioSD | Gen0   | Gen1   | Allocated | Alloc Ratio |
 |--------------------------------- |----------- |---------:|---------:|---------:|---------:|------:|--------:|-------:|-------:|----------:|------------:|
-| Fluid_Render                     | String     | 37.68 μs | 1.223 μs | 3.588 μs | 36.84 μs |  1.01 |    0.13 | 0.2441 |      - |   37144 B |        1.00 |
-| Fluid_SourceGenerated_Render     | String     | 27.73 μs | 0.690 μs | 2.011 μs | 27.45 μs |  0.74 |    0.09 | 0.2441 |      - |   37080 B |        1.00 |
-| RazorSlices_Render               | String     | 30.43 μs | 0.901 μs | 2.599 μs | 29.98 μs |  0.81 |    0.10 | 0.3662 |      - |   56112 B |        1.51 |
-| Lissic_Render                    | String     | 38.65 μs | 0.851 μs | 2.496 μs | 38.34 μs |  1.03 |    0.11 | 0.6104 | 0.0610 |   84744 B |        2.28 |
-| HandWritten_Render               | String     | 15.35 μs | 0.306 μs | 0.772 μs | 15.39 μs |  0.41 |    0.04 | 0.3204 | 0.0153 |   44720 B |        1.20 |
+| Fluid_Render                     | String     | 37.32 μs | 0.978 μs | 2.838 μs | 36.43 μs |  1.01 |    0.10 | 0.2441 |      - |   37144 B |        1.00 |
+| Fluid_SourceGenerated_Render     | String     | 25.85 μs | 0.549 μs | 1.593 μs | 25.61 μs |  0.70 |    0.07 | 0.2441 |      - |   37080 B |        1.00 |
+| RazorSlices_Render               | String     | 29.08 μs | 0.577 μs | 1.255 μs | 28.88 μs |  0.78 |    0.07 | 0.3967 | 0.0305 |   56112 B |        1.51 |
+| Lissic_Render                    | String     | 36.80 μs | 0.718 μs | 0.799 μs | 36.71 μs |  0.99 |    0.07 | 0.6104 | 0.0610 |   84744 B |        2.28 |
+| HandWritten_Render               | String     | 15.18 μs | 0.316 μs | 0.921 μs | 15.06 μs |  0.41 |    0.04 | 0.3052 |      - |   44720 B |        1.20 |
 |                                  |            |          |          |          |          |       |         |        |        |           |             |
-| Fluid_RenderUtf8                 | Utf8       | 39.82 μs | 1.079 μs | 3.147 μs | 39.06 μs |  1.01 |    0.11 | 0.1221 |      - |   19064 B |        1.00 |
-| Fluid_SourceGenerated_RenderUtf8 | Utf8       | 31.47 μs | 1.012 μs | 2.936 μs | 30.68 μs |  0.80 |    0.10 | 0.1221 |      - |   19000 B |        1.00 |
-| RazorSlices_RenderUtf8           | Utf8       | 16.37 μs | 0.611 μs | 1.782 μs | 15.69 μs |  0.41 |    0.05 | 0.0305 |      - |    5792 B |        0.30 |
-| Lissic_RenderUtf8                | Utf8       | 38.34 μs | 0.907 μs | 2.661 μs | 38.18 μs |  0.97 |    0.10 | 0.4883 | 0.0610 |   67280 B |        3.53 |
-| Lissic_PrebuiltModel_RenderUtf8  | Utf8       | 20.51 μs | 0.571 μs | 1.639 μs | 20.25 μs |  0.52 |    0.06 |      - |      - |         - |        0.00 |
+| Fluid_RenderUtf8                 | Utf8       | 33.43 μs | 0.906 μs | 2.526 μs | 32.64 μs |  1.01 |    0.10 | 0.1221 |      - |   19064 B |        1.00 |
+| Fluid_SourceGenerated_RenderUtf8 | Utf8       | 23.04 μs | 0.471 μs | 1.366 μs | 22.70 μs |  0.69 |    0.06 | 0.1221 |      - |   19000 B |        1.00 |
+| RazorSlices_RenderUtf8           | Utf8       | 15.13 μs | 0.316 μs | 0.921 μs | 14.97 μs |  0.45 |    0.04 | 0.0305 |      - |    5792 B |        0.30 |
+| Lissic_RenderUtf8                | Utf8       | 36.61 μs | 0.731 μs | 1.977 μs | 36.29 μs |  1.10 |    0.10 | 0.4883 | 0.0610 |   67280 B |        3.53 |
+| Lissic_PrebuiltModel_RenderUtf8  | Utf8       | 18.89 μs | 0.420 μs | 1.239 μs | 18.55 μs |  0.57 |    0.05 |      - |      - |         - |        0.00 |
 
 </details>
 

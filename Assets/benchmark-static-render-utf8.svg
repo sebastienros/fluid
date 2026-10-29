@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1051" height="400" viewBox="0 0 1051 400" role="img" aria-labelledby="title desc">
+  <title id="title">Compiled templates and static engines UTF-8 render benchmark comparison</title>
+  <desc id="desc">Duration and memory allocation for Fluid, Fluid compiled, RazorSlices, Lissic, prebuilt model, and Lissic rendering the product template to a UTF-8 buffer. Smaller values are better.</desc>
+  <defs>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #3f3f46; }
+      .tick { font-size: 11px; fill: #666; }
+      .axis-title { font-size: 13px; font-weight: 600; }
+      .grid { stroke: #dedede; stroke-width: 1; }
+      .axis { stroke: #8c8c8c; stroke-width: 1; }
+      .value { font-size: 11px; text-anchor: middle; fill: #666; }
+      .fluid-value { font-size: 11px; font-weight: 700; text-anchor: middle; fill: #125a87; }
+      .competitor { opacity: .52; }
+    </style>
+  </defs>
+  <rect width="1051" height="400" fill="#fff"/>
+
+  <g font-size="12">
+    <circle cx="110" cy="23" r="5" fill="#1f77b4" stroke="#0b4f79" stroke-width="2"/>
+    <text x="121" y="27" font-weight="700">Fluid</text>
+    <circle cx="256" cy="23" r="5" fill="#17becf" stroke="#0b4f79" stroke-width="2"/>
+    <text x="267" y="27" font-weight="700">Fluid compiled</text>
+    <circle cx="463" cy="23" r="5" fill="#9467bd" opacity=".52"/>
+    <text x="474" y="27">RazorSlices</text>
+    <circle cx="644" cy="23" r="5" fill="#c49c94" opacity=".52"/>
+    <text x="655" y="27">Lissic, prebuilt model</text>
+    <circle cx="899" cy="23" r="5" fill="#8c564b" opacity=".52"/>
+    <text x="910" y="27">Lissic</text>
+  </g>
+  <text x="525.5" y="59" text-anchor="middle" font-size="12" font-weight="600" fill="#666">Smaller is better ↓</text>
+
+  <g>
+    <line class="grid" x1="62" y1="342" x2="500" y2="342"/><text class="tick" x="52" y="346" text-anchor="end">0</text>
+    <line class="grid" x1="62" y1="290.4" x2="500" y2="290.4"/><text class="tick" x="52" y="294.4" text-anchor="end">20</text>
+    <line class="grid" x1="62" y1="238.8" x2="500" y2="238.8"/><text class="tick" x="52" y="242.8" text-anchor="end">40</text>
+    <line class="grid" x1="62" y1="187.2" x2="500" y2="187.2"/><text class="tick" x="52" y="191.2" text-anchor="end">60</text>
+    <line class="grid" x1="62" y1="135.6" x2="500" y2="135.6"/><text class="tick" x="52" y="139.6" text-anchor="end">80</text>
+    <line class="grid" x1="62" y1="84" x2="500" y2="84"/><text class="tick" x="52" y="88" text-anchor="end">100</text>
+    <line class="axis" x1="62" y1="84" x2="62" y2="342"/><line class="axis" x1="62" y1="342" x2="500" y2="342"/>
+
+    <rect x="88" y="255.8" width="56.6" height="86.2" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="116.3" y="249">33.430</text>
+    <rect x="170.6" y="282.6" width="56.6" height="59.4" rx="1" fill="#17becf" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="198.9" y="276">23.040</text>
+    <rect class="competitor" x="253.2" y="303" width="56.6" height="39" rx="1" fill="#9467bd"/>
+    <text class="value" x="281.5" y="296">15.130</text>
+    <rect class="competitor" x="335.8" y="293.3" width="56.6" height="48.7" rx="1" fill="#c49c94"/>
+    <text class="value" x="364.1" y="286">18.890</text>
+    <rect class="competitor" x="418.4" y="247.5" width="56.6" height="94.5" rx="1" fill="#8c564b"/>
+    <text class="value" x="446.7" y="241">36.610</text>
+    <text class="axis-title" x="281" y="381" text-anchor="middle">Duration (Microseconds)</text>
+  </g>
+
+  <g>
+    <line class="grid" x1="588" y1="342" x2="1026" y2="342"/><text class="tick" x="578" y="346" text-anchor="end">0</text>
+    <line class="grid" x1="588" y1="290.4" x2="1026" y2="290.4"/><text class="tick" x="578" y="294.4" text-anchor="end">20</text>
+    <line class="grid" x1="588" y1="238.8" x2="1026" y2="238.8"/><text class="tick" x="578" y="242.8" text-anchor="end">40</text>
+    <line class="grid" x1="588" y1="187.2" x2="1026" y2="187.2"/><text class="tick" x="578" y="191.2" text-anchor="end">60</text>
+    <line class="grid" x1="588" y1="135.6" x2="1026" y2="135.6"/><text class="tick" x="578" y="139.6" text-anchor="end">80</text>
+    <line class="grid" x1="588" y1="84" x2="1026" y2="84"/><text class="tick" x="578" y="88" text-anchor="end">100</text>
+    <line class="axis" x1="588" y1="84" x2="588" y2="342"/><line class="axis" x1="588" y1="342" x2="1026" y2="342"/>
+
+    <rect x="614" y="294" width="56.6" height="48" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="642.3" y="287">18.62</text>
+    <rect x="696.6" y="294.1" width="56.6" height="47.9" rx="1" fill="#17becf" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="724.9" y="287">18.55</text>
+    <rect class="competitor" x="779.2" y="327.4" width="56.6" height="14.6" rx="1" fill="#9467bd"/>
+    <text class="value" x="807.5" y="320">5.66</text>
+    <rect class="competitor" x="861.8" y="342" width="56.6" height="0" rx="1" fill="#c49c94"/>
+    <text class="value" x="890.1" y="335">0.00</text>
+    <rect class="competitor" x="944.4" y="172.5" width="56.6" height="169.5" rx="1" fill="#8c564b"/>
+    <text class="value" x="972.7" y="165">65.70</text>
+    <text class="axis-title" x="807" y="381" text-anchor="middle">Memory Allocation (Kilobytes)</text>
+  </g>
+</svg>
