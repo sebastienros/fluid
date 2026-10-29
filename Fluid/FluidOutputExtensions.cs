@@ -2,7 +2,6 @@ using Fluid.Ast;
 using Fluid.Utils;
 using Fluid.Values;
 using System.Buffers;
-using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 

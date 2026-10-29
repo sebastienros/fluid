@@ -1,7 +1,5 @@
-using System.IO;
 using System.Text;
 using Fluid.Ast;
-using Microsoft.Extensions.FileProviders;
 
 namespace Fluid.SourceGeneration;
 

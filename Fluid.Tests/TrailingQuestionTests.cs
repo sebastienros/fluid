@@ -1,6 +1,5 @@
 using Fluid.Ast;
 using Fluid.Parser;
-using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 

@@ -1,12 +1,9 @@
 using System.Collections.Immutable;
-using System.Linq;
-using Fluid.Parser;
 using Fluid.SourceGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Text;
 
 namespace Fluid.SourceGenerator;
 

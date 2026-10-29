@@ -1,5 +1,3 @@
-using System.Buffers;
-
 namespace Fluid.Utils;
 
 /// <summary>

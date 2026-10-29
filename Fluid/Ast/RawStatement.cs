@@ -1,6 +1,5 @@
 using Parlot;
 using System.Text.Encodings.Web;
-using Fluid.Utils;
 using Fluid.SourceGeneration;
 
 namespace Fluid.Ast;

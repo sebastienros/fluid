@@ -1,9 +1,7 @@
 using Fluid.Tests.Mocks;
-using Fluid.Utils;
 using System;
 using System.IO;
 using System.Text;
-using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Xunit;
 

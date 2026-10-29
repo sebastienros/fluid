@@ -1,8 +1,5 @@
 using System.Collections;
-using System.Globalization;
-using System.Text;
 using System.Text.Encodings.Web;
-using Fluid.Utils;
 
 namespace Fluid.Values;
 

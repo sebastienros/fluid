@@ -1,5 +1,3 @@
-using System.Buffers;
-
 namespace Fluid.Utils;
 
 internal sealed class NullFluidOutput : IFluidOutput
