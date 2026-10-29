@@ -1,6 +1,5 @@
 using Fluid.Ast;
 using Fluid.ViewEngine;
-using System.Threading.Tasks;
 
 namespace Fluid.MvcSample;
 

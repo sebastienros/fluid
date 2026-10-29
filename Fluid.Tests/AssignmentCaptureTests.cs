@@ -1,9 +1,6 @@
-using System.Linq;
 using Fluid.Values;
-using Fluid.Filters;
 using Xunit;
 using System.Threading.Tasks;
-using Fluid.Tests.Extensibility;
 
 namespace Fluid.Tests;
 

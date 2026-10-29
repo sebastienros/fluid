@@ -1,4 +1,3 @@
-using System;
 using Fluid.Values;
 using Fluid.SourceGeneration;
 

@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Fluid.Ast;
 using Fluid.Tests.Mocks;
-using Fluid.Values;
 using Xunit;
 
 namespace Fluid.Tests;

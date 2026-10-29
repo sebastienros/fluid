@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Fluid.MvcSample.Models;
 using Microsoft.AspNetCore.Mvc;
 

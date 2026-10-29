@@ -3,7 +3,6 @@
 using Fluid.Ast;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using static Parlot.Fluent.Parsers;
 
 namespace Fluid.ViewEngine;

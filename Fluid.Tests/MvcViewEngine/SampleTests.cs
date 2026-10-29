@@ -1,7 +1,6 @@
 #if !NETCOREAPP2_1
 using Fluid.Ast;
 using Fluid.ViewEngine;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Fluid.Tests.MvcViewEngine;

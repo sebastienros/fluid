@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading;
 using Fluid.Ast;
 using Fluid.Values;
 

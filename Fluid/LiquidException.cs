@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-
 namespace Fluid;
 
 /// <summary>
