@@ -248,6 +248,4 @@ public sealed class IncludeStatement : Statement, ISourceable
             context.WriteLine($"return {call};");
         }
     }
-
-    private sealed record CachedTemplate(IFluidTemplate Template, string Name);
 }
