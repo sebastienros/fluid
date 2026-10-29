@@ -368,7 +368,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
         else
         {
-            continueOffsetLit = SourceGenerationContext.ToCSharpStringLiteral($"for_continue_{Identifier}-stmt_{System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this).ToString(CultureInfo.InvariantCulture)}");
+            continueOffsetLit = SourceGenerationContext.ToCSharpStringLiteral($"for_continue_{Identifier}-stmt_{RuntimeHelpers.GetHashCode(this).ToString(CultureInfo.InvariantCulture)}");
             context.WriteLine($"var {continueOffsetLiteralName} = {continueOffsetLit};");
         }
 

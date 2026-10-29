@@ -375,7 +375,7 @@ public class ViewEngineTests
         // Use a visitor to replace 2 with 4
         _options.TemplateOptionsBuilder.WithTemplateParsed((path, template) =>
         {
-            var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+            var visitor = new Visitors.ReplaceTwosVisitor(Values.NumberValue.Create(4));
             return visitor.VisitTemplate(template);
         });
 
@@ -395,7 +395,7 @@ public class ViewEngineTests
         // Use a visitor to replace 2 with 4
         _options.TemplateOptionsBuilder.WithTemplateParsed((path, template) =>
         {
-            var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+            var visitor = new Visitors.ReplaceTwosVisitor(Values.NumberValue.Create(4));
             return visitor.VisitTemplate(template);
         });
 
@@ -415,7 +415,7 @@ public class ViewEngineTests
         // Use a visitor to replace 2 with 4
         _options.TemplateOptionsBuilder.WithTemplateParsed((path, template) =>
         {
-            var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+            var visitor = new Visitors.ReplaceTwosVisitor(Values.NumberValue.Create(4));
             return visitor.VisitTemplate(template);
         });
 
@@ -607,7 +607,7 @@ public class ViewEngineTests
         var template1 = parser.Parse("{{ 1 | plus: 2 }}");
         var template2 = parser.Parse(" World");
 
-        var composite = new Fluid.Parser.CompositeFluidTemplate(template1, template2);
+        var composite = new Parser.CompositeFluidTemplate(template1, template2);
 
         // Render it normally - should output "3 World"
         var sw = new StringWriter();
@@ -615,7 +615,7 @@ public class ViewEngineTests
         Assert.Equal("3 World", sw.ToString());
 
         // Now apply a visitor that alters the statements
-        var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+        var visitor = new Visitors.ReplaceTwosVisitor(Values.NumberValue.Create(4));
         var altered = visitor.VisitTemplate(composite);
 
         // The visitor should return a new template with altered statements

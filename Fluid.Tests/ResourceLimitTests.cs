@@ -36,10 +36,10 @@ public class ResourceLimitTests
     {
         var template = new FluidParser().Parse("12345");
         var context = new TemplateContext { MaxOutputSize = 4 };
-        await using var writerOutput = new Fluid.Utils.TextWriterFluidOutput(
+        await using var writerOutput = new Utils.TextWriterFluidOutput(
             new StringWriter(),
             bufferSize: 16);
-        var output = Fluid.Utils.LimitedFluidOutput.Create(writerOutput, 100);
+        var output = Utils.LimitedFluidOutput.Create(writerOutput, 100);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => template.RenderAsync(output, System.Text.Encodings.Web.HtmlEncoder.Default, context).AsTask());

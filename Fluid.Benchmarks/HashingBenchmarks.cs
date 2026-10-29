@@ -17,7 +17,7 @@ public class HashingBenchmarks
     public string HashSha256ToHex()
     {
         var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(_value));
-        return Fluid.Utils.HexUtilities.ToHexLower(hash);
+        return Utils.HexUtilities.ToHexLower(hash);
     }
 
     [Benchmark]

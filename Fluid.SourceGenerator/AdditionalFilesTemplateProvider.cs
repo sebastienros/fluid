@@ -43,7 +43,7 @@ internal static class AdditionalFilesTemplateProvider
 
     public static Func<string, string> BuildTemplateResolver(IReadOnlyList<Template> templates)
     {
-        var map = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         for (var i = 0; i < templates.Count; i++)
         {
@@ -53,7 +53,7 @@ internal static class AdditionalFilesTemplateProvider
             map[rel] = text;
 
             // Convenience: also register without extension when file ends with .liquid
-            if (rel.EndsWith(".liquid", System.StringComparison.OrdinalIgnoreCase))
+            if (rel.EndsWith(".liquid", StringComparison.OrdinalIgnoreCase))
             {
                 var withoutExt = rel.Substring(0, rel.Length - ".liquid".Length);
                 if (!map.ContainsKey(withoutExt))
@@ -87,12 +87,12 @@ internal static class AdditionalFilesTemplateProvider
             dir = dir.Replace('\\', '/');
             fullPath = fullPath.Replace('\\', '/');
 
-            if (!dir.EndsWith("/", System.StringComparison.Ordinal))
+            if (!dir.EndsWith("/", StringComparison.Ordinal))
             {
                 dir += "/";
             }
 
-            if (fullPath.StartsWith(dir, System.StringComparison.OrdinalIgnoreCase))
+            if (fullPath.StartsWith(dir, StringComparison.OrdinalIgnoreCase))
             {
                 return fullPath.Substring(dir.Length);
             }

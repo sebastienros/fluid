@@ -746,7 +746,7 @@ shape: ''";
         Assert.True(parseResult, $"Parse failed: {error}");
 
         // Check the parsed statement
-        var statements = (template as Fluid.Parser.FluidTemplate).Statements;
+        var statements = (template as FluidTemplate).Statements;
         var renderStmt = statements.FirstOrDefault() as RenderStatement;
         Assert.NotNull(renderStmt);
         Assert.NotNull(renderStmt.For);
@@ -981,7 +981,7 @@ shape: ''";
             .WithFileProvider(fileProvider)
             .WithTemplateParsed((path, template) =>
             {
-                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                var visitor = new Visitors.ReplaceTwosVisitor(NumberValue.Create(4));
                 return visitor.VisitTemplate(template);
             })
             .Build();
@@ -990,7 +990,7 @@ shape: ''";
 
         // Parse the outer template manually and apply visitor to it too
         _parser.TryParse("{{ 1 | plus: 2 }}\n{% render 'inner' %}", out var outerTemplate);
-        var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+        var visitor = new Visitors.ReplaceTwosVisitor(NumberValue.Create(4));
         outerTemplate = visitor.VisitTemplate(outerTemplate);
 
         var result = await outerTemplate.RenderAsync(context);
@@ -1012,7 +1012,7 @@ shape: ''";
             .WithFileProvider(fileProvider)
             .WithTemplateParsed((path, template) =>
             {
-                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                var visitor = new Visitors.ReplaceTwosVisitor(NumberValue.Create(4));
                 return visitor.VisitTemplate(template);
             })
             .Build();
@@ -1021,7 +1021,7 @@ shape: ''";
 
         // Parse the outer template manually and apply visitor to it too
         _parser.TryParse("{{ 1 | plus: 2 }}\n{% include 'inner' %}", out var outerTemplate);
-        var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+        var visitor = new Visitors.ReplaceTwosVisitor(NumberValue.Create(4));
         outerTemplate = visitor.VisitTemplate(outerTemplate);
 
         var result = await outerTemplate.RenderAsync(context);
@@ -1047,7 +1047,7 @@ shape: ''";
             .WithTemplateParsed((path, template) =>
             {
                 callbackCount++;
-                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                var visitor = new Visitors.ReplaceTwosVisitor(NumberValue.Create(4));
                 return visitor.VisitTemplate(template);
             })
             .Build();
@@ -1081,7 +1081,7 @@ shape: ''";
             .WithTemplateParsed((path, template) =>
             {
                 callbackCount++;
-                var visitor = new Fluid.Tests.Visitors.ReplaceTwosVisitor(Fluid.Values.NumberValue.Create(4));
+                var visitor = new Visitors.ReplaceTwosVisitor(NumberValue.Create(4));
                 return visitor.VisitTemplate(template);
             })
             .Build();

@@ -233,7 +233,7 @@ public class SourceGenerationTests
 
         var options = new TemplateOptionsBuilder()
             .WithFileProvider(provider)
-            .WithGlobalValue("global", Fluid.Values.StringValue.Create("global"))
+            .WithGlobalValue("global", Values.StringValue.Create("global"))
             .Build();
 
         var runtimeContext = new TemplateContext(options).SetValue("input", "root");
