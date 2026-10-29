@@ -1065,7 +1065,7 @@ public static class MiscFilters
 #if NET6_0_OR_GREATER
 #pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
         var hash = System.Security.Cryptography.MD5.HashData(Encoding.UTF8.GetBytes(value));
-        return StringValue.Create(Fluid.Utils.HexUtilities.ToHexLower(hash));
+        return StringValue.Create(HexUtilities.ToHexLower(hash));
 #pragma warning restore CA5351
 #else
 
@@ -1096,9 +1096,9 @@ public static class MiscFilters
 
 #if NET6_0_OR_GREATER
 #pragma warning disable CA5350 // Do Not Use Broken Cryptographic Algorithms
-        var hash = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(value));
+        var hash = SHA1.HashData(Encoding.UTF8.GetBytes(value));
 #pragma warning restore CA5350
-        return StringValue.Create(Fluid.Utils.HexUtilities.ToHexLower(hash));
+        return StringValue.Create(HexUtilities.ToHexLower(hash));
 #else
 #pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
         using var provider = System.Security.Cryptography.SHA1.Create();
@@ -1128,10 +1128,10 @@ public static class MiscFilters
         // c.f. HashingBenchmarks
 
 #if NET6_0_OR_GREATER
-        var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(value));
-        return StringValue.Create(Fluid.Utils.HexUtilities.ToHexLower(hash));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+        return StringValue.Create(HexUtilities.ToHexLower(hash));
 #else
-        using var provider = System.Security.Cryptography.SHA256.Create();
+        using var provider = SHA256.Create();
         var builder = new ValueStringBuilder(stackalloc char[64]);
 #pragma warning disable CA1850 // Prefer static 'System.Security.Cryptography.SHA256.HashData' method over 'ComputeHash'
         foreach (var b in provider.ComputeHash(Encoding.UTF8.GetBytes(value)))

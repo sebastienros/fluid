@@ -215,7 +215,7 @@ public static class StringFilters
             }
 
             context.EnsureOutputSize((long)value.Length + ((long)newValue.Length * (value.Length + 1)));
-            var sb = new System.Text.StringBuilder(checked(value.Length + (newValue.Length * (value.Length + 1))));
+            var sb = new StringBuilder(checked(value.Length + (newValue.Length * (value.Length + 1))));
             sb.Append(newValue);
             for (var i = 0; i < value.Length; i++)
             {

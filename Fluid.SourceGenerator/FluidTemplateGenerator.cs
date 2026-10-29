@@ -78,7 +78,7 @@ public sealed class FluidTemplateGenerator : IIncrementalGenerator
                         string.Equals(
                             a.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace("global::", string.Empty),
                             TemplatesAttributeFullName,
-                            System.StringComparison.Ordinal));
+                            StringComparison.Ordinal));
 
                     if (attrData == null)
                     {
@@ -121,8 +121,8 @@ public sealed class FluidTemplateGenerator : IIncrementalGenerator
 
         var projectOptions = new ProjectOptions(options);
 
-        var includePatterns = AttributeReader.GetConstructorStringArray(templatesAttribute) ?? System.Array.Empty<string>();
-        var excludePatterns = AttributeReader.GetNamedStringArray(templatesAttribute, "Exclude") ?? System.Array.Empty<string>();
+        var includePatterns = AttributeReader.GetConstructorStringArray(templatesAttribute) ?? Array.Empty<string>();
+        var excludePatterns = AttributeReader.GetNamedStringArray(templatesAttribute, "Exclude") ?? Array.Empty<string>();
         var generatedNamespaceOverride = AttributeReader.GetNamedString(templatesAttribute, "Namespace");
 
         var templates = AdditionalFilesTemplateProvider.GetTemplates(additionalFiles, projectOptions);
@@ -151,8 +151,8 @@ public sealed class FluidTemplateGenerator : IIncrementalGenerator
                 ? containingNamespace.ToDisplayString() + ".FluidTemplates"
                 : "FluidTemplates");
 
-        var propertyMap = new Dictionary<string, string>(System.StringComparer.Ordinal);
-        var usedPropertyNames = new HashSet<string>(System.StringComparer.Ordinal);
+        var propertyMap = new Dictionary<string, string>(StringComparer.Ordinal);
+        var usedPropertyNames = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var tpl in matches)
         {

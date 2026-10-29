@@ -974,7 +974,7 @@ public class MiscFiltersTests
     {
         var options = new TemplateOptionsBuilder().Build();
 
-        var input = FluidValue.Create(Domain.Colors.Red, options);
+        var input = FluidValue.Create(Colors.Red, options);
         var context = new TemplateContext(options);
         var result = await MiscFilters.Json(input, new FilterArguments(), context);
 

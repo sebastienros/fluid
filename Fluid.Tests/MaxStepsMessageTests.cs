@@ -41,7 +41,7 @@ public class MaxStepsMessageTests
         var options = new TemplateOptionsBuilder().WithMaxRecursion(3).Build();
         var template = _parser.Parse("{% for a in (1..1) %}{% for b in (1..1) %}{% for c in (1..1) %}{% for d in (1..1) %}x{% endfor %}{% endfor %}{% endfor %}{% endfor %}");
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => template.RenderAsync(new TemplateContext(options), Fluid.NullEncoder.Default, isolateContext: false).AsTask());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => template.RenderAsync(new TemplateContext(options), NullEncoder.Default, isolateContext: false).AsTask());
 
         Assert.StartsWith("The maximum level of recursion has been reached.", exception.Message);
     }

@@ -99,7 +99,7 @@ public sealed class FunctionArguments
         return this;
     }
 
-    public IEnumerable<string> Names => _named?.Keys ?? System.Linq.Enumerable.Empty<string>();
+    public IEnumerable<string> Names => _named?.Keys ?? Enumerable.Empty<string>();
 
     public IEnumerable<FluidValue> Values => _positional;
 

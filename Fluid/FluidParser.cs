@@ -558,10 +558,10 @@ public class FluidParser
         // After parsing the case value list, skip any unexpected content until %} (like 'and' which is not valid in when)
         // This matches Shopify Liquid's behavior where unexpected tokens are ignored
         var WhenBlock = TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(AnyCharBefore(TagEnd, canBeEmpty: true)).AndSkip(TagEnd).And(AnyTagsList)
-            .Then<CaseBlock>(x => new Ast.WhenBlock(x.Item2, x.Item3));
+            .Then<CaseBlock>(x => new WhenBlock(x.Item2, x.Item3));
 
         var ElseBlock = CreateTag("else").SkipAnd(AnyTagsList)
-            .Then<CaseBlock>(x => new Ast.ElseBlock(x));
+            .Then<CaseBlock>(x => new ElseBlock(x));
 
         var CaseTag = Primary
                    .AndSkip(TagEnd)
