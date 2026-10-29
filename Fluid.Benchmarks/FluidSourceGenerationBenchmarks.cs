@@ -9,7 +9,7 @@ namespace Fluid.Benchmarks;
 [MemoryDiagnoser]
 public class FluidSourceGenerationBenchmarks : BaseBenchmarks
 {
-    private readonly TemplateOptions _options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
+    private readonly TemplateOptions _options = new BenchmarkTemplateOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
 
     private readonly FluidParser _parser = new FluidParser();
 
@@ -101,28 +101,28 @@ public class FluidSourceGenerationBenchmarks : BaseBenchmarks
     [Benchmark(Baseline = true)]
     public string Render_RuntimeParsed()
     {
-        var context = new TemplateContext(_options).SetValue("products", Products);
+        var context = new TemplateContext(ViewModel, _options);
         return _runtimeTemplate.Render(context);
     }
 
     [Benchmark]
     public string Render_SourceGenerated()
     {
-        var context = new TemplateContext(_options).SetValue("products", Products);
+        var context = new TemplateContext(ViewModel, _options);
         return _sourceGeneratedTemplate.Render(context);
     }
 
     [Benchmark]
     public string RenderBig_RuntimeParsed()
     {
-        var context = new TemplateContext(_options).SetValue("products", Products);
+        var context = new TemplateContext(ViewModel, _options);
         return _runtimeBigTemplate.Render(context);
     }
 
     [Benchmark]
     public string RenderBig_SourceGenerated()
     {
-        var context = new TemplateContext(_options).SetValue("products", Products);
+        var context = new TemplateContext(ViewModel, _options);
         return _sourceGeneratedBigTemplate.Render(context);
     }
 }

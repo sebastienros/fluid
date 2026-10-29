@@ -5,7 +5,7 @@ namespace Fluid.Benchmarks;
 [MemoryDiagnoser]
 public class FluidBenchmarks : BaseBenchmarks
 {
-    private readonly TemplateOptions _options = new TemplateOptionsBuilder()
+    private readonly TemplateOptions _options = new BenchmarkTemplateOptionsBuilder()
         .WithOutputBufferSize(40 * 1024)
         .WithModelNamesComparer(StringComparers.CamelCase)
         .Build();
@@ -34,7 +34,7 @@ public class FluidBenchmarks : BaseBenchmarks
     [Benchmark]
     public override string Render()
     {
-        var context = new TemplateContext(_options).SetValue("products", Products);
+        var context = new TemplateContext(ViewModel, _options);
         return _fluidTemplate.Render(context);
     }
 
@@ -42,7 +42,7 @@ public class FluidBenchmarks : BaseBenchmarks
     public override string ParseAndRender()
     {
         _parser.TryParse(ProductTemplate, out var template);
-        var context = new TemplateContext(_options).SetValue("products", Products);
+        var context = new TemplateContext(ViewModel, _options);
         return template.Render(context);
     }
 }
