@@ -69,17 +69,15 @@ public class FluidParser
     protected readonly Deferred<IReadOnlyList<Statement>> KnownTagsList = Deferred<IReadOnlyList<Statement>>();
     protected readonly Deferred<IReadOnlyList<Statement>> AnyTagsList = Deferred<IReadOnlyList<Statement>>();
 
-    internal const string WhiteSpaceChars = "\t\n\v\f\r \u0085             \u2028\u2029  　";
-
     protected static readonly Parser<TagResult> InlineOutputStart = TagParsers.OutputTagStart();
     protected static readonly Parser<TagResult> InlineOutputEnd = TagParsers.OutputTagEnd();
     protected static readonly Parser<TagResult> InlineTagStart = TagParsers.TagStart();
     protected static readonly Parser<TagResult> InlineTagEnd = TagParsers.TagEnd();
 
     protected static readonly Parser<TagResult> NoInlineOutputStart = NonInlineLiquidTagParsers.OutputTagStart();
-    protected static readonly Parser<TagResult> NoInlineOutputEnd = Literals.AnyOf(WhiteSpaceChars.AsSpan(), minSize: 0).SkipAnd(NonInlineLiquidTagParsers.OutputTagEnd());
+    protected static readonly Parser<TagResult> NoInlineOutputEnd = SkipWhiteSpace(NonInlineLiquidTagParsers.OutputTagEnd());
     protected static readonly Parser<TagResult> NoInlineTagStart = NonInlineLiquidTagParsers.TagStart();
-    protected static readonly Parser<TagResult> NoInlineTagEnd = Literals.AnyOf(WhiteSpaceChars.AsSpan(), minSize: 0).SkipAnd(NonInlineLiquidTagParsers.TagEnd());
+    protected static readonly Parser<TagResult> NoInlineTagEnd = SkipWhiteSpace(NonInlineLiquidTagParsers.TagEnd());
 
     protected readonly Parser<TagResult> OutputStart = InlineOutputStart;
     protected readonly Parser<TagResult> OutputEnd = InlineOutputEnd;
@@ -361,8 +359,7 @@ public class FluidParser
         // A tag named 'name', from '{%' to the first '%}', e.g. '{%- name anything -%}'.
         Parser<TextSpan> NamedTag(string name) => Capture(Literals.Text("{%")
             .SkipAnd(ZeroOrOne(Literals.Char('-')))
-            .SkipAnd(Literals.AnyOf(" \t\n\v\f\r", minSize: 0))
-            .SkipAnd(Word(name, skipWhiteSpace: false))
+            .SkipAnd(Word(name))
             .SkipAnd(AnyCharBefore(TagClose, canBeEmpty: true, failOnEof: true))
             .SkipAnd(TagClose));
 
@@ -808,9 +805,7 @@ public class FluidParser
     /// Matches a Liquid word, like an operator, a tag argument or a tag name, when no word char ([A-Za-z0-9_]) follows it: "or" doesn't match "orb".
     /// </summary>
     /// <param name="word">The word to match.</param>
-    /// <param name="skipWhiteSpace">Whether the whitespace before the word is skipped.</param>
-    protected static Parser<string> Word(string word, bool skipWhiteSpace = true)
-        => (skipWhiteSpace ? Terms.Text(word) : Literals.Text(word)).WhenNotFollowedBy(WordChar);
+    protected static Parser<string> Word(string word) => Terms.Text(word).WhenNotFollowedBy(WordChar);
 
     /// <summary>
     /// Creates the statement of a text, with the trimming requested by the delimiters around it: a text is always
@@ -927,7 +922,7 @@ public class FluidParser
             if (skipLeadingWhitespace)
             {
                 var buffer = context.Scanner.Buffer;
-                while (start < end && Character.IsWhiteSpaceOrNewLine(buffer[start]))
+                while (start < end && LiquidWhiteSpace.IsWhiteSpace(buffer[start]))
                 {
                     start++;
                 }

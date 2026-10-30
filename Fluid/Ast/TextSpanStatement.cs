@@ -1,3 +1,4 @@
+using Fluid.Parser;
 using Parlot;
 using System.Text.Encodings.Web;
 using Fluid.SourceGeneration;
@@ -18,11 +19,7 @@ public sealed class TextSpanStatement : Statement, ISynchronousSourceable
     {
         _text = text;
 
-#if NET6_0_OR_GREATER
-            _isWhitespaceOrCommentOnly = _text.Span.IsWhiteSpace();
-#else
-        _isWhitespaceOrCommentOnly = string.IsNullOrWhiteSpace(_text.ToString());
-#endif
+        _isWhitespaceOrCommentOnly = LiquidWhiteSpace.IsBlank(_text.Span);
     }
 
     public TextSpanStatement(string text) : this(new TextSpan(text))
@@ -90,7 +87,7 @@ public sealed class TextSpanStatement : Statement, ISynchronousSourceable
             {
                 var c = span[text.Offset + i];
 
-                if (Character.IsWhiteSpaceOrNewLine(c))
+                if (LiquidWhiteSpace.IsTrimmed(c))
                 {
                     start++;
 
@@ -123,7 +120,7 @@ public sealed class TextSpanStatement : Statement, ISynchronousSourceable
             {
                 var c = span[text.Offset + i];
 
-                if (Character.IsWhiteSpaceOrNewLine(c))
+                if (LiquidWhiteSpace.IsTrimmed(c))
                 {
                     if (lastNewLine == -1 && c == '\n')
                     {

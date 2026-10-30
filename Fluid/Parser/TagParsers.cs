@@ -65,8 +65,8 @@ public static class TagParsers
 
     // A tag of a liquid tag ends with its line, or before the '%}' which ends the liquid tag, without reading it.
     private static Parser<TagResult> LiquidTagLineEnd() => OneOf(
-        Literals.WhiteSpace().Optional().SkipAnd(OneOrMany(OneOf(Literals.Text("\n"), Literals.Text("\r\n")))).Then(TagResult.TagClose),
-        Always(TagResult.TagClose).WhenFollowedBy(Literals.WhiteSpace().Optional().SkipAnd(NonInlineLiquidTagParsers.TagEnd())));
+        LiquidWhiteSpace.SkipLine.SkipAnd(OneOrMany(OneOf(Literals.Text("\n"), Literals.Text("\r\n")))).Then(TagResult.TagClose),
+        Always(TagResult.TagClose).WhenFollowedBy(LiquidWhiteSpace.SkipLine.SkipAnd(NonInlineLiquidTagParsers.TagEnd())));
 }
 
 public static class NonInlineLiquidTagParsers

@@ -375,12 +375,13 @@ Wow, John G. Chalmers-Smith, you have a long name!";
     }
 
     [Fact]
-    public void ShouldParseNonBreakingWhitespace()
+    public void ShouldNotSkipNonBreakingSpaceInOutputs()
     {
+        // Like Shopify, a non-breaking space isn't whitespace in an output: it is content around it
         var c = (char)160;
 
-        Assert.True(_parser.TryParse("{{" + c + "'a'" + c + "}}", out var template, out var errors));
-        Assert.Equal("a", template.Render());
+        Assert.False(_parser.TryParse("{{" + c + "'a'" + c + "}}", out _, out _));
+        Assert.Equal("a" + c, _parser.Parse("{{ 'a' }}" + c).Render());
     }
 
     [Theory]
@@ -412,5 +413,118 @@ Wow, John G. Chalmers-Smith, you have a long name!";
         var result = await template.RenderAsync(context);
 
         Assert.Equal(expected, result);
+    }
+
+    // Like Shopify, both parser modes only skip the chars of Ruby's \s in tags and outputs: the Unicode spaces are
+    // like any other char.
+    private const string TagWhiteSpace = " \t\n\v\f\r";
+    private const string NotTagWhiteSpace = "\u0085\u00A0\u1680\u180E\u2000\u2007\u200A\u200B\u2028\u2029\u202F\u205F\u3000\uFEFF";
+
+    public static TheoryData<int, bool> TagWhiteSpaceChars()
+    {
+        var data = new TheoryData<int, bool>();
+        foreach (var c in TagWhiteSpace) data.Add(c, true);
+        foreach (var c in NotTagWhiteSpace) data.Add(c, false);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(TagWhiteSpaceChars))]
+    public void ShouldSkipTheSameWhiteSpaceInTagsAndOutputsInBothModes(int code, bool isWhiteSpace)
+    {
+        var s = ((char)code).ToString();
+
+        string[] sources =
+        [
+            "{% assign x = 'ok' %}[{{ x" + s + "}}]",
+            "{% assign x = 'ok' %}[{{ x" + s + "-}}]",
+            "{% assign x = 'ok' %}[{{" + s + "x }}]",
+            "{% assign x = 'ok' %}[{{ x" + s + "|" + s + "downcase }}]",
+            "[{% if true" + s + "%}ok{% endif %}]",
+            "[{%" + s + "if true %}ok{% endif %}]",
+            "[{% if" + s + "true %}ok{% endif %}]",
+            "[{% if 1" + s + "==" + s + "1 %}ok{% endif %}]",
+            "[{% if true %}ok{%" + s + "endif" + s + "%}]",
+            "[{% if 'abc' contains" + s + "'b' %}ok{% endif %}]",
+            "[{% for i" + s + "in" + s + "(1..1) %}ok{% endfor %}]",
+            "[{% comment %}{%" + s + "endcomment" + s + "%}ok]",
+        ];
+
+        foreach (var allowLiquidTag in new[] { false, true })
+        {
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = allowLiquidTag });
+
+            foreach (var source in sources)
+            {
+                Assert.True(isWhiteSpace == parser.TryParse(source, out var template, out var errors), $"AllowLiquidTag={allowLiquidTag} {source} {errors}");
+
+                if (isWhiteSpace)
+                {
+                    Assert.Equal("[ok]", template.Render());
+                }
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(TagWhiteSpaceChars))]
+    public void ShouldSkipTheSameWhiteSpaceInLiquidTags(int code, bool isWhiteSpace)
+    {
+        // A line can end with any whitespace before its new line, like '\v' in Shopify
+        var s = ((char)code).ToString();
+        var source = "[{% liquid" + s + "assign x = 'ok'" + s + "\n" + s + "echo x" + s + "\n" + s + "%}]";
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+
+        Assert.True(isWhiteSpace == parser.TryParse(source, out var template, out var errors), errors);
+
+        if (isWhiteSpace)
+        {
+            Assert.Equal("[ok]", template.Render());
+        }
+    }
+
+    // Like Shopify, the whitespace control only trims the chars of Ruby's strip, and a text is only blank with the chars
+    // of Ruby's \s: the other spaces are content.
+    private const string UnicodeSpaces = "\u0085\u00A0\u1680\u180E\u2000\u2007\u200A\u200B\u2028\u2029\u202F\u205F\u3000\uFEFF";
+
+    public static TheoryData<int, bool> TrimmedChars()
+    {
+        var data = new TheoryData<int, bool>();
+        foreach (var c in " \t\n\v\f\r\0") data.Add(c, true);
+        foreach (var c in UnicodeSpaces) data.Add(c, false);
+        return data;
+    }
+
+    public static TheoryData<int, bool> BlankChars()
+    {
+        var data = new TheoryData<int, bool>();
+        foreach (var c in " \t\n\v\f\r") data.Add(c, true);
+        foreach (var c in "\0" + UnicodeSpaces) data.Add(c, false);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(TrimmedChars))]
+    public void WhitespaceControlShouldOnlyTrimLiquidWhiteSpace(int code, bool isTrimmed)
+    {
+        var s = ((char)code).ToString();
+        var expected = isTrimmed ? "[x]" : "[" + s + "x" + s + "]";
+
+        Assert.Equal(expected, _parser.Parse("[" + s + "{{- 'x' -}}" + s + "]").Render());
+        Assert.Equal(expected, _parser.Parse("[" + s + "{%- if true -%}x{%- endif -%}" + s + "]").Render());
+
+        var options = new TemplateOptionsBuilder().WithTrimming(TrimmingFlags.OutputLeft | TrimmingFlags.OutputRight).Build();
+        Assert.Equal(expected, _parser.Parse("[" + s + "{{ 'x' }}" + s + "]").Render(new TemplateContext(options)));
+    }
+
+    [Theory]
+    [MemberData(nameof(BlankChars))]
+    public void BlockShouldOnlyBeBlankWithLiquidWhiteSpace(int code, bool isBlank)
+    {
+        var s = ((char)code).ToString();
+        var expected = isBlank ? "[]" : "[" + s + s + "]";
+
+        Assert.Equal(expected, _parser.Parse("[{% if true %}" + s + s + "{% endif %}]").Render());
+        Assert.Equal(expected, _parser.Parse("[{% unless false %}" + s + "{% assign a = 1 %}" + s + "{% endunless %}]").Render());
     }
 }
