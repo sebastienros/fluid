@@ -471,7 +471,7 @@ public class ForStatementTests
     // Like Liquid, a nil offset starts at the first item and a nil limit doesn't limit the items.
     [InlineData("{% for x in (1..3) limit: missing %}{{ x }}{% endfor %}", "123")]
     [InlineData("{% for x in (1..3) offset: missing %}{{ x }}{% endfor %}", "123")]
-    [InlineData("{% for x in (1..3) offset: nil limit: nil reversed %}{{ x }}{% endfor %}", "321")]
+    [InlineData("{% for x in (1..3) reversed offset: nil limit: nil %}{{ x }}{% endfor %}", "321")]
     [InlineData("{% for x in (1..3) offset: 1 limit: missing %}{{ x }}{% endfor %}", "23")]
     public async Task NilLimitAndOffsetAreIgnored(string source, string expected)
     {

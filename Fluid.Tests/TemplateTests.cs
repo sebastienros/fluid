@@ -1311,6 +1311,8 @@ namespace {{ Namespace }} {
     [InlineData("{% if value>= a %}{% endif %}")]
     [InlineData("{% if value< a %}{% endif %}")]
     [InlineData("{% if value> a %}{% endif %}")]
+
+    [InlineData("{% if value contains'1' %}{% endif %}")] // like in Shopify, a word operator can be followed by a string
     public void ShouldParseValidOperators(string source)
     {
         Assert.True(_parser.TryParse(source, out var _, out var _));
@@ -1323,7 +1325,8 @@ namespace {{ Namespace }} {
     [InlineData("{% if value<<<'1' %}{% endif %}")]
     [InlineData("{% if value<=='1' %}{% endif %}")]
     [InlineData("{% if value=>'1' %}{% endif %}")]
-    [InlineData("{% if value contains'1' %}{% endif %}")] // an identifier operator needs a space after it
+    [InlineData("{% if value contains1 %}{% endif %}")] // an identifier operator is a word: "contains1" is not "contains"
+    [InlineData("{% if value containsa %}{% endif %}")]
     public void ShouldNotParseInvalidOperators(string source)
     {
         Assert.False(_parser.TryParse(source, out var _, out var _));

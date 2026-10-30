@@ -37,6 +37,12 @@ public class FluidParser
     protected static readonly Parser<char> Dot = Terms.Char('.'); // Terms.Char skips leading whitespace to allow `foo .bar`
     protected static readonly Parser<char> Pipe = Terms.Char('|');
 
+    // Like '\w' in Shopify's regular expressions. A Liquid word can't be followed by one of these chars: "orb" is not "or".
+    // '-' is not one of them, so a trim marker can follow a word ("{%else-%}"), and "else-x" is "else" like in Shopify.
+    // Parlot's Keyword can't be used yet: only ASCII letters continue a keyword, so "or" would match "or1" or "or_b".
+    private const string WordChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+    private static readonly Parser<TextSpan> WordChar = Literals.AnyOf(WordChars, maxSize: 1);
+
     protected readonly Parser<TextSpan> String;
     protected static readonly Parser<string> DoubleEquals = Terms.Text("==");
     protected static readonly Parser<string> NotEquals = Terms.Text("!=");
@@ -45,11 +51,11 @@ public class FluidParser
     protected static readonly Parser<string> Lower = Terms.Text("<");
     protected static readonly Parser<string> GreaterOr = Terms.Text(">=");
     protected static readonly Parser<string> LowerOr = Terms.Text("<=");
-    protected static readonly Parser<string> Contains = Terms.Text("contains");
-    protected static readonly Parser<string> StartsWith = Terms.Text("startswith");
-    protected static readonly Parser<string> EndsWith = Terms.Text("endswith");
-    protected static readonly Parser<string> BinaryOr = Terms.Text("or");
-    protected static readonly Parser<string> BinaryAnd = Terms.Text("and");
+    protected static readonly Parser<string> Contains = Word("contains");
+    protected static readonly Parser<string> StartsWith = Word("startswith");
+    protected static readonly Parser<string> EndsWith = Word("endswith");
+    protected static readonly Parser<string> BinaryOr = Word("or");
+    protected static readonly Parser<string> BinaryAnd = Word("and");
 
     protected readonly Parser<string> Identifier;
     protected readonly Parser<string> VariableSignature;
@@ -80,6 +86,9 @@ public class FluidParser
     protected readonly Parser<TagResult> TagStart = InlineTagStart;
     protected readonly Parser<TagResult> TagEnd = InlineTagEnd;
 
+    // Like in Shopify, the tags without arguments, like end tags, ignore their markup: {% endif anything %}
+    private readonly Parser<TagResult> _tagEndIgnoringMarkup;
+
     protected static readonly Parser<TagResult> RawOutputStart = NonInlineLiquidTagParsers.OutputTagStart();
     protected static readonly Parser<TagResult> RawTagStart = NonInlineLiquidTagParsers.TagStart();
 
@@ -104,8 +113,11 @@ public class FluidParser
             TagEnd = NoInlineTagEnd;
         }
 
+        _tagEndIgnoringMarkup = TagEnd.Or(AnyCharBefore(TagEnd).SkipAnd(TagEnd));
+
         Identifier = SkipWhiteSpace(new IdentifierParser(parserOptions.AllowTrailingQuestionMark)).Then(x => x.ToString());
-        _tagName = SkipWhiteSpace(OneOf(Literals.Char('#').Then(new TextSpan("#")), new IdentifierParser(parserOptions.AllowTrailingQuestionMark)));
+        // Like in Shopify, a tag name is made of word chars: "{% comment-x %}" is a comment tag.
+        _tagName = SkipWhiteSpace(OneOf(Literals.Char('#').Then(new TextSpan("#")), Literals.AnyOf(WordChars)));
         VariableSignature = SkipWhiteSpace(new VariableSignatureParser()).Then(x => x.ToString());
 
         // Like Liquid, a backslash in a string literal is a plain character unless escape sequences are enabled.
@@ -237,12 +249,12 @@ public class FluidParser
         RegisteredOperators[">="] = (a, b) => new GreaterThanBinaryExpression(a, b, false);
         RegisteredOperators["<="] = (a, b) => new LowerThanBinaryExpression(a, b, false);
 
-        var CaseValueList = Separated(Terms.Text("or").Or(Terms.Text(",")), Primary);
+        var CaseValueList = Separated(BinaryOr.Or(Terms.Text(",")), Primary);
         CaseValueList.Name = "CaseValueList";
 
         // Seek anything that looks like a binary operator (==, !=, <, >, <=, >=, contains, startswith, endswith) then validates it with the registered operators
-        // An "identifier" operator should always be followed by a space so we ensure it's doing it with AndSkip(Literals.WhiteSpace())
-        CombinatoryExpression = Primary.And(OneOf(Terms.AnyOf("=!<>".AsSpan(), maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString())
+        // An identifier reads all the word chars, so "containsx" is not "contains", but like in Shopify "contains" can be followed by a string: x contains"y"
+        CombinatoryExpression = Primary.And(OneOf(Terms.AnyOf("=!<>".AsSpan(), maxSize: 2), Terms.Identifier()).Then(x => x.ToString())
             .When((ctx, s) => RegisteredOperators.ContainsKey(s)).And(Primary).Else(default((string, Expression))))
             .Then(x =>
              {
@@ -254,7 +266,7 @@ public class FluidParser
                  return RegisteredOperators[x.Item2.Item1](x.Item1, x.Item2.Item2);
              }).Named("CombinatoryExpression");
 
-        LogicalExpression = CombinatoryExpression.And(ZeroOrMany(OneOf(Terms.Text("or"), Terms.Text("and")).And(CombinatoryExpression)))
+        LogicalExpression = CombinatoryExpression.And(ZeroOrMany(OneOf(BinaryOr, BinaryAnd).And(CombinatoryExpression)))
             .Then(x =>
             {
                 if (x.Item2.Count == 0)
@@ -335,10 +347,10 @@ public class FluidParser
         Text.Name = "Text";
         Text = TrackStatement(Text);
 
-        var BreakTag = TagEnd.Then<Statement>(x => new BreakStatement()).ElseError("Invalid 'break' tag");
+        var BreakTag = _tagEndIgnoringMarkup.Then<Statement>(x => new BreakStatement()).ElseError("Invalid 'break' tag");
         BreakTag.Name = "BreakTag";
 
-        var ContinueTag = TagEnd.Then<Statement>(x => new ContinueStatement()).ElseError("Invalid 'continue' tag");
+        var ContinueTag = _tagEndIgnoringMarkup.Then<Statement>(x => new ContinueStatement()).ElseError("Invalid 'continue' tag");
         ContinueTag.Name = "ContinueTag";
 
         // Like Shopify, the body of a comment is read as tags, outputs and text, the same way as a template.
@@ -350,7 +362,7 @@ public class FluidParser
         Parser<TextSpan> NamedTag(string name) => Capture(Literals.Text("{%")
             .SkipAnd(ZeroOrOne(Literals.Char('-')))
             .SkipAnd(Literals.AnyOf(" \t\n\v\f\r", minSize: 0))
-            .SkipAnd(Literals.Keyword(name))
+            .SkipAnd(Word(name, skipWhiteSpace: false))
             .SkipAnd(AnyCharBefore(TagClose, canBeEmpty: true, failOnEof: true))
             .SkipAnd(TagClose));
 
@@ -387,7 +399,7 @@ public class FluidParser
             AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true),
             ShopifyCommentBody);
 
-        var CommentTag = TagEnd
+        var CommentTag = _tagEndIgnoringMarkup
                     .SkipAnd(CommentBody)
                     .AndSkip(CreateTag("endcomment").ElseError($"'{{% endcomment %}}' was expected"))
                     .Then<Statement>(x => new CommentStatement(x))
@@ -439,7 +451,7 @@ public class FluidParser
                     ;
         CycleTag.Name = "CycleTag";
 
-        var IfChangedTag = TagEnd
+        var IfChangedTag = _tagEndIgnoringMarkup
                     .And(AnyTagsList)
                     .AndSkip(CreateTag("endifchanged").ElseError($"'{{% endifchanged %}}' was expected"))
                     .Then<Statement>(x => new IfChangedStatement(x.Item2))
@@ -464,8 +476,8 @@ public class FluidParser
         IncludeAssignStatement = TrackStatement(IncludeAssignStatement, skipLeadingWhitespace: true);
 
         var IncludeTag = OneOf(
-                    Primary.AndSkip(Terms.Text("with")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Optional()).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional()).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3.HasValue ? x.Item3.Value : null, assignStatements: x.Item4.HasValue ? x.Item4.Value : [])),
-                    Primary.AndSkip(Terms.Text("for")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Optional()).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional()).Then(x => new IncludeStatement(this, x.Item1, @for: x.Item2, alias: x.Item3.HasValue ? x.Item3.Value : null, assignStatements: x.Item4.HasValue ? x.Item4.Value : [])),
+                    Primary.AndSkip(Word("with")).And(Primary).And(Word("as").SkipAnd(Identifier).Optional()).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional()).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3.HasValue ? x.Item3.Value : null, assignStatements: x.Item4.HasValue ? x.Item4.Value : [])),
+                    Primary.AndSkip(Word("for")).And(Primary).And(Word("as").SkipAnd(Identifier).Optional()).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional()).Then(x => new IncludeStatement(this, x.Item1, @for: x.Item2, alias: x.Item3.HasValue ? x.Item3.Value : null, assignStatements: x.Item4.HasValue ? x.Item4.Value : [])),
                     Primary
                         .And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional())
                         .AndSkip(Comma.Optional())
@@ -477,7 +489,7 @@ public class FluidParser
         IncludeTag.Name = "IncludeTag";
 
         var FromTag = OneOf(
-                    Primary.AndSkip(Terms.Text("import")).And(Separated(Comma, Identifier)).Then(x => new FromStatement(this, x.Item1, x.Item2)),
+                    Primary.AndSkip(Word("import")).And(Separated(Comma, Identifier)).Then(x => new FromStatement(this, x.Item1, x.Item2)),
                     Primary.Then(x => new FromStatement(this, x))
                     ).AndSkip(TagEnd)
                     .Then<Statement>(x => x)
@@ -486,8 +498,8 @@ public class FluidParser
         FromTag.Name = "FromTag";
 
         var RenderTag = OneOf(
-                    String.AndSkip(Terms.Text("with")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Optional()).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional()).Then(x => new RenderStatement(this, x.Item1.ToString(), with: x.Item2, alias: x.Item3.HasValue ? x.Item3.Value : null, assignStatements: x.Item4.HasValue ? x.Item4.Value : [])),
-                    String.AndSkip(Terms.Text("for")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Optional()).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional()).Then(x => new RenderStatement(this, x.Item1.ToString(), @for: x.Item2, alias: x.Item3.HasValue ? x.Item3.Value : null, assignStatements: x.Item4.HasValue ? x.Item4.Value : [])),
+                    String.AndSkip(Word("with")).And(Primary).And(Word("as").SkipAnd(Identifier).Optional()).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional()).Then(x => new RenderStatement(this, x.Item1.ToString(), with: x.Item2, alias: x.Item3.HasValue ? x.Item3.Value : null, assignStatements: x.Item4.HasValue ? x.Item4.Value : [])),
+                    String.AndSkip(Word("for")).And(Primary).And(Word("as").SkipAnd(Identifier).Optional()).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional()).Then(x => new RenderStatement(this, x.Item1.ToString(), @for: x.Item2, alias: x.Item3.HasValue ? x.Item3.Value : null, assignStatements: x.Item4.HasValue ? x.Item4.Value : [])),
                     String.And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional()).Then(x => new RenderStatement(this, x.Item1.ToString(), null, null, null, x.Item2.HasValue ? x.Item2.Value : []))
                     ).ElseError(ErrorMessages.ExpectedStringRender).AndSkip(TagEnd)
                     .Then<Statement>(x => x)
@@ -495,17 +507,17 @@ public class FluidParser
                     ;
         RenderTag.Name = "RenderTag";
 
-        var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), canBeEmpty: true, consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
+        var RawTag = _tagEndIgnoringMarkup.SkipAnd(AnyCharBefore(CreateTag("endraw"), canBeEmpty: true, consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
         RawTag.Name = "RawTag";
 
         var AssignTag = VariableSignature.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter)).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
         AssignTag.Name = "AssignTag";
 
         // Lenient else tag: matches {% else %} or {% else anything %} (extra content is ignored)
-        var ElseTagLenient = TagStart.SkipAnd(Terms.Text("else")).SkipAnd(AnyCharBefore(TagEnd, canBeEmpty: true)).AndSkip(TagEnd);
+        var ElseTagLenient = CreateTag("else");
 
         // Elsif tag for capturing stray elsif blocks (after else, they should be ignored)
-        var ElsifTagCapture = TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(AnyCharBefore(TagEnd, canBeEmpty: true)).AndSkip(TagEnd);
+        var ElsifTagCapture = CreateTag("elsif");
 
         // Content that can follow an else block - includes regular content plus any stray else/elsif blocks
         // This ensures that {% else %}content{% elsif %}more{% else %}even_more is all captured, 
@@ -525,7 +537,7 @@ public class FluidParser
             });
 
         var ElseIfBranch = TrackStatement(
-            TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(AnyTagsList)
+            TagStart.SkipAnd(Word("elsif")).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(AnyTagsList)
                 .Then(x => new ElseIfStatement(x.Item1, x.Item2)), skipLeadingWhitespace: true);
 
         var IfTag = LogicalExpression
@@ -549,7 +561,7 @@ public class FluidParser
         UnlessTag.Name = "UnlessTag";
 
         // Parser for optional comment tags only (used between case blocks)
-        var OptionalComment = TagStart.SkipAnd(Terms.Text("comment")).SkipAnd(TagEnd)
+        var OptionalComment = CreateTag("comment")
             .SkipAnd(CommentBody)
             .AndSkip(CreateTag("endcomment"))
             .Then<Statement>(x => new CommentStatement(x));
@@ -560,7 +572,7 @@ public class FluidParser
         // Parse a single when or else block
         // After parsing the case value list, skip any unexpected content until %} (like 'and' which is not valid in when)
         // This matches Shopify Liquid's behavior where unexpected tokens are ignored
-        var WhenBlock = TagStart.AndSkip(Terms.Text("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(AnyCharBefore(TagEnd, canBeEmpty: true)).AndSkip(TagEnd).And(AnyTagsList)
+        var WhenBlock = TagStart.AndSkip(Word("when")).And(CaseValueList.ElseError("Invalid 'when' tag")).AndSkip(AnyCharBefore(TagEnd, canBeEmpty: true)).AndSkip(TagEnd).And(AnyTagsList)
             .Then<CaseBlock>(x => new WhenBlock(x.Item2, x.Item3));
 
         var ElseBlock = CreateTag("else").SkipAnd(AnyTagsList)
@@ -575,18 +587,31 @@ public class FluidParser
                    .ElseError("Invalid 'case' tag");
         CaseTag.Name = "CaseTag";
 
+        // Like in Shopify, "in" is followed by whitespace: "{% for i in(1..3) %}" is invalid.
+        var In = Terms.Text("in").AndSkip(Literals.WhiteSpace(includeNewLines: true));
+
+        // Like in Shopify, the "name: value" attributes of a loop are read anywhere after its collection, and anything else is ignored,
+        // like "foo", "limitx: 2" and the commas in "{% for i in items foo, limitx: 2, limit: 3 %}".
+        var IgnoredLoopMarkup = OneOf(
+            Identifier.AndSkip(Colon).AndSkip(Primary),
+            Literals.Pattern(static _ => true, maxSize: 1).Then(static _ => default(string)));
+
+        // Reads the attributes of a loop and the end of its tag, which most often comes right after the collection.
+        Parser<IReadOnlyList<T>> LoopAttributes<T>(Parser<T> attributes) =>
+            TagEnd.Then<IReadOnlyList<T>>(static _ => []).Or(
+                ZeroOrMany(Not(TagEnd).SkipAnd(attributes.Or(IgnoredLoopMarkup.Then(static _ => default(T))))).AndSkip(TagEnd));
+
+        // Like in Shopify, "reversed" is only read right after the collection, even when it starts a longer word ("reversedx").
+        var Reversed = Always(true).WhenFollowedBy(Terms.Text("reversed")).Else(false);
+
         var ForTag = Identifier
-                        .AndSkip(Terms.Text("in"))
+                        .AndSkip(In)
                         .And(Primary)
-                        .And(ZeroOrMany(
-                            Comma.Optional()
-                            .SkipAnd(OneOf( // Use * since each can appear in any order. Validation is done once it's parsed
-                                Terms.Text("reversed").Then(x => new ForModifier { IsReversed = true }),
-                                Terms.Text("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsLimit = true, Value = x }),
-                                Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
-                            ))))
-                        .AndSkip(Comma.Optional())
-                        .AndSkip(TagEnd)
+                        .And(Reversed)
+                        .And(LoopAttributes(OneOf(
+                            Word("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsLimit = true, Value = x }),
+                            Word("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
+                            )))
                         .And(AnyTagsList)
                         .And(TrackStatement(
                             CreateTag("else").SkipAnd(AnyTagsList).Then(x => new ElseStatement(x)),
@@ -596,55 +621,35 @@ public class FluidParser
                         {
                             var identifier = x.Item1;
                             var source = x.Item2;
-                            var statements = x.Item4;
-                            var elseStatement = x.Item5;
-                            var (limitResult, offsetResult, reversed) = ReadForStatementConfiguration(x.Item3);
+                            var reversed = x.Item3;
+                            var statements = x.Item5;
+                            var elseStatement = x.Item6;
+                            var (limitResult, offsetResult) = ReadForStatementConfiguration(x.Item4);
                             return new ForStatement(statements, identifier, source, limitResult, offsetResult, reversed, elseStatement);
                         })
                     .ElseError("Invalid 'for' tag");
         ForTag.Name = "ForTag";
 
-        var TableRowTag = OneOf(
-                        Identifier
-                        .AndSkip(Terms.Text("in"))
-                        .And(Member)
-                        .And(ZeroOrMany(OneOf(
-                            Terms.Text("cols").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsCols = true, Value = x }),
-                            Terms.Text("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsLimit = true, Value = x }),
-                            Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsOffset = true, Value = x })
+        // Like in Shopify, "reversed" is ignored by a tablerow tag.
+        var TableRowTag = Identifier
+                        .AndSkip(In)
+                        .And(Member.Then<Expression>(static x => x).Or(Range))
+                        .And(LoopAttributes(OneOf(
+                            Word("cols").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsCols = true, Value = x }),
+                            Word("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsLimit = true, Value = x }),
+                            Word("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsOffset = true, Value = x })
                             )))
-                        .AndSkip(TagEnd)
                         .And(AnyTagsList)
                         .AndSkip(CreateTag("endtablerow").ElseError($"'{{% endtablerow %}}' was expected"))
                         .Then<Statement>(x =>
                         {
                             var identifier = x.Item1;
-                            var member = x.Item2;
+                            var collection = x.Item2;
                             var statements = x.Item4;
                             var (colsResult, limitResult, offsetResult) = ReadTableRowStatementConfiguration(x.Item3);
-                            return new TableRowStatement(statements, identifier, member, limitResult, offsetResult, colsResult);
-                        }),
-
-                        Identifier
-                        .AndSkip(Terms.Text("in"))
-                        .And(Range)
-                        .And(ZeroOrMany(OneOf(
-                            Terms.Text("cols").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsCols = true, Value = x }),
-                            Terms.Text("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsLimit = true, Value = x }),
-                            Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsOffset = true, Value = x })
-                            )))
-                        .AndSkip(TagEnd)
-                        .And(AnyTagsList)
-                        .AndSkip(CreateTag("endtablerow").ElseError($"'{{% endtablerow %}}' was expected"))
-                        .Then<Statement>(x =>
-                        {
-                            var identifier = x.Item1;
-                            var range = x.Item2;
-                            var statements = x.Item4;
-                            var (colsResult, limitResult, offsetResult) = ReadTableRowStatementConfiguration(x.Item3);
-                            return new TableRowStatement(statements, identifier, range, limitResult, offsetResult, colsResult);
+                            return new TableRowStatement(statements, identifier, collection, limitResult, offsetResult, colsResult);
                         })
-                    ).ElseError("Invalid 'tablerow' tag");
+                    .ElseError("Invalid 'tablerow' tag");
         TableRowTag.Name = "TableRowTag";
 
         Parser<Statement> LiquidChild = _liquidRegisteredTag;
@@ -709,19 +714,18 @@ public class FluidParser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static (Expression limitResult, Expression offsetResult, bool reversed) ReadForStatementConfiguration(IReadOnlyList<ForModifier> modifiers)
+        static (Expression limitResult, Expression offsetResult) ReadForStatementConfiguration(IReadOnlyList<ForModifier> modifiers)
         {
             if (modifiers.Count == 0)
             {
-                return (null, null, false);
+                return (null, null);
             }
 
             // take slower route when needed
-            static (Expression limitResult, Expression offsetResult, bool reversed) ReadFromList(IReadOnlyList<ForModifier> modifiers)
+            static (Expression limitResult, Expression offsetResult) ReadFromList(IReadOnlyList<ForModifier> modifiers)
             {
                 Expression limitResult = null;
                 Expression offsetResult = null;
-                var reversed = false;
                 for (var i = modifiers.Count - 1; i > -1; --i)
                 {
                     var l = modifiers[i];
@@ -734,11 +738,9 @@ public class FluidParser
                     {
                         offsetResult = l.Value;
                     }
-
-                    reversed |= l.IsReversed;
                 }
 
-                return (limitResult, offsetResult, reversed);
+                return (limitResult, offsetResult);
             }
 
 
@@ -797,7 +799,18 @@ public class FluidParser
         }).SkipAnd(KnownTagsList).AndSkip(Eof().ElseError(ErrorMessages.UnexpectedTrailingInput));
     }
 
-    public Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
+    /// <summary>
+    /// Creates a parser for a tag without arguments, like an end tag. Like in Shopify, the tag ignores anything after its name: {% endif anything %}
+    /// </summary>
+    public Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Word(tagName)).AndSkip(_tagEndIgnoringMarkup);
+
+    /// <summary>
+    /// Matches a Liquid word, like an operator, a tag argument or a tag name, when no word char ([A-Za-z0-9_]) follows it: "or" doesn't match "orb".
+    /// </summary>
+    /// <param name="word">The word to match.</param>
+    /// <param name="skipWhiteSpace">Whether the whitespace before the word is skipped.</param>
+    protected static Parser<string> Word(string word, bool skipWhiteSpace = true)
+        => (skipWhiteSpace ? Terms.Text(word) : Literals.Text(word)).WhenNotFollowedBy(WordChar);
 
     /// <summary>
     /// Creates the statement of a text, with the trimming requested by the delimiters around it: a text is always
