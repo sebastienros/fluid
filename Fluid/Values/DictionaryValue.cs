@@ -115,7 +115,8 @@ public sealed class DictionaryValue : FluidValue
 
     public override decimal ToNumberValue(TemplateContext context)
     {
-        return _value.Count;
+        // Like Liquid, a value that isn't a number is 0.
+        return 0;
     }
 
     public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)

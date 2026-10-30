@@ -2,6 +2,7 @@ using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Fluid.Tests;
@@ -313,5 +314,24 @@ public class NumberFiltersTests
         var exception = Assert.Throws<ArgumentOutOfRangeException>(() => NumberFilters.Random(input, arguments, context));
 
         Assert.Equal("arguments", exception.ParamName);
+    }
+
+    [Theory]
+    // Like Liquid, a decimal string is parsed as is and anything else is read from its leading digits, like Ruby's String#to_i.
+    [InlineData("{{ '12abc' | plus: 0 }}|{{ '1-' | plus: 0 }}|{{ '1e2' | plus: 0 }}|{{ '3.5kg' | times: 2 }}|{{ '-' | plus: 0 }}", "12|1|1|6|0")]
+    [InlineData("{{ ' 7 ' | plus: 1 }}|{{ '+5' | plus: 0 }}|{{ '1_000' | plus: 0 }}|{{ '1__0' | plus: 0 }}|{{ '_1' | plus: 0 }}", "8|5|1000|1|0")]
+    [InlineData("{{ ' 2.5 ' | plus: 1 }}|{{ '-1.5' | plus: 0 }}|{{ '+1.5' | plus: 0 }}|{{ '1.5.2' | plus: 0 }}|{{ '2.50' | plus: 0 }}", "3.5|-1.5|1|1|2.5")]
+    [InlineData("{{ 'abc' | plus: 0 }}|{{ '' | plus: 0 }}|{{ '0x10' | plus: 0 }}|{{ '$5' | plus: 0 }}|{{ '1,000' | plus: 0 }}", "0|0|0|0|1")]
+    [InlineData("{{ '3:' | ceil }}|{{ '12abc' | at_least: 5 }}|{{ '99999999999999999999999999999999' | plus: 0 }}", "3|12|79228162514264337593543950335")]
+    // Like Liquid, values that aren't numbers or strings are 0.
+    [InlineData("{{ a | plus: 0 }}|{{ h | times: 1 }}|{{ (1..5) | plus: 0 }}|{{ true | plus: 0 }}|{{ false | plus: 1 }}", "0|0|0|0|1")]
+    [InlineData("{{ 1 | plus: a }}|{{ 1 | at_least: a }}|{{ a | ceil }}", "1|1|0")]
+    public async Task ConvertsValuesToNumbersLikeLiquid(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("a", new[] { 1, 2, 3 });
+        context.SetValue("h", new Dictionary<string, object> { ["k"] = 1 });
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
     }
 }

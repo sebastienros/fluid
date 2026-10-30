@@ -133,7 +133,8 @@ public sealed class ArrayValue : FluidValue, IFluidArray
 
     public override decimal ToNumberValue(TemplateContext context)
     {
-        return Values.Count;
+        // Like Liquid, a value that isn't a number is 0.
+        return 0;
     }
 
     public IReadOnlyList<FluidValue> Values { get; }

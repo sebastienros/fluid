@@ -50,7 +50,8 @@ public sealed class BooleanValue : FluidValue
 
     public override decimal ToNumberValue(TemplateContext context)
     {
-        return _value ? 1 : 0;
+        // Like Liquid, a value that isn't a number is 0.
+        return 0;
     }
 
     public override string ToStringValue(TemplateContext context)
