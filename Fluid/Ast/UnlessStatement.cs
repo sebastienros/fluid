@@ -46,6 +46,13 @@ public sealed class UnlessStatement : TagStatement, ISourceable
                 }
             }
         }
+
+        Else?.SetEnclosingTagIsBlank(_isWhitespaceOrCommentOnly);
+
+        for (var i = 0; i < ElseIfs.Count; i++)
+        {
+            ElseIfs[i].SetEnclosingTagIsBlank(_isWhitespaceOrCommentOnly);
+        }
     }
 
     public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
@@ -109,12 +116,6 @@ public sealed class UnlessStatement : TagStatement, ISourceable
 
                 if (elseIfResult)
                 {
-                    if (elseIf.IsWhitespaceOrCommentOnly)
-                    {
-                        // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
-                        // ElseIfStatement.WriteToAsync handles this logic internally now
-                    }
-
                     return await elseIf.WriteToAsync(output, encoder, context);
                 }
             }

@@ -48,6 +48,13 @@ public sealed class IfStatement : TagStatement, ISourceable
                 }
             }
         }
+
+        Else?.SetEnclosingTagIsBlank(_isWhitespaceOrCommentOnly);
+
+        for (var i = 0; i < ElseIfs.Count; i++)
+        {
+            ElseIfs[i].SetEnclosingTagIsBlank(_isWhitespaceOrCommentOnly);
+        }
     }
 
     public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
