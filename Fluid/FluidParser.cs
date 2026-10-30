@@ -75,9 +75,9 @@ public class FluidParser
     protected static readonly Parser<TagResult> InlineTagEnd = TagParsers.TagEnd();
 
     protected static readonly Parser<TagResult> NoInlineOutputStart = NonInlineLiquidTagParsers.OutputTagStart();
-    protected static readonly Parser<TagResult> NoInlineOutputEnd = SkipWhiteSpace(NonInlineLiquidTagParsers.OutputTagEnd());
+    protected static readonly Parser<TagResult> NoInlineOutputEnd = LiquidWhiteSpace.Skip.SkipAnd(NonInlineLiquidTagParsers.OutputTagEnd());
     protected static readonly Parser<TagResult> NoInlineTagStart = NonInlineLiquidTagParsers.TagStart();
-    protected static readonly Parser<TagResult> NoInlineTagEnd = SkipWhiteSpace(NonInlineLiquidTagParsers.TagEnd());
+    protected static readonly Parser<TagResult> NoInlineTagEnd = LiquidWhiteSpace.Skip.SkipAnd(NonInlineLiquidTagParsers.TagEnd());
 
     protected readonly Parser<TagResult> OutputStart = InlineOutputStart;
     protected readonly Parser<TagResult> OutputEnd = InlineOutputEnd;
@@ -359,7 +359,7 @@ public class FluidParser
         // A tag named 'name', from '{%' to the first '%}', e.g. '{%- name anything -%}'.
         Parser<TextSpan> NamedTag(string name) => Capture(Literals.Text("{%")
             .SkipAnd(ZeroOrOne(Literals.Char('-')))
-            .SkipAnd(Literals.AnyOf(" \t\n\v\f\r", minSize: 0))
+            .SkipAnd(LiquidWhiteSpace.Skip)
             .SkipAnd(Word(name, skipWhiteSpace: false))
             .SkipAnd(AnyCharBefore(TagClose, canBeEmpty: true, failOnEof: true))
             .SkipAnd(TagClose));
@@ -658,7 +658,7 @@ public class FluidParser
             LiquidChild = TrackStatement(TagStart.SkipAnd(LiquidChild), skipLeadingWhitespace: true);
         }
 
-        var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
+        var LiquidTag = LiquidWhiteSpace.Required // {% liquid %} can start with new lines
             .Then((context, x) =>
             {
                 var ctx = (FluidParseContext)context;
@@ -925,7 +925,7 @@ public class FluidParser
             if (skipLeadingWhitespace)
             {
                 var buffer = context.Scanner.Buffer;
-                while (start < end && Character.IsWhiteSpaceOrNewLine(buffer[start]))
+                while (start < end && LiquidWhiteSpace.IsWhiteSpace(buffer[start]))
                 {
                     start++;
                 }

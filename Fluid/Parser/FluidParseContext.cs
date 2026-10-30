@@ -7,6 +7,7 @@ public class FluidParseContext : ParseContext
 {
     public FluidParseContext(string text) : base(new Scanner(text))
     {
+        WhiteSpaceParser = LiquidWhiteSpace.Skip;
     }
 
     public string PreviousRenderTag { get; set; }

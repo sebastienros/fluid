@@ -375,12 +375,13 @@ Wow, John G. Chalmers-Smith, you have a long name!";
     }
 
     [Fact]
-    public void ShouldParseNonBreakingWhitespace()
+    public void ShouldNotSkipNonBreakingSpaceInOutputs()
     {
+        // Like Shopify, a non-breaking space isn't whitespace in an output: it is content around it
         var c = (char)160;
 
-        Assert.True(_parser.TryParse("{{" + c + "'a'" + c + "}}", out var template, out var errors));
-        Assert.Equal("a", template.Render());
+        Assert.False(_parser.TryParse("{{" + c + "'a'" + c + "}}", out _, out _));
+        Assert.Equal("a" + c, _parser.Parse("{{ 'a' }}" + c).Render());
     }
 
     [Theory]
@@ -414,10 +415,10 @@ Wow, John G. Chalmers-Smith, you have a long name!";
         Assert.Equal(expected, result);
     }
 
-    // Both parser modes skip Parlot's whitespace in tags and outputs: the chars of Ruby's \s, which are the only ones
-    // Shopify skips, and the Unicode spaces (Fluid accepts a non-breaking space since #138).
-    private const string TagWhiteSpace = " \t\n\v\f\r\u00A0\u1680\u180E\u2000\u2007\u200A\u202F\u205F\u3000\uFEFF";
-    private const string NotTagWhiteSpace = "\u0085\u200B\u2028\u2029";
+    // Like Shopify, both parser modes only skip the chars of Ruby's \s in tags and outputs: the Unicode spaces are
+    // like any other char.
+    private const string TagWhiteSpace = " \t\n\v\f\r";
+    private const string NotTagWhiteSpace = "\u0085\u00A0\u1680\u180E\u2000\u2007\u200A\u200B\u2028\u2029\u202F\u205F\u3000\uFEFF";
 
     public static TheoryData<int, bool> TagWhiteSpaceChars()
     {
@@ -444,6 +445,8 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             "[{% if" + s + "true %}ok{% endif %}]",
             "[{% if 1" + s + "==" + s + "1 %}ok{% endif %}]",
             "[{% if true %}ok{%" + s + "endif" + s + "%}]",
+            "[{% if 'abc' contains" + s + "'b' %}ok{% endif %}]",
+            "[{% comment %}{%" + s + "endcomment" + s + "%}ok]",
         ];
 
         foreach (var allowLiquidTag in new[] { false, true })
@@ -459,6 +462,23 @@ Wow, John G. Chalmers-Smith, you have a long name!";
                     Assert.Equal("[ok]", template.Render());
                 }
             }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(TagWhiteSpaceChars))]
+    public void ShouldSkipTheSameWhiteSpaceInLiquidTags(int code, bool isWhiteSpace)
+    {
+        // A line can end with any whitespace before its new line, like '\v' in Shopify
+        var s = ((char)code).ToString();
+        var source = "[{% liquid" + s + "assign x = 'ok'" + s + "\n" + s + "echo x" + s + "\n" + s + "%}]";
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+
+        Assert.True(isWhiteSpace == parser.TryParse(source, out var template, out var errors), errors);
+
+        if (isWhiteSpace)
+        {
+            Assert.Equal("[ok]", template.Render());
         }
     }
 

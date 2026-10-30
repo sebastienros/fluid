@@ -1631,7 +1631,9 @@ Outputs:
 
 ### Whitespace characters
 
-In tags and outputs, Fluid skips spaces, tabs, new lines, `\v` and `\f`, like Shopify, and the Unicode spaces such as the no-break space (U+00A0), which Shopify doesn't skip. The line and paragraph separators U+0085, U+2028 and U+2029 are not whitespace in a tag or an output. Both parser modes (with and without `AllowLiquidTag`) skip the same whitespace.
+Like Shopify, Fluid only skips spaces, tabs, new lines (`\n`, `\r`), `\v` and `\f` in tags and outputs, with or without `AllowLiquidTag`. The other Unicode spaces, such as the no-break space (U+00A0), are like any other char such as `@`: `{{<U+00A0>name }}` and `{% if a<U+00A0>%}` are syntax errors, where Shopify's lax mode ignores the char in an output and reads it as part of the value in a tag.
+
+> **Breaking change:** Fluid used to skip the no-break space and most Unicode spaces in tags and outputs. Templates edited in a rich text editor can contain no-break spaces: replace them with spaces.
 
 In the text around tags and outputs, the hyphens and the `WithTrimming()` options only strip spaces, tabs, new lines, `\v`, `\f` and NUL (like Ruby's `strip`), and only spaces, tabs, new lines, `\v` and `\f` make a block blank. A no-break space or another Unicode space is content: it is rendered, like in Shopify.
 

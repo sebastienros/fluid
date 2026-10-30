@@ -58,15 +58,15 @@ public static class TagParsers
     /// </summary>
     public static Parser<TagResult> TagEnd() => If<FluidParseContext, TagResult>(static context => context.LiquidTagDepth > 0,
         LiquidTagLineEnd(),
-        SkipWhiteSpace(NonInlineLiquidTagParsers.TagEnd()));
+        LiquidWhiteSpace.Skip.SkipAnd(NonInlineLiquidTagParsers.TagEnd()));
 
     public static Parser<TagResult> OutputTagStart() => NonInlineLiquidTagParsers.OutputTagStart();
-    public static Parser<TagResult> OutputTagEnd() => SkipWhiteSpace(NonInlineLiquidTagParsers.OutputTagEnd());
+    public static Parser<TagResult> OutputTagEnd() => LiquidWhiteSpace.Skip.SkipAnd(NonInlineLiquidTagParsers.OutputTagEnd());
 
     // A tag of a liquid tag ends with its line, or before the '%}' which ends the liquid tag, without reading it.
     private static Parser<TagResult> LiquidTagLineEnd() => OneOf(
-        Literals.WhiteSpace().Optional().SkipAnd(OneOrMany(OneOf(Literals.Text("\n"), Literals.Text("\r\n")))).Then(TagResult.TagClose),
-        Always(TagResult.TagClose).WhenFollowedBy(Literals.WhiteSpace().Optional().SkipAnd(NonInlineLiquidTagParsers.TagEnd())));
+        LiquidWhiteSpace.SkipLine.SkipAnd(OneOrMany(OneOf(Literals.Text("\n"), Literals.Text("\r\n")))).Then(TagResult.TagClose),
+        Always(TagResult.TagClose).WhenFollowedBy(LiquidWhiteSpace.SkipLine.SkipAnd(NonInlineLiquidTagParsers.TagEnd())));
 }
 
 public static class NonInlineLiquidTagParsers
