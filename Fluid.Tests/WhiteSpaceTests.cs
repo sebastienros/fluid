@@ -446,6 +446,7 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             "[{% if 1" + s + "==" + s + "1 %}ok{% endif %}]",
             "[{% if true %}ok{%" + s + "endif" + s + "%}]",
             "[{% if 'abc' contains" + s + "'b' %}ok{% endif %}]",
+            "[{% for i" + s + "in" + s + "(1..1) %}ok{% endfor %}]",
             "[{% comment %}{%" + s + "endcomment" + s + "%}ok]",
         ];
 

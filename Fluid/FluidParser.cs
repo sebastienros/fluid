@@ -75,9 +75,9 @@ public class FluidParser
     protected static readonly Parser<TagResult> InlineTagEnd = TagParsers.TagEnd();
 
     protected static readonly Parser<TagResult> NoInlineOutputStart = NonInlineLiquidTagParsers.OutputTagStart();
-    protected static readonly Parser<TagResult> NoInlineOutputEnd = LiquidWhiteSpace.Skip.SkipAnd(NonInlineLiquidTagParsers.OutputTagEnd());
+    protected static readonly Parser<TagResult> NoInlineOutputEnd = SkipWhiteSpace(NonInlineLiquidTagParsers.OutputTagEnd());
     protected static readonly Parser<TagResult> NoInlineTagStart = NonInlineLiquidTagParsers.TagStart();
-    protected static readonly Parser<TagResult> NoInlineTagEnd = LiquidWhiteSpace.Skip.SkipAnd(NonInlineLiquidTagParsers.TagEnd());
+    protected static readonly Parser<TagResult> NoInlineTagEnd = SkipWhiteSpace(NonInlineLiquidTagParsers.TagEnd());
 
     protected readonly Parser<TagResult> OutputStart = InlineOutputStart;
     protected readonly Parser<TagResult> OutputEnd = InlineOutputEnd;
@@ -359,8 +359,7 @@ public class FluidParser
         // A tag named 'name', from '{%' to the first '%}', e.g. '{%- name anything -%}'.
         Parser<TextSpan> NamedTag(string name) => Capture(Literals.Text("{%")
             .SkipAnd(ZeroOrOne(Literals.Char('-')))
-            .SkipAnd(LiquidWhiteSpace.Skip)
-            .SkipAnd(Word(name, skipWhiteSpace: false))
+            .SkipAnd(Word(name))
             .SkipAnd(AnyCharBefore(TagClose, canBeEmpty: true, failOnEof: true))
             .SkipAnd(TagClose));
 
@@ -658,7 +657,7 @@ public class FluidParser
             LiquidChild = TrackStatement(TagStart.SkipAnd(LiquidChild), skipLeadingWhitespace: true);
         }
 
-        var LiquidTag = LiquidWhiteSpace.Required // {% liquid %} can start with new lines
+        var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
             .Then((context, x) =>
             {
                 var ctx = (FluidParseContext)context;
@@ -806,9 +805,7 @@ public class FluidParser
     /// Matches a Liquid word, like an operator, a tag argument or a tag name, when no word char ([A-Za-z0-9_]) follows it: "or" doesn't match "orb".
     /// </summary>
     /// <param name="word">The word to match.</param>
-    /// <param name="skipWhiteSpace">Whether the whitespace before the word is skipped.</param>
-    protected static Parser<string> Word(string word, bool skipWhiteSpace = true)
-        => (skipWhiteSpace ? Terms.Text(word) : Literals.Text(word)).WhenNotFollowedBy(WordChar);
+    protected static Parser<string> Word(string word) => Terms.Text(word).WhenNotFollowedBy(WordChar);
 
     /// <summary>
     /// Creates the statement of a text, with the trimming requested by the delimiters around it: a text is always
