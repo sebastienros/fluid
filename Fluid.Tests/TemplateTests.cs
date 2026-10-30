@@ -1578,4 +1578,20 @@ after
         Assert.Contains("a is false", result);
         Assert.Contains("b is true", result);
     }
+
+    [Theory]
+    // Like Liquid, indexing a number in a template finds nothing.
+    [InlineData("{{ i[0] }}|{{ i[1] }}|{{ i[2] }}", "||")]
+    [InlineData("{{ i['x'] }}|{{ i[missing] }}|{{ f[0] }}", "||")]
+    [InlineData("{% if i[0] %}y{% else %}n{% endif %}", "n")]
+    // Filters still index the items directly, like Ruby's Integer#[].
+    [InlineData("{{ 2 | map: 1 }}", "1")]
+    public async Task NumbersHaveNoIndexedItems(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("i", 5);
+        context.SetValue("f", 2.5);
+
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(context));
+    }
 }

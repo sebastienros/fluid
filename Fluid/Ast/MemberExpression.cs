@@ -324,7 +324,7 @@ public sealed class MemberExpression : Expression, ISynchronousSourceable
                     {
                         var indexExpr = context.GetExpressionMethodName(idx.Expression);
                         context.WriteLine($"var indexValue = await {indexExpr}({context.ContextName});");
-                        context.WriteLine($"value = await value.GetIndexAsync(indexValue, {context.ContextName});");
+                        context.WriteLine($"value = value is NumberValue ? NilValue.Instance : await value.GetIndexAsync(indexValue, {context.ContextName});");
                         context.WriteLine("if (value.IsNil())");
                         context.WriteLine("{");
                         using (context.Indent())

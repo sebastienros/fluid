@@ -144,7 +144,8 @@ public class TableRowStatementTests
         context.SetValue("items", System.Array.Empty<int>());
         await e.WriteToAsync(sw, HtmlEncoder.Default, context);
 
-        Assert.Equal("", sw.ToString());
+        // Like Liquid, an empty collection still renders the first row.
+        Assert.Equal("<tr class=\"row1\">\n</tr>\n", sw.ToString());
     }
 
     [Fact]
@@ -298,5 +299,22 @@ public class TableRowStatementTests
         var result = await template.RenderAsync();
 
         Assert.Equal("<tr class=\"row1\">\n<td class=\"col1\">1</td><td class=\"col2\">1</td></tr>\n<tr class=\"row2\"><td class=\"col1\">2</td><td class=\"col2\">2</td></tr>\n", result);
+    }
+
+    [Theory]
+    // Like Liquid, a collection without items renders an empty row, and nil renders nothing.
+    [InlineData("[{% tablerow i in empty %}{{ i }}{% endtablerow %}]", "[<tr class=\"row1\">\n</tr>\n]")]
+    [InlineData("[{% tablerow i in empty_string %}{{ i }}{% endtablerow %}]", "[<tr class=\"row1\">\n</tr>\n]")]
+    [InlineData("[{% tablerow i in (5..3) %}{{ i }}{% endtablerow %}]", "[<tr class=\"row1\">\n</tr>\n]")]
+    [InlineData("[{% tablerow i in (1..3) limit: 0 %}{{ i }}{% endtablerow %}]", "[<tr class=\"row1\">\n</tr>\n]")]
+    [InlineData("[{% tablerow i in (1..3) offset: 5 cols: 2 %}{{ i }}{% endtablerow %}]", "[<tr class=\"row1\">\n</tr>\n]")]
+    [InlineData("[{% tablerow i in missing %}{{ i }}{% endtablerow %}]", "[]")]
+    public async Task EmptyCollectionsRenderAnEmptyRow(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("empty", System.Array.Empty<int>());
+        context.SetValue("empty_string", "");
+
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(context));
     }
 }
