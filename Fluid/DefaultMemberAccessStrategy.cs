@@ -74,7 +74,7 @@ public class DefaultMemberAccessStrategy : MemberAccessStrategy
         var registrations = _registrations;
         var generatedRegistrations = _generatedRegistrations;
 
-        if (TryGetRegisteredAccessor(registrations, type, name, out var accessor))
+        if (TryGetRegisteredAccessor(registrations, type, name, stringComparer, out var accessor))
         {
             return accessor;
         }
@@ -111,10 +111,18 @@ public class DefaultMemberAccessStrategy : MemberAccessStrategy
         Dictionary<AccessorKey, MemberAccessor> registrations,
         Type type,
         string name,
+        StringComparer stringComparer,
         out MemberAccessor accessor)
     {
-        return registrations.TryGetValue(new AccessorKey(type, name), out accessor)
-            || registrations.TryGetValue(new AccessorKey(type, "*"), out accessor);
+        if (registrations.TryGetValue(new AccessorKey(type, name), out accessor)
+            || registrations.TryGetValue(new AccessorKey(type, "*"), out accessor))
+        {
+            // A wildcard accessor can dedicate one to the member, which callers then cache.
+            accessor = accessor.ResolveMember(name, stringComparer);
+            return true;
+        }
+
+        return false;
     }
 
     private static MemberAccessor GetMemberAccessor(Type type, string name, StringComparer stringComparer)
@@ -221,7 +229,7 @@ public class DefaultMemberAccessStrategy : MemberAccessStrategy
         var currentType = type.GetTypeInfo().BaseType;
         while (currentType != typeof(object) && currentType != null)
         {
-            if (TryGetRegisteredAccessor(registrations, currentType, name, out var accessor))
+            if (TryGetRegisteredAccessor(registrations, currentType, name, stringComparer, out var accessor))
             {
                 return accessor;
             }
@@ -238,7 +246,7 @@ public class DefaultMemberAccessStrategy : MemberAccessStrategy
         // Search for accessors defined on interfaces
         foreach (var interfaceType in type.GetTypeInfo().GetInterfaces())
         {
-            if (TryGetRegisteredAccessor(registrations, interfaceType, name, out var accessor))
+            if (TryGetRegisteredAccessor(registrations, interfaceType, name, stringComparer, out var accessor))
             {
                 return accessor;
             }

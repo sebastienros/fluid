@@ -212,8 +212,15 @@ public sealed class Utf8FluidOutput : IFluidOutput, IDisposable, IAsyncDisposabl
     {
         if (_charBuffer == null)
         {
-            Encode(value, flush: false);
-            return;
+            if (value.Length >= _minimumCharBufferSize)
+            {
+                Encode(value, flush: false);
+                return;
+            }
+
+            // A render writes many short texts and values: buffering them encodes a few large chunks
+            // instead of calling the encoder for every write, which costs far more than the copy.
+            EnsureCharBuffer(value.Length);
         }
 
         if (value.Length >= _charBuffer.Length)

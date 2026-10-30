@@ -5,6 +5,8 @@ namespace Fluid.Benchmarks;
 [MemoryDiagnoser]
 public class FluidBenchmarks : BaseBenchmarks
 {
+    // Parsed templates read the products with the default, reflection-based accessors. Their accessors could be
+    // source-generated too, with BenchmarkTemplateOptionsBuilder, like the source-generated templates do.
     private readonly TemplateOptions _options = new TemplateOptionsBuilder()
         .WithOutputBufferSize(40 * 1024)
         .WithModelNamesComparer(StringComparers.CamelCase)

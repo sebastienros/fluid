@@ -5,7 +5,8 @@ namespace Fluid.Benchmarks;
 [MemoryDiagnoser]
 public class SourceGeneratedFluidBenchmarks : BaseBenchmarks
 {
-    private readonly TemplateOptions _options = new TemplateOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
+    // Source-generated templates read the products with source-generated accessors.
+    private readonly TemplateOptions _options = new BenchmarkTemplateOptionsBuilder().WithModelNamesComparer(StringComparers.CamelCase).Build();
     private readonly IFluidTemplate _productTemplate;
     private readonly IFluidTemplate _blogPostTemplate;
 

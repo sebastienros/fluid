@@ -20,7 +20,16 @@ namespace Fluid.Benchmarks.StaticRendering;
 [MemoryDiagnoser, GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory), CategoriesColumn]
 public class StaticRenderingBenchmarks : BaseBenchmarks
 {
+    // Parsed templates read the products with the default, reflection-based accessors. Their accessors could be
+    // source-generated too, with BenchmarkTemplateOptionsBuilder, like the source-generated templates do.
     private readonly TemplateOptions _options = new TemplateOptionsBuilder()
+        .WithOutputBufferSize(40 * 1024)
+        .WithModelNamesComparer(StringComparers.CamelCase)
+        .Build();
+
+    // Source-generated templates read the products with source-generated accessors, as the other static engines
+    // compile their member access.
+    private readonly TemplateOptions _sourceGeneratedOptions = new BenchmarkTemplateOptionsBuilder()
         .WithOutputBufferSize(40 * 1024)
         .WithModelNamesComparer(StringComparers.CamelCase)
         .Build();
@@ -101,7 +110,7 @@ public class StaticRenderingBenchmarks : BaseBenchmarks
     [Benchmark, BenchmarkCategory("String")]
     public string Fluid_SourceGenerated_Render()
     {
-        var context = new TemplateContext(_options).SetValue("products", Products);
+        var context = new TemplateContext(_sourceGeneratedOptions).SetValue("products", Products);
         return _sourceGeneratedTemplate.Render(context, HtmlEncoder.Default);
     }
 
@@ -153,7 +162,7 @@ public class StaticRenderingBenchmarks : BaseBenchmarks
     public void Fluid_SourceGenerated_RenderUtf8()
     {
         _buffer.Reset();
-        var context = new TemplateContext(_options).SetValue("products", Products);
+        var context = new TemplateContext(_sourceGeneratedOptions).SetValue("products", Products);
         _sourceGeneratedTemplate.RenderAsync(_buffer, HtmlEncoder.Default, context).GetAwaiter().GetResult();
     }
 

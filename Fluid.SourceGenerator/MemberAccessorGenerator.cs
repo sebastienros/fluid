@@ -688,6 +688,42 @@ public sealed class MemberAccessorGenerator : IIncrementalGenerator
         source.AppendLine();
         source.AppendLine("            return default;");
         source.AppendLine("        }");
+
+        // The accessor is registered for all the members of the type. Resolving a member returns one dedicated to
+        // it, which callers cache, so that templates don't match the name on every access.
+        source.AppendLine();
+        source.AppendLine("        public override global::Fluid.MemberAccessor ResolveMember(string name, global::System.StringComparer comparer)");
+        source.AppendLine("        {");
+
+        for (var i = 0; i < members.Count; i++)
+        {
+            source.Append("            if (comparer.Equals(name, \"")
+                .Append(members[i].Name)
+                .AppendLine("\"))");
+            source.AppendLine("            {");
+            source.Append("                return Member").Append(i).AppendLine(".Instance;");
+            source.AppendLine("            }");
+        }
+
+        source.AppendLine();
+        source.AppendLine("            return this;");
+        source.AppendLine("        }");
+
+        for (var i = 0; i < members.Count; i++)
+        {
+            source.AppendLine();
+            source.Append("        private sealed class Member").Append(i).AppendLine(" : global::Fluid.MemberAccessor");
+            source.AppendLine("        {");
+            source.Append("            public static readonly Member").Append(i).Append(" Instance = new Member").Append(i).AppendLine("();");
+            source.AppendLine();
+            source.AppendLine("            public override global::System.Threading.Tasks.ValueTask<global::Fluid.Values.FluidValue> GetAsync(object obj, string name, global::Fluid.TemplateContext context)");
+            source.AppendLine("            {");
+            source.Append("                var typed = (").Append(typeExpression).AppendLine(")obj;");
+            source.Append("                return CreateValueTask(").Append(members[i].Expression).AppendLine(", context);");
+            source.AppendLine("            }");
+            source.AppendLine("        }");
+        }
+
         source.AppendLine("    }");
     }
 
