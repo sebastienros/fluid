@@ -387,6 +387,76 @@ shape: ''";
         Assert.Equal("", result);
     }
 
+    [Theory]
+    [InlineData("string")]
+    [InlineData("textwriter")]
+    [InlineData("writer-encoder-context")]
+    [InlineData("utf8")]
+    [InlineData("output")]
+    public async Task RenderTag_Does_Not_Inherit_Parent_Scope_Variables_Without_Isolation(string api)
+    {
+        var fileProvider = new MockFileProvider();
+        fileProvider.Add("snippet.liquid", "[{{ outer_variable }}{{ counter }}{{ product.title }}]");
+
+        var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
+        var context = new TemplateContext(options);
+        context.SetValue("product", new { title = "Draft" });
+        _parser.TryParse("{% assign outer_variable = 'hidden' %}{% decrement counter %}{% render 'snippet' %}", out var template);
+
+        string result;
+        switch (api)
+        {
+            case "string":
+                result = await template.RenderAsync(context, NullEncoder.Default, isolateContext: false);
+                break;
+            case "textwriter":
+                var sw = new StringWriter();
+                await template.RenderAsync(sw, context, NullEncoder.Default, isolateContext: false);
+                result = sw.ToString();
+                break;
+            case "writer-encoder-context":
+                var sw2 = new StringWriter();
+                await template.RenderAsync(sw2, NullEncoder.Default, context);
+                result = sw2.ToString();
+                break;
+            case "utf8":
+                var buffer = new System.Buffers.ArrayBufferWriter<byte>();
+                await template.RenderAsync(buffer, NullEncoder.Default, context);
+                result = System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan);
+                break;
+            default:
+                var sw3 = new StringWriter();
+                await using (var output = new Fluid.Utils.TextWriterFluidOutput(sw3, 256, leaveOpen: true))
+                {
+                    await template.RenderAsync(output, NullEncoder.Default, context);
+                }
+                result = sw3.ToString();
+                break;
+        }
+
+        Assert.Equal("-1[Draft]", result);
+
+        // Without isolation, the assigned variables are still kept in the context for later renders.
+        Assert.Equal("hidden", context.GetValue("outer_variable").ToStringValue(context));
+    }
+
+    [Fact]
+    public async Task Assigned_Variables_Are_Shared_By_Non_Isolated_Renders()
+    {
+        var fileProvider = new MockFileProvider();
+        fileProvider.Add("snippet.liquid", "[{{ outer_variable }}]");
+
+        var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
+        var context = new TemplateContext(options);
+        var view = _parser.Parse("{% assign outer_variable = 'view' %}");
+        var layout = _parser.Parse("{{ outer_variable }}{% render 'snippet' %}");
+
+        await view.RenderAsync(context, NullEncoder.Default, isolateContext: false);
+        var result = await layout.RenderAsync(context, NullEncoder.Default, isolateContext: false);
+
+        Assert.Equal("view[]", result);
+    }
+
     [Fact]
     public void IncludeTag_Does_Inherit_Parent_Scope_Variables()
     {

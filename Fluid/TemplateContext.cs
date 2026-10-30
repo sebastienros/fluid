@@ -201,6 +201,24 @@ public class TemplateContext
         if (_renderDepth++ == 0)
         {
             _renderOutput = output;
+            EnterTemplateScope();
+        }
+    }
+
+    /// <summary>
+    /// Makes sure the template's own variables are not written to the root scope.
+    /// </summary>
+    /// <remarks>
+    /// <c>render</c> evaluates partials in a scope whose parent is the root scope, so that they see the
+    /// model but not the variables of the template that renders them. A template rendered without an
+    /// isolated scope would otherwise assign its variables in the root scope too. The template scope is
+    /// kept after the render, so that later renders on this context (e.g., a layout) still see them.
+    /// </remarks>
+    internal void EnterTemplateScope()
+    {
+        if (ReferenceEquals(_localScope, RootScope))
+        {
+            _localScope = new Scope(RootScope, null, ModelNamesComparer, RootScope);
         }
     }
 

@@ -55,6 +55,11 @@ public static partial class FluidTemplateExtensions
             ? context.EnterScope(ScopeBehavior.Local)
             : default;
 
+        if (!isolateContext)
+        {
+            context.EnterTemplateScope();
+        }
+
         var bufferSize = context.Options?.OutputBufferSize ?? 0;
         if (bufferSize <= 0)
         {

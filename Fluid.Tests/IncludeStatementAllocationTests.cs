@@ -116,7 +116,8 @@ public class IncludeStatementAllocationTests
             () => template.RenderAsync(new TestFluidOutput(), HtmlEncoder.Default, context).AsTask());
 
         Assert.Equal("render failed", exception.Message);
-        Assert.Same(rootScope, context.LocalScope);
+        // The template renders in its own scope, kept after the render; the include scope is gone.
+        Assert.Same(rootScope, context.LocalScope.Parent);
         Assert.IsType<UndefinedValue>(context.GetValue("argument"));
         Assert.Equal("outer", context.GetValue("existing").ToStringValue(context));
     }
@@ -164,7 +165,8 @@ public class IncludeStatementAllocationTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => template.RenderAsync(new TestFluidOutput(), HtmlEncoder.Default, context).AsTask());
 
-        Assert.Same(rootScope, context.LocalScope);
+        // The template renders in its own scope, kept after the render; the include scope is gone.
+        Assert.Same(rootScope, context.LocalScope.Parent);
         Assert.IsType<UndefinedValue>(context.GetValue("argument"));
     }
 
