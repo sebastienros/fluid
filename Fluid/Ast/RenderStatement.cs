@@ -129,7 +129,16 @@ public sealed class RenderStatement : Statement, ISourceable
         else if (For != null)
         {
             var evaluatedFor = await For.EvaluateAsync(context);
-            list = await ArrayValue.ToFluidArrayAsync(evaluatedFor, context);
+
+            // Like Liquid, only a collection is looped over: any other value is rendered once, like with.
+            if (IsCollection(evaluatedFor))
+            {
+                list = await ArrayValue.ToFluidArrayAsync(evaluatedFor, context);
+            }
+            else
+            {
+                withValue = evaluatedFor;
+            }
         }
 
         // Liquid evaluates named argument expressions in the caller before creating the isolated context.
@@ -141,6 +150,12 @@ public sealed class RenderStatement : Statement, ISourceable
         {
             context.SetValue(Alias ?? identifier, withValue);
             ApplyAssignStatements(assignedValues, context);
+            await template.RenderAsync(output, encoder, context);
+        }
+        else if (For != null && list == null)
+        {
+            ApplyAssignStatements(assignedValues, context);
+            context.SetValue(Alias ?? identifier, withValue);
             await template.RenderAsync(output, encoder, context);
         }
         else if (For != null)
@@ -234,7 +249,7 @@ public sealed class RenderStatement : Statement, ISourceable
         {
             var forExpr = context.GetExpressionMethodName(For);
             context.WriteLine($"var evaluatedFor = await {forExpr}({context.ContextName});");
-            context.WriteLine($"var list = await ArrayValue.ToFluidArrayAsync(evaluatedFor, {context.ContextName});");
+            context.WriteLine($"var list = evaluatedFor.Type == FluidValues.Array || evaluatedFor.Type == FluidValues.Dictionary ? await ArrayValue.ToFluidArrayAsync(evaluatedFor, {context.ContextName}) : null;");
         }
 
         EmitEvaluateAssignStatements();
@@ -257,6 +272,19 @@ public sealed class RenderStatement : Statement, ISourceable
         else if (For != null)
         {
             EmitApplyAssignStatements();
+
+            // Like the interpreter, a value that isn't a collection is rendered once.
+            context.WriteLine("if (list == null)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                var name = string.IsNullOrEmpty(Alias) ? "identifier" : SourceGenerationContext.ToCSharpStringLiteral(Alias);
+                context.WriteLine($"{context.ContextName}.SetValue({name}, evaluatedFor);");
+                context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                context.WriteLine("return Completion.Normal;");
+            }
+            context.WriteLine("}");
+
             // Nothing reads the forloop variable of most loops, which then don't create or update it.
             var usesForLoop = context.UsesForLoop(this);
 
@@ -313,6 +341,11 @@ public sealed class RenderStatement : Statement, ISourceable
 
         context.WriteLine("return Completion.Normal;");
     }
+
+    /// <summary>
+    /// Whether <c>render ... for</c> loops over a value: like Liquid, only arrays, ranges and hashes, which respond to <c>each</c> and <c>count</c>.
+    /// </summary>
+    internal static bool IsCollection(FluidValue value) => value.Type is FluidValues.Array or FluidValues.Dictionary;
 
     private static async ValueTask<KeyValuePair<string, FluidValue>[]> EvaluateAssignStatementsAsync(
         IReadOnlyList<AssignStatement> assignStatements,

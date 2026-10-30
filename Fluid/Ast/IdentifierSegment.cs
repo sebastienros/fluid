@@ -44,7 +44,7 @@ public sealed class IdentifierSegment : MemberSegment
     public override ValueTask<(FluidValue Value, bool UseModelFallback)> ResolveFromScopeAsync(TemplateContext context)
     {
         // Look up the identifier in scope
-        var value = context.LocalScope.GetValue(Identifier);
+        var value = context.ShadowWithCounter(Identifier, context.LocalScope.GetValue(Identifier));
 
         if (value.IsNil())
         {

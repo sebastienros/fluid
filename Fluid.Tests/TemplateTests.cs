@@ -1597,4 +1597,28 @@ after
 
         Assert.Equal(expected, await _parser.Parse(source).RenderAsync(context));
     }
+
+    [Theory]
+    // Like Liquid, counters are read before the model's values, but after the template's variables.
+    [InlineData("{% decrement i %}{{ i }}|{% increment z %}{{ z }}|{{ ['z'] }}", "-1-1|01|1")]
+    [InlineData("{% assign z = 10 %}{% increment z %}{{ z }}|{% increment c %}{{ c }}", "010|01")]
+    [InlineData("{% increment i %}{% for i in (1..2) %}{{ i }}{% endfor %}{{ i }}", "0121")]
+    [InlineData("{{ i }}{% capture i %}x{% endcapture %}{% increment i %}{{ i }}", "50x")]
+    public async Task CountersShadowModelValues(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("i", 5);
+        context.SetValue("z", 0);
+
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(context));
+    }
+
+    [Theory]
+    // Like Liquid, an assign without a value assigns nil.
+    [InlineData("{% assign x = 1 %}{% assign x = %}[{{ x }}]", "[]")]
+    [InlineData("{% assign y = -%} [{{ y }}]", "[]")]
+    public async Task AssignWithoutValueAssignsNil(string source, string expected)
+    {
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(new TemplateContext()));
+    }
 }

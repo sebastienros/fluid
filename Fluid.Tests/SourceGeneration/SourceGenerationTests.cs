@@ -344,6 +344,26 @@ public class SourceGenerationTests
     }
 
     [Theory]
+    // Like Liquid, render ... for only loops over a collection, any other value is rendered once.
+    [InlineData("{% render 'ctx' for s as v %}|{% render 'ctx' for 5 as v %}|{% render 'ctx' for nil as v %}|{% render 'ctx' for (1..2) as v %}", "Hello-|5-|-|1-12-2")]
+    [InlineData("{% render 'ctx' for s as v, x: 1 %}", "Hello-")]
+    public async Task GeneratedRenderFor_RendersNonCollectionsOnce(string liquid, string expected)
+    {
+        var provider = new MockFileProvider().Add("ctx", "{{ v }}-{{ forloop.index }}").Add("ctx.liquid", "{{ v }}-{{ forloop.index }}");
+        var instance = CompileTemplate(liquid, provider);
+        var options = new TemplateOptionsBuilder().WithFileProvider(provider).Build();
+
+        var runtimeWriter = new StringWriter();
+        await new FluidParser().Parse(liquid).RenderAsync(runtimeWriter, HtmlEncoder.Default, new TemplateContext(options).SetValue("s", "Hello"));
+
+        var generatedWriter = new StringWriter();
+        await instance.RenderAsync(generatedWriter, HtmlEncoder.Default, new TemplateContext(options).SetValue("s", "Hello"));
+
+        Assert.Equal(expected, runtimeWriter.ToString());
+        Assert.Equal(expected, generatedWriter.ToString());
+    }
+
+    [Theory]
     [InlineData("{% for i in items offset: 2 limit: 2 %}{{ i }},{% endfor %}", "2,3,", 2)]
     [InlineData("{% for i in items reversed limit: 2 %}{{ i }},{% endfor %}", "1,0,", 2)]
     [InlineData("{% render 'item' for items %}", "0,1,2,3,4,", 5)]

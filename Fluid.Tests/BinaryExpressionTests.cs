@@ -217,7 +217,10 @@ public class BinaryExpressionTests
     [InlineData("{% if (5..3) == nil %}y{% else %}n{% endif %}", "n")]
     [InlineData("{% case e %}{% when nil %}y{% else %}n{% endcase %}", "n")]
     [InlineData("{% if e == empty and e == blank and eh == empty and eh == blank %}y{% else %}n{% endif %}", "y")]
-    [InlineData("{% if (5..3) == empty %}y{% else %}n{% endif %}", "y")]
+    // Like Liquid, a range never responds to empty? or blank?.
+    [InlineData("{% if (5..3) == empty %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if (5..3) == blank or empty == (5..3) %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% case (5..3) %}{% when empty %}y{% else %}n{% endcase %}{{ (5..3) | default: 'D' }}", "n5..3")]
     [InlineData("{% if nil == nil and missing == nil %}y{% else %}n{% endif %}", "y")]
     public async Task ComparesLikeLiquid(string source, string expected)
     {
