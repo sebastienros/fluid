@@ -10,6 +10,13 @@ public static class StringFilters
     private static readonly FluidValue Ellipsis = StringValue.Create(EllipsisString);
     private static readonly NumberValue DefaultTruncateLength = NumberValue.Create(50);
 
+    // Like Liquid, a string filter returns a string even when it doesn't change its input: a number
+    // becomes its text and nil an empty string.
+    private static FluidValue UnchangedString(FluidValue input, TemplateContext context)
+    {
+        return input is StringValue ? input : StringValue.Create(input.ToStringValue(context));
+    }
+
     private static FluidValue CreateStringValue(string value, FluidValue input)
     {
         return input is StringValue stringValue
@@ -143,7 +150,7 @@ public static class StringFilters
             return CreateStringValue(value.Remove(index, remove.Length), input);
         }
 
-        return input;
+        return UnchangedString(input, context);
     }
 
     public static ValueTask<FluidValue> Remove(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -174,7 +181,7 @@ public static class StringFilters
             return CreateStringValue(value.Remove(index, remove.Length), input);
         }
 
-        return input;
+        return UnchangedString(input, context);
     }
 
     public static ValueTask<FluidValue> ReplaceFirst(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -189,7 +196,7 @@ public static class StringFilters
 
         if (index == -1)
         {
-            return input;
+            return UnchangedString(input, context);
         }
 
         context.EnsureOutputSize((long)value.Length - remove.Length + insert.Length);
@@ -208,10 +215,11 @@ public static class StringFilters
         // .NET throws when oldValue is empty, but Liquid treats this as an insertion between every character.
         if (oldValue.Length == 0)
         {
+            // Like Ruby's gsub, an empty input has a single insertion point.
             if (value.Length == 0)
             {
-                context.EnsureOutputSize((long)newValue.Length * 2);
-                return CreateStringValue(newValue + newValue, input);
+                context.EnsureOutputSize(newValue.Length);
+                return CreateStringValue(newValue, input);
             }
 
             context.EnsureOutputSize((long)value.Length + ((long)newValue.Length * (value.Length + 1)));
@@ -259,7 +267,7 @@ public static class StringFilters
 
         if (index == -1)
         {
-            return input;
+            return UnchangedString(input, context);
         }
 
 #if NET6_0_OR_GREATER
@@ -536,9 +544,10 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("truncate", min: 0, max: 2, arguments);
 
+        // Like Liquid, nil is returned before the arguments are checked.
         if (input.IsNil())
         {
-            return StringValue.Empty;
+            return NilValue.Instance;
         }
 
         var inputStr = input.ToStringValue(context);
@@ -567,7 +576,7 @@ public static class StringFilters
 
         if (inputStr.Length <= length)
         {
-            return input;
+            return UnchangedString(input, context);
         }
 
         // If second argument is not provided, use default "..."
@@ -601,6 +610,12 @@ public static class StringFilters
     public static ValueTask<FluidValue> TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("truncate_words", min: 0, max: 2, arguments);
+
+        // Like Liquid, nil is returned before the arguments are checked.
+        if (input.IsNil())
+        {
+            return NilValue.Instance;
+        }
 
         var source = input.ToStringValue(context);
 
@@ -682,7 +697,7 @@ public static class StringFilters
 
         if (i == length)
         {
-            return input;
+            return UnchangedString(input, context);
         }
 
         context.EnsureOutputSize(resultLength + ellipsis.Length);
