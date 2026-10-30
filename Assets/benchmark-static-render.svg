@@ -38,16 +38,16 @@
     <line class="grid" x1="62" y1="84" x2="500" y2="84"/><text class="tick" x="52" y="88" text-anchor="end">100</text>
     <line class="axis" x1="62" y1="84" x2="62" y2="342"/><line class="axis" x1="62" y1="342" x2="500" y2="342"/>
 
-    <rect x="88" y="245.7" width="56.6" height="96.3" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
-    <text class="fluid-value" x="116.3" y="239">37.320</text>
-    <rect x="170.6" y="275.3" width="56.6" height="66.7" rx="1" fill="#17becf" stroke="#0b4f79" stroke-width="2.5"/>
-    <text class="fluid-value" x="198.9" y="268">25.850</text>
-    <rect class="competitor" x="253.2" y="302.8" width="56.6" height="39.2" rx="1" fill="#7f7f7f"/>
-    <text class="value" x="281.5" y="296">15.180</text>
-    <rect class="competitor" x="335.8" y="267" width="56.6" height="75" rx="1" fill="#9467bd"/>
-    <text class="value" x="364.1" y="260">29.080</text>
-    <rect class="competitor" x="418.4" y="247.1" width="56.6" height="94.9" rx="1" fill="#8c564b"/>
-    <text class="value" x="446.7" y="240">36.800</text>
+    <rect x="88" y="295.2" width="56.6" height="46.8" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="116.3" y="288">18.123</text>
+    <rect x="170.6" y="309.8" width="56.6" height="32.2" rx="1" fill="#17becf" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="198.9" y="303">12.477</text>
+    <rect class="competitor" x="253.2" y="330.1" width="56.6" height="11.9" rx="1" fill="#7f7f7f"/>
+    <text class="value" x="281.5" y="323">4.619</text>
+    <rect class="competitor" x="335.8" y="314.1" width="56.6" height="27.9" rx="1" fill="#9467bd"/>
+    <text class="value" x="364.1" y="307">10.796</text>
+    <rect class="competitor" x="418.4" y="302.6" width="56.6" height="39.4" rx="1" fill="#8c564b"/>
+    <text class="value" x="446.7" y="296">15.284</text>
     <text class="axis-title" x="281" y="381" text-anchor="middle">Duration (Microseconds)</text>
   </g>
 

@@ -38,16 +38,16 @@
     <line class="grid" x1="62" y1="84" x2="500" y2="84"/><text class="tick" x="52" y="88" text-anchor="end">100</text>
     <line class="axis" x1="62" y1="84" x2="62" y2="342"/><line class="axis" x1="62" y1="342" x2="500" y2="342"/>
 
-    <rect x="88" y="255.8" width="56.6" height="86.2" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
-    <text class="fluid-value" x="116.3" y="249">33.430</text>
-    <rect x="170.6" y="282.6" width="56.6" height="59.4" rx="1" fill="#17becf" stroke="#0b4f79" stroke-width="2.5"/>
-    <text class="fluid-value" x="198.9" y="276">23.040</text>
-    <rect class="competitor" x="253.2" y="303" width="56.6" height="39" rx="1" fill="#9467bd"/>
-    <text class="value" x="281.5" y="296">15.130</text>
-    <rect class="competitor" x="335.8" y="293.3" width="56.6" height="48.7" rx="1" fill="#c49c94"/>
-    <text class="value" x="364.1" y="286">18.890</text>
-    <rect class="competitor" x="418.4" y="247.5" width="56.6" height="94.5" rx="1" fill="#8c564b"/>
-    <text class="value" x="446.7" y="241">36.610</text>
+    <rect x="88" y="297.4" width="56.6" height="44.6" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="116.3" y="290">17.298</text>
+    <rect x="170.6" y="310.4" width="56.6" height="31.6" rx="1" fill="#17becf" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="198.9" y="303">12.262</text>
+    <rect class="competitor" x="253.2" y="324" width="56.6" height="18" rx="1" fill="#9467bd"/>
+    <text class="value" x="281.5" y="317">6.987</text>
+    <rect class="competitor" x="335.8" y="316.3" width="56.6" height="25.7" rx="1" fill="#c49c94"/>
+    <text class="value" x="364.1" y="309">9.943</text>
+    <rect class="competitor" x="418.4" y="300.8" width="56.6" height="41.2" rx="1" fill="#8c564b"/>
+    <text class="value" x="446.7" y="294">15.960</text>
     <text class="axis-title" x="281" y="381" text-anchor="middle">Duration (Microseconds)</text>
   </g>
 
@@ -63,7 +63,7 @@
     <rect x="614" y="294" width="56.6" height="48" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
     <text class="fluid-value" x="642.3" y="287">18.62</text>
     <rect x="696.6" y="294.1" width="56.6" height="47.9" rx="1" fill="#17becf" stroke="#0b4f79" stroke-width="2.5"/>
-    <text class="fluid-value" x="724.9" y="287">18.55</text>
+    <text class="fluid-value" x="724.9" y="287">18.56</text>
     <rect class="competitor" x="779.2" y="327.4" width="56.6" height="14.6" rx="1" fill="#9467bd"/>
     <text class="value" x="807.5" y="320">5.66</text>
     <rect class="competitor" x="861.8" y="342" width="56.6" height="0" rx="1" fill="#c49c94"/>
