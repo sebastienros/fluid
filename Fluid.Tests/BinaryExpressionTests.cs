@@ -243,6 +243,27 @@ public class BinaryExpressionTests
     }
 
     [Theory]
+    // Like Liquid, the right operand isn't evaluated when the left one decides the result.
+    [InlineData("{% if true or 1 < 'a' %}y{% else %}n{% endif %}", "y")]
+    [InlineData("{% if false and 1 < 'a' %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if true or false and 1 < 'a' %}y{% else %}n{% endif %}", "y")]
+    [InlineData("{% if false or true or 1 < 'a' %}y{% else %}n{% endif %}", "y")]
+    [InlineData("{% unless true or 1 < 'a' %}y{% else %}n{% endunless %}", "n")]
+    [InlineData("{% if false or true and true %}y{% else %}n{% endif %}", "y")]
+    [InlineData("{% if true and false or true %}y{% else %}n{% endif %}", "y")]
+    public async Task AndOrShortCircuit(string source, string expected)
+    {
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(new TemplateContext()));
+    }
+
+    [Fact]
+    public async Task AndOrEvaluateTheLeftOperandFirst()
+    {
+        var exception = await Assert.ThrowsAsync<LiquidException>(() => _parser.Parse("{% if 1 < 'a' or true %}{% endif %}").RenderAsync(new TemplateContext()).AsTask());
+        Assert.Equal("comparison of Integer with String failed", exception.Message);
+    }
+
+    [Theory]
     [InlineData("true or false and false", "true")]
     [InlineData("true and false and false or true", "false")]
     [InlineData("true and true and false == false", "true")]
