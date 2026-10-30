@@ -1000,4 +1000,30 @@ public class ArrayFiltersTests
         Assert.Equal(BooleanValue.False, result);
     }
 
+    [Theory]
+    // Like Liquid, a string or a hash is filtered as a one-item array.
+    [InlineData("{{ 'abc' | where: 'x' | size }}|{{ h | where: 'k', 'v' | size }}|{{ products | where: 'available' | size }}", "0|1|1")]
+    // Like Liquid, a hash in an array matches when the property is truthy.
+    [InlineData("{{ products | has: 'title' }}|{{ products | has: 'missing' }}|{{ products | has: 'available' }}", "true|false|true")]
+    // Like Liquid, a scalar is a one-item array.
+    [InlineData("{{ 5 | uniq | size }}|{{ 9 | uniq | last }}|{{ missing | uniq | size }}", "1|9|0")]
+    [InlineData("{{ 7 | sum }}|{{ '3' | sum }}|{{ 'x' | sum }}|{{ missing | sum }}", "7|3|0|0")]
+    public async Task ArrayFiltersAcceptInputsLikeLiquid(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("h", new Dictionary<string, object> { ["k"] = "v" });
+        context.SetValue("products", new object[]
+        {
+            new Dictionary<string, object> { ["title"] = "Shoe", ["available"] = true },
+            new Dictionary<string, object> { ["title"] = "Hat", ["available"] = false },
+        });
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Fact]
+    public async Task WhereStillFailsOnNumbers()
+    {
+        await Assert.ThrowsAsync<LiquidException>(() => new FluidParser().Parse("{{ 123 | where: 'title' }}").RenderAsync(new TemplateContext()).AsTask());
+    }
 }

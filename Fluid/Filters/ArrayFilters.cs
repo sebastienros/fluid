@@ -317,6 +317,12 @@ public static class ArrayFilters
             return ArrayValue.Empty;
         }
 
+        // Like Liquid, a string or a hash is filtered as a one-item array.
+        if (input.Type is FluidValues.String or FluidValues.Dictionary or FluidValues.Object)
+        {
+            input = ArrayValue.Create([input]);
+        }
+
         // Golden Liquid expects where to throw if input is not an array
         if (input.Type != FluidValues.Array)
         {
@@ -631,6 +637,14 @@ public static class ArrayFilters
 
                             // Check for substring match
                             if (itemStr.Contains(searchStr))
+                            {
+                                return BooleanValue.True;
+                            }
+                        }
+                        else if (item.Type is FluidValues.Dictionary or FluidValues.Object)
+                        {
+                            // Like Liquid, a hash matches when the property is truthy.
+                            if ((await item.GetValueAsync(searchStr, context)).ToBooleanValue(context))
                             {
                                 return BooleanValue.True;
                             }
@@ -1001,9 +1015,15 @@ public static class ArrayFilters
     {
         LiquidException.ThrowFilterArgumentsCount("uniq", min: 0, max: 1, arguments);
 
-        if (input.Type != FluidValues.Array)
+        if (input.IsNil())
         {
             return input;
+        }
+
+        // Like Liquid, any other value is a one-item array.
+        if (input.Type != FluidValues.Array)
+        {
+            return ArrayValue.Create([input]);
         }
 
         if (arguments.Count == 0)
@@ -1033,6 +1053,12 @@ public static class ArrayFilters
 
         if (arguments.Count == 0)
         {
+            // Like Liquid, a number or a numeric string is a one-item array.
+            if (input is NumberValue or StringValue)
+            {
+                return NumberValue.Create(input.ToNumberValue(context));
+            }
+
             return NumberValue.Create(await SumItemsAsync(input, context));
         }
 

@@ -1206,4 +1206,16 @@ public class MiscFiltersTests
 
         }
     }
+
+    [Theory]
+    // Like Liquid, an empty or nil format returns the input unchanged.
+    [InlineData("{{ '2024-01-15' | date: '' }}", "2024-01-15")]
+    [InlineData("{{ 0 | date: '' }}", "0")]
+    [InlineData("{{ '2024-01-15' | date: nil }}", "2024-01-15")]
+    [InlineData("{{ 'March4' | date: missing }}", "March4")]
+    [InlineData("{{ '2024-01-15' | date: '%Y' }}", "2024")]
+    public async Task DateWithEmptyFormatReturnsInput(string source, string expected)
+    {
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
+    }
 }
