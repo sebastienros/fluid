@@ -40,7 +40,8 @@ public class FluidParser
     // Like '\w' in Shopify's regular expressions. A Liquid word can't be followed by one of these chars: "orb" is not "or".
     // '-' is not one of them, so a trim marker can follow a word ("{%else-%}"), and "else-x" is "else" like in Shopify.
     // Parlot's Keyword can't be used yet: only ASCII letters continue a keyword, so "or" would match "or1" or "or_b".
-    private static readonly Parser<TextSpan> WordChar = Literals.AnyOf("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_", maxSize: 1);
+    private const string WordChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+    private static readonly Parser<TextSpan> WordChar = Literals.AnyOf(WordChars, maxSize: 1);
 
     protected readonly Parser<TextSpan> String;
     protected static readonly Parser<string> DoubleEquals = Terms.Text("==");
@@ -115,7 +116,8 @@ public class FluidParser
         _tagEndIgnoringMarkup = TagEnd.Or(AnyCharBefore(TagEnd).SkipAnd(TagEnd));
 
         Identifier = SkipWhiteSpace(new IdentifierParser(parserOptions.AllowTrailingQuestionMark)).Then(x => x.ToString());
-        _tagName = SkipWhiteSpace(OneOf(Literals.Char('#').Then(new TextSpan("#")), new IdentifierParser(parserOptions.AllowTrailingQuestionMark)));
+        // Like in Shopify, a tag name is made of word chars: "{% comment-x %}" is a comment tag.
+        _tagName = SkipWhiteSpace(OneOf(Literals.Char('#').Then(new TextSpan("#")), Literals.AnyOf(WordChars)));
         VariableSignature = SkipWhiteSpace(new VariableSignatureParser()).Then(x => x.ToString());
 
         // Like Liquid, a backslash in a string literal is a plain character unless escape sequences are enabled.

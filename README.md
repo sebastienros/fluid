@@ -1201,7 +1201,7 @@ A closing element will match the name of the opening tag with an `end` suffix, l
 Like in Shopify Liquid, anything after the name of a closing element is ignored, as in `{% endfor items %}`.
 Blocks are useful when manipulating a section of a template as a set of statements.
 
-Fluid provides helper methods to register common tags and blocks. All tags and blocks always start with an __identifier__ that is the tag name.
+Fluid provides helper methods to register common tags and blocks. All tags and blocks always start with their name, made of letters, digits and `_` like in Shopify Liquid: a `-` ends the name.
 
 Each custom tag needs to provide a delegate that is evaluated when the tag is matched. Each delegate will be able to use these properties:
 
@@ -1568,6 +1568,7 @@ Shopify Liquid ignores some content and reads some words in ways that can be sur
 
 - Operators made of letters, like `contains`, `or` and `and`, and the other words of the syntax, like `with` or `else`, end where no letter, digit or `_` follows them: `{% if a contains"b" %}` is valid, `{% if a orb %}` is an error instead of `a or b`, and `{% render 'card' format: 'short' %}` passes a `format` argument.
 - The `in` of a `for` or `tablerow` tag is followed by whitespace: `{% for i in(1..3) %}` is invalid.
+- A tag name is made of letters, digits and `_`, so `{% comment-x %}` is a `comment` tag, and `{% my-tag %}` is the `my` tag.
 - Tags without arguments ignore anything after their name: closing tags, `else`, `comment`, `raw`, `break`, `continue` and `ifchanged`, as in `{% endfor items %}`.
 - In a `for` tag, `reversed` is only read right after the collection, even when it starts a longer word: `{% for i in items reversedx %}` is reversed, `{% for i in items limit: 2 reversed %}` is not. A `tablerow` tag ignores it.
 - The `limit`, `offset` and `cols` attributes are read anywhere after the collection, and anything else is ignored: `{% for i in items foo, limit: 2 %}` renders two items.

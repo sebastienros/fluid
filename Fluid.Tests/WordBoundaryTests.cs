@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Fluid.Ast;
 using Fluid.Tests.Mocks;
 using Xunit;
 
@@ -53,6 +54,7 @@ public class WordBoundaryTests
     [InlineData("{% liquid case 2\n whenw\n echo 'a'\n endcase %}")]
     [InlineData("{% from 'macros' importhello %}")]
     [InlineData("{% comment_x %}a{% endcomment %}")]
+    [InlineData("{% foo-bar %}")]
     [InlineData("{% doc x %}a{% enddoc %}")] // a golden test requires it, even though the Shopify playground accepts it
     public void ShouldNotParseWordFollowedByWordChar(string source)
     {
@@ -186,6 +188,7 @@ public class WordBoundaryTests
     [InlineData("{% liquid comment\n a\n endcomment_x\n b\n endcomment\n echo 'c' %}", "c")]
     [InlineData("{% liquid comment\n a\n endcomment x\n echo 'c' %}", "c")]
     [InlineData("{% liquid comment x\n a\n endcomment\n echo 'c' %}", "c")]
+    [InlineData("{% liquid echo-1\n comment-x\n a\n endcomment %}", "-1")]
     [InlineData("{% liquid for i in (1..3) foo limit:2\n echo i\n endfor %}", "12")]
     [InlineData("{% liquid for i in (1..3) reversedx\n echo i\n endfor %}", "321")]
     public void ShouldUseWordBoundariesInLiquidTag(string source, string expected)
@@ -210,6 +213,30 @@ public class WordBoundaryTests
 
         Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
         Assert.Equal(expected, await template.RenderAsync(new TemplateContext(options)));
+    }
+
+    // Like in Shopify, a tag name is made of word chars, and a '-' starts the markup of the tag.
+    [Theory]
+    [InlineData("{% comment-x %}a{% endcomment %}b", "b")]
+    [InlineData("{% raw-x %}a{% endraw %}b", "ab")]
+    [InlineData("{% echo-1 %}", "-1")]
+    [InlineData("{% echo'a' %}", "a")]
+    [InlineData("{% if-1 %}yes{% endif %}", "yes")]
+    [InlineData("{% if true %}a{% endif-%} b", "ab")]
+    public void ShouldReadTagNamesAsWords(string source, string expected)
+    {
+        AssertRenders(_parser, source, expected);
+        AssertRenders(_liquidTagParser, source, expected);
+    }
+
+    [Fact]
+    public void ShouldNotReadCustomTagNamesWithDashes()
+    {
+        var parser = new FluidParser();
+        parser.RegisterEmptyTag("my-tag", static (output, encoder, context) => Statement.NormalCompletion);
+
+        Assert.False(parser.TryParse("{% my-tag %}", out _, out var error));
+        Assert.Contains("Unknown tag 'my'", error);
     }
 
     [Fact]
