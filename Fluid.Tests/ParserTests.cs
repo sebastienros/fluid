@@ -1407,4 +1407,30 @@ class  {
         var result2 = await t3.RenderAsync(context2);
         Assert.Equal("bar", result2);
     }
+
+    [Theory]
+    // Like Liquid, a range bound can be a string literal.
+    [InlineData("{% for i in (1..\"3\") %}{{ i }}{% endfor %}", "123")]
+    [InlineData("{% for i in ('1'..'3') %}{{ i }}{% endfor %}", "123")]
+    [InlineData("{% assign r = ('1'..3) %}{{ r | join: ',' }}", "1,2,3")]
+    [InlineData("{{ (1..\"3\") | join: ',' }}", "1,2,3")]
+    // Like Liquid, an output without an expression renders nothing.
+    [InlineData("a{{}}b", "ab")]
+    [InlineData("a{{ }}b", "ab")]
+    [InlineData("a {{- -}} b", "ab")]
+    [InlineData("a{{\n}}b", "ab")]
+    // Like Liquid, whitespace is allowed before an indexer.
+    [InlineData("{{ a [0] }}", "1")]
+    [InlineData("{{ h [\"k\"] }}", "v")]
+    [InlineData("{{ h.sub ['x'] [0] }}", "y")]
+    [InlineData("{{ a\n[1] }}", "2")]
+    [InlineData("{% if a [1] == 2 %}y{% endif %}", "y")]
+    public void ShouldParseLiquidSyntax(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("a", new[] { 1, 2, 3 });
+        context.SetValue("h", new Dictionary<string, object> { ["k"] = "v", ["sub"] = new Dictionary<string, object> { ["x"] = new[] { "y" } } });
+
+        Assert.Equal(expected, _parser.Parse(source).Render(context));
+    }
 }
