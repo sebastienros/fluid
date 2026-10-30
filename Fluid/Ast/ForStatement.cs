@@ -132,7 +132,8 @@ public sealed class ForStatement : TagStatement, ISourceable
             }
             else
             {
-                startIndex = await EvaluateIntegerArgumentAsync("offset", Offset, context);
+                // Like Liquid, a nil offset starts at the first item.
+                startIndex = await EvaluateIntegerArgumentAsync("offset", Offset, context) ?? 0;
             }
         }
 
@@ -147,9 +148,9 @@ public sealed class ForStatement : TagStatement, ISourceable
         var count = Math.Max(0, source.Count - startIndex);
         var limitIsEmpty = false;
 
-        if (Limit is not null)
+        // Like Liquid, a nil limit doesn't limit the items.
+        if (Limit is not null && await EvaluateIntegerArgumentAsync("limit", Limit, context) is int limit)
         {
-            var limit = await EvaluateIntegerArgumentAsync("limit", Limit, context);
             limitIsEmpty = limit <= 0;
 
             // Like Liquid, the slice ends at offset + limit, so a negative limit renders nothing.
@@ -297,9 +298,14 @@ public sealed class ForStatement : TagStatement, ISourceable
         return true;
     }
 
-    private static async ValueTask<int> EvaluateIntegerArgumentAsync(string name, Expression expression, TemplateContext context)
+    private static async ValueTask<int?> EvaluateIntegerArgumentAsync(string name, Expression expression, TemplateContext context)
     {
         var value = await expression.EvaluateAsync(context);
+
+        if (value.IsNil())
+        {
+            return null;
+        }
 
         if (value.Type == FluidValues.Number)
         {
@@ -416,9 +422,16 @@ public sealed class ForStatement : TagStatement, ISourceable
         if (Limit is not null)
         {
             var limitExpr = context.GetExpressionMethodName(Limit);
-            context.WriteLine($"var limit = (int)(await {limitExpr}({context.ContextName})).ToNumberValue({context.ContextName});");
-            context.WriteLine("limitIsEmpty = limit <= 0;");
-            context.WriteLine("count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));");
+            context.WriteLine($"var limitValue = await {limitExpr}({context.ContextName});");
+            context.WriteLine("if (!limitValue.IsNil())");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"var limit = (int)limitValue.ToNumberValue({context.ContextName});");
+                context.WriteLine("limitIsEmpty = limit <= 0;");
+                context.WriteLine("count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));");
+            }
+            context.WriteLine("}");
         }
 
         context.WriteLine("if (count == 0)");

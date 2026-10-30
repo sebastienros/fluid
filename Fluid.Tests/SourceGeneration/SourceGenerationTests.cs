@@ -30,6 +30,9 @@ public class SourceGenerationTests
     [InlineData("{% unless true %}a{% elsif true %}b{% else %}c{% endunless %}", "b")]
     [InlineData("{% for i in (1..3) %}{{ i }}{% endfor %}", "123")]
     [InlineData("{% for i in (1..3) %}{% if i == 2 %}{% break %}{% endif %}{{ i }}{% endfor %}", "1")]
+    // Like Liquid, a nil limit or offset is ignored.
+    [InlineData("{% for i in (1..3) limit: missing %}{{ i }}{% endfor %}", "123")]
+    [InlineData("{% for i in (1..3) offset: missing limit: 2 %}{{ i }}{% endfor %}", "12")]
     [InlineData("{% capture x %}hi{% endcapture %}{{ x }}", "hi")]
     [InlineData("{% cycle 'a','b' %}{% cycle 'a','b' %}{% cycle 'a','b' %}", "aba")]
     [InlineData("{% increment x %}{% increment x %}{% decrement x %}", "011")]
@@ -38,6 +41,7 @@ public class SourceGenerationTests
     [InlineData("{% assign s = 'hello' %}{{ s.first }}{{ s.last }}[{{ s['first'] }}]", "ho[]")]
     [InlineData("{% assign n = 5 %}[{{ n[0] }}{{ n['x'] }}]", "[]")]
     [InlineData("{% if 2 > 1 and 2 >= 2 and 1 < 2 and 2 <= 2 %}yes{% endif %}", "yes")]
+    [InlineData("{% if nil >= nil or nil <= missing or 1 > (2..3) or 'a' < (1..2) %}yes{% else %}no{% endif %}", "no")]
     [InlineData("{% if '' == empty and '' == blank %}yes{% endif %}", "yes")]
     [InlineData("{% if 'x' contains nil %}yes{% else %}no{% endif %}", "no")]
     [InlineData("{{ 'a' == 'b' }}|{{ 'b' != 'a' }}|{{ 'abc' contains 'b' }}|{{ 'abc' startswith 'a' }}|{{ 'abc' endswith 'c' }}", "a|b|abc|abc|abc")]

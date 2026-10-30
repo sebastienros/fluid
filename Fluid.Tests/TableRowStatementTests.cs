@@ -302,6 +302,16 @@ public class TableRowStatementTests
     }
 
     [Theory]
+    // Like Liquid, nil is 0: no offset, no item, or no column limit.
+    [InlineData("{% tablerow x in (1..3) cols: missing %}{{ x }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">1</td><td class=\"col2\">2</td><td class=\"col3\">3</td></tr>\n")]
+    [InlineData("{% tablerow x in (1..3) offset: missing %}{{ x }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">1</td><td class=\"col2\">2</td><td class=\"col3\">3</td></tr>\n")]
+    [InlineData("{% tablerow x in (1..3) offset: missing limit: 1 cols: missing %}{{ x }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">1</td></tr>\n")]
+    public async Task NilArgumentsAreZero(string source, string expected)
+    {
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(new TemplateContext()));
+    }
+
+    [Theory]
     // Like Liquid, a collection without items renders an empty row, and nil renders nothing.
     [InlineData("[{% tablerow i in empty %}{{ i }}{% endtablerow %}]", "[<tr class=\"row1\">\n</tr>\n]")]
     [InlineData("[{% tablerow i in empty_string %}{{ i }}{% endtablerow %}]", "[<tr class=\"row1\">\n</tr>\n]")]

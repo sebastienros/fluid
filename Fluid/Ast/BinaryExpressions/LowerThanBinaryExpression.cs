@@ -16,22 +16,18 @@ public sealed class LowerThanBinaryExpression : BinaryExpression, ISourceable
     {
         bool comparisonResult;
 
-        if (leftValue.IsNil() || rightValue.IsNil())
+        // Like Liquid, only numbers and strings are ordered. Comparing a number with a string fails,
+        // any other operand (nil, ranges, arrays, ...) makes the comparison false.
+        if (leftValue is NumberValue)
         {
-            if (Strict)
-            {
-                comparisonResult = false;
-            }
-            else
-            {
-                comparisonResult = leftValue.IsNil() && rightValue.IsNil();
-            }
-        }
-        else if (leftValue is NumberValue)
-        {
-            if (rightValue is not NumberValue)
+            if (rightValue is StringValue)
             {
                 throw new LiquidException("comparison of Integer with String failed");
+            }
+
+            if (rightValue is not NumberValue)
+            {
+                return BinaryExpressionFluidValue.Create(NilValue.Instance, false);
             }
 
             if (Strict)
@@ -45,9 +41,14 @@ public sealed class LowerThanBinaryExpression : BinaryExpression, ISourceable
         }
         else if (leftValue is StringValue)
         {
-            if (rightValue is not StringValue)
+            if (rightValue is NumberValue)
             {
                 throw new LiquidException("comparison of String with Integer failed");
+            }
+
+            if (rightValue is not StringValue)
+            {
+                return BinaryExpressionFluidValue.Create(NilValue.Instance, false);
             }
 
             // Use standard C# string comparison for strings
@@ -63,7 +64,6 @@ public sealed class LowerThanBinaryExpression : BinaryExpression, ISourceable
         }
         else
         {
-            // For non-number, non-string types, return nil as left operand with false comparison
             return BinaryExpressionFluidValue.Create(NilValue.Instance, false);
         }
 
@@ -82,22 +82,22 @@ public sealed class LowerThanBinaryExpression : BinaryExpression, ISourceable
         context.WriteLine($"var rightValue = await {rightExpr}({context.ContextName});");
         context.WriteLine("bool comparisonResult;");
 
-        context.WriteLine("if (leftValue.IsNil() || rightValue.IsNil())");
+        context.WriteLine("if (leftValue is NumberValue)");
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine($"comparisonResult = {strict} ? false : leftValue.IsNil() && rightValue.IsNil();");
-        }
-        context.WriteLine("}");
-        context.WriteLine("else if (leftValue is NumberValue)");
-        context.WriteLine("{");
-        using (context.Indent())
-        {
-            context.WriteLine("if (rightValue is not NumberValue)");
+            context.WriteLine("if (rightValue is StringValue)");
             context.WriteLine("{");
             using (context.Indent())
             {
                 context.WriteLine("throw new LiquidException(\"comparison of Integer with String failed\");");
+            }
+            context.WriteLine("}");
+            context.WriteLine("if (rightValue is not NumberValue)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("return BinaryExpressionFluidValue.Create(NilValue.Instance, false);");
             }
             context.WriteLine("}");
             context.WriteLine($"comparisonResult = {strict} ? leftValue.ToNumberValue({context.ContextName}) < rightValue.ToNumberValue({context.ContextName}) : leftValue.ToNumberValue({context.ContextName}) <= rightValue.ToNumberValue({context.ContextName});");
@@ -107,11 +107,18 @@ public sealed class LowerThanBinaryExpression : BinaryExpression, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine("if (rightValue is not StringValue)");
+            context.WriteLine("if (rightValue is NumberValue)");
             context.WriteLine("{");
             using (context.Indent())
             {
                 context.WriteLine("throw new LiquidException(\"comparison of String with Integer failed\");");
+            }
+            context.WriteLine("}");
+            context.WriteLine("if (rightValue is not StringValue)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine("return BinaryExpressionFluidValue.Create(NilValue.Instance, false);");
             }
             context.WriteLine("}");
             context.WriteLine("var comparison = string.Compare(leftValue.ToStringValue(context), rightValue.ToStringValue(context), StringComparison.Ordinal);");
