@@ -596,6 +596,12 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("date", min: 0, max: 1, arguments);
 
+        // Like Liquid, an empty or nil format returns the input unchanged.
+        if (arguments.Count > 0 && string.IsNullOrEmpty(arguments.At(0).ToStringValue(context)))
+        {
+            return input;
+        }
+
         if (!input.TryGetDateTimeInput(context, out var value))
         {
             // return input unchanged if it can't be parsed as a date
