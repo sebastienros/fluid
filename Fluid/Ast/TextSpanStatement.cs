@@ -18,11 +18,7 @@ public sealed class TextSpanStatement : Statement, ISynchronousSourceable
     {
         _text = text;
 
-#if NET6_0_OR_GREATER
-            _isWhitespaceOrCommentOnly = _text.Span.IsWhiteSpace();
-#else
-        _isWhitespaceOrCommentOnly = string.IsNullOrWhiteSpace(_text.ToString());
-#endif
+        _isWhitespaceOrCommentOnly = IsBlank(_text.Span);
     }
 
     public TextSpanStatement(string text) : this(new TextSpan(text))
@@ -72,6 +68,25 @@ public sealed class TextSpanStatement : Statement, ISynchronousSourceable
         }
     }
 
+    // Like Shopify, a text is blank with the chars of Ruby's \s, and the whitespace control trims them and NUL, like Ruby's strip:
+    // the Unicode spaces, such as a no-break space, are content.
+    private static bool IsLiquidWhiteSpace(char c) => c == ' ' || (uint)(c - '\t') <= '\r' - '\t';
+
+    private static bool IsTrimmed(char c) => IsLiquidWhiteSpace(c) || c == '\0';
+
+    private static bool IsBlank(ReadOnlySpan<char> text)
+    {
+        foreach (var c in text)
+        {
+            if (!IsLiquidWhiteSpace(c))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /// <summary>
     /// Removes the whitespace on each requested side, the way the <c>-</c> markers and <see cref="TrimmingFlags"/> do.
     /// </summary>
@@ -90,7 +105,7 @@ public sealed class TextSpanStatement : Statement, ISynchronousSourceable
             {
                 var c = span[text.Offset + i];
 
-                if (Character.IsWhiteSpaceOrNewLine(c))
+                if (IsTrimmed(c))
                 {
                     start++;
 
@@ -123,7 +138,7 @@ public sealed class TextSpanStatement : Statement, ISynchronousSourceable
             {
                 var c = span[text.Offset + i];
 
-                if (Character.IsWhiteSpaceOrNewLine(c))
+                if (IsTrimmed(c))
                 {
                     if (lastNewLine == -1 && c == '\n')
                     {

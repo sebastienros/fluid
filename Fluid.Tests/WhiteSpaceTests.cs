@@ -461,4 +461,49 @@ Wow, John G. Chalmers-Smith, you have a long name!";
             }
         }
     }
+
+    // Like Shopify, the whitespace control only trims the chars of Ruby's strip, and a text is only blank with the chars
+    // of Ruby's \s: the other spaces are content.
+    private const string UnicodeSpaces = "\u0085\u00A0\u1680\u180E\u2000\u2007\u200A\u200B\u2028\u2029\u202F\u205F\u3000\uFEFF";
+
+    public static TheoryData<int, bool> TrimmedChars()
+    {
+        var data = new TheoryData<int, bool>();
+        foreach (var c in " \t\n\v\f\r\0") data.Add(c, true);
+        foreach (var c in UnicodeSpaces) data.Add(c, false);
+        return data;
+    }
+
+    public static TheoryData<int, bool> BlankChars()
+    {
+        var data = new TheoryData<int, bool>();
+        foreach (var c in " \t\n\v\f\r") data.Add(c, true);
+        foreach (var c in "\0" + UnicodeSpaces) data.Add(c, false);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(TrimmedChars))]
+    public void WhitespaceControlShouldOnlyTrimLiquidWhiteSpace(int code, bool isTrimmed)
+    {
+        var s = ((char)code).ToString();
+        var expected = isTrimmed ? "[x]" : "[" + s + "x" + s + "]";
+
+        Assert.Equal(expected, _parser.Parse("[" + s + "{{- 'x' -}}" + s + "]").Render());
+        Assert.Equal(expected, _parser.Parse("[" + s + "{%- if true -%}x{%- endif -%}" + s + "]").Render());
+
+        var options = new TemplateOptionsBuilder().WithTrimming(TrimmingFlags.OutputLeft | TrimmingFlags.OutputRight).Build();
+        Assert.Equal(expected, _parser.Parse("[" + s + "{{ 'x' }}" + s + "]").Render(new TemplateContext(options)));
+    }
+
+    [Theory]
+    [MemberData(nameof(BlankChars))]
+    public void BlockShouldOnlyBeBlankWithLiquidWhiteSpace(int code, bool isBlank)
+    {
+        var s = ((char)code).ToString();
+        var expected = isBlank ? "[]" : "[" + s + s + "]";
+
+        Assert.Equal(expected, _parser.Parse("[{% if true %}" + s + s + "{% endif %}]").Render());
+        Assert.Equal(expected, _parser.Parse("[{% unless false %}" + s + "{% assign a = 1 %}" + s + "{% endunless %}]").Render());
+    }
 }
