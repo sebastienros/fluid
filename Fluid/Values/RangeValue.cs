@@ -97,7 +97,8 @@ public sealed class RangeValue : FluidValue, IFluidArray
 
     public override decimal ToNumberValue(TemplateContext context)
     {
-        return Count;
+        // Like Liquid, a value that isn't a number is 0.
+        return 0;
     }
 
     public override string ToStringValue(TemplateContext context)

@@ -51,7 +51,7 @@ public class DictionaryDictionaryFluidIndexableTests
     }
 
     [Fact]
-    public void ToNumberValueShouldReturnDictionaryItemCount()
+    public void ToNumberValueShouldReturnZeroForDictionary()
     {
         var items = new Dictionary<string, string>()
         {
@@ -62,7 +62,8 @@ public class DictionaryDictionaryFluidIndexableTests
 
         var value = FluidValue.Create(items, new TemplateOptionsBuilder().Build());
 
-        Assert.Equal(items.Count, value.ToNumberValue(new TemplateContext()));
+        // Like Liquid, a value that isn't a number is 0.
+        Assert.Equal(0, value.ToNumberValue(new TemplateContext()));
     }
 
     [Fact]

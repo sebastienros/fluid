@@ -145,18 +145,135 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
 
     private decimal ParseNumber()
     {
-        if (_value == "")
+        return ParseNumber(_value);
+    }
+
+    /// <summary>
+    /// Converts a string to a number like Liquid: a decimal number such as <c>-1.5</c> or <c>.5</c> is parsed as is,
+    /// anything else is read like Ruby's <c>String#to_i</c>, from the leading digits, so <c>"12abc"</c>
+    /// is <c>12</c> and <c>"abc"</c> is <c>0</c>.
+    /// </summary>
+    internal static decimal ParseNumber(string value)
+    {
+        if (string.IsNullOrEmpty(value))
         {
             return 0;
         }
 
-        if (decimal.TryParse(_value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
+        var span = value.AsSpan();
+        var trimmed = span.Trim();
+
+#if NET8_0_OR_GREATER
+        if (IsDecimalLiteral(trimmed) && decimal.TryParse(trimmed, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var d))
+#else
+        if (IsDecimalLiteral(trimmed) && decimal.TryParse(trimmed.ToString(), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var d))
+#endif
         {
             return d;
         }
 
-        return 0;
+        return ParseLeadingInteger(span);
     }
+
+    // -?\d*\.\d+ (Liquid requires a digit before the point, ".5" is accepted for convenience)
+    private static bool IsDecimalLiteral(ReadOnlySpan<char> s)
+    {
+        var i = 0;
+
+        if (i < s.Length && s[i] == '-')
+        {
+            i++;
+        }
+
+        while (i < s.Length && IsDigit(s[i]))
+        {
+            i++;
+        }
+
+        if (i >= s.Length || s[i] != '.')
+        {
+            return false;
+        }
+
+        i++;
+
+        var fractionStart = i;
+        while (i < s.Length && IsDigit(s[i]))
+        {
+            i++;
+        }
+
+        return i > fractionStart && i == s.Length;
+    }
+
+    // Like Ruby's String#to_i: leading whitespace, an optional sign, then digits that can be separated
+    // by single underscores, up to the first other character.
+    private static decimal ParseLeadingInteger(ReadOnlySpan<char> s)
+    {
+        var i = 0;
+
+        while (i < s.Length && s[i] is ' ' or '\t' or '\n' or '\v' or '\f' or '\r')
+        {
+            i++;
+        }
+
+        var negative = false;
+        if (i < s.Length && s[i] is '+' or '-')
+        {
+            negative = s[i] == '-';
+            i++;
+        }
+
+        // Digits are accumulated in an ulong, which holds any 19 digits, and only then in a decimal.
+        ulong small = 0;
+        var digits = 0;
+        decimal result = 0;
+        var hasDigit = false;
+
+        while (i < s.Length)
+        {
+            var c = s[i];
+
+            if (IsDigit(c))
+            {
+                if (digits < 19)
+                {
+                    small = small * 10 + (ulong)(c - '0');
+                    digits++;
+                }
+                else
+                {
+                    if (digits == 19)
+                    {
+                        result = small;
+                        digits++;
+                    }
+
+                    // A decimal that would overflow saturates.
+                    result = result <= MaxBeforeAppendingDigit ? result * 10 + (c - '0') : decimal.MaxValue;
+                }
+
+                hasDigit = true;
+            }
+            else if (c != '_' || !hasDigit || i + 1 >= s.Length || !IsDigit(s[i + 1]))
+            {
+                break;
+            }
+
+            i++;
+        }
+
+        if (digits <= 19)
+        {
+            result = small;
+        }
+
+        return negative ? -result : result;
+    }
+
+    private const decimal MaxBeforeAppendingDigit = (decimal.MaxValue - 9) / 10;
+
+    private static bool IsDigit(char c) => c >= '0' && c <= '9';
 
     /// <summary>
     /// Gets the string, which doesn't depend on a <see cref="TemplateContext"/>.

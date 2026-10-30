@@ -73,7 +73,8 @@ internal sealed class EnumerableObjectValue : ObjectValueBase, IFluidArray
 
     public override bool ToBooleanValue(TemplateContext context) => true;
 
-    public override decimal ToNumberValue(TemplateContext context) => Values.Count;
+    // Like Liquid, a value that isn't a number is 0.
+    public override decimal ToNumberValue(TemplateContext context) => 0;
 
     public override bool Equals(FluidValue other)
     {
