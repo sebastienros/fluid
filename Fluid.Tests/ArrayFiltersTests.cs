@@ -1026,4 +1026,20 @@ public class ArrayFiltersTests
     {
         await Assert.ThrowsAsync<LiquidException>(() => new FluidParser().Parse("{{ 123 | where: 'title' }}").RenderAsync(new TemplateContext()).AsTask());
     }
+
+    [Theory]
+    // Like Liquid, a hash or a scalar is a one-item array, and nil stays nil.
+    [InlineData("{{ h | sort | size }}|{{ h | reverse | size }}|{{ h | sum }}|{{ h | sum: 'n' }}|{{ eh | sort | size }}", "1|1|0|1|1")]
+    [InlineData("{{ 1 | sort | size }}|{{ 1 | sort_natural | size }}|{{ 1 | reverse | size }}|{{ 'ab' | sort | size }}", "1|1|1|1")]
+    [InlineData("{{ 5 | join }}|{{ 5 | join | size }}|[{{ missing | join }}]|{{ missing | sort | size }}|{{ missing | sum }}", "5|1|[]|0|0")]
+    // Like Liquid, a value without a size has a size of 0.
+    [InlineData("{{ 2.5 | size }}|{{ 7 | size }}|{{ true | size }}|{{ missing | size }}|{{ 'abc' | size }}|{{ h | size }}", "0|0|0|0|3|2")]
+    public async Task ArrayFiltersWrapHashesAndScalars(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("h", new Dictionary<string, object> { ["k"] = "v", ["n"] = 1 });
+        context.SetValue("eh", new Dictionary<string, object>());
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
 }

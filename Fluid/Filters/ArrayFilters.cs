@@ -31,7 +31,8 @@ public static class ArrayFilters
 
         if (input.Type != FluidValues.Array)
         {
-            return input;
+            // Like Liquid, any other value is a one-item array, joined into its text.
+            return input.IsNil() ? input : StringValue.Create(input.ToStringValue(context));
         }
 
         var separator = arguments.Count > 0 ? arguments.At(0).ToStringValue(context) : " ";
@@ -302,8 +303,16 @@ public static class ArrayFilters
         }
         else
         {
-            return input;
+            return AsOneItemArray(input);
         }
+    }
+
+    /// <summary>
+    /// Like Liquid's InputIterator, a value that isn't an array (a hash or a scalar) is a one-item array, and nil stays nil.
+    /// </summary>
+    private static FluidValue AsOneItemArray(FluidValue input)
+    {
+        return input.IsNil() ? input : ArrayValue.Create([input]);
     }
 
     // https://github.com/Shopify/liquid/commit/842986a9721de11e71387732be51951285225977
@@ -902,7 +911,19 @@ public static class ArrayFilters
     {
         LiquidException.ThrowFilterArgumentsCount("size", expected: 0, arguments);
 
-        return input.GetValueAsync("size", context);
+        var task = input.GetValueAsync("size", context);
+
+        if (task.IsCompletedSuccessfully)
+        {
+            return OrZero(task.Result);
+        }
+
+        return Awaited(task);
+
+        // Like Liquid, a value without a size (a number, a boolean, nil) has a size of 0.
+        static FluidValue OrZero(FluidValue size) => size.IsNil() ? NumberValue.Zero : size;
+
+        static async ValueTask<FluidValue> Awaited(ValueTask<FluidValue> task) => OrZero(await task);
     }
 
     public static async ValueTask<FluidValue> Sort(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -911,7 +932,7 @@ public static class ArrayFilters
 
         if (input.Type != FluidValues.Array)
         {
-            return input;
+            return AsOneItemArray(input);
         }
 
         // If argument is provided but is nil, treat as no argument
@@ -964,7 +985,7 @@ public static class ArrayFilters
 
         if (input.Type != FluidValues.Array)
         {
-            return input;
+            return AsOneItemArray(input);
         }
 
         // If argument is provided but is nil, treat as no argument
@@ -1050,6 +1071,12 @@ public static class ArrayFilters
     public static async ValueTask<FluidValue> Sum(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("sum", min: 0, max: null, arguments);
+
+        // Like Liquid, a hash is a one-item array, not a list of entries.
+        if (input.Type is FluidValues.Dictionary or FluidValues.Object)
+        {
+            input = ArrayValue.Create([input]);
+        }
 
         if (arguments.Count == 0)
         {
