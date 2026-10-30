@@ -68,6 +68,17 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
 
         _suppressWhitespaceBody = Statements.Count == 1 && Statements[0] is TextSpanStatement t && t.IsWhitespaceOrCommentOnly;
+
+        if (Else != null)
+        {
+            var isBlank = Else.IsWhitespaceOrCommentOnly;
+            for (var i = 0; isBlank && i < Statements.Count; i++)
+            {
+                isBlank = Statements[i].IsWhitespaceOrCommentOnly;
+            }
+
+            Else.SetEnclosingTagIsBlank(isBlank);
+        }
     }
 
     public string Identifier { get; }

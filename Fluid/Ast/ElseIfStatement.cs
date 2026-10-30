@@ -7,6 +7,10 @@ public sealed class ElseIfStatement : TagStatement, ISourceable
 {
     private readonly bool _isWhitespaceOrCommentOnly;
 
+    // Like Liquid, whitespace is only removed when every branch of the enclosing tag is blank, which
+    // the enclosing tag decides. A branch on its own strips it when it is blank itself.
+    private bool _stripWhitespace;
+
     public ElseIfStatement(Expression condition, IReadOnlyList<Statement> statements) : base(statements)
     {
         Condition = condition;
@@ -20,6 +24,17 @@ public sealed class ElseIfStatement : TagStatement, ISourceable
                 break;
             }
         }
+
+        _stripWhitespace = _isWhitespaceOrCommentOnly;
+    }
+
+    /// <summary>
+    /// Sets whether the branch is part of a tag whose branches are all blank, in which case its
+    /// whitespace is not rendered.
+    /// </summary>
+    internal void SetEnclosingTagIsBlank(bool isBlank)
+    {
+        _stripWhitespace = isBlank;
     }
 
     public Expression Condition { get; }
@@ -28,7 +43,7 @@ public sealed class ElseIfStatement : TagStatement, ISourceable
 
     public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
-        if (_isWhitespaceOrCommentOnly)
+        if (_stripWhitespace)
         {
             // If the block is whitespace/comment/assign only, we execute statements but suppress output from TextSpanStatements
             for (var i = 0; i < Statements.Count; i++)
@@ -115,7 +130,7 @@ public sealed class ElseIfStatement : TagStatement, ISourceable
 
     public void WriteTo(SourceGenerationContext context)
     {
-        var statements = SourceGenerationContext.GetWrittenStatements(Statements, IsWhitespaceOrCommentOnly);
+        var statements = SourceGenerationContext.GetWrittenStatements(Statements, _stripWhitespace);
 
         context.WriteStatements(statements, incrementSteps: true);
 
