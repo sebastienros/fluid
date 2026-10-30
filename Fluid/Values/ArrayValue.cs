@@ -29,9 +29,15 @@ public sealed class ArrayValue : FluidValue, IFluidArray
             return true;
         }
 
-        if (other.IsNil())
+        // An empty collection is equal to empty and blank, but not to nil.
+        if (other.Type is FluidValues.Empty or FluidValues.Blank)
         {
             return Values.Count == 0;
+        }
+
+        if (other.IsNil())
+        {
+            return false;
         }
 
         if (other is IFluidArray otherValues)

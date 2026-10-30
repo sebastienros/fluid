@@ -27,9 +27,15 @@ public sealed class DictionaryValue : FluidValue
             return true;
         }
 
-        if (other.IsNil())
+        // An empty hash is equal to empty and blank, but not to nil.
+        if (other.Type is FluidValues.Empty or FluidValues.Blank)
         {
             return _value.Count == 0;
+        }
+
+        if (other.IsNil())
+        {
+            return false;
         }
 
         if (other is DictionaryValue otherDictionary)

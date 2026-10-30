@@ -21,8 +21,14 @@ public abstract class ObjectValueBase : FluidValue
 
     public override bool Equals(FluidValue other)
     {
+        // An empty collection is equal to empty and blank, but not to nil.
         if (other.IsNil())
         {
+            if (other.Type is not (FluidValues.Empty or FluidValues.Blank))
+            {
+                return false;
+            }
+
             return Value switch
             {
                 ICollection collection => collection.Count == 0,
