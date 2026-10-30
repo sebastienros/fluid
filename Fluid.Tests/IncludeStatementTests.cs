@@ -673,6 +673,23 @@ shape: ''";
         }
     }
 
+    [Theory]
+    [InlineData("{% include 'icon' with 'star', class: 'big' %}", "[star big]")]
+    [InlineData("{% include 'icon' with 'star' as icon, class: 'big' %}", "[star big]")]
+    [InlineData("{% include 'icon' for items, class: 'big' %}", "[a big][b big]")]
+    [InlineData("{% include 'icon' for items as icon, class: 'big', x: 1 %}", "[a big][b big]")]
+    public void IncludeTag_WithOrFor_And_NamedArguments(string source, string expected)
+    {
+        var fileProvider = new MockFileProvider();
+        fileProvider.Add("icon.liquid", "[{{ icon }} {{ class }}]");
+
+        var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
+        var context = new TemplateContext(options).SetValue("items", new[] { "a", "b" });
+        Assert.True(_parser.TryParse(source, out var template, out var error), error);
+
+        Assert.Equal(expected, template.Render(context));
+    }
+
     [Fact]
     public void RenderTag_With_And_NamedArguments()
     {

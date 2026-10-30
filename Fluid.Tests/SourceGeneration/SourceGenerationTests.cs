@@ -381,6 +381,21 @@ public class SourceGenerationTests
     }
 
     [Theory]
+    [InlineData("{% include 'icon' with 'star', class: 'big' %}", "[star big]")]
+    [InlineData("{% include 'icon' for items as icon, class: 'big' %}", "[a big][b big]")]
+    public async Task GeneratedInclude_WithOrFor_And_NamedArguments(string liquid, string expected)
+    {
+        var provider = new MockFileProvider().Add("icon", "[{{ icon }} {{ class }}]").Add("icon.liquid", "[{{ icon }} {{ class }}]");
+        var instance = CompileTemplate(liquid, provider);
+        var options = new TemplateOptionsBuilder().WithFileProvider(provider).Build();
+
+        var writer = new StringWriter();
+        await instance.RenderAsync(writer, HtmlEncoder.Default, new TemplateContext(options).SetValue("items", new[] { "a", "b" }));
+
+        Assert.Equal(expected, writer.ToString());
+    }
+
+    [Theory]
     [InlineData("{% for i in (1..99999999999) %}{% endfor %}", "The range bound 99999999999 is out of range.")]
     [InlineData("{% assign r = (-99999999999..1) %}", "The range bound -99999999999 is out of range.")]
     [InlineData("{% for i in (-2000000000..2000000000) %}{% endfor %}", "The range (-2000000000..2000000000) has too many items.")]

@@ -461,12 +461,12 @@ public class FluidParser
         IncludeAssignStatement = TrackStatement(IncludeAssignStatement, skipLeadingWhitespace: true);
 
         var IncludeTag = OneOf(
-                    Primary.AndSkip(Terms.Text("with")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Else(default(string))).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3)),
-                    Primary.AndSkip(Terms.Text("for")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Else(default(string))).Then(x => new IncludeStatement(this, x.Item1, @for: x.Item2, alias: x.Item3)),
+                    Primary.AndSkip(Terms.Text("with")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Optional()).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional()).Then(x => new IncludeStatement(this, x.Item1, with: x.Item2, alias: x.Item3.HasValue ? x.Item3.Value : null, assignStatements: x.Item4.HasValue ? x.Item4.Value : [])),
+                    Primary.AndSkip(Terms.Text("for")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Optional()).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional()).Then(x => new IncludeStatement(this, x.Item1, @for: x.Item2, alias: x.Item3.HasValue ? x.Item3.Value : null, assignStatements: x.Item4.HasValue ? x.Item4.Value : [])),
                     Primary
-                        .And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Else(default(IReadOnlyList<AssignStatement>)))
+                        .And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional())
                         .AndSkip(Comma.Optional())
-                        .Then(x => new IncludeStatement(this, x.Item1, null, null, null, x.Item2 ?? []))
+                        .Then(x => new IncludeStatement(this, x.Item1, null, null, null, x.Item2.HasValue ? x.Item2.Value : []))
                     ).AndSkip(TagEnd)
                     .Then<Statement>(x => x)
                     .ElseError("Invalid 'include' tag")
@@ -483,9 +483,9 @@ public class FluidParser
         FromTag.Name = "FromTag";
 
         var RenderTag = OneOf(
-                    String.AndSkip(Terms.Text("with")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Else(default(string))).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Else(default(IReadOnlyList<AssignStatement>))).Then(x => new RenderStatement(this, x.Item1.ToString(), with: x.Item2, alias: x.Item3, assignStatements: x.Item4 ?? [])),
-                    String.AndSkip(Terms.Text("for")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Else(default(string))).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Else(default(IReadOnlyList<AssignStatement>))).Then(x => new RenderStatement(this, x.Item1.ToString(), @for: x.Item2, alias: x.Item3, assignStatements: x.Item4 ?? [])),
-                    String.And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Else(default(IReadOnlyList<AssignStatement>))).Then(x => new RenderStatement(this, x.Item1.ToString(), null, null, null, x.Item2 ?? []))
+                    String.AndSkip(Terms.Text("with")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Optional()).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional()).Then(x => new RenderStatement(this, x.Item1.ToString(), with: x.Item2, alias: x.Item3.HasValue ? x.Item3.Value : null, assignStatements: x.Item4.HasValue ? x.Item4.Value : [])),
+                    String.AndSkip(Terms.Text("for")).And(Primary).And(Terms.Text("as").SkipAnd(Identifier).Optional()).And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional()).Then(x => new RenderStatement(this, x.Item1.ToString(), @for: x.Item2, alias: x.Item3.HasValue ? x.Item3.Value : null, assignStatements: x.Item4.HasValue ? x.Item4.Value : [])),
+                    String.And(Comma.Optional().SkipAnd(Separated(Comma, IncludeAssignStatement)).Optional()).Then(x => new RenderStatement(this, x.Item1.ToString(), null, null, null, x.Item2.HasValue ? x.Item2.Value : []))
                     ).ElseError(ErrorMessages.ExpectedStringRender).AndSkip(TagEnd)
                     .Then<Statement>(x => x)
                     .ElseError("Invalid 'render' tag")

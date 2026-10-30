@@ -66,17 +66,6 @@ public sealed class IncludeStatement : Statement, ISourceable
 
             return await RenderStatementsAsync(template, output, encoder, context);
         }
-        else if (AssignStatements.Count > 0)
-        {
-            // Keyword arguments are local to the include - they should go out of scope after
-            for (var i = 0; i < AssignStatements.Count; i++)
-            {
-                var stmt = AssignStatements[i];
-                context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
-            }
-
-            return await RenderStatementsAsync(template, output, encoder, context);
-        }
         else if (For != null)
         {
             var forloop = ForLoopValue.Create();
@@ -88,6 +77,13 @@ public sealed class IncludeStatement : Statement, ISourceable
             var length = forloop.Length = list.Count;
 
             context.LocalScope.SetOwnValue("forloop", forloop);
+
+            // Keyword arguments are local to the include
+            for (var i = 0; i < AssignStatements.Count; i++)
+            {
+                var stmt = AssignStatements[i];
+                context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
+            }
 
             for (var i = 0; i < length; i++)
             {
@@ -120,7 +116,14 @@ public sealed class IncludeStatement : Statement, ISourceable
             return Completion.Normal;
         }
 
-        // no with, for or assignments, e.g. {% include 'products' %}
+        // Keyword arguments alone, or nothing, e.g. {% include 'products' %}.
+        // Keyword arguments are local to the include - they should go out of scope after
+        for (var i = 0; i < AssignStatements.Count; i++)
+        {
+            var stmt = AssignStatements[i];
+            context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
+        }
+
         return await RenderStatementsAsync(template, output, encoder, context);
     }
 
@@ -195,11 +198,6 @@ public sealed class IncludeStatement : Statement, ISourceable
             EmitAssignStatements();
             context.WriteLine($"return {call};");
         }
-        else if (AssignStatements.Count > 0)
-        {
-            EmitAssignStatements();
-            context.WriteLine($"return {call};");
-        }
         else if (For != null)
         {
             // Nothing reads the forloop variable of most loops, which then don't create or update it.
@@ -215,6 +213,8 @@ public sealed class IncludeStatement : Statement, ISourceable
                 context.WriteLine("forloop.Length = length;");
                 context.WriteLine($"{ctx}.LocalScope.SetOwnValue(\"forloop\", forloop);");
             }
+
+            EmitAssignStatements();
 
             context.WriteLine("for (var i = 0; i < length; i++)");
             context.WriteLine("{");
@@ -245,6 +245,8 @@ public sealed class IncludeStatement : Statement, ISourceable
         }
         else
         {
+            // Keyword arguments alone, or nothing.
+            EmitAssignStatements();
             context.WriteLine($"return {call};");
         }
     }
