@@ -32,4 +32,10 @@ public sealed class FluidParserOptions
     /// Gets whether identifiers can end with a question mark (`?`), which will be stripped during parsing. Default is <c>false</c>.
     /// </summary>
     public bool AllowTrailingQuestionMark { get; init; }
+
+    /// <summary>
+    /// Gets whether string literals support backslash escape sequences, like <c>'it\'s'</c> or <c>"a\nb"</c>.
+    /// Default is <c>false</c>: like Liquid, a backslash is a plain character and a string ends at the next matching quote.
+    /// </summary>
+    public bool AllowStringEscapeSequences { get; init; }
 }

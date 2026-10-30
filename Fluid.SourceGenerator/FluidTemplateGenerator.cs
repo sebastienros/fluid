@@ -143,6 +143,7 @@ public sealed class FluidTemplateGenerator : IIncrementalGenerator
             AllowParentheses = AttributeReader.GetNamedBool(templatesAttribute, "AllowParentheses"),
             AllowLiquidTag = AttributeReader.GetNamedBool(templatesAttribute, "AllowLiquidTag"),
             AllowTrailingQuestionMark = AttributeReader.GetNamedBool(templatesAttribute, "AllowTrailingQuestionMark"),
+            AllowStringEscapeSequences = AttributeReader.GetNamedBool(templatesAttribute, "AllowStringEscapeSequences"),
         });
 
         // Compiled templates are emitted into a separate namespace to avoid polluting the user type.
@@ -242,6 +243,11 @@ namespace Fluid.SourceGenerator
         /// Parses the templates with <c>FluidParserOptions.AllowTrailingQuestionMark</c>.
         /// </summary>
         public bool AllowTrailingQuestionMark { get; set; }
+
+        /// <summary>
+        /// Parses the templates with <c>FluidParserOptions.AllowStringEscapeSequences</c>.
+        /// </summary>
+        public bool AllowStringEscapeSequences { get; set; }
     }
 }
 ";

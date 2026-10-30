@@ -37,7 +37,7 @@ public class FluidParser
     protected static readonly Parser<char> Dot = Terms.Char('.'); // Terms.Char skips leading whitespace to allow `foo .bar`
     protected static readonly Parser<char> Pipe = Terms.Char('|');
 
-    protected static readonly Parser<TextSpan> String = Terms.String(StringLiteralQuotes.SingleOrDouble);
+    protected readonly Parser<TextSpan> String;
     protected static readonly Parser<string> DoubleEquals = Terms.Text("==");
     protected static readonly Parser<string> NotEquals = Terms.Text("!=");
     protected static readonly Parser<string> Different = Terms.Text("<>");
@@ -108,6 +108,10 @@ public class FluidParser
         _tagName = SkipWhiteSpace(OneOf(Literals.Char('#').Then(new TextSpan("#")), new IdentifierParser(parserOptions.AllowTrailingQuestionMark)));
         VariableSignature = SkipWhiteSpace(new VariableSignatureParser()).Then(x => x.ToString());
 
+        // Like Liquid, a backslash in a string literal is a plain character unless escape sequences are enabled.
+        String = parserOptions.AllowStringEscapeSequences
+            ? Terms.String(StringLiteralQuotes.SingleOrDouble)
+            : SkipWhiteSpace(new StringLiteralParser());
         String.Name = "String";
 
         var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)));

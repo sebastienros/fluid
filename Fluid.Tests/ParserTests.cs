@@ -537,9 +537,12 @@ def", "at (")]
     [Theory]
     [InlineData("{{ 'a\\nb' }}", "a\nb")]
     [InlineData("{{ 'a\\tb' }}", "a\tb")]
-    public void ShouldParseEscapeSequences(string source, string expected)
+    [InlineData("{{ 'it\\'s' }}", "it's")]
+    [InlineData("{{ \"\\u0041\" }}", "A")]
+    public void ShouldParseEscapeSequencesWhenEnabled(string source, string expected)
     {
-        var result = _parser.TryParse(source, out var template, out var errors);
+        var parser = new FluidParser(new FluidParserOptions { AllowStringEscapeSequences = true });
+        var result = parser.TryParse(source, out var template, out var errors);
 
         Assert.True(result, errors);
         Assert.NotNull(template);
@@ -548,6 +551,31 @@ def", "at (")]
         var rendered = template.Render();
 
         Assert.Equal(expected, rendered);
+    }
+
+    [Theory]
+    [InlineData("{{ 'a\\nb' }}", "a\\nb")]
+    [InlineData("{{ \"C:\\temp\" }}", "C:\\temp")]
+    [InlineData("{{ \"\\u0041\" }}", "\\u0041")]
+    [InlineData("{{ \"a\\\\b\" | size }}", "4")]
+    [InlineData("{{ \"a\\\" }}", "a\\")]
+    [InlineData("{{ 'a' | append: '#\\' }}", "a#\\")]
+    [InlineData("{{ \"hello\" | replace: 'l', \"f\\oo\" }}", "hef\\oof\\ooo")]
+    [InlineData("{% assign x = 'b\\' %}{{ x }}", "b\\")]
+    [InlineData("{{ h[\"a\\\"] }}", "1")]
+    public void ShouldNotParseEscapeSequencesByDefault(string source, string expected)
+    {
+        var template = _parser.Parse(source);
+        var context = new TemplateContext();
+        context.SetValue("h", new Dictionary<string, object> { ["a\\"] = 1 });
+
+        Assert.Equal(expected, template.Render(context));
+    }
+
+    [Fact]
+    public void ShouldNotParseEscapedQuotesByDefault()
+    {
+        Assert.False(_parser.TryParse("{{ 'it\\'s' }}", out _, out _));
     }
 
     [Theory]
