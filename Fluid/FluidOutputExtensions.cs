@@ -55,6 +55,7 @@ public static class FluidOutputExtensions
             bufferSize,
             leaveOpen: true,
             cancellationToken: context.CancellationToken);
+        context.EnterTemplateScope();
         await template.RenderAsync(output, encoder, context);
         context.CancellationToken.ThrowIfCancellationRequested();
         await output.FlushAsync();
@@ -86,6 +87,7 @@ public static class FluidOutputExtensions
             cancellationToken: context.CancellationToken))
         {
             var limitedOutput = LimitedFluidOutput.Create(output, context.MaxOutputSize);
+            context.EnterTemplateScope();
             await template.RenderAsync(limitedOutput, encoder, context);
         }
 

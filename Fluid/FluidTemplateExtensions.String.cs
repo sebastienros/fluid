@@ -51,6 +51,11 @@ public static partial class FluidTemplateExtensions
             ? context.EnterScope(ScopeBehavior.Local)
             : default;
 
+        if (!isolateContext)
+        {
+            context.EnterTemplateScope();
+        }
+
         try
         {
             var initialCapacity = context.Options?.OutputBufferSize ?? 0;
