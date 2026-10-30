@@ -282,7 +282,7 @@ public static class StringFilters
 
         if (!firstArgument.IsInteger(context))
         {
-            throw new ArgumentException("Slice: offset argument is an invalid number");
+            throw new LiquidException("Slice: offset argument is an invalid number");
         }
 
         var requestedStartIndex = NumberConversions.ToInt32Saturated(firstArgument.ToNumberValue(context));
@@ -293,7 +293,7 @@ public static class StringFilters
             var secondArgument = arguments.At(1);
             if (!secondArgument.IsNil() && !secondArgument.IsInteger(context))
             {
-                throw new ArgumentException("Slice: length argument is not a number");
+                throw new LiquidException("Slice: length argument is not a number");
             }
             requestedLength = secondArgument.IsNil() ? 1 : NumberConversions.ToInt32Saturated(secondArgument.ToNumberValue(context));
         }
@@ -558,7 +558,7 @@ public static class StringFilters
         }
         else if (firstArg.IsNil())
         {
-            throw new ArgumentException("truncate: cannot convert nil to number");
+            throw new LiquidException("truncate: cannot convert nil to number");
         }
         else
         {
@@ -614,7 +614,7 @@ public static class StringFilters
         }
         else if (firstArg.IsNil())
         {
-            throw new ArgumentException("truncatewords: cannot convert nil to number");
+            throw new LiquidException("truncatewords: cannot convert nil to number");
         }
         else
         {

@@ -32,4 +32,16 @@ public class RoundFilterTests
     {
         Assert.Equal(expected, await _parser.Parse(source).RenderAsync(new TemplateContext()));
     }
+
+    [Theory]
+    // A decimal can't have more than 28 digits after the point, or be 10^29 or more.
+    [InlineData("{{ 2 | round: 30 }}", "2")]
+    [InlineData("{{ 2.5 | round: \"29\" }}", "2.5")]
+    [InlineData("{{ 1.5 | round: 2147483648 }}", "1.5")]
+    [InlineData("{{ 25 | round: -30 }}", "0")]
+    [InlineData("{{ 25 | round: -2147483649 }}", "0")]
+    public async Task RoundsBeyondDecimalPrecision(string source, string expected)
+    {
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(new TemplateContext()));
+    }
 }
