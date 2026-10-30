@@ -411,9 +411,17 @@ public class TemplateContext
     /// passed to the template, but after the template's own variables.
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public FluidValue ShadowWithCounter(string name, FluidValue value)
     {
-        if (!_hasCounters || value.IsNil())
+        // Inlined at every variable lookup: only a field check until a counter is set.
+        return _hasCounters ? ShadowWithCounterSlow(name, value) : value;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private FluidValue ShadowWithCounterSlow(string name, FluidValue value)
+    {
+        if (value.IsNil())
         {
             return value;
         }
