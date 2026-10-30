@@ -383,7 +383,7 @@ public class SourceGenerationTests
 
     [Theory]
     [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 7 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "0|E|")]
-    [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 3 limit: 0 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "0|E|1234")]
+    [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 3 limit: 0 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "0|E|34")]
     public async Task GeneratedLoops_EmptySliceUpdatesContinueCursor(string liquid, string expected)
     {
         var instance = CompileTemplate(liquid, new MockFileProvider());
