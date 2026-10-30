@@ -23,7 +23,7 @@ public class NegativeLoopOffsetTests
     [InlineData("{% for i in items offset: -1 limit: 2 %}{{ i }}{% endfor %}", "1")]
     [InlineData("{% for i in items offset: -1 limit: 10 %}{{ i }}{% endfor %}", "123")]
     [InlineData("{% for i in items offset: -2 limit: 2 %}{{ i }}{% else %}none{% endfor %}", "none")]
-    [InlineData("{% for i in items offset: -1 reversed %}{{ i }}{% endfor %}", "321")]
+    [InlineData("{% for i in items reversed offset: -1 %}{{ i }}{% endfor %}", "321")]
     [InlineData("{% for i in items offset: '-1' %}{{ i }}{% endfor %}", "123")]
     // offset: continue resumes at the offset as written plus the items rendered.
     [InlineData("{% for i in items offset: -1 limit: 2 %}{{ i }}{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "1|123")]

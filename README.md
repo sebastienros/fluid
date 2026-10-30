@@ -49,6 +49,7 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 - [Time zones](#time-zones)
 - [Customizing tags and blocks](#customizing-tags-and-blocks)
 - [ASP.NET MVC View Engine](#aspnet-mvc-view-engine)
+- [Shopify Liquid syntax](#shopify-liquid-syntax)
 - [Whitespace control](#whitespace-control)
 - [Custom filters](#custom-filters)
 - [Functions](#functions)
@@ -1197,7 +1198,7 @@ which makes it completely extensible.
 
 Unlike blocks, tags don't have a closing element (e.g., `cycle`, `increment`).
 A closing element will match the name of the opening tag with an `end` suffix, like `endfor`.
-Like in Shopify Liquid, anything after the name of a closing element or of an `else` tag is ignored, as in `{% endfor items %}`.
+Like in Shopify Liquid, anything after the name of a closing element is ignored, as in `{% endfor items %}`.
 Blocks are useful when manipulating a section of a template as a set of statements.
 
 Fluid provides helper methods to register common tags and blocks. All tags and blocks always start with an __identifier__ that is the tag name.
@@ -1286,7 +1287,7 @@ check inside alternatives when failure should allow another branch to be tried.
 
 Operators are used to compare values, like `>` or `contains`. Custom operators can be defined if special comparisons need to be provided.
 
-Like in Shopify Liquid, an operator made of letters, like `contains`, `or` and `and`, and the other words of the Liquid syntax, like `in`, `with` or `else`, end where no letter, digit or `_` follows them. `{% if a contains"b" %}` is valid, while `{% if a orb %}` is an error instead of `a or b`, and `{% render 'card' format: 'short' %}` passes a `format` argument.
+Like `contains`, a custom operator made of letters ends where no letter, digit or `_` follows it: `{% if a xorb %}` is not `a xor b`.
 
 #### Source
 
@@ -1560,6 +1561,16 @@ requiring ASP.NET MVC. This is useful to provide the same experience when buildi
 Use the class `FluidViewRenderer : IFluidViewRenderer` and `FluidViewEngineOptions`. 
 
 
+
+## Shopify Liquid syntax
+
+Shopify Liquid ignores some content and reads some words in ways that can be surprising. Fluid does the same:
+
+- Operators made of letters, like `contains`, `or` and `and`, and the other words of the syntax, like `with` or `else`, end where no letter, digit or `_` follows them: `{% if a contains"b" %}` is valid, `{% if a orb %}` is an error instead of `a or b`, and `{% render 'card' format: 'short' %}` passes a `format` argument.
+- The `in` of a `for` or `tablerow` tag is followed by whitespace: `{% for i in(1..3) %}` is invalid.
+- Tags without arguments ignore anything after their name: closing tags, `else`, `comment`, `raw`, `break`, `continue` and `ifchanged`, as in `{% endfor items %}`.
+- In a `for` tag, `reversed` is only read right after the collection, even when it starts a longer word: `{% for i in items reversedx %}` is reversed, `{% for i in items limit: 2 reversed %}` is not. A `tablerow` tag ignores it.
+- The `limit`, `offset` and `cols` attributes are read anywhere after the collection, and anything else is ignored: `{% for i in items foo, limit: 2 %}` renders two items.
 
 ## Whitespace control
 
