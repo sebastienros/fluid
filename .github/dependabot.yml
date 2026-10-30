@@ -27,3 +27,7 @@ updates:
     schedule:
       interval: daily
     open-pull-requests-limit: 5
+    ignore:
+      # The backport workflow pins dotnet/arcade's reusable workflow to a commit
+      # of its main branch, which changes almost daily; update it manually.
+      - dependency-name: "dotnet/arcade*"
