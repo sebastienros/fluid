@@ -69,17 +69,15 @@ public class FluidParser
     protected readonly Deferred<IReadOnlyList<Statement>> KnownTagsList = Deferred<IReadOnlyList<Statement>>();
     protected readonly Deferred<IReadOnlyList<Statement>> AnyTagsList = Deferred<IReadOnlyList<Statement>>();
 
-    internal const string WhiteSpaceChars = "\t\n\v\f\r \u0085             \u2028\u2029  　";
-
     protected static readonly Parser<TagResult> InlineOutputStart = TagParsers.OutputTagStart();
     protected static readonly Parser<TagResult> InlineOutputEnd = TagParsers.OutputTagEnd();
     protected static readonly Parser<TagResult> InlineTagStart = TagParsers.TagStart();
     protected static readonly Parser<TagResult> InlineTagEnd = TagParsers.TagEnd();
 
     protected static readonly Parser<TagResult> NoInlineOutputStart = NonInlineLiquidTagParsers.OutputTagStart();
-    protected static readonly Parser<TagResult> NoInlineOutputEnd = Literals.AnyOf(WhiteSpaceChars.AsSpan(), minSize: 0).SkipAnd(NonInlineLiquidTagParsers.OutputTagEnd());
+    protected static readonly Parser<TagResult> NoInlineOutputEnd = SkipWhiteSpace(NonInlineLiquidTagParsers.OutputTagEnd());
     protected static readonly Parser<TagResult> NoInlineTagStart = NonInlineLiquidTagParsers.TagStart();
-    protected static readonly Parser<TagResult> NoInlineTagEnd = Literals.AnyOf(WhiteSpaceChars.AsSpan(), minSize: 0).SkipAnd(NonInlineLiquidTagParsers.TagEnd());
+    protected static readonly Parser<TagResult> NoInlineTagEnd = SkipWhiteSpace(NonInlineLiquidTagParsers.TagEnd());
 
     protected readonly Parser<TagResult> OutputStart = InlineOutputStart;
     protected readonly Parser<TagResult> OutputEnd = InlineOutputEnd;

@@ -1629,6 +1629,10 @@ Outputs:
 [ 0 ]
 ```
 
+### Whitespace characters
+
+In tags and outputs, Fluid skips spaces, tabs, new lines, `\v` and `\f`, like Shopify, and the Unicode spaces such as the no-break space (U+00A0), which Shopify doesn't skip. The line and paragraph separators U+0085, U+2028 and U+2029 are not whitespace in a tag or an output. Both parser modes (with and without `AllowLiquidTag`) skip the same whitespace.
+
 ## Template Options
 
 Fluid provides the `TemplateOptionsBuilder.WithTrimming()` method that can be used with predefined preferences for when whitespace should be stripped automatically, even if hyphens are not

@@ -413,4 +413,52 @@ Wow, John G. Chalmers-Smith, you have a long name!";
 
         Assert.Equal(expected, result);
     }
+
+    // Both parser modes skip Parlot's whitespace in tags and outputs: the chars of Ruby's \s, which are the only ones
+    // Shopify skips, and the Unicode spaces (Fluid accepts a non-breaking space since #138).
+    private const string TagWhiteSpace = " \t\n\v\f\r\u00A0\u1680\u180E\u2000\u2007\u200A\u202F\u205F\u3000\uFEFF";
+    private const string NotTagWhiteSpace = "\u0085\u200B\u2028\u2029";
+
+    public static TheoryData<int, bool> TagWhiteSpaceChars()
+    {
+        var data = new TheoryData<int, bool>();
+        foreach (var c in TagWhiteSpace) data.Add(c, true);
+        foreach (var c in NotTagWhiteSpace) data.Add(c, false);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(TagWhiteSpaceChars))]
+    public void ShouldSkipTheSameWhiteSpaceInTagsAndOutputsInBothModes(int code, bool isWhiteSpace)
+    {
+        var s = ((char)code).ToString();
+
+        string[] sources =
+        [
+            "{% assign x = 'ok' %}[{{ x" + s + "}}]",
+            "{% assign x = 'ok' %}[{{ x" + s + "-}}]",
+            "{% assign x = 'ok' %}[{{" + s + "x }}]",
+            "{% assign x = 'ok' %}[{{ x" + s + "|" + s + "downcase }}]",
+            "[{% if true" + s + "%}ok{% endif %}]",
+            "[{%" + s + "if true %}ok{% endif %}]",
+            "[{% if" + s + "true %}ok{% endif %}]",
+            "[{% if 1" + s + "==" + s + "1 %}ok{% endif %}]",
+            "[{% if true %}ok{%" + s + "endif" + s + "%}]",
+        ];
+
+        foreach (var allowLiquidTag in new[] { false, true })
+        {
+            var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = allowLiquidTag });
+
+            foreach (var source in sources)
+            {
+                Assert.True(isWhiteSpace == parser.TryParse(source, out var template, out var errors), $"AllowLiquidTag={allowLiquidTag} {source} {errors}");
+
+                if (isWhiteSpace)
+                {
+                    Assert.Equal("[ok]", template.Render());
+                }
+            }
+        }
+    }
 }
