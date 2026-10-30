@@ -229,9 +229,23 @@ public static class MiscFilters
 
         var value = input.ToStringValue(context);
 
-        return String.IsNullOrEmpty(value)
-            ? StringValue.Empty
-            : StringValue.Create(Encoding.UTF8.GetString(Convert.FromBase64String(value)));
+        if (String.IsNullOrEmpty(value))
+        {
+            return StringValue.Empty;
+        }
+
+        byte[] bytes;
+
+        try
+        {
+            bytes = Convert.FromBase64String(value);
+        }
+        catch (FormatException e)
+        {
+            throw new LiquidException("invalid base64 provided to base64_decode", e);
+        }
+
+        return StringValue.Create(Encoding.UTF8.GetString(bytes));
     }
 
     public static ValueTask<FluidValue> Base64UrlSafeEncode(FluidValue input, FilterArguments arguments, TemplateContext context)

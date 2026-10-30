@@ -58,7 +58,7 @@ public class StandardFilterTests
     [InlineData("foobar", 0, "")]
     public void TestSliceArgument(object input, params object[] arguments)
     {
-        Assert.Throws<ArgumentException>(() => StringFilters.Slice(FluidValue.Create(input, TemplateOptions.Default), arguments.ToFilterArguments(), new TemplateContext()).Result.ToObjectValue(new TemplateContext()));
+        Assert.Throws<LiquidException>(() => StringFilters.Slice(FluidValue.Create(input, TemplateOptions.Default), arguments.ToFilterArguments(), new TemplateContext()).Result.ToObjectValue(new TemplateContext()));
     }
 
     [Theory]

@@ -772,7 +772,7 @@ public static class ArrayFilters
                                     hasNilError = true;
                                     break;
                                 }
-                                throw new InvalidOperationException($"Cannot access property '{memberStr}' on {deepItem.Type}");
+                                throw new LiquidException($"Cannot access property '{memberStr}' on {deepItem.Type}");
                             }
                             if (!shouldReject.reject)
                             {
@@ -791,7 +791,7 @@ public static class ArrayFilters
                                 hasNilError = true;
                                 break;
                             }
-                            throw new InvalidOperationException($"Cannot access property '{memberStr}' on {nestedItem.Type}");
+                            throw new LiquidException($"Cannot access property '{memberStr}' on {nestedItem.Type}");
                         }
                         if (!shouldReject.reject)
                         {
@@ -812,7 +812,7 @@ public static class ArrayFilters
                     hasNilError = true;
                     break;
                 }
-                throw new InvalidOperationException($"Cannot access property '{memberStr}' on {item.Type}");
+                throw new LiquidException($"Cannot access property '{memberStr}' on {item.Type}");
             }
 
             if (!result.reject)
@@ -937,7 +937,7 @@ public static class ArrayFilters
 
             if ((hasArray || hasObject) && (hasNumber || hasString))
             {
-                throw new InvalidOperationException("Cannot sort array with incompatible types");
+                throw new LiquidException("Cannot sort array with incompatible types");
             }
 
             return ArrayValue.Create(values.OrderBy(x => x, new LiquidSortComparer(caseSensitive: true, compareNumbersAsStrings: false, context)).ToArray());
@@ -990,7 +990,7 @@ public static class ArrayFilters
 
             if ((hasArray || hasObject) && (hasNumber || hasString))
             {
-                throw new InvalidOperationException("Cannot sort array with incompatible types");
+                throw new LiquidException("Cannot sort array with incompatible types");
             }
 
             return ArrayValue.Create(values.OrderBy(x => x, new LiquidSortComparer(caseSensitive: false, compareNumbersAsStrings: true, context)).ToArray());

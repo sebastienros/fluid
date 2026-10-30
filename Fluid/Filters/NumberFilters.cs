@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using Fluid.Values;
 
 namespace Fluid.Filters;
@@ -63,10 +64,24 @@ public static class NumberFilters
         decimal divisor = first.ToNumberValue(context);
         decimal dividend = input.ToNumberValue(context);
 
+        if (divisor == 0)
+        {
+            ThrowDividedByZero();
+        }
+
         // The result is rounded down to the nearest integer(that is, the floor) if BOTH the divisor AND dividend are integers.
         // https://shopify.github.io/liquid/filters/divided_by/
 
-        var result = dividend / divisor;
+        decimal result;
+
+        try
+        {
+            result = dividend / divisor;
+        }
+        catch (OverflowException e)
+        {
+            throw NumberTooLarge("divided_by", e);
+        }
 
         var divisorScale = NumberValue.GetScale(divisor);
         var dividendScale = NumberValue.GetScale(dividend);
@@ -100,7 +115,14 @@ public static class NumberFilters
     {
         LiquidException.ThrowFilterArgumentsCount("minus", expected: 1, arguments);
 
-        return NumberValue.Create(input.ToNumberValue(context) - arguments.At(0).ToNumberValue(context));
+        try
+        {
+            return NumberValue.Create(input.ToNumberValue(context) - arguments.At(0).ToNumberValue(context));
+        }
+        catch (OverflowException e)
+        {
+            throw NumberTooLarge("minus", e);
+        }
     }
 
     public static ValueTask<FluidValue> Modulo(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -110,6 +132,12 @@ public static class NumberFilters
         var inputValue = input is NumberValue inputNumber ? inputNumber.Value : input.ToNumberValue(context);
         var divisorValue = arguments.At(0);
         var divisor = divisorValue is NumberValue divisorNumber ? divisorNumber.Value : divisorValue.ToNumberValue(context);
+
+        if (divisor == 0)
+        {
+            ThrowDividedByZero();
+        }
+
         var result = inputValue % divisor;
 
         // Liquid uses Ruby's modulo, whose result has the sign of the divisor: -7 % 3 is 2.
@@ -144,16 +172,34 @@ public static class NumberFilters
     {
         LiquidException.ThrowFilterArgumentsCount("plus", expected: 1, arguments);
 
-        return NumberValue.Create(input.ToNumberValue(context) + arguments.At(0).ToNumberValue(context));
+        try
+        {
+            return NumberValue.Create(input.ToNumberValue(context) + arguments.At(0).ToNumberValue(context));
+        }
+        catch (OverflowException e)
+        {
+            throw NumberTooLarge("plus", e);
+        }
     }
 
     public static ValueTask<FluidValue> Round(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("round", min: 0, max: 1, arguments);
 
-        var digits = Convert.ToInt32(arguments.At(0).Or(NumberValue.Zero).ToNumberValue(context));
+        var digits = NumberConversions.ToInt32Saturated(arguments.At(0).Or(NumberValue.Zero).ToNumberValue(context));
 
         var value = input.ToNumberValue(context);
+
+        // A decimal has at most 28 digits after the point, and is less than 10^29: rounding to more
+        // digits leaves it unchanged, and rounding to the 29th power of ten or more gives zero.
+        if (digits > MaxDecimalScale)
+        {
+            digits = MaxDecimalScale;
+        }
+        else if (digits < -MaxDecimalScale)
+        {
+            return NumberValue.Zero;
+        }
 
         // Liquid rounds halves away from zero (2.5 is 3), where Math.Round defaults to the nearest even number.
         if (digits < 0)
@@ -173,7 +219,26 @@ public static class NumberFilters
 
         var first = arguments.At(0);
 
-        return NumberValue.Create(input.ToNumberValue(context) * first.ToNumberValue(context));
+        try
+        {
+            return NumberValue.Create(input.ToNumberValue(context) * first.ToNumberValue(context));
+        }
+        catch (OverflowException e)
+        {
+            throw NumberTooLarge("times", e);
+        }
+    }
+
+    private const int MaxDecimalScale = 28;
+
+    private static void ThrowDividedByZero()
+    {
+        throw new LiquidException("divided by 0");
+    }
+
+    private static LiquidException NumberTooLarge(string filter, OverflowException e)
+    {
+        return new LiquidException($"{filter}: the result is too large to be represented", e);
     }
 
     public static ValueTask<FluidValue> Random(FluidValue input, FilterArguments arguments, TemplateContext context)
