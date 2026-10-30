@@ -115,7 +115,8 @@ public class FluidParser
         Number.Name = "Number";
 
         // Member expressions
-        var Indexer = Between(LBracket, Primary, RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
+        // Like Liquid, whitespace is allowed before an indexer: `products [0]` is `products[0]`.
+        var Indexer = Between(Terms.Char('['), Primary, RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
         Indexer.Name = "Indexer";
 
         // ([name =] value,)+
@@ -153,13 +154,18 @@ public class FluidParser
         var RangeBound = Terms.Decimal().Then<Expression>(x => new LiteralExpression(NumberValue.Create(decimal.Truncate(x))));
         RangeBound.Name = "RangeBound";
 
+        // Like Liquid, a bound can also be a string, converted to an integer when the range is evaluated.
+        var StringRangeBound = String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x)));
+        StringRangeBound.Name = "StringRangeBound";
+
         var Range = LParen
             .SkipAnd(OneOf(
                 Member.AndSkip(Terms.Text("..")),
                 Integer.AndSkip(Terms.Text("..")),
-                RangeBound.AndSkip(Terms.Text(".."))
+                RangeBound.AndSkip(Terms.Text("..")),
+                StringRangeBound.AndSkip(Terms.Text(".."))
             ))
-            .And(OneOf(RangeBound, Member.Then<Expression>(x => x)))
+            .And(OneOf(RangeBound, StringRangeBound, Member.Then<Expression>(x => x)))
             .AndSkip(RParen)
             .Then<Expression>(x => new RangeExpression(x.Item1, x.Item2));
         Range.Name = "Range";
@@ -301,8 +307,11 @@ public class FluidParser
                 });
         FilterExpression.Name = "FilterExpression";
 
-        Parser<Statement> Output = OutputStart.SkipAnd(FilterExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter).And(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd))
-            .Then<Statement>(static x => new OutputStatement(x.Item1))
+        Parser<Statement> Output = OutputStart.SkipAnd(
+            // Like Liquid, an output without an expression renders nothing.
+            OutputEnd.Then<Statement>(static x => new OutputStatement(EmptyKeyword))
+            .Or(FilterExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter).And(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd))
+                .Then<Statement>(static x => new OutputStatement(x.Item1)))
             );
         Output.Name = "Output";
         Output = TrackStatement(Output);
