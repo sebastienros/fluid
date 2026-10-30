@@ -73,12 +73,13 @@ public sealed class IdentifierParser : Parser<TextSpan>, ISeekable
             {
                 lastIsDash = false;
             }
-            else if (_stripTrailingQuestion && current == '?' && !hasTrailingQuestion)
+            else if (_stripTrailingQuestion && current == '?')
             {
-                // Allow one trailing '?' if the option is enabled
+                // A '?' ends the identifier, like in Shopify's lexer: [a-zA-Z_][\w-]*\??
                 hasTrailingQuestion = true;
-                nonDigits++;
                 lastIsDash = false;
+                cursor.Advance();
+                break;
             }
             else
             {
@@ -101,11 +102,10 @@ public sealed class IdentifierParser : Parser<TextSpan>, ISeekable
             cursor.ResetPosition(lastDashPosition);
         }
 
-        // Strip trailing '?' from the result if enabled and present.
+        // Strip the trailing '?' from the result.
         // This allows Ruby-style method names like 'empty?' to map to .NET properties like 'empty'.
-        if (_stripTrailingQuestion && hasTrailingQuestion)
+        if (hasTrailingQuestion)
         {
-            nonDigits--;
             end--;
         }
 
