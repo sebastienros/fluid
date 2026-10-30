@@ -184,8 +184,8 @@ public class BinaryExpressionTests
     [InlineData("'hello there!' == var", "true", "hello there!")]
     [InlineData("'hello there!' == true", "false", "hello there!")]
     [InlineData("'hello there!' == false", "false", "hello there!")]
-    [InlineData("null <= null", "true", null)]
-    [InlineData("null >= null", "true", null)]
+    [InlineData("null <= null", "false", null)]
+    [InlineData("null >= null", "false", null)]
     [InlineData("null < null", "false", null)]
     [InlineData("null > null", "false", null)]
     [InlineData("null == null", "true", null)]
@@ -194,6 +194,52 @@ public class BinaryExpressionTests
     {
         // https://github.com/Shopify/liquid/blob/master/test/integration/tags/statements_test.rb
         return CheckAsync(source, expected, t => t.SetValue("var", value));
+    }
+
+    [Theory]
+    // Like Liquid, nil and values that aren't numbers or strings are never ordered.
+    [InlineData("{% if missing >= missing2 %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if n <= missing %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if 1 > (2..3) %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if 1 <= (2..3) %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if 'x' > a %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if '' < a %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if a > 1 %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if 1 < h %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if 1 < true %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if empty >= nil %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if 2 >= 1 and 'b' > 'a' %}y{% else %}n{% endif %}", "y")]
+    // An empty collection is equal to empty and blank, but not to nil.
+    [InlineData("{% if e == nil %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if eh == nil %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if e == missing %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if e != nil %}y{% else %}n{% endif %}", "y")]
+    [InlineData("{% if (5..3) == nil %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% case e %}{% when nil %}y{% else %}n{% endcase %}", "n")]
+    [InlineData("{% if e == empty and e == blank and eh == empty and eh == blank %}y{% else %}n{% endif %}", "y")]
+    [InlineData("{% if (5..3) == empty %}y{% else %}n{% endif %}", "y")]
+    [InlineData("{% if nil == nil and missing == nil %}y{% else %}n{% endif %}", "y")]
+    public async Task ComparesLikeLiquid(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("a", new[] { 1, 2, 3 });
+        context.SetValue("h", new Dictionary<string, object> { ["k"] = 1 });
+        context.SetValue("e", Array.Empty<int>());
+        context.SetValue("eh", new Dictionary<string, object>());
+        context.SetValue("n", NilValue.Instance);
+
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(context));
+    }
+
+    [Theory]
+    [InlineData("{% if 1 < 'a' %}{% endif %}", "comparison of Integer with String failed")]
+    [InlineData("{% if 1 >= 'a' %}{% endif %}", "comparison of Integer with String failed")]
+    [InlineData("{% if 'a' > 1 %}{% endif %}", "comparison of String with Integer failed")]
+    [InlineData("{% if 'a' <= 1 %}{% endif %}", "comparison of String with Integer failed")]
+    public async Task ComparingNumbersWithStringsFails(string source, string message)
+    {
+        var exception = await Assert.ThrowsAsync<LiquidException>(() => _parser.Parse(source).RenderAsync(new TemplateContext()).AsTask());
+        Assert.Equal(message, exception.Message);
     }
 
     [Theory]

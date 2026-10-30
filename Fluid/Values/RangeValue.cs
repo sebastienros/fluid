@@ -52,9 +52,15 @@ public sealed class RangeValue : FluidValue, IFluidArray
             return (Start == range.Start && End == range.End) || (Count == 0 && range.Count == 0);
         }
 
-        if (other.IsNil() || other.Type == FluidValues.Empty)
+        // An empty range is equal to empty and blank, but not to nil.
+        if (other.Type is FluidValues.Empty or FluidValues.Blank)
         {
             return Count == 0;
+        }
+
+        if (other.IsNil())
+        {
+            return false;
         }
 
         if (other is IFluidArray items && other.Type == FluidValues.Array)
