@@ -1793,6 +1793,18 @@ At that point a template like the following will work:
 
 <br>
 
+## String literals
+
+Like Liquid, string literals have no escape sequences: a backslash is a plain character, and a string ends at the next matching quote. `{{ "C:\temp" }}` renders `C:\temp`. Use the other kind of quote to include one in a string: `{{ "it's" }}`.
+
+To decode backslash escape sequences such as `\n`, `\t`, `\'` or `\u0041` in string literals, set `FluidParserOptions.AllowStringEscapeSequences` to `true`:
+
+```csharp
+var parser = new FluidParser(new FluidParserOptions { AllowStringEscapeSequences = true });
+```
+
+<br>
+
 ## Visiting and altering a template
 
 Fluid provides a __Visitor__ pattern that allows you to analyze what a template is made of, and also to alter it. This can be used, for instance, to check if a specific identifier is used, replace some filters with others, or remove any expression that might not be authorized.

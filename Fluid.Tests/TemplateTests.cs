@@ -121,11 +121,11 @@ public class TemplateTests
     }
 
     [Theory]
-    [InlineData("{{ 'ab\\'c' }}", "ab&#x27;c", "html")]
-    [InlineData("{{ \"a\\\"bc\" }}", "a&quot;bc", "html")]
+    [InlineData("{{ \"ab'c\" }}", "ab&#x27;c", "html")]
+    [InlineData("{{ 'a\"bc' }}", "a&quot;bc", "html")]
     [InlineData("{{ '<br />' }}", "&lt;br /&gt;", "html")]
-    [InlineData("{{ 'ab\\'c' }}", "ab%27c", "url")]
-    [InlineData("{{ \"a\\\"bc\" }}", "a%22bc", "url")]
+    [InlineData("{{ \"ab'c\" }}", "ab%27c", "url")]
+    [InlineData("{{ 'a\"bc' }}", "a%22bc", "url")]
     [InlineData("{{ 'a\"\"bc<>&' }}", "a\"\"bc<>&", "null")]
     public Task ShouldUseEncoder(string source, string expected, string encoderType)
     {
@@ -143,8 +143,8 @@ public class TemplateTests
     }
 
     [Theory]
-    [InlineData("{{ 'ab\\'c' | raw}}", "ab'c")]
-    [InlineData("{{ \"a\\\"bc\" | raw}}", "a\"bc")]
+    [InlineData("{{ \"ab'c\" | raw}}", "ab'c")]
+    [InlineData("{{ 'a\"bc' | raw}}", "a\"bc")]
     [InlineData("{{ '<br />' | raw}}", "<br />")]
     public async Task ShouldNotEncodeRawString(string source, string expected)
     {
