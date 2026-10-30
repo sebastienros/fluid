@@ -14,6 +14,7 @@ namespace Fluid;
 public class FluidParser
 {
     private readonly bool _trackStatementLocations;
+    private readonly Parser<TextSpan> _tagName;
     public Parser<IReadOnlyList<Statement>> Grammar;
     public Dictionary<string, Parser<Statement>> RegisteredTags { get; } = new();
     public Dictionary<string, Func<Expression, Expression, Expression>> RegisteredOperators { get; } = new();
@@ -104,6 +105,7 @@ public class FluidParser
         }
 
         Identifier = SkipWhiteSpace(new IdentifierParser(parserOptions.AllowTrailingQuestionMark)).Then(x => x.ToString());
+        _tagName = SkipWhiteSpace(OneOf(Literals.Char('#').Then(new TextSpan("#")), new IdentifierParser(parserOptions.AllowTrailingQuestionMark)));
         VariableSignature = SkipWhiteSpace(new VariableSignatureParser()).Then(x => x.ToString());
 
         String.Name = "String";
@@ -307,28 +309,16 @@ public class FluidParser
         Output.Name = "Output";
         Output = TrackStatement(Output);
 
-        var Text = AnyCharBefore(OutputStart.Or(TagStart))
-            .Then<Statement>(static (ctx, x) =>
-            {
-                // Keep track of each text span such that whitespace trimming can be applied
+        // A text ends at the next '{{' or '{%', which the seekable delimiters let it search for. Inside a {% liquid %}
+        // tag, where tags don't start with '{%', there is no text.
+        var TextContent = AnyCharBefore(RawOutputStart.Or(RawTagStart));
 
-                var p = (FluidParseContext)ctx;
+        if (parserOptions.AllowLiquidTag)
+        {
+            TextContent = If<FluidParseContext, TextSpan>(static context => context.LiquidTagDepth == 0, TextContent);
+        }
 
-                var result = new TextSpanStatement(x);
-
-                p.PreviousTextSpanStatement = result;
-
-                if (p.StripNextTextSpanStatement)
-                {
-                    result.StripLeft = true;
-                    p.StripNextTextSpanStatement = false;
-                }
-
-                result.PreviousIsTag = p.PreviousIsTag;
-                result.PreviousIsOutput = p.PreviousIsOutput;
-
-                return result;
-            });
+        var Text = TextContent.Then<Statement>(static x => CreateTextSpanStatement(x));
         Text.Name = "Text";
         Text = TrackStatement(Text);
 
@@ -796,6 +786,35 @@ public class FluidParser
 
     public Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
 
+    /// <summary>
+    /// Creates the statement of a text, with the trimming requested by the delimiters around it: a text is always
+    /// between the end of a tag or an output ('%}', '}}', or '-%}', '-}}' to strip it) and the start of the next one
+    /// ('{%', '{{', or '{%-', '{{-').
+    /// </summary>
+    private static TextSpanStatement CreateTextSpanStatement(in TextSpan text)
+    {
+        var result = new TextSpanStatement(text);
+        var buffer = text.Buffer;
+        var start = text.Offset;
+        var end = start + text.Length;
+
+        if (start >= 2 && buffer[start - 1] == '}')
+        {
+            result.PreviousIsTag = buffer[start - 2] == '%';
+            result.PreviousIsOutput = buffer[start - 2] == '}';
+            result.StripLeft = start >= 3 && buffer[start - 3] == '-' && (result.PreviousIsTag || result.PreviousIsOutput);
+        }
+
+        if (end + 1 < buffer.Length && buffer[end] == '{')
+        {
+            result.NextIsTag = buffer[end + 1] == '%';
+            result.NextIsOutput = buffer[end + 1] == '{';
+            result.StripRight = end + 2 < buffer.Length && buffer[end + 2] == '-' && (result.NextIsTag || result.NextIsOutput);
+        }
+
+        return result;
+    }
+
     private void RefreshRegisteredTagParser()
     {
         lock (_registeredTagLock)
@@ -835,12 +854,22 @@ public class FluidParser
             parsers[i] = tags[i].Value;
         }
 
-        var tagName = OneOf(Terms.Char('#').Then("#"), Identifier);
-        var requiredTagName = tagName.ElseError(ErrorMessages.IdentifierAfterTagStart);
+        var requiredTagName = _tagName.ElseError(ErrorMessages.IdentifierAfterTagStart);
 
-        int KnownTagIndex(ParseContext context, string name)
+        // Tag names are looked up without allocating a string: end tags, else and elsif are looked up and rejected
+        // by every block body before the block reads them.
+#if NET9_0_OR_GREATER
+        var lookup = indices.GetAlternateLookup<ReadOnlySpan<char>>();
+        int IndexOf(in TextSpan name) => lookup.TryGetValue(name.Span, out var index) ? index : -1;
+#else
+        int IndexOf(in TextSpan name) => indices.TryGetValue(name.ToString(), out var index) ? index : -1;
+#endif
+
+        int KnownTagIndex(ParseContext context, TextSpan name)
         {
-            if (indices.TryGetValue(name, out var index))
+            var index = IndexOf(name);
+
+            if (index >= 0)
             {
                 return index;
             }
@@ -850,9 +879,9 @@ public class FluidParser
         }
 
         _anyRegisteredTag.Parser = requiredTagName.Switch(
-            (context, name) => indices.TryGetValue(name, out var index) ? index : -1, parsers);
+            (context, name) => IndexOf(name), parsers);
         _knownRegisteredTag.Parser = requiredTagName.Switch(KnownTagIndex, parsers);
-        _liquidRegisteredTag.Parser = tagName.Switch(KnownTagIndex, parsers);
+        _liquidRegisteredTag.Parser = _tagName.Switch(KnownTagIndex, parsers);
         _registeredTagSnapshot = tags;
     }
 
