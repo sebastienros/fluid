@@ -1197,6 +1197,7 @@ which makes it completely extensible.
 
 Unlike blocks, tags don't have a closing element (e.g., `cycle`, `increment`).
 A closing element will match the name of the opening tag with an `end` suffix, like `endfor`.
+Like in Shopify Liquid, anything after the name of a closing element or of an `else` tag is ignored, as in `{% endfor items %}`.
 Blocks are useful when manipulating a section of a template as a set of statements.
 
 Fluid provides helper methods to register common tags and blocks. All tags and blocks always start with an __identifier__ that is the tag name.
@@ -1284,6 +1285,8 @@ check inside alternatives when failure should allow another branch to be tried.
 ### Registering a custom operator
 
 Operators are used to compare values, like `>` or `contains`. Custom operators can be defined if special comparisons need to be provided.
+
+Like in Shopify Liquid, an operator made of letters, like `contains`, `or` and `and`, and the other words of the Liquid syntax, like `in`, `with` or `else`, end where no letter, digit or `_` follows them. `{% if a contains"b" %}` is valid, while `{% if a orb %}` is an error instead of `a or b`, and `{% render 'card' format: 'short' %}` passes a `format` argument.
 
 #### Source
 
