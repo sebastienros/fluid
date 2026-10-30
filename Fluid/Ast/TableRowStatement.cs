@@ -161,6 +161,12 @@ public sealed class TableRowStatement : TagStatement
     {
         var value = await expression.EvaluateAsync(context);
 
+        // Like Liquid, nil is 0: no offset, no item, or no column limit.
+        if (value.IsNil())
+        {
+            return 0;
+        }
+
         if (value.Type == FluidValues.Number)
         {
             // Truncate toward zero like Ruby's to_i. A value too large for an int means all or none.
