@@ -22,7 +22,7 @@ public sealed class ForStatement : TagStatement, ISourceable
 
     // Statements never change after construction, and PrepareBuffer can only shrink a TextSpanStatement
     // by trimming whitespace, so a whitespace-only body stays whitespace-only.
-    private readonly bool _suppressWhitespaceBody;
+    private readonly bool _isBlank;
 
     public ForStatement(
         IReadOnlyList<Statement> statements,
@@ -67,19 +67,19 @@ public sealed class ForStatement : TagStatement, ISourceable
             _staticContinueOffsetLiteral = $"for_continue_{Identifier}-stmt_" + RuntimeHelpers.GetHashCode(this).ToString(CultureInfo.InvariantCulture);
         }
 
-        _suppressWhitespaceBody = Statements.Count == 1 && Statements[0] is TextSpanStatement t && t.IsWhitespaceOrCommentOnly;
-
-        if (Else != null)
+        // Like Liquid, a loop whose body and else branch only contain whitespace, comments or
+        // assignments is blank: its whitespace isn't rendered.
+        var isBlank = Else == null || Else.IsWhitespaceOrCommentOnly;
+        for (var i = 0; isBlank && i < Statements.Count; i++)
         {
-            var isBlank = Else.IsWhitespaceOrCommentOnly;
-            for (var i = 0; isBlank && i < Statements.Count; i++)
-            {
-                isBlank = Statements[i].IsWhitespaceOrCommentOnly;
-            }
-
-            Else.SetEnclosingTagIsBlank(isBlank);
+            isBlank = Statements[i].IsWhitespaceOrCommentOnly;
         }
+
+        _isBlank = isBlank;
+        Else?.SetEnclosingTagIsBlank(isBlank);
     }
+
+    public override bool IsWhitespaceOrCommentOnly => _isBlank;
 
     public string Identifier { get; }
     public RangeExpression Range { get; }
@@ -230,11 +230,16 @@ public sealed class ForStatement : TagStatement, ISourceable
 
                 var completion = Completion.Normal;
 
-                if (!_suppressWhitespaceBody)
                 {
                     for (var index = 0; index < Statements.Count; index++)
                     {
                         var statement = Statements[index];
+
+                        if (_isBlank && statement is TextSpanStatement)
+                        {
+                            continue;
+                        }
+
                         completion = await statement.WriteToAsync(output, encoder, context);
 
                         //// Restore the forloop property after every statement in case it replaced it,
@@ -523,8 +528,8 @@ public sealed class ForStatement : TagStatement, ISourceable
                     context.WriteLine("forloop.Last = iteration == count - 1;");
                 }
 
-                // Like the interpreter, a body that is only whitespace isn't written.
-                var statements = _suppressWhitespaceBody ? [] : Statements;
+                // Like the interpreter, the whitespace of a blank loop isn't written.
+                var statements = SourceGenerationContext.GetWrittenStatements(Statements, _isBlank);
 
                 // Declared on first use, an unused variable is a warning in the generated code.
                 var declared = false;

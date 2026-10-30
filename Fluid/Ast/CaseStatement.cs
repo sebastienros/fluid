@@ -11,12 +11,27 @@ public sealed class CaseStatement : TagStatement, ISourceable
     public CaseStatement(
         Expression expression,
         IReadOnlyList<CaseBlock> blocks
+    ) : this(expression, blocks, leadingTextIsBlank: true)
+    {
+    }
+
+    /// <param name="expression">The value to match.</param>
+    /// <param name="blocks">The when and else blocks.</param>
+    /// <param name="leadingTextIsBlank">
+    /// Whether the text between the case tag and the first when is blank. Like Liquid, it is never
+    /// rendered but makes the tag non-blank, so that the whitespace of its branches is kept.
+    /// </param>
+    public CaseStatement(
+        Expression expression,
+        IReadOnlyList<CaseBlock> blocks,
+        bool leadingTextIsBlank
     ) : base([])
     {
         Expression = expression;
         _blocks = blocks ?? [];
+        LeadingTextIsBlank = leadingTextIsBlank;
 
-        var isWhitespaceOrCommentOnly = true;
+        var isWhitespaceOrCommentOnly = leadingTextIsBlank;
         foreach (var block in _blocks)
         {
             if (!block.IsWhitespaceOrCommentOnly)
@@ -32,6 +47,11 @@ public sealed class CaseStatement : TagStatement, ISourceable
     public override bool IsWhitespaceOrCommentOnly => _isWhitespaceOrCommentOnly;
 
     public Expression Expression { get; }
+
+    /// <summary>
+    /// Gets whether the text between the case tag and the first when is blank.
+    /// </summary>
+    public bool LeadingTextIsBlank { get; }
 
     public IReadOnlyList<CaseBlock> Blocks => _blocks;
 
