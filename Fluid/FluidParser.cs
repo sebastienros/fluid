@@ -596,8 +596,10 @@ public class FluidParser
             Identifier.AndSkip(Colon).AndSkip(Primary),
             Literals.Pattern(static _ => true, maxSize: 1).Then(static _ => default(string)));
 
+        // Reads the attributes of a loop and the end of its tag, which most often comes right after the collection.
         Parser<IReadOnlyList<T>> LoopAttributes<T>(Parser<T> attributes) =>
-            ZeroOrMany(Not(TagEnd).SkipAnd(attributes.Or(IgnoredLoopMarkup.Then(static _ => default(T)))));
+            TagEnd.Then<IReadOnlyList<T>>(static _ => []).Or(
+                ZeroOrMany(Not(TagEnd).SkipAnd(attributes.Or(IgnoredLoopMarkup.Then(static _ => default(T))))).AndSkip(TagEnd));
 
         // Like in Shopify, "reversed" is only read right after the collection, even when it starts a longer word ("reversedx").
         var Reversed = Always(true).WhenFollowedBy(Terms.Text("reversed")).Else(false);
@@ -610,7 +612,6 @@ public class FluidParser
                             Word("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsLimit = true, Value = x }),
                             Word("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
                             )))
-                        .AndSkip(TagEnd)
                         .And(AnyTagsList)
                         .And(TrackStatement(
                             CreateTag("else").SkipAnd(AnyTagsList).Then(x => new ElseStatement(x)),
@@ -638,7 +639,6 @@ public class FluidParser
                             Word("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsLimit = true, Value = x }),
                             Word("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsOffset = true, Value = x })
                             )))
-                        .AndSkip(TagEnd)
                         .And(AnyTagsList)
                         .AndSkip(CreateTag("endtablerow").ElseError($"'{{% endtablerow %}}' was expected"))
                         .Then<Statement>(x =>
