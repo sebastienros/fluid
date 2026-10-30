@@ -41,7 +41,7 @@ public class NegativeLoopOffsetTests
     [Theory]
     [InlineData("{% tablerow i in items offset: -1 %}{{ i }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">1</td><td class=\"col2\">2</td><td class=\"col3\">3</td></tr>\n")]
     [InlineData("{% tablerow i in items offset: -1 limit: 2 %}{{ i }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">1</td></tr>\n")]
-    [InlineData("{% tablerow i in items offset: -2 limit: 2 %}{{ i }}{% endtablerow %}", "")]
+    [InlineData("{% tablerow i in items offset: -2 limit: 2 %}{{ i }}{% endtablerow %}", "<tr class=\"row1\">\n</tr>\n")]
     public async Task TableRow(string source, string expected)
     {
         Assert.Equal(expected, await RenderAsync(source));

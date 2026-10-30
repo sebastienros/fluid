@@ -13,6 +13,13 @@ public sealed class IndexerSegment : MemberSegment
 
     public override ValueTask<FluidValue> ResolveAsync(FluidValue value, TemplateContext context)
     {
+        // Like Liquid, a variable lookup finds nothing in a number. Its bits are only exposed to
+        // filters such as map, which index the items directly.
+        if (value is NumberValue)
+        {
+            return new ValueTask<FluidValue>(NilValue.Instance);
+        }
+
         var indexTask = Expression.EvaluateAsync(context);
 
         // Stay synchronous when the index is, which it is for a literal or a variable.

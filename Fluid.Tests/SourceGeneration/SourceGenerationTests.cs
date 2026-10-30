@@ -39,6 +39,7 @@ public class SourceGenerationTests
     [InlineData("{% increment x %}{{ x }}", "01")]
     [InlineData("{% case 2 %}{% when 1 %}a{% when 2 %}b{% else %}c{% endcase %}", "b")]
     [InlineData("{% assign s = 'hello' %}{{ s.first }}{{ s.last }}[{{ s['first'] }}]", "ho[]")]
+    [InlineData("{% assign n = 5 %}[{{ n[0] }}{{ n['x'] }}]", "[]")]
     [InlineData("{% if 2 > 1 and 2 >= 2 and 1 < 2 and 2 <= 2 %}yes{% endif %}", "yes")]
     [InlineData("{% if nil >= nil or nil <= missing or 1 > (2..3) or 'a' < (1..2) %}yes{% else %}no{% endif %}", "no")]
     [InlineData("{% if '' == empty and '' == blank %}yes{% endif %}", "yes")]

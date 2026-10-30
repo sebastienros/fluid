@@ -26,6 +26,8 @@ public sealed class TableRowStatement : TagStatement
         Cols = cols;
     }
 
+    private const string EmptyRow = "<tr class=\"row1\">\n</tr>\n";
+
     public string Identifier { get; }
     public Expression Source { get; }
     public Expression Limit { get; }
@@ -36,9 +38,16 @@ public sealed class TableRowStatement : TagStatement
     {
         var evaluatedSource = await Source.EvaluateAsync(context);
 
+        // Like Liquid, nil renders nothing, while a value without items renders an empty row.
+        if (evaluatedSource.IsNil())
+        {
+            return Completion.Normal;
+        }
+
         // Empty strings are treated as empty collections
         if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue(context)))
         {
+            output.Write(EmptyRow);
             return Completion.Normal;
         }
 
@@ -46,6 +55,7 @@ public sealed class TableRowStatement : TagStatement
 
         if (source.Count == 0)
         {
+            output.Write(EmptyRow);
             return Completion.Normal;
         }
 
@@ -76,6 +86,7 @@ public sealed class TableRowStatement : TagStatement
 
         if (count == 0)
         {
+            output.Write(EmptyRow);
             return Completion.Normal;
         }
 
