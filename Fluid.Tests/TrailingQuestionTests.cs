@@ -154,6 +154,41 @@ public class TrailingQuestionTests
         Assert.False(result);
     }
 
+    [Theory]
+    [InlineData("{{ a?b }}")]
+    [InlineData("{{ a?_b }}")]
+    [InlineData("{{ a?1 }}")]
+    [InlineData("{{ a?-b }}")]
+    [InlineData("{{ a.b?c }}")]
+    [InlineData("{{ a?b.c }}")]
+    [InlineData("{% if a?b %}{% endif %}")]
+    public void QuestionMarkShouldEndIdentifier(string template)
+    {
+        // A '?' can't be followed by more identifier characters, with or without the option
+        foreach (var allowTrailingQuestionMark in new[] { false, true })
+        {
+            var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = allowTrailingQuestionMark });
+            var result = parser.TryParse(template, out _, out var errors);
+
+            Assert.False(result);
+            Assert.NotNull(errors);
+        }
+    }
+
+    [Fact]
+    public async Task ShouldRenderTrailingQuestionBeforeIndexerAndTrim()
+    {
+        var parser = new FluidParser(new FluidParserOptions { AllowTrailingQuestionMark = true });
+        var result = parser.TryParse("{{ items?[1] }} {{ items.size?-}} !", out var template, out var errors);
+
+        Assert.True(result, errors);
+
+        var context = new TemplateContext();
+        context.SetValue("items", new[] { "x", "y" });
+
+        Assert.Equal("y 2!", await template.RenderAsync(context));
+    }
+
     [Fact]
     public void ShouldParseTrailingQuestionInForLoop()
     {
@@ -256,6 +291,10 @@ public class TrailingQuestionTests
     }
 
     [Theory]
+    [InlineData("{{ a?.b }}", new[] { "a", "b" })]
+    [InlineData("{{ a.b? }}", new[] { "a", "b" })]
+    [InlineData("{{ a?-}}", new[] { "a" })]
+    [InlineData("{{ a-?}}", new[] { "a-" })]
     [InlineData("{{ a?.b.c }}", new[] { "a", "b", "c" })]
     [InlineData("{{ a.b?.c }}", new[] { "a", "b", "c" })]
     [InlineData("{{ a?.b?.c }}", new[] { "a", "b", "c" })]

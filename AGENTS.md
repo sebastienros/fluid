@@ -28,14 +28,18 @@ dotnet run -c Release --project Fluid.Benchmarks
 
 ## Golden Liquid tests
 
-`Fluid.Tests/GoldenLiquidTests.cs` runs the [Golden Liquid](https://github.com/jg-rp/golden-liquid) suite (definitions downloaded from its repo). Golden tests always prevail: if one contradicts a unit test, update the unit test.
+`Fluid.Tests/GoldendLiquidTests.cs` (class `GoldenLiquidTests`) runs the [Golden Liquid](https://github.com/jg-rp/golden-liquid) suite (definitions downloaded from its repo). Golden tests always prevail: if one contradicts a unit test, update the unit test.
+
+Run them from the test executable after `dotnet build`. Each test's display name ends with `(test: <id>)`, the snake_case test name.
 
 ```shell
 # all
-./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -method "Fluid.Tests.GoldenLiquidTests.GoldenTestShouldPass"
-# one: find its id, then run it (-preEnumerateTheories is required)
-./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -list full 2>&1 | grep -B2 -A5 "<test_name>"
-./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests -preEnumerateTheories -id "<id>"
+./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests --filter-class "Fluid.Tests.GoldenLiquidTests"
+# list them
+./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests --list-tests --filter-class "Fluid.Tests.GoldenLiquidTests"
+# one, or several with a wildcard ('*' only at the start or end)
+./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests --filter-display-name "*(test: <id>)"
+./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests --filter-display-name "*(test: filters_date_*"
 ```
 
 ## Checking behavior against Shopify
