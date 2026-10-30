@@ -146,12 +146,10 @@ public static class NumberFilters
             result += divisor;
         }
 
-        // Preserve decimal format when divisor has decimal places or is from a string with decimal
-        // Only a zero result needs it, so the divisor isn't inspected for any other.
-        if (result == 0 && HasDecimalPoint(divisorValue, context))
+        // Like Liquid, where a decimal operand makes the result a float, a whole result keeps one decimal place.
+        if (NumberValue.GetScale(result) == 0 && (HasDecimalPoint(divisorValue, context) || HasDecimalPoint(input, context)))
         {
-            // Return 0 with one decimal place to match divisor format
-            return NumberValue.Create(0.0m);
+            return NumberValue.Create(result * 1.0m);
         }
 
         return NumberValue.Create(result);
