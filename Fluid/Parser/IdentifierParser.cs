@@ -1,62 +1,67 @@
 using Parlot;
 using Parlot.Fluent;
-using Parlot.Rewriting;
+using static Parlot.Fluent.Parsers;
 
 namespace Fluid.Parser;
 
-public sealed class IdentifierParser : Parser<TextSpan>, ISeekable
+/// <summary>
+/// Parses identifiers: letters, digits, <c>_</c> and <c>-</c>, with at least a char that is not a digit.
+/// A trailing <c>-</c> next to an end tag, as in <c>{{ a-}}</c>, is not part of the identifier but a trim marker.
+/// c.f. https://github.com/sebastienros/fluid/issues/347
+/// </summary>
+public static class IdentifierParser
 {
     public const string StartChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
-    private readonly bool _stripTrailingQuestion;
 
-    public bool CanSeek => true;
-
-    public char[] ExpectedChars { get; } = StartChars.ToCharArray();
-
-    public bool SkipWhitespace => false;
-
-    public IdentifierParser(bool stripTrailingQuestion = false)
+    /// <summary>
+    /// Creates a parser of identifiers. When <paramref name="stripTrailingQuestion"/> is set, an identifier can end
+    /// with a <c>?</c>, which is read but not returned. This allows Ruby-style method names like <c>empty?</c> to map
+    /// to .NET properties like <c>empty</c>.
+    /// </summary>
+    public static Parser<TextSpan> Create(bool stripTrailingQuestion = false)
     {
-        _stripTrailingQuestion = stripTrailingQuestion;
+        if (!stripTrailingQuestion)
+        {
+            return Literals.Scan(static span => Scan(span, trailingQuestion: false), StartChars.AsSpan());
+        }
+
+        return Literals.Scan(static span => Scan(span, trailingQuestion: true), StartChars.AsSpan())
+            .Then(static x => x.Span[x.Length - 1] == '?' ? new TextSpan(x.Buffer, x.Offset, x.Length - 1) : x);
     }
 
-    public override bool Parse(ParseContext context, ref ParseResult<TextSpan> result)
+    /// <summary>
+    /// Returns the length of the identifier at the start of <paramref name="span"/>, with its trailing <c>?</c> when
+    /// <paramref name="trailingQuestion"/> is set, <c>0</c> when there is none, or a negative value when more text
+    /// could make one (see <see cref="SpanScanner"/>).
+    /// </summary>
+    public static int Scan(ReadOnlySpan<char> span, bool trailingQuestion)
     {
-        context.EnterParser(this);
-        var cursor = context.Scanner.Cursor;
+        if (span.IsEmpty)
+        {
+            return -1;
+        }
 
-        var current = cursor.Current;
-
+        var current = span[0];
         var nonDigits = 0;
-        var lastIsDash = false;
-
-        var start = cursor.Position;
-        var lastDashPosition = cursor.Position;
 
         if (IsNonDigitStart(current))
         {
             nonDigits++;
         }
-        else if (char.IsDigit(current))
-        {
-        }
-        else
+        else if (!char.IsDigit(current))
         {
             // Doesn't start with a letter or a digit
-
-            context.ExitParser(this);
-            return false;
+            return 0;
         }
 
-        // Read while it's an identifier part. and ensure we have at least a letter or it's a number
+        // Read while it's an identifier part, and ensure we have at least a letter or it's a number
 
-        cursor.Advance();
+        var size = 1;
+        var lastIsDash = false;
 
-        var hasTrailingQuestion = false;
-
-        while (!cursor.Eof)
+        while (size < span.Length)
         {
-            current = cursor.Current;
+            current = span[size];
 
             if (IsNonDigitStart(current))
             {
@@ -65,7 +70,6 @@ public sealed class IdentifierParser : Parser<TextSpan>, ISeekable
             }
             else if (current == '-')
             {
-                lastDashPosition = cursor.Position;
                 nonDigits++;
                 lastIsDash = true;
             }
@@ -73,56 +77,29 @@ public sealed class IdentifierParser : Parser<TextSpan>, ISeekable
             {
                 lastIsDash = false;
             }
-            else if (_stripTrailingQuestion && current == '?')
+            else if (trailingQuestion && current == '?')
             {
                 // A '?' ends the identifier, like in Shopify's lexer: [a-zA-Z_][\w-]*\??
-                hasTrailingQuestion = true;
-                lastIsDash = false;
-                cursor.Advance();
-                break;
+                return nonDigits > 0 ? size + 1 : 0;
             }
             else
             {
-                break;
+                // Exclude the trailing '-' if it is next to an end tag
+                if (lastIsDash && current is '%' or '}')
+                {
+                    nonDigits--;
+                    size--;
+                }
+
+                // Invalid identifier when it's only digits
+                return nonDigits > 0 ? size : 0;
             }
 
-            cursor.Advance();
+            size++;
         }
 
-        var end = cursor.Offset;
-
-        // Exclude the trailing '-' if it is next to an end tag
-        // c.f. https://github.com/sebastienros/fluid/issues/347
-        current = cursor.Current;
-
-        if (lastIsDash && !cursor.Eof && (current == '%' || current == '}'))
-        {
-            nonDigits--;
-            end--;
-            cursor.ResetPosition(lastDashPosition);
-        }
-
-        // Strip the trailing '?' from the result.
-        // This allows Ruby-style method names like 'empty?' to map to .NET properties like 'empty'.
-        if (hasTrailingQuestion)
-        {
-            end--;
-        }
-
-        if (nonDigits == 0)
-        {
-            // Invalid identifier, only digits
-            cursor.ResetPosition(start);
-
-            context.ExitParser(this);
-            return false;
-        }
-
-        result.Set(start.Offset, end, new TextSpan(context.Scanner.Buffer, start.Offset, end - start.Offset));
-
-
-        context.ExitParser(this);
-        return true;
+        // The identifier reaches the end of the text, which more text could continue
+        return nonDigits > 0 ? size : -1;
     }
 
     private static bool IsNonDigitStart(char ch)

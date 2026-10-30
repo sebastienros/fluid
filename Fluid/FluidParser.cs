@@ -115,10 +115,10 @@ public class FluidParser
 
         _tagEndIgnoringMarkup = TagEnd.Or(AnyCharBefore(TagEnd).SkipAnd(TagEnd));
 
-        Identifier = SkipWhiteSpace(new IdentifierParser(parserOptions.AllowTrailingQuestionMark)).Then(x => x.ToString());
+        Identifier = SkipWhiteSpace(IdentifierParser.Create(parserOptions.AllowTrailingQuestionMark)).Then(x => x.ToString());
         // Like in Shopify, a tag name is made of word chars: "{% comment-x %}" is a comment tag.
         _tagName = SkipWhiteSpace(OneOf(Literals.Char('#').Then(new TextSpan("#")), Literals.AnyOf(WordChars)));
-        VariableSignature = SkipWhiteSpace(new VariableSignatureParser()).Then(x => x.ToString());
+        VariableSignature = SkipWhiteSpace(VariableSignatureParser.Create()).Then(x => x.ToString());
 
         // Like Liquid, a backslash in a string literal is a plain character unless escape sequences are enabled.
         String = parserOptions.AllowStringEscapeSequences
