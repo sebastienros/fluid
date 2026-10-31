@@ -123,7 +123,58 @@ public sealed class NumberValue : FluidValue, IEquatable<NumberValue>
     /// <summary>
     /// Gets the number as written in a template, or in the invariant culture.
     /// </summary>
-    internal string InvariantText => _text ?? _value.ToString(CultureInfo.InvariantCulture);
+    internal string InvariantText => _text ?? Format(_value, CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Formats a number like Liquid renders it, the same way for the output and for filters: an integer as is,
+    /// a whole decimal with one zero (<c>3.0</c>), other decimals without trailing zeros (<c>1.5</c>), and,
+    /// like Ruby floats, a decimal smaller than 0.0001 in scientific notation (<c>1.0e-06</c>).
+    /// </summary>
+    internal static string Format(decimal value, IFormatProvider provider)
+    {
+        var scale = GetScale(value);
+
+        if (scale == 0)
+        {
+            return value.ToString(provider);
+        }
+
+        if (IsSmall(value))
+        {
+            return FormatScientific(value, provider);
+        }
+
+        return decimal.Truncate(value) == value
+            ? value.ToString("F1", provider)
+            : value.ToString("G29", provider);
+    }
+
+    // Ruby renders a float smaller than 0.0001 in scientific notation (G29 would below 0.00001, as 1E-06).
+    private static bool IsSmall(decimal value) => value != 0 && value > -0.0001m && value < 0.0001m;
+
+    // Like Ruby's Float#to_s: "1.0e-06", "-2.25e-07".
+    private static string FormatScientific(decimal value, IFormatProvider provider)
+    {
+        // The default format of a decimal never uses an exponent: 0.000ddd, maybe with trailing zeros.
+        var digits = Math.Abs(value).ToString(CultureInfo.InvariantCulture).TrimEnd('0');
+        var point = digits.IndexOf('.');
+        var first = point + 1;
+        while (digits[first] == '0')
+        {
+            first++;
+        }
+
+        var exponent = first - point;
+        var significant = digits.Substring(first);
+        var separator = NumberFormatInfo.GetInstance(provider).NumberDecimalSeparator;
+
+        return (value < 0 ? "-" : "")
+            + significant[0]
+            + separator
+            + (significant.Length > 1 ? significant.Substring(1) : "0")
+            + "e-"
+            + exponent.ToString("00", CultureInfo.InvariantCulture);
+    }
 
     public override decimal ToNumberValue(TemplateContext context)
     {
@@ -146,6 +197,12 @@ public sealed class NumberValue : FluidValue, IEquatable<NumberValue>
         }
 
         var scale = GetScale(_value);
+
+        if (scale != 0 && IsSmall(_value))
+        {
+            output.Write(encoder, FormatScientific(_value, context.CultureInfo));
+            return default;
+        }
 
 #if NET8_0_OR_GREATER
         ReadOnlySpan<char> format = default;
