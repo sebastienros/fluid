@@ -449,7 +449,7 @@ public class FluidParser
         var CycleTag = Primary.AndSkip(Colon).Else(default(Expression))
                     .And(Separated(Comma, Primary))
                     .AndSkip(TagEnd)
-                    .Then<Statement>(x => new CycleStatement(x.Item1, x.Item2))
+                    .Then<Statement>(x => new CycleStatement(x.Item1, WithoutNilKeywords(x.Item2)))
                     .ElseError("Invalid 'cycle' tag")
                     ;
         CycleTag.Name = "CycleTag";
@@ -674,7 +674,7 @@ public class FluidParser
             LiquidChild = TrackStatement(TagStart.SkipAnd(LiquidChild), skipLeadingWhitespace: true);
         }
 
-        var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
+        var LiquidTag = Literals.WhiteSpace(true).Else(default(TextSpan)) // {% liquid %} can start with new lines, {%liquid%} has none
             .Then((context, x) =>
             {
                 var ctx = (FluidParseContext)context;
@@ -983,6 +983,13 @@ public class FluidParser
     {
         RegisteredTags[tagName] = parser.AndSkip(TagEnd).Then<Statement>(x => new ParserTagStatement<T>(tagName, x, render));
         RegisteredTags[tagName].Name = tagName;
+    }
+
+    // Like Liquid, which compacts the values of a cycle, nil and null aren't cycled through, unless there is nothing else.
+    private static IReadOnlyList<Expression> WithoutNilKeywords(IReadOnlyList<Expression> values)
+    {
+        var withoutNil = values.Where(static x => x != NilKeyword).ToList();
+        return withoutNil.Count > 0 ? withoutNil : values;
     }
 
     // An integer, with an optional minus sign, with more digits than a decimal holds.

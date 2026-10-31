@@ -51,9 +51,10 @@ public class ForRangeTests
     }
 
     [Theory]
+    // Like Liquid, the name is the range as written, not its evaluated bounds.
     [InlineData("{% for i in (1..3) %}{{ forloop.name }} {% endfor %}", "i-(1..3) i-(1..3) i-(1..3) ")]
-    [InlineData("{% for i in (first..last) %}{{ forloop.name }} {% endfor %}", "i-(2..3) i-(2..3) ")]
-    [InlineData("{% for i in (first..3) %}{{ forloop.name }} {% endfor %}", "i-(2..3) i-(2..3) ")]
+    [InlineData("{% for i in (first..last) %}{{ forloop.name }} {% endfor %}", "i-(first..last) i-(first..last) ")]
+    [InlineData("{% for i in (first..3) %}{{ forloop.name }} {% endfor %}", "i-(first..3) i-(first..3) ")]
     [InlineData("{% for i in (-1..0) %}{{ forloop.name }} {% endfor %}", "i-(-1..0) i-(-1..0) ")]
     public async Task ForLoopNameDescribesTheRange(string source, string expected)
     {
@@ -66,8 +67,8 @@ public class ForRangeTests
     [Theory]
     [InlineData("{% for i in (1..6) limit: 2 %}{{ i }}{% endfor %}|{% for i in (1..6) offset: continue %}{{ i }}{% endfor %}", "12|3456")]
     [InlineData("{% for i in (1..last) limit: 2 %}{{ i }}{% endfor %}|{% for i in (1..last) offset: continue %}{{ i }}{% endfor %}", "12|3456")]
-    // Same bounds, one written as a literal and the other computed: they are the same loop.
-    [InlineData("{% for i in (1..6) limit: 2 %}{{ i }}{% endfor %}|{% for i in (1..last) offset: continue %}{{ i }}{% endfor %}", "12|3456")]
+    // Like Liquid, loops are named after the range as written: the same bounds written differently are different loops.
+    [InlineData("{% for i in (1..6) limit: 2 %}{{ i }}{% endfor %}|{% for i in (1..last) offset: continue %}{{ i }}{% endfor %}", "12|123456")]
     // A different loop variable is a different loop.
     [InlineData("{% for i in (1..6) limit: 2 %}{{ i }}{% endfor %}|{% for j in (1..6) offset: continue %}{{ j }}{% endfor %}", "12|123456")]
     public async Task OffsetContinueFollowsTheRange(string source, string expected)

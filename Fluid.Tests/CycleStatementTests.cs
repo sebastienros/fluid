@@ -155,4 +155,12 @@ public class CycleStatementTests
 
         Assert.Equal("adbecfadbe", sw.ToString());
     }
+    [Theory]
+    // Like Liquid, which compacts the values, nil and null aren't cycled through.
+    [InlineData("{% cycle 'a', nil, 'b' %}{% cycle 'a', nil, 'b' %}{% cycle 'a', nil, 'b' %}|{% cycle nil, 'x' %}{% cycle nil, 'x' %}|{% cycle null, 'y', null %}{% cycle null, 'y', null %}|{% cycle 'g': nil, 'z' %}{% cycle 'g': nil, 'z' %}", "aba|xx|yy|zz")]
+    [InlineData("[{% cycle nil %}{% cycle nil %}]|{% cycle missing, 'v' %}{% cycle missing, 'v' %}", "[]|")]
+    public async Task CycleDropsNilValues(string source, string expected)
+    {
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
+    }
 }

@@ -536,7 +536,9 @@ public class SourceGenerationTests
 
     [Theory]
     [InlineData("{% for i in (1..2) %}{{ forloop.name }} {% endfor %}", "i-(1..2) i-(1..2) ")]
-    [InlineData("{% for i in (first..last) %}{{ forloop.name }} {% endfor %}", "i-(2..3) i-(2..3) ")]
+    // Like Liquid, the name is the range as written.
+    [InlineData("{% for i in (first..last) %}{{ forloop.name }} {% endfor %}", "i-(first..last) i-(first..last) ")]
+    [InlineData("{% for i in (1..last) limit: 1 %}{{ forloop.name }} {% endfor %}", "i-(1..last) ")]
     [InlineData("{% for i in (-1..0) %}{{ forloop.name }} {% endfor %}", "i-(-1..0) i-(-1..0) ")]
     [InlineData("{% for i in (1..4) limit: 2 %}{{ i }}{% endfor %}|{% for i in (1..4) offset: continue %}{{ i }}{% endfor %}", "12|34")]
     public async Task GeneratedRangeLoops_NameTheirSource(string liquid, string expected)
