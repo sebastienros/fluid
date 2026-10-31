@@ -483,6 +483,7 @@ world
         Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
     }
 
+    [Theory]
     // Like Liquid (strip.gsub(/\s+/, ' ')), squish replaces any whitespace run, even a single new line, and trims NUL.
     [InlineData("[{{ s | squish }}]|[{{ t | squish }}]|[{{ 'a b' | squish }}]|[{{ u | squish | size }}]", "[a b]|[a b c]|[a b]|[1]")]
     // Like Liquid, escape, url_encode and url_decode return nil for nil.
