@@ -470,4 +470,26 @@ world
 
         Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
     }
+    [Theory]
+    // Like Liquid (strip.gsub(/\s+/, ' ')), squish replaces any whitespace run, even a single new line, and trims NUL.
+    [InlineData("[{{ s | squish }}]|[{{ t | squish }}]|[{{ 'a b' | squish }}]|[{{ u | squish | size }}]", "[a b]|[a b c]|[a b]|[1]")]
+    // Like Liquid, escape, url_encode and url_decode return nil for nil.
+    [InlineData("{% assign x = nil | escape %}{% if x == nil %}N{% endif %}{% assign x = nil | url_encode %}{% if x == nil %}N{% endif %}{% assign x = nil | url_decode %}{% if x == nil %}N{% endif %}{% assign x = nil | escape_once %}{% if x == nil %}N{% else %}S{% endif %}|{{ nil | escape | truncate: -1 }}", "NNNS|")]
+    // Like Liquid (input.split(" ", words + 1)), anything after the last kept word truncates the input.
+    [InlineData("{{ 'a b ' | truncatewords: 2 }}|{{ w | truncatewords: 2, '' }}|{{ 'a ' | truncatewords: 1 }}|{{ 'a b' | truncatewords: 2 }}|{{ ' ' | truncatewords: 1 }}|{{ 'a b ' | truncatewords: 3 }}", "a b...|a b|a...|a b| |a b ")]
+    // Like Ruby's gsub and sub, which Liquid uses, the replacement of replace and replace_first reads backslash sequences.
+    [InlineData(@"{{ 'a.b' | replace: '.', '\\' }}|{{ 'abc' | replace: 'b', '[\0]' }}|{{ 'abc' | replace_first: 'b', '\&\&' }}|{{ 'abc' | replace_last: 'b', '<\0>' }}", @"a\b|a[b]c|abbc|a<\0>c")]
+    [InlineData(@"{{ 'abcb' | replace: 'b', ""<\`|\'>"" }}|{{ 'abc' | replace: 'b', '\1\9\k\x\' }}|{{ 'ab' | replace: '', '<\0\`>' }}|{{ '' | replace: '', '\&x' }}", @"a<a|cb>c<abc|>|a\k\x\c|<>a<a>b<ab>|x")]
+    // Like Liquid, base64_encode gets back the bytes decoded by base64_decode, even when they aren't UTF-8.
+    [InlineData("{{ '/w==' | base64_decode | base64_encode }}|{% assign b = 'true' | base64_decode %}{{ b | base64_encode }}|{{ '/w' | base64_url_safe_decode | base64_url_safe_encode }}|{{ 'aGk=' | base64_decode }}", "/w==|true|_w|hi")]
+    public async Task StringFiltersMatchLiquid(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("s", "a\nb");
+        context.SetValue("w", "a  b\n");
+        context.SetValue("u", "\0a\0");
+        context.SetValue("t", "a b\nc");
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
 }
