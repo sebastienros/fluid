@@ -157,22 +157,18 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
 
         var count = Math.Max(0, source.Count - startIndex);
-        var limitIsEmpty = false;
 
         // Like Liquid, a nil limit doesn't limit the items.
         if (Limit is not null && await EvaluateIntegerArgumentAsync("limit", Limit, context) is int limit)
         {
-            limitIsEmpty = limit <= 0;
-
             // Like Liquid, the slice ends at offset + limit, so a negative limit renders nothing.
             count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));
         }
 
         if (count == 0)
         {
-            // Like Liquid, an offset past the end still moves the continue cursor, to the offset as written,
-            // but a limit of zero or less doesn't.
-            if (continueOffsetLiteral != null && !limitIsEmpty)
+            // Like Liquid, a loop without items still moves the continue cursor, to the offset as written.
+            if (continueOffsetLiteral != null)
             {
                 context.SetValue(continueOffsetLiteral, startIndex - itemsBeforeFirst);
             }
@@ -434,7 +430,6 @@ public sealed class ForStatement : TagStatement, ISourceable
         context.WriteLine("}");
 
         context.WriteLine("var count = Math.Max(0, source.Count - startIndex);");
-        context.WriteLine("var limitIsEmpty = false;");
         if (Limit is not null)
         {
             var limitExpr = context.GetExpressionMethodName(Limit);
@@ -444,7 +439,6 @@ public sealed class ForStatement : TagStatement, ISourceable
             using (context.Indent())
             {
                 context.WriteLine($"var limit = (int)limitValue.ToNumberValue({context.ContextName});");
-                context.WriteLine("limitIsEmpty = limit <= 0;");
                 context.WriteLine("count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));");
             }
             context.WriteLine("}");
@@ -454,13 +448,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine("if (!limitIsEmpty)");
-            context.WriteLine("{");
-            using (context.Indent())
-            {
-                context.WriteLine($"{context.ContextName}.SetValue({continueOffsetLiteralName}, startIndex - itemsBeforeFirst);");
-            }
-            context.WriteLine("}");
+            context.WriteLine($"{context.ContextName}.SetValue({continueOffsetLiteralName}, startIndex - itemsBeforeFirst);");
             if (Else != null)
             {
                 var elseStmt = context.GetStatementMethodName(Else);
