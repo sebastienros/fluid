@@ -178,16 +178,11 @@ public sealed class TableRowStatement : TagStatement
             return 0;
         }
 
-        if (value.Type == FluidValues.Number)
+        // Truncate toward zero like Ruby's to_i, which also reads a string from its leading digits, or 0.
+        // A value too large for an int means all or none.
+        if (value.Type is FluidValues.Number or FluidValues.String)
         {
-            // Truncate toward zero like Ruby's to_i. A value too large for an int means all or none.
             return NumberConversions.ToInt32Saturated(decimal.Truncate(value.ToNumberValue(context)));
-        }
-
-        // Like Liquid, a string is read like Ruby's to_i: its leading digits, or 0.
-        if (value.Type == FluidValues.String)
-        {
-            return NumberConversions.ParseLeadingInt32Saturated(value.ToStringValue(context));
         }
 
         throw new LiquidException($"tablerow: {name} must be a number");

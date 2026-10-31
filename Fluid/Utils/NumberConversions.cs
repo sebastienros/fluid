@@ -69,51 +69,6 @@ internal static class NumberConversions
     }
 
     /// <summary>
-    /// Reads the leading integer of a string like Ruby's <c>String#to_i</c>: leading whitespace, an optional sign,
-    /// then digits (single underscores between them are allowed). Anything else ends the number, and a string
-    /// without digits is 0. Values out of range give the nearest int.
-    /// </summary>
-    public static int ParseLeadingInt32Saturated(string value)
-    {
-        var i = 0;
-        while (i < value.Length && value[i] is ' ' or '\t' or '\n' or '\v' or '\f' or '\r')
-        {
-            i++;
-        }
-
-        var negative = false;
-        if (i < value.Length && value[i] is '-' or '+')
-        {
-            negative = value[i] == '-';
-            i++;
-        }
-
-        long result = 0;
-        for (; i < value.Length; i++)
-        {
-            var c = value[i];
-            if (c == '_' && i > 0 && value[i - 1] is >= '0' and <= '9' && i + 1 < value.Length && value[i + 1] is >= '0' and <= '9')
-            {
-                continue;
-            }
-
-            if (c is < '0' or > '9')
-            {
-                break;
-            }
-
-            // Past int.MaxValue + 1 the result only saturates.
-            if (result <= (long)int.MaxValue + 1)
-            {
-                result = result * 10 + (c - '0');
-            }
-        }
-
-        result = negative ? -result : result;
-        return (int)Math.Max(int.MinValue, Math.Min(int.MaxValue, result));
-    }
-
-    /// <summary>
     /// Truncates like an <c>(int)</c> cast, or returns false when the value is out of range.
     /// </summary>
     public static bool TryTruncateToInt32(decimal value, out int result)
