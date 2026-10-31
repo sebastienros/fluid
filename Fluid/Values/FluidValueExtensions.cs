@@ -137,9 +137,10 @@ public static class FluidValueExtensions
         }
         else if (input.Type == FluidValues.Number)
         {
-            var milliseconds = input.ToNumberValue(context) * 1000;
             try
             {
+                // Out of range for a decimal or a date, the input isn't a date.
+                var milliseconds = input.ToNumberValue(context) * 1000;
                 var dateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)milliseconds);
                 result = dateTime.ToOffset(context.TimeZone.GetUtcOffset(dateTime));
                 return true;

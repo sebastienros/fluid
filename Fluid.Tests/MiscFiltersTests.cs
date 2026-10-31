@@ -17,7 +17,7 @@ public class MiscFiltersTests
 {
     private static readonly TimeZoneInfo Pacific = TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles");
     private static readonly TimeZoneInfo Eastern = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
-    private static readonly string RoundTripDateTimePattern = "%Y-%m-%dT%H:%M:%S.%L%Z"; // Equivalent to "o" format
+    private static readonly string RoundTripDateTimePattern = "%Y-%m-%dT%H:%M:%S.%L%:z"; // Equivalent to "o" format
 
     [Fact]
     public async Task DefaultReturnsValueIfDefined()
@@ -290,8 +290,8 @@ public class MiscFiltersTests
     [InlineData("%^b", "AUG")]
     [InlineData("%B", "August")]
     [InlineData("%^B", "AUGUST")]
-    [InlineData("%c", "Tuesday, August 1, 2017 5:04:36 PM")]
-    [InlineData("%^c", "TUESDAY, AUGUST 1, 2017 5:04:36 PM")]
+    [InlineData("%c", "Tue Aug  1 17:04:36 2017")]
+    [InlineData("%^c", "TUE AUG  1 17:04:36 2017")]
     [InlineData("%C", "20")]
     [InlineData("%C", "02", "0217-01-01")]
     [InlineData("%d", "01")]
@@ -334,7 +334,7 @@ public class MiscFiltersTests
     [InlineData("%U", "01", "2017-01-01T12:00:00")] // Sunday 01/01 - week begins on a Sunday (for %U)
     [InlineData("%U", "01", "2017-01-02T12:00:00")] // Monday 01/02 - week begins on a Sunday (for %U)
     [InlineData("%U", "26", "2022-06-26T00:00:00")]
-    [InlineData("%v", " 1-Aug-2017")]
+    [InlineData("%v", " 1-AUG-2017")]
     [InlineData("%^v", " 1-AUG-2017")]
     [InlineData("%V", "31")]
     [InlineData("%W", "52", "2016-12-31T12:00:00")] // Saturday 12/31
@@ -801,6 +801,47 @@ public class MiscFiltersTests
         Assert.Equal("01/08/2017", resultUS.ToStringValue(context));
     }
 
+    [Theory]
+    // Like Ruby's strftime, which Liquid uses: fixed patterns for %c, %x and %X, E and O modifiers, the # flag,
+    // widths on text, and unknown conversions written as is.
+    [InlineData("{{ 0 | date: '%c|%x|%X|%v|%Z|%::z|%:::z' }}", "Thu Jan  1 00:00:00 1970|01/01/70|00:00:00| 1-JAN-1970|UTC|+00:00:00|+00")]
+    [InlineData("{{ 0 | date: '%EY %Oy %Ec|%#a %#b %#p %#Z %^P %#P' }}", "1970 70 Thu Jan  1 00:00:00 1970|THU JAN am utc AM AM")]
+    [InlineData("{{ 0 | date: '%10p|%^10b|%010A|%3P|%10%|%10n|%3t|%10Z' }}", "        AM|       JAN|00Thursday| am|         %|         \n|  \t|       UTC")]
+    [InlineData("{{ 0 | date: '%10u|%0e|%0k|%-L|%0N|%_z|%6z|%010z|%_10z|%-z' }}", "0000000004|01|00|000|000000000| +000|+00000|+000000000|      +000|+0000")]
+    [InlineData("{{ 0 | date: '%10q|%:y|%:a|%Ez|%5E|%::::z|%--d|%-_d|%W|%-|%j' }}", "%10q|%:y|%:a|%Ez|%5E|%::::z|1|1|00|%-|001")]
+    [InlineData("{{ 0 | date: '%^c|%10x|%_10X|%-10D|%^r|%15F|%10c' }}", "THU JAN  1 00:00:00 1970|  01/01/70|  00:00:00|  01/01/70|12:00:00 AM|     1970-01-01|Thu Jan  1 00:00:00 1970")]
+    [InlineData("{{ '2024-02-29T13:05:09.1234567Z' | date: '%L %N %3N %12N %1N %-N %_5L|%U %W %G %V %g %u %w %C %s' }}", "123 123456700 123 123456700000 1 123456700 12345|08 09 2024 09 24 4 4 20 1709211909")]
+    [InlineData("{{ '2024-02-29T13:05:09-05:30' | date: '%z|%:z|%::z|%:::z|%_z|%_:z' }}", "-0530|-05:30|-05:30:00|-05:30| -530| -5:30")]
+    [InlineData("{{ '2024-02-29T13:05:09+02:00' | date: '%:::z' }}|{{ 1709211909 | date: '%l %0l %I %k %H %P %p' }}", "+02| 1 01 01 13 13 pm PM")]
+    // Ruby writes the abbreviation of a time zone, which .NET doesn't have: other offsets than UTC are written as is.
+    [InlineData("{{ '2024-02-29T13:05:09+02:00' | date: '%Z' }}", "+02:00")]
+    public async Task DateFormatsLikeRuby(string source, string expected)
+    {
+        var context = new TemplateContext { TimeZone = TimeZoneInfo.Utc };
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Theory]
+    // Like Ruby, a format that ends inside a conversion is invalid.
+    [InlineData("%")]
+    [InlineData("%Y %-")]
+    [InlineData("a%10")]
+    public async Task DateFormatEndingInsideAConversionIsInvalid(string format)
+    {
+        var template = new FluidParser().Parse("{{ 0 | date: '" + format + "' }}");
+        var exception = await Assert.ThrowsAsync<LiquidException>(() => template.RenderAsync(new TemplateContext()).AsTask());
+        Assert.Equal("invalid format: " + format, exception.Message);
+    }
+
+    [Theory]
+    // Timestamps beyond a decimal or a date are returned unchanged.
+    [InlineData("{{ 170070921190921190709211909 | date: '%Y' }}", "170070921190921190709211909")]
+    [InlineData("{{ 253402300800 | date: '%Y' }}|{{ 253402300799 | date: '%Y' }}", "253402300800|9999")]
+    public async Task DateOfHugeTimestamps(string source, string expected)
+    {
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext { TimeZone = TimeZoneInfo.Utc }));
+    }
+
     [Fact]
     public async Task DateIsRenderedWithCulture()
     {
@@ -811,7 +852,7 @@ public class MiscFiltersTests
         // - The uppercase modifier is applied with the culture (Turkish i)
 
         var input = StringValue.Create("07/02/2017");
-        var format = "%^c";
+        var format = "%^A %-d %^B %Y %H:%M:%S";
 
         var arguments = new FilterArguments(StringValue.Create(format));
 
@@ -821,17 +862,12 @@ public class MiscFiltersTests
         context = new TemplateContext { CultureInfo = new CultureInfo("tr-TR", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
         var resultTR = await MiscFilters.Date(input, arguments, context);
 
-        // This test sets the CultureInfo.DateTimeFormat so it's not impacted by changes in ICU
-        // see https://github.com/dotnet/runtime/issues/95620
-        var enUsCultureInfo = new CultureInfo("en-US", useUserOverride: false);
-        enUsCultureInfo.DateTimeFormat.FullDateTimePattern = "dddd, MMMM d, yyyy h:mm:ss tt";
-
-        context = new TemplateContext { CultureInfo = enUsCultureInfo, TimeZone = TimeZoneInfo.Utc };
+        context = new TemplateContext { CultureInfo = new CultureInfo("en-US", useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
         var resultUS = await MiscFilters.Date(input, arguments, context);
 
-        Assert.Equal("7 ŞUBAT 2017 SALI 00:00:00", resultTR.ToStringValue(context));
+        Assert.Equal("SALI 7 ŞUBAT 2017 00:00:00", resultTR.ToStringValue(context));
         Assert.Equal("MARDI 7 FÉVRIER 2017 00:00:00", resultFR.ToStringValue(context));
-        Assert.Equal("SUNDAY, JULY 2, 2017 12:00:00 AM", resultUS.ToStringValue(context));
+        Assert.Equal("SUNDAY 2 JULY 2017 00:00:00", resultUS.ToStringValue(context));
     }
 
     [Theory]
