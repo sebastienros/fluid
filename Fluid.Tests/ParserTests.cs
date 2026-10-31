@@ -1169,16 +1169,41 @@ class  {
         var source = @"
 {% 
    liquid 
-   echo 
-      'welcome ' | upcase 
-   echo 'to the liquid tag' 
-    | upcase 
+   echo 'welcome ' | upcase 
+
+   echo 'to the liquid tag' | upcase 
 %}";
 
         var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
         Assert.True(parser.TryParse(source, out var template, out var errors), errors);
         var rendered = template.Render();
         Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
+    }
+
+    [Theory]
+    // Like Shopify, each line of a liquid tag is a tag: a tag without markup doesn't read the next line.
+    [InlineData("{%liquid\nif true\necho\nendif\n%}x", "x")]
+    [InlineData("{%liquid\necho\necho 'a'\n%}x", "ax")]
+    [InlineData("{%liquid\nfor i in (1..2)\necho\nendfor\n%}x", "x")]
+    [InlineData("{%liquid\nif true\nassign y=\nendif\n%}x", "x")]
+    [InlineData("{% liquid\n  \n\techo 'a'  \n \t \r\n  echo 'b'\n  \n%}x", "abx")]
+    public void LiquidTagLinesAreTags(string source, string expected)
+    {
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+        Assert.Equal(expected, template.Render());
+    }
+
+    [Theory]
+    // The markup of a tag doesn't continue on the next line.
+    [InlineData("{%liquid\necho\ns\n%}x")]
+    [InlineData("{%liquid\necho 'a' |\nupcase\n%}")]
+    [InlineData("{%liquid\nassign x = 'a'\n| upcase\necho x\n%}")]
+    [InlineData("{%liquid\nif true and\nfalse\necho 'T'\nendif\n%}")]
+    public void LiquidTagMarkupEndsWithTheLine(string source)
+    {
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.False(parser.TryParse(source, out _, out _));
     }
 
     [Fact]

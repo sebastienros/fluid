@@ -682,15 +682,13 @@ public class FluidParser
         var LiquidTag = Literals.WhiteSpace(true).Else(default(TextSpan)) // {% liquid %} can start with new lines, {%liquid%} has none
             .Then((context, x) =>
             {
-                var ctx = (FluidParseContext)context;
-                ctx.LiquidTagDepth++;
+                ((FluidParseContext)context).EnterLiquidTag();
                 return x;
             })
             .SkipAnd(ZeroOrMany(LiquidChild))
             .Then((context, x) =>
             {
-                var ctx = (FluidParseContext)context;
-                ctx.LiquidTagDepth--;
+                ((FluidParseContext)context).ExitLiquidTag();
                 return x;
             })
             .AndSkip(If<FluidParseContext, TagResult>(
