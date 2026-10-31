@@ -78,14 +78,24 @@ public class LargeNumberTests
     }
 
     [Theory]
-    [InlineData("{% for i in (1..99999999999) %}{% endfor %}", "The range bound 99999999999 is out of range.")]
-    [InlineData("{% assign r = (-99999999999..1) %}", "The range bound -99999999999 is out of range.")]
+    [InlineData("{% for i in (1..99999999999999999999) %}{% endfor %}", "The range bound 99999999999999999999 is out of range.")]
+    [InlineData("{% assign r = (-99999999999..1) %}", "The range (-99999999999..1) has too many items.")]
     [InlineData("{% for i in (-2000000000..2000000000) %}{% endfor %}", "The range (-2000000000..2000000000) has too many items.")]
     public async Task RangesTooLargeThrowALiquidException(string source, string message)
     {
         var exception = await Assert.ThrowsAsync<LiquidException>(() => RenderAsync(source));
 
         Assert.Equal(message, exception.Message);
+    }
+
+    [Theory]
+    // Like Liquid, range bounds aren't limited to an int: a long holds any realistic bound.
+    [InlineData("{{ (2147483648..2147483650) | join: ',' }}|{% for i in (2147483647..2147483648) %}{{ i }},{% endfor %}|{{ (2147483648..2) }}", "2147483648,2147483649,2147483650|2147483647,2147483648,|2147483648..2")]
+    [InlineData("{% assign b = 3000000000 %}{% for i in (b..b) %}{{ i }}{{ forloop.name }}{% endfor %}|{% assign r = (b..3000000001) %}{{ r.first }}-{{ r.last }}-{{ r.size }}|{{ (-2147483649..-2147483648) | join: ',' }}", "3000000000i-(b..b)|3000000000-3000000001-2|-2147483649,-2147483648")]
+    [InlineData("{{ (9223372036854775806..9223372036854775807) | join: ',' }}|{% if (3000000000..3000000001) contains 3000000001 %}T{% endif %}", "9223372036854775806,9223372036854775807|T")]
+    public async Task RangesHoldLongBounds(string source, string expected)
+    {
+        Assert.Equal(expected, await RenderAsync(source));
     }
 
     [Theory]

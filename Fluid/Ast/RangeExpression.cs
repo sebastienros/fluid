@@ -19,15 +19,13 @@ public sealed class RangeExpression : Expression, ISourceable
 
     public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
     {
-        int start, end;
-
         var startTask = From.EvaluateAsync(context);
         var endTask = To.EvaluateAsync(context);
 
         if (startTask.IsCompletedSuccessfully && endTask.IsCompletedSuccessfully)
         {
-            start = ToBound(startTask.Result, context);
-            end = ToBound(endTask.Result, context);
+            var start = ToBound(startTask.Result, context);
+            var end = ToBound(endTask.Result, context);
 
             return CreateRangeValue(start, end, context);
         }
@@ -38,11 +36,11 @@ public sealed class RangeExpression : Expression, ISourceable
     }
 
     /// <summary>
-    /// Converts a bound of a range to an int, like Liquid: nil is 0, strings are converted to numbers and truncated,
+    /// Converts a bound of a range to an integer, like Liquid: nil is 0, strings are converted to numbers and truncated,
     /// and any other value must be an integer (a float from a variable is an error).
     /// Literal bounds are already truncated by the parser.
     /// </summary>
-    internal static int ToBound(FluidValue value, TemplateContext context)
+    internal static long ToBound(FluidValue value, TemplateContext context)
     {
         switch (value.Type)
         {
@@ -63,35 +61,36 @@ public sealed class RangeExpression : Expression, ISourceable
     }
 
     /// <summary>
-    /// Checks that a bound fits in an int, since the items of a range are counted with an int.
+    /// Checks that a bound fits in a long. Liquid's integers are unbounded, but a long holds any realistic bound
+    /// (timestamps, ids), and a range can't have more items than an int counts anyway.
     /// </summary>
-    private static int CheckBound(decimal number, FluidValue value, TemplateContext context)
+    private static long CheckBound(decimal number, FluidValue value, TemplateContext context)
     {
-        if (number > int.MaxValue || number < int.MinValue)
+        if (number > long.MaxValue || number < long.MinValue)
         {
             throw new LiquidException($"The range bound {value.ToStringValue(context)} is out of range.");
         }
 
-        return (int)number;
+        return (long)number;
     }
 
     /// <summary>
     /// Converts a range bound. Used by source-generated templates, which can only call public members.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static int GetBound(FluidValue value, TemplateContext context) => ToBound(value, context);
+    public static long GetBound(FluidValue value, TemplateContext context) => ToBound(value, context);
 
     /// <summary>
     /// Creates a range. Used by source-generated templates, which can only call public members.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static RangeValue CreateRange(int start, int end, TemplateContext context) => CreateRangeValue(start, end, context);
+    public static RangeValue CreateRange(long start, long end, TemplateContext context) => CreateRangeValue(start, end, context);
 
-    internal static RangeValue CreateRangeValue(int start, int end, TemplateContext context)
+    internal static RangeValue CreateRangeValue(long start, long end, TemplateContext context)
     {
         // If end < start, the range is empty
-        var length = end < start ? 0L : (long)end - start + 1;
-        context.EnsureCollectionSize(length);
+        var length = end < start ? 0m : (decimal)end - start + 1;
+        context.EnsureCollectionSize((long)Math.Min(length, long.MaxValue));
 
         if (length > int.MaxValue)
         {

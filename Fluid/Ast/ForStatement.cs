@@ -276,7 +276,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         return Completion.Normal;
     }
 
-    private static string BuildRangeSourceLiteral(int from, int to)
+    private static string BuildRangeSourceLiteral(long from, long to)
     {
         return $"({from}..{to})";
     }
@@ -333,7 +333,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         return true;
     }
 
-    private static bool TryGetLiteralBound(Expression expression, out int bound)
+    private static bool TryGetLiteralBound(Expression expression, out long bound)
     {
         bound = 0;
 
@@ -344,12 +344,12 @@ public sealed class ForStatement : TagStatement, ISourceable
 
         // Left to the render when out of range, so that it fails there like any other range does.
         var value = number.Value;
-        if (value <= int.MinValue || value >= int.MaxValue)
+        if (value < long.MinValue || value > long.MaxValue)
         {
             return false;
         }
 
-        bound = Convert.ToInt32(value);
+        bound = (long)value;
         return true;
     }
 
