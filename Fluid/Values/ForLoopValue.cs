@@ -76,6 +76,12 @@ public sealed class ForLoopValue : FluidValue
         };
     }
 
+    // Like Liquid's drops, forloop['index'] reads the same properties as forloop.index.
+    public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
+    {
+        return GetValueAsync(index.ToStringValue(context), context);
+    }
+
     public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
         return default;

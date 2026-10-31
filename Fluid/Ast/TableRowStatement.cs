@@ -38,14 +38,17 @@ public sealed class TableRowStatement : TagStatement
     {
         var evaluatedSource = await Source.EvaluateAsync(context);
 
-        // Like Liquid, nil renders nothing, while a value without items renders an empty row.
-        if (evaluatedSource.IsNil())
+        // Like Liquid, the blank and empty literals are '', which renders an empty row.
+        var isKeyword = evaluatedSource.Type is FluidValues.Blank or FluidValues.Empty;
+
+        // Like Liquid, nil and false render nothing, while a value without items renders an empty row.
+        if (!isKeyword && (evaluatedSource.IsNil() || evaluatedSource is BooleanValue { Value: false }))
         {
             return Completion.Normal;
         }
 
         // Empty strings are treated as empty collections
-        if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue(context)))
+        if (isKeyword || (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue(context))))
         {
             output.Write(EmptyRow);
             return Completion.Normal;
@@ -181,17 +184,13 @@ public sealed class TableRowStatement : TagStatement
             return NumberConversions.ToInt32Saturated(decimal.Truncate(value.ToNumberValue(context)));
         }
 
+        // Like Liquid, a string is read like Ruby's to_i: its leading digits, or 0.
         if (value.Type == FluidValues.String)
         {
-            if (NumberConversions.TryParseInt32Saturated(value.ToStringValue(context), out var parsed))
-            {
-                return parsed;
-            }
-
-            throw new FluidException($"tablerow: {name} is not a number");
+            return NumberConversions.ParseLeadingInt32Saturated(value.ToStringValue(context));
         }
 
-        throw new FluidException($"tablerow: {name} must be a number");
+        throw new LiquidException($"tablerow: {name} must be a number");
     }
 
     protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitTableRowStatement(this);

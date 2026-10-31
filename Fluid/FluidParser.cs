@@ -6,6 +6,7 @@ using Fluid.Parser;
 using Fluid.Values;
 using Parlot;
 using Parlot.Fluent;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 
@@ -172,24 +173,28 @@ public class FluidParser
             .Then(x => new MemberExpression([x.Item1, .. x.Item2]));
         Member.Name = "Member";
 
-        // Like Liquid, literal range bounds are truncated: (2.7..4) is (2..4).
-        var RangeBound = Terms.Decimal().Then<Expression>(x => new LiteralExpression(NumberValue.Create(decimal.Truncate(x))));
+        // Like Liquid, literal range bounds are truncated: (2.7..4) is (2..4). Each bound keeps its text too, which
+        // names the range in forloop.name, like Liquid does with (2.7..4).
+        var RangeBound = Terms.Decimal().Then(static x => new RangeBound(new LiteralExpression(NumberValue.Create(decimal.Truncate(x))), x.ToString(CultureInfo.InvariantCulture)));
         RangeBound.Name = "RangeBound";
 
         // Like Liquid, a bound can also be a string, converted to an integer when the range is evaluated.
-        var StringRangeBound = String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x)));
+        var StringRangeBound = String.Then(static x => new RangeBound(new LiteralExpression(StringValue.Create(x)), QuoteStringBound(x)));
         StringRangeBound.Name = "StringRangeBound";
+
+        var MemberRangeBound = Member.Then(static x => new RangeBound(x, null));
+        var IntegerRangeBound = Integer.Then(static x => new RangeBound(x, null));
 
         var Range = LParen
             .SkipAnd(OneOf(
-                Member.AndSkip(Terms.Text("..")),
-                Integer.AndSkip(Terms.Text("..")),
+                MemberRangeBound.AndSkip(Terms.Text("..")),
+                IntegerRangeBound.AndSkip(Terms.Text("..")),
                 RangeBound.AndSkip(Terms.Text("..")),
                 StringRangeBound.AndSkip(Terms.Text(".."))
             ))
-            .And(OneOf(RangeBound, StringRangeBound, Member.Then<Expression>(x => x)))
+            .And(OneOf(RangeBound, StringRangeBound, MemberRangeBound))
             .AndSkip(RParen)
-            .Then<Expression>(x => new RangeExpression(x.Item1, x.Item2));
+            .Then<Expression>(static x => new RangeExpression(x.Item1.Expression, x.Item2.Expression) { FromSource = x.Item1.Source, ToSource = x.Item2.Source });
         Range.Name = "Range";
 
         var Group = parserOptions.AllowParentheses
@@ -647,7 +652,7 @@ public class FluidParser
         // Like in Shopify, "reversed" is ignored by a tablerow tag.
         var TableRowTag = Identifier
                         .AndSkip(In)
-                        .And(Member.Then<Expression>(static x => x).Or(Range))
+                        .And(Primary)
                         .And(LoopAttributes(OneOf(
                             Word("cols").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsCols = true, Value = x }),
                             Word("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new TableRowModifier { IsLimit = true, Value = x }),
@@ -993,6 +998,15 @@ public class FluidParser
     }
 
     // An integer, with an optional minus sign, with more digits than a decimal holds.
+    private readonly record struct RangeBound(Expression Expression, string Source);
+
+    // A string bound as written, with its quotes. The quote is read from the template when the span points into it.
+    private static string QuoteStringBound(TextSpan value)
+    {
+        var quote = value.Buffer is not null && value.Offset > 0 && value.Buffer[value.Offset - 1] == '"' ? '"' : '\'';
+        return quote + value.ToString() + quote;
+    }
+
     private static bool IsBigInteger(ReadOnlySpan<char> value)
     {
         var digits = value.Length > 0 && value[0] == '-' ? value.Slice(1) : value;

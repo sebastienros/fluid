@@ -491,4 +491,13 @@ public class ForStatementTests
     {
         Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
     }
+
+    [Theory]
+    // Like Liquid's ForloopDrop, the properties of forloop can be read with an indexer.
+    [InlineData("{% for x in (1..3) %}{{ forloop['index'] }}{% assign k = 'last' %}{{ forloop[k] }}{% if forloop[\"first\"] %}F{% endif %},{% endfor %}", "1falseF,2false,3true,")]
+    [InlineData("{% for x in (1..2) %}{% for y in (1..2) %}{{ forloop['parentloop']['index'] }}{{ forloop['missing'] }}{% endfor %}{% endfor %}", "1122")]
+    public async Task ForloopPropertiesCanBeIndexed(string source, string expected)
+    {
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
+    }
 }
