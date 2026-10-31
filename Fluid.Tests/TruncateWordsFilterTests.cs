@@ -14,7 +14,8 @@ public class TruncateWordsFilterTests
     [Theory]
     // As many words as the limit: nothing is dropped, so no ellipsis.
     [InlineData("{{ 'one two three' | truncatewords: 3 }}", "one two three")]
-    [InlineData("{{ 'one two three ' | truncatewords: 3 }}", "one two three ")]
+    // Like Liquid (input.split(" ", words + 1)), whitespace after the last kept word counts as one more item.
+    [InlineData("{{ 'one two three ' | truncatewords: 3 }}", "one two three...")]
     [InlineData("{{ 'one' | truncatewords: 1 }}", "one")]
     [InlineData("{{ 'one' | truncatewords: 0 }}", "one")]
     // Not truncated: the input is returned as it is, whitespace included.

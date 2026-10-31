@@ -3,6 +3,7 @@ using Fluid.Values;
 using System.Buffers;
 using System.Globalization;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -195,6 +196,12 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("url_encode", expected: 0, arguments);
 
+        // Like Liquid, nil stays nil.
+        if (input.IsNil())
+        {
+            return NilValue.Instance;
+        }
+
         return StringValue.Create(UrlEncode(input.ToStringValue(context)));
     }
 
@@ -246,7 +253,39 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("url_decode", expected: 0, arguments);
 
+        // Like Liquid, nil stays nil.
+        if (input.IsNil())
+        {
+            return NilValue.Instance;
+        }
+
         return StringValue.Create(WebUtility.UrlDecode(input.ToStringValue(context)));
+    }
+
+    // Like Liquid, whose base64_decode returns a binary string when the bytes aren't UTF-8, base64_encode
+    // gets back the bytes of a decoded value. The value itself holds the text with U+FFFD for the invalid bytes.
+    private static readonly ConditionalWeakTable<FluidValue, byte[]> DecodedBytes = new();
+    private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
+    private static FluidValue CreateDecodedValue(byte[] bytes)
+    {
+        try
+        {
+            return StringValue.Create(StrictUtf8.GetString(bytes));
+        }
+        catch (DecoderFallbackException)
+        {
+        }
+
+        // Not a cached instance: the text has at least one U+FFFD.
+        var value = StringValue.Create(Encoding.UTF8.GetString(bytes));
+        DecodedBytes.Add(value, bytes);
+        return value;
+    }
+
+    private static byte[] GetEncodedBytes(FluidValue input, string value)
+    {
+        return input is StringValue && DecodedBytes.TryGetValue(input, out var bytes) ? bytes : Encoding.UTF8.GetBytes(value);
     }
 
     public static ValueTask<FluidValue> Base64Encode(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -260,9 +299,9 @@ public static class MiscFilters
             return StringValue.Empty;
         }
 
-        var byteCount = Encoding.UTF8.GetByteCount(value);
-        context.EnsureOutputSize(4L * ((byteCount + 2L) / 3L));
-        return StringValue.Create(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
+        var bytes = GetEncodedBytes(input, value);
+        context.EnsureOutputSize(4L * ((bytes.Length + 2L) / 3L));
+        return StringValue.Create(Convert.ToBase64String(bytes));
     }
 
     public static ValueTask<FluidValue> Base64Decode(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -287,7 +326,7 @@ public static class MiscFilters
             throw new LiquidException("invalid base64 provided to base64_decode", e);
         }
 
-        return StringValue.Create(Encoding.UTF8.GetString(bytes));
+        return CreateDecodedValue(bytes);
     }
 
     public static ValueTask<FluidValue> Base64UrlSafeEncode(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -301,9 +340,9 @@ public static class MiscFilters
         }
         else
         {
-            var byteCount = Encoding.UTF8.GetByteCount(value);
-            context.EnsureOutputSize(((4L * byteCount) + 2L) / 3L);
-            var encodedBase64StringBuilder = new StringBuilder(Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
+            var bytes = GetEncodedBytes(input, value);
+            context.EnsureOutputSize(((4L * bytes.Length) + 2L) / 3L);
+            var encodedBase64StringBuilder = new StringBuilder(Convert.ToBase64String(bytes));
 
             encodedBase64StringBuilder.Replace('+', '-');
             encodedBase64StringBuilder.Replace('/', '_');
@@ -365,8 +404,7 @@ public static class MiscFilters
 
             try
             {
-                var decodedBase64 = Encoding.UTF8.GetString(Convert.FromBase64String(encodedBase64StringBuilder.ToString()));
-                return StringValue.Create(decodedBase64);
+                return CreateDecodedValue(Convert.FromBase64String(encodedBase64StringBuilder.ToString()));
             }
             catch
             {
@@ -447,6 +485,12 @@ public static class MiscFilters
     public static ValueTask<FluidValue> Escape(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("escape", expected: 0, arguments);
+
+        // Like Liquid, nil stays nil (escape_once returns an empty string).
+        if (input.IsNil())
+        {
+            return NilValue.Instance;
+        }
 
         return StringValue.Create(EscapeHtml(input.ToStringValue(context), once: false), encode: false);
     }

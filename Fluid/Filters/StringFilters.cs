@@ -199,6 +199,16 @@ public static class StringFilters
             return UnchangedString(input, context);
         }
 
+        if (insert.Contains('\\'))
+        {
+            var builder = new StringBuilder(value.Length + insert.Length);
+            builder.Append(value, 0, index);
+            AppendReplacement(builder, insert, value, index, remove.Length);
+            builder.Append(value, index + remove.Length, value.Length - index - remove.Length);
+            context.EnsureOutputSize(builder.Length);
+            return CreateStringValue(builder.ToString(), input);
+        }
+
         context.EnsureOutputSize((long)value.Length - remove.Length + insert.Length);
         var concat = string.Concat(value.Substring(0, index), insert, value.Substring(index + remove.Length));
         return CreateStringValue(concat, input);
@@ -211,6 +221,11 @@ public static class StringFilters
         var value = input.ToStringValue(context);
         var oldValue = arguments.At(0).ToStringValue(context);
         var newValue = arguments.At(1).ToStringValue(context);
+
+        if (newValue.Contains('\\'))
+        {
+            return CreateStringValue(ReplaceWithBackslashes(value, oldValue, newValue, context), input);
+        }
 
         // .NET throws when oldValue is empty, but Liquid treats this as an insertion between every character.
         if (oldValue.Length == 0)
@@ -248,6 +263,84 @@ public static class StringFilters
         }
 
         return CreateStringValue(value.Replace(oldValue, newValue), input);
+    }
+
+    // Like Ruby's gsub, which Liquid uses, an empty pattern matches before each character and at the end.
+    private static string ReplaceWithBackslashes(string value, string oldValue, string newValue, TemplateContext context)
+    {
+        var builder = new StringBuilder(value.Length + newValue.Length);
+
+        if (oldValue.Length == 0)
+        {
+            for (var position = 0; position <= value.Length; position++)
+            {
+                AppendReplacement(builder, newValue, value, position, 0);
+                context.EnsureOutputSize((long)builder.Length + value.Length - position);
+
+                if (position < value.Length)
+                {
+                    builder.Append(value[position]);
+                }
+            }
+
+            return builder.ToString();
+        }
+
+        var last = 0;
+        int index;
+        while ((index = value.IndexOf(oldValue, last, StringComparison.Ordinal)) >= 0)
+        {
+            builder.Append(value, last, index - last);
+            AppendReplacement(builder, newValue, value, index, oldValue.Length);
+            context.EnsureOutputSize((long)builder.Length + value.Length - index - oldValue.Length);
+            last = index + oldValue.Length;
+        }
+
+        builder.Append(value, last, value.Length - last);
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// Appends a replacement like Ruby's <c>sub</c> and <c>gsub</c> with a string replacement, which Liquid's
+    /// <c>replace</c> and <c>replace_first</c> use: <c>\\</c> is a backslash, <c>\0</c> and <c>\&amp;</c> the match,
+    /// <c>\`</c> and <c>\'</c> the text before and after it, and <c>\1</c> to <c>\9</c> groups, which a plain
+    /// string pattern doesn't have.
+    /// </summary>
+    private static void AppendReplacement(StringBuilder builder, string replacement, string source, int index, int length)
+    {
+        for (var i = 0; i < replacement.Length; i++)
+        {
+            var c = replacement[i];
+
+            if (c != '\\' || i == replacement.Length - 1)
+            {
+                builder.Append(c);
+                continue;
+            }
+
+            var next = replacement[++i];
+            switch (next)
+            {
+                case '\\':
+                    builder.Append('\\');
+                    break;
+                case '0':
+                case '&':
+                    builder.Append(source, index, length);
+                    break;
+                case '`':
+                    builder.Append(source, 0, index);
+                    break;
+                case '\'':
+                    builder.Append(source, index + length, source.Length - index - length);
+                    break;
+                case >= '1' and <= '9':
+                    break;
+                default:
+                    builder.Append('\\').Append(next);
+                    break;
+            }
+        }
     }
 
     public static ValueTask<FluidValue> ReplaceLast(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -481,16 +574,32 @@ public static class StringFilters
             return NilValue.Instance;
         }
 
-        // Like Ruby's strip.gsub(/\s+/, ' '): trim, then collapse each whitespace run into a single space.
+        // Like Ruby's strip.gsub(/\s+/, ' '): trim (whitespace and NUL), then collapse each whitespace run
+        // into a single space.
         var source = input.ToStringValue(context);
+        var first = 0;
+        var last = source.Length - 1;
+
+        while (first <= last && LiquidWhiteSpace.IsTrimmed(source[first]))
+        {
+            first++;
+        }
+
+        while (last >= first && LiquidWhiteSpace.IsTrimmed(source[last]))
+        {
+            last--;
+        }
+
         var builder = new ValueStringBuilder(stackalloc char[256]);
         var pendingSpace = false;
 
-        foreach (var c in source)
+        for (var i = first; i <= last; i++)
         {
+            var c = source[i];
+
             if (IsAsciiWhiteSpace(c))
             {
-                pendingSpace = builder.Length > 0;
+                pendingSpace = true;
                 continue;
             }
 
@@ -503,9 +612,9 @@ public static class StringFilters
             builder.Append(c);
         }
 
-        if (builder.Length == source.Length)
+        if (builder.AsSpan().SequenceEqual(source.AsSpan()))
         {
-            // Nothing was removed.
+            // Nothing was changed.
             builder.Dispose();
             return CreateStringValue(source, input);
         }
@@ -706,14 +815,9 @@ public static class StringFilters
             chunks.Add(source.Substring(start, chunkLength));
         }
 
-        // Only text left after the last kept word means words were dropped. Otherwise, like
-        // Liquid, the input is returned as it is, whitespace included.
-        while (i < length && LiquidWhiteSpace.IsWhiteSpace(source[i]))
-        {
-            i++;
-        }
-
-        if (i == length)
+        // Like Liquid's input.split(" ", words + 1), anything after the last kept word, even whitespace,
+        // is one more item: the input is truncated. Otherwise it is returned as it is.
+        if (chunks.Count < size || i == length)
         {
             return UnchangedString(input, context);
         }
