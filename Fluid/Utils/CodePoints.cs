@@ -9,10 +9,10 @@ internal static class CodePoints
     /// <summary>
     /// Whether the string has surrogates, the only case where code points and chars differ.
     /// </summary>
-    public static bool HasSurrogates(string value)
+    public static bool HasSurrogates(ReadOnlySpan<char> value)
     {
 #if NET8_0_OR_GREATER
-        return value.AsSpan().IndexOfAnyInRange('\uD800', '\uDFFF') >= 0;
+        return value.IndexOfAnyInRange('\uD800', '\uDFFF') >= 0;
 #else
         foreach (var c in value)
         {

@@ -293,7 +293,7 @@ public static class ArrayFilters
             else
             {
                 // The characters are code points: a surrogate pair stays together.
-                var hasSurrogates = CodePoints.HasSurrogates(value);
+                var hasSurrogates = CodePoints.HasSurrogates(value.AsSpan());
                 var count = hasSurrogates ? CodePoints.Count(value) : value.Length;
                 context.EnsureCollectionSize(count);
                 var items = new FluidValue[count];

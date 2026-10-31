@@ -328,8 +328,11 @@ public static class StringFilters
 
             var sourceString = input.ToStringValue(context);
 
-            // Like Liquid, indices and lengths are in code points.
-            var hasSurrogates = CodePoints.HasSurrogates(sourceString);
+            // Like Liquid, indices and lengths are in code points. They only differ from chars when there
+            // are surrogates before the end of the slice, or anywhere for an index from the end.
+            var hasSurrogates = requestedStartIndex < 0
+                ? CodePoints.HasSurrogates(sourceString.AsSpan())
+                : CodePoints.HasSurrogates(sourceString.AsSpan(0, (int)Math.Min(sourceString.Length, (long)requestedStartIndex + requestedLength)));
             var sourceStringLength = hasSurrogates ? CodePoints.Count(sourceString) : sourceString.Length;
 
             if (requestedStartIndex < -sourceStringLength)
@@ -404,7 +407,7 @@ public static class StringFilters
         if (separator == "")
         {
             // Like Liquid, a string is split in code points: a surrogate pair stays together.
-            var hasSurrogates = CodePoints.HasSurrogates(stringInput);
+            var hasSurrogates = CodePoints.HasSurrogates(stringInput.AsSpan());
             var count = hasSurrogates ? CodePoints.Count(stringInput) : stringInput.Length;
             context.EnsureCollectionSize(count);
             strings = new string[count];
@@ -603,10 +606,16 @@ public static class StringFilters
             length = NumberConversions.ToInt32Saturated(firstArg.ToNumberValue(context));
         }
 
-        // Like Liquid, lengths are in code points.
-        var hasSurrogates = CodePoints.HasSurrogates(inputStr);
+        if (inputStr.Length <= length)
+        {
+            return UnchangedString(input, context);
+        }
 
-        if ((hasSurrogates ? CodePoints.Count(inputStr) : inputStr.Length) <= length)
+        // Like Liquid, lengths are in code points. They only differ from chars when there are surrogates
+        // before the cut, so only the start of the string is read.
+        var hasSurrogates = length >= 0 && CodePoints.HasSurrogates(inputStr.AsSpan(0, (int)Math.Min(inputStr.Length, (long)length + 1)));
+
+        if (hasSurrogates && CodePoints.ToCharIndex(inputStr, length) >= inputStr.Length)
         {
             return UnchangedString(input, context);
         }
@@ -628,7 +637,7 @@ public static class StringFilters
             ellipsisStr = secondArg.ToStringValue(context);
         }
 
-        var ellipsisLength = CodePoints.HasSurrogates(ellipsisStr) ? CodePoints.Count(ellipsisStr) : ellipsisStr.Length;
+        var ellipsisLength = CodePoints.HasSurrogates(ellipsisStr.AsSpan()) ? CodePoints.Count(ellipsisStr) : ellipsisStr.Length;
         var l = Math.Max(0, length - ellipsisLength);
 
         if (hasSurrogates)

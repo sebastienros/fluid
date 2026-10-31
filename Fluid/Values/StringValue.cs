@@ -152,7 +152,7 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
         return name switch
         {
             // Like Liquid, the size is in code points.
-            "size" => NumberValue.Create(CodePoints.HasSurrogates(_value) ? CodePoints.Count(_value) : _value.Length),
+            "size" => NumberValue.Create(CodePoints.HasSurrogates(_value.AsSpan()) ? CodePoints.Count(_value) : _value.Length),
             // Like Shopify, 'first' and 'last' return the first and last characters.
             "first" => FirstCharacter(_value),
             "last" => LastCharacter(_value),
