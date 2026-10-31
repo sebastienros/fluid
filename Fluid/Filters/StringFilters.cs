@@ -1,3 +1,4 @@
+using Fluid.Parser;
 using Fluid.Utils;
 using System.Text;
 using Fluid.Values;
@@ -83,14 +84,14 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("lstrip", expected: 0, arguments);
 
-        return CreateStringValue(input.ToStringValue(context).TrimStart(), input);
+        return CreateStringValue(TrimLiquidWhiteSpace(input.ToStringValue(context), start: true, end: false), input);
     }
 
     public static ValueTask<FluidValue> RStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("rstrip", expected: 0, arguments);
 
-        return CreateStringValue(input.ToStringValue(context).TrimEnd(), input);
+        return CreateStringValue(TrimLiquidWhiteSpace(input.ToStringValue(context), start: false, end: true), input);
     }
 
     public static ValueTask<FluidValue> NewLineToBr(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -105,18 +106,17 @@ public static class StringFilters
             {
                 resultLength += 6;
             }
-            else if (value[i] == '\r')
+            else if (value[i] == '\r' && i + 1 < value.Length && value[i + 1] == '\n')
             {
-                resultLength += i + 1 < value.Length && value[i + 1] == '\n' ? -1 : 6;
+                resultLength--;
             }
         }
         context.EnsureOutputSize(resultLength);
 
-        // Normalize line endings first, then replace with <br />
+        // Like Liquid, \r\n and \n are new lines, a lone \r isn't.
         return CreateStringValue(value
-            .Replace("\r\n", "\n")      // Windows -> Unix
-            .Replace("\r", "\n")         // Mac -> Unix
-            .Replace("\n", "<br />\n"), input); // Unix -> <br /> + newline
+            .Replace("\r\n", "\n")
+            .Replace("\n", "<br />\n"), input);
     }
 
     public static ValueTask<FluidValue> Prepend(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -399,13 +399,13 @@ public static class StringFilters
         }
         else if (separator == " ")
         {
-            // Golden Liquid: a single-space separator splits on any whitespace
+            // Like Liquid (Ruby's awk-style split), a single-space separator splits on Liquid's whitespace
             var parts = new List<string>();
             var start = -1;
 
             for (var i = 0; i < stringInput.Length; i++)
             {
-                if (char.IsWhiteSpace(stringInput[i]))
+                if (LiquidWhiteSpace.IsWhiteSpace(stringInput[i]))
                 {
                     if (start != -1)
                     {
@@ -507,11 +507,32 @@ public static class StringFilters
         static bool IsAsciiWhiteSpace(char c) => c is ' ' or '\t' or '\n' or '\v' or '\f' or '\r';
     }
 
+    /// <summary>
+    /// Removes Liquid's whitespace and NUL, like Ruby's strip, lstrip and rstrip: other Unicode spaces are kept.
+    /// </summary>
+    private static string TrimLiquidWhiteSpace(string value, bool start, bool end)
+    {
+        var first = 0;
+        var last = value.Length - 1;
+
+        while (start && first <= last && LiquidWhiteSpace.IsTrimmed(value[first]))
+        {
+            first++;
+        }
+
+        while (end && last >= first && LiquidWhiteSpace.IsTrimmed(value[last]))
+        {
+            last--;
+        }
+
+        return first == 0 && last == value.Length - 1 ? value : value.Substring(first, last - first + 1);
+    }
+
     public static ValueTask<FluidValue> Strip(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("strip", expected: 0, arguments);
 
-        return CreateStringValue(input.ToStringValue(context).Trim(), input);
+        return CreateStringValue(TrimLiquidWhiteSpace(input.ToStringValue(context), start: true, end: true), input);
     }
 
     public static ValueTask<FluidValue> StripNewLines(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -520,13 +541,10 @@ public static class StringFilters
 
         var result = input.ToStringValue(context);
 
-        if (result.Contains('\r'))
-        {
-            result = result.Replace("\r", "");
-        }
+        // Like Liquid, \r\n and \n are new lines, a lone \r isn't.
         if (result.Contains('\n'))
         {
-            result = result.Replace("\n", "");
+            result = result.Replace("\r\n", "").Replace("\n", "");
         }
 
         return CreateStringValue(result, input);
@@ -650,7 +668,7 @@ public static class StringFilters
         var i = 0;
         while (i < length && chunks.Count < size)
         {
-            while (i < length && char.IsWhiteSpace(source[i]))
+            while (i < length && LiquidWhiteSpace.IsWhiteSpace(source[i]))
             {
                 i++;
             }
@@ -661,7 +679,7 @@ public static class StringFilters
             }
 
             var start = i;
-            while (i < length && !char.IsWhiteSpace(source[i]))
+            while (i < length && !LiquidWhiteSpace.IsWhiteSpace(source[i]))
             {
                 i++;
             }
@@ -675,7 +693,7 @@ public static class StringFilters
 
         // Only text left after the last kept word means words were dropped. Otherwise, like
         // Liquid, the input is returned as it is, whitespace included.
-        while (i < length && char.IsWhiteSpace(source[i]))
+        while (i < length && LiquidWhiteSpace.IsWhiteSpace(source[i]))
         {
             i++;
         }

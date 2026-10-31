@@ -432,4 +432,27 @@ world
 
         Assert.Equal("HELLO WORLD", result.Result.ToStringValue(context));
     }
+
+    [Theory]
+    // Like Liquid, strip_html removes script, comment and style blocks, then complete tags only.
+    [InlineData("{{ '>' | strip_html }}|{{ 'a > b' | strip_html }}|{{ 'a < b' | strip_html }}|{{ 'a < b > c' | strip_html }}", ">|a > b|a < b|a  c")]
+    [InlineData("{{ '<script>x</script>y<SCRIPT>z</SCRIPT><style a>s</style><!-- c -->d<!-- e' | strip_html }}", "yzd<!-- e")]
+    [InlineData("{{ '<scriptx>q</script>w<p\nclass=a>t</p>' | strip_html }}", "wt")]
+    // Like Liquid (Ruby's CGI.escape), url_encode only keeps letters, digits and _ . - ~.
+    [InlineData("{{ \"a(b)!*'~ c\" | url_encode }}|{{ 'a+b/c?d=é&e=✓' | url_encode }}", "a%28b%29%21%2A%27~+c|a%2Bb%2Fc%3Fd%3D%C3%A9%26e%3D%E2%9C%93")]
+    // Like Liquid, a lone \r isn't a new line.
+    [InlineData("{{ s | newline_to_br }}|{{ s | strip_newlines }}", "a\rb<br />\nc<br />\n|a\rbc")]
+    // Like Liquid, only ASCII whitespace (and NUL for strip) is whitespace.
+    [InlineData("[{{ u | strip | size }}|{{ u | lstrip | size }}|{{ u | rstrip | size }}|{{ v | split: ' ' | size }}|{{ v | truncatewords: 1 }}]", "[3|4|4|2|a\u00a0b...]")]
+    [InlineData("[{{ w | strip }}|{{ w | lstrip }}|{{ w | rstrip }}]", "[a|a \0| \0a]")]
+    public async Task StringFiltersUseLiquidCharacterClasses(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("s", "a\rb\r\nc\n");
+        context.SetValue("u", " \u00a0a\u3000 ");
+        context.SetValue("v", "a\u00a0b c");
+        context.SetValue("w", " \0a \0");
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
 }
