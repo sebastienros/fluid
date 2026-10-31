@@ -56,7 +56,7 @@ public sealed class ForStatement : TagStatement, ISourceable
             _rangeSource = range;
 
             // Like Liquid, the name of a range is the range as written: (1..l) stays (1..l) whatever l is.
-            if (TryGetBoundSource(range.From, out var from) && TryGetBoundSource(range.To, out var to))
+            if (TryGetBoundSource(range.From, range.FromSource, out var from) && TryGetBoundSource(range.To, range.ToSource, out var to))
             {
                 _staticRangeSourceLiteral = $"({from}..{to})";
                 _staticContinueOffsetLiteral = BuildRangeContinueOffsetLiteral(_staticRangeSourceLiteral);
@@ -292,10 +292,16 @@ public sealed class ForStatement : TagStatement, ISourceable
     }
 
     /// <summary>
-    /// The text of a range bound written as an integer or a variable, like Liquid's parser gives it.
+    /// The text of a range bound written as a literal or a variable, like Liquid's parser gives it.
     /// </summary>
-    private static bool TryGetBoundSource(Expression expression, out string source)
+    private static bool TryGetBoundSource(Expression expression, string literalSource, out string source)
     {
+        if (literalSource is not null)
+        {
+            source = literalSource;
+            return true;
+        }
+
         if (TryGetLiteralBound(expression, out var bound))
         {
             source = bound.ToString(CultureInfo.InvariantCulture);

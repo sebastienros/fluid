@@ -6,12 +6,14 @@ namespace Fluid.Ast.BinaryExpressions;
 public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
 {
     // Like Liquid, blank and empty are compared as their text, '', which any string contains, and
-    // which nothing else does.
+    // which nothing else does. The literals themselves contain nothing, not even each other.
     private readonly bool _containsKeyword;
+    private readonly bool _keywordContainsKeyword;
 
     public ContainsBinaryExpression(Expression left, Expression right) : base(left, right)
     {
         _containsKeyword = IsBlankOrEmptyKeyword(right);
+        _keywordContainsKeyword = _containsKeyword && IsBlankOrEmptyKeyword(left);
     }
 
     public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
@@ -33,7 +35,7 @@ public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
 
         if (_containsKeyword)
         {
-            return BinaryExpressionFluidValue.Create(leftValue, ContainsKeyword(leftValue));
+            return BinaryExpressionFluidValue.Create(leftValue, !_keywordContainsKeyword && ContainsKeyword(leftValue));
         }
 
         if (IsNilOrFalse(leftValue, context) || IsNilOrFalse(rightValue, context))
@@ -74,7 +76,7 @@ public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
 
         if (_containsKeyword)
         {
-            return BinaryExpressionFluidValue.Create(leftValue, ContainsKeyword(leftValue));
+            return BinaryExpressionFluidValue.Create(leftValue, !_keywordContainsKeyword && ContainsKeyword(leftValue));
         }
 
         if (IsNilOrFalse(leftValue, context) || IsNilOrFalse(rightValue, context))
@@ -98,7 +100,9 @@ public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
 
         if (_containsKeyword)
         {
-            context.WriteLine("return BinaryExpressionFluidValue.Create(leftValue, leftValue.Type is FluidValues.String or FluidValues.Blank or FluidValues.Empty);");
+            context.WriteLine(_keywordContainsKeyword
+                ? "return BinaryExpressionFluidValue.Create(leftValue, false);"
+                : "return BinaryExpressionFluidValue.Create(leftValue, leftValue.Type is FluidValues.String or FluidValues.Blank or FluidValues.Empty);");
             return;
         }
 

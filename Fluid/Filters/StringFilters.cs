@@ -234,13 +234,17 @@ public static class StringFilters
                 return CreateStringValue(newValue, input);
             }
 
-            context.EnsureOutputSize((long)value.Length + ((long)newValue.Length * (value.Length + 1)));
-            var sb = new StringBuilder(checked(value.Length + (newValue.Length * (value.Length + 1))));
+            // Between characters (code points), so that surrogate pairs aren't split.
+            var characters = CodePoints.HasSurrogates(value.AsSpan()) ? CodePoints.Count(value) : value.Length;
+            context.EnsureOutputSize((long)value.Length + ((long)newValue.Length * (characters + 1)));
+            var sb = new StringBuilder(checked(value.Length + (newValue.Length * (characters + 1))));
             sb.Append(newValue);
-            for (var i = 0; i < value.Length; i++)
+            for (var i = 0; i < value.Length;)
             {
-                sb.Append(value[i]);
+                var width = characters == value.Length ? 1 : CodePoints.Width(value, i);
+                sb.Append(value, i, width);
                 sb.Append(newValue);
+                i += width;
             }
 
             return CreateStringValue(sb.ToString(), input);
@@ -269,15 +273,20 @@ public static class StringFilters
 
         if (oldValue.Length == 0)
         {
-            for (var position = 0; position <= value.Length; position++)
+            for (var position = 0; ; )
             {
                 AppendReplacement(builder, newValue, value, position, 0);
                 context.EnsureOutputSize((long)builder.Length + value.Length - position);
 
-                if (position < value.Length)
+                if (position == value.Length)
                 {
-                    builder.Append(value[position]);
+                    break;
                 }
+
+                // Between characters (code points), so that surrogate pairs aren't split.
+                var width = CodePoints.Width(value, position);
+                builder.Append(value, position, width);
+                position += width;
             }
 
             return builder.ToString();

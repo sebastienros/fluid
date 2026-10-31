@@ -228,6 +228,8 @@ public class BinaryExpressionTests
     // Like Liquid, contains blank or empty looks for '' in a string, blank and empty are never equal to
     // each other or themselves, and case blank is case ''.
     [InlineData("{% if '' contains blank %}a{% endif %}{% if 'x' contains empty %}b{% endif %}{% if a contains blank %}c{% endif %}{% if n contains blank %}d{% endif %}{% assign x = blank %}{% if x contains blank %}e{% endif %}", "abe")]
+    // The blank and empty literals contain nothing, not even each other.
+    [InlineData("{% if blank contains blank %}a{% endif %}{% if empty contains empty %}b{% endif %}{% if blank contains empty %}c{% endif %}{% if empty contains '' %}d{% endif %}{% assign x = empty %}{% if x contains blank %}e{% endif %}", "e")]
     [InlineData("{% if blank == blank %}a{% endif %}{% if empty == empty %}b{% endif %}{% if empty != empty %}c{% endif %}{% if blank != empty %}d{% endif %}{% assign x = blank %}{% if x == blank %}e{% endif %}", "cde")]
     [InlineData("{% case blank %}{% when n %}a{% endcase %}{% case blank %}{% when '' %}b{% endcase %}{% case empty %}{% when nil %}c{% endcase %}{% case n %}{% when blank %}d{% endcase %}{% if blank == n %}e{% endif %}", "bde")]
     public async Task ComparesLikeLiquid(string source, string expected)

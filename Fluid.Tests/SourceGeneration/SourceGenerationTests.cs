@@ -359,6 +359,7 @@ public class SourceGenerationTests
     [Theory]
     // Like Liquid, blank and empty compare specially in conditions, and a range only equals a range.
     [InlineData("{% if '' contains blank %}a{% endif %}{% if a contains empty %}b{% endif %}{% if blank == blank %}c{% endif %}{% if empty != empty %}d{% endif %}{% case blank %}{% when '' %}e{% endcase %}", "ade")]
+    [InlineData("{% if blank contains blank %}a{% endif %}{% if empty contains blank %}b{% endif %}{% assign x = empty %}{% if x contains blank %}c{% endif %}", "c")]
     [InlineData("{% if (1..-3) == (5..3) %}a{% endif %}{% if (1..2) == (1..2) %}b{% endif %}{% assign s = (1..2) | sort %}{% if s == (1..2) %}c{% endif %}", "b")]
     public async Task GeneratedComparisons_MatchLiquid(string liquid, string expected)
     {
@@ -541,6 +542,8 @@ public class SourceGenerationTests
     [InlineData("{% for i in (1..last) limit: 1 %}{{ forloop.name }} {% endfor %}", "i-(1..last) ")]
     [InlineData("{% for i in (-1..0) %}{{ forloop.name }} {% endfor %}", "i-(-1..0) i-(-1..0) ")]
     [InlineData("{% assign b = 2147483648 %}{% for i in (b..2147483649) %}{{ i }}{{ forloop.name }} {% endfor %}", "2147483648i-(b..2147483649) 2147483649i-(b..2147483649) ")]
+    [InlineData("{% for i in (1.5..2) %}{{ forloop.name }} {% endfor %}{% for i in (0..0.0) %}{{ forloop.name }} {% endfor %}", "i-(1.5..2) i-(1.5..2) i-(0..0.0) ")]
+    [InlineData("{% for i in (1..3) %}{{ forloop['index'] }}{{ forloop[\"last\"] }} {% endfor %}", "1false 2false 3true ")]
     [InlineData("{% for i in (1..4) limit: 2 %}{{ i }}{% endfor %}|{% for i in (1..4) offset: continue %}{{ i }}{% endfor %}", "12|34")]
     public async Task GeneratedRangeLoops_NameTheirSource(string liquid, string expected)
     {

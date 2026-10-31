@@ -17,6 +17,11 @@ public sealed class RangeExpression : Expression, ISourceable
 
     public Expression To { get; }
 
+    // The literal bounds as written, which name the range in forloop.name; null for other bounds.
+    internal string FromSource { get; init; }
+
+    internal string ToSource { get; init; }
+
     public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
     {
         var startTask = From.EvaluateAsync(context);
