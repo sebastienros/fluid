@@ -222,6 +222,14 @@ public class BinaryExpressionTests
     [InlineData("{% if (5..3) == blank or empty == (5..3) %}y{% else %}n{% endif %}", "n")]
     [InlineData("{% case (5..3) %}{% when empty %}y{% else %}n{% endcase %}{{ (5..3) | default: 'D' }}", "n5..3")]
     [InlineData("{% if nil == nil and missing == nil %}y{% else %}n{% endif %}", "y")]
+    // Like Ruby's Range#==, a range is only equal to a range with the same bounds.
+    [InlineData("{% assign s = (1..3) | sort %}{% if s == (1..3) %}eq{% else %}ne{% endif %}|{% if (3..1) == e %}eq{% else %}ne{% endif %}|{% case (3..1) %}{% when e %}w{% endcase %}|{% if e != (3..1) %}NE{% endif %}", "ne|ne||NE")]
+    [InlineData("{% if (1..-3) == (5..3) %}eq{% else %}ne{% endif %}|{% if (1..2) == (1..2) %}eq{% else %}ne{% endif %}|{% case (1..-3) %}{% when (5..3) %}w{% endcase %}", "ne|eq|")]
+    // Like Liquid, contains blank or empty looks for '' in a string, blank and empty are never equal to
+    // each other or themselves, and case blank is case ''.
+    [InlineData("{% if '' contains blank %}a{% endif %}{% if 'x' contains empty %}b{% endif %}{% if a contains blank %}c{% endif %}{% if n contains blank %}d{% endif %}{% assign x = blank %}{% if x contains blank %}e{% endif %}", "abe")]
+    [InlineData("{% if blank == blank %}a{% endif %}{% if empty == empty %}b{% endif %}{% if empty != empty %}c{% endif %}{% if blank != empty %}d{% endif %}{% assign x = blank %}{% if x == blank %}e{% endif %}", "cde")]
+    [InlineData("{% case blank %}{% when n %}a{% endcase %}{% case blank %}{% when '' %}b{% endcase %}{% case empty %}{% when nil %}c{% endcase %}{% case n %}{% when blank %}d{% endcase %}{% if blank == n %}e{% endif %}", "bde")]
     public async Task ComparesLikeLiquid(string source, string expected)
     {
         var context = new TemplateContext();

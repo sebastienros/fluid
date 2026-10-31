@@ -13,6 +13,14 @@ public abstract class BinaryExpression : Expression
 
     public Expression Left { get; }
 
+    /// <summary>
+    /// Whether the expression is the <c>blank</c> or <c>empty</c> keyword, which conditions handle specially.
+    /// </summary>
+    private protected static bool IsBlankOrEmptyKeyword(Expression expression)
+    {
+        return expression is LiteralExpression { Value: BlankValue or EmptyValue };
+    }
+
     public Expression Right { get; }
 
     /// <summary>

@@ -357,6 +357,24 @@ public class SourceGenerationTests
     }
 
     [Theory]
+    // Like Liquid, blank and empty compare specially in conditions, and a range only equals a range.
+    [InlineData("{% if '' contains blank %}a{% endif %}{% if a contains empty %}b{% endif %}{% if blank == blank %}c{% endif %}{% if empty != empty %}d{% endif %}{% case blank %}{% when '' %}e{% endcase %}", "ade")]
+    [InlineData("{% if (1..-3) == (5..3) %}a{% endif %}{% if (1..2) == (1..2) %}b{% endif %}{% assign s = (1..2) | sort %}{% if s == (1..2) %}c{% endif %}", "b")]
+    public async Task GeneratedComparisons_MatchLiquid(string liquid, string expected)
+    {
+        var instance = CompileTemplate(liquid, new MockFileProvider());
+
+        var runtimeWriter = new StringWriter();
+        await new FluidParser().Parse(liquid).RenderAsync(runtimeWriter, HtmlEncoder.Default, new TemplateContext().SetValue("a", new[] { 1 }));
+
+        var generatedWriter = new StringWriter();
+        await instance.RenderAsync(generatedWriter, HtmlEncoder.Default, new TemplateContext().SetValue("a", new[] { 1 }));
+
+        Assert.Equal(expected, runtimeWriter.ToString());
+        Assert.Equal(expected, generatedWriter.ToString());
+    }
+
+    [Theory]
     // Like Liquid, render ... for only loops over a collection, any other value is rendered once.
     [InlineData("{% render 'ctx' for s as v %}|{% render 'ctx' for 5 as v %}|{% render 'ctx' for nil as v %}|{% render 'ctx' for (1..2) as v %}", "Hello-|5-|-|1-12-2")]
     [InlineData("{% render 'ctx' for s as v, x: 1 %}", "Hello-")]

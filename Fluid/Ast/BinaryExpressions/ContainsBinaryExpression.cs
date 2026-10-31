@@ -5,8 +5,13 @@ namespace Fluid.Ast.BinaryExpressions;
 
 public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
 {
+    // Like Liquid, blank and empty are compared as their text, '', which any string contains, and
+    // which nothing else does.
+    private readonly bool _containsKeyword;
+
     public ContainsBinaryExpression(Expression left, Expression right) : base(left, right)
     {
+        _containsKeyword = IsBlankOrEmptyKeyword(right);
     }
 
     public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
@@ -25,6 +30,11 @@ public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
 
         var leftValue = leftTask.Result;
         var rightValue = rightTask.Result;
+
+        if (_containsKeyword)
+        {
+            return BinaryExpressionFluidValue.Create(leftValue, ContainsKeyword(leftValue));
+        }
 
         if (IsNilOrFalse(leftValue, context) || IsNilOrFalse(rightValue, context))
         {
@@ -46,6 +56,9 @@ public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
         }
     }
 
+    // A string, or a value assigned from blank or empty, which is '' in Liquid.
+    private static bool ContainsKeyword(FluidValue value) => value.Type is FluidValues.String or FluidValues.Blank or FluidValues.Empty;
+
     // Shopify Liquid behavior: `contains` returns false if either operand is nil/false.
     // (see Liquid::Condition operators['contains'] guard: `if left && right && left.respond_to?(:include?)`).
     private static bool IsNilOrFalse(FluidValue value, TemplateContext context)
@@ -58,6 +71,11 @@ public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
     {
         var leftValue = await leftTask;
         var rightValue = await (startedRightTask ?? Right.EvaluateAsync(context));
+
+        if (_containsKeyword)
+        {
+            return BinaryExpressionFluidValue.Create(leftValue, ContainsKeyword(leftValue));
+        }
 
         if (IsNilOrFalse(leftValue, context) || IsNilOrFalse(rightValue, context))
         {
@@ -77,6 +95,13 @@ public sealed class ContainsBinaryExpression : BinaryExpression, ISourceable
 
         context.WriteLine($"var leftValue = await {leftExpr}({context.ContextName});");
         context.WriteLine($"var rightValue = await {rightExpr}({context.ContextName});");
+
+        if (_containsKeyword)
+        {
+            context.WriteLine("return BinaryExpressionFluidValue.Create(leftValue, leftValue.Type is FluidValues.String or FluidValues.Blank or FluidValues.Empty);");
+            return;
+        }
+
         context.WriteLine("if (leftValue.IsNil() || (leftValue.Type == FluidValues.Boolean && !leftValue.ToBooleanValue(context))");
         context.WriteLine("    || rightValue.IsNil() || (rightValue.Type == FluidValues.Boolean && !rightValue.ToBooleanValue(context)))");
         context.WriteLine("{");

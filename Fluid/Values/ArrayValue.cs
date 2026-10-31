@@ -40,7 +40,8 @@ public sealed class ArrayValue : FluidValue, IFluidArray
             return false;
         }
 
-        if (other is IFluidArray otherValues)
+        // Like Ruby, an array is never equal to a range, even with the same items.
+        if (other is IFluidArray otherValues && other is not RangeValue)
         {
             using var scope = RecursiveComparisonGuard.Enter(this, other);
 
