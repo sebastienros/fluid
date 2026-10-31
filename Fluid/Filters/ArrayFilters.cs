@@ -25,7 +25,7 @@ public static class ArrayFilters
         return filters;
     }
 
-    public static async ValueTask<FluidValue> Join(FluidValue input, FilterArguments arguments, TemplateContext context)
+    public static ValueTask<FluidValue> Join(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("join", min: 0, max: 1, arguments);
 
@@ -36,37 +36,79 @@ public static class ArrayFilters
         }
 
         var separator = arguments.Count > 0 ? arguments.At(0).ToStringValue(context) : " ";
-
         var list = new List<string>();
-        long outputLength = 0;
-        await foreach (var item in EnumerateFlattenedAsync(input, context))
+
+        // Indexed arrays are read by index, without an async enumerator, unless they hold a nested array that isn't.
+        if (input is IFluidArray indexed)
         {
-            // Preserve nil/undefined items as empty strings (so separators remain)
-            if (item.IsNil())
+            long outputLength = 0;
+
+            if (TryAddJoinedItems(indexed, list, separator, ref outputLength, context, depth: 0))
             {
-                context.EnsureCollectionSize((long)list.Count + 1);
-                if (list.Count > 0)
+                return StringValue.Create(string.Join(separator, list));
+            }
+
+            list.Clear();
+        }
+
+        return JoinAsync(input, separator, list, context);
+
+        static async ValueTask<FluidValue> JoinAsync(FluidValue input, string separator, List<string> list, TemplateContext context)
+        {
+            long outputLength = 0;
+
+            await foreach (var item in EnumerateFlattenedAsync(input, context))
+            {
+                AddJoinedItem(item, list, separator, ref outputLength, context);
+            }
+
+            return StringValue.Create(string.Join(separator, list));
+        }
+    }
+
+    // Like Liquid's InputIterator, nested arrays are flattened.
+    private static bool TryAddJoinedItems(IFluidArray items, List<string> list, string separator, ref long outputLength, TemplateContext context, int depth)
+    {
+        if (depth > 100)
+        {
+            ExceptionHelper.ThrowRecursiveValueException();
+        }
+
+        for (var i = 0; i < items.Count; i++)
+        {
+            // Like the enumeration of an array, each item is a step.
+            context.IncrementSteps();
+            var item = items[i] ?? NilValue.Instance;
+
+            if (item.Type == FluidValues.Array && item is not RangeValue)
+            {
+                if (item is not IFluidArray nested || !TryAddJoinedItems(nested, list, separator, ref outputLength, context, depth + 1))
                 {
-                    outputLength += separator.Length;
-                    context.EnsureOutputSize(outputLength);
+                    return false;
                 }
-                list.Add(string.Empty);
+
                 continue;
             }
 
-            var s = item.ToStringValue(context);
-
-            context.EnsureCollectionSize((long)list.Count + 1);
-            outputLength += s.Length;
-            if (list.Count > 0)
-            {
-                outputLength += separator.Length;
-            }
-            context.EnsureOutputSize(outputLength);
-            list.Add(s);
+            AddJoinedItem(item, list, separator, ref outputLength, context);
         }
 
-        return StringValue.Create(string.Join(separator, list));
+        return true;
+    }
+
+    private static void AddJoinedItem(FluidValue item, List<string> list, string separator, ref long outputLength, TemplateContext context)
+    {
+        // Nil items are empty strings, so that their separators remain.
+        var s = item.IsNil() ? string.Empty : item.ToStringValue(context);
+
+        context.EnsureCollectionSize((long)list.Count + 1);
+        outputLength += s.Length;
+        if (list.Count > 0)
+        {
+            outputLength += separator.Length;
+        }
+        context.EnsureOutputSize(outputLength);
+        list.Add(s);
     }
 
     public static ValueTask<FluidValue> First(FluidValue input, FilterArguments arguments, TemplateContext context)
