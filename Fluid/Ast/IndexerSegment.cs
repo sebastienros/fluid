@@ -43,18 +43,11 @@ public sealed class IndexerSegment : MemberSegment
         var key = await Expression.EvaluateAsync(context);
         var keyString = key.ToStringValue(context);
 
-        // Look up the variable in scope
+        // Look up the variable in scope, or the increment/decrement counter with this name
         var value = context.ShadowWithCounter(keyString, context.LocalScope.GetValue(keyString));
 
         if (value.IsNil())
         {
-            // Check if there's an increment/decrement counter with this name
-            var incDecValue = context.LocalScope.GetValue(IncrementStatement.Prefix + keyString);
-            if (!incDecValue.IsNil())
-            {
-                return (incDecValue, false);
-            }
-
             // Try to access the model with the key
             if (!context.Model.IsNil())
             {

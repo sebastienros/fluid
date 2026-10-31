@@ -403,12 +403,13 @@ public class TemplateContext
     private bool _hasCounters;
 
     /// <summary>
-    /// Returns the increment or decrement counter named like a variable when the variable comes from the
-    /// model (the values set before rendering or the global values), and the variable otherwise.
+    /// Returns the increment or decrement counter named like a variable when the variable isn't one of the
+    /// template's (it is undefined, or comes from the values set before rendering or the global values),
+    /// and the variable otherwise.
     /// </summary>
     /// <remarks>
     /// Like Liquid, where counters live in the template's environment: they are read before the data
-    /// passed to the template, but after the template's own variables.
+    /// passed to the template, but after the template's own variables, even nil ones.
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -421,12 +422,7 @@ public class TemplateContext
     [MethodImpl(MethodImplOptions.NoInlining)]
     private FluidValue ShadowWithCounterSlow(string name, FluidValue value)
     {
-        if (value.IsNil())
-        {
-            return value;
-        }
-
-        // A variable of the template, assigned in a scope under the root one, isn't shadowed.
+        // A variable of the template, assigned in a scope under the root one, isn't shadowed, even when it is nil.
         for (var scope = _localScope; scope != null && !ReferenceEquals(scope, RootScope); scope = scope.Parent)
         {
             if (scope.TryGetOwnValue(name, out _))
