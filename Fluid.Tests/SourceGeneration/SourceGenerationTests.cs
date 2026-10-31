@@ -541,6 +541,8 @@ public class SourceGenerationTests
     [InlineData("{% for i in (first..last) %}{{ forloop.name }} {% endfor %}", "i-(first..last) i-(first..last) ")]
     [InlineData("{% for i in (1..last) limit: 1 %}{{ forloop.name }} {% endfor %}", "i-(1..last) ")]
     [InlineData("{% for i in (-1..0) %}{{ forloop.name }} {% endfor %}", "i-(-1..0) i-(-1..0) ")]
+    [InlineData("{% for i in (1.5..2) %}{{ forloop.name }} {% endfor %}{% for i in (0..0.0) %}{{ forloop.name }} {% endfor %}", "i-(1.5..2) i-(1.5..2) i-(0..0.0) ")]
+    [InlineData("{% for i in (1..3) %}{{ forloop['index'] }}{{ forloop[\"last\"] }} {% endfor %}", "1false 2false 3true ")]
     [InlineData("{% for i in (1..4) limit: 2 %}{{ i }}{% endfor %}|{% for i in (1..4) offset: continue %}{{ i }}{% endfor %}", "12|34")]
     public async Task GeneratedRangeLoops_NameTheirSource(string liquid, string expected)
     {

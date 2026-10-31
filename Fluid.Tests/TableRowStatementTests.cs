@@ -312,6 +312,45 @@ public class TableRowStatementTests
     }
 
     [Theory]
+    // Like Liquid, string attributes are read like Ruby's to_i: their leading digits, or 0.
+    [InlineData("{% tablerow t in (1..3) cols: '2abc' %}{{ t }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">1</td><td class=\"col2\">2</td></tr>\n<tr class=\"row2\"><td class=\"col1\">3</td></tr>\n")]
+    [InlineData("{% tablerow t in (1..3) limit: 'x' %}{{ t }}{% endtablerow %}", "<tr class=\"row1\">\n</tr>\n")]
+    [InlineData("{% tablerow t in (1..3) offset: 'x' limit: ' 1_0' %}{{ t }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">1</td><td class=\"col2\">2</td><td class=\"col3\">3</td></tr>\n")]
+    [InlineData("{% tablerow t in (1..3) offset: '+2' cols: '2.9' %}{{ t }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">3</td></tr>\n")]
+    [InlineData("{% tablerow t in (1..3) limit: '-1' %}{{ t }}{% endtablerow %}|{% tablerow t in (1..2) limit: '99999999999999' %}{{ t }}{% endtablerow %}", "<tr class=\"row1\">\n</tr>\n|<tr class=\"row1\">\n<td class=\"col1\">1</td><td class=\"col2\">2</td></tr>\n")]
+    public async Task StringArgumentsAreReadLikeToI(string source, string expected)
+    {
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(new TemplateContext()));
+    }
+
+    [Fact]
+    public async Task OtherArgumentsAreTemplateErrors()
+    {
+        var template = _parser.Parse("{% tablerow t in (1..3) cols: true %}{{ t }}{% endtablerow %}");
+
+        await Assert.ThrowsAsync<LiquidException>(() => template.RenderAsync(new TemplateContext()).AsTask());
+    }
+
+    [Theory]
+    // Like Liquid, nil, false, blank and empty are literals: nil and false render nothing, blank and empty are ''.
+    [InlineData("{% assign nil = 'ab' %}[{% tablerow t in nil %}{{ t }}{% endtablerow %}]", "[]")]
+    [InlineData("[{% tablerow t in false %}{{ t }}{% endtablerow %}]", "[]")]
+    [InlineData("[{% tablerow t in blank %}{{ t }}{% endtablerow %}]", "[<tr class=\"row1\">\n</tr>\n]")]
+    [InlineData("[{% tablerow t in 'ab' %}{{ t }}{% endtablerow %}]", "[<tr class=\"row1\">\n<td class=\"col1\">ab</td></tr>\n]")]
+    public async Task CollectionLiterals(string source, string expected)
+    {
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(new TemplateContext()));
+    }
+
+    [Fact]
+    public async Task LoopPropertiesCanBeIndexed()
+    {
+        var template = _parser.Parse("{% tablerow t in (1..2) %}{{ tablerowloop['col'] }}{% assign k = 'col_last' %}{{ tablerowloop[k] }}{% endtablerow %}");
+
+        Assert.Equal("<tr class=\"row1\">\n<td class=\"col1\">1false</td><td class=\"col2\">2true</td></tr>\n", await template.RenderAsync(new TemplateContext()));
+    }
+
+    [Theory]
     // Like Liquid, a collection without items renders an empty row, and nil renders nothing.
     [InlineData("[{% tablerow i in empty %}{{ i }}{% endtablerow %}]", "[<tr class=\"row1\">\n</tr>\n]")]
     [InlineData("[{% tablerow i in empty_string %}{{ i }}{% endtablerow %}]", "[<tr class=\"row1\">\n</tr>\n]")]

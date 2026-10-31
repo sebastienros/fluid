@@ -126,6 +126,12 @@ public sealed class TableRowLoopValue : FluidValue
         return "tablerowloop";
     }
 
+    // Like Liquid's drops, tablerowloop['col'] reads the same properties as tablerowloop.col.
+    public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
+    {
+        return GetValueAsync(index.ToStringValue(context), context);
+    }
+
     public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
     {
         return name switch

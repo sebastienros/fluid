@@ -56,6 +56,10 @@ public class ForRangeTests
     [InlineData("{% for i in (first..last) %}{{ forloop.name }} {% endfor %}", "i-(first..last) i-(first..last) ")]
     [InlineData("{% for i in (first..3) %}{{ forloop.name }} {% endfor %}", "i-(first..3) i-(first..3) ")]
     [InlineData("{% for i in (-1..0) %}{{ forloop.name }} {% endfor %}", "i-(-1..0) i-(-1..0) ")]
+    // Literal bounds keep their text, even when the range truncates them or converts a string.
+    [InlineData("{% for i in (1.5..3) %}{{ forloop.name }} {% endfor %}", "i-(1.5..3) i-(1.5..3) i-(1.5..3) ")]
+    [InlineData("{% for i in (0..1.0) %}{{ forloop.name }} {% endfor %}", "i-(0..1.0) i-(0..1.0) ")]
+    [InlineData("{% for i in ('1'..2) %}{{ forloop.name }} {% endfor %}{% for i in (1..\"1\") %}{{ forloop.name }} {% endfor %}", "i-('1'..2) i-('1'..2) i-(1..\"1\") ")]
     public async Task ForLoopNameDescribesTheRange(string source, string expected)
     {
         var template = _parser.Parse(source);
@@ -71,6 +75,7 @@ public class ForRangeTests
     [InlineData("{% for i in (1..6) limit: 2 %}{{ i }}{% endfor %}|{% for i in (1..last) offset: continue %}{{ i }}{% endfor %}", "12|123456")]
     // A different loop variable is a different loop.
     [InlineData("{% for i in (1..6) limit: 2 %}{{ i }}{% endfor %}|{% for j in (1..6) offset: continue %}{{ j }}{% endfor %}", "12|123456")]
+    [InlineData("{% for i in (1.5..3) limit: 1 %}{{ i }}{% endfor %}|{% for i in (1..3) offset: continue %}{{ i }}{% endfor %}", "1|123")]
     public async Task OffsetContinueFollowsTheRange(string source, string expected)
     {
         var template = _parser.Parse(source);
