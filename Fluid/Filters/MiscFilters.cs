@@ -28,6 +28,7 @@ public static class MiscFilters
         filters.AddFilter("base64_url_safe_decode", Base64UrlSafeDecode);
         filters.AddFilter("strip_html", StripHtml);
         filters.AddFilter("escape", Escape);
+        filters.AddFilter("h", Escape);
         filters.AddFilter("escape_once", EscapeOnce);
         filters.AddFilter("handle", Handleize);
         filters.AddFilter("handleize", Handleize);
