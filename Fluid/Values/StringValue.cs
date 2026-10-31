@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using Parlot;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -121,14 +122,40 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
         return NilValue.Instance;
     }
 
+    // The first and last characters are code points: a surrogate pair stays together.
+    internal static StringValue FirstCharacter(string value)
+    {
+        if (value.Length == 0)
+        {
+            return Empty;
+        }
+
+        return CodePoints.Width(value, 0) == 1 ? Create(value[0]) : new StringValue(value.Substring(0, 2));
+    }
+
+    internal static StringValue LastCharacter(string value)
+    {
+        var last = value.Length - 1;
+
+        if (last < 0)
+        {
+            return Empty;
+        }
+
+        return last > 0 && char.IsLowSurrogate(value[last]) && char.IsHighSurrogate(value[last - 1])
+            ? new StringValue(value.Substring(last - 1))
+            : Create(value[last]);
+    }
+
     public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
     {
         return name switch
         {
-            "size" => NumberValue.Create(_value.Length),
+            // Like Liquid, the size is in code points.
+            "size" => NumberValue.Create(CodePoints.HasSurrogates(_value) ? CodePoints.Count(_value) : _value.Length),
             // Like Shopify, 'first' and 'last' return the first and last characters.
-            "first" => _value.Length == 0 ? Empty : Create(_value[0]),
-            "last" => _value.Length == 0 ? Empty : Create(_value[_value.Length - 1]),
+            "first" => FirstCharacter(_value),
+            "last" => LastCharacter(_value),
             _ => NilValue.Instance,
         };
     }

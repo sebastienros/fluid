@@ -470,4 +470,16 @@ world
 
         Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
     }
+    [Theory]
+    // Like Liquid, strings are measured, sliced and split in code points: an emoji counts as one character.
+    [InlineData("{{ '😀x' | size }}|{{ '😀x' | slice: 1 }}|{{ 'a😀b' | truncate: 2, '' }}|{{ '😀x' | split: '' | size }}|{% assign s = '😀x' %}{{ s.size }}", "2|x|a😀|2|2")]
+    [InlineData("{{ 'a😀b😀c' | slice: -2 }}|{{ 'a😀b😀c' | slice: 1, 3 }}|{{ 'a😀b😀c' | truncate: 4 }}|{{ 'a😀b😀c' | truncate: 3, '😀' }}|{{ 'a😀b' | split: '' | join: '-' }}", "😀|😀b😀|a...|a😀😀|a-😀-b")]
+    [InlineData("{% assign s = '😀x😀' %}{{ s.first }}|{{ s.last }}|{{ s | first }}|{{ s | last }}|{{ 'a😀b' | reverse | join: '' }}", "😀|😀|😀|😀|b😀a")]
+    // Like Ruby, upcase, downcase and capitalize use the full Unicode mappings, and capitalize the titlecase.
+    [InlineData("{{ 'ß' | upcase }}|{{ 'ı' | upcase }}|{{ 'İ' | downcase }}|{{ 'ß' | capitalize }}|{{ 'ǆemal' | capitalize }}|{{ 'ﬁne' | upcase }}|{{ 'ᾳ' | upcase }}|{{ 'ŉ' | upcase }}", "SS|I|i̇|Ss|ǅemal|FINE|ΑΙ|ʼN")]
+    [InlineData("{{ 'Straße ÉCOLE' | downcase }}|{{ 'Straße école' | upcase }}|{{ 'éCOLE' | capitalize }}|{{ 'ა' | capitalize }}|{{ '𐐨' | upcase }}|{{ 'HELLO world' | capitalize }}", "straße école|STRASSE ÉCOLE|École|ა|𐐀|Hello world")]
+    public async Task StringFiltersUseCodePointsAndFullCaseMappings(string source, string expected)
+    {
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
+    }
 }
