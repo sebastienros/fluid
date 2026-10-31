@@ -26,54 +26,90 @@ public static class ArrayFilters
         return filters;
     }
 
-    public static async ValueTask<FluidValue> Join(FluidValue input, FilterArguments arguments, TemplateContext context)
+    public static ValueTask<FluidValue> Join(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("join", min: 0, max: 1, arguments);
 
         if (input.Type != FluidValues.Array)
         {
-            // Like Liquid, any other value is a one-item array, joined into its text.
-            return input.IsNil() ? input : StringValue.Create(input.ToStringValue(context));
+            // Like Liquid, any other value is a one-item array, joined into its text, and nil an empty array.
+            return input.IsNil() ? StringValue.Empty : StringValue.Create(input.ToStringValue(context));
         }
 
         var separator = arguments.Count > 0 ? arguments.At(0).ToStringValue(context) : " ";
-
         var list = new List<string>();
-        long outputLength = 0;
-        await foreach (var item in input.EnumerateAsync(context))
+
+        // Indexed arrays are read by index, without an async enumerator, unless they hold a nested array that isn't.
+        if (input is IFluidArray indexed)
         {
-            // Preserve nil/undefined items as empty strings (so separators remain)
-            if (item.IsNil())
+            long outputLength = 0;
+
+            if (TryAddJoinedItems(indexed, list, separator, ref outputLength, context, depth: 0))
             {
-                context.EnsureCollectionSize((long)list.Count + 1);
-                if (list.Count > 0)
-                {
-                    outputLength += separator.Length;
-                    context.EnsureOutputSize(outputLength);
-                }
-                list.Add(string.Empty);
-                continue;
+                return StringValue.Create(string.Join(separator, list));
             }
 
-            var s = item.ToStringValue(context);
-
-            // Skip non-string items that stringify to empty (e.g., empty arrays)
-            if (s.Length == 0 && item.Type != FluidValues.String)
-            {
-                continue;
-            }
-
-            context.EnsureCollectionSize((long)list.Count + 1);
-            outputLength += s.Length;
-            if (list.Count > 0)
-            {
-                outputLength += separator.Length;
-            }
-            context.EnsureOutputSize(outputLength);
-            list.Add(s);
+            list.Clear();
         }
 
-        return StringValue.Create(string.Join(separator, list));
+        return JoinAsync(input, separator, list, context);
+
+        static async ValueTask<FluidValue> JoinAsync(FluidValue input, string separator, List<string> list, TemplateContext context)
+        {
+            long outputLength = 0;
+
+            await foreach (var item in EnumerateFlattenedAsync(input, context))
+            {
+                AddJoinedItem(item, list, separator, ref outputLength, context);
+            }
+
+            return StringValue.Create(string.Join(separator, list));
+        }
+    }
+
+    // Like Liquid's InputIterator, nested arrays are flattened.
+    private static bool TryAddJoinedItems(IFluidArray items, List<string> list, string separator, ref long outputLength, TemplateContext context, int depth)
+    {
+        if (depth > 100)
+        {
+            ExceptionHelper.ThrowRecursiveValueException();
+        }
+
+        for (var i = 0; i < items.Count; i++)
+        {
+            // Like the enumeration of an array, each item is a step.
+            context.IncrementSteps();
+            var item = items[i] ?? NilValue.Instance;
+
+            if (item.Type == FluidValues.Array && item is not RangeValue)
+            {
+                if (item is not IFluidArray nested || !TryAddJoinedItems(nested, list, separator, ref outputLength, context, depth + 1))
+                {
+                    return false;
+                }
+
+                continue;
+            }
+
+            AddJoinedItem(item, list, separator, ref outputLength, context);
+        }
+
+        return true;
+    }
+
+    private static void AddJoinedItem(FluidValue item, List<string> list, string separator, ref long outputLength, TemplateContext context)
+    {
+        // Nil items are empty strings, so that their separators remain.
+        var s = item.IsNil() ? string.Empty : item.ToStringValue(context);
+
+        context.EnsureCollectionSize((long)list.Count + 1);
+        outputLength += s.Length;
+        if (list.Count > 0)
+        {
+            outputLength += separator.Length;
+        }
+        context.EnsureOutputSize(outputLength);
+        list.Add(s);
     }
 
     public static ValueTask<FluidValue> First(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -185,7 +221,11 @@ public static class ArrayFilters
 
         if (input.Type == FluidValues.Array)
         {
-            await FlattenAsync(input, concat, context);
+            await foreach (var item in EnumerateFlattenedAsync(input, context))
+            {
+                context.EnsureCollectionSize((long)concat.Count + 1);
+                concat.Add(item);
+            }
         }
         else if (input.Type != FluidValues.Nil)
         {
@@ -201,22 +241,6 @@ public static class ArrayFilters
         }
 
         return ArrayValue.Create(concat);
-
-        // Nested arrays are flattened. Any other item, including nil and hashes, is kept as one item.
-        static async ValueTask FlattenAsync(FluidValue value, List<FluidValue> target, TemplateContext context)
-        {
-            await foreach (var item in value.EnumerateAsync(context))
-            {
-                if (item.Type == FluidValues.Array)
-                {
-                    await FlattenAsync(item, target, context);
-                    continue;
-                }
-
-                context.EnsureCollectionSize((long)target.Count + 1);
-                target.Add(item);
-            }
-        }
     }
 
     public static async ValueTask<FluidValue> Map(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -241,7 +265,7 @@ public static class ArrayFilters
 
         if (input.Type == FluidValues.Array)
         {
-            await foreach (var item in FlattenForMap(input, context))
+            await foreach (var item in EnumerateFlattenedAsync(input, context))
             {
                 context.EnsureCollectionSize((long)list.Count + 1);
                 list.Add(await item.GetIndexAsync(member, context));
@@ -254,23 +278,32 @@ public static class ArrayFilters
         }
 
         return ArrayValue.Create(list);
+    }
 
-        // Flatten nested arrays within the input array for map filter
-        static async IAsyncEnumerable<FluidValue> FlattenForMap(FluidValue value, TemplateContext context)
+    /// <summary>
+    /// Enumerates an array like Liquid's <c>InputIterator</c>, which flattens nested arrays: their items are
+    /// enumerated instead. Ranges, hashes and any other value are items.
+    /// </summary>
+    internal static async IAsyncEnumerable<FluidValue> EnumerateFlattenedAsync(FluidValue value, TemplateContext context, int depth = 0)
+    {
+        // Like Ruby's Array#flatten, which fails on recursive arrays.
+        if (depth > 100)
         {
-            await foreach (var item in value.EnumerateAsync(context))
+            ExceptionHelper.ThrowRecursiveValueException();
+        }
+
+        await foreach (var item in value.EnumerateAsync(context))
+        {
+            if (item.Type == FluidValues.Array && item is not RangeValue)
             {
-                if (item.Type == FluidValues.Array)
+                await foreach (var nested in EnumerateFlattenedAsync(item, context, depth + 1))
                 {
-                    await foreach (var subItem in FlattenForMap(item, context))
-                    {
-                        yield return subItem;
-                    }
+                    yield return nested;
                 }
-                else
-                {
-                    yield return item;
-                }
+            }
+            else
+            {
+                yield return item;
             }
         }
     }
@@ -281,7 +314,7 @@ public static class ArrayFilters
 
         if (input.Type == FluidValues.Array)
         {
-            return ArrayValue.Create(await input.EnumerateAsync(context).Reverse().ToArrayAsync());
+            return ArrayValue.Create(await EnumerateFlattenedAsync(input, context).Reverse().ToArrayAsync());
         }
         else if (input.Type == FluidValues.String)
         {
@@ -315,11 +348,11 @@ public static class ArrayFilters
     }
 
     /// <summary>
-    /// Like Liquid's InputIterator, a value that isn't an array (a hash or a scalar) is a one-item array, and nil stays nil.
+    /// Like Liquid's InputIterator, a value that isn't an array (a hash or a scalar) is a one-item array, and nil an empty array.
     /// </summary>
-    private static FluidValue AsOneItemArray(FluidValue input)
+    private static ArrayValue AsOneItemArray(FluidValue input)
     {
-        return input.IsNil() ? input : ArrayValue.Create([input]);
+        return input.IsNil() ? ArrayValue.Empty : ArrayValue.Create([input]);
     }
 
     // https://github.com/Shopify/liquid/commit/842986a9721de11e71387732be51951285225977
@@ -949,7 +982,7 @@ public static class ArrayFilters
 
             var values = new List<KeyValuePair<FluidValue, FluidValue>>();
 
-            await foreach (var item in input.EnumerateAsync(context))
+            await foreach (var item in EnumerateFlattenedAsync(input, context))
             {
                 values.Add(new KeyValuePair<FluidValue, FluidValue>(item, await item.GetValueAsync(member, context)));
             }
@@ -965,14 +998,14 @@ public static class ArrayFilters
         }
         else
         {
-            var values = await input.EnumerateAsync(context).ToListAsync();
+            var values = await EnumerateFlattenedAsync(input, context).ToListAsync();
 
-            // Check for incompatible types
+            // Check for incompatible types. Like Ruby, a hash can't be compared with a number or a string.
             bool hasArray = false, hasObject = false, hasNumber = false, hasString = false;
             foreach (var v in values)
             {
                 if (v.Type == FluidValues.Array) hasArray = true;
-                else if (v.Type == FluidValues.Object) hasObject = true;
+                else if (v.Type is FluidValues.Object or FluidValues.Dictionary) hasObject = true;
                 else if (v.Type == FluidValues.Number) hasNumber = true;
                 else if (v.Type == FluidValues.String) hasString = true;
             }
@@ -1002,7 +1035,7 @@ public static class ArrayFilters
 
             var values = new List<KeyValuePair<FluidValue, FluidValue>>();
 
-            await foreach (var item in input.EnumerateAsync(context))
+            await foreach (var item in EnumerateFlattenedAsync(input, context))
             {
                 values.Add(new KeyValuePair<FluidValue, FluidValue>(item, await item.GetValueAsync(member, context)));
             }
@@ -1018,7 +1051,7 @@ public static class ArrayFilters
         }
         else
         {
-            var values = await input.EnumerateAsync(context).ToListAsync();
+            var values = await EnumerateFlattenedAsync(input, context).ToListAsync();
 
             // Check for incompatible types
             bool hasArray = false, hasObject = false, hasNumber = false, hasString = false;
@@ -1043,27 +1076,22 @@ public static class ArrayFilters
     {
         LiquidException.ThrowFilterArgumentsCount("uniq", min: 0, max: 1, arguments);
 
-        if (input.IsNil())
-        {
-            return input;
-        }
-
-        // Like Liquid, any other value is a one-item array.
+        // Like Liquid, nil is an empty array and any other value a one-item array.
         if (input.Type != FluidValues.Array)
         {
-            return ArrayValue.Create([input]);
+            return AsOneItemArray(input);
         }
 
         if (arguments.Count == 0)
         {
-            return ArrayValue.Create(await input.EnumerateAsync(context).Distinct().ToArrayAsync());
+            return ArrayValue.Create(await EnumerateFlattenedAsync(input, context).Distinct().ToArrayAsync());
         }
 
         var property = arguments.At(0).ToStringValue(context);
         var seen = new HashSet<FluidValue>();
         var result = new List<FluidValue>();
 
-        await foreach (var item in input.EnumerateAsync(context))
+        await foreach (var item in EnumerateFlattenedAsync(input, context))
         {
             var value = await item.GetValueAsync(property, context);
             if (seen.Add(value))
@@ -1085,7 +1113,8 @@ public static class ArrayFilters
             input = ArrayValue.Create([input]);
         }
 
-        if (arguments.Count == 0)
+        // Like Liquid, a nil property is no property.
+        if (arguments.Count == 0 || arguments.At(0).IsNil())
         {
             // Like Liquid, a number or a numeric string is a one-item array.
             if (input is NumberValue or StringValue)
@@ -1100,7 +1129,7 @@ public static class ArrayFilters
 
         var sumList = new List<decimal>();
 
-        await foreach (var item in input.EnumerateAsync(context))
+        await foreach (var item in EnumerateFlattenedAsync(input, context))
         {
             switch (item)
             {

@@ -174,7 +174,7 @@ public static class MiscFilters
         var member = arguments.At(0);
 
         var compacted = new List<FluidValue>();
-        await foreach (var value in input.EnumerateAsync(context))
+        await foreach (var value in ArrayFilters.EnumerateFlattenedAsync(input, context))
         {
             if (value.IsNil())
             {
