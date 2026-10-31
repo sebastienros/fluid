@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Values;
@@ -133,29 +134,45 @@ public sealed class DictionaryValue : FluidValue
         return default;
     }
 
+    /// <summary>
+    /// Like Liquid, a hash is converted to a string in Ruby's inspect format: <c>{"k"=>"v", "n"=>1}</c>.
+    /// </summary>
     public override string ToStringValue(TemplateContext context)
     {
-        return FormatStringValue(value => value.ToStringValue(context));
-    }
-
-    private string FormatStringValue(Func<FluidValue, string> toString)
-    {
-        using var scope = RecursiveValueGuard.Enter(this);
-
         if (_value.Count == 0)
         {
             return "{}";
         }
 
-        var items = new List<string>();
+        var builder = new StringBuilder();
+        AppendInspected(builder, context);
+        return builder.ToString();
+    }
+
+    internal void AppendInspected(StringBuilder builder, TemplateContext context)
+    {
+        using var scope = RecursiveValueGuard.Enter(this);
+
+        builder.Append('{');
+
+        var first = true;
         foreach (var key in _value.Keys)
         {
             if (_value.TryGetValue(key, out var value))
             {
-                items.Add($"\"{key}\":{toString(value)}");
+                if (!first)
+                {
+                    builder.Append(", ");
+                }
+
+                first = false;
+                LiquidInspect.AppendString(builder, key);
+                builder.Append("=>");
+                LiquidInspect.Append(builder, value, context);
             }
         }
-        return "{" + string.Join(",", items) + "}";
+
+        builder.Append('}');
     }
 
     public override object ToObjectValue(TemplateContext context)
