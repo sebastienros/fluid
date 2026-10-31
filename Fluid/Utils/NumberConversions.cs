@@ -30,6 +30,45 @@ internal static class NumberConversions
     }
 
     /// <summary>
+    /// Parses an integer, like Ruby's <c>Integer()</c> which Liquid uses for loop attributes, and gives the
+    /// nearest int for a value out of range, like <see cref="ToInt32Saturated(decimal)"/> does for numbers.
+    /// </summary>
+    public static bool TryParseInt32Saturated(string value, out int result)
+    {
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out result))
+        {
+            return true;
+        }
+
+        if (decimal.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number))
+        {
+            result = ToInt32Saturated(number);
+            return true;
+        }
+
+        // Even more digits than a decimal holds.
+        var span = value.AsSpan().Trim();
+        var negative = span.Length > 0 && span[0] == '-';
+        var digits = span.Length > 0 && span[0] is '-' or '+' ? span.Slice(1) : span;
+
+        if (digits.Length == 0)
+        {
+            return false;
+        }
+
+        foreach (var c in digits)
+        {
+            if (c is < '0' or > '9')
+            {
+                return false;
+            }
+        }
+
+        result = negative ? int.MinValue : int.MaxValue;
+        return true;
+    }
+
+    /// <summary>
     /// Truncates like an <c>(int)</c> cast, or returns false when the value is out of range.
     /// </summary>
     public static bool TryTruncateToInt32(decimal value, out int result)

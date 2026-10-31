@@ -163,7 +163,8 @@ public static class NumberFilters
             return NumberValue.GetScale(value.ToNumberValue(context)) != 0;
         }
 
-        return value.ToStringValue(context).Contains('.');
+        // Like Liquid, a string is a decimal only when it is written like one, e.g. "2.5" but not "2.5x".
+        return StringValue.IsDecimalString(value.ToStringValue(context));
     }
 
     public static ValueTask<FluidValue> Plus(FluidValue input, FilterArguments arguments, TemplateContext context)

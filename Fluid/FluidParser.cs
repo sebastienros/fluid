@@ -127,7 +127,13 @@ public class FluidParser
         var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)));
         Integer.Name = "Integer";
 
-        var Number = Terms.Decimal().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)));
+        // Like Liquid, where integers are unbounded, an integer literal too large for a decimal is still
+        // valid: it is kept as its text, like other numbers beyond a decimal's range.
+        var BigInteger = Terms.Pattern(static c => c is '-' or (>= '0' and <= '9'))
+            .When(static (context, x) => IsBigInteger(x.Span))
+            .Then<Expression>(static x => new LiteralExpression(StringValue.Create(x.ToString())));
+
+        var Number = Terms.Decimal().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))).Or(BigInteger);
         Number.Name = "Number";
 
         // Member expressions
@@ -973,6 +979,27 @@ public class FluidParser
     {
         RegisteredTags[tagName] = parser.AndSkip(TagEnd).Then<Statement>(x => new ParserTagStatement<T>(tagName, x, render));
         RegisteredTags[tagName].Name = tagName;
+    }
+
+    // An integer, with an optional minus sign, with more digits than a decimal holds.
+    private static bool IsBigInteger(ReadOnlySpan<char> value)
+    {
+        var digits = value.Length > 0 && value[0] == '-' ? value.Slice(1) : value;
+
+        if (digits.Length < 29)
+        {
+            return false;
+        }
+
+        foreach (var c in digits)
+        {
+            if (c is < '0' or > '9')
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public void RegisterEmptyTag(string tagName, Func<IFluidOutput, TextEncoder, TemplateContext, ValueTask<Completion>> render)

@@ -149,9 +149,9 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
     }
 
     /// <summary>
-    /// Converts a string to a number like Liquid: a decimal number such as <c>-1.5</c> or <c>.5</c> is parsed as is,
+    /// Converts a string to a number like Liquid: a decimal number such as <c>-1.5</c> is parsed as is,
     /// anything else is read like Ruby's <c>String#to_i</c>, from the leading digits, so <c>"12abc"</c>
-    /// is <c>12</c> and <c>"abc"</c> is <c>0</c>.
+    /// is <c>12</c>, and <c>"abc"</c> and <c>".5"</c> are <c>0</c>.
     /// </summary>
     internal static decimal ParseNumber(string value)
     {
@@ -175,7 +175,12 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
         return ParseLeadingInteger(span);
     }
 
-    // -?\d*\.\d+ (Liquid requires a digit before the point, ".5" is accepted for convenience)
+    /// <summary>
+    /// Whether Liquid converts the string to a decimal number rather than an integer.
+    /// </summary>
+    internal static bool IsDecimalString(string value) => IsDecimalLiteral(value.AsSpan().Trim());
+
+    // Like Liquid's /\A-?\d+\.\d+\z/: a digit is required before the point.
     private static bool IsDecimalLiteral(ReadOnlySpan<char> s)
     {
         var i = 0;
@@ -185,12 +190,13 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
             i++;
         }
 
+        var integerStart = i;
         while (i < s.Length && IsDigit(s[i]))
         {
             i++;
         }
 
-        if (i >= s.Length || s[i] != '.')
+        if (i == integerStart || i >= s.Length || s[i] != '.')
         {
             return false;
         }
