@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using Fluid.Values;
 
 namespace Fluid.Filters;
@@ -108,8 +109,7 @@ public static class ArrayFilters
 
         if (input.Type == FluidValues.String)
         {
-            var value = input.ToStringValue(context);
-            return value.Length == 0 ? StringValue.Empty : StringValue.Create(value[0].ToString());
+            return StringValue.FirstCharacter(input.ToStringValue(context));
         }
 
         return NilValue.Instance;
@@ -142,8 +142,7 @@ public static class ArrayFilters
 
         if (input.Type == FluidValues.String)
         {
-            var value = input.ToStringValue(context);
-            return value.Length == 0 ? StringValue.Empty : StringValue.Create(value[^1].ToString());
+            return StringValue.LastCharacter(input.ToStringValue(context));
         }
 
         return NilValue.Instance;
@@ -293,12 +292,20 @@ public static class ArrayFilters
             }
             else
             {
-                context.EnsureCollectionSize(value.Length);
-                var valueAsArray = value.ToCharArray();
+                // The characters are code points: a surrogate pair stays together.
+                var hasSurrogates = CodePoints.HasSurrogates(value.AsSpan());
+                var count = hasSurrogates ? CodePoints.Count(value) : value.Length;
+                context.EnsureCollectionSize(count);
+                var items = new FluidValue[count];
 
-                Array.Reverse(valueAsArray);
+                for (int i = 0, j = count - 1; i < value.Length; j--)
+                {
+                    var width = hasSurrogates ? CodePoints.Width(value, i) : 1;
+                    items[j] = width == 1 ? StringValue.Create(value[i]) : StringValue.Create(value.Substring(i, width));
+                    i += width;
+                }
 
-                return ArrayValue.Create(valueAsArray.Select(e => StringValue.Create(e.ToString())).ToArray());
+                return ArrayValue.Create(items);
             }
         }
         else

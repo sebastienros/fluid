@@ -73,18 +73,15 @@ public static class StringFilters
             return CreateStringValue(source, input);
         }
 
-        // Like Ruby's String#capitalize: the first character upper case, the rest lower case.
-        var first = char.ToUpper(source[0], context.CultureInfo);
-        var rest = source.Substring(1).ToLower(context.CultureInfo);
-
-        return CreateStringValue(first + rest, input);
+        // Like Ruby's String#capitalize: the first character in title case, the rest in lower case.
+        return CreateStringValue(LiquidCase.Capitalize(source, context.CultureInfo), input);
     }
 
     public static ValueTask<FluidValue> Downcase(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("downcase", expected: 0, arguments);
 
-        return CreateStringValue(input.ToStringValue(context).ToLower(context.CultureInfo), input);
+        return CreateStringValue(LiquidCase.ToLower(input.ToStringValue(context), context.CultureInfo), input);
     }
 
     public static ValueTask<FluidValue> LStrip(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -424,7 +421,12 @@ public static class StringFilters
 
             var sourceString = input.ToStringValue(context);
 
-            var sourceStringLength = sourceString.Length;
+            // Like Liquid, indices and lengths are in code points. They only differ from chars when there
+            // are surrogates before the end of the slice, or anywhere for an index from the end.
+            var hasSurrogates = requestedStartIndex < 0
+                ? CodePoints.HasSurrogates(sourceString.AsSpan())
+                : CodePoints.HasSurrogates(sourceString.AsSpan(0, (int)Math.Min(sourceString.Length, (long)requestedStartIndex + requestedLength)));
+            var sourceStringLength = hasSurrogates ? CodePoints.Count(sourceString) : sourceString.Length;
 
             if (requestedStartIndex < -sourceStringLength)
             {
@@ -435,6 +437,13 @@ public static class StringFilters
             var length = requestedLength > sourceStringLength - startIndex
                 ? sourceStringLength - startIndex
                 : requestedLength;
+
+            if (hasSurrogates)
+            {
+                var charStart = CodePoints.ToCharIndex(sourceString, startIndex);
+                var charEnd = CodePoints.ToCharIndex(sourceString, startIndex + length);
+                return CreateStringValue(sourceString.Substring(charStart, charEnd - charStart), input);
+            }
 
             return CreateStringValue(sourceString.Substring(startIndex, length), input);
         }
@@ -490,12 +499,17 @@ public static class StringFilters
 
         if (separator == "")
         {
-            context.EnsureCollectionSize(stringInput.Length);
-            strings = new string[stringInput.Length];
+            // Like Liquid, a string is split in code points: a surrogate pair stays together.
+            var hasSurrogates = CodePoints.HasSurrogates(stringInput.AsSpan());
+            var count = hasSurrogates ? CodePoints.Count(stringInput) : stringInput.Length;
+            context.EnsureCollectionSize(count);
+            strings = new string[count];
 
-            for (var i = 0; i < stringInput.Length; i++)
+            for (int i = 0, j = 0; i < stringInput.Length; j++)
             {
-                strings[i] = stringInput[i].ToString();
+                var width = hasSurrogates ? CodePoints.Width(stringInput, i) : 1;
+                strings[j] = width == 1 ? stringInput[i].ToString() : stringInput.Substring(i, width);
+                i += width;
             }
         }
         else if (separator == " ")
@@ -706,6 +720,15 @@ public static class StringFilters
             return UnchangedString(input, context);
         }
 
+        // Like Liquid, lengths are in code points. They only differ from chars when there are surrogates
+        // before the cut, so only the start of the string is read.
+        var hasSurrogates = length >= 0 && CodePoints.HasSurrogates(inputStr.AsSpan(0, (int)Math.Min(inputStr.Length, (long)length + 1)));
+
+        if (hasSurrogates && CodePoints.ToCharIndex(inputStr, length) >= inputStr.Length)
+        {
+            return UnchangedString(input, context);
+        }
+
         // If second argument is not provided, use default "..."
         // If second argument is nil (undefined variable), use empty string per Golden Liquid spec
         var secondArg = arguments.At(1);
@@ -723,7 +746,14 @@ public static class StringFilters
             ellipsisStr = secondArg.ToStringValue(context);
         }
 
-        var l = Math.Max(0, length - ellipsisStr.Length);
+        var ellipsisLength = CodePoints.HasSurrogates(ellipsisStr.AsSpan()) ? CodePoints.Count(ellipsisStr) : ellipsisStr.Length;
+        var l = Math.Max(0, length - ellipsisLength);
+
+        if (hasSurrogates)
+        {
+            l = CodePoints.ToCharIndex(inputStr, l);
+        }
+
         context.EnsureOutputSize((long)l + ellipsisStr.Length);
 
 #if NET6_0_OR_GREATER
@@ -832,6 +862,6 @@ public static class StringFilters
     {
         LiquidException.ThrowFilterArgumentsCount("upcase", expected: 0, arguments);
 
-        return CreateStringValue(input.ToStringValue(context).ToUpper(context.CultureInfo), input);
+        return CreateStringValue(LiquidCase.ToUpper(input.ToStringValue(context), context.CultureInfo), input);
     }
 }
