@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -36,7 +37,7 @@ public class FilterErrorTests
     public async Task SortingIncompatibleTypesThrowsLiquidException()
     {
         var context = new TemplateContext();
-        context.SetValue("items", new object[] { 1, new[] { 2 } });
+        context.SetValue("items", new object[] { 1, new Dictionary<string, object>() });
 
         await Assert.ThrowsAsync<LiquidException>(() => _parser.Parse("{{ items | sort }}").RenderAsync(context).AsTask());
     }

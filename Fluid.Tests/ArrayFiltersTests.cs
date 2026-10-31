@@ -1028,7 +1028,7 @@ public class ArrayFiltersTests
     }
 
     [Theory]
-    // Like Liquid, a hash or a scalar is a one-item array, and nil stays nil.
+    // Like Liquid, a hash or a scalar is a one-item array, and nil an empty array.
     [InlineData("{{ h | sort | size }}|{{ h | reverse | size }}|{{ h | sum }}|{{ h | sum: 'n' }}|{{ eh | sort | size }}", "1|1|0|1|1")]
     [InlineData("{{ 1 | sort | size }}|{{ 1 | sort_natural | size }}|{{ 1 | reverse | size }}|{{ 'ab' | sort | size }}", "1|1|1|1")]
     [InlineData("{{ 5 | join }}|{{ 5 | join | size }}|[{{ missing | join }}]|{{ missing | sort | size }}|{{ missing | sum }}", "5|1|[]|0|0")]
@@ -1039,6 +1039,26 @@ public class ArrayFiltersTests
         var context = new TemplateContext();
         context.SetValue("h", new Dictionary<string, object> { ["k"] = "v", ["n"] = 1 });
         context.SetValue("eh", new Dictionary<string, object>());
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+    [Theory]
+    // Like Liquid's InputIterator, nested arrays are flattened, but not ranges.
+    [InlineData("{{ nested | join: ',' }}|{{ nested | join }}|{{ nested | first | join: '-' }}|{{ nested | size }}", "1,2,3|1 2 3|1-2|2")]
+    [InlineData("{{ nested | sort | join: ',' }}|{{ nested | sort_natural | join: ',' }}|{{ nested | reverse | join: ',' }}|{{ nested | uniq | size }}|{{ nested | compact | size }}|{{ nested | sum }}", "1,2,3|1,2,3|3,2,1|3|3|6")]
+    [InlineData("{{ tags | join: ',' }}|{{ ranges | join: ',' }}|{{ ranges | size }}", "x,,y|1..2,3..4|2")]
+    // Like Liquid, nil is an empty array (or an empty string for join).
+    [InlineData("{{ nil | join | concat: a | join: ',' }}|{% assign x = nil | sort %}{{ x | size }}{% assign x = nil | reverse %}{{ x | size }}{% assign x = nil | uniq %}{{ x | size }}{% assign x = nil | sort_natural %}{{ x | size }}", ",1,2|0000")]
+    // Like Liquid, a nil property is no property.
+    [InlineData("{{ a | sum: nil }}|{{ 5 | sum: nil }}|{{ a | sum: missing }}|{{ nested | sum: nil }}", "3|5|3|6")]
+    public async Task ArrayFiltersFlattenNestedArraysLikeLiquid(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("nested", new object[] { new[] { 1, 2 }, new[] { 3 } });
+        context.SetValue("tags", new object[] { new[] { "x" }, new string[0], null, new[] { "y" } });
+        context.SetValue("a", new[] { 1, 2 });
+
+        context.SetValue("ranges", new FluidValue[] { RangeValue.Create(1, 2), RangeValue.Create(3, 4) });
 
         Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
     }
