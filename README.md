@@ -949,7 +949,7 @@ var result = template.Render(context);
 
 ```Liquid
 {{ 1234.56 }}
-{{ "now" | date: "%v" }}
+{{ "now" | date: "%A, %B %-d, %Y" }}
 ```
 
 #### Result
@@ -1141,7 +1141,7 @@ var context = new TemplateContext(options)
 
 > **Important**: The `TimeZone` property is used for **parsing** date strings, not for automatically converting dates during rendering. To convert dates to a specific timezone for display, use the `time_zone` filter.
 
-> Note: The `date` filter conforms to the Ruby date and time formats https://ruby-doc.org/core-3.0.0/Time.html#method-i-strftime. To use the .NET standard date formats, use the `format_date` filter.
+> Note: The `date` filter conforms to the Ruby date and time formats https://docs.ruby-lang.org/en/master/strftime_formatting_rdoc.html, including flags, widths and composite formats like `%c` (`%a %b %e %H:%M:%S %Y`), `%x` and `%X`. Day and month names and AM/PM come from the culture. `%Z` is `UTC` for UTC, and the offset for other time zones since .NET has no zone abbreviations. A format that ends inside a conversion (`%`, `%-`) is a template error. To use the .NET standard date formats, use the `format_date` filter.
 
 #### Source
 
@@ -1151,12 +1151,12 @@ var result = template.Render(context);
 ```
 
 ```Liquid
-{{ '1970-01-01 00:00:00' | date: '%c' }}
+{{ '1970-01-01 00:00:00' | date: '%c %z' }}
 ```
 
 #### Result
 ```html
-Wed Dec 31 19:00:00 -08:00 1969
+Thu Jan  1 00:00:00 1970 -0800
 ```
 
 ### Converting time zones
