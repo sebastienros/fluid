@@ -588,7 +588,11 @@ public class FluidParser
                    .And(OptionalComments)
                    .And(ZeroOrMany(OneOf(WhenBlock, ElseBlock).AndSkip(OptionalComments)))
                    .AndSkip(CreateTag("endcase").ElseError($"'{{% endcase %}}' was expected"))
-                   .Then<Statement>(x => new CaseStatement(x.Item1, x.Item3, x.Item2.All(static s => s.IsWhitespaceOrCommentOnly)))
+                   .Then<Statement>(x => new CaseStatement(
+                       // Like Liquid, blank and empty are only special in conditions: as the value of a case they are ''.
+                       x.Item1 == BlankKeyword || x.Item1 == EmptyKeyword ? new LiteralExpression(StringValue.Empty) : x.Item1,
+                       x.Item3,
+                       x.Item2.All(static s => s.IsWhitespaceOrCommentOnly)))
                    .ElseError("Invalid 'case' tag");
         CaseTag.Name = "CaseTag";
 

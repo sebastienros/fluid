@@ -47,41 +47,10 @@ public sealed class RangeValue : FluidValue, IFluidArray
             return true;
         }
 
-        if (other is RangeValue range)
-        {
-            return (Start == range.Start && End == range.End) || (Count == 0 && range.Count == 0);
-        }
-
-        // Like Liquid, where a range doesn't respond to empty?, a range is never equal to empty, blank or nil.
-        if (other.Type is FluidValues.Empty or FluidValues.Blank)
-        {
-            return false;
-        }
-
-        if (other.IsNil())
-        {
-            return false;
-        }
-
-        if (other is IFluidArray items && other.Type == FluidValues.Array)
-        {
-            if (Count != items.Count)
-            {
-                return false;
-            }
-
-            for (var i = 0; i < Count; i++)
-            {
-                if (!this[i].Equals(items[i] ?? NilValue.Instance))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        return false;
+        // Like Ruby's Range#==, a range is only equal to a range with the same bounds: not to an array with
+        // the same items, and not to another empty range. Like Liquid, where a range doesn't respond to empty?,
+        // a range is never equal to empty, blank or nil either.
+        return other is RangeValue range && Start == range.Start && End == range.End;
     }
 
     public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
@@ -162,14 +131,6 @@ public sealed class RangeValue : FluidValue, IFluidArray
 
     public override int GetHashCode()
     {
-        // The same as an array with the same items, since they are equal.
-        var hc = new HashCode();
-
-        for (var i = 0; i < Count; i++)
-        {
-            hc.Add(this[i]);
-        }
-
-        return hc.ToHashCode();
+        return HashCode.Combine(Start, End);
     }
 }
