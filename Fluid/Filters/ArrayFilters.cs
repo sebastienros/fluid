@@ -281,6 +281,15 @@ public static class ArrayFilters
     }
 
     /// <summary>
+    /// Reads the property of an item like Liquid's <c>item[property]</c>: on a hash, size, first and last are keys
+    /// like any other, missing ones are nil.
+    /// </summary>
+    internal static ValueTask<FluidValue> GetPropertyAsync(FluidValue item, string property, TemplateContext context)
+    {
+        return item is DictionaryValue dictionary ? new ValueTask<FluidValue>(dictionary.GetKey(property)) : item.GetValueAsync(property, context);
+    }
+
+    /// <summary>
     /// Enumerates an array like Liquid's <c>InputIterator</c>, which flattens nested arrays: their items are
     /// enumerated instead. Ranges, hashes and any other value are items.
     /// </summary>
@@ -397,7 +406,7 @@ public static class ArrayFilters
 
         await foreach (var item in input.EnumerateAsync(context))
         {
-            var itemValue = await item.GetValueAsync(memberName, context);
+            var itemValue = await GetPropertyAsync(item, memberName, context);
 
             var match = false;
 
@@ -460,7 +469,7 @@ public static class ArrayFilters
         if (input.Type != FluidValues.Array)
         {
             // Treat object as single-element array
-            var itemValue = await input.GetValueAsync(member, context);
+            var itemValue = await GetPropertyAsync(input, member, context);
 
             if (hasTargetValue)
             {
@@ -513,7 +522,7 @@ public static class ArrayFilters
             }
             else
             {
-                var itemValue = await item.GetValueAsync(member, context);
+                var itemValue = await GetPropertyAsync(item, member, context);
 
                 if (hasTargetValue)
                 {
@@ -574,7 +583,7 @@ public static class ArrayFilters
         if (input.Type != FluidValues.Array)
         {
             // Treat object as single-element array
-            var itemValue = await input.GetValueAsync(member, context);
+            var itemValue = await GetPropertyAsync(input, member, context);
 
             if (hasTargetValue)
             {
@@ -629,7 +638,7 @@ public static class ArrayFilters
             }
             else
             {
-                var itemValue = await item.GetValueAsync(member, context);
+                var itemValue = await GetPropertyAsync(item, member, context);
 
                 if (hasTargetValue)
                 {
@@ -693,7 +702,7 @@ public static class ArrayFilters
                         else if (item.Type is FluidValues.Dictionary or FluidValues.Object)
                         {
                             // Like Liquid, a hash matches when the property is truthy.
-                            if ((await item.GetValueAsync(searchStr, context)).ToBooleanValue(context))
+                            if ((await GetPropertyAsync(item, searchStr, context)).ToBooleanValue(context))
                             {
                                 return BooleanValue.True;
                             }
@@ -727,7 +736,7 @@ public static class ArrayFilters
             else if (input.Type == FluidValues.Object || input.Type == FluidValues.Dictionary)
             {
                 var key = firstArg.ToStringValue(context);
-                var value = await input.GetValueAsync(key, context);
+                var value = await GetPropertyAsync(input, key, context);
                 return value.IsNil() ? BooleanValue.False : BooleanValue.True;
             }
             // For strings: check if substring exists
@@ -757,7 +766,7 @@ public static class ArrayFilters
                         return NilValue.Instance;
                     }
 
-                    var itemValue = await item.GetValueAsync(propertyName, context);
+                    var itemValue = await GetPropertyAsync(item, propertyName, context);
 
                     if (targetValue.Equals(itemValue))
                     {
@@ -769,7 +778,7 @@ public static class ArrayFilters
             // For objects/hashes: check if key exists
             else if (input.Type == FluidValues.Object || input.Type == FluidValues.Dictionary)
             {
-                var value = await input.GetValueAsync(propertyName, context);
+                var value = await GetPropertyAsync(input, propertyName, context);
 
                 // When explicitly checking for nil with a hash
                 // Return false if key has nil value, true if key exists with non-nil value
@@ -929,7 +938,7 @@ public static class ArrayFilters
         }
         else
         {
-            itemValue = await item.GetValueAsync(memberStr, context);
+            itemValue = await GetPropertyAsync(item, memberStr, context);
         }
 
         bool reject;
@@ -984,7 +993,7 @@ public static class ArrayFilters
 
             await foreach (var item in EnumerateFlattenedAsync(input, context))
             {
-                values.Add(new KeyValuePair<FluidValue, FluidValue>(item, await item.GetValueAsync(member, context)));
+                values.Add(new KeyValuePair<FluidValue, FluidValue>(item, await GetPropertyAsync(item, member, context)));
             }
 
             // Sort with case-sensitive comparison and numbers compared as numbers, placing items with missing keys at the end
@@ -1037,7 +1046,7 @@ public static class ArrayFilters
 
             await foreach (var item in EnumerateFlattenedAsync(input, context))
             {
-                values.Add(new KeyValuePair<FluidValue, FluidValue>(item, await item.GetValueAsync(member, context)));
+                values.Add(new KeyValuePair<FluidValue, FluidValue>(item, await GetPropertyAsync(item, member, context)));
             }
 
             // Sort with case-insensitive comparison, placing items with missing keys at the end
@@ -1093,7 +1102,7 @@ public static class ArrayFilters
 
         await foreach (var item in EnumerateFlattenedAsync(input, context))
         {
-            var value = await item.GetValueAsync(property, context);
+            var value = await GetPropertyAsync(item, property, context);
             if (seen.Add(value))
             {
                 result.Add(item);
@@ -1136,7 +1145,7 @@ public static class ArrayFilters
                 case ObjectValue:
                 case DictionaryValue:
                     {
-                        var value = await item.GetValueAsync(member.ToStringValue(context), context);
+                        var value = await GetPropertyAsync(item, member.ToStringValue(context), context);
                         sumList.Add(value.ToNumberValue(context));
                         break;
                     }

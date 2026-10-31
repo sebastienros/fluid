@@ -1063,4 +1063,23 @@ public class ArrayFiltersTests
 
         Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
     }
+
+    [Theory]
+    // Like Liquid (item[property]), the properties of hashes are keys: size, first and last are only keys too.
+    [InlineData("{{ products | sum: 'size' }}|{{ products | where: 'size', 2 | size }}|{{ products | sort: 'size' | map: 'title' | join }}|{{ products | sort_natural: 'first' | map: 'title' | join }}", "0|0|b a c|b a c")]
+    [InlineData("{{ products | find: 'size', 2 | map: 'title' }}|{{ products | find_index: 'size', 2 }}|{{ products | has: 'size', 2 }}|{{ products | reject: 'size', 2 | size }}|{{ products | uniq: 'size' | size }}|{{ products | compact: 'size' | size }}|{{ products | where: 'first' | size }}", "||false|3|1|0|0")]
+    [InlineData("{{ products | where: 'size' | size }}|{{ products | sum: 'price' }}|{{ product | has: 'last' }}|{{ product | find: 'first' }}", "0|5|false|")]
+    public async Task ArrayFiltersReadHashKeys(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("products", new[]
+        {
+            new Dictionary<string, object> { ["title"] = "b", ["price"] = 2 },
+            new Dictionary<string, object> { ["title"] = "a", ["price"] = 3 },
+            new Dictionary<string, object> { ["title"] = "c" },
+        });
+        context.SetValue("product", new Dictionary<string, object> { ["title"] = "b", ["price"] = 2 });
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
 }

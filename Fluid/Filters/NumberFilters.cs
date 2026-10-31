@@ -185,7 +185,8 @@ public static class NumberFilters
     {
         LiquidException.ThrowFilterArgumentsCount("round", min: 0, max: 1, arguments);
 
-        var digits = NumberConversions.ToInt32Saturated(arguments.At(0).Or(NumberValue.Zero).ToNumberValue(context));
+        // Like Ruby's to_int, a precision that isn't an integer is truncated: round: 1.5 is round: 1.
+        var digits = NumberConversions.ToInt32Saturated(decimal.Truncate(arguments.At(0).Or(NumberValue.Zero).ToNumberValue(context)));
 
         var value = input.ToNumberValue(context);
 
@@ -220,7 +221,17 @@ public static class NumberFilters
 
         try
         {
-            return NumberValue.Create(input.ToNumberValue(context) * first.ToNumberValue(context));
+            var value = input.ToNumberValue(context);
+            var multiplier = first.ToNumberValue(context);
+            var result = value * multiplier;
+
+            // A decimal product of zero can lose its scale, but like in Liquid, a product with a float is a float.
+            if (result == 0 && NumberValue.GetScale(result) == 0 && (NumberValue.GetScale(value) != 0 || NumberValue.GetScale(multiplier) != 0))
+            {
+                result = 0.0m;
+            }
+
+            return NumberValue.Create(result);
         }
         catch (OverflowException e)
         {
