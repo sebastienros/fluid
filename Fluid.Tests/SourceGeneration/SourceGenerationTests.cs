@@ -359,6 +359,7 @@ public class SourceGenerationTests
     [Theory]
     // Like Liquid, blank and empty compare specially in conditions, and a range only equals a range.
     [InlineData("{% if '' contains blank %}a{% endif %}{% if a contains empty %}b{% endif %}{% if blank == blank %}c{% endif %}{% if empty != empty %}d{% endif %}{% case blank %}{% when '' %}e{% endcase %}", "ade")]
+    [InlineData("{% if blank contains blank %}a{% endif %}{% if empty contains blank %}b{% endif %}{% assign x = empty %}{% if x contains blank %}c{% endif %}", "c")]
     [InlineData("{% if (1..-3) == (5..3) %}a{% endif %}{% if (1..2) == (1..2) %}b{% endif %}{% assign s = (1..2) | sort %}{% if s == (1..2) %}c{% endif %}", "b")]
     public async Task GeneratedComparisons_MatchLiquid(string liquid, string expected)
     {
