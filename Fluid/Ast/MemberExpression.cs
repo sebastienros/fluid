@@ -191,25 +191,11 @@ public sealed class MemberExpression : Expression, ISynchronousSourceable
             context.WriteLine($"var key = (await {keyExpr}({context.ContextName})).ToStringValue({context.ContextName});");
             context.WriteLine($"var value = {context.ContextName}.ShadowWithCounter(key, {context.ContextName}.LocalScope.GetValue(key));");
             context.WriteLine("var start = 1;");
-            context.WriteLine("if (value.IsNil())");
+            context.WriteLine($"if (value.IsNil() && !{context.ContextName}.Model.IsNil())");
             context.WriteLine("{");
             using (context.Indent())
             {
-                context.WriteLine($"var incDecValue = {context.ContextName}.LocalScope.GetValue({SourceGenerationContext.ToCSharpStringLiteral(IncrementStatement.Prefix)} + key);");
-                context.WriteLine("if (!incDecValue.IsNil())");
-                context.WriteLine("{");
-                using (context.Indent())
-                {
-                    context.WriteLine("value = incDecValue;");
-                }
-                context.WriteLine("}");
-                context.WriteLine($"else if (!{context.ContextName}.Model.IsNil())");
-                context.WriteLine("{");
-                using (context.Indent())
-                {
-                    context.WriteLine($"value = await {context.ContextName}.Model.GetValueAsync(key, {context.ContextName});");
-                }
-                context.WriteLine("}");
+                context.WriteLine($"value = await {context.ContextName}.Model.GetValueAsync(key, {context.ContextName});");
             }
             context.WriteLine("}");
 
@@ -232,15 +218,7 @@ public sealed class MemberExpression : Expression, ISynchronousSourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine($"var incDecValue = {context.ContextName}.LocalScope.GetValue({SourceGenerationContext.ToCSharpStringLiteral(IncrementStatement.Prefix + initial.Identifier)});");
-            context.WriteLine("if (!incDecValue.IsNil())");
-            context.WriteLine("{");
-            using (context.Indent())
-            {
-                context.WriteLine("value = incDecValue;");
-            }
-            context.WriteLine("}");
-            context.WriteLine($"else if ({context.ContextName}.Model.IsNil())");
+            context.WriteLine($"if ({context.ContextName}.Model.IsNil())");
             context.WriteLine("{");
             using (context.Indent())
             {

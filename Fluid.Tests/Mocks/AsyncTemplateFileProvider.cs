@@ -16,6 +16,12 @@ public sealed class AsyncTemplateFileProvider : ITemplateFileProvider
     private long _version;
 
     public List<string> RequestedPaths { get; } = [];
+
+    /// <summary>
+    /// When set, file lookups wait for it, so that a test can observe a render suspended on the provider
+    /// without racing the thread pool.
+    /// </summary>
+    public Task Gate { get; set; }
     public CancellationToken LastCancellationToken { get; private set; }
 
     public AsyncTemplateFileProvider Add(string path, string content)
@@ -40,6 +46,11 @@ public sealed class AsyncTemplateFileProvider : ITemplateFileProvider
         TemplateContext context,
         CancellationToken cancellationToken)
     {
+        if (Gate != null)
+        {
+            await Gate;
+        }
+
         await Task.Yield();
         LastCancellationToken = cancellationToken;
         cancellationToken.ThrowIfCancellationRequested();

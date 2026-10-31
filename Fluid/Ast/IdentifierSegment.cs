@@ -10,10 +10,6 @@ public sealed class IdentifierSegment : MemberSegment
     // built directly by user code can be dotted, and then resolution has to walk the parts.
     private readonly bool _identifierHasDot;
 
-    // Only needed when the identifier isn't found in scope, which is the uncommon case, so it is
-    // built on demand rather than for every segment of every parsed template.
-    private string _incrementIdentifier;
-
     // Per-call-site accessor cache. A given `a.b` in a template overwhelmingly resolves against the
     // same runtime type on every evaluation, so remembering the last resolution turns the member
     // lookup into a few reference comparisons instead of a dictionary probe with string hashing.
@@ -43,18 +39,11 @@ public sealed class IdentifierSegment : MemberSegment
 
     public override ValueTask<(FluidValue Value, bool UseModelFallback)> ResolveFromScopeAsync(TemplateContext context)
     {
-        // Look up the identifier in scope
+        // Look up the identifier in scope, or the increment/decrement counter with this name
         var value = context.ShadowWithCounter(Identifier, context.LocalScope.GetValue(Identifier));
 
         if (value.IsNil())
         {
-            // Check if there's an increment/decrement counter with this name
-            var incDecValue = context.LocalScope.GetValue(_incrementIdentifier ??= IncrementStatement.Prefix + Identifier);
-            if (!incDecValue.IsNil())
-            {
-                return new ValueTask<(FluidValue, bool)>((incDecValue, false));
-            }
-
             // Signal that model fallback should be used
             return new ValueTask<(FluidValue, bool)>((value, true));
         }

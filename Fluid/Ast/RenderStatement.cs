@@ -160,17 +160,20 @@ public sealed class RenderStatement : Statement, ISourceable
         }
         else if (For != null)
         {
-            ApplyAssignStatements(assignedValues, context);
             var forloop = ForLoopValue.Create();
             forloop.IsRenderLoop = true;
             var length = forloop.Length = list.Count;
-
-            context.SetValue("forloop", forloop);
 
             for (var i = 0; i < length; i++)
             {
                 context.IncrementSteps();
 
+                // Like Liquid, each item is rendered in its own isolated context: the variables and
+                // counters of the previous items are gone.
+                using var itemScope = context.EnterScope(ScopeBehavior.Isolated);
+
+                ApplyAssignStatements(assignedValues, context);
+                context.SetValue("forloop", forloop);
                 context.SetValue(Alias ?? identifier, list[i]);
 
                 forloop.Index = i + 1;
@@ -181,9 +184,6 @@ public sealed class RenderStatement : Statement, ISourceable
                 forloop.Last = i == length - 1;
 
                 await template.RenderAsync(output, encoder, context);
-
-                // A nested loop can replace this name.
-                context.SetValue("forloop", forloop);
             }
         }
         else
@@ -271,13 +271,12 @@ public sealed class RenderStatement : Statement, ISourceable
         }
         else if (For != null)
         {
-            EmitApplyAssignStatements();
-
             // Like the interpreter, a value that isn't a collection is rendered once.
             context.WriteLine("if (list == null)");
             context.WriteLine("{");
             using (context.Indent())
             {
+                EmitApplyAssignStatements();
                 var name = string.IsNullOrEmpty(Alias) ? "identifier" : SourceGenerationContext.ToCSharpStringLiteral(Alias);
                 context.WriteLine($"{context.ContextName}.SetValue({name}, evaluatedFor);");
                 context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
@@ -295,7 +294,6 @@ public sealed class RenderStatement : Statement, ISourceable
                 context.WriteLine("var forloop = ForLoopValue.Create();");
                 context.WriteLine("forloop.IsRenderLoop = true;");
                 context.WriteLine("forloop.Length = length;");
-                context.WriteLine($"{context.ContextName}.SetValue(\"forloop\", forloop);");
             }
 
             context.WriteLine("for (var i = 0; i < length; i++)");
@@ -303,6 +301,14 @@ public sealed class RenderStatement : Statement, ISourceable
             using (context.Indent())
             {
                 context.WriteLine($"{context.ContextName}.IncrementSteps();");
+                context.WriteLine($"using var itemScope = {context.ContextName}.EnterScope(ScopeBehavior.Isolated);");
+                EmitApplyAssignStatements();
+
+                if (usesForLoop)
+                {
+                    context.WriteLine($"{context.ContextName}.SetValue(\"forloop\", forloop);");
+                }
+
                 context.WriteLine("var item = list[i];");
 
                 if (!string.IsNullOrEmpty(Alias))
@@ -325,11 +331,6 @@ public sealed class RenderStatement : Statement, ISourceable
                 }
 
                 context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-
-                if (usesForLoop)
-                {
-                    context.WriteLine($"{context.ContextName}.SetValue(\"forloop\", forloop);");
-                }
             }
             context.WriteLine("}");
         }

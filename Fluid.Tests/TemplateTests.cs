@@ -1604,11 +1604,15 @@ after
     [InlineData("{% assign z = 10 %}{% increment z %}{{ z }}|{% increment c %}{{ c }}", "010|01")]
     [InlineData("{% increment i %}{% for i in (1..2) %}{{ i }}{% endfor %}{{ i }}", "0121")]
     [InlineData("{{ i }}{% capture i %}x{% endcapture %}{% increment i %}{{ i }}", "50x")]
+    // A variable of the template hides a counter even when it is nil.
+    [InlineData("{% increment i %}{% assign i = nil %}[{{ i }}]|{% decrement j %}{% assign j = undefined %}[{{ j }}]", "0[]|-1[]")]
+    [InlineData("{% increment k %}{% for k in items %}[{{ k }}]{% endfor %}{{ k }}", "0[1][][2]1")]
     public async Task CountersShadowModelValues(string source, string expected)
     {
         var context = new TemplateContext();
         context.SetValue("i", 5);
         context.SetValue("z", 0);
+        context.SetValue("items", new object[] { 1, null, 2 });
 
         Assert.Equal(expected, await _parser.Parse(source).RenderAsync(context));
     }
