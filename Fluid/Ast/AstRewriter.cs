@@ -331,7 +331,7 @@ public class AstRewriter : AstVisitor
 
         if (hasChanges)
         {
-            return new CaseStatement(newExpression, newBlocks.ToArray());
+            return new CaseStatement(newExpression, newBlocks.ToArray(), caseStatement.LeadingTextIsBlank);
         }
 
         return caseStatement;

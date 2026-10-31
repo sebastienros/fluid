@@ -507,7 +507,8 @@ public class FluidParser
         var RawTag = _tagEndIgnoringMarkup.SkipAnd(AnyCharBefore(CreateTag("endraw"), canBeEmpty: true, consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
         RawTag.Name = "RawTag";
 
-        var AssignTag = VariableSignature.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter)).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
+        // Like Liquid, an assign without a value assigns nil.
+        var AssignTag = VariableSignature.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression.Or(Always<Expression>(NilKeyword).WhenFollowedBy(TagEnd)).ElseError(ErrorMessages.LogicalExpressionStartsFilter)).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
         AssignTag.Name = "AssignTag";
 
         // Lenient else tag: matches {% else %} or {% else anything %} (extra content is ignored)
@@ -575,12 +576,13 @@ public class FluidParser
         var ElseBlock = CreateTag("else").SkipAnd(AnyTagsList)
             .Then<CaseBlock>(x => new ElseBlock(x));
 
+        // Like Liquid, the text before the first when is never rendered, but it can make the tag non-blank.
         var CaseTag = Primary
                    .AndSkip(TagEnd)
-                   .AndSkip(OptionalComments)
+                   .And(OptionalComments)
                    .And(ZeroOrMany(OneOf(WhenBlock, ElseBlock).AndSkip(OptionalComments)))
                    .AndSkip(CreateTag("endcase").ElseError($"'{{% endcase %}}' was expected"))
-                   .Then<Statement>(x => new CaseStatement(x.Item1, x.Item2))
+                   .Then<Statement>(x => new CaseStatement(x.Item1, x.Item3, x.Item2.All(static s => s.IsWhitespaceOrCommentOnly)))
                    .ElseError("Invalid 'case' tag");
         CaseTag.Name = "CaseTag";
 
@@ -598,6 +600,11 @@ public class FluidParser
             TagEnd.Then<IReadOnlyList<T>>(static _ => []).Or(
                 ZeroOrMany(Not(TagEnd).SkipAnd(attributes.Or(IgnoredLoopMarkup.Then(static _ => default(T))))).AndSkip(TagEnd));
 
+        // Like Shopify's lexer, a value starting with digits is a number even when a word follows it,
+        // so that "offset:1limit:2" reads both attributes, where an identifier could start with a digit.
+        // Shopify reads the attributes of a tablerow with a regular expression, which doesn't separate them.
+        var LoopAttributeValue = Number.Or(Primary);
+
         // Like in Shopify, "reversed" is only read right after the collection, even when it starts a longer word ("reversedx").
         var Reversed = Always(true).WhenFollowedBy(Terms.Text("reversed")).Else(false);
 
@@ -606,8 +613,8 @@ public class FluidParser
                         .And(Primary)
                         .And(Reversed)
                         .And(LoopAttributes(OneOf(
-                            Word("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsLimit = true, Value = x }),
-                            Word("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
+                            Word("limit").SkipAnd(Colon).SkipAnd(LoopAttributeValue).Then(x => new ForModifier { IsLimit = true, Value = x }),
+                            Word("offset").SkipAnd(Colon).SkipAnd(LoopAttributeValue).Then(x => new ForModifier { IsOffset = true, Value = x })
                             )))
                         .And(AnyTagsList)
                         .And(TrackStatement(

@@ -477,4 +477,18 @@ public class ForStatementTests
     {
         Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
     }
+
+    [Theory]
+    // Like Liquid, a number ends where a word starts, so attributes don't need a space between them.
+    [InlineData("{% for x in (1..3) offset:1limit:1 %}{{ x }}{% endfor %}", "2")]
+    [InlineData("{% for x in (1..3) limit:1offset:1 %}{{ x }}{% endfor %}", "2")]
+    [InlineData("{% for x in (1..3) limit: 2offset: 1 %}{{ x }}{% endfor %}", "23")]
+    [InlineData("{% for x in (1..3) limit:2offset:u %}{{ x }}{% endfor %}", "12")]
+    [InlineData("{% for x in (1..3) limit: -1 %}{{ x }}{% endfor %}|{% for x in (1..3) limit: x %}{{ x }}{% endfor %}", "|123")]
+    // Like Liquid, tablerow reads the glued attributes as a single value.
+    [InlineData("{% tablerow x in (1..3) cols:1limit:2 %}{{ x }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">1</td><td class=\"col2\">2</td><td class=\"col3\">3</td></tr>\n")]
+    public async Task GluedLoopAttributes(string source, string expected)
+    {
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
+    }
 }

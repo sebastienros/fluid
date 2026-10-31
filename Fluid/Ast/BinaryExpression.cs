@@ -43,6 +43,53 @@ public abstract class BinaryExpression : Expression
         return Evaluate(leftValue, rightValue, context);
     }
 
+    /// <summary>
+    /// Evaluates the left operand, and the right one only when the left one doesn't decide the result,
+    /// like Liquid's <c>and</c> and <c>or</c>.
+    /// </summary>
+    /// <param name="context">The template context.</param>
+    /// <param name="decidingValue">The truthiness of the left operand that decides the result.</param>
+    private protected ValueTask<FluidValue> EvaluateShortCircuitAsync(TemplateContext context, bool decidingValue)
+    {
+        var leftTask = Left.EvaluateAsync(context);
+
+        if (!leftTask.IsCompletedSuccessfully)
+        {
+            return AwaitedLeft(leftTask, context, decidingValue);
+        }
+
+        return EvaluateRight(leftTask.Result, context, decidingValue);
+    }
+
+    private ValueTask<FluidValue> EvaluateRight(FluidValue leftValue, TemplateContext context, bool decidingValue)
+    {
+        if (leftValue.ToBooleanValue(context) == decidingValue)
+        {
+            return BinaryExpressionFluidValue.Create(leftValue, decidingValue);
+        }
+
+        var rightTask = Right.EvaluateAsync(context);
+
+        if (rightTask.IsCompletedSuccessfully)
+        {
+            return Evaluate(leftValue, rightTask.Result, context);
+        }
+
+        return AwaitedRight(leftValue, rightTask, context);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private async ValueTask<FluidValue> AwaitedLeft(ValueTask<FluidValue> leftTask, TemplateContext context, bool decidingValue)
+    {
+        return await EvaluateRight(await leftTask, context, decidingValue);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private async ValueTask<FluidValue> AwaitedRight(FluidValue leftValue, ValueTask<FluidValue> rightTask, TemplateContext context)
+    {
+        return Evaluate(leftValue, await rightTask, context);
+    }
+
     internal virtual FluidValue Evaluate(FluidValue leftValue, FluidValue rightValue, TemplateContext context)
         => Evaluate(leftValue, rightValue);
 

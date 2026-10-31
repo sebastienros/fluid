@@ -90,15 +90,12 @@ public sealed class TableRowStatement : TagStatement
             return Completion.Normal;
         }
 
-        // Determine number of columns (defaults to total items if not specified)
+        // Determine number of columns (defaults to total items if not specified). Like Liquid, cols of
+        // zero or less is kept: no column is ever the last one, so all the items are in one row.
         var cols = count;
         if (Cols is not null)
         {
             cols = await EvaluateIntegerArgumentAsync("cols", Cols, context);
-            if (cols <= 0)
-            {
-                cols = count;
-            }
         }
 
         using var scope = context.EnterScope(ScopeBehavior.WriteThrough);

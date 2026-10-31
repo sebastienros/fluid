@@ -327,4 +327,14 @@ public class TableRowStatementTests
 
         Assert.Equal(expected, await _parser.Parse(source).RenderAsync(context));
     }
+
+    [Theory]
+    // Like Liquid, with cols of zero or less no column is the last one, and all the items are in one row.
+    [InlineData("{% tablerow i in (1..3) cols: 0 %}{{ tablerowloop.col_last }}{{ tablerowloop.col }}{{ tablerowloop.row }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">false11</td><td class=\"col2\">false21</td><td class=\"col3\">false31</td></tr>\n")]
+    [InlineData("{% tablerow i in (1..2) cols: missing %}{{ tablerowloop.col_last }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">false</td><td class=\"col2\">false</td></tr>\n")]
+    [InlineData("{% tablerow i in (1..2) %}{{ tablerowloop.col_last }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">false</td><td class=\"col2\">true</td></tr>\n")]
+    public async Task ColLastWithoutColumns(string source, string expected)
+    {
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(new TemplateContext()));
+    }
 }

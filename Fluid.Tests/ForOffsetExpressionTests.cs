@@ -39,9 +39,10 @@ public class ForOffsetExpressionTests
     // Checked against Shopify Liquid: an offset past the end moves the continue cursor there.
     [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 5 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "1|E|")]
     [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 3 limit: 2 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "1|E|")]
-    // A limit of zero or less leaves it where it was.
-    [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 2 limit: 0 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "1|E|23")]
-    [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items limit: -1 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "1|E|23")]
+    // Like Shopify/liquid (collection_segment), a limit of zero or less moves it to the offset too.
+    [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 2 limit: 0 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "1|E|3")]
+    [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items limit: -1 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "1|E|123")]
+    [InlineData("{% for i in items limit: 1 offset: 1 %}{% endfor %}{% for i in items limit: 0 offset: 0 %}{% endfor %}{% for i in items offset: continue %}{{ i }}{% endfor %}", "123")]
     public async Task EmptySliceUpdatesContinueCursor(string source, string expected)
     {
         Assert.Equal(expected, await RenderAsync(source));

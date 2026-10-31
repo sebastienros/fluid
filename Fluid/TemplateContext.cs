@@ -1,6 +1,8 @@
+using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using Fluid.Ast;
 using Fluid.Values;
 
 #nullable enable
@@ -387,8 +389,54 @@ public class TemplateContext
     /// <returns></returns>
     public TemplateContext SetValue(string name, FluidValue value)
     {
+        if (!_hasCounters && name.Length > 0 && name[0] == '$' && name.StartsWith(IncrementStatement.Prefix, StringComparison.Ordinal))
+        {
+            _hasCounters = true;
+        }
+
         _localScope.SetValue(name, value);
         return this;
+    }
+
+    // Whether an increment or decrement counter was set, so that reading a variable only checks
+    // whether a counter shadows it once there is one.
+    private bool _hasCounters;
+
+    /// <summary>
+    /// Returns the increment or decrement counter named like a variable when the variable comes from the
+    /// model (the values set before rendering or the global values), and the variable otherwise.
+    /// </summary>
+    /// <remarks>
+    /// Like Liquid, where counters live in the template's environment: they are read before the data
+    /// passed to the template, but after the template's own variables.
+    /// </remarks>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public FluidValue ShadowWithCounter(string name, FluidValue value)
+    {
+        // Inlined at every variable lookup: only a field check until a counter is set.
+        return _hasCounters ? ShadowWithCounterSlow(name, value) : value;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private FluidValue ShadowWithCounterSlow(string name, FluidValue value)
+    {
+        if (value.IsNil())
+        {
+            return value;
+        }
+
+        // A variable of the template, assigned in a scope under the root one, isn't shadowed.
+        for (var scope = _localScope; scope != null && !ReferenceEquals(scope, RootScope); scope = scope.Parent)
+        {
+            if (scope.TryGetOwnValue(name, out _))
+            {
+                return value;
+            }
+        }
+
+        var counter = _localScope.GetValue(IncrementStatement.Prefix + name);
+        return counter.IsNil() ? value : counter;
     }
 }
 

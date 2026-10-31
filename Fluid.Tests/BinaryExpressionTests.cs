@@ -217,7 +217,10 @@ public class BinaryExpressionTests
     [InlineData("{% if (5..3) == nil %}y{% else %}n{% endif %}", "n")]
     [InlineData("{% case e %}{% when nil %}y{% else %}n{% endcase %}", "n")]
     [InlineData("{% if e == empty and e == blank and eh == empty and eh == blank %}y{% else %}n{% endif %}", "y")]
-    [InlineData("{% if (5..3) == empty %}y{% else %}n{% endif %}", "y")]
+    // Like Liquid, a range never responds to empty? or blank?.
+    [InlineData("{% if (5..3) == empty %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if (5..3) == blank or empty == (5..3) %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% case (5..3) %}{% when empty %}y{% else %}n{% endcase %}{{ (5..3) | default: 'D' }}", "n5..3")]
     [InlineData("{% if nil == nil and missing == nil %}y{% else %}n{% endif %}", "y")]
     public async Task ComparesLikeLiquid(string source, string expected)
     {
@@ -240,6 +243,27 @@ public class BinaryExpressionTests
     {
         var exception = await Assert.ThrowsAsync<LiquidException>(() => _parser.Parse(source).RenderAsync(new TemplateContext()).AsTask());
         Assert.Equal(message, exception.Message);
+    }
+
+    [Theory]
+    // Like Liquid, the right operand isn't evaluated when the left one decides the result.
+    [InlineData("{% if true or 1 < 'a' %}y{% else %}n{% endif %}", "y")]
+    [InlineData("{% if false and 1 < 'a' %}y{% else %}n{% endif %}", "n")]
+    [InlineData("{% if true or false and 1 < 'a' %}y{% else %}n{% endif %}", "y")]
+    [InlineData("{% if false or true or 1 < 'a' %}y{% else %}n{% endif %}", "y")]
+    [InlineData("{% unless true or 1 < 'a' %}y{% else %}n{% endunless %}", "n")]
+    [InlineData("{% if false or true and true %}y{% else %}n{% endif %}", "y")]
+    [InlineData("{% if true and false or true %}y{% else %}n{% endif %}", "y")]
+    public async Task AndOrShortCircuit(string source, string expected)
+    {
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(new TemplateContext()));
+    }
+
+    [Fact]
+    public async Task AndOrEvaluateTheLeftOperandFirst()
+    {
+        var exception = await Assert.ThrowsAsync<LiquidException>(() => _parser.Parse("{% if 1 < 'a' or true %}{% endif %}").RenderAsync(new TemplateContext()).AsTask());
+        Assert.Equal("comparison of Integer with String failed", exception.Message);
     }
 
     [Theory]

@@ -23,7 +23,8 @@ public sealed class BlankValue : FluidValue
         return other.Type switch
         {
             FluidValues.String => other is StringValue s ? string.IsNullOrWhiteSpace(s.Value) : other.Equals(this),
-            FluidValues.Array => other is IFluidArray array ? array.Count == 0 : other.Equals(this),
+            // Like Liquid, a range is never blank.
+            FluidValues.Array => other is RangeValue ? false : other is IFluidArray array ? array.Count == 0 : other.Equals(this),
             FluidValues.Dictionary => other is DictionaryValue dictionary ? dictionary.Count == 0 : other.Equals(this),
             _ => false,
         };

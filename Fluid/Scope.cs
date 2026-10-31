@@ -118,7 +118,7 @@ public sealed class Scope
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool TryGetOwnValue(string name, out FluidValue value)
+    internal bool TryGetOwnValue(string name, out FluidValue value)
     {
         var count = _inlineCount;
 

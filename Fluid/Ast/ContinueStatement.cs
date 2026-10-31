@@ -5,7 +5,8 @@ namespace Fluid.Ast;
 
 public sealed class ContinueStatement : Statement, ISourceable
 {
-    public override bool IsWhitespaceOrCommentOnly => true;
+    // Like Liquid, it isn't blank: a block containing it keeps its whitespace.
+    public override bool IsWhitespaceOrCommentOnly => false;
 
     public override ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {

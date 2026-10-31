@@ -334,4 +334,16 @@ public class NumberFiltersTests
 
         Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
     }
+
+    [Theory]
+    // Like Liquid (Ruby floats), numbers smaller than 0.0001 are rendered in scientific notation.
+    [InlineData("{{ 0.000001 }}|{{ 0.00009 }}|{{ 0.0001 }}|{{ 1.0 | divided_by: 100000 }}|{{ -0.0000025 | plus: 0 }}|{{ 0.00001234 }}", "1.0e-06|9.0e-05|0.0001|1.0e-05|-2.5e-06|1.234e-05")]
+    // Filters see the same text as the output: no trailing zeros past the first.
+    [InlineData("{{ 0.000001 | append: '' }}|{{ 1.50 | append: '' }}|{{ 1.50 }}|{{ 2 | times: 1.50 }}|{{ 0 | times: 3.19 }}|{{ 3.999 | round: 2 | append: '' }}", "1.0e-06|1.5|1.5|3.0|0.0|4.0")]
+    // Like Liquid, a decimal operand makes modulo return a decimal.
+    [InlineData("{{ 1 | modulo: 1.5 }}|{{ 3 | modulo: 2.0 }}|{{ 3.0 | modulo: 2 }}|{{ 7 | modulo: 2 }}|{{ 0 | modulo: 1.5 }}|{{ '7.0' | modulo: 2 }}", "1.0|1.0|1.0|1|0.0|1.0")]
+    public async Task FormatsNumbersLikeLiquid(string source, string expected)
+    {
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
+    }
 }

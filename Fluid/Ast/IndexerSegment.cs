@@ -44,7 +44,7 @@ public sealed class IndexerSegment : MemberSegment
         var keyString = key.ToStringValue(context);
 
         // Look up the variable in scope
-        var value = context.LocalScope.GetValue(keyString);
+        var value = context.ShadowWithCounter(keyString, context.LocalScope.GetValue(keyString));
 
         if (value.IsNil())
         {

@@ -17,7 +17,7 @@ public class ErrorMessagesTests
     [InlineData("{% assign 'foo' %}", ErrorMessages.IdentifierAfterAssign)]
     [InlineData("{% assign %}", ErrorMessages.IdentifierAfterAssign)]
     [InlineData("{% assign a = | filter %}", ErrorMessages.LogicalExpressionStartsFilter)]
-    [InlineData("{% assign a = %}", ErrorMessages.LogicalExpressionStartsFilter)]
+    [InlineData("{% assign a = | upcase %}", ErrorMessages.LogicalExpressionStartsFilter)]
     [InlineData("{% assign a = b | %}", ErrorMessages.IdentifierAfterPipe)]
     [InlineData("{% assign a = 1 | plus 2 %}", ErrorMessages.ExpectedTagEnd)]
     [InlineData("{{ 1 | plus 2 }}", ErrorMessages.ExpectedOutputEnd)]

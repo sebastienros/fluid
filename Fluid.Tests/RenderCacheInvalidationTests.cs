@@ -331,11 +331,11 @@ public class RenderCacheInvalidationTests
     [Fact]
     public void InterningPreservesDecimalScale()
     {
-        // Liquid keeps the scale of a number as part of its identity (1.0 * 2.0 == 2.00), so a
-        // scaled value must never be replaced by an interned whole number.
+        // A decimal is rendered as one (5.0), so a scaled value must never be replaced by an
+        // interned whole number. Like Liquid, trailing zeros past the first are dropped.
         Assert.Equal("5", NumberValue.Create(5m).ToStringValue(new TemplateContext()));
         Assert.Equal("5.0", NumberValue.Create(5.0m).ToStringValue(new TemplateContext()));
         Assert.Equal("0.0", NumberValue.Create(0.0m).ToStringValue(new TemplateContext()));
-        Assert.Equal("1023.00", NumberValue.Create(1023.00m).ToStringValue(new TemplateContext()));
+        Assert.Equal("1023.0", NumberValue.Create(1023.00m).ToStringValue(new TemplateContext()));
     }
 }

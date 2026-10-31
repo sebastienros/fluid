@@ -41,6 +41,7 @@ public class SourceGenerationTests
     [InlineData("{% assign s = 'hello' %}{{ s.first }}{{ s.last }}[{{ s['first'] }}]", "ho[]")]
     [InlineData("{% assign n = 5 %}[{{ n[0] }}{{ n['x'] }}]", "[]")]
     [InlineData("{% if 2 > 1 and 2 >= 2 and 1 < 2 and 2 <= 2 %}yes{% endif %}", "yes")]
+    [InlineData("{% if true or 1 < 'a' %}y{% endif %}{% if false and 1 < 'a' %}n{% endif %}", "y")]
     [InlineData("{% if nil >= nil or nil <= missing or 1 > (2..3) or 'a' < (1..2) %}yes{% else %}no{% endif %}", "no")]
     [InlineData("{% if '' == empty and '' == blank %}yes{% endif %}", "yes")]
     [InlineData("{% if 'x' contains nil %}yes{% else %}no{% endif %}", "no")]
@@ -57,6 +58,18 @@ public class SourceGenerationTests
     [InlineData("a{% continue %}b", "a")]
     [InlineData("a{% if true %}{% break %}{% endif %}b{{ 'c' }}", "a")]
     [InlineData("{% if true %} {% increment a %} {% endif %}", " 0 ")]
+    // Like Liquid, a loop whose body and else branch only contain whitespace, comments or assignments is blank.
+    [InlineData("[{% for i in (1..3) %}\n  {% assign x = i %}\n{% endfor %}]", "[]")]
+    [InlineData("[{% for i in (1..3) %} {% capture y %}{{ i }}{% endcapture %} {% endfor %}{{ y }}]", "[3]")]
+    [InlineData("[{% for i in (1..3) %} {%# note %} {% if i %}{% endif %} {% endfor %}]", "[]")]
+    [InlineData("[{% for i in (1..2) %}\n{% else %}.{% endfor %}]", "[\n\n]")]
+    [InlineData("[{% for i in (1..2) %} {% raw %}{% endraw %} {% endfor %}]", "[]")]
+    // Like Liquid, break and continue aren't blank.
+    [InlineData("[{% for i in (1..3) %} {% if i == 2 %}{% break %}{% endif %} {% endfor %}]", "[   ]")]
+    [InlineData("[{% for i in (1..3) %} {% continue %} {% endfor %}]", "[   ]")]
+    // Like Liquid, text before the first when makes the case tag non-blank.
+    [InlineData("[{% case 1 %}={% when 1 %} {% endcase %}]", "[ ]")]
+    [InlineData("[{% case 1 %} {% when 1 %} {% endcase %}]", "[]")]
     // Like Liquid, whitespace is only removed when every branch of the tag is blank.
     [InlineData("{% if false %}x{% else %} {% endif %}|", " |")]
     [InlineData("{% if false %}x{% elsif true %} {% endif %}|", " |")]
@@ -344,6 +357,26 @@ public class SourceGenerationTests
     }
 
     [Theory]
+    // Like Liquid, render ... for only loops over a collection, any other value is rendered once.
+    [InlineData("{% render 'ctx' for s as v %}|{% render 'ctx' for 5 as v %}|{% render 'ctx' for nil as v %}|{% render 'ctx' for (1..2) as v %}", "Hello-|5-|-|1-12-2")]
+    [InlineData("{% render 'ctx' for s as v, x: 1 %}", "Hello-")]
+    public async Task GeneratedRenderFor_RendersNonCollectionsOnce(string liquid, string expected)
+    {
+        var provider = new MockFileProvider().Add("ctx", "{{ v }}-{{ forloop.index }}").Add("ctx.liquid", "{{ v }}-{{ forloop.index }}");
+        var instance = CompileTemplate(liquid, provider);
+        var options = new TemplateOptionsBuilder().WithFileProvider(provider).Build();
+
+        var runtimeWriter = new StringWriter();
+        await new FluidParser().Parse(liquid).RenderAsync(runtimeWriter, HtmlEncoder.Default, new TemplateContext(options).SetValue("s", "Hello"));
+
+        var generatedWriter = new StringWriter();
+        await instance.RenderAsync(generatedWriter, HtmlEncoder.Default, new TemplateContext(options).SetValue("s", "Hello"));
+
+        Assert.Equal(expected, runtimeWriter.ToString());
+        Assert.Equal(expected, generatedWriter.ToString());
+    }
+
+    [Theory]
     [InlineData("{% for i in items offset: 2 limit: 2 %}{{ i }},{% endfor %}", "2,3,", 2)]
     [InlineData("{% for i in items reversed limit: 2 %}{{ i }},{% endfor %}", "1,0,", 2)]
     [InlineData("{% render 'item' for items %}", "0,1,2,3,4,", 5)]
@@ -383,7 +416,7 @@ public class SourceGenerationTests
 
     [Theory]
     [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 7 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "0|E|")]
-    [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 3 limit: 0 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "0|E|1234")]
+    [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 3 limit: 0 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "0|E|34")]
     public async Task GeneratedLoops_EmptySliceUpdatesContinueCursor(string liquid, string expected)
     {
         var instance = CompileTemplate(liquid, new MockFileProvider());

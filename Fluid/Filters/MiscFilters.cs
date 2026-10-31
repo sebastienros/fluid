@@ -195,10 +195,51 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("url_encode", expected: 0, arguments);
 
-        var encoded = WebUtility.UrlEncode(input.ToStringValue(context));
-        // WebUtility.UrlEncode doesn't encode ! but Shopify's Liquid does
-        encoded = encoded?.Replace("!", "%21");
-        return StringValue.Create(encoded);
+        return StringValue.Create(UrlEncode(input.ToStringValue(context)));
+    }
+
+    /// <summary>
+    /// Encodes like Ruby's <c>CGI.escape</c>, which Liquid uses: only letters, digits and <c>_ . - ~</c> are kept,
+    /// a space is a <c>+</c> and any other UTF-8 byte is percent-encoded.
+    /// </summary>
+    private static string UrlEncode(string value)
+    {
+        var i = 0;
+        while (i < value.Length && IsUrlUnreserved(value[i]))
+        {
+            i++;
+        }
+
+        if (i == value.Length)
+        {
+            return value;
+        }
+
+        const string hex = "0123456789ABCDEF";
+        var bytes = Encoding.UTF8.GetBytes(value);
+        var builder = new StringBuilder(bytes.Length + 16);
+
+        foreach (var b in bytes)
+        {
+            var c = (char)b;
+            if (b < 0x80 && IsUrlUnreserved(c))
+            {
+                builder.Append(c);
+            }
+            else if (c == ' ')
+            {
+                builder.Append('+');
+            }
+            else
+            {
+                builder.Append('%').Append(hex[b >> 4]).Append(hex[b & 0xF]);
+            }
+        }
+
+        return builder.ToString();
+
+        static bool IsUrlUnreserved(char c) =>
+            (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c is '_' or '.' or '-' or '~';
     }
 
     public static ValueTask<FluidValue> UrlDecode(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -339,124 +380,67 @@ public static class MiscFilters
         LiquidException.ThrowFilterArgumentsCount("strip_html", expected: 0, arguments);
 
         var html = input.ToStringValue(context);
-        if (String.IsNullOrEmpty(html))
+        if (String.IsNullOrEmpty(html) || html.IndexOf('<') < 0)
         {
-            return StringValue.Empty;
+            return StringValue.Create(html ?? "");
         }
 
-        var result = ArrayPool<char>.Shared.Rent(html.Length);
-
-        try
+        // Like Liquid: first remove the <script...</script>, <!--...--> and <style...</style> blocks
+        // (case-sensitive, shortest match), then any <...> tag. A '<' without a later '>' is kept.
+        var withoutBlocks = new StringBuilder(html.Length);
+        var i = 0;
+        while (i < html.Length)
         {
-            var cursor = 0;
-            var inside = false;
-            var i = 0;
-            while (i < html.Length)
+            var c = html[i];
+            if (c == '<')
             {
-                var current = html[i];
+                var end = FindBlockEnd(html, i, "<script", "</script>");
+                if (end < 0) end = FindBlockEnd(html, i, "<!--", "-->");
+                if (end < 0) end = FindBlockEnd(html, i, "<style", "</style>");
 
-                if (current == '<')
+                if (end >= 0)
                 {
-                    // Check if this is a script or style tag that we should skip entirely
-                    if (IsStartOfSpecialTag(html, i, "script"))
-                    {
-                        i = SkipToEndOfTag(html, i, "script");
-                        continue;
-                    }
-                    else if (IsStartOfSpecialTag(html, i, "style"))
-                    {
-                        i = SkipToEndOfTag(html, i, "style");
-                        continue;
-                    }
-                    inside = true;
-                    i++;
+                    i = end;
                     continue;
                 }
+            }
 
-                if (current == '>')
+            withoutBlocks.Append(c);
+            i++;
+        }
+
+        var text = withoutBlocks.ToString();
+        var result = new StringBuilder(text.Length);
+        i = 0;
+        while (i < text.Length)
+        {
+            var c = text[i];
+            if (c == '<')
+            {
+                var close = text.IndexOf('>', i + 1);
+                if (close >= 0)
                 {
-                    inside = false;
-                    i++;
+                    i = close + 1;
                     continue;
                 }
-
-                if (!inside)
-                {
-                    result[cursor++] = current;
-                }
-
-                i++;
             }
 
-            return StringValue.Create(new string(result, 0, cursor));
-        }
-        catch
-        {
-            return StringValue.Create(String.Empty);
-        }
-        finally
-        {
-            ArrayPool<char>.Shared.Return(result);
+            result.Append(c);
+            i++;
         }
 
-        static bool IsStartOfSpecialTag(string html, int startIndex, string tagName)
+        return StringValue.Create(result.ToString());
+
+        // The index after the block starting at start, or -1 when there is no such block.
+        static int FindBlockEnd(string html, int start, string open, string close)
         {
-            if (startIndex + tagName.Length + 2 > html.Length)
+            if (string.CompareOrdinal(html, start, open, 0, open.Length) != 0)
             {
-                return false;
+                return -1;
             }
 
-            if (html[startIndex] != '<')
-            {
-                return false;
-            }
-
-            var nextIndex = startIndex + 1;
-
-            // Check for the tag name (case-insensitive)
-            for (int j = 0; j < tagName.Length; j++)
-            {
-                if (char.ToLowerInvariant(html[nextIndex + j]) != tagName[j])
-                {
-                    return false;
-                }
-            }
-
-            // Make sure next char after tag name is whitespace or '>'
-            var charAfterTag = nextIndex + tagName.Length;
-            if (charAfterTag < html.Length)
-            {
-                var ch = html[charAfterTag];
-                return char.IsWhiteSpace(ch) || ch == '>';
-            }
-
-            return false;
-        }
-
-        static int SkipToEndOfTag(string html, int startIndex, string tagName)
-        {
-            var endTagStart = $"</{tagName}";
-            var searchStart = startIndex + 1;
-
-            while (searchStart < html.Length)
-            {
-                var index = html.IndexOf(endTagStart, searchStart, StringComparison.OrdinalIgnoreCase);
-                if (index == -1)
-                {
-                    return html.Length;
-                }
-
-                // Find the closing >
-                var closeIndex = html.IndexOf('>', index);
-                if (closeIndex != -1)
-                {
-                    return closeIndex + 1;
-                }
-
-                searchStart = index + 1;
-            }
-
-            return html.Length;
+            var end = html.IndexOf(close, start + open.Length, StringComparison.Ordinal);
+            return end < 0 ? -1 : end + close.Length;
         }
     }
 
