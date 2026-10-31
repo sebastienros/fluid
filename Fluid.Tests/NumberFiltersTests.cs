@@ -118,7 +118,8 @@ public class NumberFiltersTests
 
     [Theory]
     [InlineData("23.4", "20", 3.4)]
-    [InlineData("0.8", ".4", 0.4)]
+    // Like Liquid, ".4" isn't a decimal number: it is read as 0.
+    [InlineData("0.8", ".4", 0.8)]
     [InlineData("0.0003", "0.0001", 0.0002)]
     public void MinusWithDecimalPointFromObject(string input, string argument, decimal expectedResult)
     {
@@ -323,6 +324,8 @@ public class NumberFiltersTests
     [InlineData("{{ ' 2.5 ' | plus: 1 }}|{{ '-1.5' | plus: 0 }}|{{ '+1.5' | plus: 0 }}|{{ '1.5.2' | plus: 0 }}|{{ '2.50' | plus: 0 }}", "3.5|-1.5|1|1|2.5")]
     [InlineData("{{ 'abc' | plus: 0 }}|{{ '' | plus: 0 }}|{{ '0x10' | plus: 0 }}|{{ '$5' | plus: 0 }}|{{ '1,000' | plus: 0 }}", "0|0|0|0|1")]
     [InlineData("{{ '3:' | ceil }}|{{ '12abc' | at_least: 5 }}|{{ '99999999999999999999999999999999' | plus: 0 }}", "3|12|79228162514264337593543950335")]
+    // Like Liquid (/\A-?\d+\.\d+\z/), a decimal needs a digit before the point, and modulo only keeps a decimal for one.
+    [InlineData("{{ '.5' | plus: 0 }}|{{ '-.5' | plus: 0 }}|{{ '.5' | round }}|{{ '.5' | times: 2 }}|{{ '1.0e-06' | modulo: 3 }}|{{ '2.5x' | modulo: 3 }}|{{ '.' | modulo: 2 }}|{{ ' 2.5 ' | modulo: 2 }}", "0|0|0|0|1|2|0|0.5")]
     // Like Liquid, values that aren't numbers or strings are 0.
     [InlineData("{{ a | plus: 0 }}|{{ h | times: 1 }}|{{ (1..5) | plus: 0 }}|{{ true | plus: 0 }}|{{ false | plus: 1 }}", "0|0|0|0|1")]
     [InlineData("{{ 1 | plus: a }}|{{ 1 | at_least: a }}|{{ a | ceil }}", "1|1|0")]

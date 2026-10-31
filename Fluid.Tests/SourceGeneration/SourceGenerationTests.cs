@@ -377,6 +377,29 @@ public class SourceGenerationTests
     }
 
     [Theory]
+    // Like Liquid, each item of render ... for is rendered in its own context: counters and variables start over.
+    [InlineData("{% render 'counter' for (1..3) %}|{% render 'counter' with 1 %}{% render 'counter' with 1 %}", "0x0x0x|0x0x")]
+    [InlineData("{% render 'counter' for (1..2) as v, y: 'Y' %}", "0Y0Y")]
+    // A variable of the template hides a counter even when it is nil.
+    [InlineData("{% increment i %}{% assign i = nil %}[{{ i }}]{% assign n = 'i' %}[{{ [n] }}]", "0[][]")]
+    public async Task GeneratedCounters_MatchLiquidScopes(string liquid, string expected)
+    {
+        const string counter = "{% increment c %}{{ y | default: 'x' }}{% assign y = 'leaked' %}";
+        var provider = new MockFileProvider().Add("counter", counter).Add("counter.liquid", counter);
+        var instance = CompileTemplate(liquid, provider);
+        var options = new TemplateOptionsBuilder().WithFileProvider(provider).Build();
+
+        var runtimeWriter = new StringWriter();
+        await new FluidParser().Parse(liquid).RenderAsync(runtimeWriter, HtmlEncoder.Default, new TemplateContext(options));
+
+        var generatedWriter = new StringWriter();
+        await instance.RenderAsync(generatedWriter, HtmlEncoder.Default, new TemplateContext(options));
+
+        Assert.Equal(expected, runtimeWriter.ToString());
+        Assert.Equal(expected, generatedWriter.ToString());
+    }
+
+    [Theory]
     [InlineData("{% for i in items offset: 2 limit: 2 %}{{ i }},{% endfor %}", "2,3,", 2)]
     [InlineData("{% for i in items reversed limit: 2 %}{{ i }},{% endfor %}", "1,0,", 2)]
     [InlineData("{% render 'item' for items %}", "0,1,2,3,4,", 5)]
@@ -404,6 +427,9 @@ public class SourceGenerationTests
     [InlineData("{% for i in items offset: -1 limit: 2 %}{{ i }},{% endfor %}", "0,")]
     [InlineData("{% for i in items offset: -3 limit: 2 %}{{ i }},{% else %}none{% endfor %}", "none")]
     [InlineData("{% for i in items offset: -1 limit: 2 %}{{ i }},{% endfor %}|{% for i in items offset: continue %}{{ i }},{% endfor %}", "0,|0,1,2,3,4,")]
+    // A limit or an offset out of an int's range means all or none.
+    [InlineData("{% for i in items limit: 9999999999 %}{{ i }},{% endfor %}|{% for i in items offset: 9999999999 %}{{ i }},{% else %}none{% endfor %}", "0,1,2,3,4,|none")]
+    [InlineData("{% assign n = '9999999999' %}{% for i in items limit: n %}{{ i }},{% endfor %}|{% for i in items offset: n %}{{ i }},{% else %}none{% endfor %}", "0,1,2,3,4,|none")]
     public async Task GeneratedLoops_StartANegativeOffsetAtTheFirstItem(string liquid, string expected)
     {
         var instance = CompileTemplate(liquid, new MockFileProvider());

@@ -183,8 +183,7 @@ public sealed class TableRowStatement : TagStatement
 
         if (value.Type == FluidValues.String)
         {
-            var s = value.ToStringValue(context).Trim();
-            if (int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+            if (NumberConversions.TryParseInt32Saturated(value.ToStringValue(context), out var parsed))
             {
                 return parsed;
             }

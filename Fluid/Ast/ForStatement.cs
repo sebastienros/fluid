@@ -326,8 +326,8 @@ public sealed class ForStatement : TagStatement, ISourceable
 
         if (value.Type == FluidValues.String)
         {
-            var s = value.ToStringValue(context).Trim();
-            if (int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+            // Like a number, a value out of an int's range means all or none.
+            if (NumberConversions.TryParseInt32Saturated(value.ToStringValue(context), out var parsed))
             {
                 return parsed;
             }
@@ -415,7 +415,7 @@ public sealed class ForStatement : TagStatement, ISourceable
             else
             {
                 var offsetExpr = context.GetExpressionMethodName(Offset);
-                context.WriteLine($"startIndex = (int)(await {offsetExpr}({context.ContextName})).ToNumberValue({context.ContextName});");
+                context.WriteLine($"startIndex = (int)global::System.Math.Max(int.MinValue, global::System.Math.Min(int.MaxValue, decimal.Truncate((await {offsetExpr}({context.ContextName})).ToNumberValue({context.ContextName}))));");
             }
         }
 
@@ -438,7 +438,7 @@ public sealed class ForStatement : TagStatement, ISourceable
             context.WriteLine("{");
             using (context.Indent())
             {
-                context.WriteLine($"var limit = (int)limitValue.ToNumberValue({context.ContextName});");
+                context.WriteLine($"var limit = (int)global::System.Math.Max(int.MinValue, global::System.Math.Min(int.MaxValue, decimal.Truncate(limitValue.ToNumberValue({context.ContextName}))));");
                 context.WriteLine("count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));");
             }
             context.WriteLine("}");
