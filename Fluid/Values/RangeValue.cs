@@ -12,24 +12,26 @@ public sealed class RangeValue : FluidValue, IFluidArray
     /// <summary>
     /// Creates the range of the integers from <paramref name="start"/> to <paramref name="end"/>, both included.
     /// </summary>
-    public static RangeValue Create(int start, int end) => new RangeValue(start, end);
+    public static RangeValue Create(long start, long end) => new RangeValue(start, end);
 
-    private RangeValue(int start, int end)
+    private RangeValue(long start, long end)
     {
         Start = start;
         End = end;
-        Count = end < start ? 0 : checked(end - start + 1);
+
+        // The distance between the bounds always fits in an unsigned long.
+        Count = end < start ? 0 : checked((int)(unchecked((ulong)(end - start)) + 1));
     }
 
     /// <summary>
     /// Gets the first number of the range.
     /// </summary>
-    public int Start { get; }
+    public long Start { get; }
 
     /// <summary>
     /// Gets the last number of the range, which is lower than <see cref="Start"/> when the range is empty.
     /// </summary>
-    public int End { get; }
+    public long End { get; }
 
     /// <summary>
     /// Gets the number of items of the range.

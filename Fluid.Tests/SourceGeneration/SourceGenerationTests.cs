@@ -488,8 +488,8 @@ public class SourceGenerationTests
     }
 
     [Theory]
-    [InlineData("{% for i in (1..99999999999) %}{% endfor %}", "The range bound 99999999999 is out of range.")]
-    [InlineData("{% assign r = (-99999999999..1) %}", "The range bound -99999999999 is out of range.")]
+    [InlineData("{% for i in (1..99999999999999999999) %}{% endfor %}", "The range bound 99999999999999999999 is out of range.")]
+    [InlineData("{% assign r = (-99999999999..1) %}", "The range (-99999999999..1) has too many items.")]
     [InlineData("{% for i in (-2000000000..2000000000) %}{% endfor %}", "The range (-2000000000..2000000000) has too many items.")]
     public async Task GeneratedRanges_ThrowALiquidExceptionWhenTooLarge(string liquid, string message)
     {
@@ -541,6 +541,7 @@ public class SourceGenerationTests
     [InlineData("{% for i in (first..last) %}{{ forloop.name }} {% endfor %}", "i-(first..last) i-(first..last) ")]
     [InlineData("{% for i in (1..last) limit: 1 %}{{ forloop.name }} {% endfor %}", "i-(1..last) ")]
     [InlineData("{% for i in (-1..0) %}{{ forloop.name }} {% endfor %}", "i-(-1..0) i-(-1..0) ")]
+    [InlineData("{% assign b = 2147483648 %}{% for i in (b..2147483649) %}{{ i }}{{ forloop.name }} {% endfor %}", "2147483648i-(b..2147483649) 2147483649i-(b..2147483649) ")]
     [InlineData("{% for i in (1.5..2) %}{{ forloop.name }} {% endfor %}{% for i in (0..0.0) %}{{ forloop.name }} {% endfor %}", "i-(1.5..2) i-(1.5..2) i-(0..0.0) ")]
     [InlineData("{% for i in (1..3) %}{{ forloop['index'] }}{{ forloop[\"last\"] }} {% endfor %}", "1false 2false 3true ")]
     [InlineData("{% for i in (1..4) limit: 2 %}{{ i }}{% endfor %}|{% for i in (1..4) offset: continue %}{{ i }}{% endfor %}", "12|34")]
