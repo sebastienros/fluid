@@ -2,6 +2,7 @@ using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
 using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -72,11 +73,11 @@ public class NumberFiltersTests
     }
 
     [Theory]
-    [InlineData(4, "5", 0)]
-    [InlineData(4, "5.0", 0.8)]
-    [InlineData(5, "2", 2)]
-    [InlineData(5, "2.0", 2.5)]
-    public void DividedByReturnsSameTypeAsDivisor(decimal value, string divisor, decimal expected)
+    [InlineData(4, "5", "0")]
+    [InlineData(4, "5.0", "0.8")]
+    [InlineData(5, "2", "2")]
+    [InlineData(5, "2.0", "2.5")]
+    public void DividedByReturnsSameTypeAsDivisor(decimal value, string divisor, string expected)
     {
         // https://shopify.github.io/liquid/filters/divided_by/
 
@@ -87,7 +88,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.DividedBy(input, arguments, context);
 
-        Assert.Equal(expected, result.Result.ToNumberValue(context));
+        Assert.Equal(decimal.Parse(expected, CultureInfo.InvariantCulture), result.Result.ToNumberValue(context));
     }
 
     [Fact]
@@ -117,11 +118,11 @@ public class NumberFiltersTests
     }
 
     [Theory]
-    [InlineData("23.4", "20", 3.4)]
+    [InlineData("23.4", "20", "3.4")]
     // Like Liquid, ".4" isn't a decimal number: it is read as 0.
-    [InlineData("0.8", ".4", 0.8)]
-    [InlineData("0.0003", "0.0001", 0.0002)]
-    public void MinusWithDecimalPointFromObject(string input, string argument, decimal expectedResult)
+    [InlineData("0.8", ".4", "0.8")]
+    [InlineData("0.0003", "0.0001", "0.0002")]
+    public void MinusWithDecimalPointFromObject(string input, string argument, string expectedResult)
     {
         var inputA = NumberValue.Create(input);
         var inputB = new FilterArguments(StringValue.Create(argument));
@@ -129,7 +130,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Minus(inputA, inputB, context);
 
-        Assert.Equal(expectedResult, result.Result.ToNumberValue(context));
+        Assert.Equal(decimal.Parse(expectedResult, CultureInfo.InvariantCulture), result.Result.ToNumberValue(context));
     }
 
     [Fact]
@@ -170,10 +171,10 @@ public class NumberFiltersTests
     }
 
     [Theory]
-    [InlineData("23.4", "20", 43.4)]
-    [InlineData("0.8", ".4", 1.2)]
-    [InlineData("0.0003", "0.0001", 0.0004)]
-    public void PlusWithDecimalPointFromObject(string input, string argument, decimal expectedResult)
+    [InlineData("23.4", "20", "43.4")]
+    [InlineData("0.8", ".4", "1.2")]
+    [InlineData("0.0003", "0.0001", "0.0004")]
+    public void PlusWithDecimalPointFromObject(string input, string argument, string expectedResult)
     {
         var inputA = NumberValue.Create(input);
         var inputB = new FilterArguments(NumberValue.Create(argument));
@@ -181,7 +182,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Plus(inputA, inputB, context);
 
-        Assert.Equal(expectedResult, result.Result.ToNumberValue(context));
+        Assert.Equal(decimal.Parse(expectedResult, CultureInfo.InvariantCulture), result.Result.ToNumberValue(context));
     }
 
     [Fact]
@@ -224,10 +225,10 @@ public class NumberFiltersTests
     }
 
     [Theory]
-    [InlineData("23.4", "20", 468)]
-    [InlineData("0.8", ".4", 0.32)]
-    [InlineData("0.0003", "0.0001", 0.00000003)]
-    public void TimesWithDecimalPointFromObject(string input, string argument, decimal expectedResult)
+    [InlineData("23.4", "20", "468")]
+    [InlineData("0.8", ".4", "0.32")]
+    [InlineData("0.0003", "0.0001", "0.00000003")]
+    public void TimesWithDecimalPointFromObject(string input, string argument, string expectedResult)
     {
         var inputA = NumberValue.Create(input);
         var inputB = new FilterArguments(NumberValue.Create(argument));
@@ -235,7 +236,7 @@ public class NumberFiltersTests
 
         var result = NumberFilters.Times(inputA, inputB, context);
 
-        Assert.Equal(expectedResult, result.Result.ToNumberValue(context));
+        Assert.Equal(decimal.Parse(expectedResult, CultureInfo.InvariantCulture), result.Result.ToNumberValue(context));
     }
 
     [Fact]

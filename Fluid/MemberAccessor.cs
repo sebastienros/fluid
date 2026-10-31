@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Fluid.Utils;
 using Fluid.Values;
 
 namespace Fluid;
@@ -89,13 +90,13 @@ public abstract class MemberAccessor
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static ValueTask<FluidValue> CreateValueTask(double value, TemplateContext context)
         => new(!context.Options.HasValueConverters
-            ? NumberValue.Create((decimal)value)
+            ? NumberValue.Create(NumberConversions.ToDecimal(value))
             : FluidValue.Create(value, context.Options));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static ValueTask<FluidValue> CreateValueTask(float value, TemplateContext context)
         => new(!context.Options.HasValueConverters
-            ? NumberValue.Create((decimal)value)
+            ? NumberValue.Create(NumberConversions.ToDecimal(value))
             : FluidValue.Create(value, context.Options));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

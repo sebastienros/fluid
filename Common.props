@@ -32,4 +32,9 @@
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)Fluid.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
+  <!-- Runtime async (preview in .NET 11): the runtime suspends and resumes async methods instead of compiler-generated state machines -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net11.0'">
+    <Features>$(Features);runtime-async=on</Features>
+  </PropertyGroup>
+
 </Project>

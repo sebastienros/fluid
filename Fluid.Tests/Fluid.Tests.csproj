@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <IsPackable>false</IsPackable>
     <SignAssembly>false</SignAssembly>
@@ -16,7 +16,7 @@
     <PackageReference Include="xunit.v3.mtp-v2" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)'!='net10.0'">
+  <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible($(TargetFramework), 'net10.0'))">
     <PackageReference Include="System.Linq.AsyncEnumerable" />
   </ItemGroup>
 

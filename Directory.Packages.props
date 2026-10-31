@@ -11,11 +11,12 @@
     <MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>9.0.0</MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>10.0.0</MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+  <!-- Part of Microsoft.NETCore.App since .NET 11, so NuGet prunes the reference and the version is never used -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net11.0'">
     <MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>10.0.0</MicrosoftExtensionsFileProvidersAbstractionsPackageVersion>
   </PropertyGroup>
 

@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using Fluid.Values;
 using System.Drawing;
 using System.Globalization;
@@ -233,7 +234,7 @@ public static class ColorFilters
 
         var brightness = Convert.ToDouble(rgbColor.R * 299 + rgbColor.G * 587 + rgbColor.B * 114) / 1000.0;
 
-        return NumberValue.Create((decimal)Math.Round(brightness, 2));
+        return NumberValue.Create(NumberConversions.ToDecimal(Math.Round(brightness, 2)));
     }
 
     public static ValueTask<FluidValue> ColorSaturate(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -503,7 +504,7 @@ public static class ColorFilters
             var luminance2 = GetRelativeLuminance(rgbColor1);
             var colorContrast = Math.Round((luminance1 + 0.05) / (luminance2 + 0.05), 1);
 
-            return NumberValue.Create((decimal)colorContrast);
+            return NumberValue.Create(NumberConversions.ToDecimal(colorContrast));
         }
     }
 
