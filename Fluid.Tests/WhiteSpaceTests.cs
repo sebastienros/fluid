@@ -527,4 +527,14 @@ Wow, John G. Chalmers-Smith, you have a long name!";
         Assert.Equal(expected, _parser.Parse("[{% if true %}" + s + s + "{% endif %}]").Render());
         Assert.Equal(expected, _parser.Parse("[{% unless false %}" + s + "{% assign a = 1 %}" + s + "{% endunless %}]").Render());
     }
+
+    [Theory]
+    // Like Liquid, doc and raw are only blank without content.
+    [InlineData("[{% for i in (1..2) %} {% doc %}x{% enddoc %} {% endfor %}]", "[    ]")]
+    [InlineData("[{% for i in (1..2) %} {% doc %}{% enddoc %} {% endfor %}]", "[]")]
+    [InlineData("[{% if true %} {% raw %}x{% endraw %} {% endif %}]", "[ x ]")]
+    public async Task DocAndRawAreBlankWhenEmpty(string source, string expected)
+    {
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(new TemplateContext()));
+    }
 }

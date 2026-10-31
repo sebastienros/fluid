@@ -58,6 +58,18 @@ public class SourceGenerationTests
     [InlineData("a{% continue %}b", "a")]
     [InlineData("a{% if true %}{% break %}{% endif %}b{{ 'c' }}", "a")]
     [InlineData("{% if true %} {% increment a %} {% endif %}", " 0 ")]
+    // Like Liquid, a loop whose body and else branch only contain whitespace, comments or assignments is blank.
+    [InlineData("[{% for i in (1..3) %}\n  {% assign x = i %}\n{% endfor %}]", "[]")]
+    [InlineData("[{% for i in (1..3) %} {% capture y %}{{ i }}{% endcapture %} {% endfor %}{{ y }}]", "[3]")]
+    [InlineData("[{% for i in (1..3) %} {%# note %} {% if i %}{% endif %} {% endfor %}]", "[]")]
+    [InlineData("[{% for i in (1..2) %}\n{% else %}.{% endfor %}]", "[\n\n]")]
+    [InlineData("[{% for i in (1..2) %} {% raw %}{% endraw %} {% endfor %}]", "[]")]
+    // Like Liquid, break and continue aren't blank.
+    [InlineData("[{% for i in (1..3) %} {% if i == 2 %}{% break %}{% endif %} {% endfor %}]", "[   ]")]
+    [InlineData("[{% for i in (1..3) %} {% continue %} {% endfor %}]", "[   ]")]
+    // Like Liquid, text before the first when makes the case tag non-blank.
+    [InlineData("[{% case 1 %}={% when 1 %} {% endcase %}]", "[ ]")]
+    [InlineData("[{% case 1 %} {% when 1 %} {% endcase %}]", "[]")]
     // Like Liquid, whitespace is only removed when every branch of the tag is blank.
     [InlineData("{% if false %}x{% else %} {% endif %}|", " |")]
     [InlineData("{% if false %}x{% elsif true %} {% endif %}|", " |")]

@@ -575,12 +575,13 @@ public class FluidParser
         var ElseBlock = CreateTag("else").SkipAnd(AnyTagsList)
             .Then<CaseBlock>(x => new ElseBlock(x));
 
+        // Like Liquid, the text before the first when is never rendered, but it can make the tag non-blank.
         var CaseTag = Primary
                    .AndSkip(TagEnd)
-                   .AndSkip(OptionalComments)
+                   .And(OptionalComments)
                    .And(ZeroOrMany(OneOf(WhenBlock, ElseBlock).AndSkip(OptionalComments)))
                    .AndSkip(CreateTag("endcase").ElseError($"'{{% endcase %}}' was expected"))
-                   .Then<Statement>(x => new CaseStatement(x.Item1, x.Item2))
+                   .Then<Statement>(x => new CaseStatement(x.Item1, x.Item3, x.Item2.All(static s => s.IsWhitespaceOrCommentOnly)))
                    .ElseError("Invalid 'case' tag");
         CaseTag.Name = "CaseTag";
 
