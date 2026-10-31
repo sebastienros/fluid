@@ -189,7 +189,7 @@ public sealed class MemberExpression : Expression, ISynchronousSourceable
             // A variable whose name is computed, like {{ [name] }}, resolved like IndexerSegment.ResolveFromScopeAsync.
             var keyExpr = context.GetExpressionMethodName(rootIndexer.Expression);
             context.WriteLine($"var key = (await {keyExpr}({context.ContextName})).ToStringValue({context.ContextName});");
-            context.WriteLine($"var value = {context.ContextName}.LocalScope.GetValue(key);");
+            context.WriteLine($"var value = {context.ContextName}.ShadowWithCounter(key, {context.ContextName}.LocalScope.GetValue(key));");
             context.WriteLine("var start = 1;");
             context.WriteLine("if (value.IsNil())");
             context.WriteLine("{");
@@ -225,7 +225,7 @@ public sealed class MemberExpression : Expression, ISynchronousSourceable
 
         var initialIdentifierLiteral = SourceGenerationContext.ToCSharpStringLiteral(initial.Identifier);
 
-        context.WriteLine($"var value = {context.ContextName}.LocalScope.GetValue({initialIdentifierLiteral});");
+        context.WriteLine($"var value = {context.ContextName}.ShadowWithCounter({initialIdentifierLiteral}, {context.ContextName}.LocalScope.GetValue({initialIdentifierLiteral}));");
         context.WriteLine("var start = 1;");
         context.WriteLine();
         context.WriteLine("if (value.IsNil())");
