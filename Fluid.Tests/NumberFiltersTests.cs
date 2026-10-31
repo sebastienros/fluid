@@ -329,6 +329,10 @@ public class NumberFiltersTests
     // Like Liquid, values that aren't numbers or strings are 0.
     [InlineData("{{ a | plus: 0 }}|{{ h | times: 1 }}|{{ (1..5) | plus: 0 }}|{{ true | plus: 0 }}|{{ false | plus: 1 }}", "0|0|0|0|1")]
     [InlineData("{{ 1 | plus: a }}|{{ 1 | at_least: a }}|{{ a | ceil }}", "1|1|0")]
+    // Like Ruby's to_int, the precision of round is truncated.
+    [InlineData("{{ 2.75 | round: 1.5 }}|{{ 2.75 | round: 1.9 }}|{{ 2.75 | round: '1.5' }}|{{ 1234.5 | round: -1.5 }}|{{ 2.75 | round: -0.5 }}", "2.8|2.8|2.8|1230|3")]
+    // Like Liquid, a product with a float is a float, even when it is zero.
+    [InlineData("{{ 9.123456789 | times: 0 }}|{{ 1234566789.5 | times: 0 }}|{{ 1234566789.5 | times: nil }}|{{ 0 | times: 1234566789.5 }}|{{ 5 | times: 0 }}", "0.0|0.0|0.0|0.0|0")]
     public async Task ConvertsValuesToNumbersLikeLiquid(string source, string expected)
     {
         var context = new TemplateContext();

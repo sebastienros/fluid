@@ -64,6 +64,13 @@ internal static class Strftime
                     continue;
                 }
 
+                // Like Ruby, flags must come before the width: after it, the conversion is written as is.
+                if (precision > 0 && c is '-' or '_' or '^' or '#')
+                {
+                    result.Append(format.AsSpan(start, i - start + 1));
+                    break;
+                }
+
                 switch (c)
                 {
                     case '-':
