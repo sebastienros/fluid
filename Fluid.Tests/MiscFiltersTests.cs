@@ -1218,4 +1218,13 @@ public class MiscFiltersTests
     {
         Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
     }
+
+    [Theory]
+    // Like Liquid, any truthy allow_false allows false.
+    [InlineData("{{ false | default: 'D', allow_false: '' }}|{{ false | default: 'D', allow_false: 'x' }}|{{ false | default: 'D', allow_false: 1 }}|{{ false | default: 'D', allow_false: true }}", "false|false|false|false")]
+    [InlineData("{{ false | default: 'D', allow_false: false }}|{{ false | default: 'D', allow_false: nil }}|{{ nil | default: 'D', allow_false: true }}", "D|D|D")]
+    public async Task DefaultAllowFalseUsesTruthiness(string source, string expected)
+    {
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
+    }
 }

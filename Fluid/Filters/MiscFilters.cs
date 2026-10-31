@@ -131,7 +131,8 @@ public static class MiscFilters
             return input;
         }
 
-        var falseCheck = arguments.HasNamed("allow_false") && arguments["allow_false"] == BooleanValue.True;
+        // Like Liquid, any truthy allow_false allows false.
+        var falseCheck = arguments.HasNamed("allow_false") && arguments["allow_false"].ToBooleanValue(context);
 
         if (falseCheck)
         {

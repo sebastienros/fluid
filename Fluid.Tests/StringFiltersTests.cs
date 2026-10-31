@@ -434,6 +434,21 @@ world
     }
 
     [Theory]
+    // Like Liquid, string filters return a string even when they don't change their input.
+    [InlineData("{{ 1 | truncate | first }}|{{ 12 | truncate: 5 | size }}|{{ 5 | remove_last: 'x' | size }}|{{ 5 | truncatewords: 3 | size }}", "1|2|1|1")]
+    [InlineData("{{ 5 | remove_first: 'x' | size }}|{{ 5 | replace_first: 'x', 'y' | size }}|{{ 5 | replace_last: 'x', 'y' | size }}", "1|1|1")]
+    [InlineData("{% assign x = nil | remove_last: 1 %}{% if x %}y{% else %}n{% endif %}", "y")]
+    // Like Liquid, truncate and truncatewords return nil for nil, before checking their arguments.
+    [InlineData("{% assign x = nil | truncate: 3 %}{% if x %}y{% else %}n{% endif %}", "n")]
+    [InlineData("[{{ nil | truncatewords: nil }}|{{ nil | truncate: nil }}]", "[|]")]
+    // Like Ruby's gsub, an empty input has a single insertion point.
+    [InlineData("{{ '' | replace: '', 'x' }}|{{ nil | replace: '', 'k' }}|{{ 'abc' | replace: '', 'x' }}", "x|k|xaxbxcx")]
+    public async Task StringFiltersReturnStrings(string source, string expected)
+    {
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
+    }
+
+    [Theory]
     // Like Liquid, strip_html removes script, comment and style blocks, then complete tags only.
     [InlineData("{{ '>' | strip_html }}|{{ 'a > b' | strip_html }}|{{ 'a < b' | strip_html }}|{{ 'a < b > c' | strip_html }}", ">|a > b|a < b|a  c")]
     [InlineData("{{ '<script>x</script>y<SCRIPT>z</SCRIPT><style a>s</style><!-- c -->d<!-- e' | strip_html }}", "yzd<!-- e")]

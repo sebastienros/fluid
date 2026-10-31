@@ -68,7 +68,7 @@ public class ResourceLimitTests
     [Fact]
     public async Task MaxOutputSizeRejectsEmptyPatternReplacementBeforeAllocation()
     {
-        var template = new FluidParser().Parse("{{ '' | replace: '', '1234' }}");
+        var template = new FluidParser().Parse("{{ '' | replace: '', '12345' }}");
         var context = new TemplateContext { MaxOutputSize = 4 };
 
         await Assert.ThrowsAsync<InvalidOperationException>(
