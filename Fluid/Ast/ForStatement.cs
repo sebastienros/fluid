@@ -166,14 +166,16 @@ public sealed class ForStatement : TagStatement, ISourceable
             count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));
         }
 
+        // Like Liquid, the continue cursor moves to the end of the slice when the loop starts, before the body runs:
+        // a nested loop over the same source continues after the items of the enclosing one. It is the offset as
+        // written plus the items in the slice, so a negative offset counts from where it was, not from the first item.
+        if (continueOffsetLiteral != null)
+        {
+            context.SetValue(continueOffsetLiteral, startIndex + count - itemsBeforeFirst);
+        }
+
         if (count == 0)
         {
-            // Like Liquid, a loop without items still moves the continue cursor, to the offset as written.
-            if (continueOffsetLiteral != null)
-            {
-                context.SetValue(continueOffsetLiteral, startIndex - itemsBeforeFirst);
-            }
-
             if (Else != null)
             {
                 await Else.WriteToAsync(output, encoder, context);
@@ -262,14 +264,6 @@ public sealed class ForStatement : TagStatement, ISourceable
                     // Leave the loop
                     break;
                 }
-            }
-
-            // Persist the continue cursor to the end of the intended slice, regardless of early break.
-            // Like Liquid, it is the offset as written plus the items in the slice, so a negative
-            // offset counts from where it was, not from the first item.
-            if (continueOffsetLiteral != null)
-            {
-                context.SetValue(continueOffsetLiteral, endIndexExclusive - itemsBeforeFirst);
             }
         }
 
@@ -493,11 +487,11 @@ public sealed class ForStatement : TagStatement, ISourceable
             context.WriteLine("}");
         }
 
+        context.WriteLine($"{context.ContextName}.SetValue({continueOffsetLiteralName}, startIndex + count - itemsBeforeFirst);");
         context.WriteLine("if (count == 0)");
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine($"{context.ContextName}.SetValue({continueOffsetLiteralName}, startIndex - itemsBeforeFirst);");
             if (Else != null)
             {
                 var elseStmt = context.GetStatementMethodName(Else);
@@ -590,7 +584,6 @@ public sealed class ForStatement : TagStatement, ISourceable
                 }
             }
             context.WriteLine("}");
-            context.WriteLine($"{context.ContextName}.SetValue({continueOffsetLiteralName}, endIndexExclusive - itemsBeforeFirst);");
         }
         context.WriteLine("}");
         context.WriteLine("finally");

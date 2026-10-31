@@ -76,6 +76,9 @@ public class ForRangeTests
     // A different loop variable is a different loop.
     [InlineData("{% for i in (1..6) limit: 2 %}{{ i }}{% endfor %}|{% for j in (1..6) offset: continue %}{{ j }}{% endfor %}", "12|123456")]
     [InlineData("{% for i in (1.5..3) limit: 1 %}{{ i }}{% endfor %}|{% for i in (1..3) offset: continue %}{{ i }}{% endfor %}", "1|123")]
+    // Like Liquid, a loop moves the cursor when it starts: a nested loop over the same range continues after it.
+    [InlineData("{% for i in (1..6) limit: 2 %}{% for i in (1..6) offset: continue limit: 1 %}[{{ i }}]{% endfor %}{{ i }}{% endfor %}|{% for i in (1..6) offset: continue %}{{ i }}{% endfor %}", "[3]1[4]2|56")]
+    [InlineData("{% for i in (1..6) limit: 1 %}{% break %}{% endfor %}{% for i in (1..6) offset: continue limit: 2 %}{{ i }}{% endfor %}", "23")]
     public async Task OffsetContinueFollowsTheRange(string source, string expected)
     {
         var template = _parser.Parse(source);

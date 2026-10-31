@@ -545,6 +545,7 @@ public class SourceGenerationTests
     [InlineData("{% for i in (1.5..2) %}{{ forloop.name }} {% endfor %}{% for i in (0..0.0) %}{{ forloop.name }} {% endfor %}", "i-(1.5..2) i-(1.5..2) i-(0..0.0) ")]
     [InlineData("{% for i in (1..3) %}{{ forloop['index'] }}{{ forloop[\"last\"] }} {% endfor %}", "1false 2false 3true ")]
     [InlineData("{% for i in (1..4) limit: 2 %}{{ i }}{% endfor %}|{% for i in (1..4) offset: continue %}{{ i }}{% endfor %}", "12|34")]
+    [InlineData("{% for i in (1..6) limit: 2 %}{% for i in (1..6) offset: continue limit: 1 %}[{{ i }}]{% endfor %}{% endfor %}|{% for i in (1..6) offset: continue %}{{ i }}{% endfor %}", "[3][4]|56")]
     public async Task GeneratedRangeLoops_NameTheirSource(string liquid, string expected)
     {
         var instance = CompileTemplate(liquid, new MockFileProvider());
