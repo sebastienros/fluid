@@ -599,6 +599,11 @@ public class FluidParser
             TagEnd.Then<IReadOnlyList<T>>(static _ => []).Or(
                 ZeroOrMany(Not(TagEnd).SkipAnd(attributes.Or(IgnoredLoopMarkup.Then(static _ => default(T))))).AndSkip(TagEnd));
 
+        // Like Shopify's lexer, a value starting with digits is a number even when a word follows it,
+        // so that "offset:1limit:2" reads both attributes, where an identifier could start with a digit.
+        // Shopify reads the attributes of a tablerow with a regular expression, which doesn't separate them.
+        var LoopAttributeValue = Number.Or(Primary);
+
         // Like in Shopify, "reversed" is only read right after the collection, even when it starts a longer word ("reversedx").
         var Reversed = Always(true).WhenFollowedBy(Terms.Text("reversed")).Else(false);
 
@@ -607,8 +612,8 @@ public class FluidParser
                         .And(Primary)
                         .And(Reversed)
                         .And(LoopAttributes(OneOf(
-                            Word("limit").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsLimit = true, Value = x }),
-                            Word("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
+                            Word("limit").SkipAnd(Colon).SkipAnd(LoopAttributeValue).Then(x => new ForModifier { IsLimit = true, Value = x }),
+                            Word("offset").SkipAnd(Colon).SkipAnd(LoopAttributeValue).Then(x => new ForModifier { IsOffset = true, Value = x })
                             )))
                         .And(AnyTagsList)
                         .And(TrackStatement(
