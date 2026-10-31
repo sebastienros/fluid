@@ -97,6 +97,14 @@ public sealed class DictionaryValue : FluidValue
         return NilValue.Instance;
     }
 
+    /// <summary>
+    /// Reads a key, like <c>hash[name]</c> in Liquid: unlike a member access, size and first are only keys.
+    /// </summary>
+    internal FluidValue GetKey(string name)
+    {
+        return _value.TryGetValue(name, out var value) ? value : NilValue.Instance;
+    }
+
     public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
     {
         var name = index.ToStringValue(context);

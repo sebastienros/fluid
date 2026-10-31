@@ -182,7 +182,7 @@ public static class MiscFilters
                 continue;
             }
 
-            if (!member.IsNil() && (await value.GetValueAsync(member.ToStringValue(context), context)).IsNil())
+            if (!member.IsNil() && (await ArrayFilters.GetPropertyAsync(value, member.ToStringValue(context), context)).IsNil())
             {
                 continue;
             }
