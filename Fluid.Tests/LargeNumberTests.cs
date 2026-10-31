@@ -60,7 +60,19 @@ public class LargeNumberTests
     [InlineData("{% for i in items offset: 99999999999 %}{{ i }}{% else %}none{% endfor %}", "none")]
     [InlineData("{% for i in items limit: 99999999999 %}{{ i }}{% endfor %}", "123")]
     [InlineData("{% tablerow i in items limit: 99999999999 cols: 99999999999 %}{{ i }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">1</td><td class=\"col2\">2</td><td class=\"col3\">3</td></tr>\n")]
+    // The same with numeric strings, like Liquid.
+    [InlineData("{% assign n = '99999999999' %}{% for i in items limit: n %}{{ i }}{% endfor %}|{% for i in items offset: n %}{{ i }}{% else %}none{% endfor %}", "123|none")]
+    [InlineData("{% assign n = '-999999999999999999999999999999999' %}{% for i in items offset: n %}{{ i }}{% endfor %}|{% tablerow i in items limit: '99999999999' %}{{ i }}{% endtablerow %}", "123|<tr class=\"row1\">\n<td class=\"col1\">1</td><td class=\"col2\">2</td><td class=\"col3\">3</td></tr>\n")]
     public async Task HugeOffsetsLimitsAndLengthsMeanAllOrNone(string source, string expected)
+    {
+        Assert.Equal(expected, await RenderAsync(source));
+    }
+
+    [Theory]
+    // Like Liquid, where integers are unbounded, a literal too large for a decimal is valid, and kept as its text.
+    [InlineData("{{ 123456789012345678901234567890 }}|{{ -123456789012345678901234567890 }}", "123456789012345678901234567890|-123456789012345678901234567890")]
+    [InlineData("{% assign x = 99999999999999999999999999999 %}{{ x }}|{{ 79228162514264337593543950335 | minus: 1 }}", "99999999999999999999999999999|79228162514264337593543950334")]
+    public async Task IntegerLiteralsTooLargeForADecimalAreText(string source, string expected)
     {
         Assert.Equal(expected, await RenderAsync(source));
     }

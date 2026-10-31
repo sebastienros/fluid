@@ -427,6 +427,9 @@ public class SourceGenerationTests
     [InlineData("{% for i in items offset: -1 limit: 2 %}{{ i }},{% endfor %}", "0,")]
     [InlineData("{% for i in items offset: -3 limit: 2 %}{{ i }},{% else %}none{% endfor %}", "none")]
     [InlineData("{% for i in items offset: -1 limit: 2 %}{{ i }},{% endfor %}|{% for i in items offset: continue %}{{ i }},{% endfor %}", "0,|0,1,2,3,4,")]
+    // A limit or an offset out of an int's range means all or none.
+    [InlineData("{% for i in items limit: 9999999999 %}{{ i }},{% endfor %}|{% for i in items offset: 9999999999 %}{{ i }},{% else %}none{% endfor %}", "0,1,2,3,4,|none")]
+    [InlineData("{% assign n = '9999999999' %}{% for i in items limit: n %}{{ i }},{% endfor %}|{% for i in items offset: n %}{{ i }},{% else %}none{% endfor %}", "0,1,2,3,4,|none")]
     public async Task GeneratedLoops_StartANegativeOffsetAtTheFirstItem(string liquid, string expected)
     {
         var instance = CompileTemplate(liquid, new MockFileProvider());
