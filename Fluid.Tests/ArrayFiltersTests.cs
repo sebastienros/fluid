@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Fluid.Values;
 using Fluid.Filters;
@@ -743,11 +744,11 @@ public class ArrayFiltersTests
     }
 
     [Theory]
-    [InlineData("", 0.0)]
-    [InlineData("Quantity", 1.2)]
-    [InlineData("Weight", 0.1)]
-    [InlineData("Subtotal", 0.0)]
-    public async Task SumWithDecimalsAndArguments(string filterArgument, decimal expectedValue)
+    [InlineData("", "0.0")]
+    [InlineData("Quantity", "1.2")]
+    [InlineData("Weight", "0.1")]
+    [InlineData("Subtotal", "0.0")]
+    public async Task SumWithDecimalsAndArguments(string filterArgument, string expectedValue)
     {
         var quantityAndWeightObjectType = new
         {
@@ -783,7 +784,7 @@ public class ArrayFiltersTests
 
         var result = await ArrayFilters.Sum(input, arguments, context);
 
-        Assert.Equal(expectedValue, result.ToNumberValue(context));
+        Assert.Equal(decimal.Parse(expectedValue, CultureInfo.InvariantCulture), result.ToNumberValue(context));
     }
 
     [Fact]

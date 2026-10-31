@@ -204,7 +204,7 @@ public static class NumberFilters
         // Liquid rounds halves away from zero (2.5 is 3), where Math.Round defaults to the nearest even number.
         if (digits < 0)
         {
-            var factor = (decimal)Math.Pow(10, -digits);
+            var factor = NumberConversions.ToDecimal(Math.Pow(10, -digits));
             var scaled = value / factor;
             var rounded = Math.Round(scaled, 0, MidpointRounding.AwayFromZero) * factor;
             return NumberValue.Create(rounded);

@@ -60,14 +60,15 @@ dotnet run scripts/shopify-liquid.cs -- template.liquid --expected-file expected
 
 - Package versions go in `Directory.Packages.props`, never in a `.csproj`.
 - `TreatWarningsAsErrors=true`: warnings break the build.
-- `Fluid` multi-targets `netstandard2.0;net8.0;net9.0;net10.0`. New core code must compile on all; use `Fluid/Shims.cs` and `#if` guards with a working fallback for newer APIs (e.g. `SearchValues<T>` is net8.0+). Never drop the fallback.
+- `Fluid` multi-targets `netstandard2.0;net8.0;net10.0;net11.0`. New core code must compile on all; use `Fluid/Shims.cs` and `#if` guards with a working fallback for newer APIs (e.g. `SearchValues<T>` is net8.0+). Never drop the fallback.
+- `net11.0` builds use runtime async (`Features` `runtime-async=on` in `Common.props`): async methods compile without state machines there, so check async hot-path changes on net11.0 too. `global.json` requires the .NET 11 RC 3 SDK.
 
 ## Architecture
 
 Pipeline: source → Parlot grammar (`Fluid/FluidParser.cs`) → `Statement` AST → async render to `IFluidOutput`.
 
 - **Rendering**: nodes derive from `Statement` (`WriteToAsync` returns `ValueTask<Completion>`). Statements with children must stop and bubble up any non-`Normal` completion (`break`/`continue`). Follow `FluidParserExtensions.RenderStatementsAsync`: stay synchronous while the `ValueTask` is completed, fall into an `Awaited` local function only on suspension. Don't make everything `async`.
-- **Values**: the engine only manipulates `FluidValue` subclasses. Prefer cached singletons (`NilValue.Instance`, `BooleanValue.True`, `Statement.NormalCompletion`).
+- **Values**: the engine only manipulates `FluidValue` subclasses. Prefer cached singletons (`NilValue.Instance`, `BooleanValue.True`, `Statement.NormalCompletion`). Convert doubles and floats to decimals with `NumberConversions.ToDecimal`, never a cast or `Convert.ToDecimal`: since .NET 11 those keep the exact binary value (0.1 becomes 0.1000000000000000055511151231) instead of 15 or 7 significant digits.
 - **Options vs context**: `TemplateOptions` is shared, immutable configuration with no public constructor or setters: configure a `TemplateOptionsBuilder` (`With*`/`Configure*`/`Add*`), then `Build()`, which copies filters, global values, converters and member access registrations and creates a new `MemberAccessStrategy`. `ToBuilder()` derives variations; a new option goes on the builder, `TemplateOptions` and the `ToBuilder` copy constructor together. `MoneyOptions` is immutable too. `TemplateContext` is per-render and not thread-safe. `FluidParser` and `IFluidTemplate` are thread-safe and should be cached.
 - **FluidParserOptions** is immutable (`init`-only; some options rewire tag parsers).
 - **Member access** is allow-list based. Changes to accessor resolution must work for all three paths: emit, `Reflection*Accessor` fallbacks, and source-generated (`Fluid.SourceGenerator`, `[FluidRegister]` on a `TemplateOptionsBuilder` subclass or a static partial method taking one). `Build()` makes the strategy read-only, so explicit `Register` calls go through `ConfigureMemberAccess`.

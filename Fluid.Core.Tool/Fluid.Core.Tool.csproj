@@ -22,6 +22,8 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <PublishAot>true</PublishAot>
+    <!-- The tool has no API to document. The .NET 11 SDK also publishes native AOT without the bin output the documentation file would be copied from. -->
+    <PublishDocumentationFile>false</PublishDocumentationFile>
     <IsAotCompatible>false</IsAotCompatible>
     <ToolPackageRuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64;any</ToolPackageRuntimeIdentifiers>
     <SignAssembly>false</SignAssembly>
@@ -37,5 +39,14 @@
     <PackageReference Include="System.CommandLine" />
     <ProjectReference Include="..\Fluid\Fluid.csproj" />
   </ItemGroup>
+
+  <!-- publish.yml packs every RID-specific package with -r on a runner of its OS, then the pointer package without a RID.
+       The .NET 11 SDK would also pack the RIDs the current host can compile there, which aren't restored (NETSDK1047).
+       The package type is already set, so this only skips those inner packs, like the .NET 10 SDK did for native AOT tools. -->
+  <Target Name="PackOnlyThePointerToolPackage" AfterTargets="SetDotnetToolPackageType" Condition="'$(RuntimeIdentifier)' == ''">
+    <PropertyGroup>
+      <CreateRidSpecificToolPackages>false</CreateRidSpecificToolPackages>
+    </PropertyGroup>
+  </Target>
 
 </Project>

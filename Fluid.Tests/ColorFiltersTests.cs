@@ -322,10 +322,10 @@ public class ColorFiltersTests
     }
 
     [Theory]
-    [InlineData("#7bb65d", 154.21)]
-    [InlineData("rgb(123, 182, 93)", 154.21)]
-    [InlineData("hsl(100, 38%, 54%)", 154.21)]
-    public void CalculateBrightness(string color, decimal expected)
+    [InlineData("#7bb65d", "154.21")]
+    [InlineData("rgb(123, 182, 93)", "154.21")]
+    [InlineData("hsl(100, 38%, 54%)", "154.21")]
+    public void CalculateBrightness(string color, string expected)
     {
         // Arrange
         var input = StringValue.Create(color);
@@ -335,7 +335,7 @@ public class ColorFiltersTests
         var result = ColorFilters.CalculateBrightness(input, FilterArguments.Empty, context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToNumberValue(context));
+        Assert.Equal(decimal.Parse(expected, CultureInfo.InvariantCulture), result.Result.ToNumberValue(context));
     }
 
     [Theory]
@@ -441,10 +441,10 @@ public class ColorFiltersTests
     }
 
     [Theory]
-    [InlineData("#495859", new object[] { "#fffffb" }, 7.4)]
-    [InlineData("rgb(73, 88, 89)", new object[] { "#fffffb" }, 7.4)]
-    [InlineData("hsl(183.8, 9.9%, 31.8%)", new object[] { "#fffffb" }, 7.4)]
-    public void ColorContrast(string color, object[] arguments, decimal expected)
+    [InlineData("#495859", new object[] { "#fffffb" }, "7.4")]
+    [InlineData("rgb(73, 88, 89)", new object[] { "#fffffb" }, "7.4")]
+    [InlineData("hsl(183.8, 9.9%, 31.8%)", new object[] { "#fffffb" }, "7.4")]
+    public void ColorContrast(string color, object[] arguments, string expected)
     {
         // Arrange
         var input = StringValue.Create(color);
@@ -454,7 +454,7 @@ public class ColorFiltersTests
         var result = ColorFilters.GetColorContrast(input, arguments.ToFilterArguments(), context);
 
         // Assert
-        Assert.Equal(expected, result.Result.ToNumberValue(context));
+        Assert.Equal(decimal.Parse(expected, CultureInfo.InvariantCulture), result.Result.ToNumberValue(context));
     }
 
     [Theory]
