@@ -1192,14 +1192,17 @@ shape: ''";
     [InlineData("{% render 'inner' %}")]
     public async Task TemplateFileProvider_ShouldLoadAndCacheTemplatesAsynchronously(string source)
     {
-        var sourceLoader = new AsyncTemplateFileProvider()
+        var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var sourceLoader = new AsyncTemplateFileProvider { Gate = gate.Task }
             .Add("inner.liquid", "{{ value }}");
         var options = new TemplateOptionsBuilder().WithFileProvider(sourceLoader).Build();
         var context = new TemplateContext(options).SetValue("value", "loaded");
         _parser.TryParse(source, out var template);
 
+        // The render waits for the provider until the gate opens, rather than racing a Task.Yield.
         var renderTask = template.RenderAsync(context);
-        Assert.False(renderTask.IsCompletedSuccessfully);
+        Assert.False(renderTask.IsCompleted);
+        gate.SetResult(true);
         Assert.Equal("loaded", await renderTask);
 
         Assert.Equal("loaded", await template.RenderAsync(context));
