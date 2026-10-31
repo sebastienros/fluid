@@ -1153,6 +1153,16 @@ class  {
         Assert.Contains("WELCOME TO THE LIQUID TAG", rendered);
     }
 
+    [Theory]
+    // Like Liquid, the tag name can be followed directly by the end of the tag.
+    [InlineData("{%liquid%}x|{%-liquid-%}x|{% liquid %}y|{%liquid echo 1%}|{%liquid\necho 2\n%}", "x|x|y|1|2")]
+    public void ShouldParseLiquidTagWithoutWhitespace(string source, string expected)
+    {
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+        Assert.Equal(expected, template.Render());
+    }
+
     [Fact]
     public void ShouldParseLiquidTag()
     {

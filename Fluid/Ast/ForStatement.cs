@@ -2,6 +2,7 @@ using Fluid.Utils;
 using Fluid.Values;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Encodings.Web;
 using Fluid.SourceGeneration;
 
@@ -54,10 +55,10 @@ public sealed class ForStatement : TagStatement, ISourceable
         {
             _rangeSource = range;
 
-            // A range written with literal bounds, like (1..3), has a name that never changes either.
-            if (TryGetLiteralBound(range.From, out var from) && TryGetLiteralBound(range.To, out var to))
+            // Like Liquid, the name of a range is the range as written: (1..l) stays (1..l) whatever l is.
+            if (TryGetBoundSource(range.From, out var from) && TryGetBoundSource(range.To, out var to))
             {
-                _staticRangeSourceLiteral = BuildRangeSourceLiteral(from, to);
+                _staticRangeSourceLiteral = $"({from}..{to})";
                 _staticContinueOffsetLiteral = BuildRangeContinueOffsetLiteral(_staticRangeSourceLiteral);
             }
         }
@@ -288,6 +289,48 @@ public sealed class ForStatement : TagStatement, ISourceable
         // Key is based on Liquid's `forloop.name`: "{identifier}-{source}".
         // This means changing the loop variable changes the key.
         return $"for_continue_{Identifier}-{rangeSourceLiteral}";
+    }
+
+    /// <summary>
+    /// The text of a range bound written as an integer or a variable, like Liquid's parser gives it.
+    /// </summary>
+    private static bool TryGetBoundSource(Expression expression, out string source)
+    {
+        if (TryGetLiteralBound(expression, out var bound))
+        {
+            source = bound.ToString(CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        source = null;
+
+        if (expression is not MemberExpression member)
+        {
+            return false;
+        }
+
+        var builder = new StringBuilder();
+
+        foreach (var segment in member.Segments)
+        {
+            switch (segment)
+            {
+                case IdentifierSegment identifier:
+                    builder.Append(builder.Length > 0 ? "." : "").Append(identifier.Identifier);
+                    break;
+                case IndexerSegment { Expression: LiteralExpression { Value: NumberValue index } } when builder.Length > 0:
+                    builder.Append('[').Append(index.Value.ToString(CultureInfo.InvariantCulture)).Append(']');
+                    break;
+                case IndexerSegment { Expression: LiteralExpression { Value: StringValue key } } when builder.Length > 0:
+                    builder.Append("[\"").Append(key.Value).Append("\"]");
+                    break;
+                default:
+                    return false;
+            }
+        }
+
+        source = builder.ToString();
+        return true;
     }
 
     private static bool TryGetLiteralBound(Expression expression, out int bound)
