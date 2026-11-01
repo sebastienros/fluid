@@ -35,7 +35,7 @@
     <PackageVersion Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.14" />
     <!-- Common to all TFMs -->
-    <PackageVersion Include="Parlot" Version="2.1.0" />
+    <PackageVersion Include="Parlot" Version="2.0.0-preview.1070" />
     <PackageVersion Include="TimeZoneConverter" Version="8.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
     <!-- Benchmarks -->

@@ -29,9 +29,9 @@ public sealed class StringLiteralParser : Parser<TextSpan>, ISeekable
             return false;
         }
 
-        var start = cursor.Position;
+        var start = cursor.Offset;
         var buffer = context.Scanner.Buffer;
-        var contentStart = start.Offset + 1;
+        var contentStart = start + 1;
         var closing = buffer.IndexOf(quote, contentStart);
 
         if (closing < 0)
@@ -40,10 +40,9 @@ public sealed class StringLiteralParser : Parser<TextSpan>, ISeekable
             return false;
         }
 
-        cursor.ResetPosition(start);
-        cursor.Advance(closing + 1 - start.Offset);
+        cursor.Advance(closing + 1 - start);
 
-        result.Set(start.Offset, closing + 1, new TextSpan(buffer, contentStart, closing - contentStart));
+        result.Set(start, closing + 1, new TextSpan(buffer, contentStart, closing - contentStart));
 
         context.ExitParser(this);
         return true;
