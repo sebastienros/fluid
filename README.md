@@ -2,7 +2,7 @@
 
 [![NuGet](https://img.shields.io/nuget/v/Fluid.Core.svg)](https://nuget.org/packages/Fluid.Core)
 [![MIT](https://img.shields.io/github/license/sebastienros/fluid)](https://github.com/sebastienros/fluid/blob/main/LICENSE)
-[![Feedz preview version](https://img.shields.io/endpoint?url=https%3A%2F%2Ff.feedz.io%2Fsebastienros%2Ffluid%2Fshield%2FFluid.Core%2Flatest)](https://f.feedz.io/sebastienros/fluid/nuget/index.json)
+[![Feedz preview version](https://img.shields.io/endpoint?url=https%3A%2F%2Ff.feedz.io%2Fsebastienros%2Ffluid%2Fshield%2FFluid.Core%2Flatest)](https://feedz.io/org/sebastienros/repository/fluid/packages/Fluid.Core)
 
 ## Basic Overview
 
@@ -140,7 +140,7 @@ The code samples in this document assume you have registered the `Fluid` namespa
 
 After a successful build triggered by a push to `main`, preview packages are published to the
 [Fluid feed on feedz.io](https://f.feedz.io/sebastienros/fluid/nuget/index.json).
-Versions follow `3.0.0-preview-<run number>`, using the GitHub Actions build run number.
+Versions follow `3.0.0-preview.<run number>`, using the GitHub Actions build run number.
 These packages contain the latest development changes and are intended for testing before release.
 Tagged releases continue to be published to NuGet.org.
 
