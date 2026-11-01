@@ -30,7 +30,7 @@ jobs:
       run: dotnet test -c Release
 
     - name: Pack preview packages
-      run: dotnet pack --output artifacts --configuration Release --property:VersionSuffix=preview-$GITHUB_RUN_NUMBER --property:ContinuousIntegrationBuild=True
+      run: dotnet pack --output artifacts --configuration Release --property:VersionSuffix=preview.$GITHUB_RUN_NUMBER --property:ContinuousIntegrationBuild=True
 
     - name: Push preview packages to Feedz
       shell: bash
@@ -40,4 +40,12 @@ jobs:
         set -euo pipefail
         for package in artifacts/*.nupkg; do
           dotnet nuget push "$package" --api-key "$FEEDZ_IO_API_KEY" --source https://f.feedz.io/sebastienros/fluid/nuget/index.json --skip-duplicate
+        done
+        # Previews used to be versioned <prefix>-preview-<run number>, which NuGet orders as text (preview-999 is
+        # newer than preview-1000) and above every <prefix>-preview.<run number>. Delete them so they don't shadow newer builds.
+        for package in artifacts/*.nupkg; do
+          id=$(basename "$package" | sed -E 's/\.[0-9]+\.[0-9]+\.[0-9]+-.*$//' | tr '[:upper:]' '[:lower:]')
+          for version in $(curl -fsS "https://f.feedz.io/sebastienros/fluid/nuget/v3/packages/$id/index.json" | jq -r '.versions[] | select(test("-preview-[0-9]+$"))'); do
+            dotnet nuget delete "$id" "$version" --api-key "$FEEDZ_IO_API_KEY" --source https://f.feedz.io/sebastienros/fluid/nuget/index.json --non-interactive
+          done
         done
