@@ -114,10 +114,11 @@ public class FluidParser
 
         _tagEndIgnoringMarkup = TagEnd.Or(AnyCharBefore(TagEnd).SkipAnd(TagEnd));
 
-        Identifier = SkipWhiteSpace(IdentifierParser.Create(parserOptions.AllowTrailingQuestionMark)).Then(x => x.ToString());
+        // The names come from a pool, so the templates of a parser share them.
+        Identifier = SkipWhiteSpace(IdentifierParser.Create(parserOptions.AllowTrailingQuestionMark)).ToPooledString();
         // Like in Shopify, a tag name is made of word chars: "{% comment-x %}" is a comment tag.
         _tagName = SkipWhiteSpace(OneOf(Literals.Char('#').Then(new TextSpan("#")), Literals.AnyOf(WordChars)));
-        VariableSignature = SkipWhiteSpace(VariableSignatureParser.Create()).Then(x => x.ToString());
+        VariableSignature = SkipWhiteSpace(VariableSignatureParser.Create()).ToPooledString();
 
         // Like Liquid, a backslash in a string literal is a plain character unless escape sequences are enabled.
         String = parserOptions.AllowStringEscapeSequences
@@ -263,7 +264,7 @@ public class FluidParser
 
         // Seek anything that looks like a binary operator (==, !=, <, >, <=, >=, contains, startswith, endswith) then validates it with the registered operators
         // An identifier reads all the word chars, so "containsx" is not "contains", but like in Shopify "contains" can be followed by a string: x contains"y"
-        CombinatoryExpression = Primary.And(OneOf(Terms.AnyOf("=!<>".AsSpan(), maxSize: 2), Terms.Identifier()).Then(x => x.ToString())
+        CombinatoryExpression = Primary.And(OneOf(Terms.AnyOf("=!<>".AsSpan(), maxSize: 2), Terms.Identifier()).ToPooledString()
             .When((ctx, s) => RegisteredOperators.ContainsKey(s)).And(Primary).Else(default((string, Expression))))
             .Then(x =>
              {
