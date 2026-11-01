@@ -276,31 +276,11 @@ public class FluidParser
                  return RegisteredOperators[x.Item2.Item1](x.Item1, x.Item2.Item2);
              }).Named("CombinatoryExpression");
 
-        LogicalExpression = CombinatoryExpression.And(ZeroOrMany(OneOf(BinaryOr, BinaryAnd).And(CombinatoryExpression)))
-            .Then(x =>
-            {
-                if (x.Item2.Count == 0)
-                {
-                    return x.Item1;
-                }
-
-                var result = x.Item2[^1].Item2;
-
-                for (var i = x.Item2.Count - 1; i >= 0; i--)
-                {
-                    var current = x.Item2[i];
-                    var previous = i == 0 ? x.Item1 : x.Item2[i - 1].Item2;
-
-                    result = current.Item1 switch
-                    {
-                        "or" => new OrBinaryExpression(previous, result),
-                        "and" => new AndBinaryExpression(previous, result),
-                        _ => throw new ParseException()
-                    };
-                }
-
-                return result;
-            });
+        // Like Liquid, "and" and "or" have the same precedence and group from the right: a or b and c is a or (b and c).
+        LogicalExpression = CombinatoryExpression.Operators()
+            .RightAssociative(
+                (BinaryOr, static (a, b) => new OrBinaryExpression(a, b)),
+                (BinaryAnd, static (a, b) => new AndBinaryExpression(a, b)));
         LogicalExpression.Name = "LogicalExpression";
 
         // ([name :] value ,)+
