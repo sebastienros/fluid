@@ -114,10 +114,11 @@ public class FluidParser
 
         _tagEndIgnoringMarkup = TagEnd.Or(AnyCharBefore(TagEnd).SkipAnd(TagEnd));
 
-        Identifier = SkipWhiteSpace(IdentifierParser.Create(parserOptions.AllowTrailingQuestionMark)).Then(x => x.ToString());
+        // The names come from a pool, so the templates of a parser share them.
+        Identifier = SkipWhiteSpace(IdentifierParser.Create(parserOptions.AllowTrailingQuestionMark)).ToPooledString();
         // Like in Shopify, a tag name is made of word chars: "{% comment-x %}" is a comment tag.
         _tagName = SkipWhiteSpace(OneOf(Literals.Char('#').Then(new TextSpan("#")), Literals.AnyOf(WordChars)));
-        VariableSignature = SkipWhiteSpace(VariableSignatureParser.Create()).Then(x => x.ToString());
+        VariableSignature = SkipWhiteSpace(VariableSignatureParser.Create()).ToPooledString();
 
         // Like Liquid, a backslash in a string literal is a plain character unless escape sequences are enabled.
         String = parserOptions.AllowStringEscapeSequences
@@ -263,7 +264,7 @@ public class FluidParser
 
         // Seek anything that looks like a binary operator (==, !=, <, >, <=, >=, contains, startswith, endswith) then validates it with the registered operators
         // An identifier reads all the word chars, so "containsx" is not "contains", but like in Shopify "contains" can be followed by a string: x contains"y"
-        CombinatoryExpression = Primary.And(OneOf(Terms.AnyOf("=!<>".AsSpan(), maxSize: 2), Terms.Identifier()).Then(x => x.ToString())
+        CombinatoryExpression = Primary.And(OneOf(Terms.AnyOf("=!<>".AsSpan(), maxSize: 2), Terms.Identifier()).ToPooledString()
             .When((ctx, s) => RegisteredOperators.ContainsKey(s)).And(Primary).Else(default((string, Expression))))
             .Then(x =>
              {
@@ -275,31 +276,11 @@ public class FluidParser
                  return RegisteredOperators[x.Item2.Item1](x.Item1, x.Item2.Item2);
              }).Named("CombinatoryExpression");
 
-        LogicalExpression = CombinatoryExpression.And(ZeroOrMany(OneOf(BinaryOr, BinaryAnd).And(CombinatoryExpression)))
-            .Then(x =>
-            {
-                if (x.Item2.Count == 0)
-                {
-                    return x.Item1;
-                }
-
-                var result = x.Item2[^1].Item2;
-
-                for (var i = x.Item2.Count - 1; i >= 0; i--)
-                {
-                    var current = x.Item2[i];
-                    var previous = i == 0 ? x.Item1 : x.Item2[i - 1].Item2;
-
-                    result = current.Item1 switch
-                    {
-                        "or" => new OrBinaryExpression(previous, result),
-                        "and" => new AndBinaryExpression(previous, result),
-                        _ => throw new ParseException()
-                    };
-                }
-
-                return result;
-            });
+        // Like Liquid, "and" and "or" have the same precedence and group from the right: a or b and c is a or (b and c).
+        LogicalExpression = CombinatoryExpression.Operators()
+            .RightAssociative(
+                (BinaryOr, static (a, b) => new OrBinaryExpression(a, b)),
+                (BinaryAnd, static (a, b) => new AndBinaryExpression(a, b)));
         LogicalExpression.Name = "LogicalExpression";
 
         // ([name :] value ,)+
