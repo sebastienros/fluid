@@ -149,15 +149,18 @@ public class FromStatementTests
     [Fact]
     public async Task FromStatement_ShouldLoadMacrosAsynchronously()
     {
-        var sourceLoader = new AsyncTemplateFileProvider()
+        var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var sourceLoader = new AsyncTemplateFileProvider { Gate = gate.Task }
             .Add("_Macros.liquid", "{% macro hello() %}Hello{% endmacro %}");
         var options = new TemplateOptionsBuilder().WithFileProvider(sourceLoader).Build();
         var source = "{% from '_Macros' import hello %}{{ hello() }}";
 
         _parser.TryParse(source, out var template, out var error);
 
+        // The render waits for the provider until the gate opens, rather than racing a Task.Yield.
         var renderTask = template.RenderAsync(new TemplateContext(options));
-        Assert.False(renderTask.IsCompletedSuccessfully);
+        Assert.False(renderTask.IsCompleted);
+        gate.SetResult(true);
         Assert.Equal("Hello", await renderTask);
         Assert.Equal(1, sourceLoader.GetReadCount("_Macros.liquid"));
     }
