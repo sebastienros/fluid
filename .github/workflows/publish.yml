@@ -136,7 +136,10 @@ jobs:
     - name: Push RID-specific packages
       env:
         NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
-      run: dotnet nuget push "tool-artifacts/Fluid.Core.Tool.[a-z]*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+      run: |
+        for package in tool-artifacts/Fluid.Core.Tool.[a-z]*.nupkg; do
+          dotnet nuget push "$package" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        done
       
     - name: Push pointer package
       env:
