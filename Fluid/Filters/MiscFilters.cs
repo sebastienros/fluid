@@ -1,6 +1,7 @@
 using Fluid.Utils;
 using Fluid.Values;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -673,7 +674,7 @@ public static class MiscFilters
 
         if (!arguments.At(1).IsNil())
         {
-            culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue(context)) ?? context.CultureInfo;
+            culture = GetSpecificCulture(arguments.At(1).ToStringValue(context)) ?? context.CultureInfo;
         }
 
         return StringValue.Create(value.ToString(format, culture));
@@ -702,7 +703,7 @@ public static class MiscFilters
 
         if (!arguments.At(1).IsNil())
         {
-            culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue(context)) ?? context.CultureInfo;
+            culture = GetSpecificCulture(arguments.At(1).ToStringValue(context)) ?? context.CultureInfo;
         }
 
         return StringValue.Create(input.ToNumberValue(context).ToString(format, culture));
@@ -721,12 +722,22 @@ public static class MiscFilters
 
         if (arguments.HasNamed("culture"))
         {
-            culture = CultureInfo.CreateSpecificCulture(arguments["culture"].ToStringValue(context)) ?? context.CultureInfo;
+            culture = GetSpecificCulture(arguments["culture"].ToStringValue(context)) ?? context.CultureInfo;
         }
 
         var parameters = arguments.ValuesToObjectArray(context);
 
         return StringValue.Create(string.Format(culture, format, parameters));
+    }
+
+    // CreateSpecificCulture returns a new instance on every call, which then rebuilds its NumberFormatInfo and
+    // DateTimeFormatInfo from the globalization data, at a much higher cost than the formatting itself.
+    private static readonly ConcurrentDictionary<string, CultureInfo> _specificCultures = new(StringComparer.Ordinal);
+
+    private static CultureInfo GetSpecificCulture(string name)
+    {
+        // Read-only since the instance is shared by all renderings, and string.Format passes it to the arguments.
+        return _specificCultures.GetOrAdd(name, static n => CultureInfo.ReadOnly(CultureInfo.CreateSpecificCulture(n)));
     }
 
     public static ValueTask<FluidValue> MD5(FluidValue input, FilterArguments arguments, TemplateContext context)

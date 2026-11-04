@@ -1084,6 +1084,19 @@ public class MiscFiltersTests
     }
 
     [Fact]
+    public async Task FormatFiltersUseTheCultureArgument()
+    {
+        // The neutral 'de' culture resolves to de-DE, and the last value uses the invariant culture of the context.
+        var template = new FluidParser().Parse("{{ 1234.5 | format_number: 'N2', 'de-DE' }}|{{ d | format_date: 'dd. MMMM yyyy', 'de' }}|{{ '{0:N1}' | format_string: 1234.5, culture: 'de-DE' }}|{{ 1234.5 | format_number: 'N2' }}");
+        var context = new TemplateContext();
+        context.SetValue("d", new DateTimeOffset(2017, 3, 1, 0, 0, 0, TimeSpan.Zero));
+
+        // The second rendering uses the cultures resolved by the first one.
+        Assert.Equal("1.234,50|01. März 2017|1.234,5|1,234.50", await template.RenderAsync(context));
+        Assert.Equal("1.234,50|01. März 2017|1.234,5|1,234.50", await template.RenderAsync(context));
+    }
+
+    [Fact]
     public async Task MD5()
     {
         // Arrange
