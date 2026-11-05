@@ -1086,14 +1086,25 @@ public class MiscFiltersTests
     [Fact]
     public async Task FormatFiltersUseTheCultureArgument()
     {
-        // The neutral 'de' culture resolves to de-DE, and the last value uses the invariant culture of the context.
-        var template = new FluidParser().Parse("{{ 1234.5 | format_number: 'N2', 'de-DE' }}|{{ d | format_date: 'dd. MMMM yyyy', 'de' }}|{{ '{0:N1}' | format_string: 1234.5, culture: 'de-DE' }}|{{ 1234.5 | format_number: 'N2' }}");
         var context = new TemplateContext();
-        context.SetValue("d", new DateTimeOffset(2017, 3, 1, 0, 0, 0, TimeSpan.Zero));
+        var number = NumberValue.Create(1234.5m);
+        var date = FluidValue.Create(new DateTimeOffset(2017, 3, 1, 0, 0, 0, TimeSpan.Zero), context.Options);
 
-        // The second rendering uses the cultures resolved by the first one.
-        Assert.Equal("1.234,50|01. März 2017|1.234,5|1,234.50", await template.RenderAsync(context));
-        Assert.Equal("1.234,50|01. März 2017|1.234,5|1,234.50", await template.RenderAsync(context));
+        // The second iteration uses the cached cultures. The neutral 'de' culture resolves to de-DE.
+        for (var i = 0; i < 2; i++)
+        {
+            var formattedNumber = await MiscFilters.FormatNumber(number, new FilterArguments(StringValue.Create("N2"), StringValue.Create("de-DE")), context);
+            Assert.Equal("1.234,50", formattedNumber.ToStringValue(context));
+
+            var formattedDate = await MiscFilters.FormatDate(date, new FilterArguments(StringValue.Create("dd. MMMM yyyy"), StringValue.Create("de")), context);
+            Assert.Equal("01. März 2017", formattedDate.ToStringValue(context));
+
+            var formattedString = await MiscFilters.FormatString(StringValue.Create("{0:N1}"), new FilterArguments(number).Add("culture", StringValue.Create("de-DE")), context);
+            Assert.Equal("1.234,5", formattedString.ToStringValue(context));
+        }
+
+        // As before the cache, an invalid culture name throws.
+        await Assert.ThrowsAsync<CultureNotFoundException>(() => MiscFilters.FormatNumber(number, new FilterArguments(StringValue.Create("N2"), StringValue.Create("not a culture")), context).AsTask());
     }
 
     [Fact]
