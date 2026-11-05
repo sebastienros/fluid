@@ -1083,28 +1083,43 @@ public class MiscFiltersTests
         Assert.Equal(expected, result.ToStringValue(context));
     }
 
-    [Fact]
-    public async Task FormatFiltersUseTheCultureArgument()
+    [Theory]
+    [InlineData("de-DE", "1.234,50", "01. März 2017", "1.234,5")]
+    [InlineData("de", "1.234,50", "01. März 2017", "1.234,5")] // A neutral culture resolves to its specific culture.
+    [InlineData("not a culture", "1,234.50", "01. March 2017", "1,234.5")] // An invalid name uses the invariant culture of the context.
+    public async Task FormatFiltersUseTheCultureArgument(string culture, string expectedNumber, string expectedDate, string expectedString)
     {
         var context = new TemplateContext();
         var number = NumberValue.Create(1234.5m);
         var date = FluidValue.Create(new DateTimeOffset(2017, 3, 1, 0, 0, 0, TimeSpan.Zero), context.Options);
+        var name = StringValue.Create(culture);
 
-        // The second iteration uses the cached cultures. The neutral 'de' culture resolves to de-DE.
+        // The second iteration uses the cached culture.
         for (var i = 0; i < 2; i++)
         {
-            var formattedNumber = await MiscFilters.FormatNumber(number, new FilterArguments(StringValue.Create("N2"), StringValue.Create("de-DE")), context);
-            Assert.Equal("1.234,50", formattedNumber.ToStringValue(context));
+            var formattedNumber = await MiscFilters.FormatNumber(number, new FilterArguments(StringValue.Create("N2"), name), context);
+            Assert.Equal(expectedNumber, formattedNumber.ToStringValue(context));
 
-            var formattedDate = await MiscFilters.FormatDate(date, new FilterArguments(StringValue.Create("dd. MMMM yyyy"), StringValue.Create("de")), context);
-            Assert.Equal("01. März 2017", formattedDate.ToStringValue(context));
+            var formattedDate = await MiscFilters.FormatDate(date, new FilterArguments(StringValue.Create("dd. MMMM yyyy"), name), context);
+            Assert.Equal(expectedDate, formattedDate.ToStringValue(context));
 
-            var formattedString = await MiscFilters.FormatString(StringValue.Create("{0:N1}"), new FilterArguments(number).Add("culture", StringValue.Create("de-DE")), context);
-            Assert.Equal("1.234,5", formattedString.ToStringValue(context));
+            var formattedString = await MiscFilters.FormatString(StringValue.Create("{0:N1}"), new FilterArguments(number).Add("culture", name), context);
+            Assert.Equal(expectedString, formattedString.ToStringValue(context));
         }
+    }
 
-        // As before the cache, an invalid culture name throws.
-        await Assert.ThrowsAsync<CultureNotFoundException>(() => MiscFilters.FormatNumber(number, new FilterArguments(StringValue.Create("N2"), StringValue.Create("not a culture")), context).AsTask());
+    [Fact]
+    public async Task FormatNumberUsesEachCultureWhenNamesShareACacheSlot()
+    {
+        // There are more specific cultures than slots in the culture cache, so some names replace others.
+        var context = new TemplateContext();
+        var number = NumberValue.Create(1234.5m);
+
+        foreach (var culture in CultureInfo.GetCultures(CultureTypes.SpecificCultures))
+        {
+            var formatted = await MiscFilters.FormatNumber(number, new FilterArguments(StringValue.Create("C2"), StringValue.Create(culture.Name)), context);
+            Assert.Equal(1234.5m.ToString("C2", CultureInfo.CreateSpecificCulture(culture.Name)), formatted.ToStringValue(context));
+        }
     }
 
     [Fact]
