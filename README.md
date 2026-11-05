@@ -1655,7 +1655,7 @@ Some non-standard filters are provided by default:
 
 ### format_date
 
-Formats dates and times using standard .NET date and time formats. It uses the current culture of the system.
+Formats dates and times using standard .NET date and time formats. It uses the culture of the template context, or the one named by an optional second argument, as in `format_date: "D", "de-DE"`. An unknown culture name uses the culture of the template context.
 
 Input
 
@@ -1673,7 +1673,7 @@ Documentation: https://docs.microsoft.com/en-us/dotnet/standard/base-types/stand
 
 ### format_number
 
-Formats numbers using standard .NET number formats.
+Formats numbers using standard .NET number formats. Like `format_date`, it takes an optional culture name as its second argument, as in `format_number: "N2", "de-DE"`.
 
 Input
 
@@ -1691,7 +1691,7 @@ Documentation: https://docs.microsoft.com/en-us/dotnet/standard/base-types/stand
 
 ### format_string
 
-Formats custom strings using standard .NET format strings.
+Formats custom strings using standard .NET format strings. A `culture` named argument sets the culture like the second argument of `format_date`, as in `format_string: 123, culture: "de-DE"`.
 
 Input
 

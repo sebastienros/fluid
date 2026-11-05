@@ -673,7 +673,7 @@ public static class MiscFilters
 
         if (!arguments.At(1).IsNil())
         {
-            culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue(context)) ?? context.CultureInfo;
+            culture = GetSpecificCulture(arguments.At(1).ToStringValue(context)) ?? context.CultureInfo;
         }
 
         return StringValue.Create(value.ToString(format, culture));
@@ -702,7 +702,7 @@ public static class MiscFilters
 
         if (!arguments.At(1).IsNil())
         {
-            culture = CultureInfo.CreateSpecificCulture(arguments.At(1).ToStringValue(context)) ?? context.CultureInfo;
+            culture = GetSpecificCulture(arguments.At(1).ToStringValue(context)) ?? context.CultureInfo;
         }
 
         return StringValue.Create(input.ToNumberValue(context).ToString(format, culture));
@@ -721,12 +721,50 @@ public static class MiscFilters
 
         if (arguments.HasNamed("culture"))
         {
-            culture = CultureInfo.CreateSpecificCulture(arguments["culture"].ToStringValue(context)) ?? context.CultureInfo;
+            culture = GetSpecificCulture(arguments["culture"].ToStringValue(context)) ?? context.CultureInfo;
         }
 
         var parameters = arguments.ValuesToObjectArray(context);
 
         return StringValue.Create(string.Format(culture, format, parameters));
+    }
+
+    // CreateSpecificCulture returns a new instance on every call, which then rebuilds its NumberFormatInfo and
+    // DateTimeFormatInfo from the globalization data, at a much higher cost than the formatting itself. Names can
+    // come from template data, so the cache has a fixed size: a name replaces whichever name held its slot.
+    private const int CultureCacheSize = 256; // A power of two, so that a mask maps a hash to a slot.
+
+    private static readonly CultureEntry[] _cultureCache = new CultureEntry[CultureCacheSize];
+
+    // A class, so that a slot changes in a single write and a reader always gets a name with its own culture.
+    private sealed record class CultureEntry(string Name, CultureInfo Culture);
+
+    // Returns null if no culture has this name.
+    private static CultureInfo GetSpecificCulture(string name)
+    {
+        var slot = StringComparer.OrdinalIgnoreCase.GetHashCode(name) & (CultureCacheSize - 1);
+
+        if (_cultureCache[slot] is { } entry && string.Equals(entry.Name, name, StringComparison.OrdinalIgnoreCase))
+        {
+            return entry.Culture;
+        }
+
+        CultureInfo culture;
+
+        try
+        {
+            // Read-only since the instance is shared by all renderings, and string.Format passes it to the arguments.
+            culture = CultureInfo.ReadOnly(CultureInfo.CreateSpecificCulture(name));
+        }
+        catch (CultureNotFoundException)
+        {
+            // Cached as well, so that an invalid name only throws once.
+            culture = null;
+        }
+
+        _cultureCache[slot] = new CultureEntry(name, culture);
+
+        return culture;
     }
 
     public static ValueTask<FluidValue> MD5(FluidValue input, FilterArguments arguments, TemplateContext context)
