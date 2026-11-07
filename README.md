@@ -1403,7 +1403,7 @@ Because the Liquid language only allows known members to be accessed, the View M
 #### View Model registration
 
 View models are automatically registered and available as the root object in liquid templates.
-Custom model registrations can be added when calling `AddFluid()`.
+Custom model registrations can be added when calling `AddFluid()`, whose action configures the `FluidMvcViewOptions` used by the view engine (the same as `services.Configure<FluidMvcViewOptions>()`).
 
 ```csharp
 public class Startup
@@ -1451,12 +1451,10 @@ public class Startup
 {
     public void ConfigureServices(IServiceCollection services)
     {
-        services.Configure<MvcViewOptions>(options =>
+        services.AddMvc().AddFluid(options =>
         {
             options.Parser = new CustomFluidViewParser();
         });
-
-        services.AddMvc().AddFluid();
     }
 }
 ```

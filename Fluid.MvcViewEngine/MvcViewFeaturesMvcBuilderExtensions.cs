@@ -8,7 +8,12 @@ namespace Fluid.MvcViewEngine;
 
 public static class MvcViewFeaturesMvcBuilderExtensions
 {
-    public static IMvcBuilder AddFluid(this IMvcBuilder builder, Action<FluidViewEngineOptions> setupAction = null)
+    /// <summary>
+    /// Registers the Fluid view engine.
+    /// </summary>
+    /// <param name="builder">The MVC builder.</param>
+    /// <param name="setupAction">An optional action to configure the <see cref="FluidMvcViewOptions"/> used by the view engine.</param>
+    public static IMvcBuilder AddFluid(this IMvcBuilder builder, Action<FluidMvcViewOptions> setupAction = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
