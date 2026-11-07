@@ -531,22 +531,24 @@ public static class MiscFilters
                 continue;
             }
 
+            // Append(string) only inlines one-character strings, so the replacements are copied
+            // into an AppendSpan slot, which inlines and copies a constant length.
             switch (c)
             {
                 case '&' when !once || !IsCharacterReference(value.AsSpan(i + 1)):
-                    result.Append("&amp;");
+                    "&amp;".AsSpan().CopyTo(result.AppendSpan(5));
                     break;
                 case '<':
-                    result.Append("&lt;");
+                    "&lt;".AsSpan().CopyTo(result.AppendSpan(4));
                     break;
                 case '>':
-                    result.Append("&gt;");
+                    "&gt;".AsSpan().CopyTo(result.AppendSpan(4));
                     break;
                 case '"':
-                    result.Append("&quot;");
+                    "&quot;".AsSpan().CopyTo(result.AppendSpan(6));
                     break;
                 case '\'':
-                    result.Append("&#39;");
+                    "&#39;".AsSpan().CopyTo(result.AppendSpan(5));
                     break;
                 default:
                     result.Append(c);
