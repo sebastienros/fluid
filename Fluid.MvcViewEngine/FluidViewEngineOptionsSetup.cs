@@ -1,5 +1,8 @@
+using System;
+using System.Text.Encodings.Web;
 using Fluid.ViewEngine;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Fluid.MvcViewEngine;
@@ -9,9 +12,12 @@ namespace Fluid.MvcViewEngine;
 /// </summary>
 internal class FluidViewEngineOptionsSetup : ConfigureOptions<FluidMvcViewOptions>
 {
-    public FluidViewEngineOptionsSetup(IWebHostEnvironment webHostEnvironment)
+    public FluidViewEngineOptionsSetup(IWebHostEnvironment webHostEnvironment, IServiceProvider serviceProvider)
         : base(options =>
         {
+            // Encode like Razor views: the HtmlEncoder service reflects the app's WebEncoderOptions.
+            options.TextEncoder = serviceProvider.GetService<HtmlEncoder>() ?? FluidViewEngineOptions.DefaultTextEncoder;
+
             var fileProvider = new FileProviderMapper(webHostEnvironment.ContentRootFileProvider, "Views");
             options.PartialsFileProvider = fileProvider;
             options.ViewsFileProvider = fileProvider;

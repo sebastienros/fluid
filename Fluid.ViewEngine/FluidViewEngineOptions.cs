@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text.Encodings.Web;
+using System.Text.Unicode;
 using System.Threading.Tasks;
 
 namespace Fluid.ViewEngine;
@@ -17,7 +18,22 @@ public class FluidViewEngineOptions
     /// <summary>
     /// Gets or sets the text encoder to use during rendering.
     /// </summary>
-    public TextEncoder TextEncoder = HtmlEncoder.Default;
+    /// <remarks>
+    /// Defaults to <see cref="DefaultTextEncoder"/>, which only encodes HTML-sensitive characters and leaves
+    /// non-ASCII text such as <c>é</c> or <c>漢</c> as is. The ASP.NET Core integrations use the application's
+    /// <see cref="HtmlEncoder"/> service instead when one is registered.
+    /// </remarks>
+    public TextEncoder TextEncoder = DefaultTextEncoder;
+
+    /// <summary>
+    /// Gets the default HTML encoder, <c>HtmlEncoder.Create(UnicodeRanges.All)</c>.
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="HtmlEncoder.Default"/>, which only allows Basic Latin, it doesn't turn non-ASCII
+    /// characters into numeric entities. It still encodes <c>&lt;</c>, <c>&gt;</c>, <c>&amp;</c>, quotes,
+    /// <c>+</c> and characters outside the Basic Multilingual Plane, such as emoji.
+    /// </remarks>
+    public static HtmlEncoder DefaultTextEncoder { get; } = HtmlEncoder.Create(UnicodeRanges.All);
 
     /// <summary>
     /// Gets the builder used to configure the <see cref="TemplateOptions"/>.

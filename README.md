@@ -832,7 +832,7 @@ By default, Fluid doesn't encode the output. Encoders can be specified when call
 
 To render a template with HTML encoding, use the `System.Text.Encodings.Web.HtmlEncoder.Default` instance.
 
-This encoder is used by default for the MVC View engine.
+`HtmlEncoder.Default` only allows Basic Latin, so it writes any other character as a numeric entity (`é` becomes `&#xE9;`). To keep non-ASCII text readable, use `HtmlEncoder.Create(UnicodeRanges.All)`, which still encodes `<`, `>`, `&`, quotes and characters outside the Basic Multilingual Plane such as emoji. The view engines fall back to that encoder, see [Encoding views](#encoding-views).
 
 ### Arrays
 
@@ -1373,6 +1373,29 @@ public class Startup
     }
 }
 ```
+
+#### Encoding views
+
+Views are HTML-encoded with `FluidViewEngineOptions.TextEncoder`. When it isn't set explicitly:
+
+- `Fluid.MvcViewEngine` and `MinimalApis.LiquidViews` use the application's `HtmlEncoder` service when one is registered (MVC always registers it). It reflects `WebEncoderOptions`, so Liquid views encode like Razor views in the same application.
+- Otherwise views use `FluidViewEngineOptions.DefaultTextEncoder`, `HtmlEncoder.Create(UnicodeRanges.All)`, which leaves non-ASCII text such as `é` or `漢` as is and still encodes `<`, `>`, `&`, quotes and emoji.
+
+The `HtmlEncoder` service registered by MVC only allows Basic Latin unless `WebEncoderOptions` is configured. To keep non-ASCII text as is in both Razor and Liquid views:
+
+```csharp
+services.Configure<WebEncoderOptions>(o => o.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.All));
+```
+
+Or only for Liquid views:
+
+```csharp
+services.Configure<FluidMvcViewOptions>(o => o.TextEncoder = HtmlEncoder.Create(UnicodeRanges.All));
+```
+
+> [!NOTE]
+> In Fluid 3.0 the view engines stopped defaulting to `HtmlEncoder.Default`. Pages with non-ASCII text, outside of MVC, now contain the characters instead of numeric entities, so their bytes change: update snapshot tests, and expect cached pages and ETags to be invalidated once.
+
 #### Registering view models
 
 Because the Liquid language only allows known members to be accessed, the View Model classes need to be registered in Fluid, usually from a static constructor so that the code is run only once for the application.
