@@ -100,6 +100,29 @@ public class StaticRenderingBenchmarks : BaseBenchmarks
         static string Normalize(string s) => Regex.Replace(s, @"\s+", " ").Trim();
     }
 
+    // What the template compiles to with no engine at all, for reference.
+    [Benchmark, BenchmarkCategory("String")]
+    public string HandWritten_Render()
+    {
+        var encoder = HtmlEncoder.Default;
+        var writer = new StringWriter(new StringBuilder(9 * 1024), CultureInfo.InvariantCulture);
+
+        writer.Write("<ul id='products'>\n");
+        foreach (var product in Products)
+        {
+            writer.Write("    <li>\n      <h2>");
+            encoder.Encode(writer, product.Name);
+            writer.Write("</h2>\n           Only ");
+            writer.Write(product.Price);
+            writer.Write("\n           ");
+            encoder.Encode(writer, StaticRenderingHelpers.Truncate(product.Description, 15));
+            writer.Write("\n    </li>\n");
+        }
+        writer.Write("</ul>\n");
+
+        return writer.ToString();
+    }
+
     [Benchmark(Baseline = true), BenchmarkCategory("String")]
     public string Fluid_Render()
     {
@@ -125,29 +148,6 @@ public class StaticRenderingBenchmarks : BaseBenchmarks
     public string Lissic_Render()
     {
         return _lissicProcessor.RenderToString(CreateLissicModel(), 16 * 1024);
-    }
-
-    // What the template compiles to with no engine at all, for reference.
-    [Benchmark, BenchmarkCategory("String")]
-    public string HandWritten_Render()
-    {
-        var encoder = HtmlEncoder.Default;
-        var writer = new StringWriter(new StringBuilder(9 * 1024), CultureInfo.InvariantCulture);
-
-        writer.Write("<ul id='products'>\n");
-        foreach (var product in Products)
-        {
-            writer.Write("    <li>\n      <h2>");
-            encoder.Encode(writer, product.Name);
-            writer.Write("</h2>\n           Only ");
-            writer.Write(product.Price);
-            writer.Write("\n           ");
-            encoder.Encode(writer, StaticRenderingHelpers.Truncate(product.Description, 15));
-            writer.Write("\n    </li>\n");
-        }
-        writer.Write("</ul>\n");
-
-        return writer.ToString();
     }
 
     [Benchmark(Baseline = true), BenchmarkCategory("Utf8")]

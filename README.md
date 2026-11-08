@@ -2053,25 +2053,25 @@ TL;DR — Fluid is faster and allocates less memory than all other well-known .N
 
 **Parse: Parses a simple HTML template containing filters and properties**
 
-Scriban takes 52% longer to parse and allocates almost 3 times as much memory as Fluid.
+Scriban takes 71% longer to parse and allocates 4 times as much memory as Fluid.
 
 ![Parse benchmark comparison](Assets/benchmark-parse.png)
 
 **ParseBig: Parses a Blog Post template**
 
-Scriban takes almost twice as long to parse and allocates over 3.5 times as much memory as Fluid.
+Scriban takes 2.4 times as long to parse and allocates over 5 times as much memory as Fluid.
 
 ![Large template parse benchmark comparison](Assets/benchmark-parse-big.png)
 
 **Render: Renders a simple HTML template containing filters and properties, with 100 elements**
 
-DotLiquid takes almost 10 times as long to render and allocates 18 times as much memory as Fluid.
-The second best, Handlebars (Mustache), takes 26% longer and allocates over 3 times as much memory.
+DotLiquid takes almost 13 times as long to render and allocates 18 times as much memory as Fluid.
+The second best, Handlebars (Mustache), takes 66% longer and allocates over 3 times as much memory.
 
 ![Render benchmark comparison](Assets/benchmark-render.png)
 
-Tested on 10/29/2026 with
-- Parlot 2.0.0
+Tested on 11/8/2026 with
+- Parlot 2.2.1
 - Scriban 7.5.3
 - DotLiquid 2.3.260
 - Handlebars.Net 2.4.3
@@ -2085,29 +2085,29 @@ Tested on 10/29/2026 with
 ``` text
 BenchmarkDotNet v0.15.8, macOS Sequoia 15.8.2 (24H232) [Darwin 24.6.0]
 Apple M4 Pro, 1 CPU, 14 logical and 14 physical cores
-.NET SDK 11.0.100-rc.2.26504.105
+.NET SDK 11.0.100-rc.3.26522.148
   [Host]   : .NET 10.0.11 (10.0.11, 10.0.1126.37416), Arm64 RyuJIT armv8.0-a
   ShortRun : .NET 10.0.11 (10.0.11, 10.0.1126.37416), Arm64 RyuJIT armv8.0-a
 
 Job=ShortRun  IterationCount=3  LaunchCount=1
 WarmupCount=3
 
-| Method              | Mean       | Error         | StdDev     | Ratio  | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
-|-------------------- |-----------:|--------------:|-----------:|-------:|--------:|--------:|--------:|----------:|------------:|
-| Fluid_Parse         |   1.640 us |     0.8571 us |  0.0470 us |   1.00 |    0.03 |  0.4101 |  0.0019 |   3.36 KB |        1.00 |
-| Scriban_Parse       |   2.489 us |     0.4374 us |  0.0240 us |   1.52 |    0.04 |  1.2245 |  0.0648 |  10.01 KB |        2.98 |
-| DotLiquid_Parse     |   4.030 us |     0.6436 us |  0.0353 us |   2.46 |    0.06 |  1.9608 |  0.0229 |  16.05 KB |        4.78 |
-| Handlebars_Parse    | 492.983 us |   974.5709 us | 53.4195 us | 300.71 |   29.17 | 15.6250 |  7.8125 | 132.59 KB |       39.47 |
-|                     |            |               |            |        |         |         |         |           |             |
-| Fluid_ParseBig      |   7.198 us |     1.9825 us |  0.1087 us |   1.00 |    0.02 |  1.6556 |  0.0610 |  13.55 KB |        1.00 |
-| Scriban_ParseBig    |  14.248 us |     2.6343 us |  0.1444 us |   1.98 |    0.03 |  5.8746 |  1.1749 |  48.07 KB |        3.55 |
-| DotLiquid_ParseBig  |  20.788 us |     1.8463 us |  0.1012 us |   2.89 |    0.04 | 11.4136 |  0.5188 |  93.46 KB |        6.90 |
-| Handlebars_ParseBig | 375.286 us | 1,012.0915 us | 55.4761 us |  52.14 |    6.71 | 16.6016 |  7.8125 | 140.21 KB |       10.35 |
-|                     |            |               |            |        |         |         |         |           |             |
-| Fluid_Render        |  17.490 us |     2.2822 us |  0.1251 us |   1.00 |    0.01 |  4.4250 |  0.0610 |  36.27 KB |        1.00 |
-| Scriban_Render      |  68.655 us |    17.7318 us |  0.9719 us |   3.93 |    0.05 | 17.0898 |  2.4414 | 140.73 KB |        3.88 |
-| DotLiquid_Render    | 169.235 us |    16.6873 us |  0.9147 us |   9.68 |    0.08 | 80.5664 | 15.3809 | 659.18 KB |       18.17 |
-| Handlebars_Render   |  22.077 us |     5.2115 us |  0.2857 us |   1.26 |    0.02 | 14.5874 |       - | 119.31 KB |        3.29 |
+| Method              | Mean       | Error       | StdDev     | Ratio  | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
+|-------------------- |-----------:|------------:|-----------:|-------:|--------:|--------:|--------:|----------:|------------:|
+| Fluid_Parse         |   1.411 us |   0.0809 us |  0.0044 us |   1.00 |    0.00 |  0.2975 |       - |   2.45 KB |        1.00 |
+| Scriban_Parse       |   2.419 us |   0.2555 us |  0.0140 us |   1.71 |    0.01 |  1.2245 |  0.0648 |  10.01 KB |        4.09 |
+| DotLiquid_Parse     |   3.879 us |   0.0956 us |  0.0052 us |   2.75 |    0.01 |  1.9608 |  0.0229 |  16.05 KB |        6.56 |
+| Handlebars_Parse    | 440.647 us | 390.3733 us | 21.3977 us | 312.25 |   13.16 | 15.6250 |  7.8125 | 132.63 KB |       54.24 |
+|                     |            |             |            |        |         |         |         |           |             |
+| Fluid_ParseBig      |   5.933 us |   0.1952 us |  0.0107 us |   1.00 |    0.00 |  1.1368 |  0.0153 |    9.3 KB |        1.00 |
+| Scriban_ParseBig    |  13.990 us |   3.9269 us |  0.2152 us |   2.36 |    0.03 |  5.8746 |  1.1749 |  48.07 KB |        5.17 |
+| DotLiquid_ParseBig  |  20.270 us |   8.1472 us |  0.4466 us |   3.42 |    0.07 | 11.4136 |  0.5188 |  93.46 KB |       10.05 |
+| Handlebars_ParseBig | 344.341 us | 535.0808 us | 29.3296 us |  58.04 |    4.28 | 16.6016 |  7.8125 | 141.46 KB |       15.22 |
+|                     |            |             |            |        |         |         |         |           |             |
+| Fluid_Render        |  13.454 us |   0.1538 us |  0.0084 us |   1.00 |    0.00 |  4.4250 |  0.0610 |  36.28 KB |        1.00 |
+| Scriban_Render      |  67.609 us |  18.1324 us |  0.9939 us |   5.03 |    0.06 | 17.0898 |  2.4414 | 140.73 KB |        3.88 |
+| DotLiquid_Render    | 170.340 us |  17.5619 us |  0.9626 us |  12.66 |    0.06 | 80.5664 | 15.3809 | 659.18 KB |       18.17 |
+| Handlebars_Render   |  22.341 us |   1.3578 us |  0.0744 us |   1.66 |    0.00 | 14.5874 |       - | 119.31 KB |        3.29 |
 ```
 
 </details>
@@ -2118,13 +2118,13 @@ Some engines compile templates into the application instead of reading them at r
 
 **Render: renders the product template to a string**
 
-Compiled Fluid templates take 31% less time than parsed ones and allocate the same memory. RazorSlices takes 40% less time than parsed Fluid templates and allocates 51% more, and Lissic takes 16% less time and allocates 2.3 times as much. Hand-written C# takes 75% less time, for reference.
+Compiled Fluid templates are the fastest engine: they take 33% less time than parsed ones and allocate the same memory. RazorSlices takes 24% less time than parsed Fluid templates and allocates 51% more, and Lissic takes 7% more time and allocates 2.3 times as much. Hand-written C# takes 68% less time, for reference.
 
 ![Compiled templates and static engines render benchmark comparison](Assets/benchmark-static-render.png)
 
 **Render to UTF-8: renders the product template as UTF-8 to a buffer, like an HTTP response body**
 
-Compiled Fluid templates take 29% less time than parsed ones. RazorSlices is the fastest engine, taking 60% less time than parsed Fluid templates and allocating 70% less. Lissic takes 8% less time and allocates 3.5 times as much when each render copies the products into the template classes it generates. When the same model is built once and reused, it takes 43% less time and allocates nothing.
+Compiled Fluid templates take 31% less time than parsed ones. RazorSlices is the fastest engine, taking 48% less time than parsed Fluid templates and allocating 70% less. Lissic takes 14% more time and allocates 3.5 times as much when each render copies the products into the template classes it generates. When the same model is built once and reused, it takes 21% less time and allocates nothing.
 
 ![Compiled templates and static engines UTF-8 render benchmark comparison](Assets/benchmark-static-render-utf8.png)
 
@@ -2134,7 +2134,7 @@ These engines are faster because the compiler reads the template, not the applic
 - RazorSlices templates are Razor, so they contain C# code and can never come from users. RazorSlices requires ASP.NET Core.
 - Lissic templates have no expressions or conditions, only a choice between branches by a value. The data has to be copied into the classes it generates, and values are only HTML-encoded with a filter.
 
-Tested on 10/29/2026 on the same machine as the results above, with
+Tested on 11/8/2026 on the same machine as the results above, with
 - RazorSlices 0.12.2
 - Lissic 0.1.4
 
@@ -2146,7 +2146,7 @@ Tested on 10/29/2026 on the same machine as the results above, with
 
 BenchmarkDotNet v0.15.8, macOS Sequoia 15.8.2 (24H232) [Darwin 24.6.0]
 Apple M4 Pro, 1 CPU, 14 logical and 14 physical cores
-.NET SDK 11.0.100-rc.2.26504.105
+.NET SDK 11.0.100-rc.3.26522.148
   [Host]     : .NET 10.0.11 (10.0.11, 10.0.1126.37416), Arm64 RyuJIT armv8.0-a
   DefaultJob : .NET 10.0.11 (10.0.11, 10.0.1126.37416), Arm64 RyuJIT armv8.0-a
 
@@ -2154,17 +2154,17 @@ Apple M4 Pro, 1 CPU, 14 logical and 14 physical cores
 ```
 | Method                           | Categories | Mean      | Error     | StdDev    | Ratio | RatioSD | Gen0    | Gen1   | Allocated | Alloc Ratio |
 |--------------------------------- |----------- |----------:|----------:|----------:|------:|--------:|--------:|-------:|----------:|------------:|
-| Fluid_Render                     | String     | 18.123 μs | 0.2042 μs | 0.1810 μs |  1.00 |    0.01 |  4.4250 | 0.0610 |   37145 B |        1.00 |
-| Fluid_SourceGenerated_Render     | String     | 12.477 μs | 0.2108 μs | 0.1972 μs |  0.69 |    0.01 |  4.4098 | 0.0458 |   37081 B |        1.00 |
-| RazorSlices_Render               | String     | 10.796 μs | 0.1158 μs | 0.1083 μs |  0.60 |    0.01 |  6.6833 | 0.7324 |   56112 B |        1.51 |
-| Lissic_Render                    | String     | 15.284 μs | 0.0440 μs | 0.0344 μs |  0.84 |    0.01 | 10.1013 | 1.9836 |   84744 B |        2.28 |
-| HandWritten_Render               | String     |  4.619 μs | 0.0862 μs | 0.0807 μs |  0.25 |    0.00 |  5.3329 | 0.3281 |   44720 B |        1.20 |
+| HandWritten_Render               | String     |  4.805 μs | 0.0949 μs | 0.1015 μs |  0.32 |    0.01 |  5.3329 | 0.3281 |   44720 B |        1.20 |
+| Fluid_Render                     | String     | 14.895 μs | 0.2933 μs | 0.5213 μs |  1.00 |    0.05 |  4.4250 | 0.0610 |   37153 B |        1.00 |
+| Fluid_SourceGenerated_Render     | String     |  9.994 μs | 0.1510 μs | 0.2213 μs |  0.67 |    0.03 |  4.4098 | 0.0458 |   37089 B |        1.00 |
+| RazorSlices_Render               | String     | 11.272 μs | 0.0546 μs | 0.0511 μs |  0.76 |    0.03 |  6.6833 | 0.7324 |   56112 B |        1.51 |
+| Lissic_Render                    | String     | 15.890 μs | 0.1753 μs | 0.1554 μs |  1.07 |    0.04 | 10.1013 | 1.7090 |   84744 B |        2.28 |
 |                                  |            |           |           |           |       |         |         |        |           |             |
-| Fluid_RenderUtf8                 | Utf8       | 17.298 μs | 0.0614 μs | 0.0544 μs |  1.00 |    0.00 |  2.2583 | 0.0305 |   19065 B |        1.00 |
-| Fluid_SourceGenerated_RenderUtf8 | Utf8       | 12.262 μs | 0.0861 μs | 0.0719 μs |  0.71 |    0.00 |  2.2583 | 0.0305 |   19001 B |        1.00 |
-| RazorSlices_RenderUtf8           | Utf8       |  6.987 μs | 0.0866 μs | 0.0810 μs |  0.40 |    0.00 |  0.6866 |      - |    5792 B |        0.30 |
-| Lissic_RenderUtf8                | Utf8       | 15.960 μs | 0.3068 μs | 0.2720 μs |  0.92 |    0.02 |  8.0261 | 1.3733 |   67280 B |        3.53 |
-| Lissic_PrebuiltModel_RenderUtf8  | Utf8       |  9.943 μs | 0.0649 μs | 0.0542 μs |  0.57 |    0.00 |       - |      - |         - |        0.00 |
+| Fluid_RenderUtf8                 | Utf8       | 13.580 μs | 0.1099 μs | 0.1028 μs |  1.00 |    0.01 |  2.2888 | 0.0305 |   19201 B |        1.00 |
+| Fluid_SourceGenerated_RenderUtf8 | Utf8       |  9.417 μs | 0.0597 μs | 0.0559 μs |  0.69 |    0.01 |  2.2736 | 0.0305 |   19137 B |        1.00 |
+| RazorSlices_RenderUtf8           | Utf8       |  7.000 μs | 0.0262 μs | 0.0219 μs |  0.52 |    0.00 |  0.6866 |      - |    5792 B |        0.30 |
+| Lissic_RenderUtf8                | Utf8       | 15.493 μs | 0.1390 μs | 0.1300 μs |  1.14 |    0.01 |  8.0261 | 1.3428 |   67280 B |        3.50 |
+| Lissic_PrebuiltModel_RenderUtf8  | Utf8       | 10.749 μs | 0.0414 μs | 0.0367 μs |  0.79 |    0.01 |       - |      - |         - |        0.00 |
 
 </details>
 

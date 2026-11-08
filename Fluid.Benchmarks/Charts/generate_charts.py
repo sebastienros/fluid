@@ -63,12 +63,13 @@ CHARTS = [
 ]
 
 # Compiled templates and other static engines, against a parsed Fluid template. Each series is a benchmark method,
-# its label, its color and whether it is highlighted like Fluid.
+# its label, its color and whether it is highlighted like Fluid. The baseline, when there is one, is drawn first.
 STATIC_CHARTS = [
     {
         "file": "benchmark-static-render",
         "title": "Compiled templates and static engines render benchmark comparison",
         "desc": "Duration and memory allocation for {engines} rendering the product template to a string. Smaller values are better.",
+        "baseline": "HandWritten_Render",
         "series": [
             ("Fluid_Render", "Fluid", "#1f77b4", True),
             ("Fluid_SourceGenerated_Render", "Fluid compiled", "#17becf", True),
@@ -211,8 +212,10 @@ def comparison_series(rows, chart):
 
 def render_chart(template, rows, chart, series, old_svg):
     """Renders the series, a list of (method, label, color, highlighted), in the chart's template."""
-    # Fluid first, then the other engines from fastest to slowest.
-    series = [s for s in series if s[3]] + sorted((s for s in series if not s[3]), key=lambda s: rows[s[0]][0])
+    # The baseline first, then Fluid, then the other engines from fastest to slowest.
+    baseline = chart.get("baseline")
+    series = ([s for s in series if s[0] == baseline] + [s for s in series if s[3] and s[0] != baseline]
+              + sorted((s for s in series if not s[3] and s[0] != baseline), key=lambda s: rows[s[0]][0]))
     labels = [label for _, label, _, _ in series]
     duration_top, memory_top = old_axis_tops(old_svg)
 
