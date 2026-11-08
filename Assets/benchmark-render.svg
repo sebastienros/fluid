@@ -36,14 +36,14 @@
     <line class="grid" x1="62" y1="84" x2="500" y2="84"/><text class="tick" x="52" y="88" text-anchor="end">200</text>
     <line class="axis" x1="62" y1="84" x2="62" y2="342"/><line class="axis" x1="62" y1="342" x2="500" y2="342"/>
 
-    <rect x="88" y="319.4" width="72" height="22.6" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
-    <text class="fluid-value" x="124" y="312">17.490</text>
-    <rect class="competitor" x="193" y="313.5" width="72" height="28.5" rx="1" fill="#d62728"/>
-    <text class="value" x="229" y="307">22.077</text>
-    <rect class="competitor" x="298" y="253.4" width="72" height="88.6" rx="1" fill="#ff7f0e"/>
-    <text class="value" x="334" y="246">68.655</text>
-    <rect class="competitor" x="403" y="123.7" width="72" height="218.3" rx="1" fill="#2ca02c"/>
-    <text class="value" x="439" y="117">169.235</text>
+    <rect x="88" y="324.6" width="72" height="17.4" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
+    <text class="fluid-value" x="124" y="318">13.454</text>
+    <rect class="competitor" x="193" y="313.2" width="72" height="28.8" rx="1" fill="#d62728"/>
+    <text class="value" x="229" y="306">22.341</text>
+    <rect class="competitor" x="298" y="254.8" width="72" height="87.2" rx="1" fill="#ff7f0e"/>
+    <text class="value" x="334" y="248">67.609</text>
+    <rect class="competitor" x="403" y="122.3" width="72" height="219.7" rx="1" fill="#2ca02c"/>
+    <text class="value" x="439" y="115">170.340</text>
     <text class="axis-title" x="281" y="381" text-anchor="middle">Duration (Microseconds)</text>
   </g>
 
@@ -57,7 +57,7 @@
     <line class="axis" x1="588" y1="84" x2="588" y2="342"/><line class="axis" x1="588" y1="342" x2="1026" y2="342"/>
 
     <rect x="614" y="328.6" width="72" height="13.4" rx="1" fill="#1f77b4" stroke="#0b4f79" stroke-width="2.5"/>
-    <text class="fluid-value" x="650" y="322">36.27</text>
+    <text class="fluid-value" x="650" y="322">36.28</text>
     <rect class="competitor" x="719" y="298" width="72" height="44" rx="1" fill="#d62728"/>
     <text class="value" x="755" y="291">119.31</text>
     <rect class="competitor" x="824" y="290.1" width="72" height="51.9" rx="1" fill="#ff7f0e"/>
