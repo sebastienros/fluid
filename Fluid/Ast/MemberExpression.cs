@@ -23,48 +23,106 @@ public sealed class MemberExpression : Expression, ISynchronousSourceable
         {
             ExceptionHelper.ThrowArgumentException(nameof(segments), "At least one segment is required in a MemberExpression");
         }
+
+        _identifiers = GetIdentifiers(_segments);
+    }
+
+    // The segments when they are all identifiers, like a.b.c, which is the shape of nearly every member expression.
+    // Typed as the sealed class, the calls to its members are direct.
+    private readonly IdentifierSegment[] _identifiers;
+
+    private static IdentifierSegment[] GetIdentifiers(MemberSegment[] segments)
+    {
+        var identifiers = new IdentifierSegment[segments.Length];
+
+        for (var i = 0; i < segments.Length; i++)
+        {
+            if (segments[i] is not IdentifierSegment identifier)
+            {
+                return null;
+            }
+
+            identifiers[i] = identifier;
+        }
+
+        return identifiers;
     }
 
     public IReadOnlyList<MemberSegment> Segments => _segments;
 
     public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
     {
-        var firstSegment = _segments[0];
-        var task = firstSegment.ResolveFromScopeAsync(context);
+        var identifiers = _identifiers;
 
-        if (!task.IsCompletedSuccessfully)
+        if (identifiers is null)
         {
-            return AwaitedFromScope(task, context, _segments);
+            return EvaluateSegmentsAsync(context);
         }
 
-        var (value, useModelFallback) = task.Result;
-        var start = 1;
+        // Resolves the variable like IdentifierSegment.ResolveFromScopeAsync, without the virtual call and the tuple
+        // it returns, which cost as much as the lookup itself.
+        var name = identifiers[0].Identifier;
+        var value = context.ShadowWithCounter(name, context.LocalScope.GetValue(name));
 
-        // Handle model fallback for IdentifierSegment when value is nil
-        if (useModelFallback)
+        if (value.IsNil())
         {
-            if (context.Model.IsNil())
+            return EvaluateFromModelAsync(value, context);
+        }
+
+        for (var i = 1; i < identifiers.Length; i++)
+        {
+            var segment = identifiers[i];
+            var task = segment.ResolveAsync(value, context);
+
+            if (!task.IsCompletedSuccessfully)
             {
-                // Check equality as IsNil() is also true for UndefinedValue
-                if (context.Undefined is not null && value == UndefinedValue.Instance)
-                {
-                    if (context.Options.StrictVariables)
-                    {
-                        throw new FluidException($"Undefined variable '{firstSegment.GetSegmentName()}'");
-                    }
-                    return context.Undefined.Invoke(firstSegment.GetSegmentName(), null);
-                }
-                if (context.Options.StrictVariables)
-                {
-                    throw new FluidException($"Undefined variable '{firstSegment.GetSegmentName()}'");
-                }
-                return new ValueTask<FluidValue>(value);
+                return Awaited(task, context, _segments, i + 1);
             }
 
-            start = 0;
-            value = context.Model;
+            value = task.Result;
+
+            if (value.IsNil())
+            {
+                if (context.Options.StrictVariables)
+                {
+                    throw new FluidException($"Undefined variable '{segment.Identifier}'");
+                }
+
+                return new ValueTask<FluidValue>(value);
+            }
         }
 
+        return new ValueTask<FluidValue>(value);
+    }
+
+    /// <summary>
+    /// Evaluates the expression when its variable is not defined: its members are read from the model, if there is one.
+    /// </summary>
+    private ValueTask<FluidValue> EvaluateFromModelAsync(FluidValue value, TemplateContext context)
+    {
+        if (context.Model.IsNil())
+        {
+            // Check equality as IsNil() is also true for UndefinedValue
+            if (context.Undefined is not null && value == UndefinedValue.Instance)
+            {
+                if (context.Options.StrictVariables)
+                {
+                    throw new FluidException($"Undefined variable '{_segments[0].GetSegmentName()}'");
+                }
+                return context.Undefined.Invoke(_segments[0].GetSegmentName(), null);
+            }
+            if (context.Options.StrictVariables)
+            {
+                throw new FluidException($"Undefined variable '{_segments[0].GetSegmentName()}'");
+            }
+            return new ValueTask<FluidValue>(value);
+        }
+
+        return ResolveSegmentsAsync(context.Model, 0, context);
+    }
+
+    private ValueTask<FluidValue> ResolveSegmentsAsync(FluidValue value, int start, TemplateContext context)
+    {
         for (var i = start; i < _segments.Length; i++)
         {
             var s = _segments[i];
@@ -89,6 +147,24 @@ public sealed class MemberExpression : Expression, ISynchronousSourceable
         }
 
         return new ValueTask<FluidValue>(value);
+    }
+
+    private ValueTask<FluidValue> EvaluateSegmentsAsync(TemplateContext context)
+    {
+        var firstSegment = _segments[0];
+        var task = firstSegment.ResolveFromScopeAsync(context);
+
+        if (!task.IsCompletedSuccessfully)
+        {
+            return AwaitedFromScope(task, context, _segments);
+        }
+
+        var (value, useModelFallback) = task.Result;
+
+        // Handle model fallback for IdentifierSegment when value is nil
+        return useModelFallback
+            ? EvaluateFromModelAsync(value, context)
+            : ResolveSegmentsAsync(value, 1, context);
     }
 
     private static async ValueTask<FluidValue> AwaitedFromScope(

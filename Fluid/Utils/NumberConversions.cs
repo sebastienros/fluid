@@ -16,6 +16,19 @@ internal static class NumberConversions
     /// </summary>
     public static int ToInt32Saturated(decimal value)
     {
+#if NET8_0_OR_GREATER
+        // Lengths, offsets and limits are nearly always small whole numbers, which need neither rounding nor the
+        // decimal comparisons below, that cost several times more than reading the bits.
+        Span<int> bits = stackalloc int[4];
+        decimal.GetBits(value, bits);
+
+        // A scale of 0 (bits 16 to 23 of the flags) and a magnitude that fits in 31 bits.
+        if ((bits[3] & 0x00FF0000) == 0 && bits[2] == 0 && bits[1] == 0 && bits[0] >= 0)
+        {
+            return bits[3] < 0 ? -bits[0] : bits[0];
+        }
+#endif
+
         if (value >= int.MaxValue)
         {
             return int.MaxValue;
@@ -91,7 +104,7 @@ internal static class NumberConversions
     {
         if (Math.Abs(value) < (double)decimal.MaxValue)
         {
-            return NumberValue.Create(ToDecimal(value));
+            return ToNumberValue(value);
         }
 
         return StringValue.Create(value.ToString("R", CultureInfo.InvariantCulture));
@@ -111,6 +124,47 @@ internal static class NumberConversions
     /// </summary>
     /// <exception cref="OverflowException">The value is NaN, an infinity, or out of the decimal range.</exception>
     public static decimal ToDecimal(double value) => ToDecimal(value, 15);
+
+    /// <summary>
+    /// Creates the number of a double, like <c>NumberValue.Create(ToDecimal(value))</c>.
+    /// </summary>
+    /// <exception cref="OverflowException">The value is NaN, an infinity, or out of the decimal range.</exception>
+    public static NumberValue ToNumberValue(double value)
+    {
+        // Whole numbers, like quantities and many prices, are exact with 15 significant digits: their decimal is the
+        // integer, with a scale of 0, so the arithmetic of ToDecimal isn't needed. NaN fails both comparisons.
+        if (value > int.MinValue && value < int.MaxValue)
+        {
+            var integer = (int)value;
+
+            if (integer == value)
+            {
+                return NumberValue.Create(integer);
+            }
+        }
+
+        return NumberValue.Create(ToDecimal(value));
+    }
+
+    /// <summary>
+    /// Creates the number of a float, like <c>NumberValue.Create(ToDecimal(value))</c>.
+    /// </summary>
+    /// <exception cref="OverflowException">The value is NaN, an infinity, or out of the decimal range.</exception>
+    public static NumberValue ToNumberValue(float value)
+    {
+        // Whole numbers with at most 7 digits are exact with the 7 significant digits of a float, see the double overload.
+        if (value > -1e7f && value < 1e7f)
+        {
+            var integer = (int)value;
+
+            if (integer == value)
+            {
+                return NumberValue.Create(integer);
+            }
+        }
+
+        return NumberValue.Create(ToDecimal(value));
+    }
 
     /// <summary>
     /// Converts like a <c>(decimal)</c> cast before .NET 11, which kept 7 significant digits.

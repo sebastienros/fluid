@@ -32,6 +32,7 @@ class Program
         var seconds = args.Length > 2 ? int.Parse(args[2]) : 25;
 
         var benchmark = new FluidBenchmarks();
+        var staticRendering = new StaticRendering.StaticRenderingBenchmarks();
 
         Func<object> work = what.ToLowerInvariant() switch
         {
@@ -39,6 +40,9 @@ class Program
             "parse" => () => benchmark.Parse(),
             "parsebig" => () => benchmark.ParseBig(),
             "parseandrender" => () => benchmark.ParseAndRender(),
+            "sourcegenerated" => () => staticRendering.Fluid_SourceGenerated_Render(),
+            "sourcegeneratedutf8" => () => { staticRendering.Fluid_SourceGenerated_RenderUtf8(); return staticRendering; },
+            "razorslicesutf8" => () => { staticRendering.RazorSlices_RenderUtf8(); return staticRendering; },
             _ => throw new ArgumentException("Unknown profile workload: " + what)
         };
 

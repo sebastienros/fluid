@@ -18,6 +18,7 @@ public class FilterErrorTests
     [InlineData("{{ 'abc' | slice: nil }}", "Slice: offset argument is an invalid number")]
     [InlineData("{{ 'abc' | slice: 1, 'x' }}", "Slice: length argument is not a number")]
     [InlineData("{{ 'abc' | truncate: nil }}", "truncate: cannot convert nil to number")]
+    [InlineData("{{ 'abc' | truncate: 1, '', 2 }}", "Wrong number of arguments for 'truncate' (given 3, expected 0..2)")]
     [InlineData("{{ 'a b c' | truncatewords: nil }}", "truncatewords: cannot convert nil to number")]
     [InlineData("{{ 9 | compact | reject: '' }}", "Cannot access property '' on Number")]
     [InlineData("{{ 79228162514264337593543950335 | plus: 1 }}", "plus: the result is too large to be represented")]

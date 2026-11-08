@@ -362,6 +362,22 @@ world
     }
 
     [Theory]
+    [InlineData("5", "Hello")]
+    [InlineData("5.0", "Hello")]
+    [InlineData("0", "")]
+    [InlineData("-5", "")]
+    [InlineData("2147483647", "Hello world")]
+    [InlineData("-2147483648", "")]
+    [InlineData("99999999999999999999", "Hello world")]
+    [InlineData("-99999999999999999999", "")]
+    public async Task TruncateLengthIsAnInteger(string length, string expected)
+    {
+        var template = new FluidParser().Parse("{{ 'Hello world' | truncate: " + length + ", '' }}");
+
+        Assert.Equal(expected, await template.RenderAsync(new TemplateContext()));
+    }
+
+    [Theory]
     [InlineData("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 18, ", and so on", "ABCDEFG, and so on")]
     [InlineData("I'm a little teapot, short and stout.", 15, "", "I'm a little te")]
     [InlineData("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 5, ", and so on", ", and so on")]

@@ -90,13 +90,13 @@ public abstract class MemberAccessor
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static ValueTask<FluidValue> CreateValueTask(double value, TemplateContext context)
         => new(!context.Options.HasValueConverters
-            ? NumberValue.Create(NumberConversions.ToDecimal(value))
+            ? NumberConversions.ToNumberValue(value)
             : FluidValue.Create(value, context.Options));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static ValueTask<FluidValue> CreateValueTask(float value, TemplateContext context)
         => new(!context.Options.HasValueConverters
-            ? NumberValue.Create(NumberConversions.ToDecimal(value))
+            ? NumberConversions.ToNumberValue(value)
             : FluidValue.Create(value, context.Options));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

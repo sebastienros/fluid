@@ -75,6 +75,23 @@ public sealed class Utf8FluidOutput : IFluidOutput, IDisposable, IAsyncDisposabl
 
     public void Write(string value)
     {
+        // Called for every text and value of a template: a write that fits in the buffer is only a copy. The buffer
+        // is null until the first write and after disposal, which the other path checks.
+        var buffer = _charBuffer;
+        var index = _charIndex;
+
+        if (buffer is not null && value is not null && (uint)value.Length <= (uint)(buffer.Length - index))
+        {
+            value.AsSpan().CopyTo(buffer.AsSpan(index));
+            _charIndex = index + value.Length;
+            return;
+        }
+
+        WriteSlow(value);
+    }
+
+    private void WriteSlow(string value)
+    {
         ThrowIfDisposed();
 
         if (!string.IsNullOrEmpty(value))

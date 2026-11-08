@@ -221,6 +221,52 @@ public class FluidValueFactoryTests
     }
 
     [Fact]
+    public void ListConversionShouldConvertEachItemByItsType()
+    {
+        var first = new PlainItem("a");
+        var list = new List<object>
+        {
+            first,
+            new OtherPlainItem(),
+            null,
+            new Dictionary<string, object> { ["a"] = 1 },
+            5,
+            "text",
+            Letter.a,
+            first,
+            new PlainItem("b"),
+        };
+
+        var values = ((ArrayValue)FluidValue.Create(list, TemplateOptions.Default)).Values;
+
+        Assert.Equal(list.Count, values.Count);
+        Assert.Same(first, Assert.IsType<ObjectValue>(values[0]).Value);
+        Assert.IsType<OtherPlainItem>(Assert.IsType<ObjectValue>(values[1]).Value);
+        Assert.Same(NilValue.Instance, values[2]);
+        Assert.IsType<DictionaryValue>(values[3]);
+        Assert.Equal(5, values[4].ToNumberValue(new TemplateContext()));
+        Assert.Equal("text", Assert.IsType<StringValue>(values[5]).ToStringValue(new TemplateContext()));
+        Assert.Equal("a", Assert.IsType<StringValue>(values[6]).ToStringValue(new TemplateContext()));
+        Assert.Same(first, Assert.IsType<ObjectValue>(values[7]).Value);
+        Assert.Equal("b", Assert.IsType<PlainItem>(Assert.IsType<ObjectValue>(values[8]).Value).Name);
+    }
+
+    [Fact]
+    public void ListConversionShouldApplyConvertersToEachItem()
+    {
+        var options = new TemplateOptionsBuilder()
+            .AddValueConverter(value => value is PlainItem { Name: "b" } ? "converted" : null)
+            .Build();
+
+        var list = new List<PlainItem> { new("a"), new("b"), new("c") };
+        var values = ((ArrayValue)FluidValue.Create(list, options)).Values;
+
+        Assert.IsType<ObjectValue>(values[0]);
+        Assert.Equal("converted", Assert.IsType<StringValue>(values[1]).ToStringValue(new TemplateContext()));
+        Assert.IsType<ObjectValue>(values[2]);
+    }
+
+    [Fact]
     public void CustomObjectSubclassesShouldRemainSupported()
     {
         var instance = new CustomObjectValue("custom");
@@ -231,6 +277,12 @@ public class FluidValueFactoryTests
     private enum Letter
     {
         a
+    }
+
+    private sealed record PlainItem(string Name);
+
+    private sealed class OtherPlainItem
+    {
     }
 
     private sealed class FormattableNumber : IFormattable
