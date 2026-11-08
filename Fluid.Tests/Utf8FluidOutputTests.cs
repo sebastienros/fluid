@@ -257,6 +257,8 @@ public class Utf8FluidOutputTests
         Assert.Equal("\ufffd", writer.ToString());
         Assert.False(writer.IsDisposed);
         Assert.Throws<ObjectDisposedException>(() => output.Write("x"));
+        Assert.Throws<ObjectDisposedException>(() => output.Write(""));
+        Assert.Throws<ObjectDisposedException>(() => output.Write((string)null));
     }
 
     private static string Decode(ArrayBufferWriter<byte> writer) =>

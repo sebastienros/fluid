@@ -62,6 +62,64 @@ public class FloatingPointConversionTests
         Assert.Equal(expected, Converter.Convert(value, context).ToStringValue(context));
     }
 
+    // Whole numbers skip the conversion to significant digits, and have to give the same numbers, with a scale of 0.
+    [Theory]
+    [InlineData(0.0, "0")]
+    [InlineData(42.0, "42")]
+    [InlineData(-42.0, "-42")]
+    [InlineData(1023.0, "1023")]
+    [InlineData(1024.0, "1024")]
+    [InlineData(2147483646.0, "2147483646")]
+    [InlineData(2147483647.0, "2147483647")]
+    [InlineData(-2147483647.0, "-2147483647")]
+    [InlineData(-2147483648.0, "-2147483648")]
+    [InlineData(1e15, "1000000000000000")]
+    [InlineData(42.5, "42.5")]
+    public void WholeDoublesAreIntegers(double value, string expected)
+    {
+        var context = new TemplateContext();
+
+        AssertNumber(expected, Converter.Convert(value, context), context);
+        AssertNumber(expected, FluidValue.Create(value, context.Options), context);
+    }
+
+    [Theory]
+    [InlineData(0f, "0")]
+    [InlineData(42f, "42")]
+    [InlineData(-42f, "-42")]
+    [InlineData(9999999f, "9999999")]
+    [InlineData(-9999999f, "-9999999")]
+    [InlineData(10000000f, "10000000")]
+    // More digits than a float has are rounded to 7 significant digits.
+    [InlineData(16777216f, "16777220")]
+    [InlineData(42.5f, "42.5")]
+    public void WholeFloatsAreIntegers(float value, string expected)
+    {
+        var context = new TemplateContext();
+
+        AssertNumber(expected, Converter.Convert(value, context), context);
+    }
+
+    [Fact]
+    public void SmallWholeNumbersAreInterned()
+    {
+        var context = new TemplateContext();
+
+        Assert.Same(NumberValue.Create(42m), Converter.Convert(42f, context));
+        Assert.Same(NumberValue.Create(42m), Converter.Convert(42.0, context));
+        Assert.Same(NumberValue.Create(0m), Converter.Convert(-0f, context));
+        Assert.Same(NumberValue.Create(0m), Converter.Convert(-0.0, context));
+    }
+
+    private static void AssertNumber(string expected, FluidValue value, TemplateContext context)
+    {
+        Assert.IsType<NumberValue>(value);
+        Assert.Equal(expected, value.ToStringValue(context));
+
+        // The text of a decimal includes its scale, so 42 and 42.0 are different.
+        Assert.Equal(expected, value.ToNumberValue(context).ToString(CultureInfo.InvariantCulture));
+    }
+
     [Fact]
     public void NaNIsOutOfTheDecimalRange()
     {

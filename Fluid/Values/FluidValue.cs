@@ -194,8 +194,8 @@ public abstract class FluidValue : IEquatable<FluidValue>
                             TypeCode.UInt32 => NumberValue.Create(convertible.ToUInt32(options.CultureInfo)),
                             TypeCode.Int64 => NumberValue.Create(convertible.ToDecimal(options.CultureInfo)),
                             TypeCode.UInt64 => NumberValue.Create(convertible.ToDecimal(options.CultureInfo)),
-                            TypeCode.Single => NumberValue.Create(NumberConversions.ToDecimal(convertible.ToSingle(options.CultureInfo))),
-                            TypeCode.Double => NumberValue.Create(NumberConversions.ToDecimal(convertible.ToDouble(options.CultureInfo))),
+                            TypeCode.Single => NumberConversions.ToNumberValue(convertible.ToSingle(options.CultureInfo)),
+                            TypeCode.Double => NumberConversions.ToNumberValue(convertible.ToDouble(options.CultureInfo)),
                             TypeCode.Decimal => NumberValue.Create(convertible.ToDecimal(options.CultureInfo)),
                             TypeCode.DateTime => DateTimeValue.Create(convertible.ToDateTime(options.CultureInfo)),
                             TypeCode.String => StringValue.Create(convertible.ToString(options.CultureInfo)),
@@ -269,9 +269,30 @@ public abstract class FluidValue : IEquatable<FluidValue>
                         }
 
                         var values = new FluidValue[list.Count];
+
+                        // The items of a list nearly always have the same type. Without converters, the value of an
+                        // object only depends on its type: once an item is a plain object, the next ones of the same
+                        // type are too, without going through all the checks again.
+                        var hasConverters = options.HasValueConverters;
+                        Type plainType = null;
+
                         for (var i = 0; i < values.Length; i++)
                         {
-                            values[i] = Create(list[i], options);
+                            var item = list[i];
+
+                            if (plainType is not null && item is not null && ReferenceEquals(item.GetType(), plainType))
+                            {
+                                values[i] = ObjectValue.Create(item);
+                                continue;
+                            }
+
+                            var itemValue = Create(item, options);
+                            values[i] = itemValue;
+
+                            if (!hasConverters && itemValue is ObjectValue objectValue && ReferenceEquals(objectValue.Value, item))
+                            {
+                                plainType = item.GetType();
+                            }
                         }
 
                         return ArrayValue.Create(values);

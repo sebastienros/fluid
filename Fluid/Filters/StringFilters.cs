@@ -692,7 +692,13 @@ public static class StringFilters
 
     public static ValueTask<FluidValue> Truncate(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        LiquidException.ThrowFilterArgumentsCount("truncate", min: 0, max: 2, arguments);
+        // Often called for every item of a loop, so the arguments are only read once.
+        var count = arguments.Count;
+
+        if (count > 2)
+        {
+            LiquidException.ThrowFilterArgumentsCount("truncate", min: 0, max: 2, arguments);
+        }
 
         // Like Liquid, nil is returned before the arguments are checked.
         if (input.IsNil())
@@ -709,18 +715,20 @@ public static class StringFilters
 
         // If first argument is not provided, use default of 50
         // If first argument is nil (undefined variable), throw error per Golden Liquid spec
-        var firstArg = arguments.At(0);
         int length;
-        if (arguments.Count == 0)
+        if (count == 0)
         {
             length = 50; // Default length
         }
-        else if (firstArg.IsNil())
-        {
-            throw new LiquidException("truncate: cannot convert nil to number");
-        }
         else
         {
+            var firstArg = arguments.At(0);
+
+            if (firstArg.IsNil())
+            {
+                throw new LiquidException("truncate: cannot convert nil to number");
+            }
+
             length = NumberConversions.ToInt32Saturated(firstArg.ToNumberValue(context));
         }
 
@@ -740,22 +748,22 @@ public static class StringFilters
 
         // If second argument is not provided, use default "..."
         // If second argument is nil (undefined variable), use empty string per Golden Liquid spec
-        var secondArg = arguments.At(1);
         string ellipsisStr;
-        if (arguments.Count < 2)
+        int ellipsisLength;
+        if (count < 2)
         {
-            ellipsisStr = "..."; // Default ellipsis when not provided
-        }
-        else if (secondArg.IsNil())
-        {
-            ellipsisStr = ""; // Undefined variable means no ellipsis
+            ellipsisStr = EllipsisString; // Default ellipsis when not provided
+            ellipsisLength = EllipsisString.Length;
         }
         else
         {
-            ellipsisStr = secondArg.ToStringValue(context);
+            var secondArg = arguments.At(1);
+            ellipsisStr = secondArg.IsNil()
+                ? "" // Undefined variable means no ellipsis
+                : secondArg.ToStringValue(context);
+            ellipsisLength = CodePoints.HasSurrogates(ellipsisStr.AsSpan()) ? CodePoints.Count(ellipsisStr) : ellipsisStr.Length;
         }
 
-        var ellipsisLength = CodePoints.HasSurrogates(ellipsisStr.AsSpan()) ? CodePoints.Count(ellipsisStr) : ellipsisStr.Length;
         var l = Math.Max(0, length - ellipsisLength);
 
         if (hasSurrogates)
