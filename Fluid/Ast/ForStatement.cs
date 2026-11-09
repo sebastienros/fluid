@@ -117,20 +117,11 @@ public sealed class ForStatement : TagStatement, ISourceable
             evaluatedSource = await Source.EvaluateAsync(context);
         }
 
-        // Golden Liquid: empty strings are treated as empty collections
-        if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue(context)))
-        {
-            if (Else != null)
-            {
-                await Else.WriteToAsync(output, encoder, context);
-            }
-
-            return Completion.Normal;
-        }
-
+        // Like Liquid, a string is a single item, or none when it is empty, whatever the limit and offset.
         // Indexed values are read by index, so limit, offset and reversed only read the items they render.
         // Other values are enumerated into a list.
-        var source = await ArrayValue.ToFluidArrayAsync(evaluatedSource, context);
+        var isString = evaluatedSource.Type == FluidValues.String;
+        var source = isString ? null : await ArrayValue.ToFluidArrayAsync(evaluatedSource, context);
 
         // Apply options
         var startIndex = 0;
@@ -157,13 +148,31 @@ public sealed class ForStatement : TagStatement, ISourceable
             startIndex = 0;
         }
 
-        var count = Math.Max(0, source.Count - startIndex);
+        int count;
 
-        // Like Liquid, a nil limit doesn't limit the items.
-        if (Limit is not null && await EvaluateIntegerArgumentAsync("limit", Limit, context) is int limit)
+        if (isString)
         {
-            // Like Liquid, the slice ends at offset + limit, so a negative limit renders nothing.
-            count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));
+            // The limit is still evaluated, so that an invalid one fails like in Liquid.
+            if (Limit is not null)
+            {
+                await EvaluateIntegerArgumentAsync("limit", Limit, context);
+            }
+
+            // The cursor still moves from the offset, like for any other value.
+            itemsBeforeFirst -= startIndex;
+            startIndex = 0;
+            count = string.IsNullOrEmpty(evaluatedSource.ToStringValue(context)) ? 0 : 1;
+        }
+        else
+        {
+            count = Math.Max(0, source.Count - startIndex);
+
+            // Like Liquid, a nil limit doesn't limit the items.
+            if (Limit is not null && await EvaluateIntegerArgumentAsync("limit", Limit, context) is int limit)
+            {
+                // Like Liquid, the slice ends at offset + limit, so a negative limit renders nothing.
+                count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));
+            }
         }
 
         // Like Liquid, the continue cursor moves to the end of the slice when the loop starts, before the body runs:
@@ -215,7 +224,7 @@ public sealed class ForStatement : TagStatement, ISourceable
 
                 // When reversed, iterate the slice in reverse without mutating the underlying list.
                 var itemIndex = Reversed ? endIndexExclusive - 1 - iteration : startIndex + iteration;
-                var item = source[itemIndex];
+                var item = isString ? evaluatedSource : source[itemIndex];
 
                 context.LocalScope.SetOwnValue(Identifier, item);
 
@@ -434,20 +443,10 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
 
         context.WriteLine($"var evaluatedSource = await {sourceExpr}({context.ContextName});");
-        context.WriteLine("if (evaluatedSource.Type == FluidValues.String && string.IsNullOrEmpty(evaluatedSource.ToStringValue(context)))");
-        context.WriteLine("{");
-        using (context.Indent())
-        {
-            if (Else != null)
-            {
-                var elseStmt = context.GetStatementMethodName(Else);
-                context.WriteLine($"await {elseStmt}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-            }
-            context.WriteLine("return Completion.Normal;");
-        }
-        context.WriteLine("}");
-        context.WriteLine();
-        context.WriteLine($"var source = await ArrayValue.ToFluidArrayAsync(evaluatedSource, {context.ContextName});");
+
+        // Like Liquid, a string is a single item, or none when it is empty, whatever the limit and offset.
+        context.WriteLine("var isString = evaluatedSource.Type == FluidValues.String;");
+        context.WriteLine($"var source = isString ? null : await ArrayValue.ToFluidArrayAsync(evaluatedSource, {context.ContextName});");
         context.WriteLine("var startIndex = 0;");
         if (Offset is not null)
         {
@@ -472,7 +471,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
         context.WriteLine("}");
 
-        context.WriteLine("var count = Math.Max(0, source.Count - startIndex);");
+        context.WriteLine("var count = isString ? 0 : Math.Max(0, source!.Count - startIndex);");
         if (Limit is not null)
         {
             var limitExpr = context.GetExpressionMethodName(Limit);
@@ -486,6 +485,16 @@ public sealed class ForStatement : TagStatement, ISourceable
             }
             context.WriteLine("}");
         }
+
+        context.WriteLine("if (isString)");
+        context.WriteLine("{");
+        using (context.Indent())
+        {
+            context.WriteLine("itemsBeforeFirst -= startIndex;");
+            context.WriteLine("startIndex = 0;");
+            context.WriteLine($"count = string.IsNullOrEmpty(evaluatedSource.ToStringValue({context.ContextName})) ? 0 : 1;");
+        }
+        context.WriteLine("}");
 
         context.WriteLine($"{context.ContextName}.SetValue({continueOffsetLiteralName}, startIndex + count - itemsBeforeFirst);");
         context.WriteLine("if (count == 0)");
@@ -546,7 +555,7 @@ public sealed class ForStatement : TagStatement, ISourceable
             {
                 context.WriteLine($"{context.ContextName}.IncrementSteps();");
                 context.WriteLine($"var itemIndex = {(Reversed ? "endIndexExclusive - 1 - iteration" : "startIndex + iteration")};");
-                context.WriteLine("var item = source[itemIndex];");
+                context.WriteLine("var item = isString ? evaluatedSource : source![itemIndex];");
                 context.WriteLine($"{context.ContextName}.LocalScope.SetOwnValue({identifierLit}, item);");
 
                 if (usesForLoop)

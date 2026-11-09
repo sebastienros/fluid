@@ -54,9 +54,11 @@ public sealed class TableRowStatement : TagStatement
             return Completion.Normal;
         }
 
-        var source = await ArrayValue.ToFluidArrayAsync(evaluatedSource, context);
+        // Like Liquid, a string is a single item, whatever the limit and offset.
+        var isString = evaluatedSource.Type == FluidValues.String;
+        var source = isString ? null : await ArrayValue.ToFluidArrayAsync(evaluatedSource, context);
 
-        if (source.Count == 0)
+        if (!isString && source.Count == 0)
         {
             output.Write(EmptyRow);
             return Completion.Normal;
@@ -77,14 +79,22 @@ public sealed class TableRowStatement : TagStatement
             startIndex = 0;
         }
 
-        var count = Math.Max(0, source.Count - startIndex);
+        var count = isString ? 1 : Math.Max(0, source.Count - startIndex);
 
         if (Limit is not null)
         {
             var limit = await EvaluateIntegerArgumentAsync("limit", Limit, context);
 
             // Like Liquid, the slice ends at offset + limit, so a negative limit renders nothing.
-            count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));
+            if (!isString)
+            {
+                count = Math.Min(count, Math.Max(0, limit - itemsBeforeFirst));
+            }
+        }
+
+        if (isString)
+        {
+            startIndex = 0;
         }
 
         if (count == 0)
@@ -115,7 +125,7 @@ public sealed class TableRowStatement : TagStatement
                 context.IncrementSteps();
 
                 var itemIndex = startIndex + iteration;
-                var item = source[itemIndex];
+                var item = isString ? evaluatedSource : source[itemIndex];
 
                 context.LocalScope.SetOwnValue(Identifier, item);
 

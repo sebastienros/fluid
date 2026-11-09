@@ -1591,8 +1591,9 @@ Shopify Liquid ignores some content and reads some words in ways that can be sur
 - The `in` of a `for` or `tablerow` tag is followed by whitespace: `{% for i in(1..3) %}` is invalid.
 - A tag name is made of letters, digits and `_`, so `{% comment-x %}` is a `comment` tag, and `{% my-tag %}` is the `my` tag.
 - Tags without arguments ignore anything after their name: closing tags, `else`, `comment`, `raw`, `break`, `continue` and `ifchanged`, as in `{% endfor items %}`.
-- In a `for` tag, `reversed` is only read right after the collection, even when it starts a longer word: `{% for i in items reversedx %}` is reversed, `{% for i in items limit: 2 reversed %}` is not. A `tablerow` tag ignores it.
-- The `limit`, `offset` and `cols` attributes are read anywhere after the collection, and anything else is ignored: `{% for i in items foo, limit: 2 %}` renders two items.
+- A `for` tag only accepts `reversed` right after the collection, then `limit` and `offset` attributes, optionally separated by commas. Anything else is a syntax error, like a misspelled `{% for i in items limt: 2 %}`, `{% for i in items reversedx %}` or `{% for i in items limit: 2 reversed %}`.
+- The `limit`, `offset` and `cols` attributes of a `tablerow` tag are read anywhere after the collection, and anything else is ignored, `reversed` included: `{% tablerow i in items foo, limit: 2 %}` renders two items.
+- A `for` or `tablerow` loop over a string renders it once, whatever its `limit` and `offset`: `{% for i in "abc" limit: 0 %}{{ i }}{% endfor %}` renders `abc`.
 
 ## Whitespace control
 

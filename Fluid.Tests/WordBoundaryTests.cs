@@ -135,31 +135,22 @@ public class WordBoundaryTests
         AssertRenders(_liquidTagParser, source, expected);
     }
 
-    // Like in Shopify, "reversed" is only read right after the collection, even when it starts a longer word,
-    // "name: value" attributes are read anywhere after the collection, and anything else is ignored.
+    // Like Shopify's strict parser, "reversed" can only come right after the collection, followed by "limit" and "offset"
+    // attributes, optionally separated by commas.
     [Theory]
     [InlineData("{% for i in x reversed %}{{ i }}{% endfor %}", "cba")]
-    [InlineData("{% for i in x reversedx %}{{ i }}{% endfor %}", "cba")]
-    [InlineData("{% for i in x reversed_ %}{{ i }}{% endfor %}", "cba")]
-    [InlineData("{% for i in x reversed:2 %}{{ i }}{% endfor %}", "cba")]
-    [InlineData("{% for i in x reversed-limit:2 %}{{ i }}{% endfor %}", "cba")]
-    [InlineData("{% for i in x reversedx limit:2 %}{{ i }}{% endfor %}", "ba")]
     [InlineData("{% for i in x reversed limit:2 %}{{ i }}{% endfor %}", "ba")]
-    [InlineData("{% for i in x limit:2 reversed %}{{ i }}{% endfor %}", "ab")]
-    [InlineData("{% for i in x, reversed %}{{ i }}{% endfor %}", "abc")]
-    [InlineData("{% for i in x xreversed %}{{ i }}{% endfor %}", "abc")]
-    [InlineData("{% for i in x foo limit:2 %}{{ i }}{% endfor %}", "ab")]
-    [InlineData("{% for i in x limit:2 foo %}{{ i }}{% endfor %}", "ab")]
-    [InlineData("{% for i in x 'a' 12 | limit:2 %}{{ i }}{% endfor %}", "ab")]
-    [InlineData("{% for i in x foo:2 limit :2 %}{{ i }}{% endfor %}", "ab")]
-    [InlineData("{% for i in x limitx:1 %}{{ i }}{% endfor %}", "abc")]
-    [InlineData("{% for i in x foolimit:1 %}{{ i }}{% endfor %}", "abc")]
-    [InlineData("{% for i in x offset_:1 %}{{ i }}{% endfor %}", "abc")]
-    [InlineData("{% for i in x limit %}{{ i }}{% endfor %}", "abc")]
-    [InlineData("{% for i in x limit: %}{{ i }}{% endfor %}", "abc")]
+    [InlineData("{% for i in x reversed, limit:2 %}{{ i }}{% endfor %}", "ba")]
+    [InlineData("{% for i in x reversed limit : 1 %}{{ i }}{% endfor %}", "a")]
+    [InlineData("{% for i in x, limit:2 %}{{ i }}{% endfor %}", "ab")]
+    [InlineData("{% for i in x , limit:2 %}{{ i }}{% endfor %}", "ab")]
     [InlineData("{% for i in x limit:2,offset:1 %}{{ i }}{% endfor %}", "bc")]
+    [InlineData("{% for i in x limit: 2 , offset: 1 %}{{ i }}{% endfor %}", "bc")]
+    [InlineData("{% for i in x limit:2 offset : 1 %}{{ i }}{% endfor %}", "bc")]
     [InlineData("{% for i in x limit:2 limit:1 %}{{ i }}{% endfor %}", "a")]
-    [InlineData("{% for i in x reversed foo -%} {{ i }}{% endfor %}", "cba")]
+    [InlineData("{% for i in x limit:1 offset:1 limit:2 %}{{ i }}{% endfor %}", "bc")]
+    [InlineData("{% for i in x limit:2, %}{{ i }}{% endfor %}", "ab")] // Golden Liquid accepts a trailing comma
+    [InlineData("{% for i in x limit:1-%} {{ i }}{% endfor %}", "a")]
     [InlineData("{% tablerow i in x reversed foo colsx:1 limit:2 %}{{ i }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">a</td><td class=\"col2\">b</td></tr>\n")]
     [InlineData("{% tablerow i in (1..3) cols:1 foo offset:2 %}{{ i }}{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">3</td></tr>\n")]
     public void ShouldReadLoopAttributesLikeShopify(string source, string expected)
@@ -167,6 +158,43 @@ public class WordBoundaryTests
         source = "{% assign x = 'a,b,c' | split: ',' %}" + source;
         AssertRenders(_parser, source, expected);
         AssertRenders(_liquidTagParser, source, expected);
+    }
+
+    // Like Shopify's strict parser, a for loop rejects any other attribute, unlike a tablerow.
+    [Theory]
+    [InlineData("{% for x in a limt: 2 %}{{ x }}{% endfor %}")]
+    [InlineData("{% for x in a offest: 1 %}{{ x }}{% endfor %}")]
+    [InlineData("{% for x in a reverse %}{{ x }}{% endfor %}")]
+    [InlineData("{% for x in a limit: 1 extra %}{{ x }}{% endfor %}")]
+    [InlineData("{% for i in x reversedx %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x reversed_ %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x reversed:2 %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x reversed-limit:2 %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x reversed reversed %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x reversed foo -%} {{ i }}{% endfor %}")]
+    [InlineData("{% for i in x limit:2 reversed %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x, reversed %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x xreversed %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x foo limit:2 %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x limit:2 foo %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x 'a' 12 | limit:2 %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x 42 %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x foo:2 limit:2 %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x limitx:1 %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x foolimit:1 %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x offset_:1 %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x LIMIT:1 %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x limit %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x limit: %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x limit:2 limit %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x limit:2,,offset:1 %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in x limit: 'x' | upcase %}{{ i }}{% endfor %}")]
+    [InlineData("{% liquid for i in x limt: 2\n echo i\n endfor %}")]
+    [InlineData("{% liquid for i in x reversed foo\n echo i\n endfor %}")]
+    public void ShouldRejectInvalidForAttributes(string source)
+    {
+        Assert.False(_liquidTagParser.TryParse(source, out _, out var error));
+        Assert.Contains(Fluid.Parser.ErrorMessages.InvalidForAttribute, error);
     }
 
     [Theory]
@@ -189,8 +217,8 @@ public class WordBoundaryTests
     [InlineData("{% liquid comment\n a\n endcomment x\n echo 'c' %}", "c")]
     [InlineData("{% liquid comment x\n a\n endcomment\n echo 'c' %}", "c")]
     [InlineData("{% liquid echo-1\n comment-x\n a\n endcomment %}", "-1")]
-    [InlineData("{% liquid for i in (1..3) foo limit:2\n echo i\n endfor %}", "12")]
-    [InlineData("{% liquid for i in (1..3) reversedx\n echo i\n endfor %}", "321")]
+    [InlineData("{% liquid for i in (1..3) limit:2\n echo i\n endfor %}", "12")]
+    [InlineData("{% liquid for i in (1..3) reversed\n echo i\n endfor %}", "321")]
     public void ShouldUseWordBoundariesInLiquidTag(string source, string expected)
     {
         AssertRenders(_liquidTagParser, source, expected);

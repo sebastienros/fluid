@@ -212,7 +212,7 @@ public static partial class Templates
     [InlineData("{% if x %}a{% elsif y %}b{% else %}c{% endif %}{% unless x %}d{% elsif y %}e{% else %}f{% endunless %}")]
     [InlineData("{% if x %}  {% assign a = 1 %}  {% else %}  {% endif %}")]
     [InlineData("{% for i in (1..3) %}{% if i == 2 %}{% continue %}{% endif %}{{ forloop.index }}{{ forloop.rindex0 }}{{ forloop.first }}{% else %}none{% endfor %}")]
-    [InlineData("{% for i in items limit: 2 offset: 1 reversed %}{{ i }}{% endfor %}{% for i in items offset: continue %}{{ i }}{% endfor %}")]
+    [InlineData("{% for i in items reversed limit: 2 offset: 1 %}{{ i }}{% endfor %}{% for i in items offset: continue %}{{ i }}{% endfor %}")]
     [InlineData("{% for i in 'abc' %}{{ i }}{% endfor %}{% for i in (1..2) %}{% for j in (1..2) %}{{ forloop.parentloop.index }}{% break %}{% endfor %}{% endfor %}")]
     [InlineData("{% for i in (1..2) %}\n{% endfor %}")]
     [InlineData("{% assign a = 'x' | upcase %}{% capture b %}{{ a }}{% endcapture %}{{ b }}{% cycle 'c', 'd' %}{% cycle 'g': 'e', 'f' %}")]

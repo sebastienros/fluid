@@ -462,6 +462,9 @@ public class SourceGenerationTests
     [Theory]
     [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 7 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "0|E|")]
     [InlineData("{% for i in items limit: 1 %}{{ i }}{% endfor %}|{% for i in items offset: 3 limit: 0 %}{{ i }}{% else %}E{% endfor %}|{% for i in items offset: continue %}{{ i }}{% endfor %}", "0|E|34")]
+    // Like Liquid, a string is a single item, or none when it is empty, whatever the limit and offset.
+    [InlineData("{% for i in 'c' limit: 0 %}[{{ i }}]{% else %}E{% endfor %}|{% for i in 'c' reversed offset: 1 %}[{{ i }}{{ forloop.length }}]{% endfor %}|{% for i in '' limit: 1 %}[{{ i }}]{% else %}E{% endfor %}", "[c]|[c1]|E")]
+    [InlineData("{% assign s = 'abc' %}{% for i in s offset: 2 %}{% endfor %}{% assign s = items %}{% for i in s offset: continue %}{{ i }}{% endfor %}", "34")]
     public async Task GeneratedLoops_EmptySliceUpdatesContinueCursor(string liquid, string expected)
     {
         var instance = CompileTemplate(liquid, new MockFileProvider());
@@ -546,6 +549,7 @@ public class SourceGenerationTests
     [InlineData("{% for i in (1..3) %}{{ forloop['index'] }}{{ forloop[\"last\"] }} {% endfor %}", "1false 2false 3true ")]
     [InlineData("{% for i in (1..4) limit: 2 %}{{ i }}{% endfor %}|{% for i in (1..4) offset: continue %}{{ i }}{% endfor %}", "12|34")]
     [InlineData("{% for i in (1..6) limit: 2 %}{% for i in (1..6) offset: continue limit: 1 %}[{{ i }}]{% endfor %}{% endfor %}|{% for i in (1..6) offset: continue %}{{ i }}{% endfor %}", "[3][4]|56")]
+    [InlineData("{% for i in (01..3) %}{{ forloop.name }}{% break %}{% endfor %}|{% for i in (1..6) limit: 2 %}{{ i }}{% endfor %}|{% for i in (01..6) offset: continue %}{{ i }}{% endfor %}", "i-(01..3)|12|123456")]
     public async Task GeneratedRangeLoops_NameTheirSource(string liquid, string expected)
     {
         var instance = CompileTemplate(liquid, new MockFileProvider());

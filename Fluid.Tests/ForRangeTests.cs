@@ -60,6 +60,10 @@ public class ForRangeTests
     [InlineData("{% for i in (1.5..3) %}{{ forloop.name }} {% endfor %}", "i-(1.5..3) i-(1.5..3) i-(1.5..3) ")]
     [InlineData("{% for i in (0..1.0) %}{{ forloop.name }} {% endfor %}", "i-(0..1.0) i-(0..1.0) ")]
     [InlineData("{% for i in ('1'..2) %}{{ forloop.name }} {% endfor %}{% for i in (1..\"1\") %}{{ forloop.name }} {% endfor %}", "i-('1'..2) i-('1'..2) i-(1..\"1\") ")]
+    [InlineData("{% for i in (01..3) %}{{ forloop.name }}{% break %}{% endfor %}|{% for i in (1..03) %}{{ forloop.name }}{% break %}{% endfor %}", "i-(01..3)|i-(1..03)")]
+    [InlineData("{% for i in (00..1) %}{{ forloop.name }}{% break %}{% endfor %}|{% for i in (-0..1) %}{{ forloop.name }}{% break %}{% endfor %}", "i-(00..1)|i-(-0..1)")]
+    [InlineData("{% for i in (01.50..3) %}{{ forloop.name }}{% break %}{% endfor %}|{% for i in (-0.0..2) %}{{ forloop.name }}{% break %}{% endfor %}", "i-(01.50..3)|i-(-0.0..2)")]
+    [InlineData("{% for i in ( 01 .. 3 ) %}{{ forloop.name }}{% break %}{% endfor %}|{% for i in (01..last) %}{{ forloop.name }}{% break %}{% endfor %}", "i-(01..3)|i-(01..last)")]
     public async Task ForLoopNameDescribesTheRange(string source, string expected)
     {
         var template = _parser.Parse(source);
@@ -76,6 +80,10 @@ public class ForRangeTests
     // A different loop variable is a different loop.
     [InlineData("{% for i in (1..6) limit: 2 %}{{ i }}{% endfor %}|{% for j in (1..6) offset: continue %}{{ j }}{% endfor %}", "12|123456")]
     [InlineData("{% for i in (1.5..3) limit: 1 %}{{ i }}{% endfor %}|{% for i in (1..3) offset: continue %}{{ i }}{% endfor %}", "1|123")]
+    [InlineData("{% for i in (01..6) limit: 2 %}{{ i }}{% endfor %}|{% for i in (1..6) offset: continue %}{{ i }}{% endfor %}", "12|123456")]
+    [InlineData("{% for i in (1..6) limit: 2 %}{{ i }}{% endfor %}|{% for i in (01..6) offset: continue %}{{ i }}{% endfor %}|{% for i in (1..6) offset: continue %}{{ i }}{% endfor %}", "12|123456|3456")]
+    [InlineData("{% for i in (-01..2) limit: 2 %}{{ i }}{% endfor %}|{% for i in (-1..2) offset: continue %}{{ i }}{% endfor %}", "-10|-1012")]
+    [InlineData("{% for i in (01..6) limit: 2 %}{{ i }}{% endfor %}|{% for i in ( 01 .. 6 ) offset: continue %}{{ i }}{% endfor %}", "12|3456")]
     // Like Liquid, a loop moves the cursor when it starts: a nested loop over the same range continues after it.
     [InlineData("{% for i in (1..6) limit: 2 %}{% for i in (1..6) offset: continue limit: 1 %}[{{ i }}]{% endfor %}{{ i }}{% endfor %}|{% for i in (1..6) offset: continue %}{{ i }}{% endfor %}", "[3]1[4]2|56")]
     [InlineData("{% for i in (1..6) limit: 1 %}{% break %}{% endfor %}{% for i in (1..6) offset: continue limit: 2 %}{{ i }}{% endfor %}", "23")]

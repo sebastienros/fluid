@@ -323,6 +323,17 @@ public class TableRowStatementTests
         Assert.Equal(expected, await _parser.Parse(source).RenderAsync(new TemplateContext()));
     }
 
+    [Theory]
+    // Like Liquid, a string is a single item, whatever the limit and offset.
+    [InlineData("{% tablerow i in \"c\" limit: 0 %}[{{ i }}]{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">[c]</td></tr>\n")]
+    [InlineData("{% tablerow i in \"c\" offset: 3 cols: 1 %}[{{ i }}]{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">[c]</td></tr>\n")]
+    [InlineData("{% tablerow i in \"c\" limit: -1 offset: -3 %}[{{ i }}{{ tablerowloop.length }}]{% endtablerow %}", "<tr class=\"row1\">\n<td class=\"col1\">[c1]</td></tr>\n")]
+    [InlineData("{% tablerow i in \"\" limit: 1 %}[{{ i }}]{% endtablerow %}", "<tr class=\"row1\">\n</tr>\n")]
+    public async Task StringsIgnoreLimitAndOffset(string source, string expected)
+    {
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(new TemplateContext()));
+    }
+
     [Fact]
     public async Task OtherArgumentsAreTemplateErrors()
     {

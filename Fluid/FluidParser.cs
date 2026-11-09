@@ -174,9 +174,9 @@ public class FluidParser
             .Then(x => new MemberExpression([x.Item1, .. x.Item2]));
         Member.Name = "Member";
 
-        // Like Liquid, literal range bounds are truncated: (2.7..4) is (2..4). Each bound keeps its text too, which
-        // names the range in forloop.name, like Liquid does with (2.7..4).
-        var RangeBound = Terms.Decimal().Then(static x => new RangeBound(new LiteralExpression(NumberValue.Create(decimal.Truncate(x))), x.ToString(CultureInfo.InvariantCulture)));
+        // Like Liquid, literal range bounds are truncated: (2.7..4) is (2..4). Each bound keeps its text as written too,
+        // which names the range in forloop.name and its offset: continue cursor, like Liquid does with (2.7..4) or (01..4).
+        var RangeBound = Terms.Decimal().Then(static (context, start, end, x) => new RangeBound(new LiteralExpression(NumberValue.Create(decimal.Truncate(x))), GetBoundSource(context, start, end)));
         RangeBound.Name = "RangeBound";
 
         // Like Liquid, a bound can also be a string, converted to an integer when the range is evaluated.
@@ -184,7 +184,7 @@ public class FluidParser
         StringRangeBound.Name = "StringRangeBound";
 
         var MemberRangeBound = Member.Then(static x => new RangeBound(x, null));
-        var IntegerRangeBound = Integer.Then(static x => new RangeBound(x, null));
+        var IntegerRangeBound = Integer.Then(static (context, start, end, x) => new RangeBound(x, GetBoundSource(context, start, end)));
 
         var Range = LParen
             .SkipAnd(OneOf(
@@ -585,8 +585,8 @@ public class FluidParser
         // Like in Shopify, "in" is followed by whitespace: "{% for i in(1..3) %}" is invalid.
         var In = Terms.Text("in").AndSkip(Literals.WhiteSpace(includeNewLines: true));
 
-        // Like in Shopify, the "name: value" attributes of a loop are read anywhere after its collection, and anything else is ignored,
-        // like "foo", "limitx: 2" and the commas in "{% for i in items foo, limitx: 2, limit: 3 %}".
+        // Like in Shopify, the "name: value" attributes of a tablerow are read anywhere after its collection, and anything else is ignored,
+        // like "foo", "colsx: 2" and the commas in "{% tablerow i in items foo, colsx: 2, cols: 3 %}".
         var IgnoredLoopMarkup = OneOf(
             Identifier.AndSkip(Colon).AndSkip(Primary),
             Literals.Pattern(static _ => true, maxSize: 1).Then(static _ => default(string)));
@@ -601,17 +601,23 @@ public class FluidParser
         // Shopify reads the attributes of a tablerow with a regular expression, which doesn't separate them.
         var LoopAttributeValue = Number.Or(Primary);
 
-        // Like in Shopify, "reversed" is only read right after the collection, even when it starts a longer word ("reversedx").
-        var Reversed = Always(true).WhenFollowedBy(Terms.Text("reversed")).Else(false);
+        // Like Shopify's strict parser, "reversed" can only come right after the collection, followed by "limit" and "offset"
+        // attributes, optionally separated by commas. Anything else is an error, like "limt: 2", "foo" or "limit: 2 reversed".
+        // Like Golden Liquid, the attributes can end with a comma ("limit: 4, offset: 2, %}"), which Shopify only accepts in lax mode.
+        var Reversed = Word("reversed").Then(static _ => true).Else(false);
+
+        var ForAttributes = ZeroOrMany(Comma.Optional().SkipAnd(OneOf(
+                            Word("limit").SkipAnd(Colon).SkipAnd(LoopAttributeValue).Then(x => new ForModifier { IsLimit = true, Value = x }),
+                            Word("offset").SkipAnd(Colon).SkipAnd(LoopAttributeValue).Then(x => new ForModifier { IsOffset = true, Value = x })
+                            )))
+                        .AndSkip(Comma.Optional())
+                        .AndSkip(TagEnd.ElseError(ErrorMessages.InvalidForAttribute));
 
         var ForTag = Identifier
                         .AndSkip(In)
                         .And(Primary)
                         .And(Reversed)
-                        .And(LoopAttributes(OneOf(
-                            Word("limit").SkipAnd(Colon).SkipAnd(LoopAttributeValue).Then(x => new ForModifier { IsLimit = true, Value = x }),
-                            Word("offset").SkipAnd(Colon).SkipAnd(LoopAttributeValue).Then(x => new ForModifier { IsOffset = true, Value = x })
-                            )))
+                        .And(ForAttributes)
                         .And(AnyTagsList)
                         .And(TrackStatement(
                             CreateTag("else").SkipAnd(AnyTagsList).Then(x => new ElseStatement(x)),
@@ -984,6 +990,12 @@ public class FluidParser
     {
         var quote = value.Buffer is not null && value.Offset > 0 && value.Buffer[value.Offset - 1] == '"' ? '"' : '\'';
         return quote + value.ToString() + quote;
+    }
+
+    // A number bound as written, without the whitespace before it, like "01" or "1.50".
+    private static string GetBoundSource(ParseContext context, int start, int end)
+    {
+        return context.Scanner.Buffer.AsSpan(start, end - start).Trim().ToString();
     }
 
     private static bool IsBigInteger(ReadOnlySpan<char> value)

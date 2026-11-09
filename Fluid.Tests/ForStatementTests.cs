@@ -493,6 +493,32 @@ public class ForStatementTests
     }
 
     [Theory]
+    // Like Liquid, a string is a single item, or none when it is empty, whatever the limit and offset.
+    [InlineData("{% for i in \"c\" limit: 0 %}[{{ i }}]{% else %}E{% endfor %}", "[c]")]
+    [InlineData("{% for i in \"c\" offset: 1 %}[{{ i }}]{% endfor %}", "[c]")]
+    [InlineData("{% for i in \"c\" offset: \"1\" limit: 0 %}[{{ i }}]{% endfor %}", "[c]")]
+    [InlineData("{% for i in \"c\" limit: -1 %}[{{ i }}]{% endfor %}", "[c]")]
+    [InlineData("{% for i in \"c\" reversed offset: 5 limit: 0 %}[{{ i }}{{ forloop.length }}{{ forloop.first }}{{ forloop.last }}]{% endfor %}", "[c1truetrue]")]
+    [InlineData("{% for i in \"\" limit: 1 %}[{{ i }}]{% else %}E{% endfor %}", "E")]
+    [InlineData("{% for i in \"abc\" offset: continue limit: 0 %}[{{ i }}]{% endfor %}{% for i in \"abc\" offset: continue %}[{{ i }}]{% endfor %}", "[abc][abc]")]
+    // The continue cursor still moves from the offset, by one item, or none for an empty string.
+    [InlineData("{% assign s = \"abc\" %}{% for i in s offset: 2 %}{% endfor %}{% assign s = \"a,b,c,d\" | split: \",\" %}{% for i in s offset: continue %}{{ i }}{% endfor %}", "d")]
+    [InlineData("{% assign s = \"\" %}{% for i in s offset: 2 %}{% endfor %}{% assign s = \"a,b,c,d\" | split: \",\" %}{% for i in s offset: continue %}{{ i }}{% endfor %}", "cd")]
+    [InlineData("{% assign s = \"abc\" %}{% for i in s offset: -1 %}{% endfor %}{% assign s = \"a,b,c,d\" | split: \",\" %}{% for i in s offset: continue %}{{ i }}{% endfor %}", "abcd")]
+    public async Task StringsIgnoreLimitAndOffset(string source, string expected)
+    {
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
+    }
+
+    [Fact]
+    public async Task StringsStillEvaluateTheLimit()
+    {
+        var template = new FluidParser().Parse("{% for i in \"c\" limit: \"x\" %}[{{ i }}]{% endfor %}");
+
+        await Assert.ThrowsAsync<LiquidException>(() => template.RenderAsync(new TemplateContext()).AsTask());
+    }
+
+    [Theory]
     // Like Liquid's ForloopDrop, the properties of forloop can be read with an indexer.
     [InlineData("{% for x in (1..3) %}{{ forloop['index'] }}{% assign k = 'last' %}{{ forloop[k] }}{% if forloop[\"first\"] %}F{% endif %},{% endfor %}", "1falseF,2false,3true,")]
     [InlineData("{% for x in (1..2) %}{% for y in (1..2) %}{{ forloop['parentloop']['index'] }}{{ forloop['missing'] }}{% endfor %}{% endfor %}", "1122")]
