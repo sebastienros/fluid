@@ -315,7 +315,7 @@ public class MiscFiltersTests
     [InlineData("%-m", "8")]
     [InlineData("%M", "04")]
     [InlineData("%n", "\n")]
-    [InlineData("%N", "123456800")] // nanoseconds are parsed to the 7th digit
+    [InlineData("%N", "123456700")] // .NET keeps 7 digits of the fraction, Ruby keeps 123456789
     [InlineData("%3N", "123")]
     [InlineData("%1N", "1")]
     [InlineData("%p", "PM")]
@@ -636,7 +636,8 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, arguments, context);
 
-        Assert.Equal("08/01/17", result.ToStringValue(context));
+        // Like Ruby, the invariant culture reads dd/mm/yyyy.
+        Assert.Equal("01/08/17", result.ToStringValue(context));
     }
 
     [Fact]
@@ -653,7 +654,7 @@ public class MiscFiltersTests
     [Fact]
     public async Task DateWithoutFormatShouldReturnInput()
     {
-        var input = StringValue.Create("08/01/2017");
+        var input = StringValue.Create("01/08/2017");
 
         var options = new TemplateOptionsBuilder()
             .WithCultureInfo(CultureInfo.InvariantCulture)
@@ -842,6 +843,54 @@ public class MiscFiltersTests
     public async Task DateOfHugeTimestamps(string source, string expected)
     {
         Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext { TimeZone = TimeZoneInfo.Utc }));
+    }
+
+    [Theory]
+    // Like Liquid, which downcases the string: any casing is the current time, but not with spaces.
+    [InlineData("{{ 'now' | date: '%F' }}|{{ 'Now' | date: '%F' }}|{{ 'TODAY' | date: '%F' }}|{{ 'ToDay' | date: '%F' }}|{{ ' now ' | date: '%F' }}", "2017-08-01|2017-08-01|2017-08-01|2017-08-01| now ")]
+    // Strings are parsed like Ruby's Time.parse: zone names, the ctime format, dd/mm/yyyy.
+    [InlineData("{{ '2020-06-15 12:00:00 UTC' | date: '%F %R %z' }}|{{ '2020-06-15T12:00:00 PST' | date: '%F %R %z' }}|{{ '2020-06-15 12:00 edt' | date: '%F %R %z' }}", "2020-06-15 12:00 +0000|2020-06-15 12:00 -0800|2020-06-15 12:00 -0400")]
+    [InlineData("{{ 'Fri Jul 16 01:00:00 2004' | date: '%F %R %z' }}|{{ 'Thu, 29 Nov 2001 14:33:20 +0100' | date: '%F %T %z' }}", "2004-07-16 01:00 +0000|2001-11-29 14:33:20 +0100")]
+    [InlineData("{{ '15/06/2020' | date: '%F' }}|{{ '06/15/2020' | date: '%F' }}|{{ '15.06.2020' | date: '%F' }}|{{ '5/6/20' | date: '%F' }}", "2020-06-15|06/15/2020|2020-06-15|2005-06-20")]
+    [InlineData("{{ '15 June 2020' | date: '%F' }}|{{ 'June 15, 2020 3pm' | date: '%F %R' }}|{{ '15-jun-2020' | date: '%F' }}|{{ '20200615T120000Z' | date: '%F %R %z' }}", "2020-06-15|2020-06-15 15:00|2020-06-15|2020-06-15 12:00 +0000")]
+    // Missing fields come from the current time, up to the first one in the string.
+    [InlineData("{{ '5 May' | date: '%F' }}|{{ 'Jun 15' | date: '%F %R' }}|{{ '12:30' | date: '%F %T' }}|{{ 'may' | date: '%F' }}", "2017-05-05|2017-06-15 00:00|2017-08-01 12:30:00|2017-05-01")]
+    // Days after the end of the month and the 60th second overflow, other values out of range are not dates.
+    [InlineData("{{ '2021-02-31' | date: '%F' }}|{{ '2020-06-15 23:59:60' | date: '%F %T' }}|{{ '2020-13-01' | date: '%F' }}|{{ '25:00' | date: '%F' }}", "2021-03-03|2020-06-16 00:00:00|2020-13-01|25:00")]
+    // Strings without a date or time, numbers without a date pattern and offsets Ruby doesn't read.
+    [InlineData("{{ '1,2,3' | date: '%F' }}|{{ '1 2 3' | date: '%F' }}|{{ '3 2' | date: '%F' }}|{{ '2,3' | date: '%F' }}|{{ '2020-06' | date: '%F' }}|{{ 'monday' | date: '%F' }}", "1,2,3|1 2 3|3 2|2,3|2020-06|monday")]
+    [InlineData("{{ '2020-06-15T12:00:00+5' | date: '%T %z' }}|{{ 'Thu Nov 29 2001 14:33:20 GMT+0100' | date: '%T %z' }}|{{ '2020-06-15 12:00 +0530' | date: '%T %z' }}", "12:00:00 +0000|14:33:20 +0000|12:00:00 +0530")]
+    public async Task DateParsesStringsLikeRuby(string source, string expected)
+    {
+        var context = new TemplateContext { TimeZone = TimeZoneInfo.Utc, Now = () => new DateTimeOffset(2017, 8, 1, 5, 4, 36, TimeSpan.Zero) };
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Fact]
+    public async Task DateDoesNotParseLongStrings()
+    {
+        // Ruby's Date._parse rejects strings longer than 128 characters.
+        var date = "2020-01-01" + new string(' ', 117) + "x";
+        var template = new FluidParser().Parse("{{ d | date: '%F' }}");
+
+        var context = new TemplateContext { TimeZone = TimeZoneInfo.Utc };
+        context.SetValue("d", date);
+        Assert.Equal("2020-01-01", await template.RenderAsync(context));
+
+        context.SetValue("d", date + "x");
+        Assert.Equal(date + "x", await template.RenderAsync(context));
+    }
+
+    [Theory]
+    [InlineData("fr-FR", "15 juin 2020", "2020-06-15")]
+    [InlineData("fr-FR", "2020-06-15 12:00:00 UTC", "2020-06-15")]
+    [InlineData("en-US", "Fri Jul 16 01:00:00 2004", "2004-07-16")]
+    public async Task DateParsesWithCultureThenLikeRuby(string culture, string date, string expected)
+    {
+        // A culture reads its own formats, then the ones of Time.parse.
+        var context = new TemplateContext { CultureInfo = new CultureInfo(culture, useUserOverride: false), TimeZone = TimeZoneInfo.Utc };
+        context.SetValue("d", date);
+        Assert.Equal(expected, await new FluidParser().Parse("{{ d | date: '%F' }}").RenderAsync(context));
     }
 
     [Fact]
