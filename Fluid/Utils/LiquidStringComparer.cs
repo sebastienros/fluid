@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Fluid.Utils;
 
 /// <summary>
@@ -77,13 +79,20 @@ public static class LiquidStringComparer
         return x.Length - y.Length;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int CommonPrefixLength(string x, string y)
     {
+        // Sorted strings often differ at their first char, where a vectorized search costs more than it saves.
+        if (x.Length == 0 || y.Length == 0 || x[0] != y[0])
+        {
+            return 0;
+        }
+
 #if NET8_0_OR_GREATER
-        return x.AsSpan().CommonPrefixLength(y.AsSpan());
+        return x.AsSpan(1).CommonPrefixLength(y.AsSpan(1)) + 1;
 #else
         var length = Math.Min(x.Length, y.Length);
-        var i = 0;
+        var i = 1;
 
         while (i < length && x[i] == y[i])
         {
