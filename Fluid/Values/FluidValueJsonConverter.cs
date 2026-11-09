@@ -64,7 +64,15 @@ public sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
                 writer.WriteNullValue();
                 break;
             case FluidValues.Number:
-                writer.WriteNumberValue(actualValue.ToNumberValue(context));
+                // A big number is written as is, unless it is a float too large for a double.
+                if (actualValue is BigNumberValue big && (big.IsIntegral || !big.IsInfinity))
+                {
+                    writer.WriteRawValue(big.ToStringValue(context), skipInputValidation: true);
+                }
+                else
+                {
+                    writer.WriteNumberValue(actualValue.ToNumberValue(context));
+                }
                 break;
             case FluidValues.Dictionary:
                 if (actualValue.ToObjectValue(context) is not IFluidIndexable dict)

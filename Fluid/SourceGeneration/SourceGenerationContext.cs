@@ -266,7 +266,7 @@ public sealed class SourceGenerationContext
     /// Gets whether <see cref="TryGetLiteralValue"/> supports a value.
     /// </summary>
     public static bool IsSourceableLiteral(FluidValue value)
-        => value is NilValue or EmptyValue or BlankValue or BooleanValue or NumberValue or StringValue;
+        => value is NilValue or EmptyValue or BlankValue or BooleanValue or NumberValue or BigNumberValue or StringValue;
 
     /// <summary>
     /// Gets a C# expression returning a literal value without allocating, like the name of a static field holding it.
@@ -291,6 +291,11 @@ public sealed class SourceGenerationContext
                 // The literal keeps the scale of the number, which is part of its identity in Liquid (1.0 is not 1).
                 var n = number.Value.ToString(CultureInfo.InvariantCulture);
                 expression = GetOrAddStaticField("FluidValue", "NumVal_", $"NumberValue.Create({n}m)");
+                return true;
+            case BigNumberValue bigNumber:
+                // The text of a big number creates the same number again.
+                var text = ToCSharpStringLiteral(bigNumber.ToStringValue(null));
+                expression = GetOrAddStaticField("FluidValue", "NumVal_", $"BigNumberValue.Create({text})");
                 return true;
             case StringValue stringValue:
                 expression = GetOrAddStaticStringValue(stringValue.Value);

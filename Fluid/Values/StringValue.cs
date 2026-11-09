@@ -188,7 +188,7 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
         }
 
         var span = value.AsSpan();
-        var trimmed = span.Trim();
+        var trimmed = TrimAsciiWhiteSpace(span);
 
 #if NET8_0_OR_GREATER
         if (IsDecimalLiteral(trimmed) && decimal.TryParse(trimmed, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var d))
@@ -205,7 +205,30 @@ public sealed class StringValue : FluidValue, IEquatable<StringValue>
     /// <summary>
     /// Whether Liquid converts the string to a decimal number rather than an integer.
     /// </summary>
-    internal static bool IsDecimalString(string value) => IsDecimalLiteral(value.AsSpan().Trim());
+    internal static bool IsDecimalString(string value) => IsDecimalLiteral(TrimAsciiWhiteSpace(value.AsSpan()));
+
+    /// <summary>
+    /// Removes ASCII whitespace, like Ruby's <c>String#strip</c> and <c>Integer()</c>,
+    /// where <c>Trim()</c> also removes Unicode spaces like U+00A0.
+    /// </summary>
+    internal static ReadOnlySpan<char> TrimAsciiWhiteSpace(ReadOnlySpan<char> s)
+    {
+        var start = 0;
+        while (start < s.Length && IsAsciiWhiteSpace(s[start]))
+        {
+            start++;
+        }
+
+        var end = s.Length;
+        while (end > start && IsAsciiWhiteSpace(s[end - 1]))
+        {
+            end--;
+        }
+
+        return s.Slice(start, end - start);
+    }
+
+    private static bool IsAsciiWhiteSpace(char c) => c is ' ' or '\t' or '\n' or '\v' or '\f' or '\r';
 
     // Like Liquid's /\A-?\d+\.\d+\z/: a digit is required before the point.
     private static bool IsDecimalLiteral(ReadOnlySpan<char> s)
