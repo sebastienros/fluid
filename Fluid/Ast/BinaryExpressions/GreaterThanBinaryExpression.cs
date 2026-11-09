@@ -1,5 +1,6 @@
 using Fluid.Values;
 using Fluid.SourceGeneration;
+using Fluid.Utils;
 
 namespace Fluid.Ast.BinaryExpressions;
 
@@ -51,8 +52,8 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
                 return BinaryExpressionFluidValue.Create(NilValue.Instance, false);
             }
 
-            // Use standard C# string comparison for strings
-            var comparison = string.Compare(leftValue.ToStringValue(context), rightValue.ToStringValue(context), StringComparison.Ordinal);
+            // Like Ruby, strings are compared in code point order (UTF-8 bytes)
+            var comparison = LiquidStringComparer.Compare(leftValue.ToStringValue(context), rightValue.ToStringValue(context));
             if (Strict)
             {
                 comparisonResult = comparison > 0;
@@ -121,7 +122,7 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
                 context.WriteLine("return BinaryExpressionFluidValue.Create(NilValue.Instance, false);");
             }
             context.WriteLine("}");
-            context.WriteLine("var comparison = string.Compare(leftValue.ToStringValue(context), rightValue.ToStringValue(context), StringComparison.Ordinal);");
+            context.WriteLine("var comparison = LiquidStringComparer.Compare(leftValue.ToStringValue(context), rightValue.ToStringValue(context));");
             context.WriteLine($"comparisonResult = {strict} ? comparison > 0 : comparison >= 0;");
         }
         context.WriteLine("}");

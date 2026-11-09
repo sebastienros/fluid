@@ -1065,6 +1065,28 @@ public class ArrayFiltersTests
     }
 
     [Theory]
+    // Like Liquid, sort compares strings like Ruby's String#<=>, in code point order (UTF-8 bytes): an emoji is
+    // after U+E000-U+FFFF, while UTF-16 order puts its surrogate pair before them.
+    [InlineData("{{ s | split: ',' | sort | join: ' ' }}", "\uFF5A,\U0001F600,a", "a \uFF5A \U0001F600")]
+    [InlineData("{{ s | split: ',' | sort | join: ' ' }}", "x\U0001F600,x\uFF5A,x,xa,x\U0001F601,x\uFFFF", "x xa x\uFF5A x\uFFFF x\U0001F600 x\U0001F601")]
+    [InlineData("{{ s | split: ',' | sort | join: ' ' }}", "b,B,a,A,ab,AB,Ab,aB,_", "A AB Ab B _ a aB ab b")]
+    // Like Liquid, sort_natural compares strings like Ruby's String#casecmp: only A-Z are folded, to lower case,
+    // so the characters between Z and a come before the letters and accented letters aren't folded.
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "b,_,A,[,a,^,`,],Z,z,B", "[ ] ^ _ ` A a b B Z z")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "_x,Ax,ax", "_x Ax ax")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u00C9,e,\u00E9,f,E,\u00DF,s,t,\u00C4,a,z", "a e E f s t z \u00C4 \u00C9 \u00DF \u00E9")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\uFF5A,\U0001F600,a", "a \uFF5A \U0001F600")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\U0001F600b,\U0001F600a,\U0001F600B,\U0001F601,\uFF5AB,\uFF5Aa", "\uFF5Aa \uFF5AB \U0001F600a \U0001F600b \U0001F600B \U0001F601")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "10,9,a,A,_,ab,AB,Ab,aB,b,B", "10 9 _ a A ab AB Ab aB b B")]
+    public async Task SortOrdersStringsLikeRuby(string source, string input, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("s", input);
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Theory]
     // Like Liquid (item[property]), the properties of hashes are keys: size, first and last are only keys too.
     [InlineData("{{ products | sum: 'size' }}|{{ products | where: 'size', 2 | size }}|{{ products | sort: 'size' | map: 'title' | join }}|{{ products | sort_natural: 'first' | map: 'title' | join }}", "0|0|b a c|b a c")]
     [InlineData("{{ products | find: 'size', 2 | map: 'title' }}|{{ products | find_index: 'size', 2 }}|{{ products | has: 'size', 2 }}|{{ products | reject: 'size', 2 | size }}|{{ products | uniq: 'size' | size }}|{{ products | compact: 'size' | size }}|{{ products | where: 'first' | size }}", "||false|3|1|0|0")]
