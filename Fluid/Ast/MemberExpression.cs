@@ -25,7 +25,12 @@ public sealed class MemberExpression : Expression, ISynchronousSourceable
         }
 
         _identifiers = GetIdentifiers(_segments);
+        _isSelf = _segments[0] is IdentifierSegment { Identifier: SelfValue.Name };
     }
+
+    // Whether the variable is self, which is the self object when it isn't defined. It is only checked once a
+    // variable is found undefined, so that defined variables are read as fast.
+    private readonly bool _isSelf;
 
     // The segments when they are all identifiers, like a.b.c, which is the shape of nearly every member expression.
     // Typed as the sealed class, the calls to its members are direct.
@@ -100,6 +105,12 @@ public sealed class MemberExpression : Expression, ISynchronousSourceable
     /// </summary>
     private ValueTask<FluidValue> EvaluateFromModelAsync(FluidValue value, TemplateContext context)
     {
+        // Like Liquid, a variable named self, even nil, takes precedence over the self object.
+        if (_isSelf && value == UndefinedValue.Instance)
+        {
+            return EvaluateSelfAsync(context);
+        }
+
         if (context.Model.IsNil())
         {
             // Check equality as IsNil() is also true for UndefinedValue
@@ -120,6 +131,35 @@ public sealed class MemberExpression : Expression, ISynchronousSourceable
 
         return ResolveSegmentsAsync(context.Model, 0, context);
     }
+
+    /// <summary>
+    /// Evaluates the expression when its variable is self and not defined: the model's self member, or else the self object.
+    /// </summary>
+    private ValueTask<FluidValue> EvaluateSelfAsync(TemplateContext context)
+    {
+        if (context.Model.IsNil())
+        {
+            return ResolveSegmentsAsync(GetSelf(context), 1, context);
+        }
+
+        var task = context.Model.GetValueAsync(SelfValue.Name, context);
+
+        if (task.IsCompletedSuccessfully)
+        {
+            return ResolveSegmentsAsync(task.Result.IsNil() ? GetSelf(context) : task.Result, 1, context);
+        }
+
+        return Awaited(task, context);
+
+        async ValueTask<FluidValue> Awaited(ValueTask<FluidValue> task, TemplateContext context)
+        {
+            var value = await task;
+            return await ResolveSegmentsAsync(value.IsNil() ? GetSelf(context) : value, 1, context);
+        }
+    }
+
+    // Reading a member of self, like self.title, reads the variable of the current template without creating the object.
+    private SelfValue GetSelf(TemplateContext context) => _segments.Length == 1 ? SelfValue.Create(context) : SelfValue.Current;
 
     private ValueTask<FluidValue> ResolveSegmentsAsync(FluidValue value, int start, TemplateContext context)
     {
@@ -290,6 +330,27 @@ public sealed class MemberExpression : Expression, ISynchronousSourceable
         context.WriteLine($"var value = {context.ContextName}.ShadowWithCounter({initialIdentifierLiteral}, {context.ContextName}.LocalScope.GetValue({initialIdentifierLiteral}));");
         context.WriteLine("var start = 1;");
         context.WriteLine();
+
+        if (_isSelf)
+        {
+            // Like EvaluateSelfAsync: an undefined self is the model's self member, or else the self object.
+            context.WriteLine("if (value == UndefinedValue.Instance)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"value = {context.ContextName}.Model.IsNil() ? NilValue.Instance : await {context.ContextName}.Model.GetValueAsync({initialIdentifierLiteral}, {context.ContextName});");
+                context.WriteLine("if (value.IsNil())");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine($"value = SelfValue.Create({context.ContextName});");
+                }
+                context.WriteLine("}");
+            }
+            context.WriteLine("}");
+            context.WriteLine();
+        }
+
         context.WriteLine("if (value.IsNil())");
         context.WriteLine("{");
         using (context.Indent())

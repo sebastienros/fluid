@@ -20,6 +20,9 @@ public sealed class DictionaryDictionaryFluidIndexable : IFluidIndexable
     {
         public static readonly KeyType Other = new(KeyKind.Other, TypeCode.Empty, null);
 
+        // String keys are looked up directly, like keys of an unknown type when they aren't found.
+        public static readonly KeyType String = new(KeyKind.Other, TypeCode.String, typeof(string));
+
         public KeyType(KeyKind kind, TypeCode typeCode, Type type)
         {
             Kind = kind;
@@ -58,6 +61,11 @@ public sealed class DictionaryDictionaryFluidIndexable : IFluidIndexable
     }
 
     public int Count => _dictionary.Count;
+
+    /// <summary>
+    /// Whether the keys are strings, which only a string finds, or of another type that a name is converted to.
+    /// </summary>
+    internal bool HasStringKeys => _keyType.TypeCode == TypeCode.String;
 
     public IEnumerable<string> Keys
     {
@@ -247,6 +255,8 @@ public sealed class DictionaryDictionaryFluidIndexable : IFluidIndexable
 
         switch (typeCode)
         {
+            case TypeCode.String:
+                return KeyType.String;
             case TypeCode.Char:
                 return new KeyType(KeyKind.Char, typeCode, keyType);
             case TypeCode.SByte:

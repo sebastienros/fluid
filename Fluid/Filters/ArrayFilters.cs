@@ -138,6 +138,12 @@ public static class ArrayFilters
             return new ValueTask<FluidValue>(values[0] ?? NilValue.Instance);
         }
 
+        // Like Ruby's Hash#first, the first entry of a hash, even when it has a "first" key.
+        if (input is DictionaryValue dictionary)
+        {
+            return new ValueTask<FluidValue>(dictionary.First());
+        }
+
         if (input.Type == FluidValues.Dictionary)
         {
             return input.GetValueAsync("first", context);
@@ -959,6 +965,18 @@ public static class ArrayFilters
     public static ValueTask<FluidValue> Size(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("size", expected: 0, arguments);
+
+        // Like Ruby's Hash#size, the number of entries of a hash, even when it has a "size" key.
+        if (input is DictionaryValue dictionary)
+        {
+            return NumberValue.Create(dictionary.Count);
+        }
+
+        // The members of self are variables, and it has no size of its own.
+        if (input is SelfValue)
+        {
+            return NumberValue.Zero;
+        }
 
         var task = input.GetValueAsync("size", context);
 
