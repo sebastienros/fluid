@@ -374,6 +374,33 @@ public static class ArrayFilters
             ExceptionHelper.ThrowRecursiveValueException();
         }
 
+        // The items of an ArrayValue are read by index, without allocating its enumerator.
+        if (value is ArrayValue array)
+        {
+            var values = array.Values;
+
+            for (var i = 0; i < values.Count; i++)
+            {
+                // Like the enumeration of an array, each item is a step.
+                context?.IncrementSteps();
+                var item = values[i];
+
+                if (item.Type == FluidValues.Array && item is not RangeValue)
+                {
+                    await foreach (var nested in EnumerateFlattenedAsync(item, context, depth + 1))
+                    {
+                        yield return nested;
+                    }
+                }
+                else
+                {
+                    yield return item;
+                }
+            }
+
+            yield break;
+        }
+
         await foreach (var item in value.EnumerateAsync(context))
         {
             if (item.Type == FluidValues.Array && item is not RangeValue)
