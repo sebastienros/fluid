@@ -167,22 +167,29 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("compact", min: 0, max: 1, arguments);
 
-        if (input.Type != FluidValues.Array)
+        var member = arguments.At(0);
+
+        if (input.Type != FluidValues.Array && member.IsNil())
         {
             return input.IsNil() ? ArrayValue.Empty : ArrayValue.Create([input]);
         }
 
-        var member = arguments.At(0);
-
         var compacted = new List<FluidValue>();
-        await foreach (var value in ArrayFilters.EnumerateFlattenedAsync(input, context))
+        await foreach (var value in ArrayFilters.EnumerateInputAsync(input, context))
         {
-            if (value.IsNil())
+            if (member.IsNil())
             {
-                continue;
+                if (value.IsNil())
+                {
+                    continue;
+                }
             }
-
-            if (!member.IsNil() && (await ArrayFilters.GetPropertyAsync(value, member.ToStringValue(context), context)).IsNil())
+            // Like Liquid, an item that can't be indexed (nil, a boolean, a float) makes the filter return nil.
+            else if (!ArrayFilters.IsIndexable(value, context))
+            {
+                return NilValue.Instance;
+            }
+            else if ((await ArrayFilters.GetPropertyAsync(value, member, context)).IsNil())
             {
                 continue;
             }
