@@ -382,10 +382,11 @@ public class FluidParser
             OutputInComment,
             TextInComment))));
 
-        // Inside a {% liquid %} tag, the comment ends at the first endcomment line.
+        // Inside a {% liquid %} tag, every line of the comment is a tag: it ends at the line named endcomment which closes
+        // the nested comment lines.
         var CommentBody = If<FluidParseContext, TextSpan>(
             static context => context.LiquidTagDepth > 0,
-            AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true),
+            new LiquidTagCommentBodyParser(),
             ShopifyCommentBody);
 
         var CommentTag = _tagEndIgnoringMarkup
