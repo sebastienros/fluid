@@ -12,7 +12,9 @@ public sealed class FilterArguments
     public static readonly FilterArguments Empty = new FilterArguments();
 
     private List<FluidValue> _positional;
-    private Dictionary<string, FluidValue> _named;
+
+    // The position of each named argument in the positional list.
+    private Dictionary<string, int> _named;
 
     // Named arguments are stored with the positional ones too, so the position of the first
     // argument that was given without a name is remembered. -1 when there is none.
@@ -40,9 +42,9 @@ public sealed class FilterArguments
     {
         get
         {
-            if (_named != null && _named.TryGetValue(name, out var value))
+            if (_named != null && _named.TryGetValue(name, out var index))
             {
-                return value;
+                return _positional[index];
             }
 
             return NilValue.Instance;
@@ -70,14 +72,22 @@ public sealed class FilterArguments
 
     public FilterArguments Add(string name, FluidValue value)
     {
+        _positional ??= new List<FluidValue>();
+
         if (name != null)
         {
-            _named ??= new Dictionary<string, FluidValue>();
+            _named ??= new Dictionary<string, int>();
 
-            _named.Add(name, value);
+            // Like Liquid, where named arguments are a keyword hash, a repeated name keeps its first position
+            // and its last value.
+            if (_named.TryGetValue(name, out var index))
+            {
+                _positional[index] = value;
+                return this;
+            }
+
+            _named.Add(name, _positional.Count);
         }
-
-        _positional ??= new List<FluidValue>();
 
         if (name == null && _firstPositionalIndex == -1)
         {

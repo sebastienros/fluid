@@ -73,11 +73,30 @@ public class MiscFiltersTests
     [InlineData("{{ missing | default: 'x', allow_false: true }}", "x")]
     [InlineData("{{ false | default: 'x' }}", "x")]
     [InlineData("[{{ missing | default: allow_false: true }}]", "[]")]
+    // Like Liquid, where named arguments are a keyword hash, a repeated name keeps its last value.
+    [InlineData("{{ false | default: 'D', allow_false: true, allow_false: false }}", "D")]
+    [InlineData("{{ false | default: 'D', allow_false: false, allow_false: true }}", "false")]
+    [InlineData("{{ missing | default: 'D', allow_false: true, allow_false: true }}", "D")]
+    [InlineData("{{ 'Hello' | unknown: x: 1, x: 2 }}", "Hello")]
     public async Task DefaultUsesTheFirstUnnamedArgument(string source, string expected)
     {
         var template = new FluidParser().Parse(source);
 
         Assert.Equal(expected, await template.RenderAsync(new TemplateContext()));
+    }
+
+    [Fact]
+    public void RepeatedNamedArgumentKeepsItsPositionAndLastValue()
+    {
+        var arguments = new FilterArguments()
+            .Add(StringValue.Create("D"))
+            .Add("name", BooleanValue.True)
+            .Add("name", BooleanValue.False);
+
+        Assert.Equal(2, arguments.Count);
+        Assert.Equal(BooleanValue.False, arguments["name"]);
+        Assert.Equal(BooleanValue.False, arguments.At(1));
+        Assert.Equal(["name"], arguments.Names);
     }
 
     [Fact]

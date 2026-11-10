@@ -860,9 +860,8 @@ public class ArrayFiltersTests
 
         var arguments4 = new FilterArguments();
 
-        var result4 = await ArrayFilters.Find(input, arguments4, context);
-
-        Assert.Equal(NilValue.Instance, result4);
+        // Like Liquid, the property is required.
+        await Assert.ThrowsAsync<LiquidException>(() => ArrayFilters.Find(input, arguments4, context).AsTask());
 
         var arguments5 = new FilterArguments()
             .Add(StringValue.Create("Title"))
@@ -910,9 +909,8 @@ public class ArrayFiltersTests
 
         var arguments4 = new FilterArguments();
 
-        var result4 = await ArrayFilters.FindIndex(input, arguments4, context);
-
-        Assert.Equal(NilValue.Instance, result4);
+        // Like Liquid, the property is required.
+        await Assert.ThrowsAsync<LiquidException>(() => ArrayFilters.FindIndex(input, arguments4, context).AsTask());
 
         var arguments5 = new FilterArguments()
             .Add(StringValue.Create("Title"))
@@ -1113,6 +1111,109 @@ public class ArrayFiltersTests
             new Dictionary<string, object> { ["title"] = "c" },
         });
         context.SetValue("product", new Dictionary<string, object> { ["title"] = "b", ["price"] = 2 });
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Theory]
+    // Like Liquid (Ruby's String#[]), the property of a string is the property when the string contains it, nil otherwise.
+    [InlineData("{{ l | where: 'an' | join: '-' }}|{{ l | where: 'an', 'an' | join: '-' }}|{{ l | where: 'e' | join: '-' }}|{{ l | map: 'an' | join: '-' }}|{{ l | uniq: 'a' | join: '-' }}|{{ l | find: 'an' }}|{{ l | reject: 'an' | join: '-' }}", "banana|banana|apple-cherry|-an-|apple-cherry|banana|apple-cherry")]
+    [InlineData("{{ l | sum: 'a' }}|{{ l | compact: 'an' | join }}|{{ l | find_index: 'ch' }}|{{ l | has: 'ch' }}|{{ l | sort: 'zz' | join: '-' }}", "0|banana|2|true|apple-banana-cherry")]
+    [InlineData("{{ l | find: 'an', 'an' }}|{{ l | find_index: 'an', 'an' }}|{{ l | has: 'an', 'an' }}|{{ l | reject: 'an', 'an' | join: '-' }}", "banana|1|true|apple-cherry")]
+    // The property is compared, not the string.
+    [InlineData("{{ l | find: 'an', 'banana' }}|{{ l | find_index: 'an', 'banana' }}|{{ l | has: 'an', 'banana' }}|{{ l | where: 'an', 'banana' | size }}", "||false|0")]
+    [InlineData("{{ 'Hello World' | find: 'o', 'W' }}|{{ 'Hello World' | has: 'W', 'W' }}|{{ 'Hello World' | map: 'World' | join }}|{{ 'Hello World' | sum: 'o' }}", "|true|World|0")]
+    [InlineData("{{ s | sum: '2' }}|{{ s | sum: '1' }}", "4|1")]
+    // A number is the index of a character, from the end when negative.
+    [InlineData("{{ l | where: 1 | size }}|{{ l | map: 1 | join: '-' }}|{{ l | map: -1 | join: '-' }}|{{ l | map: 9 | join: '-' }}|{{ 'héllo ✓' | map: -1 }}", "3|p-a-h|e-a-y|--|✓")]
+    public async Task ArrayFiltersReadStringItemsLikeRubyStringIndex(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("l", new[] { "apple", "banana", "cherry" });
+        context.SetValue("s", new[] { "12", "b2", "3" });
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Theory]
+    // Like Liquid, an item without a [] method (nil, a boolean, a float) makes where, reject, has, find, find_index,
+    // uniq and compact return nil, maps to nil and sums as 0.
+    [InlineData("{{ bools | where: 'a' | size }}|{{ bools | map: 'a' | join: '-' }}|{{ bools | uniq: 'a' | size }}|{{ bools | sum: 'a' }}|{{ bools | find: 'a' }}|{{ bools | has: 'a' }}|{{ bools | compact: 'a' | size }}", "0|---|0|0|||0")]
+    [InlineData("{{ strs | where: 'b' | size }}|{{ strs | find: 'b' }}|{{ strs | has: 'b' }}|{{ strs | reject: 'b' | size }}|{{ strs | map: 'b' | join: '-' }}", "0|b|true|0|b---")]
+    [InlineData("{{ 2.5 | has: 'a' }}|{{ 2.5 | find: 'a' }}|{{ 2.5 | map: 'a' | size }}|{{ 2.5 | sum: 'a' }}|{{ 2.5 | where: 'a' | size }}|{{ 2.5 | compact: 'a' | size }}|{{ true | where: 'a' | size }}", "||1|0|0|0|0")]
+    [InlineData("{{ bools | sort: 'a' | size }}|{{ strs | sort_natural: 'a' | size }}", "0|0")]
+    // An integer is indexed by bits, so it has no named property.
+    [InlineData("{{ a | has: 1 }}|{{ a | find: 0 }}|{{ a | find_index: 1 }}|{{ a | map: 1 | join }}|{{ a | uniq: 0 | join }}|{{ a | sum: 0 }}", "true|1|0|0 1 1|1 2|2")]
+    // Like Ruby's Integer#[], a float index is truncated and a negative one is 0.
+    [InlineData("{{ a | where: 1.5 | join }}|{{ a | map: 1.5 | join }}|{{ a | map: -1 | join }}|{{ a | where: 0, 1.0 | join }}|{{ a | where: 0, '1' | size }}", "1 2 3|0 1 1|0 0 0|1 3|0")]
+    // A single item that can't be indexed isn't sorted by a property either, and a single item is never read.
+    [InlineData("[{{ 2.5 | sort: 'a' }}][{{ true | sort_natural: 'a' }}][{{ 5 | sort: 'a' }}][{{ 2.5 | uniq: 'a' }}][{{ nil | sort: 'a' | size }}][{{ 2.5 | sort }}]", "[][][5][2.5][0][2.5]")]
+    // The empty and blank literals are an empty string to compare the property with, not a missing argument.
+    [InlineData("{{ strs | first | has: 'b', empty }}|{{ 'banana' | find: 'an', blank }}|{{ 'banana' | reject: 'an', empty | size }}|{{ 'banana' | where: '', empty | size }}|{{ 'banana' | where: 'zz', empty | size }}", "false||1|1|0")]
+    public async Task ArrayFiltersReadItemsLikeRubyIndexers(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("bools", new object[] { true, false, null, true });
+        context.SetValue("strs", new object[] { "b", "a", null, "c" });
+        context.SetValue("a", new[] { 1, 2, 3 });
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Theory]
+    [InlineData("{{ a | where: 'a' }}")]
+    [InlineData("{{ a | has: 'a' }}")]
+    [InlineData("{{ a | find: 'a' }}")]
+    [InlineData("{{ a | reject: 'a' }}")]
+    [InlineData("{{ a | sum: 'a' }}")]
+    [InlineData("{{ a | uniq: 'a' }}")]
+    [InlineData("{{ a | compact: 'a' }}")]
+    [InlineData("{{ a | sort: 'a' }}")]
+    [InlineData("{{ 5 | where: 'a' }}")]
+    [InlineData("{{ l | where: true }}")]
+    [InlineData("{{ a | sort_natural: 'a' }}")]
+    [InlineData("{{ a | find_index: 'a' }}")]
+    [InlineData("{{ a | map: 'a' }}")]
+    public async Task ArrayFiltersCantReadNamedPropertiesOfIntegers(string source)
+    {
+        var context = new TemplateContext();
+        context.SetValue("a", new[] { 1, 2, 3 });
+        context.SetValue("l", new[] { "apple" });
+
+        var exception = await Assert.ThrowsAsync<LiquidException>(() => new FluidParser().Parse(source).RenderAsync(context).AsTask());
+        Assert.StartsWith("cannot select the property", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("{{ l | find }}", "find", 0)]
+    [InlineData("{{ l | find: 'a', 'a', 1 }}", "find", 3)]
+    [InlineData("{{ l | find_index }}", "find_index", 0)]
+    [InlineData("{{ l | find_index: 'a', 'a', 1 }}", "find_index", 3)]
+    public async Task FindRequiresAPropertyAndAtMostAValue(string source, string filter, int given)
+    {
+        var context = new TemplateContext();
+        context.SetValue("l", new[] { "apple" });
+
+        var exception = await Assert.ThrowsAsync<LiquidException>(() => new FluidParser().Parse(source).RenderAsync(context).AsTask());
+        Assert.Equal($"Wrong number of arguments for '{filter}' (given {given}, expected 1..2)", exception.Message);
+    }
+
+    [Theory]
+    // Like Liquid's InputIterator, where, find, find_index and has flatten nested arrays like the other array filters.
+    [InlineData("{{ mx | where: 'a', 2 | map: 'a' | join }}|{{ mx | where: 'a' | size }}|{{ mx | find: 'a', 3 | map: 'a' | join }}|{{ mx | find_index: 'a', 3 }}|{{ mx | has: 'a', 3 }}", "2|3|3|2|true")]
+    [InlineData("{{ mx | reject: 'a', 2 | map: 'a' | join }}|{{ mx | map: 'a' | join }}|{{ mx | sum: 'a' }}|{{ mx | uniq: 'a' | size }}|{{ mx | compact: 'a' | size }}", "1 3|1 2 3|6|3|3")]
+    [InlineData("{{ nested | where: 1 | join }}|{{ nested | find: 1 }}|{{ nested | find_index: 1 }}|{{ nested | has: 1 }}", "1 2 3|1|0|true")]
+    [InlineData("{{ deep | where: 'a' | size }}|{{ deep | find: 'a' }}|{{ deep | has: 'a' }}|{{ deep | reject: 'a' | size }}", "0|||0")]
+    public async Task ArrayFiltersFindInNestedArraysLikeLiquid(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("mx", new object[]
+        {
+            new[] { new Dictionary<string, object> { ["a"] = 1 }, new Dictionary<string, object> { ["a"] = 2 } },
+            new[] { new Dictionary<string, object> { ["a"] = 3 } },
+        });
+        context.SetValue("nested", new object[] { new[] { 1, 2 }, new[] { 3 } });
+        context.SetValue("deep", new object[] { new object[0], new object[] { new object[0] }, "", null, new object[] { null } });
 
         Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
     }

@@ -20,7 +20,7 @@ public class FilterErrorTests
     [InlineData("{{ 'abc' | truncate: nil }}", "truncate: cannot convert nil to number")]
     [InlineData("{{ 'abc' | truncate: 1, '', 2 }}", "Wrong number of arguments for 'truncate' (given 3, expected 0..2)")]
     [InlineData("{{ 'a b c' | truncatewords: nil }}", "truncatewords: cannot convert nil to number")]
-    [InlineData("{{ 9 | compact | reject: '' }}", "Cannot access property '' on Number")]
+    [InlineData("{{ 9 | compact | reject: '' }}", "cannot select the property ''")]
     [InlineData("{{ 79228162514264337593543950335 | plus: 1 }}", "plus: the result is too large to be represented")]
     [InlineData("{{ -79228162514264337593543950335 | minus: 1 }}", "minus: the result is too large to be represented")]
     [InlineData("{{ 79228162514264337593543950335 | times: 2 }}", "times: the result is too large to be represented")]

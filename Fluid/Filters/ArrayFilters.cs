@@ -269,30 +269,119 @@ public static class ArrayFilters
 
         var list = new List<FluidValue>();
 
-        if (input.Type == FluidValues.Array)
+        await foreach (var item in EnumerateInputAsync(input, context))
         {
-            await foreach (var item in EnumerateFlattenedAsync(input, context))
-            {
-                context.EnsureCollectionSize((long)list.Count + 1);
-                list.Add(await item.GetIndexAsync(member, context));
-            }
-        }
-        else
-        {
-            context.EnsureCollectionSize(1);
-            list.Add(await input.GetIndexAsync(member, context));
+            context.EnsureCollectionSize((long)list.Count + 1);
+
+            // Like Liquid, an item that can't be indexed (nil, a boolean, a float) maps to nil.
+            list.Add(IsIndexable(item, context) ? await GetPropertyAsync(item, member, context) : NilValue.Instance);
         }
 
         return ArrayValue.Create(list);
     }
 
     /// <summary>
-    /// Reads the property of an item like Liquid's <c>item[property]</c>: on a hash, size, first and last are keys
-    /// like any other, missing ones are nil.
+    /// Whether Liquid's array filters can read a property of an item, which they do with Ruby's <c>item[property]</c>:
+    /// hashes, drops, strings and integers have a <c>[]</c> method, nil, booleans, floats and ranges don't.
     /// </summary>
-    internal static ValueTask<FluidValue> GetPropertyAsync(FluidValue item, string property, TemplateContext context)
+    internal static bool IsIndexable(FluidValue item, TemplateContext context)
     {
-        return item is DictionaryValue dictionary ? new ValueTask<FluidValue>(dictionary.GetKey(property)) : item.GetValueAsync(property, context);
+        return item.Type switch
+        {
+            FluidValues.Dictionary or FluidValues.Object or FluidValues.String => true,
+            FluidValues.Number => NumberValue.GetScale(item.ToNumberValue(context)) == 0,
+            FluidValues.Array => item is not RangeValue,
+            _ => false,
+        };
+    }
+
+    /// <summary>
+    /// Reads the property of an item like Liquid's <c>item[property]</c>: on a hash, size, first and last are keys
+    /// like any other, missing ones are nil. On a string it is Ruby's <c>String#[]</c>: a string property is returned
+    /// when the item contains it and is nil otherwise, a number is the index of a character. On an integer it is a bit,
+    /// and any other property is an error.
+    /// </summary>
+    internal static ValueTask<FluidValue> GetPropertyAsync(FluidValue item, FluidValue property, TemplateContext context)
+    {
+        return item switch
+        {
+            DictionaryValue dictionary => new ValueTask<FluidValue>(dictionary.GetKey(property.ToStringValue(context))),
+            { Type: FluidValues.String } => new ValueTask<FluidValue>(GetStringProperty(item.ToStringValue(context), property, context)),
+            { Type: FluidValues.Number } => item.GetIndexAsync(ToBitIndex(property, context), context),
+            _ => item.GetValueAsync(property.ToStringValue(context), context),
+        };
+    }
+
+    // Like Ruby's Integer#[], a float index is truncated.
+    private static FluidValue ToBitIndex(FluidValue property, TemplateContext context)
+    {
+        if (property.Type == FluidValues.Number)
+        {
+            var index = property.ToNumberValue(context);
+
+            if (NumberValue.GetScale(index) != 0)
+            {
+                return NumberValue.Create(decimal.Truncate(index));
+            }
+        }
+
+        return property;
+    }
+
+    // Ruby's String#[]: "banana"["an"] is "an", "banana"["x"] is nil, "banana"[1] is "a".
+    private static FluidValue GetStringProperty(string value, FluidValue property, TemplateContext context)
+    {
+        if (property.Type == FluidValues.String)
+        {
+            return value.Contains(property.ToStringValue(context)) ? property : NilValue.Instance;
+        }
+
+        if (property.Type != FluidValues.Number)
+        {
+            throw new LiquidException($"cannot select the property '{property.ToStringValue(context)}'");
+        }
+
+        // Like Ruby, a float index is truncated and a negative one counts from the end, in code points.
+        var index = decimal.Truncate(property.ToNumberValue(context));
+        var hasSurrogates = CodePoints.HasSurrogates(value.AsSpan());
+        var length = hasSurrogates ? CodePoints.Count(value) : value.Length;
+
+        if (index < 0)
+        {
+            index += length;
+        }
+
+        if (index < 0 || index >= length)
+        {
+            return NilValue.Instance;
+        }
+
+        if (!hasSurrogates)
+        {
+            return StringValue.Create(value[(int)index]);
+        }
+
+        var start = CodePoints.ToCharIndex(value, (int)index);
+        return StringValue.Create(value.Substring(start, CodePoints.Width(value, start)));
+    }
+
+    /// <summary>
+    /// Enumerates the input of an array filter like Liquid's <c>InputIterator</c>: an array is flattened, nil has no
+    /// items and any other value is a single item.
+    /// </summary>
+    internal static IAsyncEnumerable<FluidValue> EnumerateInputAsync(FluidValue input, TemplateContext context)
+    {
+        return input.Type == FluidValues.Array ? EnumerateFlattenedAsync(input, context) : EnumerateItemAsync(input);
+
+        static async IAsyncEnumerable<FluidValue> EnumerateItemAsync(FluidValue item)
+        {
+            if (!item.IsNil())
+            {
+                yield return item;
+            }
+
+            await Task.CompletedTask;
+        }
     }
 
     /// <summary>
@@ -305,6 +394,33 @@ public static class ArrayFilters
         if (depth > 100)
         {
             ExceptionHelper.ThrowRecursiveValueException();
+        }
+
+        // The items of an ArrayValue are read by index, without allocating its enumerator.
+        if (value is ArrayValue array)
+        {
+            var values = array.Values;
+
+            for (var i = 0; i < values.Count; i++)
+            {
+                // Like the enumeration of an array, each item is a step.
+                context?.IncrementSteps();
+                var item = values[i];
+
+                if (item.Type == FluidValues.Array && item is not RangeValue)
+                {
+                    await foreach (var nested in EnumerateFlattenedAsync(item, context, depth + 1))
+                    {
+                        yield return nested;
+                    }
+                }
+                else
+                {
+                    yield return item;
+                }
+            }
+
+            yield break;
         }
 
         await foreach (var item in value.EnumerateAsync(context))
@@ -371,595 +487,119 @@ public static class ArrayFilters
     }
 
     // https://github.com/Shopify/liquid/commit/842986a9721de11e71387732be51951285225977
-    public static async ValueTask<FluidValue> Where(FluidValue input, FilterArguments arguments, TemplateContext context)
+    public static ValueTask<FluidValue> Where(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("where", min: 1, max: 2, arguments);
 
-        // Golden Liquid: undefined/nil left values yield an empty array
-        if (input.IsNil())
-        {
-            return ArrayValue.Empty;
-        }
-
-        // Like Liquid, a string or a hash is filtered as a one-item array.
-        if (input.Type is FluidValues.String or FluidValues.Dictionary or FluidValues.Object)
-        {
-            input = ArrayValue.Create([input]);
-        }
-
-        // Golden Liquid expects where to throw if input is not an array
-        if (input.Type != FluidValues.Array)
-        {
-            throw new LiquidException("where expects an array");
-        }
-
-        // First argument is the property name to match
+        // First argument is the property name to match. If it is nil/undefined, return empty array
         var member = arguments.At(0);
 
-        // If first argument is nil/undefined, return empty array
         if (member.IsNil())
         {
             return ArrayValue.Empty;
         }
 
-        var memberName = member.ToStringValue(context);
+        return FilterArrayAsync(input, member, arguments.At(1), FilterArrayMode.Select, context);
+    }
 
-        // Second argument is the value to match
-        var targetValue = arguments.At(1);
-        var hasExplicitTarget = arguments.Count > 1 && !targetValue.IsNil();
+    public static ValueTask<FluidValue> Find(FluidValue input, FilterArguments arguments, TemplateContext context)
+    {
+        LiquidException.ThrowFilterArgumentsCount("find", min: 1, max: 2, arguments);
 
+        return FilterArrayAsync(input, arguments.At(0), arguments.At(1), FilterArrayMode.Find, context);
+    }
+
+    public static ValueTask<FluidValue> FindIndex(FluidValue input, FilterArguments arguments, TemplateContext context)
+    {
+        LiquidException.ThrowFilterArgumentsCount("find_index", min: 1, max: 2, arguments);
+
+        return FilterArrayAsync(input, arguments.At(0), arguments.At(1), FilterArrayMode.FindIndex, context);
+    }
+
+    public static ValueTask<FluidValue> Has(FluidValue input, FilterArguments arguments, TemplateContext context)
+    {
+        LiquidException.ThrowFilterArgumentsCount("has", min: 1, max: 2, arguments);
+
+        return FilterArrayAsync(input, arguments.At(0), arguments.At(1), FilterArrayMode.Any, context);
+    }
+
+    public static ValueTask<FluidValue> Reject(FluidValue input, FilterArguments arguments, TemplateContext context)
+    {
+        LiquidException.ThrowFilterArgumentsCount("reject", min: 1, max: 2, arguments);
+
+        // First argument is the property name to match
+        var member = arguments.At(0);
+
+        if (member.IsNil())
+        {
+            return ArrayValue.Empty;
+        }
+
+        return FilterArrayAsync(input, member, arguments.At(1), FilterArrayMode.Reject, context);
+    }
+
+    private enum FilterArrayMode
+    {
+        Select,
+        Reject,
+        Any,
+        Find,
+        FindIndex,
+    }
+
+    /// <summary>
+    /// Implements where, reject, has, find and find_index like Liquid's <c>filter_array</c>: the input is enumerated
+    /// like <c>InputIterator</c> (nested arrays are flattened, a hash or a string is a one-item array), an item matches
+    /// when <c>item[property]</c> is truthy or, with a target value, equals it, and an item that can't be indexed
+    /// (nil, a boolean, a float) makes the filter return nil once it is reached.
+    /// </summary>
+    private static async ValueTask<FluidValue> FilterArrayAsync(FluidValue input, FluidValue property, FluidValue targetValue, FilterArrayMode mode, TemplateContext context)
+    {
+        // Like Liquid, the empty and blank literals are an empty string when they are an argument, not nil.
+        if (targetValue.Type is FluidValues.Empty or FluidValues.Blank)
+        {
+            targetValue = StringValue.Empty;
+        }
+
+        var hasTargetValue = !targetValue.IsNil();
         List<FluidValue> list = null;
-
-        await foreach (var item in input.EnumerateAsync(context))
-        {
-            var itemValue = await GetPropertyAsync(item, memberName, context);
-
-            var match = false;
-
-            // If no second argument provided, check truthiness of property value
-            if (!hasExplicitTarget)
-            {
-                match = itemValue.ToBooleanValue(context);
-            }
-            // If second argument is explicitly provided, check equality (including nil)
-            else if (targetValue.Equals(itemValue))
-            {
-                match = true;
-            }
-
-            if (match)
-            {
-                list ??= [];
-                list.Add(item);
-            }
-        }
-
-        return list != null ? ArrayValue.Create(list) : ArrayValue.Empty;
-    }
-
-    public static async ValueTask<FluidValue> Find(FluidValue input, FilterArguments arguments, TemplateContext context)
-    {
-        // First argument is the property name or substring to match
-        var member = arguments.At(0).ToStringValue(context);
-
-        // Second argument is the value to match (optional)
-        var targetValue = arguments.At(1);
-        var hasTargetValue = !targetValue.IsNil();
-
-        // Handle string input - check for substring match
-        if (input.Type == FluidValues.String)
-        {
-            var inputString = input.ToStringValue(context);
-
-            if (hasTargetValue)
-            {
-                // When target value is specified, check if input contains both member and target as substrings
-                if (inputString.Contains(member) && inputString.Contains(targetValue.ToStringValue(context)))
-                {
-                    return input;
-                }
-            }
-            else
-            {
-                // When no target value, check if input contains the member as substring
-                if (inputString.Contains(member))
-                {
-                    return input;
-                }
-            }
-
-            return NilValue.Instance;
-        }
-
-        // Handle non-array, non-string input (e.g., hash/object)
-        if (input.Type != FluidValues.Array)
-        {
-            // Treat object as single-element array
-            var itemValue = await GetPropertyAsync(input, member, context);
-
-            if (hasTargetValue)
-            {
-                if (targetValue.Equals(itemValue))
-                {
-                    return input;
-                }
-            }
-            else
-            {
-                // No target value: check if property exists and is truthy
-                if (!itemValue.IsNil() && itemValue.ToBooleanValue(context))
-                {
-                    return input;
-                }
-            }
-
-            return NilValue.Instance;
-        }
-
-        // Handle array input
-        await foreach (var item in input.EnumerateAsync(context))
-        {
-            // If array contains nil, return nil immediately
-            if (item.IsNil())
-            {
-                return NilValue.Instance;
-            }
-
-            if (item.Type == FluidValues.String)
-            {
-                var itemString = item.ToStringValue(context);
-
-                if (hasTargetValue)
-                {
-                    // For strings in array with target value, do exact match
-                    if (targetValue.Type == FluidValues.String && itemString == targetValue.ToStringValue(context))
-                    {
-                        return item;
-                    }
-                }
-                else
-                {
-                    // For strings in array without target value, do substring match
-                    if (itemString.Contains(member))
-                    {
-                        return item;
-                    }
-                }
-            }
-            else
-            {
-                var itemValue = await GetPropertyAsync(item, member, context);
-
-                if (hasTargetValue)
-                {
-                    if (targetValue.Equals(itemValue))
-                    {
-                        return item;
-                    }
-                }
-                else
-                {
-                    // No target value: check if property exists and is truthy
-                    if (!itemValue.IsNil() && itemValue.ToBooleanValue(context))
-                    {
-                        return item;
-                    }
-                }
-            }
-        }
-
-        return NilValue.Instance;
-    }
-
-    public static async ValueTask<FluidValue> FindIndex(FluidValue input, FilterArguments arguments, TemplateContext context)
-    {
-        // First argument is the property name or substring to match
-        var member = arguments.At(0).ToStringValue(context);
-
-        // Second argument is the value to match (optional)
-        var targetValue = arguments.At(1);
-        var hasTargetValue = !targetValue.IsNil();
-
-        // Handle string input - check for substring match
-        if (input.Type == FluidValues.String)
-        {
-            var inputString = input.ToStringValue(context);
-
-            if (hasTargetValue)
-            {
-                // When target value is specified, check if input contains both member and target as substrings
-                if (inputString.Contains(member) && inputString.Contains(targetValue.ToStringValue(context)))
-                {
-                    return NumberValue.Create(0);
-                }
-            }
-            else
-            {
-                // When no target value, check if input contains the member as substring
-                if (inputString.Contains(member))
-                {
-                    return NumberValue.Create(0);
-                }
-            }
-
-            return NilValue.Instance;
-        }
-
-        // Handle non-array, non-string input (e.g., hash/object)
-        if (input.Type != FluidValues.Array)
-        {
-            // Treat object as single-element array
-            var itemValue = await GetPropertyAsync(input, member, context);
-
-            if (hasTargetValue)
-            {
-                if (targetValue.Equals(itemValue))
-                {
-                    return NumberValue.Create(0);
-                }
-            }
-            else
-            {
-                // No target value: check if property exists and is truthy
-                if (!itemValue.IsNil() && itemValue.ToBooleanValue(context))
-                {
-                    return NumberValue.Create(0);
-                }
-            }
-
-            return NilValue.Instance;
-        }
-
-        // Handle array input
         var index = 0;
 
-        await foreach (var item in input.EnumerateAsync(context))
+        await foreach (var item in EnumerateInputAsync(input, context))
         {
-            // If array contains nil, return nil immediately
-            if (item.IsNil())
+            if (!IsIndexable(item, context))
             {
                 return NilValue.Instance;
             }
 
-            if (item.Type == FluidValues.String)
-            {
-                var itemString = item.ToStringValue(context);
+            var value = await GetPropertyAsync(item, property, context);
+            var match = hasTargetValue ? targetValue.Equals(value) : value.ToBooleanValue(context);
 
-                if (hasTargetValue)
-                {
-                    // For strings in array with target value, do exact match
-                    if (targetValue.Type == FluidValues.String && itemString == targetValue.ToStringValue(context))
-                    {
-                        return NumberValue.Create(index);
-                    }
-                }
-                else
-                {
-                    // For strings in array without target value, do substring match
-                    if (itemString.Contains(member))
-                    {
-                        return NumberValue.Create(index);
-                    }
-                }
-            }
-            else
+            switch (mode)
             {
-                var itemValue = await GetPropertyAsync(item, member, context);
-
-                if (hasTargetValue)
-                {
-                    if (targetValue.Equals(itemValue))
-                    {
-                        return NumberValue.Create(index);
-                    }
-                }
-                else
-                {
-                    // No target value: check if property exists and is truthy
-                    if (!itemValue.IsNil() && itemValue.ToBooleanValue(context))
-                    {
-                        return NumberValue.Create(index);
-                    }
-                }
+                case FilterArrayMode.Any when match:
+                    return BooleanValue.True;
+                case FilterArrayMode.Find when match:
+                    return item;
+                case FilterArrayMode.FindIndex when match:
+                    return NumberValue.Create(index);
+                case FilterArrayMode.Select when match:
+                case FilterArrayMode.Reject when !match:
+                    list ??= [];
+                    context.EnsureCollectionSize((long)list.Count + 1);
+                    list.Add(item);
+                    break;
             }
 
             index++;
         }
 
-        return NilValue.Instance;
-    }
-
-    public static async ValueTask<FluidValue> Has(FluidValue input, FilterArguments arguments, TemplateContext context)
-    {
-        LiquidException.ThrowFilterArgumentsCount("has", min: 1, max: 2, arguments);
-
-        var firstArg = arguments.At(0);
-
-        // Single argument case
-        if (arguments.Count == 1)
+        return mode switch
         {
-            // For arrays: check if value is contained in array
-            if (input.Type == FluidValues.Array)
-            {
-                // When checking array with a string argument
-                if (firstArg.Type == FluidValues.String)
-                {
-                    var searchStr = firstArg.ToStringValue(context);
-                    var hasNonString = false;
-
-                    await foreach (var item in input.EnumerateAsync(context))
-                    {
-                        // Nil items cause error
-                        if (item.IsNil())
-                        {
-                            return NilValue.Instance;
-                        }
-
-                        if (item.Type == FluidValues.String)
-                        {
-                            var itemStr = item.ToStringValue(context);
-
-                            // Check for substring match
-                            if (itemStr.Contains(searchStr))
-                            {
-                                return BooleanValue.True;
-                            }
-                        }
-                        else if (item.Type is FluidValues.Dictionary or FluidValues.Object)
-                        {
-                            // Like Liquid, a hash matches when the property is truthy.
-                            if ((await GetPropertyAsync(item, searchStr, context)).ToBooleanValue(context))
-                            {
-                                return BooleanValue.True;
-                            }
-                        }
-                        else
-                        {
-                            hasNonString = true;
-                        }
-                    }
-
-                    // If array contains non-strings and we're searching with string, throw error
-                    if (hasNonString)
-                    {
-                        throw new LiquidException("has: cannot search for string in non-string array");
-                    }
-
-                    return BooleanValue.False;
-                }
-
-                // For non-string arguments, check for direct equality
-                await foreach (var item in input.EnumerateAsync(context))
-                {
-                    if (firstArg.Equals(item))
-                    {
-                        return BooleanValue.True;
-                    }
-                }
-                return BooleanValue.False;
-            }
-            // For objects/hashes: check if key exists
-            else if (input.Type == FluidValues.Object || input.Type == FluidValues.Dictionary)
-            {
-                var key = firstArg.ToStringValue(context);
-                var value = await GetPropertyAsync(input, key, context);
-                return value.IsNil() ? BooleanValue.False : BooleanValue.True;
-            }
-            // For strings: check if substring exists
-            else if (input.Type == FluidValues.String)
-            {
-                var str = input.ToStringValue(context);
-                var search = firstArg.ToStringValue(context);
-                return str.Contains(search) ? BooleanValue.True : BooleanValue.False;
-            }
-
-            return BooleanValue.False;
-        }
-        // Two arguments case: property name and value to match
-        else
-        {
-            var propertyName = firstArg.ToStringValue(context);
-            var targetValue = arguments.At(1);
-
-            // For arrays: check if any item has property with matching value
-            if (input.Type == FluidValues.Array)
-            {
-                await foreach (var item in input.EnumerateAsync(context))
-                {
-                    // Skip nil items - they should cause the filter to return nil (error)
-                    if (item.IsNil())
-                    {
-                        return NilValue.Instance;
-                    }
-
-                    var itemValue = await GetPropertyAsync(item, propertyName, context);
-
-                    if (targetValue.Equals(itemValue))
-                    {
-                        return BooleanValue.True;
-                    }
-                }
-                return BooleanValue.False;
-            }
-            // For objects/hashes: check if key exists
-            else if (input.Type == FluidValues.Object || input.Type == FluidValues.Dictionary)
-            {
-                var value = await GetPropertyAsync(input, propertyName, context);
-
-                // When explicitly checking for nil with a hash
-                // Return false if key has nil value, true if key exists with non-nil value
-                if (targetValue.IsNil())
-                {
-                    return value.IsNil() ? BooleanValue.False : BooleanValue.True;
-                }
-
-                // For non-nil target values, check exact equality
-                return targetValue.Equals(value) ? BooleanValue.True : BooleanValue.False;
-            }
-
-            return BooleanValue.False;
-        }
-    }
-
-    public static async ValueTask<FluidValue> Reject(FluidValue input, FilterArguments arguments, TemplateContext context)
-    {
-        LiquidException.ThrowFilterArgumentsCount("reject", min: 1, max: 2, arguments);
-
-        // Golden Liquid treats strings and hashes as single items, not enumerables
-        if (input.Type == FluidValues.String || input.Type == FluidValues.Object || input.Type == FluidValues.Dictionary)
-        {
-            input = ArrayValue.Create([input]);
-        }
-        else if (input.Type != FluidValues.Array)
-        {
-            return input;
-        }
-
-        // First argument is the property name to match
-        var member = arguments.At(0);
-        if (member.IsNil())
-        {
-            return ArrayValue.Create([]);
-        }
-
-        var memberStr = member.ToStringValue(context);
-
-        // Second argument is the value to reject
-        var targetValue = arguments.At(1);
-        var hasTargetValue = !targetValue.IsNil();
-
-        var list = new List<FluidValue>();
-        var hasNilError = false;
-
-        await foreach (var item in input.EnumerateAsync(context))
-        {
-            // Flatten nested arrays only for Array inputs
-            if (item.Type == FluidValues.Array)
-            {
-                await foreach (var nestedItem in item.EnumerateAsync(context))
-                {
-                    if (nestedItem.Type == FluidValues.Array)
-                    {
-                        await foreach (var deepItem in nestedItem.EnumerateAsync(context))
-                        {
-                            var shouldReject = await ShouldRejectItem(deepItem, memberStr, targetValue, hasTargetValue, context);
-                            if (shouldReject.hasError)
-                            {
-                                if (shouldReject.isNilError)
-                                {
-                                    hasNilError = true;
-                                    break;
-                                }
-                                throw new LiquidException($"Cannot access property '{memberStr}' on {deepItem.Type}");
-                            }
-                            if (!shouldReject.reject)
-                            {
-                                context.EnsureCollectionSize((long)list.Count + 1);
-                                list.Add(deepItem);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        var shouldReject = await ShouldRejectItem(nestedItem, memberStr, targetValue, hasTargetValue, context);
-                        if (shouldReject.hasError)
-                        {
-                            if (shouldReject.isNilError)
-                            {
-                                hasNilError = true;
-                                break;
-                            }
-                            throw new LiquidException($"Cannot access property '{memberStr}' on {nestedItem.Type}");
-                        }
-                        if (!shouldReject.reject)
-                        {
-                            context.EnsureCollectionSize((long)list.Count + 1);
-                            list.Add(nestedItem);
-                        }
-                    }
-                }
-                if (hasNilError) break;
-                continue;
-            }
-
-            var result = await ShouldRejectItem(item, memberStr, targetValue, hasTargetValue, context);
-            if (result.hasError)
-            {
-                if (result.isNilError)
-                {
-                    hasNilError = true;
-                    break;
-                }
-                throw new LiquidException($"Cannot access property '{memberStr}' on {item.Type}");
-            }
-
-            if (!result.reject)
-            {
-                context.EnsureCollectionSize((long)list.Count + 1);
-                list.Add(item);
-            }
-        }
-
-        // If we encountered nil error, return empty array
-        if (hasNilError)
-        {
-            return ArrayValue.Create([]);
-        }
-
-        return ArrayValue.Create(list);
-    }
-
-    private static async ValueTask<(bool reject, bool hasError, bool isNilError)> ShouldRejectItem(
-        FluidValue item,
-        string memberStr,
-        FluidValue targetValue,
-        bool hasTargetValue,
-        TemplateContext context)
-    {
-        FluidValue itemValue;
-
-        // Special handling for string items: check substring match
-        if (item.Type == FluidValues.String)
-        {
-            var stringValue = item.ToStringValue(context);
-            if (stringValue.Contains(memberStr))
-            {
-                // Substring found - treat as truthy
-                itemValue = BooleanValue.True;
-            }
-            else
-            {
-                itemValue = NilValue.Instance;
-            }
-        }
-        else if (item.Type == FluidValues.Nil)
-        {
-            // Nil doesn't have properties - return nil error (non-throwing)
-            return (false, true, true);
-        }
-        else if (item.Type == FluidValues.Number)
-        {
-            // Numbers don't have properties, so accessing any property should throw
-            return (false, true, false);
-        }
-        else
-        {
-            itemValue = await GetPropertyAsync(item, memberStr, context);
-        }
-
-        bool reject;
-        if (hasTargetValue)
-        {
-            // Explicit target value: reject if it matches
-            reject = targetValue.Equals(itemValue);
-        }
-        else
-        {
-            // No target value: reject if property is truthy
-            reject = itemValue.ToBooleanValue(context);
-        }
-
-        return (reject, false, false);
+            FilterArrayMode.Any => BooleanValue.False,
+            FilterArrayMode.Find or FilterArrayMode.FindIndex => NilValue.Instance,
+            _ => list != null ? ArrayValue.Create(list) : ArrayValue.Empty,
+        };
     }
 
     public static ValueTask<FluidValue> Size(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -993,25 +633,54 @@ public static class ArrayFilters
         static async ValueTask<FluidValue> Awaited(ValueTask<FluidValue> task) => OrZero(await task);
     }
 
+    /// <summary>
+    /// Reads the property that sort and sort_natural order the items by. Like Liquid, nothing is sorted (null) when an
+    /// item can't be indexed, and the property of a single item isn't read.
+    /// </summary>
+    private static async ValueTask<List<KeyValuePair<FluidValue, FluidValue>>> GetSortKeysAsync(FluidValue input, FluidValue member, TemplateContext context)
+    {
+        var items = await EnumerateFlattenedAsync(input, context).ToListAsync();
+        var values = new List<KeyValuePair<FluidValue, FluidValue>>(items.Count);
+
+        foreach (var item in items)
+        {
+            if (!IsIndexable(item, context))
+            {
+                return null;
+            }
+        }
+
+        foreach (var item in items)
+        {
+            values.Add(new KeyValuePair<FluidValue, FluidValue>(item, items.Count > 1 ? await GetPropertyAsync(item, member, context) : NilValue.Instance));
+        }
+
+        return values;
+    }
+
     public static async ValueTask<FluidValue> Sort(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("sort", min: 0, max: 1, arguments);
 
         if (input.Type != FluidValues.Array)
         {
+            // Like Liquid, nothing is sorted by a property when the item can't be indexed.
+            if (!arguments.At(0).IsNil() && !input.IsNil() && !IsIndexable(input, context))
+            {
+                return NilValue.Instance;
+            }
+
             return AsOneItemArray(input);
         }
 
         // If argument is provided but is nil, treat as no argument
         if (arguments.Count > 0 && !arguments.At(0).IsNil())
         {
-            var member = arguments.At(0).ToStringValue(context);
+            var values = await GetSortKeysAsync(input, arguments.At(0), context);
 
-            var values = new List<KeyValuePair<FluidValue, FluidValue>>();
-
-            await foreach (var item in EnumerateFlattenedAsync(input, context))
+            if (values == null)
             {
-                values.Add(new KeyValuePair<FluidValue, FluidValue>(item, await GetPropertyAsync(item, member, context)));
+                return NilValue.Instance;
             }
 
             // Sort with case-sensitive comparison and numbers compared as numbers, placing items with missing keys at the end
@@ -1052,19 +721,23 @@ public static class ArrayFilters
 
         if (input.Type != FluidValues.Array)
         {
+            // Like Liquid, nothing is sorted by a property when the item can't be indexed.
+            if (!arguments.At(0).IsNil() && !input.IsNil() && !IsIndexable(input, context))
+            {
+                return NilValue.Instance;
+            }
+
             return AsOneItemArray(input);
         }
 
         // If argument is provided but is nil, treat as no argument
         if (arguments.Count > 0 && !arguments.At(0).IsNil())
         {
-            var member = arguments.At(0).ToStringValue(context);
+            var values = await GetSortKeysAsync(input, arguments.At(0), context);
 
-            var values = new List<KeyValuePair<FluidValue, FluidValue>>();
-
-            await foreach (var item in EnumerateFlattenedAsync(input, context))
+            if (values == null)
             {
-                values.Add(new KeyValuePair<FluidValue, FluidValue>(item, await GetPropertyAsync(item, member, context)));
+                return NilValue.Instance;
             }
 
             // Sort with case-insensitive comparison, placing items with missing keys at the end
@@ -1109,17 +782,24 @@ public static class ArrayFilters
             return AsOneItemArray(input);
         }
 
-        if (arguments.Count == 0)
+        // Like Liquid, a nil property is no property.
+        if (arguments.At(0).IsNil())
         {
             return ArrayValue.Create(await EnumerateFlattenedAsync(input, context).Distinct().ToArrayAsync());
         }
 
-        var property = arguments.At(0).ToStringValue(context);
+        var property = arguments.At(0);
         var seen = new HashSet<FluidValue>();
         var result = new List<FluidValue>();
 
         await foreach (var item in EnumerateFlattenedAsync(input, context))
         {
+            // Like Liquid, an item that can't be indexed (nil, a boolean, a float) makes the filter return nil.
+            if (!IsIndexable(item, context))
+            {
+                return NilValue.Instance;
+            }
+
             var value = await GetPropertyAsync(item, property, context);
             if (seen.Add(value))
             {
@@ -1154,26 +834,30 @@ public static class ArrayFilters
 
         var member = arguments.At(0);
 
-        var sumList = new List<decimal>();
+        decimal sum = 0;
 
-        await foreach (var item in EnumerateFlattenedAsync(input, context))
+        await foreach (var item in EnumerateInputAsync(input, context))
         {
-            switch (item)
+            // Like Liquid, an item that can't be indexed (nil, a boolean, a float) counts as 0, and the property of
+            // a string is a substring. An integer has no named property: that's an error.
+            if (IsIndexable(item, context))
             {
-                case ObjectValue:
-                case DictionaryValue:
-                    {
-                        var value = await GetPropertyAsync(item, member.ToStringValue(context), context);
-                        sumList.Add(value.ToNumberValue(context));
-                        break;
-                    }
-                default:
-                    // Golden Liquid expects non-hash items to be an error when summing properties
-                    throw new LiquidException("sum: when a property is provided, all items must be hashes");
+                sum += await ToSummandAsync(await GetPropertyAsync(item, member, context), context);
             }
         }
 
-        return NumberValue.Create(sumList.Sum());
+        return NumberValue.Create(sum);
+    }
+
+    // Like Liquid's to_number: a number or a numeric string, the sum of an array, 0 for anything else.
+    private static ValueTask<decimal> ToSummandAsync(FluidValue item, TemplateContext context)
+    {
+        return item switch
+        {
+            NumberValue or StringValue => new ValueTask<decimal>(item.ToNumberValue(context)),
+            _ when item.Type == FluidValues.Array => SumItemsAsync(item, context),
+            _ => new ValueTask<decimal>(0)
+        };
     }
 
     /// <summary>
@@ -1185,12 +869,7 @@ public static class ArrayFilters
 
         await foreach (var item in input.EnumerateAsync(context))
         {
-            sum += item switch
-            {
-                NumberValue or StringValue => item.ToNumberValue(context),
-                _ when item.Type == FluidValues.Array => await SumItemsAsync(item, context),
-                _ => 0
-            };
+            sum += await ToSummandAsync(item, context);
         }
 
         return sum;
