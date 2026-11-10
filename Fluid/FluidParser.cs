@@ -656,8 +656,7 @@ public class FluidParser
 
         if (_trackStatementLocations)
         {
-            // In liquid mode TagStart consumes nothing, but preserves the start before Switch parses the arguments.
-            LiquidChild = TrackStatement(TagStart.SkipAnd(LiquidChild), skipLeadingWhitespace: true);
+            LiquidChild = TrackStatement(LiquidChild, skipLeadingWhitespace: true);
         }
 
         var LiquidTag = Literals.WhiteSpace(true).Else(default(TextSpan)) // {% liquid %} can start with new lines, {%liquid%} has none
@@ -918,8 +917,14 @@ public class FluidParser
             return parser;
         }
 
-        return parser.Then((context, start, end, statement) =>
+        // The range starts at the cursor before the parser runs, not at the start Parlot reports for its result:
+        // Parlot moves that past the leading parsers of a sequence that consume nothing, like a tag start inside
+        // a {% liquid %} tag.
+        return CursorOffset.And(parser).Then((context, x) =>
         {
+            var (start, statement) = x;
+            var end = context.Scanner.Cursor.Offset;
+
             if (skipLeadingWhitespace)
             {
                 var buffer = context.Scanner.Buffer;
@@ -930,10 +935,12 @@ public class FluidParser
             }
 
             statement.SourceOffset = start;
-            statement.SourceLength = context.Scanner.Cursor.Offset - start;
+            statement.SourceLength = end - start;
             return statement;
         });
     }
+
+    private static readonly Parser<int> CursorOffset = Always<int>().Then(static (context, _) => context.Scanner.Cursor.Offset);
 
     public void RegisterIdentifierTag(string tagName, Func<string, IFluidOutput, TextEncoder, TemplateContext, ValueTask<Completion>> render)
     {
