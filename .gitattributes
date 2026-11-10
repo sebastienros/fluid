@@ -1,0 +1,23 @@
+# Normalize line endings: text files are stored with LF in the repository and
+# checked out with the platform's native ending (core.eol / core.autocrlf).
+* text=auto
+
+# Scripts whose interpreter requires a specific line ending.
+*.sh   text eol=lf
+*.cmd  text eol=crlf
+*.bat  text eol=crlf
+*.sln  text eol=crlf
+
+# Binary files: never convert or diff as text.
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.snk    binary
+*.nupkg  binary
+*.snupkg binary
+*.dll    binary
+*.exe    binary
+*.pdb    binary
+*.zip    binary
