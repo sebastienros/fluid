@@ -64,7 +64,20 @@ public sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
                 writer.WriteNullValue();
                 break;
             case FluidValues.Number:
-                writer.WriteNumberValue(actualValue.ToNumberValue(context));
+                // Like Shopify's json filter, an integer too large for a decimal is a string, which keeps its digits in
+                // JavaScript, and a float has the shortest exponent form: 1e+29 for 1.0e+29.
+                if (actualValue is BigNumberValue { IsIntegral: true } bigInteger)
+                {
+                    writer.WriteStringValue(bigInteger.ToStringValue(context));
+                }
+                else if (actualValue is BigNumberValue { IsInfinity: false } bigFloat)
+                {
+                    writer.WriteRawValue(bigFloat.ToStringValue(context).Replace(".0e", "e"), skipInputValidation: true);
+                }
+                else
+                {
+                    writer.WriteNumberValue(actualValue.ToNumberValue(context));
+                }
                 break;
             case FluidValues.Dictionary:
                 if (actualValue.ToObjectValue(context) is not IFluidIndexable dict)

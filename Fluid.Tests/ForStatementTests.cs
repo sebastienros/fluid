@@ -500,4 +500,27 @@ public class ForStatementTests
     {
         Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
     }
+
+    [Theory]
+    // Like Liquid, a string limit or offset is read like Ruby's Integer(): with a 0x, 0b, 0o or 0d prefix, a leading
+    // 0 for octal, and single underscores between digits.
+    [InlineData("{% for x in (1..20) limit: '0x3' %}{{ x }},{% endfor %}|{% for x in (1..20) offset: '1_7' %}{{ x }},{% endfor %}", "1,2,3,|18,19,20,")]
+    [InlineData("{% for x in (1..20) limit: '010' %}{{ x }},{% endfor %}|{% for x in (1..5) offset: '0b1' limit: ' 0o2 ' %}{{ x }},{% endfor %}", "1,2,3,4,5,6,7,8,|2,3,")]
+    public async Task StringLimitAndOffsetAreReadLikeRubyIntegers(string source, string expected)
+    {
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
+    }
+
+    [Theory]
+    [InlineData("{% for x in (1..5) limit: '3.5' %}{% endfor %}", "for: limit is not a number")]
+    [InlineData("{% for x in (1..5) offset: '08' %}{% endfor %}", "for: offset is not a number")]
+    [InlineData("{% for x in (1..5) offset: '1__0' %}{% endfor %}", "for: offset is not a number")]
+    [InlineData("{% for x in (1..5) offset: '' %}{% endfor %}", "for: offset is not a number")]
+    [InlineData("{% for x in (1..5) limit: '0_3' %}{% endfor %}", "for: limit is not a number")]
+    public async Task InvalidStringLimitAndOffsetThrow(string source, string message)
+    {
+        var exception = await Assert.ThrowsAsync<LiquidException>(() => new FluidParser().Parse(source).RenderAsync(new TemplateContext()).AsTask());
+
+        Assert.Equal(message, exception.Message);
+    }
 }

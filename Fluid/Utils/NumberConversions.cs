@@ -43,41 +43,134 @@ internal static class NumberConversions
     }
 
     /// <summary>
-    /// Parses an integer, like Ruby's <c>Integer()</c> which Liquid uses for loop attributes, and gives the
-    /// nearest int for a value out of range, like <see cref="ToInt32Saturated(decimal)"/> does for numbers.
+    /// Converts a value to an integer like Liquid's <c>Utils.to_integer</c>, which the arguments of <c>slice</c> go
+    /// through: a number must be an integer, and any other value is converted to a string
+    /// read like Ruby's <c>Integer()</c> (see <see cref="TryParseInt32Saturated(string, out int)"/>). A value out of an
+    /// int's range gives the nearest int, like <see cref="ToInt32Saturated(decimal)"/> does.
+    /// </summary>
+    public static bool TryToInt32Saturated(FluidValue value, TemplateContext context, out int result)
+    {
+        switch (value)
+        {
+            case NumberValue number:
+                if (NumberValue.GetScale(number.Value) == 0)
+                {
+                    result = ToInt32Saturated(number.Value);
+                    return true;
+                }
+
+                result = 0;
+                return false;
+
+            case BigNumberValue big:
+                result = big.Sign > 0 ? int.MaxValue : int.MinValue;
+                return big.IsIntegral;
+
+            case { Type: FluidValues.Number }:
+                // A custom number.
+                var custom = value.ToNumberValue(context);
+                result = ToInt32Saturated(custom);
+                return NumberValue.GetScale(custom) == 0;
+
+            default:
+                result = 0;
+                return !value.IsNil() && TryParseInt32Saturated(value.ToStringValue(context), out result);
+        }
+    }
+
+    /// <summary>
+    /// Parses an integer like Ruby's <c>Integer()</c>, which Liquid uses for integer arguments and loop attributes, and
+    /// gives the nearest int for a value out of range, like <see cref="ToInt32Saturated(decimal)"/> does for numbers.
+    /// Like in Ruby, the digits can be surrounded by ASCII whitespace, follow a sign and a <c>0x</c>, <c>0b</c>,
+    /// <c>0o</c> or <c>0d</c> prefix (a leading <c>0</c> alone means octal), and be separated by single underscores:
+    /// <c>"0x1F"</c> is 31, <c>"010"</c> is 8 and <c>"1_000"</c> is 1000. An underscore can't follow a prefix.
     /// </summary>
     public static bool TryParseInt32Saturated(string value, out int result)
     {
-        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out result))
-        {
-            return true;
-        }
+        result = 0;
 
-        if (decimal.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number))
-        {
-            result = ToInt32Saturated(number);
-            return true;
-        }
-
-        // Even more digits than a decimal holds.
-        var span = value.AsSpan().Trim();
-        var negative = span.Length > 0 && span[0] == '-';
-        var digits = span.Length > 0 && span[0] is '-' or '+' ? span.Slice(1) : span;
-
-        if (digits.Length == 0)
+        if (value is null)
         {
             return false;
         }
 
-        foreach (var c in digits)
+        var s = StringValue.TrimAsciiWhiteSpace(value.AsSpan());
+        var i = 0;
+
+        var negative = false;
+        if (i < s.Length && s[i] is '+' or '-')
         {
-            if (c is < '0' or > '9')
+            negative = s[i] == '-';
+            i++;
+        }
+
+        var radix = 10;
+        if (i + 1 < s.Length && s[i] == '0')
+        {
+            switch (s[i + 1])
             {
-                return false;
+                case 'x' or 'X': radix = 16; i += 2; break;
+                case 'b' or 'B': radix = 2; i += 2; break;
+                case 'o' or 'O': radix = 8; i += 2; break;
+                case 'd' or 'D': radix = 10; i += 2; break;
+                // A leading zero alone is a prefix too: like after the other ones, "0_7" is invalid and "00_7" is 7.
+                default: radix = 8; i += 1; break;
             }
         }
 
-        result = negative ? int.MinValue : int.MaxValue;
+        var start = i;
+
+        // Stops growing once out of an int's range: the largest it gets is (int.MaxValue + 1) * 16 + 15.
+        long magnitude = 0;
+
+        for (; i < s.Length; i++)
+        {
+            var c = s[i];
+
+            if (c == '_')
+            {
+                // Only single underscores between digits.
+                if (i == start || s[i - 1] == '_' || i + 1 == s.Length)
+                {
+                    return false;
+                }
+
+                continue;
+            }
+
+            var digit = c switch
+            {
+                >= '0' and <= '9' => c - '0',
+                >= 'a' and <= 'f' => c - 'a' + 10,
+                >= 'A' and <= 'F' => c - 'A' + 10,
+                _ => int.MaxValue,
+            };
+
+            if (digit >= radix)
+            {
+                return false;
+            }
+
+            if (magnitude <= int.MaxValue)
+            {
+                magnitude = magnitude * radix + digit;
+            }
+        }
+
+        if (i == start)
+        {
+            return false;
+        }
+
+        if (negative)
+        {
+            result = magnitude > -(long)int.MinValue ? int.MinValue : (int)-magnitude;
+        }
+        else
+        {
+            result = magnitude > int.MaxValue ? int.MaxValue : (int)magnitude;
+        }
+
         return true;
     }
 
