@@ -1085,6 +1085,10 @@ public class ArrayFiltersTests
     [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\U00010428,\U00010401,\U00010400", "\U00010428 \U00010400 \U00010401")]
     [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "x\U00010428b,x\U00010400a,x\U00010400", "x\U00010400 x\U00010400a x\U00010428b")]
     [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u01C5,\u01C6,\u01C4,\u01C5a", "\u01C5 \u01C5a \u01C6 \u01C4")]
+    // Like Ruby's downcase, U+0130 is lowercased to i and U+0307.
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u0130,j,i,k", "i \u0130 j k")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "i\u0307b,\u0130a,\u0130c,ia,\u0130,\u0131", "ia \u0130 \u0130a i\u0307b \u0130c \u0131")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "x\u0130b,xi\u0307a,x\u0130,xI", "xI x\u0130 xi\u0307a x\u0130b")]
     [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\uFF5A,\U0001F600,a", "a \uFF5A \U0001F600")]
     [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\U0001F600b,\U0001F600a,\U0001F600B,\U0001F601,\uFF5AB,\uFF5Aa", "\uFF5Aa \uFF5AB \U0001F600a \U0001F600b \U0001F600B \U0001F601")]
     [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "10,9,a,A,_,ab,AB,Ab,aB,b,B", "10 9 _ a A ab AB Ab aB b B")]
