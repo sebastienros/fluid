@@ -53,11 +53,10 @@ public static class FluidValueExtensions
     {
         if (input.Type == FluidValues.String)
         {
-            var timeZoneProvided = false;
-
             var stringValue = input.ToStringValue(context);
 
-            if (stringValue == Now || stringValue == Today)
+            // Like Liquid, which downcases the string.
+            if (string.Equals(stringValue, Now, StringComparison.OrdinalIgnoreCase) || string.Equals(stringValue, Today, StringComparison.OrdinalIgnoreCase))
             {
                 result = context.Now();
 
@@ -79,61 +78,22 @@ public static class FluidValueExtensions
                     return false;
                 }
             }
-            else
+
+            // Like Liquid, a string of digits is always a timestamp: one that is too large isn't read as a date.
+            if (IsDigits(stringValue))
             {
-                var success = true;
-
-                // Use DateTimeOffset.Parse to extract the TZ if it's specified.
-                // We then verify if a TZ was set in the source string by using DateTime.Parse's Kind which will return Unspecified if not set.
-
-                if (!DateTimeOffset.TryParseExact(stringValue, DefaultFormats, context.CultureInfo, DateTimeStyles.AssumeUniversal, out result))
-                {
-                    if (!DateTimeOffset.TryParseExact(stringValue, SecondaryFormats, context.CultureInfo, DateTimeStyles.AssumeUniversal, out result))
-                    {
-                        if (!DateTimeOffset.TryParse(stringValue, context.CultureInfo, DateTimeStyles.AssumeUniversal, out result))
-                        {
-                            if (!DateTimeOffset.TryParse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out result))
-                            {
-                                success = false;
-                            }
-                            else
-                            {
-                                timeZoneProvided = DateTime.TryParse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out var timeZoneDateTime) && timeZoneDateTime.Kind != DateTimeKind.Unspecified;
-                            }
-                        }
-                        else
-                        {
-                            timeZoneProvided = DateTime.TryParse(stringValue, context.CultureInfo, DateTimeStyles.None, out var timeZoneDateTime) && timeZoneDateTime.Kind != DateTimeKind.Unspecified;
-                        }
-                    }
-                    else
-                    {
-                        timeZoneProvided = DateTime.TryParseExact(stringValue, SecondaryFormats, context.CultureInfo, DateTimeStyles.None, out var timeZoneDateTime) && timeZoneDateTime.Kind != DateTimeKind.Unspecified;
-                    }
-                }
-                else
-                {
-                    timeZoneProvided = DateTime.TryParseExact(stringValue, DefaultFormats, context.CultureInfo, DateTimeStyles.None, out var timeZoneDateTime) && timeZoneDateTime.Kind != DateTimeKind.Unspecified;
-                }
-
-                if (success)
-                {
-                    // If no timezone is specified in the source string, only use the date time part of the result
-                    if (!timeZoneProvided)
-                    {
-                        // A timezone is represented as a UTC offset, but this can vary based on daylight saving times.
-                        // Hence we don't use context.TimeZone.BaseUtcOffset which is fixed, but TimeZone.GetUtcOffset
-                        // to get the actual timezone offset at the moment of the parsed date and time
-
-                        var dateTime = result.DateTime;
-                        var offset = context.TimeZone.GetUtcOffset(dateTime);
-
-                        result = new DateTimeOffset(dateTime, offset);
-                    }
-                }
-
-                return success;
+                result = default;
+                return false;
             }
+
+            // A specific culture reads dates in its formats first, like 08/01/2017 as August 1 in en-US and January 8 in fr-FR.
+            if (context.CultureInfo.Name.Length > 0 && TryParseWithCulture(stringValue, context, out result))
+            {
+                return true;
+            }
+
+            // Otherwise like Liquid, which uses Ruby's Time.parse.
+            return RubyTimeParser.TryParse(stringValue, context, out result);
         }
         else if (input.Type == FluidValues.Number)
         {
@@ -174,6 +134,56 @@ public static class FluidValueExtensions
         }
 
         return true;
+    }
+
+    private static bool IsDigits(string value)
+    {
+        foreach (var c in value)
+        {
+            if (c is < '0' or > '9')
+            {
+                return false;
+            }
+        }
+
+        return value.Length > 0;
+    }
+
+    private static bool TryParseWithCulture(string stringValue, TemplateContext context, out DateTimeOffset result)
+    {
+        // DateTimeOffset reads the offset if there is one, DateTime's Kind tells if there was one.
+        bool timeZoneProvided;
+
+        if (DateTimeOffset.TryParseExact(stringValue, DefaultFormats, context.CultureInfo, DateTimeStyles.AssumeUniversal, out result))
+        {
+            timeZoneProvided = DateTime.TryParseExact(stringValue, DefaultFormats, context.CultureInfo, DateTimeStyles.None, out var timeZoneDateTime) && timeZoneDateTime.Kind != DateTimeKind.Unspecified;
+        }
+        else if (DateTimeOffset.TryParseExact(stringValue, SecondaryFormats, context.CultureInfo, DateTimeStyles.AssumeUniversal, out result))
+        {
+            timeZoneProvided = DateTime.TryParseExact(stringValue, SecondaryFormats, context.CultureInfo, DateTimeStyles.None, out var timeZoneDateTime) && timeZoneDateTime.Kind != DateTimeKind.Unspecified;
+        }
+        else if (DateTimeOffset.TryParse(stringValue, context.CultureInfo, DateTimeStyles.AssumeUniversal, out result))
+        {
+            timeZoneProvided = DateTime.TryParse(stringValue, context.CultureInfo, DateTimeStyles.None, out var timeZoneDateTime) && timeZoneDateTime.Kind != DateTimeKind.Unspecified;
+        }
+        else
+        {
+            return false;
+        }
+
+        if (!timeZoneProvided)
+        {
+            result = InTimeZone(result.DateTime, context);
+        }
+
+        return true;
+    }
+
+    // A date without offset is in the time zone of the context, with the offset at this date and time
+    // since it can vary with daylight saving time.
+    private static DateTimeOffset InTimeZone(DateTime dateTime, TemplateContext context)
+    {
+        return new DateTimeOffset(dateTime, context.TimeZone.GetUtcOffset(dateTime));
     }
 
     public static FluidValue Or(this FluidValue self, FluidValue other)
