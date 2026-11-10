@@ -860,6 +860,13 @@ public class MiscFiltersTests
     // Strings without a date or time, numbers without a date pattern and offsets Ruby doesn't read.
     [InlineData("{{ '1,2,3' | date: '%F' }}|{{ '1 2 3' | date: '%F' }}|{{ '3 2' | date: '%F' }}|{{ '2,3' | date: '%F' }}|{{ '2020-06' | date: '%F' }}|{{ 'monday' | date: '%F' }}", "1,2,3|1 2 3|3 2|2,3|2020-06|monday")]
     [InlineData("{{ '2020-06-15T12:00:00+5' | date: '%T %z' }}|{{ 'Thu Nov 29 2001 14:33:20 GMT+0100' | date: '%T %z' }}|{{ '2020-06-15 12:00 +0530' | date: '%T %z' }}", "12:00:00 +0000|14:33:20 +0000|12:00:00 +0530")]
+    // An apostrophe can follow the day.
+    [InlineData("{{ \"30'March 2020\" | date: '%F' }}|{{ \"5'may\" | date: '%F' }}", "2020-03-30|2017-05-05")]
+    // Digits alone are a timestamp, even one that is out of range, and Ruby fails to apply am or pm to an hour over 32 bits.
+    [InlineData("{{ '99999999999999999999' | date: '%F' }}|{{ '2020-06-15 3000000000pm' | date: '%F' }}|{{ '2020-06-15 2147483647pm' | date: '%F %R' }}", "99999999999999999999|2020-06-15 3000000000pm|2020-06-15 19:00")]
+    // Ordinal dates: an hour of 24 or 60 seconds stay in the day of the year, and the day has to exist.
+    [InlineData("{{ '2020-166 12:00' | date: '%F %R' }}|{{ '2020-166 24:00' | date: '%F %R' }}|{{ '2020-166 23:59:60' | date: '%F %T' }}|{{ '2021-365 24:00' | date: '%F %R' }}", "2020-06-14 12:00|2020-06-14 00:00|2020-06-14 00:00:00|2021-12-31 00:00")]
+    [InlineData("{{ '2020-001 24:00' | date: '%F' }}|{{ '2020-366' | date: '%F' }}|{{ '2021-366' | date: '%F' }}|{{ '2020166T2400' | date: '%F %R' }}", "2020-001 24:00|2020-12-31|2021-366|2020-06-14 00:00")]
     public async Task DateParsesStringsLikeRuby(string source, string expected)
     {
         var context = new TemplateContext { TimeZone = TimeZoneInfo.Utc, Now = () => new DateTimeOffset(2017, 8, 1, 5, 4, 36, TimeSpan.Zero) };

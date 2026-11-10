@@ -79,6 +79,13 @@ public static class FluidValueExtensions
                 }
             }
 
+            // Like Liquid, a string of digits is always a timestamp: one that is too large isn't read as a date.
+            if (IsDigits(stringValue))
+            {
+                result = default;
+                return false;
+            }
+
             // A specific culture reads dates in its formats first, like 08/01/2017 as August 1 in en-US and January 8 in fr-FR.
             if (context.CultureInfo.Name.Length > 0 && TryParseWithCulture(stringValue, context, out result))
             {
@@ -127,6 +134,19 @@ public static class FluidValueExtensions
         }
 
         return true;
+    }
+
+    private static bool IsDigits(string value)
+    {
+        foreach (var c in value)
+        {
+            if (c is < '0' or > '9')
+            {
+                return false;
+            }
+        }
+
+        return value.Length > 0;
     }
 
     private static bool TryParseWithCulture(string stringValue, TemplateContext context, out DateTimeOffset result)

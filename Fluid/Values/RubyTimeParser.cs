@@ -29,7 +29,7 @@ internal static partial class RubyTimeParser
         @"((?:[0-9]+\s*(?::\s*[0-9]+(?:\s*:\s*[0-9]+(?:[,.][0-9]*)?)?|h(?:\s*[0-9]+m?(?:\s*[0-9]+s?)?)?)(?:\s*[ap](?:m\b|\.m\.))?|[0-9]+\s*[ap](?:m\b|\.m\.)))" +
         @"(?:\s*((?:gmt|utc?)?[-+][0-9]+(?:[,.:][0-9]+(?::[0-9]+)?)?|[\p{L}.\s]+(?:standard|daylight)\stime\b|\p{L}+(?:\sdst)?\b))?";
     private const string TimeFieldsPattern = @"\A([0-9]+)h?(?:\s*:?\s*([0-9]+)m?(?:\s*:?\s*([0-9]+)(?:[,.]([0-9]+))?s?)?)?(?:\s*([ap])(?:m\b|\.m\.))?";
-    private const string EuPattern = @"('?[0-9]+)[^-0-9\s']*\s*(" + Months + @")[^-0-9\s']*(?:\s*" + Era + @"\s*('?-?[0-9]+(?:(?:st|nd|rd|th)\b)?))?";
+    private const string EuPattern = @"('?[0-9]+)[^-0-9\s]*\s*(" + Months + @")[^-0-9\s']*(?:\s*" + Era + @"\s*('?-?[0-9]+(?:(?:st|nd|rd|th)\b)?))?";
     private const string UsPattern = @"\b(" + Months + @")[^-0-9\s']*\s*('?[0-9]+)[^-0-9\s']*(?:\s*,?\s*" + Era + @"\s*('?-?[0-9]+))?";
     private const string IsoPattern = @"('?[-+]?[0-9]+)-([0-9]+)-('?-?[0-9]+)";
     private const string JisPattern = @"\b([mtshr])([0-9]+)\.([0-9]+)\.([0-9]+)";
@@ -123,6 +123,7 @@ internal static partial class RubyTimeParser
         public string Zone;
         public bool Bc;
         public bool CompleteYear;
+        public bool Invalid;
     }
 
     public static bool TryParse(string value, TemplateContext context, out DateTimeOffset result)
@@ -145,6 +146,11 @@ internal static partial class RubyTimeParser
 
         Substitute(ref str, DayRegex(), out _);
         ParseTime(ref str, ref fields);
+
+        if (fields.Invalid)
+        {
+            return false;
+        }
 
         _ = ParseEu(ref str, ref fields)
             || ParseUs(ref str, ref fields)
@@ -358,6 +364,13 @@ internal static partial class RubyTimeParser
 
         if (time.Groups[5].Success)
         {
+            // Ruby converts the hour to a 32-bit integer to apply am or pm, and fails if it doesn't fit.
+            if (hour > int.MaxValue)
+            {
+                fields.Invalid = true;
+                return;
+            }
+
             hour = hour % 12 + (time.Groups[5].Value[0] == 'p' ? 12 : 0);
         }
 
@@ -1040,17 +1053,42 @@ internal static partial class RubyTimeParser
 
         if (fields.YDay is long yday)
         {
-            var ordinalYear = year ?? localNow.Year;
-
-            if (yday is < 1 or > 366 || ordinalYear is < 1 or > 9999 || yday > (DateTime.IsLeapYear((int)ordinalYear) ? 366 : 365))
+            // Like Time.make_time: guess the month and the day, then move the day by the difference with the day
+            // of the year of the result, which also accounts for an hour of 24 or 60 seconds.
+            if (yday is < 1 or > 366)
             {
                 return false;
             }
 
-            var date = new DateTime((int)ordinalYear, 1, 1).AddDays(yday - 1);
-            year = ordinalYear;
-            mon = date.Month;
-            day = date.Day;
+            var ordinalYear = year ?? localNow.Year;
+            var ordinalMon = (yday - 1) / 31 + 1;
+            var ordinalDay = (yday - 1) % 31 + 1;
+
+            if (!TryCompose(ordinalYear, ordinalMon, ordinalDay, hour ?? 0, min ?? 0, sec ?? 0, ticks ?? 0, offset, context, out result, out var localDayOfYear))
+            {
+                return false;
+            }
+
+            var difference = yday - localDayOfYear;
+
+            if (difference == 0)
+            {
+                return true;
+            }
+
+            ordinalDay += difference;
+
+            if (ordinalDay > 28 && MonthDays(ordinalYear, ordinalMon) is int monthDays && ordinalDay > monthDays)
+            {
+                if (++ordinalMon > 12)
+                {
+                    return false;
+                }
+
+                ordinalDay -= monthDays;
+            }
+
+            return TryCompose(ordinalYear, ordinalMon, ordinalDay, hour ?? 0, min ?? 0, sec ?? 0, ticks ?? 0, offset, context, out result, out _);
         }
 
         // The fields before the first one that is set come from the current time.
@@ -1072,13 +1110,14 @@ internal static partial class RubyTimeParser
             ticks = localNow.Ticks % TimeSpan.TicksPerSecond / 10 * 10;
         } while (false);
 
-        var y = year.Value;
-        var m = mon ?? 1;
-        var d = day ?? 1;
-        var h = hour ?? 0;
-        var mi = min ?? 0;
-        var s = sec ?? 0;
-        var t = ticks ?? 0;
+        return TryCompose(year.Value, mon ?? 1, day ?? 1, hour ?? 0, min ?? 0, sec ?? 0, ticks ?? 0, offset, context, out result, out _);
+    }
+
+    // Validates the fields like Time.utc and Time.local, and creates the date in the zone of the offset, or in the context's time zone.
+    private static bool TryCompose(long y, long m, long d, long h, long mi, long s, long t, int? offset, TemplateContext context, out DateTimeOffset result, out int localDayOfYear)
+    {
+        result = default;
+        localDayOfYear = 0;
 
         // With an offset, Ruby converts the fields to UTC before validating them, which normalizes some overflows.
         if (offset is int utcOffset)
@@ -1086,7 +1125,7 @@ internal static partial class RubyTimeParser
             ApplyOffset(ref y, ref m, ref d, ref h, ref mi, ref s, utcOffset);
         }
 
-        // Like Time.utc and Time.local. A day after the end of the month and 60 seconds overflow in the next month or minute.
+        // A day after the end of the month and 60 seconds overflow in the next month or minute.
         if (y is < 1 or > 9999 || m is < 1 or > 12 || d is < 1 or > 31 || h is < 0 or > 24 || mi is < 0 or > 59 || s is < 0 or > 60
             || (h == 24 && (mi > 0 || s > 0 || t > 0)))
         {
@@ -1102,16 +1141,18 @@ internal static partial class RubyTimeParser
             {
                 // The offset of the time zone at this date, which can vary with daylight saving time.
                 result = new DateTimeOffset(dateTime, context.TimeZone.GetUtcOffset(dateTime));
-            }
-            else if (Math.Abs(seconds / 60) <= 14 * 60)
-            {
-                // .NET offsets are in minutes: like Ruby's %z, ignore the seconds but keep the local time.
-                result = new DateTimeOffset(dateTime.AddSeconds(seconds), TimeSpan.FromMinutes(seconds / 60));
+                localDayOfYear = dateTime.DayOfYear;
             }
             else
             {
+                var local = dateTime.AddSeconds(seconds);
+                localDayOfYear = local.DayOfYear;
+
+                // .NET offsets are in minutes: like Ruby's %z, ignore the seconds but keep the local time.
                 // Beyond the 14 hours .NET supports, keep the instant.
-                result = new DateTimeOffset(dateTime, TimeSpan.Zero);
+                result = Math.Abs(seconds / 60) <= 14 * 60
+                    ? new DateTimeOffset(local, TimeSpan.FromMinutes(seconds / 60))
+                    : new DateTimeOffset(dateTime, TimeSpan.Zero);
             }
 
             return true;
