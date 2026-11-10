@@ -1611,6 +1611,18 @@ Like Liquid 5.13 and later, `self` is an object whose members are the variables 
 - `self.self` and a bare bracket `{{ ['self'] }}` are the object too, unless a variable is named `self`.
 - `self` has no other member: `self.size` is a variable named `size`, `{{ self | size }}` is `0`, and `{{ self }}` renders `Liquid::SelfDrop`, like in Shopify.
 
+## Partials: `include` and `render`
+
+Like Shopify Liquid, `render` renders a partial in an isolated context, and `include` (deprecated in Liquid) in the context of the template:
+
+- A partial rendered with `render` sees the values given to the template and its named arguments, and starts with its own `cycle` and `ifchanged` state: `{% cycle 'a', 'b' %}{% render 'cycle' %}` renders `aa` when the partial is `{% cycle 'a', 'b' %}`. Each item of `render ... for` starts over too. An included partial shares the state of the template.
+- The named arguments of `render` are set before the `with` or `for` value, which replaces an argument of the same name unless it is nil: `{% render 'card' with product as item, item: default %}` gets `default` when `product` is nil.
+- `include ... with` and `include ... for` both render the partial once for each item of an array, and once with the whole value for anything else, including a range or a hash. They don't define a `forloop` variable: the partial sees the `forloop` of the loop around the `include`.
+- A `break` or `continue` in an included partial isn't consumed by the `include`, even with `for`: it applies to the loop around the `include`, after every item of an array was rendered.
+- A partial rendered with `render` can't use `include`: rendering it throws a `LiquidException` with the message `include usage is not allowed in this context` (Liquid renders this message as an inline error).
+
+> **Breaking change:** `include ... with` used to render an array once, `include ... for` used to iterate ranges and hashes, define `forloop` and stop at a `break`, `render` used to share the cycle and ifchanged state of the template, and `include` used to work in a partial rendered with `render`.
+
 ## Whitespace control
 
 Liquid follows strict rules with regard to whitespace support. By default, all spaces and new lines are preserved from the template.

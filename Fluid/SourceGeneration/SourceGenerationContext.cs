@@ -88,7 +88,7 @@ public sealed class SourceGenerationContext
     /// <summary>
     /// Gets whether a loop has to maintain its <c>forloop</c> variable, because something can read it.
     /// </summary>
-    /// <param name="loop">A <see cref="ForStatement"/>, or a <see cref="RenderStatement"/> or <see cref="IncludeStatement"/> with a <c>for</c> argument.</param>
+    /// <param name="loop">A <see cref="ForStatement"/>, or a <see cref="RenderStatement"/> with a <c>for</c> argument.</param>
     public bool UsesForLoop(Statement loop) => ForLoopUsage?.UsesForLoop(loop) ?? true;
 
     public string WriterName { get; set; } = "writer";
