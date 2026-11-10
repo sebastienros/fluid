@@ -141,7 +141,15 @@ internal static partial class RubyTimeParser
         }
 
         // Liquid downcases the string, Time.parse upcases the zone.
-        var str = SeparatorsRegex().Replace(value.ToLowerInvariant(), " ");
+        var str = Downcase(value);
+
+        // Date._parse checks its limit on the downcased string, which can be longer.
+        if (str.Length > MaxLength)
+        {
+            return false;
+        }
+
+        str = SeparatorsRegex().Replace(str, " ");
         var fields = new Fields { CompleteYear = true };
 
         Substitute(ref str, DayRegex(), out _);
@@ -183,6 +191,14 @@ internal static partial class RubyTimeParser
         }
 
         return MakeTime(ref fields, context, out result);
+    }
+
+    // Like Ruby's String#downcase, which turns U+0130 (capital I with dot above) into i and U+0307 (combining dot above).
+    // .NET lowercases it to a single char, or not at all.
+    private static string Downcase(string value)
+    {
+        // Replace returns the same string when there's nothing to replace.
+        return value.Replace("İ", "i̇").ToLowerInvariant();
     }
 
     // yyyy-mm-dd, optionally followed by T or a space, hh:mm[:ss[.fraction]] and a zone: Z, UTC, GMT or ±hh[[:]mm].
@@ -1148,10 +1164,13 @@ internal static partial class RubyTimeParser
                 var local = dateTime.AddSeconds(seconds);
                 localDayOfYear = local.DayOfYear;
 
-                // .NET offsets are in minutes: like Ruby's %z, ignore the seconds but keep the local time.
-                // Beyond the 14 hours .NET supports, keep the instant.
-                result = Math.Abs(seconds / 60) <= 14 * 60
-                    ? new DateTimeOffset(local, TimeSpan.FromMinutes(seconds / 60))
+                // .NET offsets are whole minutes: drop the seconds of the offset, like Ruby's %z, and keep the
+                // instant, so the local time moves by these seconds (12:00:00 +05:30:15 is 11:59:45 +05:30).
+                // Beyond the 14 hours .NET supports, use UTC.
+                var minutes = seconds / 60;
+
+                result = Math.Abs(minutes) <= 14 * 60
+                    ? new DateTimeOffset(dateTime.AddMinutes(minutes), TimeSpan.FromMinutes(minutes))
                     : new DateTimeOffset(dateTime, TimeSpan.Zero);
             }
 

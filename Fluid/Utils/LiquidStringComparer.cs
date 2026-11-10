@@ -15,6 +15,10 @@ namespace Fluid.Utils;
 /// </remarks>
 public static class LiquidStringComparer
 {
+    // Ruby's String#downcase turns U+0130 (capital I with dot above) into i and U+0307 (combining dot above).
+    private const char DottedCapitalI = 'İ';
+    private const int CombiningDotAbove = 0x0307;
+
     /// <summary>
     /// Compares two strings like Ruby's <c>String#&lt;=&gt;</c>, in code point order (UTF-8 byte order).
     /// </summary>
@@ -47,8 +51,8 @@ public static class LiquidStringComparer
     /// <remarks>
     /// Letters are folded to lowercase, not to uppercase, so the characters between <c>Z</c> and <c>a</c> come
     /// before the letters. Letters outside ASCII are folded too, including the ones outside the BMP, except
-    /// titlecase letters (<c>U+01C5</c>), which Ruby leaves as they are. Unlike Ruby, <c>U+0130</c> isn't
-    /// expanded to two characters.
+    /// titlecase letters (<c>U+01C5</c>), which Ruby leaves as they are. Like Ruby, <c>U+0130</c> is lowercased
+    /// to two characters, <c>i</c> and <c>U+0307</c>.
     /// </remarks>
     public static int CompareIgnoreCase(string x, string y)
     {
@@ -91,6 +95,11 @@ public static class LiquidStringComparer
             // pair, both strings have the same first half.
             var start = i > 0 && char.IsHighSurrogate(x[i - 1]) && (char.IsLowSurrogate(cx) || char.IsLowSurrogate(cy)) ? i - 1 : i;
 
+            if (cx == DottedCapitalI || cy == DottedCapitalI)
+            {
+                return CompareIgnoreCaseExpanded(x, y, start);
+            }
+
             var px = ToLowerCodePoint(x, start);
             var py = ToLowerCodePoint(y, start);
 
@@ -101,6 +110,60 @@ public static class LiquidStringComparer
         }
 
         return x.Length - y.Length;
+    }
+
+    /// <summary>
+    /// Compares the lowercase forms of two strings from an index, where their chars stop matching one to one
+    /// because at least one of them is <c>U+0130</c>, which Ruby lowercases to two code points.
+    /// </summary>
+    private static int CompareIgnoreCaseExpanded(string x, string y, int start)
+    {
+        int ix = start, iy = start;
+        bool dotX = false, dotY = false;
+
+        while (true)
+        {
+            var endX = !dotX && ix >= x.Length;
+            var endY = !dotY && iy >= y.Length;
+
+            if (endX || endY)
+            {
+                return endX == endY ? 0 : endX ? -1 : 1;
+            }
+
+            var px = NextLowerCodePoint(x, ref ix, ref dotX);
+            var py = NextLowerCodePoint(y, ref iy, ref dotY);
+
+            if (px != py)
+            {
+                return px - py;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns the next lowercase code point of a string, expanding <c>U+0130</c> to <c>i</c> and <c>U+0307</c>.
+    /// </summary>
+    private static int NextLowerCodePoint(string s, ref int index, ref bool pendingDot)
+    {
+        if (pendingDot)
+        {
+            pendingDot = false;
+            return CombiningDotAbove;
+        }
+
+        var c = s[index];
+
+        if (c == DottedCapitalI)
+        {
+            index++;
+            pendingDot = true;
+            return 'i';
+        }
+
+        var codePoint = ToLowerCodePoint(s, index);
+        index += char.IsHighSurrogate(c) && index + 1 < s.Length && char.IsLowSurrogate(s[index + 1]) ? 2 : 1;
+        return codePoint;
     }
 
     /// <summary>

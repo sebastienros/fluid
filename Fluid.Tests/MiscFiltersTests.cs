@@ -879,6 +879,8 @@ public class MiscFiltersTests
     // Strings without a date or time, numbers without a date pattern and offsets Ruby doesn't read.
     [InlineData("{{ '1,2,3' | date: '%F' }}|{{ '1 2 3' | date: '%F' }}|{{ '3 2' | date: '%F' }}|{{ '2,3' | date: '%F' }}|{{ '2020-06' | date: '%F' }}|{{ 'monday' | date: '%F' }}", "1,2,3|1 2 3|3 2|2,3|2020-06|monday")]
     [InlineData("{{ '2020-06-15T12:00:00+5' | date: '%T %z' }}|{{ 'Thu Nov 29 2001 14:33:20 GMT+0100' | date: '%T %z' }}|{{ '2020-06-15 12:00 +0530' | date: '%T %z' }}", "12:00:00 +0000|14:33:20 +0000|12:00:00 +0530")]
+    // .NET offsets are whole minutes: the seconds of an offset move to the time, which keeps the instant of Ruby (%s).
+    [InlineData("{{ '2020-06-15 12:00:00 +05:30:15' | date: '%s %T %z' }}|{{ '2020-06-15 12:00:00 -05:30:15' | date: '%s %T %z' }}|{{ '2020-06-15 12:00:00 +053015' | date: '%s' }}|{{ '2020-06-15 00:00:10 +00:00:15' | date: '%s %F %T %z' }}", "1592202585 11:59:45 +0530|1592242215 12:00:15 -0530|1592202585|1592179195 2020-06-14 23:59:55 +0000")]
     // An apostrophe can follow the day.
     [InlineData("{{ \"30'March 2020\" | date: '%F' }}|{{ \"5'may\" | date: '%F' }}", "2020-03-30|2017-05-05")]
     // Digits alone are a timestamp, even one that is out of range, and Ruby fails to apply am or pm to an hour over 32 bits.
@@ -905,6 +907,13 @@ public class MiscFiltersTests
 
         context.SetValue("d", date + "x");
         Assert.Equal(date + "x", await template.RenderAsync(context));
+
+        // The limit applies to the downcased string, where U+0130 is two characters.
+        context.SetValue("d", date.Substring(0, 127) + "I");
+        Assert.Equal("2020-01-01", await template.RenderAsync(context));
+
+        context.SetValue("d", date.Substring(0, 127) + "\u0130");
+        Assert.Equal(date.Substring(0, 127) + "\u0130", await template.RenderAsync(context));
     }
 
     [Theory]
