@@ -61,7 +61,7 @@ dotnet run scripts/shopify-liquid.cs -- template.liquid --expected-file expected
 - Package versions go in `Directory.Packages.props`, never in a `.csproj`.
 - `TreatWarningsAsErrors=true`: warnings break the build.
 - `Fluid` multi-targets `netstandard2.0;net8.0;net10.0;net11.0`. New core code must compile on all; use `Fluid/Shims.cs` and `#if` guards with a working fallback for newer APIs (e.g. `SearchValues<T>` is net8.0+). Never drop the fallback.
-- `net11.0` builds use runtime async (`Features` `runtime-async=on` in `Common.props`): async methods compile without state machines there, so check async hot-path changes on net11.0 too. `global.json` requires the .NET 11 RC 3 SDK.
+- `net11.0` builds use runtime async (`Features` `runtime-async=on` in `Directory.Build.targets`): async methods compile without state machines there, so check async hot-path changes on net11.0 too. Runtime async is still an opt-in preview feature in .NET 11.0 GA, so the flag stays. `global.json` requires the .NET 11 SDK (11.0.100 or a later 11.0 feature band).
 
 ## Architecture
 

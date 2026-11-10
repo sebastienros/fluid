@@ -1,0 +1,13 @@
+<Project>
+
+  <!--
+    Runtime async (still an opt-in preview feature in .NET 11.0 GA): the runtime suspends and resumes async methods
+    instead of compiler-generated state machines.
+    Set here and not in Common.props, which is imported before the project sets its TargetFramework: a file-based app
+    (scripts/*.cs) defaults to net11.0 at that point even when it targets net10.0 with a #:property directive.
+  -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net11.0'">
+    <Features>$(Features);runtime-async=on</Features>
+  </PropertyGroup>
+
+</Project>

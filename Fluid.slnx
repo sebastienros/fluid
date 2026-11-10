@@ -10,6 +10,7 @@
     <File Path=".github/workflows/pr.yml" />
     <File Path=".github/workflows/publish.yml" />
     <File Path="Common.props" />
+    <File Path="Directory.Build.targets" />
     <File Path="CREDITS.md" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
