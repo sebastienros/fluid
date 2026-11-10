@@ -344,6 +344,24 @@ public class NumberFiltersTests
     }
 
     [Theory]
+    // Like Liquid, where Ruby's strip only removes ASCII whitespace, a decimal string padded with a Unicode space isn't
+    // a decimal: it's read from its leading digits, if any.
+    [InlineData("{{ nbsp1 | plus: 0 }}|{{ nbsp2 | plus: 0 }}|{{ ideographic | plus: 0 }}|{{ lineSeparator | round: 1 }}", "0|5|0|0")]
+    [InlineData("{{ nbsp2 | modulo: 2 }}|{{ nbsp2 | times: 1 }}|{{ 10 | modulo: nbsp2 }}", "1|5|0")]
+    [InlineData("{{ ' 5.6 ' | plus: 0 }}|{{ ascii | plus: 0 }}|{{ ascii | modulo: 2 }}", "5.6|5.6|1.6")]
+    public async Task DecimalStringsOnlyIgnoreAsciiWhiteSpace(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("nbsp1", "\u00a05.6");
+        context.SetValue("nbsp2", "5.6\u00a0");
+        context.SetValue("ideographic", "\u30005.6");
+        context.SetValue("lineSeparator", "\u20285.6");
+        context.SetValue("ascii", "\t\v\f\r\n5.6\n ");
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Theory]
     // Like Liquid (Ruby floats), numbers smaller than 0.0001 are rendered in scientific notation.
     [InlineData("{{ 0.000001 }}|{{ 0.00009 }}|{{ 0.0001 }}|{{ 1.0 | divided_by: 100000 }}|{{ -0.0000025 | plus: 0 }}|{{ 0.00001234 }}", "1.0e-06|9.0e-05|0.0001|1.0e-05|-2.5e-06|1.234e-05")]
     // Filters see the same text as the output: no trailing zeros past the first.

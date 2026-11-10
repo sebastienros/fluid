@@ -48,10 +48,18 @@ public sealed class IndexerSegment : MemberSegment
 
         if (value.IsNil())
         {
+            var isUndefined = value == UndefinedValue.Instance;
+
             // Try to access the model with the key
             if (!context.Model.IsNil())
             {
                 value = await context.Model.GetValueAsync(keyString, context);
+            }
+
+            // Like Liquid, ['self'] is the self object when no variable is named self.
+            if (isUndefined && keyString == SelfValue.Name && value.IsNil())
+            {
+                value = SelfValue.Create(context);
             }
         }
 

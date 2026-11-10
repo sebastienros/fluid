@@ -105,6 +105,25 @@ public class BinaryExpressionTests
     }
 
     [Theory]
+    // Like Liquid (Ruby's String#<=>), strings are compared in code point order (UTF-8 bytes), not in UTF-16 order
+    // where surrogate pairs come before U+E000-U+FFFF.
+    [InlineData("'\U0001F600' > '\uFF5A'", "true")]
+    [InlineData("'\U0001F600' >= '\uFF5A'", "true")]
+    [InlineData("'\U0001F600' < '\uFF5A'", "false")]
+    [InlineData("'\U0001F600' <= '\uFF5A'", "false")]
+    [InlineData("'x\uFFFF' < 'x\U0001F600'", "true")]
+    [InlineData("'\U0001F600' < '\U0001F601'", "true")]
+    [InlineData("'\uD7FF' < '\U0001F600'", "true")]
+    [InlineData("'ab' < 'abc'", "true")]
+    [InlineData("'abc' <= 'ab'", "false")]
+    [InlineData("'B' < 'a'", "true")]
+    [InlineData("'a' >= 'a'", "true")]
+    public Task StringsAreComparedInCodePointOrder(string source, string expected)
+    {
+        return CheckAsync(source, expected);
+    }
+
+    [Theory]
     [InlineData("'abc' startswith 'bc'", "false")]
     [InlineData("'abc' startswith 'ab'", "true")]
     [InlineData("x startswith 'b'", "false")]
@@ -232,6 +251,15 @@ public class BinaryExpressionTests
     [InlineData("{% if blank contains blank %}a{% endif %}{% if empty contains empty %}b{% endif %}{% if blank contains empty %}c{% endif %}{% if empty contains '' %}d{% endif %}{% assign x = empty %}{% if x contains blank %}e{% endif %}", "e")]
     [InlineData("{% if blank == blank %}a{% endif %}{% if empty == empty %}b{% endif %}{% if empty != empty %}c{% endif %}{% if blank != empty %}d{% endif %}{% assign x = blank %}{% if x == blank %}e{% endif %}", "cde")]
     [InlineData("{% case blank %}{% when n %}a{% endcase %}{% case blank %}{% when '' %}b{% endcase %}{% case empty %}{% when nil %}c{% endcase %}{% case n %}{% when blank %}d{% endcase %}{% if blank == n %}e{% endif %}", "bde")]
+    // Like Liquid, blank and empty are only special as the operands of a condition: assigned, they are ''.
+    [InlineData("{% assign a = empty %}{% assign b = blank %}{% if a == blank %}1{% endif %}{% if b == empty %}2{% endif %}{% if b == nil %}3{% endif %}{% if a == b %}4{% endif %}{% if b == '' %}5{% endif %}{% if a contains '' %}6{% endif %}", "12456")]
+    [InlineData("{% assign a = empty %}{% assign b = blank %}{% if a == ' ' %}1{% endif %}{% if b == ' ' %}3{% endif %}{% if b == false %}4{% endif %}{% if b == e %}5{% endif %}{% if a == e %}6{% endif %}", "")]
+    [InlineData("{% assign b = blank %}{% case b %}{% when nil %}N{% when '' %}S{% else %}X{% endcase %}|{% assign q = nil %}{% if q == b %}Q{% endif %}", "S|")]
+    [InlineData("{% assign a = empty %}{% case a %}{% when blank %}B{% when empty %}E{% else %}X{% endcase %}", "BE")]
+    [InlineData("{% for x in (1..1) %}{% assign c = empty %}{% endfor %}{% if c == blank %}1{% endif %}", "1")]
+    [InlineData("{% assign a = blank %}{% if a != blank %}1{% endif %}{% if a != empty %}2{% endif %}{% if a == a %}3{% endif %}{% unless a == empty %}4{% endunless %}", "3")]
+    [InlineData("{% assign y = blank %}[{{ y.size }}]|[{{ blank | size }}]|[{{ 'a' | append: empty }}]|[{{ n | default: blank | size }}]|{% capture c %}{{ empty }}{% endcapture %}[{{ c | size }}]", "[0]|[0]|[a]|[0]|[0]")]
+    [InlineData("{% for i in empty %}[{{ i }}]{% else %}E{% endfor %}|{% for i in blank %}[{{ i }}]{% else %}E{% endfor %}|{% cycle empty, 'b' %}{% cycle empty, 'b' %}|{% echo blank | size %}", "E|E|b|0")]
     public async Task ComparesLikeLiquid(string source, string expected)
     {
         var context = new TemplateContext();

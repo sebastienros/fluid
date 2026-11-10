@@ -29,9 +29,6 @@ public class GoldenLiquidTests
 
         ["tag:strict2"] = "Fluid uses lenient parsing mode; strict2 mode not implemented",
 
-        ["id:tags_liquid_single_line_comment_tag"] = "Skipping: `{% liquid %}` comment/endcomment special-case parsing not implemented",
-        ["id:tags_liquid_multi-line_comment_tag"] = "Skipping: `{% liquid %}` multi-line comment/endcomment special-case parsing not implemented",
-
         // Inline comment multi-line enforcement: Shopify requires # on each line for multi-line inline comments
         ["id:tags_inline_comment_enforce_leading_hash"] = "Multi-line inline comment validation not implemented",
 
