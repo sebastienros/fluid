@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Numerics;
 using Fluid.Utils;
 using Fluid.Values;
 
@@ -298,11 +300,16 @@ public static class ArrayFilters
     /// <summary>
     /// Reads the property of an item like Liquid's <c>item[property]</c>: on a hash, size, first and last are keys
     /// like any other, missing ones are nil. On a string it is Ruby's <c>String#[]</c>: a string property is returned
-    /// when the item contains it and is nil otherwise, a number is the index of a character. On an integer it is a bit,
-    /// and any other property is an error.
+    /// when the item contains it and is nil otherwise, a number is the index of a character and a range a substring.
+    /// On an integer a number is a bit and a range a sequence of bits, and any other property is an error.
     /// </summary>
     internal static ValueTask<FluidValue> GetPropertyAsync(FluidValue item, FluidValue property, TemplateContext context)
     {
+        if (property is RangeValue range)
+        {
+            return new ValueTask<FluidValue>(GetRangeProperty(item, range, context));
+        }
+
         return item switch
         {
             DictionaryValue dictionary => new ValueTask<FluidValue>(dictionary.GetKey(property.ToStringValue(context))),
@@ -363,6 +370,156 @@ public static class ArrayFilters
 
         var start = CodePoints.ToCharIndex(value, (int)index);
         return StringValue.Create(value.Substring(start, CodePoints.Width(value, start)));
+    }
+
+    // Like Ruby's [] with a range: a substring of a string, bits of an integer, and nil on a hash or a drop, whose
+    // keys and methods are never ranges.
+    private static FluidValue GetRangeProperty(FluidValue item, RangeValue range, TemplateContext context)
+    {
+        return item switch
+        {
+            { Type: FluidValues.String } => GetSubstring(item.ToStringValue(context), range.Start, range.End),
+            NumberValue number when NumberValue.GetScale(number.Value) == 0 => GetBits(number.Value, range.Start, range.End),
+            _ => NilValue.Instance,
+        };
+    }
+
+    // Ruby's String#[] with a range, in code points: "banana"[1..3] is "ana". A negative bound counts from the end,
+    // the end is clamped to the last character, a start past the end is nil and an end before the start is "".
+    private static FluidValue GetSubstring(string value, long start, long end)
+    {
+        var hasSurrogates = CodePoints.HasSurrogates(value.AsSpan());
+        var length = hasSurrogates ? CodePoints.Count(value) : value.Length;
+
+        if (start < 0)
+        {
+            start += length;
+        }
+
+        if (start < 0 || start > length)
+        {
+            return NilValue.Instance;
+        }
+
+        if (end < 0)
+        {
+            end += length;
+        }
+
+        if (end >= length)
+        {
+            end = length - 1;
+        }
+
+        if (end < start)
+        {
+            return StringValue.Empty;
+        }
+
+        if (!hasSurrogates)
+        {
+            return StringValue.Create(value.Substring((int)start, (int)(end - start + 1)));
+        }
+
+        var first = CodePoints.ToCharIndex(value, (int)start);
+        var last = first;
+
+        for (var i = start; i <= end; i++)
+        {
+            last += CodePoints.Width(value, last);
+        }
+
+        return StringValue.Create(value.Substring(first, last - first));
+    }
+
+    // The most bits a range can select from an integer, which bounds the memory of a negative integer's bits
+    // (all ones above its sign) or of a shift to the left.
+    private const int MaxSelectedBits = 1 << 16;
+
+    // The bits of a decimal's magnitude.
+    private const int DecimalBits = 96;
+
+    private static readonly BigInteger MaxDecimal = new(decimal.MaxValue);
+
+    // Ruby's Integer#[] with a range: 6[1..2] is 3. The number is shifted right by the start (left when it is
+    // negative), then masked to the length of the range when the end is after the start. When they are equal it is
+    // the bit at the start, 0 when negative, and when the end is before the start the shifted number isn't masked.
+    private static FluidValue GetBits(decimal value, long start, long end)
+    {
+        var number = new BigInteger(value);
+        BigInteger bits;
+
+        if (start == end)
+        {
+            bits = start < 0 ? BigInteger.Zero : ShiftRight(number, start) & BigInteger.One;
+        }
+        else if (start > end)
+        {
+            bits = ShiftRight(number, start);
+        }
+        else
+        {
+            // The bounds are longs: the length of the range fits in a decimal.
+            var length = (decimal)end - start + 1;
+
+            if (start >= 0)
+            {
+                bits = Mask(ShiftRight(number, start), length);
+            }
+            else if (length <= -(decimal)start)
+            {
+                // Only the zeros shifted in from the right are selected.
+                bits = BigInteger.Zero;
+            }
+            else
+            {
+                // Masking before shifting left keeps the same bits without allocating the ones that are masked out.
+                bits = ShiftRight(Mask(number, length + start), start);
+            }
+        }
+
+        return bits >= -MaxDecimal && bits <= MaxDecimal
+            ? NumberValue.Create((decimal)bits)
+            : BigNumberValue.Create(bits.ToString(CultureInfo.InvariantCulture));
+    }
+
+    private static BigInteger ShiftRight(BigInteger number, long count)
+    {
+        if (count >= 0)
+        {
+            // Only the number of a decimal is shifted right: further than its bits only leaves its sign.
+            return number >> (int)Math.Min(count, DecimalBits + 1);
+        }
+
+        if (number.IsZero)
+        {
+            return number;
+        }
+
+        var left = -(decimal)count;
+        EnsureSelectedBits(left);
+        return number << (int)left;
+    }
+
+    // The lowest bits of the number of a decimal: number & (2**length - 1).
+    private static BigInteger Mask(BigInteger number, decimal length)
+    {
+        // A positive number has no bits above the ones of a decimal, a negative one has ones.
+        if (number.Sign >= 0 && length >= DecimalBits)
+        {
+            return number;
+        }
+
+        EnsureSelectedBits(length);
+        return number & ((BigInteger.One << (int)length) - 1);
+    }
+
+    private static void EnsureSelectedBits(decimal count)
+    {
+        if (count > MaxSelectedBits)
+        {
+            throw new LiquidException($"cannot select more than {MaxSelectedBits} bits of an integer");
+        }
     }
 
     /// <summary>

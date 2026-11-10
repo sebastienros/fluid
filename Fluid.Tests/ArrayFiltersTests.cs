@@ -5,6 +5,7 @@ using Fluid.Values;
 using Fluid.Filters;
 using Xunit;
 using System.Threading.Tasks;
+using Fluid.Tests.Domain;
 using Fluid.Tests.Extensibility;
 
 namespace Fluid.Tests;
@@ -1133,6 +1134,68 @@ public class ArrayFiltersTests
         context.SetValue("s", new[] { "12", "b2", "3" });
 
         Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Theory]
+    // Like Liquid (Ruby's String#[]), a range property is a substring of a string item.
+    [InlineData("{{ l | map: (1..3) | join: '-' }}|{{ l | where: (1..3) | join: '-' }}|{{ l | map: (n..m) | join: '-' }}|{{ l | map: (1.7..3.2) | join: '-' }}", "ppl-ana|apple-banana|ppl-ana|ppl-ana")]
+    // A negative bound counts from the end and the end is clamped to the last character.
+    [InlineData("{{ l | map: (-3..-1) | json }}|{{ l | map: (2..100) | json }}", "[\"ple\",\"ana\"]|[\"ple\",\"nana\"]")]
+    // A start at the end or an end before the start is an empty string, a start past either end is nil.
+    [InlineData("{{ l | map: (5..10) | json }}|{{ l | map: (6..10) | json }}|{{ l | map: (3..1) | json }}|{{ l | map: (0..-10) | json }}|{{ l | map: (-10..2) | json }}", "[\"\",\"a\"]|[null,\"\"]|[\"\",\"\"]|[\"\",\"\"]|[null,null]")]
+    // Like a Ruby string, the substring is in code points.
+    [InlineData("{{ 'a😀bc,xyz' | split: ',' | map: (1..2) | join: '-' }}|{{ 'a😀bc' | map: (-3..-2) }}", "😀b-yz|😀b")]
+    public async Task ArrayFiltersReadRangePropertiesOfStringsLikeRubyStringIndex(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("l", new[] { "apple", "banana" });
+        context.SetValue("n", 1);
+        context.SetValue("m", 3);
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Theory]
+    // Every array filter reading a property takes a range on strings. An empty substring is truthy.
+    [InlineData("{{ l | where: (1..3), 'ana' | join }}|{{ l | where: (4..9) | join }}|{{ l | reject: (4..9) | size }}|{{ l | reject: (1..3), 'ana' | join }}", "banana|apple banana kiwi kiwi|0|apple kiwi kiwi")]
+    [InlineData("{{ l | has: (5..9) }}|{{ l | has: (1..3), 'iwi' }}|{{ l | find: (1..3), 'iwi' }}|{{ l | find_index: (1..3), 'iwi' }}", "true|true|kiwi|2")]
+    [InlineData("{{ l | uniq: (0..0) | join }}|{{ l | compact: (5..9) | join }}|{{ l | sort: (1..1) | join }}|{{ l | sort_natural: (1..1) | join }}", "apple banana kiwi|apple banana|banana kiwi kiwi apple|banana kiwi kiwi apple")]
+    [InlineData("{{ l | sum: (0..0) }}|{{ '12,34,5' | split: ',' | sum: (0..0) }}", "0|9")]
+    public async Task ArrayFiltersTakeRangePropertiesOfStrings(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("l", new[] { "apple", "banana", "kiwi", "kiwi" });
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Theory]
+    // Like Ruby's Integer#[], a range property is the bits of an integer from the start, masked to the length of the
+    // range when the end is after the start: 6[0..1] is 2.
+    [InlineData("{{ (5..7) | map: (0..1) | join }}|{{ (5..7) | where: (0..1) | join }}|{{ (5..7) | map: (0..100) | join }}|{{ (5..7) | sum: (0..1) }}|{{ (5..7) | uniq: (1..2) | join }}", "1 2 3|5 6 7|5 6 7|6|5 6")]
+    // A negative start shifts left, an end before the start doesn't mask, equal bounds are one bit.
+    [InlineData("{{ (5..7) | map: (-1..1) | join }}|{{ (5..7) | map: (-2..-1) | join }}|{{ (5..7) | map: (1..0) | join }}|{{ (5..7) | map: (0..-1) | join }}|{{ (5..7) | map: (3..2) | join }}|{{ (5..6) | map: (2..2) | join }}", "2 4 6|0 0 0|2 3 3|5 6 7|0 0 0|1 1")]
+    // A negative integer has ones above its sign.
+    [InlineData("{{ (-6..-5) | map: (0..2) | join }}|{{ (-6..-5) | map: (1..70) | join }}|{{ (-6..-5) | map: (-3..-5) | join }}|{{ (-6..-5) | map: (2..1) | join }}|{{ (-6..-5) | map: (-5..3) | join }}|{{ (-6..-5) | map: (-1..-1) | join }}", "2 3|1180591620717411303421 1180591620717411303421|-48 -40|-2 -2|320 352|0 0")]
+    // A hash or an object has no range key, and an item that can't be indexed is still nil.
+    [InlineData("{{ h | map: (1..3) | json }}|{{ h | where: (1..3) | size }}|{{ o | map: (1..3) | json }}|{{ 2.5 | map: (1..3) | json }}|{{ nil | map: (1..3) | json }}", "[null]|0|[null]|[null]|[]")]
+    public async Task ArrayFiltersReadRangePropertiesOfOtherItemsLikeRuby(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("h", new Dictionary<string, object> { ["1..3"] = "x" });
+        context.SetValue("o", new Person { Firstname = "Bill" });
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Fact]
+    public async Task ArrayFiltersLimitTheBitsARangeSelectsFromAnInteger()
+    {
+        var exception = await Assert.ThrowsAsync<LiquidException>(() => new FluidParser().Parse("{{ -1 | map: (0..100000) }}").RenderAsync().AsTask());
+        Assert.Equal("cannot select more than 65536 bits of an integer", exception.Message);
+
+        // Positive integers and bits shifted out of the selection don't need to be computed.
+        Assert.Equal("5|0|-1", await new FluidParser().Parse("{{ 5 | map: (0..100000) }}|{{ 5 | map: (-100000..-99999) }}|{{ -1 | map: (100000..1) }}").RenderAsync());
     }
 
     [Theory]
