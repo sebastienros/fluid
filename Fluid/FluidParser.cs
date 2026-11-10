@@ -155,9 +155,8 @@ public class FluidParser
 
         // Like Liquid, where integers are unbounded and floats are doubles, a number literal too large for a decimal
         // is still valid. It is a BigNumberValue, written as its text and compared by its sign and magnitude.
-        var BigNumber = Terms.Pattern(static c => c is '-' or '.' or (>= '0' and <= '9'))
-            .When(static (context, x) => IsBigNumber(x.Span))
-            .Then<Expression>(static x => new LiteralExpression(BigNumberValue.Create(x.ToString())));
+        var BigNumberText = SkipWhiteSpace(new BigNumberLiteralParser());
+        var BigNumber = BigNumberText.Then<Expression>(static x => new LiteralExpression(BigNumberValue.Create(x.ToString())));
 
         var Number = Terms.Decimal().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))).Or(BigNumber);
         Number.Name = "Number";
@@ -1027,42 +1026,6 @@ public class FluidParser
     private static string GetBoundSource(ParseContext context, int start, int end)
     {
         return context.Scanner.Buffer.AsSpan(start, end - start).Trim().ToString();
-    }
-
-    // An integer or a float, like -?\d+(\.\d+)?, whose integer part has too many digits for a decimal.
-    private static bool IsBigNumber(ReadOnlySpan<char> value)
-    {
-        var i = value.Length > 0 && value[0] == '-' ? 1 : 0;
-        var integerStart = i;
-
-        while (i < value.Length && value[i] is >= '0' and <= '9')
-        {
-            i++;
-        }
-
-        if (i - integerStart < 29)
-        {
-            return false;
-        }
-
-        if (i == value.Length)
-        {
-            return true;
-        }
-
-        if (value[i] != '.')
-        {
-            return false;
-        }
-
-        var fractionStart = ++i;
-
-        while (i < value.Length && value[i] is >= '0' and <= '9')
-        {
-            i++;
-        }
-
-        return i > fractionStart && i == value.Length;
     }
 
     public void RegisterEmptyTag(string tagName, Func<IFluidOutput, TextEncoder, TemplateContext, ValueTask<Completion>> render)

@@ -78,6 +78,15 @@ public class LargeNumberTests
     }
 
     [Theory]
+    // A big literal is a sign, digits and an optional point followed by digits: the - of -}} and -%} isn't part of it.
+    [InlineData("[{{99999999999999999999999999999-}} ]|{%- assign x = -99999999999999999999999999999-%} {{ x }}", "[99999999999999999999999999999]|-99999999999999999999999999999")]
+    [InlineData("{{99999999999999999999999999999.25-}} |{{ 99999999999999999999999999999 | append: '' -}} |{{ x | default: 99999999999999999999999999999-}}", "1.0e+29|99999999999999999999999999999|99999999999999999999999999999")]
+    public async Task BigNumberLiteralsEndBeforeWhitespaceControl(string source, string expected)
+    {
+        Assert.Equal(expected, await RenderAsync(source));
+    }
+
+    [Theory]
     // Like Liquid, where floats are doubles, a float literal too large for a decimal is valid, and written like a Ruby float.
     [InlineData("{{ 99999999999999999999999999999.0 }}|{{ -99999999999999999999999999999.0 }}|{% assign x = 79228162514264337593543950336.0 %}{{ x }}", "1.0e+29|-1.0e+29|7.922816251426434e+28")]
     [InlineData("{{ 123456789012345678901234567890.123456789 }}|{{ 100000000000000000000000000000000000000000000000000000000000000.0 }}|{{ 0099999999999999999999999999999 }}", "1.2345678901234568e+29|1.0e+62|99999999999999999999999999999")]
