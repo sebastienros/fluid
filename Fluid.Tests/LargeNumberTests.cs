@@ -78,6 +78,15 @@ public class LargeNumberTests
     }
 
     [Theory]
+    // A big literal is a sign, digits and an optional point followed by digits: the - of -}} and -%} isn't part of it.
+    [InlineData("[{{99999999999999999999999999999-}} ]|{%- assign x = -99999999999999999999999999999-%} {{ x }}", "[99999999999999999999999999999]|-99999999999999999999999999999")]
+    [InlineData("{{99999999999999999999999999999.25-}} |{{ 99999999999999999999999999999 | append: '' -}} |{{ x | default: 99999999999999999999999999999-}}", "1.0e+29|99999999999999999999999999999|99999999999999999999999999999")]
+    public async Task BigNumberLiteralsEndBeforeWhitespaceControl(string source, string expected)
+    {
+        Assert.Equal(expected, await RenderAsync(source));
+    }
+
+    [Theory]
     // Like Liquid, where floats are doubles, a float literal too large for a decimal is valid, and written like a Ruby float.
     [InlineData("{{ 99999999999999999999999999999.0 }}|{{ -99999999999999999999999999999.0 }}|{% assign x = 79228162514264337593543950336.0 %}{{ x }}", "1.0e+29|-1.0e+29|7.922816251426434e+28")]
     [InlineData("{{ 123456789012345678901234567890.123456789 }}|{{ 100000000000000000000000000000000000000000000000000000000000000.0 }}|{{ 0099999999999999999999999999999 }}", "1.2345678901234568e+29|1.0e+62|99999999999999999999999999999")]
@@ -87,6 +96,43 @@ public class LargeNumberTests
     public async Task FloatLiteralsTooLargeForADecimalAreValid(string source, string expected)
     {
         Assert.Equal(expected, await RenderAsync(source));
+    }
+
+    [Theory]
+    // Like Liquid, where integers are unbounded, the math filters are exact with integers too large for a decimal.
+    [InlineData("{{ 99999999999999999999999999999 | times: 1 }}|{{ -99999999999999999999999999999 | abs }}|{{ 99999999999999999999999999999 | minus: 1 }}|{{ 99999999999999999999999999999 | plus: 1 }}", "99999999999999999999999999999|99999999999999999999999999999|99999999999999999999999999998|100000000000000000000000000000")]
+    [InlineData("{{ 99999999999999999999999999999 | ceil }}|{{ -99999999999999999999999999999 | floor }}|{{ 99999999999999999999999999999 | round }}|{{ 99999999999999999999999999999 | round: 2 }}|{{ 99999999999999999999999999999 | round: -2 }}|{{ -99999999999999999999999999949 | round: -2 }}|{{ 99999999999999999999999999999 | round: -40 }}", "99999999999999999999999999999|-99999999999999999999999999999|99999999999999999999999999999|99999999999999999999999999999|100000000000000000000000000000|-99999999999999999999999999900|0")]
+    [InlineData("{{ 99999999999999999999999999999 | at_least: 5 }}|{{ 5 | at_least: 99999999999999999999999999999 }}|{{ 99999999999999999999999999999 | at_most: 5 }}|{{ 5 | at_most: 99999999999999999999999999999 }}|{{ -99999999999999999999999999999 | at_least: -99999999999999999999999999998 }}", "99999999999999999999999999999|99999999999999999999999999999|5|5|-99999999999999999999999999998")]
+    [InlineData("{{ 99999999999999999999999999999 | divided_by: 7 }}|{{ -99999999999999999999999999999 | divided_by: 7 }}|{{ 7 | divided_by: 99999999999999999999999999999 }}|{{ 99999999999999999999999999999 | modulo: 7 }}|{{ -7 | modulo: 99999999999999999999999999999 }}|{{ 99999999999999999999999999999 | minus: 99999999999999999999999999999 }}", "14285714285714285714285714285|-14285714285714285714285714286|0|4|99999999999999999999999999992|0")]
+    // A result too large for a decimal is a big number too, and an integer stays exact.
+    [InlineData("{{ 79228162514264337593543950335 | plus: 1 }}|{{ -79228162514264337593543950335 | minus: 1 }}|{{ 79228162514264337593543950335 | times: 10 }}|{{ 79228162514264337593543950335 | round: -1 }}|{{ 79228162514264337593543950335 | plus: 1 | minus: 1 }}", "79228162514264337593543950336|-79228162514264337593543950336|792281625142643375935439503350|79228162514264337593543950340|79228162514264337593543950335")]
+    // With a float, the arithmetic is the one of doubles, like in Ruby: 100000000000000000000000000000.0 is 99999999999999991433150857216.
+    [InlineData("{{ 99999999999999999999999999999 | times: 1.5 }}|{{ 100000000000000000000000000000.0 | times: 2 }}|{{ -100000000000000000000000000000.0 | abs }}|{{ 79228162514264337593543950335 | divided_by: 0.5 }}|{{ 100000000000000000000000000000.0 | minus: 99999999999999999999999999999 }}", "1.5e+29|2.0e+29|1.0e+29|1.5845632502852868e+29|0.0")]
+    [InlineData("{{ 100000000000000000000000000000.0 | ceil }}|{{ 100000000000000000000000000000.0 | round }}|{{ 100000000000000000000000000000.0 | round: 1 }}|{{ 100000000000000000000000000000.0 | round: -29 }}", "99999999999999991433150857216|99999999999999991433150857216|1.0e+29|100000000000000000000000000000")]
+    // Like Ruby's Integer#size, the number of bytes of an integer, at least 8. A float has no size.
+    [InlineData("{{ 99999999999999999999999999999 | size }}|{{ -99999999999999999999999999999 | size }}|{{ 18446744073709551615 | size }}|{{ 18446744073709551616 | size }}|{{ 79228162514264337593543950335 | size }}|{{ 100000000000000000000000000000.0 | size }}", "13|13|8|9|12|0")]
+    public async Task MathFiltersAreExactWithBigIntegers(string source, string expected)
+    {
+        Assert.Equal(expected, await RenderAsync(source));
+    }
+
+    [Fact]
+    public async Task MathFiltersReportInfinityAndNaN()
+    {
+        var infinity = new string('9', 400) + ".0";
+
+        Assert.Equal("Infinity|-Infinity|Infinity", await RenderAsync($"{{{{ {infinity} }}}}|{{{{ {infinity} | times: -1 }}}}|{{{{ {infinity} | plus: 1 }}}}"));
+        Assert.Equal("Infinity", (await Assert.ThrowsAsync<LiquidException>(() => RenderAsync($"{{{{ {infinity} | ceil }}}}"))).Message);
+        Assert.Equal("The result is not a number.", (await Assert.ThrowsAsync<LiquidException>(() => RenderAsync($"{{{{ {infinity} | minus: {infinity} }}}}"))).Message);
+    }
+
+    [Theory]
+    // Like Shopify's json filter, an integer out of the range of a long is a string, even when it fits in a decimal.
+    [InlineData("{{ 9223372036854775807 | json }}|{{ 9223372036854775808 | json }}|{{ 79228162514264337593543950335 | json }}|{{ 9007199254740993 | json }}", "9223372036854775807|\"9223372036854775808\"|\"79228162514264337593543950335\"|9007199254740993")]
+    [InlineData("{{ -9223372036854775808 | json }}|{{ -9223372036854775809 | json }}|{{ '9223372036854775808' | plus: 0 | json }}|{{ big | json }}|{{ 9223372036854775808.5 | json }}", "-9223372036854775808|\"-9223372036854775809\"|\"9223372036854775808\"|[\"18446744073709551615\",1]|9223372036854775808.5")]
+    public async Task JsonWritesIntegersOutOfTheLongRangeAsStrings(string source, string expected)
+    {
+        Assert.Equal(expected, await RenderAsync(source, c => c.SetValue("big", new object[] { ulong.MaxValue, 1L })));
     }
 
     [Theory]
@@ -135,6 +181,10 @@ public class LargeNumberTests
 
     [Theory]
     [InlineData("{% for i in (1..99999999999999999999) %}{% endfor %}", "The range bound 99999999999999999999 is out of range.")]
+    // A literal bound too large for a decimal parses, like in Liquid, and is out of range too.
+    [InlineData("{% for i in (99999999999999999999999999998..99999999999999999999999999999) %}{{ i }},{% endfor %}", "The range bound 99999999999999999999999999998 is out of range.")]
+    [InlineData("{% assign r = (1..99999999999999999999999999999) %}[{{ r }}]", "The range bound 99999999999999999999999999999 is out of range.")]
+    [InlineData("{% assign r = (1 .. -99999999999999999999999999999.5) %}", "The range bound -99999999999999999999999999999 is out of range.")]
     [InlineData("{% assign r = (-99999999999..1) %}", "The range (-99999999999..1) has too many items.")]
     [InlineData("{% for i in (-2000000000..2000000000) %}{% endfor %}", "The range (-2000000000..2000000000) has too many items.")]
     public async Task RangesTooLargeThrowALiquidException(string source, string message)

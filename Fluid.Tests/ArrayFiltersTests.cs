@@ -1032,8 +1032,8 @@ public class ArrayFiltersTests
     [InlineData("{{ h | sort | size }}|{{ h | reverse | size }}|{{ h | sum }}|{{ h | sum: 'n' }}|{{ eh | sort | size }}", "1|1|0|1|1")]
     [InlineData("{{ 1 | sort | size }}|{{ 1 | sort_natural | size }}|{{ 1 | reverse | size }}|{{ 'ab' | sort | size }}", "1|1|1|1")]
     [InlineData("{{ 5 | join }}|{{ 5 | join | size }}|[{{ missing | join }}]|{{ missing | sort | size }}|{{ missing | sum }}", "5|1|[]|0|0")]
-    // Like Liquid, a value without a size has a size of 0.
-    [InlineData("{{ 2.5 | size }}|{{ 7 | size }}|{{ true | size }}|{{ missing | size }}|{{ 'abc' | size }}|{{ h | size }}", "0|0|0|0|3|2")]
+    // Like Liquid, a value without a size has a size of 0, and an integer has the size of Ruby's Integer#size: 8 bytes.
+    [InlineData("{{ 2.5 | size }}|{{ 7 | size }}|{{ true | size }}|{{ missing | size }}|{{ 'abc' | size }}|{{ h | size }}", "0|8|0|0|3|2")]
     public async Task ArrayFiltersWrapHashesAndScalars(string source, string expected)
     {
         var context = new TemplateContext();

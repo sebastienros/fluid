@@ -21,10 +21,6 @@ public class FilterErrorTests
     [InlineData("{{ 'abc' | truncate: 1, '', 2 }}", "Wrong number of arguments for 'truncate' (given 3, expected 0..2)")]
     [InlineData("{{ 'a b c' | truncatewords: nil }}", "truncatewords: cannot convert nil to number")]
     [InlineData("{{ 9 | compact | reject: '' }}", "cannot select the property ''")]
-    [InlineData("{{ 79228162514264337593543950335 | plus: 1 }}", "plus: the result is too large to be represented")]
-    [InlineData("{{ -79228162514264337593543950335 | minus: 1 }}", "minus: the result is too large to be represented")]
-    [InlineData("{{ 79228162514264337593543950335 | times: 2 }}", "times: the result is too large to be represented")]
-    [InlineData("{{ 79228162514264337593543950335 | divided_by: 0.5 }}", "divided_by: the result is too large to be represented")]
     public async Task InvalidFilterInputsThrowLiquidException(string source, string message)
     {
         var template = _parser.Parse(source);

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Numerics;
 using System.Text.Encodings.Web;
+using Fluid.Utils;
 
 namespace Fluid.Values;
 
@@ -9,9 +10,9 @@ namespace Fluid.Values;
 /// A number literal beyond the range of a decimal (about ±7.9e28), which Liquid accepts because its integers are
 /// unbounded and its floats are doubles: <c>99999999999999999999999999999</c> or <c>1e29</c> written as
 /// <c>100000000000000000000000000000.0</c>. An integer is written as is and a float like a Ruby float
-/// (<c>1.0e+29</c>). It is ordered and compared with other numbers by its sign and magnitude, and is the nearest
-/// decimal (<see cref="decimal.MaxValue"/> or <see cref="decimal.MinValue"/>) in arithmetic, like a string
-/// of digits too large for a decimal.
+/// (<c>1.0e+29</c>). It is ordered and compared with other numbers by its sign and magnitude. The math filters compute
+/// with integers exactly and with floats as doubles, like Ruby; elsewhere it is the nearest decimal
+/// (<see cref="decimal.MaxValue"/> or <see cref="decimal.MinValue"/>), like a string of digits too large for a decimal.
 /// </summary>
 public sealed class BigNumberValue : FluidValue
 {
@@ -63,6 +64,89 @@ public sealed class BigNumberValue : FluidValue
     }
 
     /// <summary>
+    /// Creates the number of an integer: a <see cref="BigNumberValue"/> when it is beyond the range of a decimal,
+    /// otherwise a <see cref="NumberValue"/>.
+    /// </summary>
+    internal static FluidValue Create(BigInteger value)
+    {
+        if (value >= MinDecimal && value <= MaxDecimal)
+        {
+            return NumberValue.Create((decimal)value);
+        }
+
+        // An integer too large for a double is an infinity, like in Ruby's Integer#to_f.
+        return new BigNumberValue(value.ToString(CultureInfo.InvariantCulture), (double)value, isInteger: true);
+    }
+
+    /// <summary>
+    /// Creates the number of a float: a <see cref="BigNumberValue"/> when it is beyond the range of a decimal, otherwise a
+    /// <see cref="NumberValue"/> with a decimal point, like <c>2.0</c>.
+    /// </summary>
+    /// <exception cref="LiquidException">The value is NaN, which only a <see cref="BigNumberValue"/> can't hold.</exception>
+    internal static FluidValue CreateFloat(double value)
+    {
+        if (double.IsNaN(value))
+        {
+            throw new LiquidException("The result is not a number.");
+        }
+
+        if (Math.Abs(value) < (double)decimal.MaxValue)
+        {
+            var number = NumberConversions.ToDecimal(value);
+
+            // Like Ruby's floats, a whole number keeps a decimal place: 2.0.
+            return NumberValue.Create(NumberValue.GetScale(number) == 0 ? number * 1.0m : number);
+        }
+
+        return new BigNumberValue(FormatFloat(value), value, isInteger: false);
+    }
+
+    /// <summary>
+    /// The size of a number like Ruby's <c>Integer#size</c>, which the <c>size</c> filter returns: the number of bytes
+    /// of the magnitude of an integer, and at least 8 like a 64-bit integer. A float has no size, which is 0.
+    /// </summary>
+    internal static int GetIntegerSize(FluidValue value, TemplateContext context)
+    {
+        BigInteger integer;
+
+        if (value is BigNumberValue big)
+        {
+            if (!big.IsIntegral)
+            {
+                return 0;
+            }
+
+            integer = big.ToBigInteger();
+        }
+        else
+        {
+            var number = value.ToNumberValue(context);
+
+            if (NumberValue.GetScale(number) != 0)
+            {
+                return 0;
+            }
+
+            if (Math.Abs(number) <= ulong.MaxValue)
+            {
+                return 8;
+            }
+
+            integer = new BigInteger(number);
+        }
+
+        // The bytes of a two's complement, with a last byte for the sign when the highest bit of the magnitude is set.
+        var bytes = BigInteger.Abs(integer).ToByteArray();
+        var length = bytes.Length > 1 && bytes[bytes.Length - 1] == 0 ? bytes.Length - 1 : bytes.Length;
+
+        return Math.Max(8, length);
+    }
+
+    private static readonly BigInteger MaxDecimal = new(decimal.MaxValue);
+
+    private static readonly BigInteger MinDecimal = new(decimal.MinValue);
+
+    /// <summary>
     /// Whether the number is an integer rather than a float.
     /// </summary>
     internal bool IsIntegral { get; }
@@ -77,6 +161,26 @@ public sealed class BigNumberValue : FluidValue
     /// a float written as <c>Infinity</c>.
     /// </summary>
     internal bool IsInfinity => double.IsInfinity(_value);
+
+    /// <summary>
+    /// The nearest double, an infinity for an integer too large for a double.
+    /// </summary>
+    internal double DoubleValue => _value;
+
+    /// <summary>
+    /// The integer, or the whole number of a float, which is too large to have a fraction.
+    /// </summary>
+    /// <exception cref="LiquidException">The number is a float written as <c>Infinity</c>.</exception>
+    internal BigInteger ToBigInteger()
+    {
+        if (!TryGetInteger(out var value))
+        {
+            // Like Ruby's FloatDomainError.
+            throw new LiquidException(_text);
+        }
+
+        return value;
+    }
 
     public override FluidValues Type => FluidValues.Number;
 

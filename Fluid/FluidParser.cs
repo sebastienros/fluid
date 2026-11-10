@@ -155,9 +155,8 @@ public class FluidParser
 
         // Like Liquid, where integers are unbounded and floats are doubles, a number literal too large for a decimal
         // is still valid. It is a BigNumberValue, written as its text and compared by its sign and magnitude.
-        var BigNumber = Terms.Pattern(static c => c is '-' or '.' or (>= '0' and <= '9'))
-            .When(static (context, x) => IsBigNumber(x.Span))
-            .Then<Expression>(static x => new LiteralExpression(BigNumberValue.Create(x.ToString())));
+        var BigNumberText = SkipWhiteSpace(new BigNumberLiteralParser());
+        var BigNumber = BigNumberText.Then<Expression>(static x => new LiteralExpression(BigNumberValue.Create(x.ToString())));
 
         var Number = Terms.Decimal().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))).Or(BigNumber);
         Number.Name = "Number";
@@ -200,7 +199,9 @@ public class FluidParser
 
         // Like Liquid, literal range bounds are truncated: (2.7..4) is (2..4). Each bound keeps its text as written too,
         // which names the range in forloop.name and its offset: continue cursor, like Liquid does with (2.7..4) or (01..4).
-        var RangeBound = Terms.Decimal().Then(static (context, start, end, x) => new RangeBound(new LiteralExpression(NumberValue.Create(decimal.Truncate(x))), GetBoundSource(context, start, end)));
+        // A bound too large for a decimal is valid too, and out of range when the range is evaluated.
+        var RangeBound = Terms.Decimal().Then(static (context, start, end, x) => new RangeBound(new LiteralExpression(NumberValue.Create(decimal.Truncate(x))), GetBoundSource(context, start, end)))
+            .Or(BigNumberText.Then(static (context, start, end, x) => new RangeBound(new LiteralExpression(TruncateBigNumber(x)), GetBoundSource(context, start, end))));
         RangeBound.Name = "RangeBound";
 
         // Like Liquid, a bound can also be a string, converted to an integer when the range is evaluated.
@@ -1023,46 +1024,18 @@ public class FluidParser
         return quote + value.ToString() + quote;
     }
 
+    // The integer part of a big number literal, like decimal.Truncate for the other literal bounds.
+    private static FluidValue TruncateBigNumber(TextSpan value)
+    {
+        var point = value.Span.IndexOf('.');
+
+        return BigNumberValue.Create(point < 0 ? value.ToString() : value.Span.Slice(0, point).ToString());
+    }
+
     // A number bound as written, without the whitespace before it, like "01" or "1.50".
     private static string GetBoundSource(ParseContext context, int start, int end)
     {
         return context.Scanner.Buffer.AsSpan(start, end - start).Trim().ToString();
-    }
-
-    // An integer or a float, like -?\d+(\.\d+)?, whose integer part has too many digits for a decimal.
-    private static bool IsBigNumber(ReadOnlySpan<char> value)
-    {
-        var i = value.Length > 0 && value[0] == '-' ? 1 : 0;
-        var integerStart = i;
-
-        while (i < value.Length && value[i] is >= '0' and <= '9')
-        {
-            i++;
-        }
-
-        if (i - integerStart < 29)
-        {
-            return false;
-        }
-
-        if (i == value.Length)
-        {
-            return true;
-        }
-
-        if (value[i] != '.')
-        {
-            return false;
-        }
-
-        var fractionStart = ++i;
-
-        while (i < value.Length && value[i] is >= '0' and <= '9')
-        {
-            i++;
-        }
-
-        return i > fractionStart && i == value.Length;
     }
 
     public void RegisterEmptyTag(string tagName, Func<IFluidOutput, TextEncoder, TemplateContext, ValueTask<Completion>> render)
