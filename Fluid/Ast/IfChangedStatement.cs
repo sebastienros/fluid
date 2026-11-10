@@ -5,8 +5,6 @@ namespace Fluid.Ast;
 
 public sealed class IfChangedStatement : TagStatement
 {
-    private const string IfChangedRegisterKey = "$$ifchanged$$";
-
     public IfChangedStatement(IReadOnlyList<Statement> statements) : base(statements)
     {
     }
@@ -15,9 +13,8 @@ public sealed class IfChangedStatement : TagStatement
     {
         context.IncrementSteps();
 
-        // Get the previous value (shared across all ifchanged blocks)
-        context.AmbientValues.TryGetValue(IfChangedRegisterKey, out var previousValueObj);
-        var previousValue = previousValueObj as string;
+        // Get the previous value, shared across all ifchanged blocks but not with a partial rendered with render
+        var previousValue = context.IfChangedRegister;
 
         // Render inner statements to a buffer
         using var captureBuffer = new BufferFluidOutput();
@@ -39,7 +36,7 @@ public sealed class IfChangedStatement : TagStatement
         // Output only if content has changed from the last ifchanged output
         if (!string.Equals(previousValue, currentValue, StringComparison.Ordinal))
         {
-            context.AmbientValues[IfChangedRegisterKey] = currentValue;
+            context.IfChangedRegister = currentValue;
             output.Write(currentValue);
         }
 

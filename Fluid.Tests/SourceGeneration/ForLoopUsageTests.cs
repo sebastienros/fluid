@@ -21,7 +21,7 @@ public class ForLoopUsageTests
 {
     private static readonly FluidParser Parser = new(new FluidParserOptions { AllowFunctions = true, AllowLiquidTag = true, AllowParentheses = true });
 
-    // The loops are identified by their item variable, "render" and "include" by the tag of a loop over a template.
+    // The loops are identified by their item variable, "render" by the tag of a loop over a template.
 
     [Theory]
     [InlineData("{% for i in (1..3) %}{{ i }}{% endfor %}", "")]
@@ -204,11 +204,11 @@ public class ForLoopUsageTests
     [InlineData("{% include 'uses' %}{% for i in (1..2) %}{{ i }}{% endfor %}", "")]
     [InlineData("{% for i in (1..2) %}{% include 'loop' %}{% endfor %}", "k")]
     [InlineData("{% for i in (1..2) %}{% include 'recursive' %}{% endfor %}", "i")]
-    // The loop of an include ... for is the innermost loop of the included template.
-    [InlineData("{% include 'uses' for (1..2) %}", "include")]
+    // Like Liquid, include ... for defines no forloop: the included template sees the loops enclosing the include.
+    [InlineData("{% include 'uses' for (1..2) %}", "")]
     [InlineData("{% include 'ignores' for (1..2) %}", "")]
-    [InlineData("{% for i in (1..2) %}{% include 'uses' for (1..2) %}{% endfor %}", "include")]
-    [InlineData("{% for i in (1..2) %}{% include 'parent' for (1..2) %}{% endfor %}", "i,include")]
+    [InlineData("{% for i in (1..2) %}{% include 'uses' for (1..2) %}{% endfor %}", "i")]
+    [InlineData("{% for i in (1..2) %}{% for j in (1..2) %}{% include 'parent' for (1..2) %}{% endfor %}{% endfor %}", "i,j")]
     [InlineData("{% for i in (1..2) %}{% include 'ignores' for (1..forloop.index) %}{% endfor %}", "i")]
     public void Included_Templates_Run_In_The_Loop(string template, string expected)
     {
@@ -276,8 +276,9 @@ public class ForLoopUsageTests
             "{% for i in (1..2) %}{% include 'loop' %}{% include 'recursive' %}{% endfor %}",
             "{% include 'uses' for items %}|{% include 'uses' for items as x %}|{% include 'ignores' for items %}",
             "{% for i in (1..2) %}{% include 'parent' for (1..2) %}{% endfor %}",
+            "{% for i in (1..2) %}{% for j in (1..2) %}{% include 'parent' for items %}{% include 'uses' with items %}{% endfor %}{% endfor %}",
             "{% for i in (1..2) %}{% render 'uses' %}{% render 'parent' %}{% render 'loop' %}{% endfor %}",
-            "{% render 'uses' for items %}|{% render 'uses' for items as x %}|{% render 'ignores' for items %}|{% render 'nested' for items %}",
+            "{% render 'uses' for items %}|{% render 'uses' for items as x %}|{% render 'ignores' for items %}",
             "{% render 'loop' for (1..2) %}{% render 'recursive_render' for (1..2) %}",
         ];
 
