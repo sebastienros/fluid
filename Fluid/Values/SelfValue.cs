@@ -69,13 +69,38 @@ public sealed class SelfValue : FluidValue
             return value;
         }
 
+        // Like Liquid, where the self member of self is a variable lookup too: when no variable is named self, it
+        // is the self object. A variable assigned nil takes precedence.
+        var isSelf = name == Name && value == UndefinedValue.Instance;
+
         if (!context.Model.IsNil())
         {
-            return context.Model.GetValueAsync(name, context);
+            var task = context.Model.GetValueAsync(name, context);
+
+            if (!isSelf)
+            {
+                return task;
+            }
+
+            if (task.IsCompletedSuccessfully)
+            {
+                return task.Result.IsNil() ? AsValue(context) : task.Result;
+            }
+
+            return Awaited(task, context);
         }
 
-        return NilValue.Instance;
+        return isSelf ? AsValue(context) : NilValue.Instance;
+
+        async ValueTask<FluidValue> Awaited(ValueTask<FluidValue> task, TemplateContext context)
+        {
+            var member = await task;
+            return member.IsNil() ? AsValue(context) : member;
+        }
     }
+
+    // The shared instance is never the value of an expression: it only reads the members of the current template.
+    private SelfValue AsValue(TemplateContext context) => _frame is null ? Create(context) : this;
 
     /// <summary>
     /// Gets the scope to read the variables from, or null when they are the ones of the current scope.

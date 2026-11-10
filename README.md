@@ -1608,6 +1608,7 @@ Like Liquid 5.13 and later, `self` is an object whose members are the variables 
 
 - A variable named `self`, assigned or in the model, takes precedence over the object.
 - In a `render` partial, `self` reads the variables of the partial, its arguments and the model, but not the variables of the template that renders it. A `self` passed to a partial as an argument (`{% render 'card', parent: self %}`) keeps reading the variables of the template it comes from.
+- `self.self` and a bare bracket `{{ ['self'] }}` are the object too, unless a variable is named `self`.
 - `self` has no other member: `self.size` is a variable named `size`, `{{ self | size }}` is `0`, and `{{ self }}` renders `Liquid::SelfDrop`, like in Shopify.
 
 ## Whitespace control

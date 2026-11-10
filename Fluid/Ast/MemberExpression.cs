@@ -307,11 +307,21 @@ public sealed class MemberExpression : Expression, ISynchronousSourceable
             context.WriteLine($"var key = (await {keyExpr}({context.ContextName})).ToStringValue({context.ContextName});");
             context.WriteLine($"var value = {context.ContextName}.ShadowWithCounter(key, {context.ContextName}.LocalScope.GetValue(key));");
             context.WriteLine("var start = 1;");
+            context.WriteLine("var isUndefined = value == UndefinedValue.Instance;");
             context.WriteLine($"if (value.IsNil() && !{context.ContextName}.Model.IsNil())");
             context.WriteLine("{");
             using (context.Indent())
             {
                 context.WriteLine($"value = await {context.ContextName}.Model.GetValueAsync(key, {context.ContextName});");
+            }
+            context.WriteLine("}");
+
+            // Like Liquid, ['self'] is the self object when no variable is named self.
+            context.WriteLine($"if (isUndefined && key == {SourceGenerationContext.ToCSharpStringLiteral(SelfValue.Name)} && value.IsNil())");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"value = SelfValue.Create({context.ContextName});");
             }
             context.WriteLine("}");
 

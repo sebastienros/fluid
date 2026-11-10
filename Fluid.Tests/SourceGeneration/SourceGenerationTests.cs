@@ -46,6 +46,7 @@ public class SourceGenerationTests
     [InlineData("{% if '' == empty and '' == blank %}yes{% endif %}", "yes")]
     [InlineData("{% assign a = empty %}{% assign b = blank %}{% if a == b %}1{% endif %}{% if b == nil %}2{% endif %}{% case a %}{% when blank %}3{% endcase %}{{ b.size }}", "130")]
     [InlineData("{% assign x = 1 %}{{ self.x }}|{{ self['x'] }}|{% assign k = 'x' %}{{ self[k] }}|{{ self }}|{% if self == self %}eq{% endif %}|{% assign self = 'v' %}{{ self }}", "1|1|1|Liquid::SelfDrop|eq|v")]
+    [InlineData("{% assign x = 1 %}{% assign k = 'self' %}{{ [k] }}|{{ [k].x }}|{{ ['self']['x'] }}|{{ self.self.x }}|{% assign self = 'v' %}{{ [k] }}", "Liquid::SelfDrop|1|1|1|v")]
     [InlineData("{% if 'x' contains nil %}yes{% else %}no{% endif %}", "no")]
     [InlineData("{{ 'a' == 'b' }}|{{ 'b' != 'a' }}|{{ 'abc' contains 'b' }}|{{ 'abc' startswith 'a' }}|{{ 'abc' endswith 'c' }}", "a|b|abc|abc|abc")]
     [InlineData("{% capture x %}&{% endcapture %}{{ x }}", "&")]

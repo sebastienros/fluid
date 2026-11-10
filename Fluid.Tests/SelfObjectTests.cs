@@ -37,7 +37,10 @@ public class SelfObjectTests
     [InlineData("{% for i in (1..2) %}{{ self.forloop.index }}{% endfor %}|{% decrement d %}[{{ self.d }}]", "12|-1[-1]")]
     [InlineData("{% assign v = self %}{{ v.s }}|{% assign z = 3 %}{{ v.z }}|{% if v == self %}E{% endif %}|{{ self.s | upcase }}", "Hello World|3|E|HELLO WORLD")]
     // Its own members are variables too: self has no size or first, and only strings name variables.
-    [InlineData("[{{ self }}]|[{{ self | size }}]|[{{ self.size }}]|[{{ self.first }}]|[{{ self.self }}]|[{{ self[1] }}]|[{{ self[nil] }}]|[{{ self.missing }}]", "[Liquid::SelfDrop]|[0]|[]|[]|[]|[]|[]|[]")]
+    [InlineData("[{{ self }}]|[{{ self | size }}]|[{{ self.size }}]|[{{ self.first }}]|[{{ self[1] }}]|[{{ self[nil] }}]|[{{ self.missing }}]", "[Liquid::SelfDrop]|[0]|[]|[]|[]|[]|[]")]
+    // Like Liquid, the self member of self and a bare bracket are variable lookups too: the self object, unless a variable is named self.
+    [InlineData("{% assign y = 2 %}[{{ self.self }}][{{ self.self.y }}][{{ self['self'].y }}]|{% assign k = 'self' %}[{{ [k] }}][{{ [k].y }}][{{ ['self']['y'] }}]|{% if self.self == self %}E{% endif %}{% assign v = self %}{% if v.self == v %}V{% endif %}", "[Liquid::SelfDrop][2][2]|[Liquid::SelfDrop][2][2]|EV")]
+    [InlineData("{% assign y = 2 %}{% assign self = nil %}[{{ self.self }}][{{ ['self'] }}][{{ ['self'].y }}]|{% assign self = 'v' %}[{{ ['self'] }}]", "[][][]|[v]")]
     [InlineData("{% if self == self %}1{% endif %}{% if self != self %}2{% endif %}{% if self == empty %}3{% endif %}{% if self == blank %}4{% endif %}{% if self == nil %}5{% endif %}{% if self contains 's' %}6{% endif %}{% if self == s %}7{% endif %}", "1")]
     [InlineData("{% for v in self %}[{{ v }}]{% endfor %}|{{ self | default: 'd' }}|{% case self %}{% when self %}W{% else %}X{% endcase %}|{{ 'x' | append: self }}", "|Liquid::SelfDrop|W|xLiquid::SelfDrop")]
     // A variable named self, even nil, takes precedence.
@@ -91,7 +94,15 @@ public class SelfObjectTests
     {
         var context = new TemplateContext(new Dictionary<string, object> { ["self"] = "model", ["x"] = 1 }, Options);
 
-        Assert.Equal("model|", await RenderAsync("{{ self }}|{{ self.x }}", context));
+        Assert.Equal("model||model", await RenderAsync("{{ self }}|{{ self.x }}|{{ ['self'] }}", context));
+    }
+
+    [Fact]
+    public async Task SelfMemberOfSelfReadsTheModel()
+    {
+        var context = new TemplateContext(new Dictionary<string, object> { ["x"] = 1 }, Options);
+
+        Assert.Equal("Liquid::SelfDrop|1|1", await RenderAsync("{{ self.self }}|{{ self.self.x }}|{{ ['self'].x }}", context));
     }
 
     [Fact]
