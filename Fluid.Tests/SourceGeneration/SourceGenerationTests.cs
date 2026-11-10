@@ -43,6 +43,8 @@ public class SourceGenerationTests
     [InlineData("{% if 2 > 1 and 2 >= 2 and 1 < 2 and 2 <= 2 %}yes{% endif %}", "yes")]
     [InlineData("{% if 99999999999999999999999999999 > 1 and 1 <= 99999999999999999999999999999.0 %}{{ 99999999999999999999999999999 }}|{{ 99999999999999999999999999999.0 }}{% endif %}", "99999999999999999999999999999|1.0e+29")]
     [InlineData("{% if true or 1 < 'a' %}y{% endif %}{% if false and 1 < 'a' %}n{% endif %}", "y")]
+    // Like Liquid, strings are compared in code point order: an emoji is after U+FF5A.
+    [InlineData("{% if '\U0001F600' > '\uFF5A' and '\uFF5A' < '\U0001F600' and '_' < 'a' %}yes{% endif %}", "yes")]
     [InlineData("{% if nil >= nil or nil <= missing or 1 > (2..3) or 'a' < (1..2) %}yes{% else %}no{% endif %}", "no")]
     [InlineData("{% if '' == empty and '' == blank %}yes{% endif %}", "yes")]
     [InlineData("{% assign a = empty %}{% assign b = blank %}{% if a == b %}1{% endif %}{% if b == nil %}2{% endif %}{% case a %}{% when blank %}3{% endcase %}{{ b.size }}", "130")]

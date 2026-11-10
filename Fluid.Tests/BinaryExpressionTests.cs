@@ -105,6 +105,25 @@ public class BinaryExpressionTests
     }
 
     [Theory]
+    // Like Liquid (Ruby's String#<=>), strings are compared in code point order (UTF-8 bytes), not in UTF-16 order
+    // where surrogate pairs come before U+E000-U+FFFF.
+    [InlineData("'\U0001F600' > '\uFF5A'", "true")]
+    [InlineData("'\U0001F600' >= '\uFF5A'", "true")]
+    [InlineData("'\U0001F600' < '\uFF5A'", "false")]
+    [InlineData("'\U0001F600' <= '\uFF5A'", "false")]
+    [InlineData("'x\uFFFF' < 'x\U0001F600'", "true")]
+    [InlineData("'\U0001F600' < '\U0001F601'", "true")]
+    [InlineData("'\uD7FF' < '\U0001F600'", "true")]
+    [InlineData("'ab' < 'abc'", "true")]
+    [InlineData("'abc' <= 'ab'", "false")]
+    [InlineData("'B' < 'a'", "true")]
+    [InlineData("'a' >= 'a'", "true")]
+    public Task StringsAreComparedInCodePointOrder(string source, string expected)
+    {
+        return CheckAsync(source, expected);
+    }
+
+    [Theory]
     [InlineData("'abc' startswith 'bc'", "false")]
     [InlineData("'abc' startswith 'ab'", "true")]
     [InlineData("x startswith 'b'", "false")]

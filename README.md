@@ -958,6 +958,12 @@ var result = template.Render(context);
 Tuesday, August 1, 2017
 ```
 
+### Ordering strings
+
+The culture doesn't change how strings are ordered. Like in Shopify, `sort` and the `<`, `<=`, `>` and `>=` operators compare strings by code point, so uppercase letters come before lowercase ones and an emoji comes after any other character: `{{ "b,a,B,😀,é" | split: "," | sort | join: " " }}` renders `B a b é 😀`.
+
+`sort_natural` compares the lowercase strings the same way, whatever the alphabet: `{{ "b,_,É,a,B,é" | split: "," | sort_natural | join: " " }}` renders `_ a b B É é`. Accented letters are still after `z`, and the characters that are between `Z` and `a` in ASCII (``[ \ ] ^ _ ` ``) are before the letters.
+
 <br>
 
 ## Color filters
