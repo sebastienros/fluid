@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Numerics;
 using Fluid.Utils;
 using Fluid.Values;
 
@@ -26,6 +28,13 @@ public static class NumberFilters
     {
         LiquidException.ThrowFilterArgumentsCount("abs", expected: 0, arguments);
 
+        if (input is BigNumberValue big)
+        {
+            return big.IsIntegral
+                ? BigNumberValue.Create(BigInteger.Abs(big.ToBigInteger()))
+                : BigNumberValue.CreateFloat(Math.Abs(big.DoubleValue));
+        }
+
         return NumberValue.Create(Math.Abs(input.ToNumberValue(context)));
     }
 
@@ -33,7 +42,17 @@ public static class NumberFilters
     {
         LiquidException.ThrowFilterArgumentsCount("at_least", expected: 1, arguments);
 
-        var firstValue = arguments.At(0).ToNumberValue(context);
+        var first = arguments.At(0);
+
+        if (input is BigNumberValue || first is BigNumberValue)
+        {
+            var left = ToNumber(input, context);
+            var right = ToNumber(first, context);
+
+            return BigNumberValue.Compare(left, right) < 0 ? right : left;
+        }
+
+        var firstValue = first.ToNumberValue(context);
         var inputValue = input.ToNumberValue(context);
 
         return inputValue < firstValue ? NumberValue.Create(firstValue) : NumberValue.Create(inputValue);
@@ -43,7 +62,17 @@ public static class NumberFilters
     {
         LiquidException.ThrowFilterArgumentsCount("at_most", expected: 1, arguments);
 
-        var firstValue = arguments.At(0).ToNumberValue(context);
+        var first = arguments.At(0);
+
+        if (input is BigNumberValue || first is BigNumberValue)
+        {
+            var left = ToNumber(input, context);
+            var right = ToNumber(first, context);
+
+            return BigNumberValue.Compare(left, right) > 0 ? right : left;
+        }
+
+        var firstValue = first.ToNumberValue(context);
         var inputValue = input.ToNumberValue(context);
 
         return inputValue > firstValue ? NumberValue.Create(firstValue) : NumberValue.Create(inputValue);
@@ -52,6 +81,11 @@ public static class NumberFilters
     public static ValueTask<FluidValue> Ceil(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         LiquidException.ThrowFilterArgumentsCount("ceil", expected: 0, arguments);
+
+        if (input is BigNumberValue big)
+        {
+            return ToInteger(big);
+        }
 
         return NumberValue.Create(decimal.Ceiling(input.ToNumberValue(context)));
     }
@@ -69,6 +103,11 @@ public static class NumberFilters
             ThrowDividedByZero();
         }
 
+        if (input is BigNumberValue || first is BigNumberValue)
+        {
+            return Compute(input, first, context, FloorDivide, static (a, b) => a / b);
+        }
+
         // The result is rounded down to the nearest integer(that is, the floor) if BOTH the divisor AND dividend are integers.
         // https://shopify.github.io/liquid/filters/divided_by/
 
@@ -78,9 +117,9 @@ public static class NumberFilters
         {
             result = dividend / divisor;
         }
-        catch (OverflowException e)
+        catch (OverflowException)
         {
-            throw NumberTooLarge("divided_by", e);
+            return Compute(input, first, context, FloorDivide, static (a, b) => a / b);
         }
 
         var divisorScale = NumberValue.GetScale(divisor);
@@ -108,6 +147,11 @@ public static class NumberFilters
     {
         LiquidException.ThrowFilterArgumentsCount("floor", expected: 0, arguments);
 
+        if (input is BigNumberValue big)
+        {
+            return ToInteger(big);
+        }
+
         return NumberValue.Create(decimal.Floor(input.ToNumberValue(context)));
     }
 
@@ -115,14 +159,20 @@ public static class NumberFilters
     {
         LiquidException.ThrowFilterArgumentsCount("minus", expected: 1, arguments);
 
-        try
+        var first = arguments.At(0);
+
+        if (input is not BigNumberValue && first is not BigNumberValue)
         {
-            return NumberValue.Create(input.ToNumberValue(context) - arguments.At(0).ToNumberValue(context));
+            try
+            {
+                return NumberValue.Create(input.ToNumberValue(context) - first.ToNumberValue(context));
+            }
+            catch (OverflowException)
+            {
+            }
         }
-        catch (OverflowException e)
-        {
-            throw NumberTooLarge("minus", e);
-        }
+
+        return Compute(input, first, context, static (a, b) => a - b, static (a, b) => a - b);
     }
 
     public static ValueTask<FluidValue> Modulo(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -136,6 +186,11 @@ public static class NumberFilters
         if (divisor == 0)
         {
             ThrowDividedByZero();
+        }
+
+        if (input is BigNumberValue || divisorValue is BigNumberValue)
+        {
+            return Compute(input, divisorValue, context, FloorModulo, FloorModulo);
         }
 
         var result = inputValue % divisor;
@@ -171,14 +226,20 @@ public static class NumberFilters
     {
         LiquidException.ThrowFilterArgumentsCount("plus", expected: 1, arguments);
 
-        try
+        var first = arguments.At(0);
+
+        if (input is not BigNumberValue && first is not BigNumberValue)
         {
-            return NumberValue.Create(input.ToNumberValue(context) + arguments.At(0).ToNumberValue(context));
+            try
+            {
+                return NumberValue.Create(input.ToNumberValue(context) + first.ToNumberValue(context));
+            }
+            catch (OverflowException)
+            {
+            }
         }
-        catch (OverflowException e)
-        {
-            throw NumberTooLarge("plus", e);
-        }
+
+        return Compute(input, first, context, static (a, b) => a + b, static (a, b) => a + b);
     }
 
     public static ValueTask<FluidValue> Round(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -187,6 +248,18 @@ public static class NumberFilters
 
         // Like Ruby's to_int, a precision that isn't an integer is truncated: round: 1.5 is round: 1.
         var digits = NumberConversions.ToInt32Saturated(decimal.Truncate(arguments.At(0).Or(NumberValue.Zero).ToNumberValue(context)));
+
+        if (input is BigNumberValue big)
+        {
+            // Like Ruby, an integer rounded to decimal places is unchanged, and so is a float this large, which has no
+            // fraction, but Liquid makes it an integer when there are no decimal places.
+            if (digits < 0)
+            {
+                return RoundToPowerOfTen(big.ToBigInteger(), -(long)digits);
+            }
+
+            return big.IsIntegral || digits > 0 ? big : ToInteger(big);
+        }
 
         var value = input.ToNumberValue(context);
 
@@ -206,8 +279,17 @@ public static class NumberFilters
         {
             var factor = NumberConversions.ToDecimal(Math.Pow(10, -digits));
             var scaled = value / factor;
-            var rounded = Math.Round(scaled, 0, MidpointRounding.AwayFromZero) * factor;
-            return NumberValue.Create(rounded);
+
+            try
+            {
+                var rounded = Math.Round(scaled, 0, MidpointRounding.AwayFromZero) * factor;
+                return NumberValue.Create(rounded);
+            }
+            catch (OverflowException)
+            {
+                // Rounded up beyond the largest decimal, which only an integer can be: 79228162514264337593543950335 | round: -1.
+                return RoundToPowerOfTen(new BigInteger(decimal.Truncate(value)), -digits);
+            }
         }
 
         return NumberValue.Create(Math.Round(value, digits, MidpointRounding.AwayFromZero));
@@ -218,6 +300,11 @@ public static class NumberFilters
         LiquidException.ThrowFilterArgumentsCount("times", expected: 1, arguments);
 
         var first = arguments.At(0);
+
+        if (input is BigNumberValue || first is BigNumberValue)
+        {
+            return Compute(input, first, context, static (a, b) => a * b, static (a, b) => a * b);
+        }
 
         try
         {
@@ -233,9 +320,9 @@ public static class NumberFilters
 
             return NumberValue.Create(result);
         }
-        catch (OverflowException e)
+        catch (OverflowException)
         {
-            throw NumberTooLarge("times", e);
+            return Compute(input, first, context, static (a, b) => a * b, static (a, b) => a * b);
         }
     }
 
@@ -246,9 +333,88 @@ public static class NumberFilters
         throw new LiquidException("divided by 0");
     }
 
-    private static LiquidException NumberTooLarge(string filter, OverflowException e)
+    // Like Ruby, the arithmetic of integers is exact and a float operand makes it the arithmetic of doubles. For the
+    // operands too large for a decimal, and the results.
+    private static FluidValue Compute(FluidValue left, FluidValue right, TemplateContext context, Func<BigInteger, BigInteger, BigInteger> integers, Func<double, double, double> floats)
     {
-        return new LiquidException($"{filter}: the result is too large to be represented", e);
+        if (TryGetInteger(left, context, out var a) && TryGetInteger(right, context, out var b))
+        {
+            return BigNumberValue.Create(integers(a, b));
+        }
+
+        return BigNumberValue.CreateFloat(floats(ToDouble(left, context), ToDouble(right, context)));
+    }
+
+    private static bool TryGetInteger(FluidValue value, TemplateContext context, out BigInteger result)
+    {
+        if (value is BigNumberValue big)
+        {
+            result = big.IsIntegral ? big.ToBigInteger() : default;
+            return big.IsIntegral;
+        }
+
+        var number = value.ToNumberValue(context);
+        var isInteger = NumberValue.GetScale(number) == 0;
+        result = isInteger ? new BigInteger(number) : default;
+        return isInteger;
+    }
+
+    private static double ToDouble(FluidValue value, TemplateContext context)
+    {
+        // An integer too large for a double is an infinity, like in Ruby's Integer#to_f.
+        return value is BigNumberValue big ? big.DoubleValue : (double)value.ToNumberValue(context);
+    }
+
+    // A number that BigNumberValue.Compare accepts.
+    private static FluidValue ToNumber(FluidValue value, TemplateContext context)
+    {
+        return value is BigNumberValue ? value : NumberValue.Create(value.ToNumberValue(context));
+    }
+
+    // Like Ruby's Float#to_i, a float this large is already a whole number, and Infinity is an error.
+    private static FluidValue ToInteger(BigNumberValue value)
+    {
+        return value.IsIntegral ? value : BigNumberValue.Create(value.ToBigInteger());
+    }
+
+    // Like Ruby's Integer#/, which rounds down: -7 / 2 is -4.
+    private static BigInteger FloorDivide(BigInteger dividend, BigInteger divisor)
+    {
+        var quotient = BigInteger.DivRem(dividend, divisor, out var remainder);
+        return !remainder.IsZero && (remainder.Sign < 0) != (divisor.Sign < 0) ? quotient - 1 : quotient;
+    }
+
+    // Like Ruby's modulo, whose result has the sign of the divisor: -7 % 3 is 2.
+    private static BigInteger FloorModulo(BigInteger dividend, BigInteger divisor)
+    {
+        var remainder = BigInteger.Remainder(dividend, divisor);
+        return !remainder.IsZero && (remainder.Sign < 0) != (divisor.Sign < 0) ? remainder + divisor : remainder;
+    }
+
+    private static double FloorModulo(double dividend, double divisor)
+    {
+        var remainder = dividend % divisor;
+        return remainder != 0 && (remainder < 0) != (divisor < 0) ? remainder + divisor : remainder;
+    }
+
+    // Like Ruby's Integer#round with negative digits, which rounds halves away from zero: 15 rounded to -1 is 20.
+    private static FluidValue RoundToPowerOfTen(BigInteger value, long exponent)
+    {
+        // A power of ten with more digits than the value is more than twice as large: the result is 0.
+        if (exponent > BigInteger.Abs(value).ToString(CultureInfo.InvariantCulture).Length)
+        {
+            return NumberValue.Zero;
+        }
+
+        var factor = BigInteger.Pow(10, (int)exponent);
+        var quotient = BigInteger.DivRem(BigInteger.Abs(value), factor, out var remainder);
+
+        if (remainder * 2 >= factor)
+        {
+            quotient++;
+        }
+
+        return BigNumberValue.Create(value.Sign < 0 ? -quotient * factor : quotient * factor);
     }
 
     public static ValueTask<FluidValue> Random(FluidValue input, FilterArguments arguments, TemplateContext context)

@@ -612,6 +612,12 @@ public static class ArrayFilters
             return NumberValue.Create(dictionary.Count);
         }
 
+        // Like Ruby's Integer#size, an integer has the number of bytes of its magnitude, at least 8. A float has no size.
+        if (input is NumberValue or BigNumberValue)
+        {
+            return NumberValue.Create(BigNumberValue.GetIntegerSize(input, context));
+        }
+
         // The members of self are variables, and it has no size of its own.
         if (input is SelfValue)
         {
