@@ -91,11 +91,35 @@ public class FluidParser
     protected static readonly Parser<TagResult> RawOutputStart = NonInlineLiquidTagParsers.OutputTagStart();
     protected static readonly Parser<TagResult> RawTagStart = NonInlineLiquidTagParsers.TagStart();
 
+    // Like in Liquid, blank and empty are only special as the operands of a condition, where they test the other
+    // operand (x == empty). Everywhere else they are the empty string: Primary returns these two distinct literals,
+    // which conditions replace with the keywords.
+    private static readonly LiteralExpression EmptyLiteral = new LiteralExpression(StringValue.Empty);
+    private static readonly LiteralExpression BlankLiteral = new LiteralExpression(StringValue.Empty);
+
     protected static readonly LiteralExpression EmptyKeyword = new LiteralExpression(EmptyValue.Instance);
     protected static readonly LiteralExpression BlankKeyword = new LiteralExpression(BlankValue.Instance);
     protected static readonly LiteralExpression NilKeyword = new LiteralExpression(NilValue.Instance);
     protected static readonly LiteralExpression TrueKeyword = new LiteralExpression(BooleanValue.True);
     protected static readonly LiteralExpression FalseKeyword = new LiteralExpression(BooleanValue.False);
+
+    /// <summary>
+    /// Returns the <c>blank</c> or <c>empty</c> keyword when an operand of a condition is one, or the operand itself.
+    /// </summary>
+    protected static Expression ToConditionOperand(Expression expression)
+    {
+        if (ReferenceEquals(expression, EmptyLiteral))
+        {
+            return EmptyKeyword;
+        }
+
+        if (ReferenceEquals(expression, BlankLiteral))
+        {
+            return BlankKeyword;
+        }
+
+        return expression;
+    }
 
     public FluidParser() : this(new())
     {
@@ -231,8 +255,8 @@ public class FluidParser
                 {
                     switch ((x.Segments[0] as IdentifierSegment).Identifier)
                     {
-                        case "empty": return EmptyKeyword;
-                        case "blank": return BlankKeyword;
+                        case "empty": return EmptyLiteral;
+                        case "blank": return BlankLiteral;
                         case "nil": return NilKeyword; // Both nil and null are supported for convenience
                         case "null": return NilKeyword;
                         case "true": return TrueKeyword;
@@ -259,7 +283,7 @@ public class FluidParser
         RegisteredOperators[">="] = (a, b) => new GreaterThanBinaryExpression(a, b, false);
         RegisteredOperators["<="] = (a, b) => new LowerThanBinaryExpression(a, b, false);
 
-        var CaseValueList = Separated(BinaryOr.Or(Terms.Text(",")), Primary);
+        var CaseValueList = Separated(BinaryOr.Or(Terms.Text(",")), Primary.Then(static x => ToConditionOperand(x)));
         CaseValueList.Name = "CaseValueList";
 
         // Seek anything that looks like a binary operator (==, !=, <, >, <=, >=, contains, startswith, endswith) then validates it with the registered operators
@@ -273,7 +297,7 @@ public class FluidParser
                      return x.Item1;
                  }
 
-                 return RegisteredOperators[x.Item2.Item1](x.Item1, x.Item2.Item2);
+                 return RegisteredOperators[x.Item2.Item1](ToConditionOperand(x.Item1), ToConditionOperand(x.Item2.Item2));
              }).Named("CombinatoryExpression");
 
         // Like Liquid, "and" and "or" have the same precedence and group from the right: a or b and c is a or (b and c).
@@ -317,7 +341,7 @@ public class FluidParser
 
         Parser<Statement> Output = OutputStart.SkipAnd(
             // Like Liquid, an output without an expression renders nothing.
-            OutputEnd.Then<Statement>(static x => new OutputStatement(EmptyKeyword))
+            OutputEnd.Then<Statement>(static x => new OutputStatement(EmptyLiteral))
             .Or(FilterExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter).And(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd))
                 .Then<Statement>(static x => new OutputStatement(x.Item1)))
             );
@@ -575,8 +599,7 @@ public class FluidParser
                    .And(ZeroOrMany(OneOf(WhenBlock, ElseBlock).AndSkip(OptionalComments)))
                    .AndSkip(CreateTag("endcase").ElseError($"'{{% endcase %}}' was expected"))
                    .Then<Statement>(x => new CaseStatement(
-                       // Like Liquid, blank and empty are only special in conditions: as the value of a case they are ''.
-                       x.Item1 == BlankKeyword || x.Item1 == EmptyKeyword ? new LiteralExpression(StringValue.Empty) : x.Item1,
+                       x.Item1,
                        x.Item3,
                        x.Item2.All(static s => s.IsWhitespaceOrCommentOnly)))
                    .ElseError("Invalid 'case' tag");
@@ -679,7 +702,7 @@ public class FluidParser
             ;
         LiquidTag.Name = "LiquidTag";
 
-        var EchoTag = FilterExpression.Else(EmptyKeyword).AndSkip(TagEnd).Then<Statement>(x => new OutputStatement(x));
+        var EchoTag = FilterExpression.Else(EmptyLiteral).AndSkip(TagEnd).Then<Statement>(x => new OutputStatement(x));
         EchoTag.Name = "EchoTag";
 
         RegisteredTags["break"] = BreakTag;

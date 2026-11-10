@@ -975,9 +975,10 @@ turtle
     }
 
     [Theory]
-    [InlineData("{{ dic[1] }}", "/1/")]
+    // Like a Ruby hash, whose keys are compared by type, a number doesn't find a string key.
+    [InlineData("{{ dic[1] }}", "")]
     [InlineData("{{ dic['1'] }}", "/1/")]
-    [InlineData("{{ dic[10] }}", "/10/")]
+    [InlineData("{{ dic[10] }}", "")]
     [InlineData("{{ dic['10'] }}", "/10/")]
     [InlineData("{{ dic.2_ }}", "/2_/")] // Note: dic.10 is not valid per Shopify Liquid standard, use bracket notation
     public Task PropertiesCanBeDigits(string source, string expected)
@@ -985,6 +986,28 @@ turtle
         return CheckAsync(source, expected, ctx =>
         {
             ctx.SetValue("dic", new Dictionary<string, string> { { "1", "/1/" }, { "2_", "/2_/" }, { "10", "/10/" } });
+        });
+    }
+
+    [Theory]
+    // Like Liquid, the size and first filters return the number of entries and the first pair of a hash,
+    // where hk.size and hk.first read the keys.
+    [InlineData("{{ hk | size }}|{{ hk | first | join: '=' }}|{{ hk.size }}|{{ hk.first }}", "9|1=one|99|F")]
+    [InlineData("{{ hk | first | first }}|{{ hk | first | last }}|{{ hk | size | plus: 1 }}|[{{ hk | last }}]|{{ hk.last }}", "1|one|10|[]|L")]
+    [InlineData("{{ e | size }}|[{{ e | first }}]|{{ e.size }}|[{{ e.first }}]", "0|[]|0|[]")]
+    // Like a Ruby hash, whose keys are compared by type, only a string finds a string key.
+    [InlineData("{{ hk[1] }}|{{ hk[0] }}|{{ hk[nil] }}|{{ hk[true] }}|{{ hk['1'] }}|{% assign k = 1 %}{{ hk[k] }}|{% assign k = '1' %}{{ hk[k] }}", "||||one||one")]
+    [InlineData("{{ hk[1.0] }}|{{ hk[''] }}|{{ hk[empty] }}|{{ hk['true'] }}|{{ hk[false] }}|[{{ hk[(1..3)] }}]|[{{ hk['1..3'] }}]", "|empty|empty|t||[]|[range]")]
+    [InlineData("{% if hk contains 1 %}1{% endif %}{% if hk contains '1' %}2{% endif %}{% if hk contains nil %}3{% endif %}{% if hk contains true %}4{% endif %}{% if hk contains 'size' %}5{% endif %}", "25")]
+    public Task HashFiltersAndIndexesLikeLiquid(string source, string expected)
+    {
+        return CheckAsync(source, expected, ctx =>
+        {
+            ctx.SetValue("hk", new Dictionary<string, object>
+            {
+                ["1"] = "one", ["0"] = "zero", [""] = "empty", ["true"] = "t", ["size"] = 99, ["first"] = "F", ["last"] = "L", ["a b"] = "space", ["1..3"] = "range"
+            });
+            ctx.SetValue("e", new Dictionary<string, object>());
         });
     }
 

@@ -490,14 +490,22 @@ public class TemplateContext
     public FluidValue ShadowWithCounter(string name, FluidValue value)
     {
         // Inlined at every variable lookup: only a field check until a counter is set.
-        return _hasCounters ? ShadowWithCounterSlow(name, value) : value;
+        return _hasCounters ? ShadowWithCounterSlow(_localScope, name, value) : value;
+    }
+
+    /// <summary>
+    /// Like <see cref="ShadowWithCounter(string, FluidValue)"/>, for a variable read from a scope that isn't the current one.
+    /// </summary>
+    internal FluidValue ShadowWithCounter(Scope localScope, string name, FluidValue value)
+    {
+        return _hasCounters ? ShadowWithCounterSlow(localScope, name, value) : value;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private FluidValue ShadowWithCounterSlow(string name, FluidValue value)
+    private FluidValue ShadowWithCounterSlow(Scope localScope, string name, FluidValue value)
     {
         // A variable of the template, assigned in a scope under the root one, isn't shadowed, even when it is nil.
-        for (var scope = _localScope; scope != null && !ReferenceEquals(scope, RootScope); scope = scope.Parent)
+        for (var scope = localScope; scope != null && !ReferenceEquals(scope, RootScope); scope = scope.Parent)
         {
             if (scope.TryGetOwnValue(name, out _))
             {
@@ -505,8 +513,23 @@ public class TemplateContext
             }
         }
 
-        var counter = _localScope.GetValue(IncrementStatement.Prefix + name);
+        var counter = localScope.GetValue(IncrementStatement.Prefix + name);
         return counter.IsNil() ? value : counter;
+    }
+
+    /// <summary>
+    /// Gets the first scope of the template or <c>render</c> partial that a scope belongs to, the one under the root
+    /// scope, like a Liquid context: a partial is rendered in a scope of its own, and the scopes of loops or of
+    /// <c>include</c> are under the one of their template.
+    /// </summary>
+    internal Scope GetFrame(Scope scope)
+    {
+        while (!ReferenceEquals(scope, RootScope) && scope.Parent is { } parent && !ReferenceEquals(parent, RootScope))
+        {
+            scope = parent;
+        }
+
+        return scope;
     }
 }
 

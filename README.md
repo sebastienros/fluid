@@ -1593,6 +1593,23 @@ Shopify Liquid ignores some content and reads some words in ways that can be sur
 - Tags without arguments ignore anything after their name: closing tags, `else`, `comment`, `raw`, `break`, `continue` and `ifchanged`, as in `{% endfor items %}`.
 - In a `for` tag, `reversed` is only read right after the collection, even when it starts a longer word: `{% for i in items reversedx %}` is reversed, `{% for i in items limit: 2 reversed %}` is not. A `tablerow` tag ignores it.
 - The `limit`, `offset` and `cols` attributes are read anywhere after the collection, and anything else is ignored: `{% for i in items foo, limit: 2 %}` renders two items.
+- `empty` and `blank` are only special as an operand of a condition (`if`, `unless`, `elsif` and `when`), where `x == empty` tests whether `x` is empty. Everywhere else they are an empty string: after `{% assign a = blank %}`, `a` is `''`, so `{% if a == nil %}` is false.
+- A hash with string keys, like a JSON object or a `Dictionary<string, T>`, is only indexed by strings, like a Ruby hash: `{{ h[1] }}` doesn't find the `"1"` key, `{{ h['1'] }}` does. A dictionary with keys of another type, like `Dictionary<int, T>`, is indexed by its keys: `{{ d[5] }}`. The `size` and `first` filters return the number of entries and the first `[key, value]` pair of a hash, even when it has a `size` or `first` key, which `h.size` and `h.first` read.
+
+### The `self` object
+
+Like Liquid 5.13 and later, `self` is an object whose members are the variables of the template: `{{ self.title }}` and `{{ self['title'] }}` are `{{ title }}`, and `{{ self[name] }}` reads the variable whose name is in `name`. Variables are found as usual, from the current scope (loop variables, `assign` and `capture`) to the model and the global values.
+
+```liquid
+{% assign key = 'title' %}
+{{ self[key] }}
+{% if self.discount %}On sale{% endif %}
+```
+
+- A variable named `self`, assigned or in the model, takes precedence over the object.
+- In a `render` partial, `self` reads the variables of the partial, its arguments and the model, but not the variables of the template that renders it. A `self` passed to a partial as an argument (`{% render 'card', parent: self %}`) keeps reading the variables of the template it comes from.
+- `self.self` and a bare bracket `{{ ['self'] }}` are the object too, unless a variable is named `self`.
+- `self` has no other member: `self.size` is a variable named `size`, `{{ self | size }}` is `0`, and `{{ self }}` renders `Liquid::SelfDrop`, like in Shopify.
 
 ## Partials: `include` and `render`
 
