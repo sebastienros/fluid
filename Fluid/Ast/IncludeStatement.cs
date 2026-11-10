@@ -31,6 +31,11 @@ public sealed class IncludeStatement : Statement, ISourceable
     {
         context.IncrementSteps();
 
+        if (context.IsIncludeDisabled)
+        {
+            ThrowIncludeNotAllowed();
+        }
+
         var relativePath = (await Path.EvaluateAsync(context)).ToStringValue(context);
         var loadedTemplate = await TemplateLoader.LoadAsync(
             Parser,
@@ -47,84 +52,67 @@ public sealed class IncludeStatement : Statement, ISourceable
         // This allows variables assigned inside the include to persist in the outer scope.
         using var scope = context.EnterScope(ScopeBehavior.WriteThrough);
 
-        if (With != null)
-        {
-            var with = await With.EvaluateAsync(context);
+        // Like Liquid, the value is evaluated before the keyword arguments.
+        var value = With ?? For;
+        var evaluatedValue = value != null ? await value.EvaluateAsync(context) : null;
 
-            // The bound variable is local to this include
-            context.LocalScope.SetOwnValue(Alias ?? identifier, with);
-
-            // Keyword arguments are local to the include
-            if (AssignStatements.Count > 0)
-            {
-                for (var i = 0; i < AssignStatements.Count; i++)
-                {
-                    var stmt = AssignStatements[i];
-                    context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
-                }
-            }
-
-            return await RenderStatementsAsync(template, output, encoder, context);
-        }
-        else if (For != null)
-        {
-            var forloop = ForLoopValue.Create();
-
-            var evaluatedFor = await For.EvaluateAsync(context);
-
-            var list = await ArrayValue.ToFluidArrayAsync(evaluatedFor, context);
-
-            var length = forloop.Length = list.Count;
-
-            context.LocalScope.SetOwnValue("forloop", forloop);
-
-            // Keyword arguments are local to the include
-            for (var i = 0; i < AssignStatements.Count; i++)
-            {
-                var stmt = AssignStatements[i];
-                context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
-            }
-
-            for (var i = 0; i < length; i++)
-            {
-                context.IncrementSteps();
-
-                var item = list[i];
-
-                context.LocalScope.SetOwnValue(Alias ?? identifier, item);
-
-                // Set helper variables
-                forloop.Index = i + 1;
-                forloop.Index0 = i;
-                forloop.RIndex = length - i;
-                forloop.RIndex0 = length - i - 1;
-                forloop.First = i == 0;
-                forloop.Last = i == length - 1;
-
-                var completion = await RenderStatementsAsync(template, output, encoder, context);
-
-                if (completion == Completion.Break)
-                {
-                    break;
-                }
-
-                // Restore the forloop property after every statement in case it replaced it,
-                // for instance if it contains a nested for loop
-                context.LocalScope.SetOwnValue("forloop", forloop);
-            }
-
-            return Completion.Normal;
-        }
-
-        // Keyword arguments alone, or nothing, e.g. {% include 'products' %}.
-        // Keyword arguments are local to the include - they should go out of scope after
+        // Keyword arguments are local to the include
         for (var i = 0; i < AssignStatements.Count; i++)
         {
             var stmt = AssignStatements[i];
             context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
         }
 
-        return await RenderStatementsAsync(template, output, encoder, context);
+        if (evaluatedValue == null)
+        {
+            // Keyword arguments alone, or nothing, e.g. {% include 'products' %}.
+            return await RenderStatementsAsync(template, output, encoder, context);
+        }
+
+        // The bound variable is local to this include, and like Liquid it replaces a keyword argument of the same name.
+        var variableName = Alias ?? identifier;
+
+        if (!IsIterated(evaluatedValue))
+        {
+            context.LocalScope.SetOwnValue(variableName, evaluatedValue);
+            return await RenderStatementsAsync(template, output, encoder, context);
+        }
+
+        var list = await ArrayValue.ToFluidArrayAsync(evaluatedValue, context);
+        var length = list.Count;
+        var result = Completion.Normal;
+
+        for (var i = 0; i < length; i++)
+        {
+            context.IncrementSteps();
+
+            context.LocalScope.SetOwnValue(variableName, list[i]);
+
+            // Like Liquid, a break or continue doesn't stop the include, which renders every item, but
+            // applies to the enclosing loop.
+            var completion = await RenderStatementsAsync(template, output, encoder, context);
+
+            if (completion != Completion.Normal)
+            {
+                result = completion;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Whether <c>include</c> renders the partial once for each item of a value: like Liquid, with both
+    /// <c>with</c> and <c>for</c>, only an array is, and any other value (a range, a hash, a string, nil)
+    /// is rendered once.
+    /// </summary>
+    internal static bool IsIterated(FluidValue value) => value.Type == FluidValues.Array && value is not RangeValue;
+
+    [System.Diagnostics.CodeAnalysis.DoesNotReturn]
+    private static void ThrowIncludeNotAllowed()
+    {
+        // Like Liquid, a partial rendered with render can't use include.
+        throw new LiquidException(Fluid.Parser.ErrorMessages.IncludeNotAllowed);
     }
 
     /// <summary>
@@ -189,65 +177,48 @@ public sealed class IncludeStatement : Statement, ISourceable
         }
 
         context.WriteLine($"{ctx}.IncrementSteps();");
+
+        // Like the interpreter, a partial rendered with render can't use include.
+        context.WriteLine($"if ({ctx}.IsIncludeDisabled) throw new LiquidException({SourceGenerationContext.ToCSharpStringLiteral(Fluid.Parser.ErrorMessages.IncludeNotAllowed)});");
         context.WriteLine($"using var scope = {ctx}.EnterScope(ScopeBehavior.WriteThrough);");
 
-        if (With != null)
-        {
-            var withExpr = context.GetExpressionMethodName(With);
-            context.WriteLine($"{ctx}.LocalScope.SetOwnValue({variableName}, await {withExpr}({ctx}));");
-            EmitAssignStatements();
-            context.WriteLine($"return {call};");
-        }
-        else if (For != null)
-        {
-            // Nothing reads the forloop variable of most loops, which then don't create or update it.
-            var usesForLoop = context.UsesForLoop(this);
+        var value = With ?? For;
 
-            var forExpr = context.GetExpressionMethodName(For);
-            context.WriteLine($"var list = await ArrayValue.ToFluidArrayAsync(await {forExpr}({ctx}), {ctx});");
-            context.WriteLine("var length = list.Count;");
-
-            if (usesForLoop)
-            {
-                context.WriteLine("var forloop = ForLoopValue.Create();");
-                context.WriteLine("forloop.Length = length;");
-                context.WriteLine($"{ctx}.LocalScope.SetOwnValue(\"forloop\", forloop);");
-            }
-
-            EmitAssignStatements();
-
-            context.WriteLine("for (var i = 0; i < length; i++)");
-            context.WriteLine("{");
-            using (context.Indent())
-            {
-                context.WriteLine($"{ctx}.IncrementSteps();");
-                context.WriteLine($"{ctx}.LocalScope.SetOwnValue({variableName}, list[i]);");
-
-                if (usesForLoop)
-                {
-                    context.WriteLine("forloop.Index = i + 1;");
-                    context.WriteLine("forloop.Index0 = i;");
-                    context.WriteLine("forloop.RIndex = length - i;");
-                    context.WriteLine("forloop.RIndex0 = length - i - 1;");
-                    context.WriteLine("forloop.First = i == 0;");
-                    context.WriteLine("forloop.Last = i == length - 1;");
-                }
-
-                context.WriteLine($"if ({call} == Completion.Break) break;");
-
-                if (usesForLoop)
-                {
-                    context.WriteLine($"{ctx}.LocalScope.SetOwnValue(\"forloop\", forloop);");
-                }
-            }
-            context.WriteLine("}");
-            context.WriteLine("return Completion.Normal;");
-        }
-        else
+        if (value == null)
         {
             // Keyword arguments alone, or nothing.
             EmitAssignStatements();
             context.WriteLine($"return {call};");
+            return;
         }
+
+        // Like the interpreter: the value is evaluated before the keyword arguments, and only an array is iterated.
+        var valueExpr = context.GetExpressionMethodName(value);
+        context.WriteLine($"var includeValue = await {valueExpr}({ctx});");
+        EmitAssignStatements();
+
+        context.WriteLine("if (includeValue.Type != FluidValues.Array || includeValue is RangeValue)");
+        context.WriteLine("{");
+        using (context.Indent())
+        {
+            context.WriteLine($"{ctx}.LocalScope.SetOwnValue({variableName}, includeValue);");
+            context.WriteLine($"return {call};");
+        }
+        context.WriteLine("}");
+
+        context.WriteLine($"var list = await ArrayValue.ToFluidArrayAsync(includeValue, {ctx});");
+        context.WriteLine("var length = list.Count;");
+        context.WriteLine("var result = Completion.Normal;");
+        context.WriteLine("for (var i = 0; i < length; i++)");
+        context.WriteLine("{");
+        using (context.Indent())
+        {
+            context.WriteLine($"{ctx}.IncrementSteps();");
+            context.WriteLine($"{ctx}.LocalScope.SetOwnValue({variableName}, list[i]);");
+            context.WriteLine($"var completion = {call};");
+            context.WriteLine("if (completion != Completion.Normal) result = completion;");
+        }
+        context.WriteLine("}");
+        context.WriteLine("return result;");
     }
 }
