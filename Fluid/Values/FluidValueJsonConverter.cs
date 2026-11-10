@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -64,8 +65,8 @@ public sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
                 writer.WriteNullValue();
                 break;
             case FluidValues.Number:
-                // Like Shopify's json filter, an integer too large for a decimal is a string, which keeps its digits in
-                // JavaScript, and a float has the shortest exponent form: 1e+29 for 1.0e+29.
+                // Like Shopify's json filter, an integer out of the range of a long is a string, which keeps its digits
+                // in JavaScript, and a float too large for a decimal has the shortest exponent form: 1e+29 for 1.0e+29.
                 if (actualValue is BigNumberValue { IsIntegral: true } bigInteger)
                 {
                     writer.WriteStringValue(bigInteger.ToStringValue(context));
@@ -76,7 +77,16 @@ public sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
                 }
                 else
                 {
-                    writer.WriteNumberValue(actualValue.ToNumberValue(context));
+                    var number = actualValue.ToNumberValue(context);
+
+                    if ((number > long.MaxValue || number < long.MinValue) && NumberValue.GetScale(number) == 0)
+                    {
+                        writer.WriteStringValue(number.ToString(CultureInfo.InvariantCulture));
+                    }
+                    else
+                    {
+                        writer.WriteNumberValue(number);
+                    }
                 }
                 break;
             case FluidValues.Dictionary:

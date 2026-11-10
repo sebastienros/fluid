@@ -99,6 +99,15 @@ public class LargeNumberTests
     }
 
     [Theory]
+    // Like Shopify's json filter, an integer out of the range of a long is a string, even when it fits in a decimal.
+    [InlineData("{{ 9223372036854775807 | json }}|{{ 9223372036854775808 | json }}|{{ 79228162514264337593543950335 | json }}|{{ 9007199254740993 | json }}", "9223372036854775807|\"9223372036854775808\"|\"79228162514264337593543950335\"|9007199254740993")]
+    [InlineData("{{ -9223372036854775808 | json }}|{{ -9223372036854775809 | json }}|{{ '9223372036854775808' | plus: 0 | json }}|{{ big | json }}|{{ 9223372036854775808.5 | json }}", "-9223372036854775808|\"-9223372036854775809\"|\"9223372036854775808\"|[\"18446744073709551615\",1]|9223372036854775808.5")]
+    public async Task JsonWritesIntegersOutOfTheLongRangeAsStrings(string source, string expected)
+    {
+        Assert.Equal(expected, await RenderAsync(source, c => c.SetValue("big", new object[] { ulong.MaxValue, 1L })));
+    }
+
+    [Theory]
     // Like Liquid, a number literal too large for a decimal is compared with other numbers by its sign and magnitude.
     [InlineData("{% if 99999999999999999999999999999 > 1 %}a{% endif %}{% if 1 < 99999999999999999999999999999 %}b{% endif %}{% if -99999999999999999999999999999 < 1 %}c{% endif %}{% if 1.5 <= 99999999999999999999999999999.0 %}d{% endif %}", "abcd")]
     [InlineData("{% if 99999999999999999999999999999 > 79228162514264337593543950335 %}a{% endif %}{% if 99999999999999999999999999999 > 99999999999999999999999999998 %}b{% endif %}{% if -99999999999999999999999999999 < -99999999999999999999999999998 %}c{% endif %}{% if 199999999999999999999999999998 >= 99999999999999999999999999999.0 %}d{% endif %}", "abcd")]
