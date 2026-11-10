@@ -1,5 +1,6 @@
 using Fluid.Values;
 using Fluid.SourceGeneration;
+using Fluid.Utils;
 
 namespace Fluid.Ast.BinaryExpressions;
 
@@ -18,19 +19,24 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
 
         // Like Liquid, only numbers and strings are ordered. Comparing a number with a string fails,
         // any other operand (nil, ranges, arrays, ...) makes the comparison false.
-        if (leftValue is NumberValue)
+        if (leftValue is NumberValue or BigNumberValue)
         {
             if (rightValue is StringValue)
             {
                 throw new LiquidException("comparison of Integer with String failed");
             }
 
-            if (rightValue is not NumberValue)
+            if (rightValue is not (NumberValue or BigNumberValue))
             {
                 return BinaryExpressionFluidValue.Create(NilValue.Instance, false);
             }
 
-            if (Strict)
+            if (leftValue is BigNumberValue || rightValue is BigNumberValue)
+            {
+                var bigComparison = BigNumberValue.Compare(leftValue, rightValue);
+                comparisonResult = Strict ? bigComparison > 0 : bigComparison >= 0;
+            }
+            else if (Strict)
             {
                 comparisonResult = leftValue.ToNumberValue(context) > rightValue.ToNumberValue(context);
             }
@@ -41,7 +47,7 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
         }
         else if (leftValue is StringValue)
         {
-            if (rightValue is NumberValue)
+            if (rightValue is NumberValue or BigNumberValue)
             {
                 throw new LiquidException("comparison of String with Integer failed");
             }
@@ -51,8 +57,8 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
                 return BinaryExpressionFluidValue.Create(NilValue.Instance, false);
             }
 
-            // Use standard C# string comparison for strings
-            var comparison = string.Compare(leftValue.ToStringValue(context), rightValue.ToStringValue(context), StringComparison.Ordinal);
+            // Like Ruby, strings are compared in code point order (UTF-8 bytes)
+            var comparison = LiquidStringComparer.Compare(leftValue.ToStringValue(context), rightValue.ToStringValue(context));
             if (Strict)
             {
                 comparisonResult = comparison > 0;
@@ -82,7 +88,7 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
         context.WriteLine($"var rightValue = await {rightExpr}({context.ContextName});");
         context.WriteLine("bool comparisonResult;");
 
-        context.WriteLine("if (leftValue is NumberValue)");
+        context.WriteLine("if (leftValue is NumberValue or BigNumberValue)");
         context.WriteLine("{");
         using (context.Indent())
         {
@@ -93,21 +99,34 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
                 context.WriteLine("throw new LiquidException(\"comparison of Integer with String failed\");");
             }
             context.WriteLine("}");
-            context.WriteLine("if (rightValue is not NumberValue)");
+            context.WriteLine("if (rightValue is not (NumberValue or BigNumberValue))");
             context.WriteLine("{");
             using (context.Indent())
             {
                 context.WriteLine("return BinaryExpressionFluidValue.Create(NilValue.Instance, false);");
             }
             context.WriteLine("}");
-            context.WriteLine($"comparisonResult = {strict} ? leftValue.ToNumberValue({context.ContextName}) > rightValue.ToNumberValue({context.ContextName}) : leftValue.ToNumberValue({context.ContextName}) >= rightValue.ToNumberValue({context.ContextName});");
+            context.WriteLine("if (leftValue is BigNumberValue || rightValue is BigNumberValue)");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"comparisonResult = {strict} ? BigNumberValue.Compare(leftValue, rightValue) > 0 : BigNumberValue.Compare(leftValue, rightValue) >= 0;");
+            }
+            context.WriteLine("}");
+            context.WriteLine("else");
+            context.WriteLine("{");
+            using (context.Indent())
+            {
+                context.WriteLine($"comparisonResult = {strict} ? leftValue.ToNumberValue({context.ContextName}) > rightValue.ToNumberValue({context.ContextName}) : leftValue.ToNumberValue({context.ContextName}) >= rightValue.ToNumberValue({context.ContextName});");
+            }
+            context.WriteLine("}");
         }
         context.WriteLine("}");
         context.WriteLine("else if (leftValue is StringValue)");
         context.WriteLine("{");
         using (context.Indent())
         {
-            context.WriteLine("if (rightValue is NumberValue)");
+            context.WriteLine("if (rightValue is NumberValue or BigNumberValue)");
             context.WriteLine("{");
             using (context.Indent())
             {
@@ -121,7 +140,7 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
                 context.WriteLine("return BinaryExpressionFluidValue.Create(NilValue.Instance, false);");
             }
             context.WriteLine("}");
-            context.WriteLine("var comparison = string.Compare(leftValue.ToStringValue(context), rightValue.ToStringValue(context), StringComparison.Ordinal);");
+            context.WriteLine("var comparison = LiquidStringComparer.Compare(leftValue.ToStringValue(context), rightValue.ToStringValue(context));");
             context.WriteLine($"comparisonResult = {strict} ? comparison > 0 : comparison >= 0;");
         }
         context.WriteLine("}");

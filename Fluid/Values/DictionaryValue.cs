@@ -87,11 +87,23 @@ public sealed class DictionaryValue : FluidValue
         }
 
         // Only .first is a synthetic property for dictionaries (not .last)
-        if (name == "first" && _value.Count > 0)
+        if (name == "first")
         {
-            var firstKey = _value.Keys.First();
-            _value.TryGetValue(firstKey, out var firstValue);
-            return ArrayValue.Create(new[] { StringValue.Create(firstKey), firstValue });
+            return First();
+        }
+
+        return NilValue.Instance;
+    }
+
+    /// <summary>
+    /// Gets the first entry as a <c>[key, value]</c> pair, like Ruby's <c>Hash#first</c>, or nil when the hash is empty.
+    /// </summary>
+    internal FluidValue First()
+    {
+        foreach (var key in _value.Keys)
+        {
+            _value.TryGetValue(key, out var value);
+            return ArrayValue.Create([StringValue.Create(key), value ?? NilValue.Instance]);
         }
 
         return NilValue.Instance;
@@ -105,8 +117,23 @@ public sealed class DictionaryValue : FluidValue
         return _value.TryGetValue(name, out var value) ? value : NilValue.Instance;
     }
 
+    /// <summary>
+    /// Whether a value can find a key. Like a Ruby hash, whose keys are compared by type, a hash with string keys
+    /// is only indexed by strings: <c>h[1]</c>, <c>h[nil]</c> or <c>h[true]</c> doesn't find the "1", "" or "true" key.
+    /// The keys of a .NET dictionary of another type, like integers, are found by converting the value.
+    /// </summary>
+    private bool CanBeKey(FluidValue index)
+    {
+        return index.Type == FluidValues.String || _value is DictionaryDictionaryFluidIndexable { HasStringKeys: false };
+    }
+
     public override ValueTask<FluidValue> GetIndexAsync(FluidValue index, TemplateContext context)
     {
+        if (!CanBeKey(index))
+        {
+            return NilValue.Instance;
+        }
+
         var name = index.ToStringValue(context);
 
         if (!_value.TryGetValue(name, out var value))
@@ -193,7 +220,7 @@ public sealed class DictionaryValue : FluidValue
     {
         // Liquid's `contains` on a hash checks its keys (Ruby's Hash#include?), looked up the same way
         // `hash[key]` is.
-        return new ValueTask<bool>(_value.TryGetValue(value.ToStringValue(context), out _));
+        return new ValueTask<bool>(CanBeKey(value) && _value.TryGetValue(value.ToStringValue(context), out _));
     }
 
     public override async IAsyncEnumerable<FluidValue> EnumerateAsync(TemplateContext context)

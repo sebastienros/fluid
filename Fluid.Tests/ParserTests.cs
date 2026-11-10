@@ -222,6 +222,56 @@ public class ParserTests
         Assert.False(_parser.TryParse(source, out _, out _));
     }
 
+    // Like Liquid, each line of a comment in a liquid tag is a tag: only a line named endcomment closes it, and comment
+    // lines nest. The expected results are the ones of Shopify.
+    [Theory]
+    [InlineData("{% liquid\ncomment\necho \"endcomment\"\nendcomment\necho 4 %}", "4")]
+    [InlineData("{% liquid\ncomment\nsendcomment\nendcomment\necho 1 %}", "1")]
+    [InlineData("{% liquid\ncomment\n#endcomment\nendcomment\necho 6 %}", "6")]
+    [InlineData("{% liquid\ncomment\n-endcomment\nendcomment\necho 2 %}", "2")]
+    [InlineData("{% liquid\ncomment\nx endcomment\nendcomment\necho 3 %}", "3")]
+    [InlineData("{% liquid\ncomment\ncomment\nendcomment\nendcomment\necho 7 %}", "7")]
+    [InlineData("{% liquid\ncomment\n\t\tcomment x\n endcomment\n\tendcomment\t\necho 8 %}", "8")]
+    [InlineData("{% liquid\ncomment\nliquidendcomment\nendcomment\necho 5 %}", "5")]
+    [InlineData("{% liquid\ncomment\ndoc\nenddoc\nendcomment\necho 9 %}", "9")]
+    [InlineData("{% liquid\ncase 1\ncomment\ncomment\nendcomment\nendcomment\nwhen 1\necho 10\nendcase %}", "10")]
+    [InlineData("{% liquid\ncomment this is a comment\nsplit over two lines\nendcomment\n%}after", "after")]
+    [InlineData("{% liquid\ncomment\nx\nendcomment -%} after", "after")]
+    [InlineData("{% liquid\r\ncomment\r\n\tcomment\r\n\tendcomment\r\nendcomment extra\r\necho 11 %}", "11")]
+    // A liquid line is the tag which follows its name.
+    [InlineData("{% liquid\ncomment\nliquid endcomment\necho 12 %}", "12")]
+    [InlineData("{% liquid\ncomment\nliquid \t liquid comment\nendcomment\nendcomment\necho 13 %}", "13")]
+    [InlineData("{% liquid\ncomment\nliquid #endcomment\nliquid\nendcomment\necho 14 %}", "14")]
+    [InlineData("{% liquid\ncase 1\ncomment\nliquid endcomment\nwhen 1\necho 15\nendcase %}", "15")]
+    // The lines of a raw block are ignored up to endraw.
+    [InlineData("{% liquid\ncomment\nraw\nendcomment\ncomment\nendraw\nendcomment\necho 16 %}", "16")]
+    [InlineData("{% liquid\ncomment\nraw\nraw\nxendraw\n#endraw\n \t endraw x\nendcomment\necho 17 %}", "17")]
+    [InlineData("{% liquid\ncomment\nliquid raw\nendcomment\nliquid endraw\nendcomment\necho 18 %}", "18")]
+    [InlineData("{% liquid\ncomment\nendraw\nendcomment\necho 19 %}", "19")]
+    public void ShouldParseCommentLinesInLiquidTag(string source, string expected)
+    {
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+        Assert.Equal(expected, template.Render());
+    }
+
+    [Theory]
+    [InlineData("{% liquid\ncomment\ncomment\nendcomment\necho 1 %}")]
+    [InlineData("{% liquid\ncomment\n{% endcomment\necho 1 %}")]
+    [InlineData("{% liquid comment %}a{% endcomment %}b")]
+    [InlineData("{% liquid\ncomment\nx -%}y")]
+    [InlineData("{% liquid\ncomment\nliquid comment\nendcomment\necho 1 %}")]
+    [InlineData("{% liquid\ncomment\nliquid endcomment\nendcomment\necho 1 %}")]
+    [InlineData("{% liquid\ncomment\nraw\nendcomment\necho 1 %}")]
+    [InlineData("{% liquid\ncomment\nraw endraw\nendcomment\necho 1 %}")]
+    [InlineData("{% liquid\ncomment\nraw\nx endraw\nendcomment\necho 1 %}")]
+    [InlineData("{% liquid\ncomment\nraw\nendcomment\n%}{% endraw %}")]
+    public void ShouldNotParseUnclosedCommentInLiquidTag(string source)
+    {
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.False(parser.TryParse(source, out _, out _));
+    }
+
     [Fact]
     public void ShouldParseInlineComment()
     {

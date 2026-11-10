@@ -16,6 +16,7 @@ public class DateFilterBenchmarks
     private readonly IFluidTemplate _fullNames;
     private readonly IFluidTemplate _numeric;
     private readonly IFluidTemplate _numericWithFlags;
+    private readonly IFluidTemplate _parse;
 
     public DateFilterBenchmarks()
     {
@@ -30,6 +31,12 @@ public class DateFilterBenchmarks
 
         Verify(nameof(Numeric), Numeric(), "2024-03-09 14:05");
         Verify(nameof(NumericWithFlags), NumericWithFlags(), "9/3/24  9  2:05 002024 069");
+
+        _parse = parser.Parse("{{ date | date: '%F %T' }}");
+
+        Verify(nameof(ParseIso8601), ParseIso8601(), "2024-03-09 14:05:07");
+        Verify(nameof(ParseWithOffset), ParseWithOffset(), "2024-03-09 14:05:07");
+        Verify(nameof(ParseMonthName), ParseMonthName(), "2024-03-09 14:05:07");
 
         static void Verify(string name, string result, string expected)
         {
@@ -62,5 +69,25 @@ public class DateFilterBenchmarks
     public string Numeric()
     {
         return _numeric.Render(new TemplateContext().SetValue("date", _date));
+    }
+
+    // Strings parsed like Ruby's Time.parse.
+
+    [Benchmark]
+    public string ParseIso8601()
+    {
+        return _parse.Render(new TemplateContext().SetValue("date", "2024-03-09T14:05:07Z"));
+    }
+
+    [Benchmark]
+    public string ParseWithOffset()
+    {
+        return _parse.Render(new TemplateContext().SetValue("date", "2024-03-09 14:05:07 +01:00"));
+    }
+
+    [Benchmark]
+    public string ParseMonthName()
+    {
+        return _parse.Render(new TemplateContext().SetValue("date", "March 9, 2024 14:05:07"));
     }
 }

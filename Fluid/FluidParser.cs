@@ -91,11 +91,35 @@ public class FluidParser
     protected static readonly Parser<TagResult> RawOutputStart = NonInlineLiquidTagParsers.OutputTagStart();
     protected static readonly Parser<TagResult> RawTagStart = NonInlineLiquidTagParsers.TagStart();
 
+    // Like in Liquid, blank and empty are only special as the operands of a condition, where they test the other
+    // operand (x == empty). Everywhere else they are the empty string: Primary returns these two distinct literals,
+    // which conditions replace with the keywords.
+    private static readonly LiteralExpression EmptyLiteral = new LiteralExpression(StringValue.Empty);
+    private static readonly LiteralExpression BlankLiteral = new LiteralExpression(StringValue.Empty);
+
     protected static readonly LiteralExpression EmptyKeyword = new LiteralExpression(EmptyValue.Instance);
     protected static readonly LiteralExpression BlankKeyword = new LiteralExpression(BlankValue.Instance);
     protected static readonly LiteralExpression NilKeyword = new LiteralExpression(NilValue.Instance);
     protected static readonly LiteralExpression TrueKeyword = new LiteralExpression(BooleanValue.True);
     protected static readonly LiteralExpression FalseKeyword = new LiteralExpression(BooleanValue.False);
+
+    /// <summary>
+    /// Returns the <c>blank</c> or <c>empty</c> keyword when an operand of a condition is one, or the operand itself.
+    /// </summary>
+    protected static Expression ToConditionOperand(Expression expression)
+    {
+        if (ReferenceEquals(expression, EmptyLiteral))
+        {
+            return EmptyKeyword;
+        }
+
+        if (ReferenceEquals(expression, BlankLiteral))
+        {
+            return BlankKeyword;
+        }
+
+        return expression;
+    }
 
     public FluidParser() : this(new())
     {
@@ -129,13 +153,13 @@ public class FluidParser
         var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)));
         Integer.Name = "Integer";
 
-        // Like Liquid, where integers are unbounded, an integer literal too large for a decimal is still
-        // valid: it is kept as its text, like other numbers beyond a decimal's range.
-        var BigInteger = Terms.Pattern(static c => c is '-' or (>= '0' and <= '9'))
-            .When(static (context, x) => IsBigInteger(x.Span))
-            .Then<Expression>(static x => new LiteralExpression(StringValue.Create(x.ToString())));
+        // Like Liquid, where integers are unbounded and floats are doubles, a number literal too large for a decimal
+        // is still valid. It is a BigNumberValue, written as its text and compared by its sign and magnitude.
+        var BigNumber = Terms.Pattern(static c => c is '-' or '.' or (>= '0' and <= '9'))
+            .When(static (context, x) => IsBigNumber(x.Span))
+            .Then<Expression>(static x => new LiteralExpression(BigNumberValue.Create(x.ToString())));
 
-        var Number = Terms.Decimal().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))).Or(BigInteger);
+        var Number = Terms.Decimal().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))).Or(BigNumber);
         Number.Name = "Number";
 
         // Member expressions
@@ -231,8 +255,8 @@ public class FluidParser
                 {
                     switch ((x.Segments[0] as IdentifierSegment).Identifier)
                     {
-                        case "empty": return EmptyKeyword;
-                        case "blank": return BlankKeyword;
+                        case "empty": return EmptyLiteral;
+                        case "blank": return BlankLiteral;
                         case "nil": return NilKeyword; // Both nil and null are supported for convenience
                         case "null": return NilKeyword;
                         case "true": return TrueKeyword;
@@ -259,7 +283,7 @@ public class FluidParser
         RegisteredOperators[">="] = (a, b) => new GreaterThanBinaryExpression(a, b, false);
         RegisteredOperators["<="] = (a, b) => new LowerThanBinaryExpression(a, b, false);
 
-        var CaseValueList = Separated(BinaryOr.Or(Terms.Text(",")), Primary);
+        var CaseValueList = Separated(BinaryOr.Or(Terms.Text(",")), Primary.Then(static x => ToConditionOperand(x)));
         CaseValueList.Name = "CaseValueList";
 
         // Seek anything that looks like a binary operator (==, !=, <, >, <=, >=, contains, startswith, endswith) then validates it with the registered operators
@@ -273,7 +297,7 @@ public class FluidParser
                      return x.Item1;
                  }
 
-                 return RegisteredOperators[x.Item2.Item1](x.Item1, x.Item2.Item2);
+                 return RegisteredOperators[x.Item2.Item1](ToConditionOperand(x.Item1), ToConditionOperand(x.Item2.Item2));
              }).Named("CombinatoryExpression");
 
         // Like Liquid, "and" and "or" have the same precedence and group from the right: a or b and c is a or (b and c).
@@ -317,7 +341,7 @@ public class FluidParser
 
         Parser<Statement> Output = OutputStart.SkipAnd(
             // Like Liquid, an output without an expression renders nothing.
-            OutputEnd.Then<Statement>(static x => new OutputStatement(EmptyKeyword))
+            OutputEnd.Then<Statement>(static x => new OutputStatement(EmptyLiteral))
             .Or(FilterExpression.ElseError(ErrorMessages.LogicalExpressionStartsFilter).And(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd))
                 .Then<Statement>(static x => new OutputStatement(x.Item1)))
             );
@@ -382,10 +406,11 @@ public class FluidParser
             OutputInComment,
             TextInComment))));
 
-        // Inside a {% liquid %} tag, the comment ends at the first endcomment line.
+        // Inside a {% liquid %} tag, every line of the comment is a tag: it ends at the line named endcomment which closes
+        // the nested comment lines.
         var CommentBody = If<FluidParseContext, TextSpan>(
             static context => context.LiquidTagDepth > 0,
-            AnyCharBefore(CreateTag("endcomment"), canBeEmpty: true),
+            new LiquidTagCommentBodyParser(),
             ShopifyCommentBody);
 
         var CommentTag = _tagEndIgnoringMarkup
@@ -575,8 +600,7 @@ public class FluidParser
                    .And(ZeroOrMany(OneOf(WhenBlock, ElseBlock).AndSkip(OptionalComments)))
                    .AndSkip(CreateTag("endcase").ElseError($"'{{% endcase %}}' was expected"))
                    .Then<Statement>(x => new CaseStatement(
-                       // Like Liquid, blank and empty are only special in conditions: as the value of a case they are ''.
-                       x.Item1 == BlankKeyword || x.Item1 == EmptyKeyword ? new LiteralExpression(StringValue.Empty) : x.Item1,
+                       x.Item1,
                        x.Item3,
                        x.Item2.All(static s => s.IsWhitespaceOrCommentOnly)))
                    .ElseError("Invalid 'case' tag");
@@ -656,8 +680,7 @@ public class FluidParser
 
         if (_trackStatementLocations)
         {
-            // In liquid mode TagStart consumes nothing, but preserves the start before Switch parses the arguments.
-            LiquidChild = TrackStatement(TagStart.SkipAnd(LiquidChild), skipLeadingWhitespace: true);
+            LiquidChild = TrackStatement(LiquidChild, skipLeadingWhitespace: true);
         }
 
         var LiquidTag = Literals.WhiteSpace(true).Else(default(TextSpan)) // {% liquid %} can start with new lines, {%liquid%} has none
@@ -680,7 +703,7 @@ public class FluidParser
             ;
         LiquidTag.Name = "LiquidTag";
 
-        var EchoTag = FilterExpression.Else(EmptyKeyword).AndSkip(TagEnd).Then<Statement>(x => new OutputStatement(x));
+        var EchoTag = FilterExpression.Else(EmptyLiteral).AndSkip(TagEnd).Then<Statement>(x => new OutputStatement(x));
         EchoTag.Name = "EchoTag";
 
         RegisteredTags["break"] = BreakTag;
@@ -918,8 +941,14 @@ public class FluidParser
             return parser;
         }
 
-        return parser.Then((context, start, end, statement) =>
+        // The range starts at the cursor before the parser runs, not at the start Parlot reports for its result:
+        // Parlot moves that past the leading parsers of a sequence that consume nothing, like a tag start inside
+        // a {% liquid %} tag.
+        return CursorOffset.And(parser).Then((context, x) =>
         {
+            var (start, statement) = x;
+            var end = context.Scanner.Cursor.Offset;
+
             if (skipLeadingWhitespace)
             {
                 var buffer = context.Scanner.Buffer;
@@ -930,10 +959,12 @@ public class FluidParser
             }
 
             statement.SourceOffset = start;
-            statement.SourceLength = context.Scanner.Cursor.Offset - start;
+            statement.SourceLength = end - start;
             return statement;
         });
     }
+
+    private static readonly Parser<int> CursorOffset = Always<int>().Then(static (context, _) => context.Scanner.Cursor.Offset);
 
     public void RegisterIdentifierTag(string tagName, Func<string, IFluidOutput, TextEncoder, TemplateContext, ValueTask<Completion>> render)
     {
@@ -986,24 +1017,40 @@ public class FluidParser
         return quote + value.ToString() + quote;
     }
 
-    private static bool IsBigInteger(ReadOnlySpan<char> value)
+    // An integer or a float, like -?\d+(\.\d+)?, whose integer part has too many digits for a decimal.
+    private static bool IsBigNumber(ReadOnlySpan<char> value)
     {
-        var digits = value.Length > 0 && value[0] == '-' ? value.Slice(1) : value;
+        var i = value.Length > 0 && value[0] == '-' ? 1 : 0;
+        var integerStart = i;
 
-        if (digits.Length < 29)
+        while (i < value.Length && value[i] is >= '0' and <= '9')
+        {
+            i++;
+        }
+
+        if (i - integerStart < 29)
         {
             return false;
         }
 
-        foreach (var c in digits)
+        if (i == value.Length)
         {
-            if (c is < '0' or > '9')
-            {
-                return false;
-            }
+            return true;
         }
 
-        return true;
+        if (value[i] != '.')
+        {
+            return false;
+        }
+
+        var fractionStart = ++i;
+
+        while (i < value.Length && value[i] is >= '0' and <= '9')
+        {
+            i++;
+        }
+
+        return i > fractionStart && i == value.Length;
     }
 
     public void RegisterEmptyTag(string tagName, Func<IFluidOutput, TextEncoder, TemplateContext, ValueTask<Completion>> render)

@@ -1063,6 +1063,40 @@ public class ArrayFiltersTests
     }
 
     [Theory]
+    // Like Liquid, sort compares strings like Ruby's String#<=>, in code point order (UTF-8 bytes): an emoji is
+    // after U+E000-U+FFFF, while UTF-16 order puts its surrogate pair before them.
+    [InlineData("{{ s | split: ',' | sort | join: ' ' }}", "\uFF5A,\U0001F600,a", "a \uFF5A \U0001F600")]
+    [InlineData("{{ s | split: ',' | sort | join: ' ' }}", "x\U0001F600,x\uFF5A,x,xa,x\U0001F601,x\uFFFF", "x xa x\uFF5A x\uFFFF x\U0001F600 x\U0001F601")]
+    [InlineData("{{ s | split: ',' | sort | join: ' ' }}", "b,B,a,A,ab,AB,Ab,aB,_", "A AB Ab B _ a aB ab b")]
+    // Like Shopify, sort_natural compares the lowercase strings (Ruby's String#downcase) in code point order: the
+    // characters between Z and a come before the letters, and letters outside ASCII are folded too.
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "b,_,A,[,a,^,`,],Z,z,B", "[ ] ^ _ ` A a b B Z z")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "_x,Ax,ax", "_x Ax ax")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u00C9,e,\u00E9,f,E,\u00DF,s,t,\u00C4,a,z", "a e E f s t z \u00DF \u00C4 \u00C9 \u00E9")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u00E9B,\u00E9a,\u00C9c,\u00E9A,\u00E9b", "\u00E9a \u00E9A \u00E9B \u00E9b \u00C9c")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u00E9b,\u00C9a,\u00E9a,\u00C9B,z,Z,\uFF5A,\uFF3A,\uFF21", "z Z \u00C9a \u00E9a \u00E9b \u00C9B \uFF21 \uFF5A \uFF3A")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u044F,\u042F,\u0431", "\u0431 \u044F \u042F")]
+    // The Kelvin sign is a k, a final sigma is not a sigma, and a sharp s or a ligature is not two letters.
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u212A,j,l,k", "j \u212A k l")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u03C3,\u03A3,\u03C2", "\u03C2 \u03C3 \u03A3")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u1E9E,\u00DF,\u00E0,ss,st", "ss st \u1E9E \u00DF \u00E0")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\uFB01,fi,FI,fj", "fi FI fj \uFB01")]
+    // Letters outside the BMP are folded, and titlecase letters are not, like in Ruby.
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\U00010428,\U00010401,\U00010400", "\U00010428 \U00010400 \U00010401")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "x\U00010428b,x\U00010400a,x\U00010400", "x\U00010400 x\U00010400a x\U00010428b")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u01C5,\u01C6,\u01C4,\u01C5a", "\u01C5 \u01C5a \u01C6 \u01C4")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\uFF5A,\U0001F600,a", "a \uFF5A \U0001F600")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\U0001F600b,\U0001F600a,\U0001F600B,\U0001F601,\uFF5AB,\uFF5Aa", "\uFF5Aa \uFF5AB \U0001F600a \U0001F600b \U0001F600B \U0001F601")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "10,9,a,A,_,ab,AB,Ab,aB,b,B", "10 9 _ a A ab AB Ab aB b B")]
+    public async Task SortOrdersStringsLikeRuby(string source, string input, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("s", input);
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Theory]
     // Like Liquid (item[property]), the properties of hashes are keys: size, first and last are only keys too.
     [InlineData("{{ products | sum: 'size' }}|{{ products | where: 'size', 2 | size }}|{{ products | sort: 'size' | map: 'title' | join }}|{{ products | sort_natural: 'first' | map: 'title' | join }}", "0|0|b a c|b a c")]
     [InlineData("{{ products | find: 'size', 2 | map: 'title' }}|{{ products | find_index: 'size', 2 }}|{{ products | has: 'size', 2 }}|{{ products | reject: 'size', 2 | size }}|{{ products | uniq: 'size' | size }}|{{ products | compact: 'size' | size }}|{{ products | where: 'first' | size }}", "||false|3|1|0|0")]

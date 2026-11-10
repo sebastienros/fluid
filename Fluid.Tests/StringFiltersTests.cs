@@ -301,6 +301,69 @@ world
         Assert.Equal(["d", "e"], values.Select(x => x.ToStringValue(context)));
     }
 
+    [Theory]
+    // Like Liquid, integer arguments are read like Ruby's Integer(): with a 0x, 0b, 0o or 0d prefix, a leading 0 for
+    // octal, single underscores between digits, and ASCII whitespace around.
+    [InlineData("[{{ s | slice: '0x2' }}]|[{{ s | slice: '1_0' }}]|[{{ s | slice: '010' }}]|[{{ s | slice: '0b11', '0o2' }}]|[{{ s | slice: '-0x2' }}]", "[c]|[k]|[i]|[de]|[o]")]
+    [InlineData("[{{ s | slice: ' 1 ' }}]|[{{ s | slice: '+1' }}]|[{{ s | slice: '00_1' }}]|[{{ s | slice: '0D3' }}]|[{{ s | slice: 1, nil }}]|[{{ s | slice: v }}]", "[b]|[b]|[b]|[d]|[b]|[b]")]
+    [InlineData("[{{ s | slice: '0x0_F' }}]|[{{ s | slice: '1_0_0' }}]|[{{ s | slice: '0b1_1' }}]|[{{ s | slice: '00' }}]|[{{ s | slice: '0d1_0' }}]|[{{ s | slice: '0X1f' }}]", "[p]|[]|[d]|[a]|[k]|[]")]
+    [InlineData("[{{ s | slice: '007' }}]|[{{ s | slice: '0o17' }}]|[{{ s | slice: '0B11' }}]|[{{ s | slice: '0' }}{{ s | slice: '-0' }}{{ s | slice: '+0x2' }}]|[{{ s | slice: '0o0_7' }}]|[{{ s | slice: '0x0_7' }}]", "[h]|[p]|[d]|[aac]|[h]|[h]")]
+    [InlineData("[{{ 'abcdef' | truncate: '0x5' }}]|[{{ 'abcdef' | truncate: ' 5 ' }}]|[{{ 'a b c d e f' | truncatewords: '0x2' }}]|[{{ 'a b c d e f' | truncatewords: '0b11' }}]", "[ab...]|[ab...]|[a b...]|[a b c...]")]
+    public async Task IntegerArgumentsAreReadLikeRubyIntegers(string source, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("s", "abcdefghijklmnop");
+        context.SetValue("v", "\t\v1\f\r\n");
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Theory]
+    [InlineData("{{ 'abc' | slice: '1.5' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '08' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '1__0' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '0x' }}", "Slice: offset argument is an invalid number")]
+    // Like in Liquid, an underscore can't follow a prefix, not even the leading zero of an octal number.
+    [InlineData("{{ 'abc' | slice: '0_1' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '0x_1' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '0o_7' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '0_0' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '-0_1' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '_1' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '- 1' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '0x-1' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '1e1' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '0__1' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '1_' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '0_17' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '0_x1' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '1 _0' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '0_' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '0b' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '+' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '0_8' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: '0d_1' }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | truncate: '0_5' }}", "truncate: invalid integer")]
+    [InlineData("{{ 'abc' | slice: v }}", "Slice: offset argument is an invalid number")]
+    [InlineData("{{ 'abc' | slice: 0, '1_' }}", "Slice: length argument is not a number")]
+    [InlineData("{{ 'abc' | slice: 0, 99999999999999999999999999999.0 }}", "Slice: length argument is not a number")]
+    [InlineData("{{ 'abc' | truncate: 'abc' }}", "truncate: invalid integer")]
+    [InlineData("{{ 'abc' | truncate: '5.5' }}", "truncate: invalid integer")]
+    [InlineData("{{ 'abc' | truncate: '' }}", "truncate: invalid integer")]
+    [InlineData("{{ 'a b' | truncatewords: 'abc' }}", "truncatewords: invalid integer")]
+    public async Task InvalidIntegerArgumentsThrow(string source, string message)
+    {
+        var context = new TemplateContext();
+
+        // Like Integer(), a Unicode space isn't whitespace.
+        context.SetValue("v", "\u00a01");
+
+        var exception = await Assert.ThrowsAsync<LiquidException>(() => new FluidParser().Parse(source).RenderAsync(context).AsTask());
+
+        Assert.Equal(message, exception.Message);
+    }
+
     [Fact]
     public async Task SliceWithMinimumOffsetReturnsEmpty()
     {

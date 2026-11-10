@@ -958,6 +958,12 @@ var result = template.Render(context);
 Tuesday, August 1, 2017
 ```
 
+### Ordering strings
+
+The culture doesn't change how strings are ordered. Like in Shopify, `sort` and the `<`, `<=`, `>` and `>=` operators compare strings by code point, so uppercase letters come before lowercase ones and an emoji comes after any other character: `{{ "b,a,B,😀,é" | split: "," | sort | join: " " }}` renders `B a b é 😀`.
+
+`sort_natural` compares the lowercase strings the same way, whatever the alphabet: `{{ "b,_,É,a,B,é" | split: "," | sort_natural | join: " " }}` renders `_ a b B É é`. Accented letters are still after `z`, and the characters that are between `Z` and `a` in ASCII (``[ \ ] ^ _ ` ``) are before the letters.
+
 <br>
 
 ## Color filters
@@ -1138,6 +1144,8 @@ var context = new TemplateContext(options)
 
 - When dates and times are parsed and don't specify a time zone, the configured one is assumed. 
 - When a time zone is provided in the source string, the resulting date time uses it.
+
+Strings are converted to dates like Liquid does with Ruby's `Time.parse`. `now` and `today`, in any casing, are the current time, and a string of digits is a number of seconds since 1970. Other strings can be in many formats: `2020-06-15T12:00:00Z`, `2020-06-15 12:00:00 UTC`, `Mon, 15 Jun 2020 12:00:00 +0100`, `Fri Jul 16 01:00:00 2004`, `June 15, 2020`, `15 June 2020`, `15/06/2020` (day first), `20200615T120000`. Zones are offsets like `+01:00`, `Z`, `UTC`, `GMT` or the US abbreviations (`EST`, `PDT`, ...); others, like `CET`, are ignored. The fields missing before the first one in the string come from the current time (`'5 May'` is May 5 of this year, `'12:30'` is today), and strings without a date or time like `'1,2,3'` are not dates: `date` returns them unchanged. With a specific culture, the formats of the culture are tried first, so `08/01/2017` is August 1 in `en-US` and January 8 in `fr-FR`.
 
 > **Important**: The `TimeZone` property is used for **parsing** date strings, not for automatically converting dates during rendering. To convert dates to a specific timezone for display, use the `time_zone` filter.
 
@@ -1593,6 +1601,23 @@ Shopify Liquid ignores some content and reads some words in ways that can be sur
 - Tags without arguments ignore anything after their name: closing tags, `else`, `comment`, `raw`, `break`, `continue` and `ifchanged`, as in `{% endfor items %}`.
 - In a `for` tag, `reversed` is only read right after the collection, even when it starts a longer word: `{% for i in items reversedx %}` is reversed, `{% for i in items limit: 2 reversed %}` is not. A `tablerow` tag ignores it.
 - The `limit`, `offset` and `cols` attributes are read anywhere after the collection, and anything else is ignored: `{% for i in items foo, limit: 2 %}` renders two items.
+- `empty` and `blank` are only special as an operand of a condition (`if`, `unless`, `elsif` and `when`), where `x == empty` tests whether `x` is empty. Everywhere else they are an empty string: after `{% assign a = blank %}`, `a` is `''`, so `{% if a == nil %}` is false.
+- A hash with string keys, like a JSON object or a `Dictionary<string, T>`, is only indexed by strings, like a Ruby hash: `{{ h[1] }}` doesn't find the `"1"` key, `{{ h['1'] }}` does. A dictionary with keys of another type, like `Dictionary<int, T>`, is indexed by its keys: `{{ d[5] }}`. The `size` and `first` filters return the number of entries and the first `[key, value]` pair of a hash, even when it has a `size` or `first` key, which `h.size` and `h.first` read.
+
+### The `self` object
+
+Like Liquid 5.13 and later, `self` is an object whose members are the variables of the template: `{{ self.title }}` and `{{ self['title'] }}` are `{{ title }}`, and `{{ self[name] }}` reads the variable whose name is in `name`. Variables are found as usual, from the current scope (loop variables, `assign` and `capture`) to the model and the global values.
+
+```liquid
+{% assign key = 'title' %}
+{{ self[key] }}
+{% if self.discount %}On sale{% endif %}
+```
+
+- A variable named `self`, assigned or in the model, takes precedence over the object.
+- In a `render` partial, `self` reads the variables of the partial, its arguments and the model, but not the variables of the template that renders it. A `self` passed to a partial as an argument (`{% render 'card', parent: self %}`) keeps reading the variables of the template it comes from.
+- `self.self` and a bare bracket `{{ ['self'] }}` are the object too, unless a variable is named `self`.
+- `self` has no other member: `self.size` is a variable named `size`, `{{ self | size }}` is `0`, and `{{ self }}` renders `Liquid::SelfDrop`, like in Shopify.
 
 ## Partials: `include` and `render`
 
