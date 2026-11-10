@@ -860,9 +860,8 @@ public class ArrayFiltersTests
 
         var arguments4 = new FilterArguments();
 
-        var result4 = await ArrayFilters.Find(input, arguments4, context);
-
-        Assert.Equal(NilValue.Instance, result4);
+        // Like Liquid, the property is required.
+        await Assert.ThrowsAsync<LiquidException>(() => ArrayFilters.Find(input, arguments4, context).AsTask());
 
         var arguments5 = new FilterArguments()
             .Add(StringValue.Create("Title"))
@@ -910,9 +909,8 @@ public class ArrayFiltersTests
 
         var arguments4 = new FilterArguments();
 
-        var result4 = await ArrayFilters.FindIndex(input, arguments4, context);
-
-        Assert.Equal(NilValue.Instance, result4);
+        // Like Liquid, the property is required.
+        await Assert.ThrowsAsync<LiquidException>(() => ArrayFilters.FindIndex(input, arguments4, context).AsTask());
 
         var arguments5 = new FilterArguments()
             .Add(StringValue.Create("Title"))
@@ -1112,6 +1110,12 @@ public class ArrayFiltersTests
     [InlineData("{{ bools | sort: 'a' | size }}|{{ strs | sort_natural: 'a' | size }}", "0|0")]
     // An integer is indexed by bits, so it has no named property.
     [InlineData("{{ a | has: 1 }}|{{ a | find: 0 }}|{{ a | find_index: 1 }}|{{ a | map: 1 | join }}|{{ a | uniq: 0 | join }}|{{ a | sum: 0 }}", "true|1|0|0 1 1|1 2|2")]
+    // Like Ruby's Integer#[], a float index is truncated and a negative one is 0.
+    [InlineData("{{ a | where: 1.5 | join }}|{{ a | map: 1.5 | join }}|{{ a | map: -1 | join }}|{{ a | where: 0, 1.0 | join }}|{{ a | where: 0, '1' | size }}", "1 2 3|0 1 1|0 0 0|1 3|0")]
+    // A single item that can't be indexed isn't sorted by a property either, and a single item is never read.
+    [InlineData("[{{ 2.5 | sort: 'a' }}][{{ true | sort_natural: 'a' }}][{{ 5 | sort: 'a' }}][{{ 2.5 | uniq: 'a' }}][{{ nil | sort: 'a' | size }}][{{ 2.5 | sort }}]", "[][][5][2.5][0][2.5]")]
+    // The empty and blank literals are an empty string to compare the property with, not a missing argument.
+    [InlineData("{{ strs | first | has: 'b', empty }}|{{ 'banana' | find: 'an', blank }}|{{ 'banana' | reject: 'an', empty | size }}|{{ 'banana' | where: '', empty | size }}|{{ 'banana' | where: 'zz', empty | size }}", "false||1|1|0")]
     public async Task ArrayFiltersReadItemsLikeRubyIndexers(string source, string expected)
     {
         var context = new TemplateContext();
@@ -1133,6 +1137,9 @@ public class ArrayFiltersTests
     [InlineData("{{ a | sort: 'a' }}")]
     [InlineData("{{ 5 | where: 'a' }}")]
     [InlineData("{{ l | where: true }}")]
+    [InlineData("{{ a | sort_natural: 'a' }}")]
+    [InlineData("{{ a | find_index: 'a' }}")]
+    [InlineData("{{ a | map: 'a' }}")]
     public async Task ArrayFiltersCantReadNamedPropertiesOfIntegers(string source)
     {
         var context = new TemplateContext();
@@ -1141,6 +1148,20 @@ public class ArrayFiltersTests
 
         var exception = await Assert.ThrowsAsync<LiquidException>(() => new FluidParser().Parse(source).RenderAsync(context).AsTask());
         Assert.StartsWith("cannot select the property", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("{{ l | find }}", "find", 0)]
+    [InlineData("{{ l | find: 'a', 'a', 1 }}", "find", 3)]
+    [InlineData("{{ l | find_index }}", "find_index", 0)]
+    [InlineData("{{ l | find_index: 'a', 'a', 1 }}", "find_index", 3)]
+    public async Task FindRequiresAPropertyAndAtMostAValue(string source, string filter, int given)
+    {
+        var context = new TemplateContext();
+        context.SetValue("l", new[] { "apple" });
+
+        var exception = await Assert.ThrowsAsync<LiquidException>(() => new FluidParser().Parse(source).RenderAsync(context).AsTask());
+        Assert.Equal($"Wrong number of arguments for '{filter}' (given {given}, expected 1..2)", exception.Message);
     }
 
     [Theory]

@@ -301,9 +301,25 @@ public static class ArrayFilters
         {
             DictionaryValue dictionary => new ValueTask<FluidValue>(dictionary.GetKey(property.ToStringValue(context))),
             { Type: FluidValues.String } => new ValueTask<FluidValue>(GetStringProperty(item.ToStringValue(context), property, context)),
-            { Type: FluidValues.Number } => item.GetIndexAsync(property, context),
+            { Type: FluidValues.Number } => item.GetIndexAsync(ToBitIndex(property, context), context),
             _ => item.GetValueAsync(property.ToStringValue(context), context),
         };
+    }
+
+    // Like Ruby's Integer#[], a float index is truncated.
+    private static FluidValue ToBitIndex(FluidValue property, TemplateContext context)
+    {
+        if (property.Type == FluidValues.Number)
+        {
+            var index = property.ToNumberValue(context);
+
+            if (NumberValue.GetScale(index) != 0)
+            {
+                return NumberValue.Create(decimal.Truncate(index));
+            }
+        }
+
+        return property;
     }
 
     // Ruby's String#[]: "banana"["an"] is "an", "banana"["x"] is nil, "banana"[1] is "a".
@@ -482,11 +498,15 @@ public static class ArrayFilters
 
     public static ValueTask<FluidValue> Find(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
+        LiquidException.ThrowFilterArgumentsCount("find", min: 1, max: 2, arguments);
+
         return FilterArrayAsync(input, arguments.At(0), arguments.At(1), FilterArrayMode.Find, context);
     }
 
     public static ValueTask<FluidValue> FindIndex(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
+        LiquidException.ThrowFilterArgumentsCount("find_index", min: 1, max: 2, arguments);
+
         return FilterArrayAsync(input, arguments.At(0), arguments.At(1), FilterArrayMode.FindIndex, context);
     }
 
@@ -529,6 +549,12 @@ public static class ArrayFilters
     /// </summary>
     private static async ValueTask<FluidValue> FilterArrayAsync(FluidValue input, FluidValue property, FluidValue targetValue, FilterArrayMode mode, TemplateContext context)
     {
+        // Like Liquid, the empty and blank literals are an empty string when they are an argument, not nil.
+        if (targetValue.Type is FluidValues.Empty or FluidValues.Blank)
+        {
+            targetValue = StringValue.Empty;
+        }
+
         var hasTargetValue = !targetValue.IsNil();
         List<FluidValue> list = null;
         var index = 0;
@@ -620,6 +646,12 @@ public static class ArrayFilters
 
         if (input.Type != FluidValues.Array)
         {
+            // Like Liquid, nothing is sorted by a property when the item can't be indexed.
+            if (!arguments.At(0).IsNil() && !input.IsNil() && !IsIndexable(input, context))
+            {
+                return NilValue.Instance;
+            }
+
             return AsOneItemArray(input);
         }
 
@@ -671,6 +703,12 @@ public static class ArrayFilters
 
         if (input.Type != FluidValues.Array)
         {
+            // Like Liquid, nothing is sorted by a property when the item can't be indexed.
+            if (!arguments.At(0).IsNil() && !input.IsNil() && !IsIndexable(input, context))
+            {
+                return NilValue.Instance;
+            }
+
             return AsOneItemArray(input);
         }
 
