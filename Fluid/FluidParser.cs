@@ -521,7 +521,14 @@ public class FluidParser
                     ;
         RenderTag.Name = "RenderTag";
 
-        var RawTag = _tagEndIgnoringMarkup.SkipAnd(AnyCharBefore(CreateTag("endraw"), canBeEmpty: true, consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
+        // Inside a {% liquid %} tag, every line of the raw block is text up to the line named endraw, and the body starts
+        // with the new line which ends the raw line.
+        var RawBody = If<FluidParseContext, TextSpan>(
+            static context => context.LiquidTagDepth > 0,
+            new LiquidTagRawBodyParser().AndSkip(CreateTag("endraw")),
+            _tagEndIgnoringMarkup.SkipAnd(AnyCharBefore(CreateTag("endraw"), canBeEmpty: true, consumeDelimiter: true, failOnEof: true)));
+
+        var RawTag = RawBody.Then<Statement>(x => new RawStatement(x)).ElseError("Not end tag found for {% raw %}");
         RawTag.Name = "RawTag";
 
         // Like Liquid, an assign without a value assigns nil.
