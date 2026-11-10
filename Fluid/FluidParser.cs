@@ -645,9 +645,10 @@ public class FluidParser
                         .AndSkip(Comma.Optional())
                         .AndSkip(TagEnd.ElseError(ErrorMessages.InvalidForAttribute));
 
+        // Like Liquid, the loop is named by its collection as written, which is kept with the expression.
         var ForTag = Identifier
                         .AndSkip(In)
-                        .And(Primary)
+                        .And(Primary.Then(static (context, start, end, x) => (Expression: x, Markup: GetCollectionMarkup(context, start, end))))
                         .And(Reversed)
                         .And(ForAttributes)
                         .And(AnyTagsList)
@@ -658,12 +659,12 @@ public class FluidParser
                         .Then<Statement>(x =>
                         {
                             var identifier = x.Item1;
-                            var source = x.Item2;
+                            var (source, collectionName) = x.Item2;
                             var reversed = x.Item3;
                             var statements = x.Item5;
                             var elseStatement = x.Item6;
                             var (limitResult, offsetResult) = ReadForStatementConfiguration(x.Item4);
-                            return new ForStatement(statements, identifier, source, limitResult, offsetResult, reversed, elseStatement);
+                            return new ForStatement(statements, identifier, source, limitResult, offsetResult, reversed, elseStatement, collectionName);
                         })
                     .ElseError("Invalid 'for' tag");
         ForTag.Name = "ForTag";
@@ -1037,6 +1038,38 @@ public class FluidParser
         var point = value.Span.IndexOf('.');
 
         return BigNumberValue.Create(point < 0 ? value.ToString() : value.Span.Slice(0, point).ToString());
+    }
+
+    // A collection as written, like Liquid's strict parser reads it: the whitespace between its tokens is removed,
+    // so "a[ 0 ]" is "a[0]", and the strings keep their quotes and content, like "'a b'".
+    private static string GetCollectionMarkup(ParseContext context, int start, int end)
+    {
+        var markup = context.Scanner.Buffer.AsSpan(start, end - start).Trim();
+        var builder = new System.Text.ValueStringBuilder(stackalloc char[64]);
+        var quote = '\0';
+
+        foreach (var c in markup)
+        {
+            if (quote != '\0')
+            {
+                if (c == quote)
+                {
+                    quote = '\0';
+                }
+            }
+            else if (c is '"' or '\'')
+            {
+                quote = c;
+            }
+            else if (char.IsWhiteSpace(c))
+            {
+                continue;
+            }
+
+            builder.Append(c);
+        }
+
+        return builder.ToString();
     }
 
     // A number bound as written, without the whitespace before it, like "01" or "1.50".

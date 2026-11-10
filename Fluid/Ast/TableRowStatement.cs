@@ -24,7 +24,11 @@ public sealed class TableRowStatement : TagStatement
         Limit = limit;
         Offset = offset;
         Cols = cols;
+        _pendingInterruptsBody = new PendingInterruptsStatement(Statements, skipText: false);
     }
+
+    // Renders an iteration that starts while interrupts are pending.
+    private readonly PendingInterruptsStatement _pendingInterruptsBody;
 
     private const string EmptyRow = "<tr class=\"row1\">\n</tr>\n";
 
@@ -136,14 +140,22 @@ public sealed class TableRowStatement : TagStatement
 
                 var completion = Completion.Normal;
 
-                for (var index = 0; index < Statements.Count; index++)
+                if (context.HasPendingInterrupts)
                 {
-                    var statement = Statements[index];
-                    completion = await statement.WriteToAsync(output, encoder, context);
-
-                    if (completion != Completion.Normal)
+                    // Like Liquid, the iteration renders up to its first tag or output, then consumes an interrupt.
+                    completion = await _pendingInterruptsBody.WriteToAsync(output, encoder, context);
+                }
+                else
+                {
+                    for (var index = 0; index < Statements.Count; index++)
                     {
-                        break;
+                        var statement = Statements[index];
+                        completion = await statement.WriteToAsync(output, encoder, context);
+
+                        if (completion != Completion.Normal)
+                        {
+                            break;
+                        }
                     }
                 }
 
@@ -175,7 +187,8 @@ public sealed class TableRowStatement : TagStatement
             output.Write("</tr>\n");
         }
 
-        return Completion.Normal;
+        // Like a for loop, an interrupt still pending stops the blocks around it, up to the next enclosing loop.
+        return ForStatement.PopPendingInterrupt(context);
     }
 
     private static async ValueTask<int> EvaluateIntegerArgumentAsync(string name, Expression expression, TemplateContext context)

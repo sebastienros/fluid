@@ -510,6 +510,36 @@ public class ForStatementTests
         Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
     }
 
+    [Theory]
+    // Like Liquid, a loop is named by its collection as written.
+    [InlineData("{% for i in \"c\" %}{{ forloop.name }}{% endfor %}|{% for i in \"a b\" %}{{ forloop.name }}{% endfor %}", "i-\"c\"|i-\"a b\"")]
+    [InlineData("{% for i in 'c' %}{{ forloop.name }}{% endfor %}|{% for i in  \"c\"  limit: 2 %}{{ forloop.name }}{% endfor %}", "i-'c'|i-\"c\"")]
+    [InlineData("{% for i in nested[0] %}{{ forloop.name }}{% break %}{% endfor %}|{% for i in nested[ 1 ] %}{{ forloop.name }}{% endfor %}", "i-nested[0]|i-nested[1]")]
+    [InlineData("{% for i in h[\"k\"] %}{{ forloop.name }}{% endfor %}|{% for i in h['k'] %}{{ forloop.name }}{% endfor %}|{% for i in nested.first %}{{ forloop.name }}{% break %}{% endfor %}", "i-h[\"k\"]|i-h['k']|i-nested.first")]
+    // The name keys the offset: continue cursor.
+    [InlineData("{% for i in nested[0] limit: 1 %}{{ i }}{% endfor %}|{% for i in nested[0] offset: continue %}{{ i }}{% endfor %}", "1|23")]
+    [InlineData("{% for i in nested limit: 1 %}{% endfor %}{% for i in nested[0] offset: continue %}{{ i }}{% endfor %}", "123")]
+    public async Task ForLoopNameIsTheCollectionAsWritten(string source, string expected)
+    {
+        var context = new TemplateContext()
+            .SetValue("nested", new[] { new[] { 1, 2, 3 }, new[] { 4 } })
+            .SetValue("h", new Dictionary<string, object> { ["k"] = new[] { 1 } });
+
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Fact]
+    public async Task ForLoopNameIsBuiltFromTheExpression()
+    {
+        // Without the template text, the name is built from the expression.
+        var name = new OutputStatement(new MemberExpression([new IdentifierSegment("forloop"), new IdentifierSegment("name")]));
+        var statement = new ForStatement([name], "i", new LiteralExpression(StringValue.Create("c")), null, null, false);
+        var sw = new StringWriter();
+        await statement.WriteToAsync(sw, NullEncoder.Default, new TemplateContext());
+
+        Assert.Equal("i-\"c\"", sw.ToString());
+    }
+
     [Fact]
     public async Task StringsStillEvaluateTheLimit()
     {

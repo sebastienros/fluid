@@ -10,16 +10,16 @@ namespace Fluid.Ast;
 
 public sealed class ForStatement : TagStatement, ISourceable
 {
-    private readonly string _continueSourceLiteral;
-
-    // Precomputed for every source shape but a range. Both `forloop.name` and the `offset: continue`
+    // Precomputed whenever the collection has a name. Both `forloop.name` and the `offset: continue`
     // key are then constant for the lifetime of the statement, so they don't need to be rebuilt
-    // (with LINQ and string.Join) on every execution of the loop.
+    // on every execution of the loop.
     private readonly string _staticContinueOffsetLiteral;
 
-    // The source when it is a range, and its `forloop.name` part, like "(1..3)", when the bounds are literals.
+    // The source when it is a range without a name, which is then named by its evaluated bounds.
     private readonly RangeExpression _rangeSource;
-    private readonly string _staticRangeSourceLiteral;
+
+    // Renders an iteration that starts while interrupts are pending.
+    private readonly PendingInterruptsStatement _pendingInterruptsBody;
 
     // Statements never change after construction, and PrepareBuffer can only shrink a TextSpanStatement
     // by trimming whitespace, so a whitespace-only body stays whitespace-only.
@@ -32,7 +32,8 @@ public sealed class ForStatement : TagStatement, ISourceable
         Expression limit,
         Expression offset,
         bool reversed,
-        ElseStatement elseStatement = null
+        ElseStatement elseStatement = null,
+        string collectionName = null
     ) : base(statements)
     {
         Identifier = identifier;
@@ -43,28 +44,22 @@ public sealed class ForStatement : TagStatement, ISourceable
         Else = elseStatement;
 
         OffsetIsContinue = Offset is MemberExpression l && l.Segments.Count == 1 && l.Segments[0] is IdentifierSegment { Identifier: "continue" };
-        _continueSourceLiteral = source is MemberExpression m
-            ? string.Join(".", m.Segments.Select(s => (s as IdentifierSegment)?.Identifier).Where(s => s != null))
-            : null;
 
-        if (!string.IsNullOrEmpty(_continueSourceLiteral))
+        // Like Liquid, the loop is named "{variable}-{collection}", with the collection as written, and the name
+        // keys the `offset: continue` cursor, shared by the loops of the same name.
+        CollectionName = string.IsNullOrEmpty(collectionName) ? GetCollectionName(source) : collectionName;
+
+        if (CollectionName is not null)
         {
-            _staticContinueOffsetLiteral = $"for_continue_{Identifier}-{_continueSourceLiteral}";
+            _staticContinueOffsetLiteral = BuildContinueOffsetLiteral(CollectionName);
         }
         else if (source is RangeExpression range)
         {
             _rangeSource = range;
-
-            // Like Liquid, the name of a range is the range as written: (1..l) stays (1..l) whatever l is.
-            if (TryGetBoundSource(range.From, range.FromSource, out var from) && TryGetBoundSource(range.To, range.ToSource, out var to))
-            {
-                _staticRangeSourceLiteral = $"({from}..{to})";
-                _staticContinueOffsetLiteral = BuildRangeContinueOffsetLiteral(_staticRangeSourceLiteral);
-            }
         }
         else
         {
-            // Fallback: stable within the current render (statement instance).
+            // Fallback for a source that has no name: stable within the current render (statement instance).
             _staticContinueOffsetLiteral = $"for_continue_{Identifier}-stmt_" + RuntimeHelpers.GetHashCode(this).ToString(CultureInfo.InvariantCulture);
         }
 
@@ -78,6 +73,8 @@ public sealed class ForStatement : TagStatement, ISourceable
 
         _isBlank = isBlank;
         Else?.SetEnclosingTagIsBlank(isBlank);
+
+        _pendingInterruptsBody = new PendingInterruptsStatement(Statements, isBlank);
     }
 
     public override bool IsWhitespaceOrCommentOnly => _isBlank;
@@ -91,17 +88,24 @@ public sealed class ForStatement : TagStatement, ISourceable
     public ElseStatement Else { get; }
     public bool OffsetIsContinue { get; }
 
+    /// <summary>
+    /// Gets the collection as written in the template, like <c>items</c>, <c>a[0]</c>, <c>(1..3)</c> or <c>"abc"</c>,
+    /// which names the loop in <c>forloop.name</c> and keys its <c>offset: continue</c> cursor. It is <c>null</c> when
+    /// the statement isn't parsed from a template and the source has no name, like a range with computed bounds.
+    /// </summary>
+    public string CollectionName { get; }
+
     public override async ValueTask<Completion> WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
         // The `offset: continue` feature uses a per-source key to store the absolute index
         // of the next item to render. In Liquid, this state is updated by every `for` loop
         // over the same source, even if the loop itself doesn't specify `offset: continue`.
         var continueOffsetLiteral = _staticContinueOffsetLiteral;
-        var rangeSourceLiteral = _staticRangeSourceLiteral;
+        var collectionName = CollectionName;
 
         FluidValue evaluatedSource;
 
-        if (_rangeSource is not null && rangeSourceLiteral is null)
+        if (_rangeSource is not null)
         {
             // The name of a range with computed bounds is only known now. Evaluate the bounds once,
             // for both the name and the items, instead of once for each.
@@ -109,8 +113,8 @@ public sealed class ForStatement : TagStatement, ISourceable
             var to = RangeExpression.ToBound(await _rangeSource.To.EvaluateAsync(context), context);
 
             evaluatedSource = RangeExpression.CreateRangeValue(from, to, context);
-            rangeSourceLiteral = BuildRangeSourceLiteral(from, to);
-            continueOffsetLiteral = BuildRangeContinueOffsetLiteral(rangeSourceLiteral);
+            collectionName = BuildRangeSourceLiteral(from, to);
+            continueOffsetLiteral = BuildContinueOffsetLiteral(collectionName);
         }
         else
         {
@@ -190,7 +194,7 @@ public sealed class ForStatement : TagStatement, ISourceable
                 await Else.WriteToAsync(output, encoder, context);
             }
 
-            return Completion.Normal;
+            return PopPendingInterrupt(context);
         }
 
         var parentLoop = context.LocalScope.GetValue("forloop");
@@ -202,7 +206,7 @@ public sealed class ForStatement : TagStatement, ISourceable
 
             var forloop = ForLoopValue.Create();
             forloop.Identifier = Identifier;
-            forloop.Source = _continueSourceLiteral ?? rangeSourceLiteral;
+            forloop.Source = collectionName;
 
             forloop.Length = count;
 
@@ -238,6 +242,12 @@ public sealed class ForStatement : TagStatement, ISourceable
 
                 var completion = Completion.Normal;
 
+                if (context.HasPendingInterrupts)
+                {
+                    // Like Liquid, the iteration renders up to its first tag or output, then consumes an interrupt.
+                    completion = await _pendingInterruptsBody.WriteToAsync(output, encoder, context);
+                }
+                else
                 {
                     for (var index = 0; index < Statements.Count; index++)
                     {
@@ -276,7 +286,16 @@ public sealed class ForStatement : TagStatement, ISourceable
             }
         }
 
-        return Completion.Normal;
+        return PopPendingInterrupt(context);
+    }
+
+    /// <summary>
+    /// The completion of a loop: like Liquid, an interrupt still pending once the loop ends stops the blocks
+    /// around it, up to the next enclosing loop, which consumes it.
+    /// </summary>
+    internal static Completion PopPendingInterrupt(TemplateContext context)
+    {
+        return context.HasPendingInterrupts ? context.PopInterrupt() : Completion.Normal;
     }
 
     private static string BuildRangeSourceLiteral(long from, long to)
@@ -285,13 +304,44 @@ public sealed class ForStatement : TagStatement, ISourceable
     }
 
     /// <summary>
-    /// Builds the key holding the `offset: continue` cursor for a range source.
+    /// Builds the key holding the `offset: continue` cursor.
     /// </summary>
-    private string BuildRangeContinueOffsetLiteral(string rangeSourceLiteral)
+    private string BuildContinueOffsetLiteral(string collectionName)
     {
-        // Key is based on Liquid's `forloop.name`: "{identifier}-{source}".
+        // Key is based on Liquid's `forloop.name`: "{identifier}-{collection}".
         // This means changing the loop variable changes the key.
-        return $"for_continue_{Identifier}-{rangeSourceLiteral}";
+        return $"for_continue_{Identifier}-{collectionName}";
+    }
+
+    /// <summary>
+    /// The name of a source built without the template text, from its expression.
+    /// </summary>
+    private static string GetCollectionName(Expression source)
+    {
+        switch (source)
+        {
+            case RangeExpression range:
+                // Like Liquid, the name of a range is the range as written: (1..l) stays (1..l) whatever l is.
+                return TryGetBoundSource(range.From, range.FromSource, out var from) && TryGetBoundSource(range.To, range.ToSource, out var to)
+                    ? $"({from}..{to})"
+                    : null;
+
+            case MemberExpression member:
+                if (TryGetBoundSource(member, null, out var name))
+                {
+                    return name;
+                }
+
+                // A computed index: the names of the members alone.
+                var identifiers = string.Join(".", member.Segments.OfType<IdentifierSegment>().Select(static s => s.Identifier));
+                return identifiers.Length > 0 ? identifiers : null;
+
+            case LiteralExpression { Value: StringValue value }:
+                return "\"" + value.Value + "\"";
+
+            default:
+                return null;
+        }
     }
 
     /// <summary>
@@ -397,49 +447,39 @@ public sealed class ForStatement : TagStatement, ISourceable
         var sourceExpr = context.GetExpressionMethodName(Source);
         var identifierLit = SourceGenerationContext.ToCSharpStringLiteral(Identifier);
         var continueOffsetLiteralName = context.GetUniqueId("continueOffsetLiteral");
-        string continueOffsetLit = null;
 
         // Nothing reads the forloop variable of most loops, which then don't create or update it.
         var usesForLoop = context.UsesForLoop(this);
 
-        // For a range, the "(from..to)" part of forloop.name, which is only known once the bounds are evaluated.
+        // The collection part of forloop.name, which for a range without a name is only known once the bounds are evaluated.
         // It is only built when the loop has a forloop variable to name.
-        string rangeSourceName = null;
+        string collectionName = null;
 
-        if (!string.IsNullOrEmpty(_continueSourceLiteral))
+        if (CollectionName is not null)
         {
-            continueOffsetLit = SourceGenerationContext.ToCSharpStringLiteral($"for_continue_{Identifier}-{_continueSourceLiteral}");
-            context.WriteLine($"var {continueOffsetLiteralName} = {continueOffsetLit};");
+            // The name is a constant of the generated code.
+            collectionName = SourceGenerationContext.ToCSharpStringLiteral(CollectionName);
+            context.WriteLine($"var {continueOffsetLiteralName} = {SourceGenerationContext.ToCSharpStringLiteral(_staticContinueOffsetLiteral)};");
         }
-        else if (Source is RangeExpression range)
+        else if (_rangeSource is { } range)
         {
             var fromExpr = context.GetExpressionMethodName(range.From);
             var toExpr = context.GetExpressionMethodName(range.To);
-            if (_staticRangeSourceLiteral != null)
-            {
-                // Literal bounds: the name is a constant of the generated code.
-                rangeSourceName = SourceGenerationContext.ToCSharpStringLiteral(_staticRangeSourceLiteral);
-                context.WriteLine($"var {continueOffsetLiteralName} = {SourceGenerationContext.ToCSharpStringLiteral(_staticContinueOffsetLiteral)};");
-            }
-            else
-            {
-                var rangeText = $"\"(\" + global::Fluid.Ast.RangeExpression.GetBound(await {fromExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \"..\" + global::Fluid.Ast.RangeExpression.GetBound(await {toExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \")\"";
+            var rangeText = $"\"(\" + global::Fluid.Ast.RangeExpression.GetBound(await {fromExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \"..\" + global::Fluid.Ast.RangeExpression.GetBound(await {toExpr}({context.ContextName}), {context.ContextName}).ToString(CultureInfo.InvariantCulture) + \")\"";
 
-                // Only build the name separately when the loop has a forloop variable to name.
-                if (usesForLoop)
-                {
-                    rangeSourceName = context.GetUniqueId("rangeSource");
-                    context.WriteLine($"var {rangeSourceName} = {rangeText};");
-                    rangeText = rangeSourceName;
-                }
-
-                context.WriteLine($"var {continueOffsetLiteralName} = {SourceGenerationContext.ToCSharpStringLiteral($"for_continue_{Identifier}-")} + {rangeText};");
+            // Only build the name separately when the loop has a forloop variable to name.
+            if (usesForLoop)
+            {
+                collectionName = context.GetUniqueId("rangeSource");
+                context.WriteLine($"var {collectionName} = {rangeText};");
+                rangeText = collectionName;
             }
+
+            context.WriteLine($"var {continueOffsetLiteralName} = {SourceGenerationContext.ToCSharpStringLiteral($"for_continue_{Identifier}-")} + {rangeText};");
         }
         else
         {
-            continueOffsetLit = SourceGenerationContext.ToCSharpStringLiteral($"for_continue_{Identifier}-stmt_{RuntimeHelpers.GetHashCode(this).ToString(CultureInfo.InvariantCulture)}");
-            context.WriteLine($"var {continueOffsetLiteralName} = {continueOffsetLit};");
+            context.WriteLine($"var {continueOffsetLiteralName} = {SourceGenerationContext.ToCSharpStringLiteral(_staticContinueOffsetLiteral)};");
         }
 
         context.WriteLine($"var evaluatedSource = await {sourceExpr}({context.ContextName});");
@@ -506,7 +546,7 @@ public sealed class ForStatement : TagStatement, ISourceable
                 var elseStmt = context.GetStatementMethodName(Else);
                 context.WriteLine($"await {elseStmt}({context.WriterName}, {context.EncoderName}, {context.ContextName});");
             }
-            context.WriteLine("return Completion.Normal;");
+            context.WriteLine($"return {context.ContextName}.HasPendingInterrupts ? {context.ContextName}.PopInterrupt() : Completion.Normal;");
         }
         context.WriteLine("}");
 
@@ -520,15 +560,7 @@ public sealed class ForStatement : TagStatement, ISourceable
         context.WriteLine("{");
         using (context.Indent())
         {
-            var sourceLiteral = "null";
-            if (_continueSourceLiteral != null)
-            {
-                sourceLiteral = SourceGenerationContext.ToCSharpStringLiteral(_continueSourceLiteral);
-            }
-            else if (rangeSourceName != null)
-            {
-                sourceLiteral = rangeSourceName;
-            }
+            var sourceLiteral = collectionName ?? "null";
 
             context.WriteLine("var endIndexExclusive = startIndex + count;");
 
@@ -568,6 +600,17 @@ public sealed class ForStatement : TagStatement, ISourceable
                     context.WriteLine("forloop.Last = iteration == count - 1;");
                 }
 
+                // Like the interpreter, an iteration that starts while interrupts are pending renders up to its first tag or output.
+                var pendingInterruptsMethod = context.GetStatementMethodName(_pendingInterruptsBody);
+                context.WriteLine($"if ({context.ContextName}.HasPendingInterrupts)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine($"if (await {pendingInterruptsMethod}({context.WriterName}, {context.EncoderName}, {context.ContextName}) == Completion.Break) break;");
+                    context.WriteLine("continue;");
+                }
+                context.WriteLine("}");
+
                 // Like the interpreter, the whitespace of a blank loop isn't written.
                 var statements = SourceGenerationContext.GetWrittenStatements(Statements, _isBlank);
 
@@ -602,6 +645,6 @@ public sealed class ForStatement : TagStatement, ISourceable
         }
         context.WriteLine("}");
 
-        context.WriteLine("return Completion.Normal;");
+        context.WriteLine($"return {context.ContextName}.HasPendingInterrupts ? {context.ContextName}.PopInterrupt() : Completion.Normal;");
     }
 }
