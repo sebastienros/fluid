@@ -53,8 +53,7 @@ public sealed class IncludeStatement : Statement, ISourceable
         using var scope = context.EnterScope(ScopeBehavior.WriteThrough);
 
         // Like Liquid, the value is evaluated before the keyword arguments. Without with or for, it is the variable
-        // named like the partial, if there is one: {% include 'product' %} renders the partial for each item of an
-        // array named product.
+        // named like the partial: {% include 'product' %} renders the partial for each item of an array named product.
         var value = With ?? For;
         var evaluatedValue = value != null
             ? await value.EvaluateAsync(context)
@@ -67,13 +66,8 @@ public sealed class IncludeStatement : Statement, ISourceable
             context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
         }
 
-        if (evaluatedValue == null)
-        {
-            // Keyword arguments alone, or nothing, e.g. {% include 'products' %} without a products variable.
-            return await RenderStatementsAsync(template, output, encoder, context);
-        }
-
-        // The bound variable is local to this include, and like Liquid it replaces a keyword argument of the same name.
+        // The bound variable is local to this include, and like Liquid it replaces a keyword argument of the same name,
+        // even when it is nil.
         var variableName = Alias ?? identifier;
 
         if (!IsIterated(evaluatedValue))
@@ -108,13 +102,13 @@ public sealed class IncludeStatement : Statement, ISourceable
 
     /// <summary>
     /// Finds the variable an <c>include</c> without <c>with</c> or <c>for</c> renders the partial with. Like Liquid, it is
-    /// named like the template: <c>product</c> for <c>'product'</c>, or <c>'product.liquid'</c> with the default extension.
+    /// named like the template as written: <c>product</c> for <c>'product'</c>, or <c>'product.liquid'</c> with the default
+    /// extension, and <c>snippets/product</c>, which is never a variable, for <c>'snippets/product'</c>.
     /// </summary>
-    /// <returns>The value of the variable, or <c>null</c> when it is nil or doesn't exist, which then leaves a keyword
-    /// argument or a variable of the same name as is (Liquid sets it to nil). Like Liquid, a missing variable is not
-    /// undefined, even with <see cref="TemplateOptions.StrictVariables"/>.</returns>
+    /// <returns>The value of the variable, or nil when it doesn't exist, which like Liquid isn't an undefined variable,
+    /// even with <see cref="TemplateOptions.StrictVariables"/>.</returns>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static async ValueTask<FluidValue> FindVariableAsync(string templateName, TemplateContext context)
+    public static ValueTask<FluidValue> FindVariableAsync(string templateName, TemplateContext context)
     {
         var extension = context.Options.DefaultFileExtension;
         var name = !string.IsNullOrEmpty(extension) && templateName.EndsWith(extension, StringComparison.OrdinalIgnoreCase)
@@ -123,12 +117,18 @@ public sealed class IncludeStatement : Statement, ISourceable
 
         var value = context.LocalScope.GetValue(name);
 
-        if (value.IsNil() && !context.Model.IsNil())
+        if (!value.IsNil() || context.Model.IsNil())
         {
-            value = await context.Model.GetValueAsync(name, context);
+            return new ValueTask<FluidValue>(value.IsNil() ? NilValue.Instance : value);
         }
 
-        return value.IsNil() ? null : value;
+        return FromModelAsync(context.Model.GetValueAsync(name, context));
+
+        static async ValueTask<FluidValue> FromModelAsync(ValueTask<FluidValue> task)
+        {
+            var value = await task;
+            return value.IsNil() ? NilValue.Instance : value;
+        }
     }
 
     /// <summary>
@@ -221,19 +221,12 @@ public sealed class IncludeStatement : Statement, ISourceable
         var value = With ?? For;
 
         // Like the interpreter: the value is evaluated before the keyword arguments, and only an array is iterated.
-        // Without with or for, it is the variable named like the partial, if there is one.
-        if (value == null)
-        {
-            context.WriteLine($"var includeValue = await global::Fluid.Ast.IncludeStatement.FindVariableAsync({SourceGenerationContext.ToCSharpStringLiteral(path)}, {ctx});");
-            EmitAssignStatements();
-            context.WriteLine($"if (includeValue == null) return {call};");
-        }
-        else
-        {
-            var valueExpr = context.GetExpressionMethodName(value);
-            context.WriteLine($"var includeValue = await {valueExpr}({ctx});");
-            EmitAssignStatements();
-        }
+        // Without with or for, it is the variable named like the partial.
+        var valueExpr = value == null
+            ? $"global::Fluid.Ast.IncludeStatement.FindVariableAsync({SourceGenerationContext.ToCSharpStringLiteral(path)}, {ctx})"
+            : $"{context.GetExpressionMethodName(value)}({ctx})";
+        context.WriteLine($"var includeValue = await {valueExpr};");
+        EmitAssignStatements();
 
         context.WriteLine("if (includeValue.Type != FluidValues.Array || includeValue is RangeValue)");
         context.WriteLine("{");

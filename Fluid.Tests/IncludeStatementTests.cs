@@ -781,6 +781,7 @@ shape: ''";
         ("rp", "{% render 'loop3' %}{% break %}"),
         ("loop3", "{% for z in (1..3) %}{{ z }}{% endfor %}"),
         ("pn2", "[{{ pn2 }}]"),
+        ("snippets/pn2", "[{{ pn2 }}]"),
     ];
 
     private string RenderWithLiquidPartials(string source)
@@ -868,8 +869,10 @@ shape: ''";
     [InlineData("{% assign pn2 = a %}{% include 'pn2.liquid' %}|{% include 'pn2', x: 1 %}", "[1][2][3]|[1][2][3]")]
     [InlineData("{% assign pn2 = 'x' %}{% include 'pn2' %}|{% assign pn2 = (1..2) %}{% include 'pn2' %}", "[x]|[1..2]")]
     [InlineData("{% include 'pn2' %}|{% assign pn2 = empty_a %}{% include 'pn2' %}|", "[]||")]
-    // The variable replaces a keyword argument of the same name, unless there is none.
-    [InlineData("{% include 'pn2', pn2: 'y' %}|{% assign pn2 = 'x' %}{% include 'pn2', pn2: 'y' %}", "[y]|[x]")]
+    // The variable replaces a keyword argument of the same name, even when there is none.
+    [InlineData("{% include 'pn2', pn2: 'y' %}|{% assign pn2 = 'x' %}{% include 'pn2', pn2: 'y' %}", "[]|[x]")]
+    // In a folder, the variable named like the template, snippets/pn2, doesn't exist: pn2 is nil in the partial.
+    [InlineData("{% assign pn2 = 'x' %}{% include 'snippets/pn2' %}|{{ pn2 }}", "[]|x")]
     // The items break like with for.
     [InlineData("{% assign pb = a %}{% include 'pb' %}", "1-123")]
     public void IncludeTag_Iterates_The_Variable_Named_Like_The_Partial(string source, string expected)
