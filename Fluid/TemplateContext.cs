@@ -372,6 +372,80 @@ public class TemplateContext
         }
     }
 
+    // Like Liquid's registers, the state of the tags that a partial rendered with render starts
+    // over with, and doesn't share with the template rendering it: the positions of the cycle tags
+    // and the last output of ifchanged.
+    private Dictionary<string, int>? _cycleRegister;
+    internal string? IfChangedRegister;
+
+    // The number of render tags in progress: like Liquid, their partials can't use include.
+    private int _renderTagDepth;
+
+    /// <summary>
+    /// Gets the position of each cycle tag, by cycle key.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public Dictionary<string, int> CycleRegister => _cycleRegister ??= new Dictionary<string, int>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Gets whether a partial rendered with the <c>render</c> tag is being rendered, which can't use <c>include</c>.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public bool IsIncludeDisabled => _renderTagDepth > 0;
+
+    /// <summary>
+    /// Enters the scope of a partial rendered with the <c>render</c> tag: an <see cref="ScopeBehavior.Isolated"/>
+    /// scope in which the <c>cycle</c> and <c>ifchanged</c> tags start over and <c>include</c> is not allowed.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public RenderTagScopeLease EnterRenderTagScope()
+    {
+        var lease = new RenderTagScopeLease(this, EnterScopeCore(ScopeBehavior.Isolated), _cycleRegister, IfChangedRegister);
+
+        _cycleRegister = null;
+        IfChangedRegister = null;
+        _renderTagDepth++;
+
+        return lease;
+    }
+
+    private void ExitRenderTagScope(Scope scope, Dictionary<string, int>? cycleRegister, string? ifChangedRegister)
+    {
+        ReleaseScopeCore(scope);
+
+        _cycleRegister = cycleRegister;
+        IfChangedRegister = ifChangedRegister;
+        _renderTagDepth--;
+    }
+
+    /// <summary>
+    /// Restores the scope and the tag state that were active before <see cref="EnterRenderTagScope"/> when disposed.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public readonly struct RenderTagScopeLease : IDisposable
+    {
+        private readonly TemplateContext _context;
+        private readonly Scope _scope;
+        private readonly Dictionary<string, int>? _cycleRegister;
+        private readonly string? _ifChangedRegister;
+
+        internal RenderTagScopeLease(TemplateContext context, Scope scope, Dictionary<string, int>? cycleRegister, string? ifChangedRegister)
+        {
+            _context = context;
+            _scope = scope;
+            _cycleRegister = cycleRegister;
+            _ifChangedRegister = ifChangedRegister;
+        }
+
+        /// <summary>
+        /// Restores the scope and the tag state that were active before this lease was created.
+        /// </summary>
+        public void Dispose()
+        {
+            _context?.ExitRenderTagScope(_scope, _cycleRegister, _ifChangedRegister);
+        }
+    }
+
     /// <summary>
     /// Gets a value from the context.
     /// </summary>

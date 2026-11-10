@@ -1595,6 +1595,18 @@ Shopify Liquid ignores some content and reads some words in ways that can be sur
 - The `limit`, `offset` and `cols` attributes of a `tablerow` tag are read anywhere after the collection, and anything else is ignored, `reversed` included: `{% tablerow i in items foo, limit: 2 %}` renders two items.
 - A `for` or `tablerow` loop over a string renders it once, whatever its `limit` and `offset`: `{% for i in "abc" limit: 0 %}{{ i }}{% endfor %}` renders `abc`.
 
+## Partials: `include` and `render`
+
+Like Shopify Liquid, `render` renders a partial in an isolated context, and `include` (deprecated in Liquid) in the context of the template:
+
+- A partial rendered with `render` sees the values given to the template and its named arguments, and starts with its own `cycle` and `ifchanged` state: `{% cycle 'a', 'b' %}{% render 'cycle' %}` renders `aa` when the partial is `{% cycle 'a', 'b' %}`. Each item of `render ... for` starts over too. An included partial shares the state of the template.
+- The named arguments of `render` are set before the `with` or `for` value, which replaces an argument of the same name unless it is nil: `{% render 'card' with product as item, item: default %}` gets `default` when `product` is nil.
+- `include ... with` and `include ... for` both render the partial once for each item of an array, and once with the whole value for anything else, including a range or a hash. They don't define a `forloop` variable: the partial sees the `forloop` of the loop around the `include`.
+- A `break` or `continue` in an included partial isn't consumed by the `include`, even with `for`: it applies to the loop around the `include`, after every item of an array was rendered.
+- A partial rendered with `render` can't use `include`: rendering it throws a `LiquidException` with the message `include usage is not allowed in this context` (Liquid renders this message as an inline error).
+
+> **Breaking change:** `include ... with` used to render an array once, `include ... for` used to iterate ranges and hashes, define `forloop` and stop at a `break`, `render` used to share the cycle and ifchanged state of the template, and `include` used to work in a partial rendered with `render`.
+
 ## Whitespace control
 
 Liquid follows strict rules with regard to whitespace support. By default, all spaces and new lines are preserved from the template.
