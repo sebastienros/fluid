@@ -66,6 +66,12 @@ internal static class NumberConversions
                 result = big.Sign > 0 ? int.MaxValue : int.MinValue;
                 return big.IsIntegral;
 
+            case { Type: FluidValues.Number }:
+                // A custom number.
+                var custom = value.ToNumberValue(context);
+                result = ToInt32Saturated(custom);
+                return NumberValue.GetScale(custom) == 0;
+
             default:
                 result = 0;
                 return !value.IsNil() && TryParseInt32Saturated(value.ToStringValue(context), out result);
@@ -77,7 +83,7 @@ internal static class NumberConversions
     /// gives the nearest int for a value out of range, like <see cref="ToInt32Saturated(decimal)"/> does for numbers.
     /// Like in Ruby, the digits can be surrounded by ASCII whitespace, follow a sign and a <c>0x</c>, <c>0b</c>,
     /// <c>0o</c> or <c>0d</c> prefix (a leading <c>0</c> alone means octal), and be separated by single underscores:
-    /// <c>"0x1F"</c> is 31, <c>"010"</c> is 8 and <c>"1_000"</c> is 1000.
+    /// <c>"0x1F"</c> is 31, <c>"010"</c> is 8 and <c>"1_000"</c> is 1000. An underscore can't follow a prefix.
     /// </summary>
     public static bool TryParseInt32Saturated(string value, out int result)
     {
@@ -107,8 +113,8 @@ internal static class NumberConversions
                 case 'b' or 'B': radix = 2; i += 2; break;
                 case 'o' or 'O': radix = 8; i += 2; break;
                 case 'd' or 'D': radix = 10; i += 2; break;
-                // The leading zero is an octal digit itself, so "0_7" is valid.
-                default: radix = 8; break;
+                // A leading zero alone is a prefix too: like after the other ones, "0_7" is invalid and "00_7" is 7.
+                default: radix = 8; i += 1; break;
             }
         }
 

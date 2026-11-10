@@ -516,6 +516,7 @@ public class ForStatementTests
     [InlineData("{% for x in (1..5) offset: '08' %}{% endfor %}", "for: offset is not a number")]
     [InlineData("{% for x in (1..5) offset: '1__0' %}{% endfor %}", "for: offset is not a number")]
     [InlineData("{% for x in (1..5) offset: '' %}{% endfor %}", "for: offset is not a number")]
+    [InlineData("{% for x in (1..5) limit: '0_3' %}{% endfor %}", "for: limit is not a number")]
     public async Task InvalidStringLimitAndOffsetThrow(string source, string message)
     {
         var exception = await Assert.ThrowsAsync<LiquidException>(() => new FluidParser().Parse(source).RenderAsync(new TemplateContext()).AsTask());
