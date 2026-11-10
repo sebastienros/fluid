@@ -7,8 +7,6 @@ namespace Fluid.Ast;
 
 public sealed class CycleStatement : Statement, ISourceable
 {
-    private const string CycleRegisterKey = "$$cycle$$";
-
     public IReadOnlyList<Expression> Values;
 
     public Expression Group { get; }
@@ -51,11 +49,8 @@ public sealed class CycleStatement : Statement, ISourceable
 
         var key = await GetKeyAsync(context);
 
-        if (!context.AmbientValues.TryGetValue(CycleRegisterKey, out var registerObj) || registerObj is not Dictionary<string, int> register)
-        {
-            register = new Dictionary<string, int>();
-            context.AmbientValues[CycleRegisterKey] = register;
-        }
+        // Like Liquid's registers, a partial rendered with render has its own cycle positions.
+        var register = context.CycleRegister;
 
         register.TryGetValue(key, out var iteration);
 
@@ -114,14 +109,7 @@ public sealed class CycleStatement : Statement, ISourceable
             context.WriteLine("var key = \"named_\" + (groupValue.IsNil() ? string.Empty : groupValue.ToStringValue(context));");
         }
 
-        context.WriteLine($"if (!{context.ContextName}.AmbientValues.TryGetValue(\"{CycleRegisterKey}\", out var registerObj) || registerObj is not Dictionary<string, int> register)");
-        context.WriteLine("{");
-        using (context.Indent())
-        {
-            context.WriteLine("register = new Dictionary<string, int>();");
-            context.WriteLine($"{context.ContextName}.AmbientValues[\"{CycleRegisterKey}\"] = register;");
-        }
-        context.WriteLine("}");
+        context.WriteLine($"var register = {context.ContextName}.CycleRegister;");
         context.WriteLine();
         context.WriteLine("register.TryGetValue(key, out var iteration);");
 
