@@ -199,7 +199,9 @@ public class FluidParser
 
         // Like Liquid, literal range bounds are truncated: (2.7..4) is (2..4). Each bound keeps its text as written too,
         // which names the range in forloop.name and its offset: continue cursor, like Liquid does with (2.7..4) or (01..4).
-        var RangeBound = Terms.Decimal().Then(static (context, start, end, x) => new RangeBound(new LiteralExpression(NumberValue.Create(decimal.Truncate(x))), GetBoundSource(context, start, end)));
+        // A bound too large for a decimal is valid too, and out of range when the range is evaluated.
+        var RangeBound = Terms.Decimal().Then(static (context, start, end, x) => new RangeBound(new LiteralExpression(NumberValue.Create(decimal.Truncate(x))), GetBoundSource(context, start, end)))
+            .Or(BigNumberText.Then(static (context, start, end, x) => new RangeBound(new LiteralExpression(TruncateBigNumber(x)), GetBoundSource(context, start, end))));
         RangeBound.Name = "RangeBound";
 
         // Like Liquid, a bound can also be a string, converted to an integer when the range is evaluated.
@@ -1020,6 +1022,14 @@ public class FluidParser
     {
         var quote = value.Buffer is not null && value.Offset > 0 && value.Buffer[value.Offset - 1] == '"' ? '"' : '\'';
         return quote + value.ToString() + quote;
+    }
+
+    // The integer part of a big number literal, like decimal.Truncate for the other literal bounds.
+    private static FluidValue TruncateBigNumber(TextSpan value)
+    {
+        var point = value.Span.IndexOf('.');
+
+        return BigNumberValue.Create(point < 0 ? value.ToString() : value.Span.Slice(0, point).ToString());
     }
 
     // A number bound as written, without the whitespace before it, like "01" or "1.50".

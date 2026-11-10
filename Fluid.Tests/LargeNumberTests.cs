@@ -144,6 +144,10 @@ public class LargeNumberTests
 
     [Theory]
     [InlineData("{% for i in (1..99999999999999999999) %}{% endfor %}", "The range bound 99999999999999999999 is out of range.")]
+    // A literal bound too large for a decimal parses, like in Liquid, and is out of range too.
+    [InlineData("{% for i in (99999999999999999999999999998..99999999999999999999999999999) %}{{ i }},{% endfor %}", "The range bound 99999999999999999999999999998 is out of range.")]
+    [InlineData("{% assign r = (1..99999999999999999999999999999) %}[{{ r }}]", "The range bound 99999999999999999999999999999 is out of range.")]
+    [InlineData("{% assign r = (1 .. -99999999999999999999999999999.5) %}", "The range bound -99999999999999999999999999999 is out of range.")]
     [InlineData("{% assign r = (-99999999999..1) %}", "The range (-99999999999..1) has too many items.")]
     [InlineData("{% for i in (-2000000000..2000000000) %}{% endfor %}", "The range (-2000000000..2000000000) has too many items.")]
     public async Task RangesTooLargeThrowALiquidException(string source, string message)
