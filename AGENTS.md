@@ -52,6 +52,7 @@ dotnet run scripts/shopify-liquid.cs -- -c -e '{%- for i in (1..3) -%} {{ i }} {
 dotnet run scripts/shopify-liquid.cs -- template.liquid --expected-file expected.txt
 ```
 
+- `-c` parses with `AllowLiquidTag = true`, the only opt-in `FluidParserOptions` syntax Shopify supports.
 - No custom data: make templates self-contained with `assign`/`capture` (arrays via `split`). `--path /products/health-potion` exposes demo store objects such as `product`; `--show-data` prints the ones used.
 - Exit codes: 0 match, 1 differ, 2 invalid template (Shopify only says `Syntax error`), 3 usage/network error. `--help` lists all options.
 - Needs network access to a public shopify.dev endpoint: don't use it from tests or CI.

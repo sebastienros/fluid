@@ -34,6 +34,7 @@ const string Usage = """
                                Default: /
       --show-data              Also print, on stderr, the JSON of the store objects the template used.
       -c, --compare            Also render with Fluid (this repository) and diff the two outputs.
+                               Fluid parses with AllowLiquidTag, like Shopify.
       -x, --expected <text>    Compare Shopify's output with this text.
       -f, --expected-file <p>  Compare Shopify's output with the content of this file.
       --json                   Print a JSON object instead of the raw output.
@@ -114,7 +115,10 @@ catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException o
 string? fluid = null, fluidError = null;
 if (compare)
 {
-    var parser = new FluidParser();
+    // Enable the opt-in syntax Shopify supports. The other options stay off since Shopify
+    // differs: it has no grouping parentheses or functions, keeps a trailing '?' in names
+    // and has no escape sequences in strings.
+    var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
     if (parser.TryParse(source, out var template, out var error))
     {
         try { fluid = await template.RenderAsync(new TemplateContext()); }

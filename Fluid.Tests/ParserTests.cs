@@ -272,6 +272,45 @@ public class ParserTests
         Assert.False(parser.TryParse(source, out _, out _));
     }
 
+    [Theory]
+    // Like Shopify, the body starts with the new line which ends the raw line, even when it's empty (#1276).
+    [InlineData("[{% liquid\nraw\nx\nendraw\necho \"h\" %}]", "[\nx\nh]")]
+    [InlineData("[{% liquid\nraw\n  x  \n\n y\n  endraw\necho \"h\" %}]", "[\n  x  \n\n y\nh]")]
+    [InlineData("[{% liquid raw\nendraw\n%}]", "[\n]")]
+    [InlineData("[{% liquid\nraw\nx\nendraw %}]", "[\nx\n]")]
+    [InlineData("[{% liquid\nraw\n\nendraw %}]", "[\n\n]")]
+    [InlineData("[{% liquid\nraw\n\n\nx\nendraw\necho \"h\" %}]", "[\n\n\nx\nh]")]
+    [InlineData("[{% liquid\nraw\na\n\nendraw\n\necho 1 %}]", "[\na\n\n1]")]
+    // The markup of the raw line is ignored, up to its new line.
+    [InlineData("[{% liquid\nraw x  \nendraw %}]", "[\n]")]
+    [InlineData("[{% liquid\nraw\r\nx\r\nendraw %}]", "[\nx\r\n]")]
+    // Only the line named endraw ends the body, and its leading whitespace isn't part of the body.
+    [InlineData("[{% liquid\nraw\nxendraw\necho endraw\nendrawx\n  #endraw\nendraw %}]", "[\nxendraw\necho endraw\nendrawx\n  #endraw\n]")]
+    [InlineData("[{% liquid\nraw\na {% b\nendraw\n%}]", "[\na {% b\n]")]
+    [InlineData("[{% liquid\nraw\n\t endraw x\n%}]", "[\n]")]
+    [InlineData("[{% liquid\nraw\nendraw%}]", "[\n]")]
+    [InlineData("[{% liquid\nraw\nx\nendraw -%} y]", "[\nx\ny]")]
+    [InlineData("[{% liquid\nraw\n  liquid  endraw\n%}]", "[\n  liquid  ]")]
+    [InlineData("[{% liquid\nraw\nliquid liquid endraw\n%}]", "[\nliquid liquid ]")]
+    [InlineData("{% liquid\nif true\nraw\na\nendraw\nendif %}", "\na\n")]
+    public void ShouldParseRawInLiquidTag(string source, string expected)
+    {
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.True(parser.TryParse(source, out var template, out var errors), errors);
+        Assert.Equal(expected, template.Render());
+    }
+
+    [Theory]
+    [InlineData("{% liquid\nraw\nx\n%}")]
+    [InlineData("{% liquid raw %}x{% endraw %}")]
+    [InlineData("{% liquid\nraw\nx %}y{% endraw %}")]
+    [InlineData("{% liquid\nraw\na\tendraw\n%}")]
+    public void ShouldNotParseUnclosedRawInLiquidTag(string source)
+    {
+        var parser = new FluidParser(new FluidParserOptions { AllowLiquidTag = true });
+        Assert.False(parser.TryParse(source, out _, out _));
+    }
+
     [Fact]
     public void ShouldParseInlineComment()
     {

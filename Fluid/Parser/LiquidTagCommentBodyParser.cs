@@ -99,7 +99,7 @@ internal sealed class LiquidTagCommentBodyParser : Parser<TextSpan>
     /// Reads the tag name of the line at <paramref name="position"/>: the word after its leading whitespace, or the one
     /// after <c>liquid</c>, which reads what follows it as a tag. The name is empty when the line doesn't start with a word.
     /// </summary>
-    private static ReadOnlySpan<char> ReadTagName(string buffer, int position, int end, out int nameStart)
+    internal static ReadOnlySpan<char> ReadTagName(string buffer, int position, int end, out int nameStart)
     {
         while (true)
         {
