@@ -1211,9 +1211,9 @@ internal sealed class LiquidSortComparer : IComparer<FluidValue>
         var xStr = x.ToStringValue(_context);
         var yStr = y.ToStringValue(_context);
 
-        // Like Ruby's String#<=> (sort) and String#casecmp (sort_natural)
+        // Like Ruby's String#<=> (sort), on the lowercase strings for sort_natural
         return _caseSensitive
             ? LiquidStringComparer.Compare(xStr, yStr)
-            : LiquidStringComparer.CompareIgnoreAsciiCase(xStr, yStr);
+            : LiquidStringComparer.CompareIgnoreCase(xStr, yStr);
     }
 }

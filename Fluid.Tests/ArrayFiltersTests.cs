@@ -1070,11 +1070,23 @@ public class ArrayFiltersTests
     [InlineData("{{ s | split: ',' | sort | join: ' ' }}", "\uFF5A,\U0001F600,a", "a \uFF5A \U0001F600")]
     [InlineData("{{ s | split: ',' | sort | join: ' ' }}", "x\U0001F600,x\uFF5A,x,xa,x\U0001F601,x\uFFFF", "x xa x\uFF5A x\uFFFF x\U0001F600 x\U0001F601")]
     [InlineData("{{ s | split: ',' | sort | join: ' ' }}", "b,B,a,A,ab,AB,Ab,aB,_", "A AB Ab B _ a aB ab b")]
-    // Like Liquid, sort_natural compares strings like Ruby's String#casecmp: only A-Z are folded, to lower case,
-    // so the characters between Z and a come before the letters and accented letters aren't folded.
+    // Like Shopify, sort_natural compares the lowercase strings (Ruby's String#downcase) in code point order: the
+    // characters between Z and a come before the letters, and letters outside ASCII are folded too.
     [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "b,_,A,[,a,^,`,],Z,z,B", "[ ] ^ _ ` A a b B Z z")]
     [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "_x,Ax,ax", "_x Ax ax")]
-    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u00C9,e,\u00E9,f,E,\u00DF,s,t,\u00C4,a,z", "a e E f s t z \u00C4 \u00C9 \u00DF \u00E9")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u00C9,e,\u00E9,f,E,\u00DF,s,t,\u00C4,a,z", "a e E f s t z \u00DF \u00C4 \u00C9 \u00E9")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u00E9B,\u00E9a,\u00C9c,\u00E9A,\u00E9b", "\u00E9a \u00E9A \u00E9B \u00E9b \u00C9c")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u00E9b,\u00C9a,\u00E9a,\u00C9B,z,Z,\uFF5A,\uFF3A,\uFF21", "z Z \u00C9a \u00E9a \u00E9b \u00C9B \uFF21 \uFF5A \uFF3A")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u044F,\u042F,\u0431", "\u0431 \u044F \u042F")]
+    // The Kelvin sign is a k, a final sigma is not a sigma, and a sharp s or a ligature is not two letters.
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u212A,j,l,k", "j \u212A k l")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u03C3,\u03A3,\u03C2", "\u03C2 \u03C3 \u03A3")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u1E9E,\u00DF,\u00E0,ss,st", "ss st \u1E9E \u00DF \u00E0")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\uFB01,fi,FI,fj", "fi FI fj \uFB01")]
+    // Letters outside the BMP are folded, and titlecase letters are not, like in Ruby.
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\U00010428,\U00010401,\U00010400", "\U00010428 \U00010400 \U00010401")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "x\U00010428b,x\U00010400a,x\U00010400", "x\U00010400 x\U00010400a x\U00010428b")]
+    [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\u01C5,\u01C6,\u01C4,\u01C5a", "\u01C5 \u01C5a \u01C6 \u01C4")]
     [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\uFF5A,\U0001F600,a", "a \uFF5A \U0001F600")]
     [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "\U0001F600b,\U0001F600a,\U0001F600B,\U0001F601,\uFF5AB,\uFF5Aa", "\uFF5Aa \uFF5AB \U0001F600a \U0001F600b \U0001F600B \U0001F601")]
     [InlineData("{{ s | split: ',' | sort_natural | join: ' ' }}", "10,9,a,A,_,ab,AB,Ab,aB,b,B", "10 9 _ a A ab AB Ab aB b B")]
