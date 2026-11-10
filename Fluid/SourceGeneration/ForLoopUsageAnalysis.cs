@@ -7,8 +7,7 @@ namespace Fluid.SourceGeneration;
 /// create and update it.
 /// </summary>
 /// <remarks>
-/// A loop is a <see cref="ForStatement"/>, or a <see cref="RenderStatement"/> or <see cref="IncludeStatement"/>
-/// with a <c>for</c> argument. The analysis follows everything that runs inside a loop: its body, the templates
+/// A loop is a <see cref="ForStatement"/>, or a <see cref="RenderStatement"/> with a <c>for</c> argument. The analysis follows everything that runs inside a loop: its body, the templates
 /// it includes (which share its scope) and the macros it calls (which run in the caller's scope). A template
 /// rendered with <c>render</c> is isolated and only sees the loop of a <c>render ... for</c>.
 ///
@@ -115,18 +114,9 @@ internal sealed class ForLoopUsageAnalysis : AstVisitor
             return includeStatement;
         }
 
-        // The included template runs in the scope of the include, inside its loop when there is one.
-        if (includeStatement.For != null)
-        {
-            _loops.Add(includeStatement);
-        }
-
+        // The included template runs in the scope of the include. Like Liquid, include ... for defines no
+        // forloop variable: the template sees the loops enclosing the include.
         VisitStatements(template.Statements);
-
-        if (includeStatement.For != null)
-        {
-            _loops.RemoveAt(_loops.Count - 1);
-        }
 
         _templatesInProgress.Remove("include:" + path);
 
