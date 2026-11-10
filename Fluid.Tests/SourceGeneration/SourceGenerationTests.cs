@@ -41,6 +41,7 @@ public class SourceGenerationTests
     [InlineData("{% assign s = 'hello' %}{{ s.first }}{{ s.last }}[{{ s['first'] }}]", "ho[]")]
     [InlineData("{% assign n = 5 %}[{{ n[0] }}{{ n['x'] }}]", "[]")]
     [InlineData("{% if 2 > 1 and 2 >= 2 and 1 < 2 and 2 <= 2 %}yes{% endif %}", "yes")]
+    [InlineData("{% if 99999999999999999999999999999 > 1 and 1 <= 99999999999999999999999999999.0 %}{{ 99999999999999999999999999999 }}|{{ 99999999999999999999999999999.0 }}{% endif %}", "99999999999999999999999999999|1.0e+29")]
     [InlineData("{% if true or 1 < 'a' %}y{% endif %}{% if false and 1 < 'a' %}n{% endif %}", "y")]
     // Like Liquid, strings are compared in code point order: an emoji is after U+FF5A.
     [InlineData("{% if '\U0001F600' > '\uFF5A' and '\uFF5A' < '\U0001F600' and '_' < 'a' %}yes{% endif %}", "yes")]

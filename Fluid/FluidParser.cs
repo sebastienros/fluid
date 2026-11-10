@@ -129,13 +129,13 @@ public class FluidParser
         var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)));
         Integer.Name = "Integer";
 
-        // Like Liquid, where integers are unbounded, an integer literal too large for a decimal is still
-        // valid: it is kept as its text, like other numbers beyond a decimal's range.
-        var BigInteger = Terms.Pattern(static c => c is '-' or (>= '0' and <= '9'))
-            .When(static (context, x) => IsBigInteger(x.Span))
-            .Then<Expression>(static x => new LiteralExpression(StringValue.Create(x.ToString())));
+        // Like Liquid, where integers are unbounded and floats are doubles, a number literal too large for a decimal
+        // is still valid. It is a BigNumberValue, written as its text and compared by its sign and magnitude.
+        var BigNumber = Terms.Pattern(static c => c is '-' or '.' or (>= '0' and <= '9'))
+            .When(static (context, x) => IsBigNumber(x.Span))
+            .Then<Expression>(static x => new LiteralExpression(BigNumberValue.Create(x.ToString())));
 
-        var Number = Terms.Decimal().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))).Or(BigInteger);
+        var Number = Terms.Decimal().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))).Or(BigNumber);
         Number.Name = "Number";
 
         // Member expressions
@@ -656,8 +656,7 @@ public class FluidParser
 
         if (_trackStatementLocations)
         {
-            // In liquid mode TagStart consumes nothing, but preserves the start before Switch parses the arguments.
-            LiquidChild = TrackStatement(TagStart.SkipAnd(LiquidChild), skipLeadingWhitespace: true);
+            LiquidChild = TrackStatement(LiquidChild, skipLeadingWhitespace: true);
         }
 
         var LiquidTag = Literals.WhiteSpace(true).Else(default(TextSpan)) // {% liquid %} can start with new lines, {%liquid%} has none
@@ -918,8 +917,14 @@ public class FluidParser
             return parser;
         }
 
-        return parser.Then((context, start, end, statement) =>
+        // The range starts at the cursor before the parser runs, not at the start Parlot reports for its result:
+        // Parlot moves that past the leading parsers of a sequence that consume nothing, like a tag start inside
+        // a {% liquid %} tag.
+        return CursorOffset.And(parser).Then((context, x) =>
         {
+            var (start, statement) = x;
+            var end = context.Scanner.Cursor.Offset;
+
             if (skipLeadingWhitespace)
             {
                 var buffer = context.Scanner.Buffer;
@@ -930,10 +935,12 @@ public class FluidParser
             }
 
             statement.SourceOffset = start;
-            statement.SourceLength = context.Scanner.Cursor.Offset - start;
+            statement.SourceLength = end - start;
             return statement;
         });
     }
+
+    private static readonly Parser<int> CursorOffset = Always<int>().Then(static (context, _) => context.Scanner.Cursor.Offset);
 
     public void RegisterIdentifierTag(string tagName, Func<string, IFluidOutput, TextEncoder, TemplateContext, ValueTask<Completion>> render)
     {
@@ -986,24 +993,40 @@ public class FluidParser
         return quote + value.ToString() + quote;
     }
 
-    private static bool IsBigInteger(ReadOnlySpan<char> value)
+    // An integer or a float, like -?\d+(\.\d+)?, whose integer part has too many digits for a decimal.
+    private static bool IsBigNumber(ReadOnlySpan<char> value)
     {
-        var digits = value.Length > 0 && value[0] == '-' ? value.Slice(1) : value;
+        var i = value.Length > 0 && value[0] == '-' ? 1 : 0;
+        var integerStart = i;
 
-        if (digits.Length < 29)
+        while (i < value.Length && value[i] is >= '0' and <= '9')
+        {
+            i++;
+        }
+
+        if (i - integerStart < 29)
         {
             return false;
         }
 
-        foreach (var c in digits)
+        if (i == value.Length)
         {
-            if (c is < '0' or > '9')
-            {
-                return false;
-            }
+            return true;
         }
 
-        return true;
+        if (value[i] != '.')
+        {
+            return false;
+        }
+
+        var fractionStart = ++i;
+
+        while (i < value.Length && value[i] is >= '0' and <= '9')
+        {
+            i++;
+        }
+
+        return i > fractionStart && i == value.Length;
     }
 
     public void RegisterEmptyTag(string tagName, Func<IFluidOutput, TextEncoder, TemplateContext, ValueTask<Completion>> render)
