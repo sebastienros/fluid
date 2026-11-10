@@ -488,6 +488,46 @@ public class SourceGenerationTests
     }
 
     [Theory]
+    // Like Liquid, include iterates only arrays, defines no forloop, and doesn't consume break and continue.
+    [InlineData("{% include 'pn' with items %}|{% include 'pn' for items %}|{% include 'pn' for 5 %}|{% include 'pn' for (1..2) %}|{% include 'pn' with items as x %}", "[a|][b|]|[a|][b|]|[5|]|[1..2|]|[|][|]")]
+    [InlineData("{% for i in (1..2) %}{% include 'fl' for items %}{% endfor %}", "1122")]
+    [InlineData("{% for y in (1..2) %}{{ y }}{% include 'brk' for (1..3) %}after{% endfor %}end|{% include 'brk' with items %}after", "1<end|<<")]
+    // Each render starts with its own cycle positions, the named arguments are set before the value, unless it is nil.
+    [InlineData("{% cycle 'a', 'b', 'c' %}{% render 'cyc' %}{% cycle 'a', 'b', 'c' %}{% render 'cyc' for (1..2) %}{% cycle 'a', 'b', 'c' %}", "aabaac")]
+    [InlineData("{% assign item = 0 %}[{% render 'child' for missing as item, item: item %}]|[{% render 'child' with 5 as item, item: item %}]|[{% render 'child' for items as item, item: item %}]", "[0]|[5]|[ab]")]
+    public async Task GeneratedPartials_MatchLiquid(string liquid, string expected)
+    {
+        var provider = new MockFileProvider();
+        foreach (var (name, content) in new[] { ("pn", "[{{ pn }}|{{ forloop.index }}]"), ("fl", "{{ forloop.index }}"), ("brk", "<{% break %}x>"), ("cyc", "{% cycle 'a', 'b', 'c' %}"), ("child", "{{ item }}") })
+        {
+            provider.Add(name, content).Add(name + ".liquid", content);
+        }
+
+        var instance = CompileTemplate(liquid, provider);
+        var options = new TemplateOptionsBuilder().WithFileProvider(provider).Build();
+
+        var runtimeWriter = new StringWriter();
+        await new FluidParser().Parse(liquid).RenderAsync(runtimeWriter, HtmlEncoder.Default, new TemplateContext(options).SetValue("items", new[] { "a", "b" }));
+
+        var generatedWriter = new StringWriter();
+        await instance.RenderAsync(generatedWriter, HtmlEncoder.Default, new TemplateContext(options).SetValue("items", new[] { "a", "b" }));
+
+        Assert.Equal(expected, runtimeWriter.ToString());
+        Assert.Equal(expected, generatedWriter.ToString());
+    }
+
+    [Fact]
+    public async Task GeneratedRender_DoesNotAllowInclude()
+    {
+        var provider = new MockFileProvider().Add("incl", "<{% include 'p' %}>").Add("incl.liquid", "<{% include 'p' %}>").Add("p", "[p]").Add("p.liquid", "[p]");
+        var instance = CompileTemplate("{% include 'incl' %}{% render 'incl' %}", provider);
+
+        var exception = await Assert.ThrowsAsync<LiquidException>(() => instance.RenderAsync(new StringWriter(), HtmlEncoder.Default, new TemplateContext()).AsTask());
+
+        Assert.Equal("include usage is not allowed in this context", exception.Message);
+    }
+
+    [Theory]
     [InlineData("{% for i in (1..99999999999999999999) %}{% endfor %}", "The range bound 99999999999999999999 is out of range.")]
     [InlineData("{% assign r = (-99999999999..1) %}", "The range (-99999999999..1) has too many items.")]
     [InlineData("{% for i in (-2000000000..2000000000) %}{% endfor %}", "The range (-2000000000..2000000000) has too many items.")]

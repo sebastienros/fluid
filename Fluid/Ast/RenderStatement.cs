@@ -69,7 +69,7 @@ public sealed class RenderStatement : Statement, ISourceable
         TextEncoder encoder,
         TemplateContext context)
     {
-        var scope = context.EnterScope(ScopeBehavior.Isolated);
+        var scope = context.EnterRenderTagScope();
 
         try
         {
@@ -90,7 +90,7 @@ public sealed class RenderStatement : Statement, ISourceable
 
         static async ValueTask<Completion> AwaitedRender(
             ValueTask task,
-            TemplateContext.ScopeLease scope)
+            TemplateContext.RenderTagScopeLease scope)
         {
             try
             {
@@ -144,21 +144,20 @@ public sealed class RenderStatement : Statement, ISourceable
         // Liquid evaluates named argument expressions in the caller before creating the isolated context.
         var assignedValues = await EvaluateAssignStatementsAsync(AssignStatements, context);
 
-        using var scope = context.EnterScope(ScopeBehavior.Isolated);
+        var variableName = Alias ?? identifier;
 
-        if (With != null)
+        if (list == null)
         {
-            context.SetValue(Alias ?? identifier, withValue);
+            // Like Liquid, the partial is rendered in an isolated context where the named arguments are set
+            // before the value, which replaces one of the same name unless it is nil.
+            using var scope = context.EnterRenderTagScope();
+
             ApplyAssignStatements(assignedValues, context);
+            SetVariableUnlessNil(variableName, withValue, context);
+
             await template.RenderAsync(output, encoder, context);
         }
-        else if (For != null && list == null)
-        {
-            ApplyAssignStatements(assignedValues, context);
-            context.SetValue(Alias ?? identifier, withValue);
-            await template.RenderAsync(output, encoder, context);
-        }
-        else if (For != null)
+        else
         {
             var forloop = ForLoopValue.Create();
             forloop.IsRenderLoop = true;
@@ -168,13 +167,13 @@ public sealed class RenderStatement : Statement, ISourceable
             {
                 context.IncrementSteps();
 
-                // Like Liquid, each item is rendered in its own isolated context: the variables and
-                // counters of the previous items are gone.
-                using var itemScope = context.EnterScope(ScopeBehavior.Isolated);
+                // Like Liquid, each item is rendered in its own isolated context: the variables, counters
+                // and cycles of the previous items are gone.
+                using var itemScope = context.EnterRenderTagScope();
 
-                ApplyAssignStatements(assignedValues, context);
                 context.SetValue("forloop", forloop);
-                context.SetValue(Alias ?? identifier, list[i]);
+                ApplyAssignStatements(assignedValues, context);
+                SetVariableUnlessNil(variableName, list[i], context);
 
                 forloop.Index = i + 1;
                 forloop.Index0 = i;
@@ -186,13 +185,16 @@ public sealed class RenderStatement : Statement, ISourceable
                 await template.RenderAsync(output, encoder, context);
             }
         }
-        else
-        {
-            ApplyAssignStatements(assignedValues, context);
-            await template.RenderAsync(output, encoder, context);
-        }
 
         return Completion.Normal;
+    }
+
+    private static void SetVariableUnlessNil(string name, FluidValue value, TemplateContext context)
+    {
+        if (value is not null and not BaseNilValue)
+        {
+            context.SetValue(name, value);
+        }
     }
 
     protected internal override Statement Accept(AstVisitor visitor) => visitor.VisitRenderStatement(this);
@@ -240,106 +242,92 @@ public sealed class RenderStatement : Statement, ISourceable
         // Use the same default identifier logic as runtime (file name without extension).
         context.WriteLine($"var identifier = System.IO.Path.GetFileNameWithoutExtension({SourceGenerationContext.ToCSharpStringLiteral(Path)});");
 
+        var ctx = context.ContextName;
+        var render = $"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {ctx});";
+        var variableName = string.IsNullOrEmpty(Alias) ? "identifier" : SourceGenerationContext.ToCSharpStringLiteral(Alias);
+
+        // Like the interpreter, the value is set after the named arguments unless it is nil.
+        void EmitSetVariableUnlessNil(string value)
+        {
+            context.WriteLine($"if ({value} is not BaseNilValue) {ctx}.SetValue({variableName}, {value});");
+        }
+
         if (With != null)
         {
             var withExpr = context.GetExpressionMethodName(With);
-            context.WriteLine($"var withValue = await {withExpr}({context.ContextName});");
+            context.WriteLine($"var withValue = await {withExpr}({ctx});");
         }
         else if (For != null)
         {
             var forExpr = context.GetExpressionMethodName(For);
-            context.WriteLine($"var evaluatedFor = await {forExpr}({context.ContextName});");
-            context.WriteLine($"var list = evaluatedFor.Type == FluidValues.Array || evaluatedFor.Type == FluidValues.Dictionary ? await ArrayValue.ToFluidArrayAsync(evaluatedFor, {context.ContextName}) : null;");
+            context.WriteLine($"var withValue = await {forExpr}({ctx});");
+            context.WriteLine($"var list = withValue.Type == FluidValues.Array || withValue.Type == FluidValues.Dictionary ? await ArrayValue.ToFluidArrayAsync(withValue, {ctx}) : null;");
         }
 
         EmitEvaluateAssignStatements();
-        context.WriteLine($"using var scope = {context.ContextName}.EnterScope(ScopeBehavior.Isolated);");
 
-        if (With != null)
-        {
-            if (!string.IsNullOrEmpty(Alias))
-            {
-                context.WriteLine($"{context.ContextName}.SetValue({SourceGenerationContext.ToCSharpStringLiteral(Alias)}, withValue);");
-            }
-            else
-            {
-                context.WriteLine($"{context.ContextName}.SetValue(identifier, withValue);");
-            }
-
-            EmitApplyAssignStatements();
-            context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-        }
-        else if (For != null)
+        if (For != null)
         {
             // Like the interpreter, a value that isn't a collection is rendered once.
-            context.WriteLine("if (list == null)");
+            context.WriteLine("if (list != null)");
             context.WriteLine("{");
             using (context.Indent())
             {
-                EmitApplyAssignStatements();
-                var name = string.IsNullOrEmpty(Alias) ? "identifier" : SourceGenerationContext.ToCSharpStringLiteral(Alias);
-                context.WriteLine($"{context.ContextName}.SetValue({name}, evaluatedFor);");
-                context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+                // Nothing reads the forloop variable of most loops, which then don't create or update it.
+                var usesForLoop = context.UsesForLoop(this);
+
+                context.WriteLine("var length = list.Count;");
+
+                if (usesForLoop)
+                {
+                    context.WriteLine("var forloop = ForLoopValue.Create();");
+                    context.WriteLine("forloop.IsRenderLoop = true;");
+                    context.WriteLine("forloop.Length = length;");
+                }
+
+                context.WriteLine("for (var i = 0; i < length; i++)");
+                context.WriteLine("{");
+                using (context.Indent())
+                {
+                    context.WriteLine($"{ctx}.IncrementSteps();");
+                    context.WriteLine($"using var itemScope = {ctx}.EnterRenderTagScope();");
+
+                    if (usesForLoop)
+                    {
+                        context.WriteLine($"{ctx}.SetValue(\"forloop\", forloop);");
+                    }
+
+                    EmitApplyAssignStatements();
+                    context.WriteLine("var item = list[i];");
+                    EmitSetVariableUnlessNil("item");
+
+                    if (usesForLoop)
+                    {
+                        context.WriteLine("forloop.Index = i + 1;");
+                        context.WriteLine("forloop.Index0 = i;");
+                        context.WriteLine("forloop.RIndex = length - i;");
+                        context.WriteLine("forloop.RIndex0 = length - i - 1;");
+                        context.WriteLine("forloop.First = i == 0;");
+                        context.WriteLine("forloop.Last = i == length - 1;");
+                    }
+
+                    context.WriteLine(render);
+                }
+                context.WriteLine("}");
                 context.WriteLine("return Completion.Normal;");
             }
             context.WriteLine("}");
-
-            // Nothing reads the forloop variable of most loops, which then don't create or update it.
-            var usesForLoop = context.UsesForLoop(this);
-
-            context.WriteLine("var length = list.Count;");
-
-            if (usesForLoop)
-            {
-                context.WriteLine("var forloop = ForLoopValue.Create();");
-                context.WriteLine("forloop.IsRenderLoop = true;");
-                context.WriteLine("forloop.Length = length;");
-            }
-
-            context.WriteLine("for (var i = 0; i < length; i++)");
-            context.WriteLine("{");
-            using (context.Indent())
-            {
-                context.WriteLine($"{context.ContextName}.IncrementSteps();");
-                context.WriteLine($"using var itemScope = {context.ContextName}.EnterScope(ScopeBehavior.Isolated);");
-                EmitApplyAssignStatements();
-
-                if (usesForLoop)
-                {
-                    context.WriteLine($"{context.ContextName}.SetValue(\"forloop\", forloop);");
-                }
-
-                context.WriteLine("var item = list[i];");
-
-                if (!string.IsNullOrEmpty(Alias))
-                {
-                    context.WriteLine($"{context.ContextName}.SetValue({SourceGenerationContext.ToCSharpStringLiteral(Alias)}, item);");
-                }
-                else
-                {
-                    context.WriteLine($"{context.ContextName}.SetValue(identifier, item);");
-                }
-
-                if (usesForLoop)
-                {
-                    context.WriteLine("forloop.Index = i + 1;");
-                    context.WriteLine("forloop.Index0 = i;");
-                    context.WriteLine("forloop.RIndex = length - i;");
-                    context.WriteLine("forloop.RIndex0 = length - i - 1;");
-                    context.WriteLine("forloop.First = i == 0;");
-                    context.WriteLine("forloop.Last = i == length - 1;");
-                }
-
-                context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
-            }
-            context.WriteLine("}");
         }
-        else
+
+        context.WriteLine($"using var scope = {ctx}.EnterRenderTagScope();");
+        EmitApplyAssignStatements();
+
+        if (With != null || For != null)
         {
-            EmitApplyAssignStatements();
-            context.WriteLine($"await template.RenderAsync({context.WriterName}, {context.EncoderName}, {context.ContextName});");
+            EmitSetVariableUnlessNil("withValue");
         }
 
+        context.WriteLine(render);
         context.WriteLine("return Completion.Normal;");
     }
 

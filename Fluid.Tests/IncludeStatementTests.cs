@@ -341,7 +341,7 @@ shape: ''";
     }
 
     [Fact]
-    public void IncludeTag_For_Loop()
+    public void IncludeTag_For_Loop_Has_No_ForLoop()
     {
         var fileProvider = new MockFileProvider();
         fileProvider.Add("product.liquid", "Product: {{ product.title }} {% if forloop.first %}first{% endif %} {% if forloop.last %}last{% endif %} index:{{ forloop.index }} rindex:{{ forloop.rindex }} rindex0:{{ forloop.rindex0 }} ");
@@ -353,7 +353,8 @@ shape: ''";
 
         var result = template.Render(context);
 
-        Assert.Equal("Product: Draft 151cm first  index:1 rindex:2 rindex0:1 Product: Element 155cm  last index:2 rindex:1 rindex0:0 ", result);
+        // Like Liquid, include ... for renders the partial for each item but defines no forloop variable.
+        Assert.Equal("Product: Draft 151cm   index: rindex: rindex0: Product: Element 155cm   index: rindex: rindex0: ", result);
     }
 
     [Fact]
@@ -758,6 +759,127 @@ shape: ''";
         Assert.True(_parser.TryParse(source, out var template, out var error), error);
 
         Assert.Equal(expected, template.Render(context));
+    }
+
+    private static readonly (string Path, string Content)[] LiquidPartials =
+    [
+        ("pn", "[{{ pn }}|{{ forloop.index }}]"),
+        ("child", "{{ item }}"),
+        ("cyc", "{% cycle 'a', 'b', 'c' %}"),
+        ("cycg", "{% cycle 'g': 'a', 'b' %}"),
+        ("chg", "{% ifchanged %}{{ v }}{% endifchanged %}"),
+        ("brk", "<{% break %}x>"),
+        ("cont", "<{% continue %}y>"),
+        ("fl2", "{{ forloop.index }}{{ forloop.parentloop.index }}"),
+        ("p", "[{{ v }}]"),
+        ("incl", "<{% include 'p' %}>"),
+        ("incl2", "<{% render 'incl' %}>"),
+        ("rendered", "<{% render 'p', v: 1 %}>"),
+    ];
+
+    private string RenderWithLiquidPartials(string source)
+    {
+        var fileProvider = new MockFileProvider();
+        foreach (var (path, content) in LiquidPartials)
+        {
+            fileProvider.Add(path + ".liquid", content);
+        }
+
+        var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
+        var context = new TemplateContext(options)
+            .SetValue("a", new[] { 1, 2, 3 })
+            .SetValue("empty_a", Array.Empty<int>())
+            .SetValue("nested", new[] { new[] { 1, 2 }, new[] { 3 } })
+            .SetValue("h", new Dictionary<string, object> { ["k"] = "v" });
+        Assert.True(_parser.TryParse(source, out var template, out var error), error);
+
+        return template.Render(context);
+    }
+
+    [Theory]
+    // Like Liquid, include iterates an array with both with and for, renders any other value once, and defines no forloop.
+    [InlineData("{% include 'pn' with a %}|{% include 'pn' for a %}|{% include 'pn' for 5 %}|{% include 'pn' for missing %}|{% include 'pn' with a as x %}", "[1|][2|][3|]|[1|][2|][3|]|[5|]|[|]|[|][|][|]")]
+    [InlineData("{% include 'pn' for (1..2) %}|{% assign r = (1..3) %}{% include 'pn' with r %}|{% include 'pn' for r %}", "[1..2|]|[1..3|]|[1..3|]")]
+    [InlineData("{% include 'pn' with empty_a %}|{% include 'pn' for empty_a %}|{% include 'pn' with 'str' %}|{% include 'pn' for nested %}", "||[str|]|[12|][3|]")]
+    [InlineData("{% include 'pn' for h %}", "[{\"k\"=>\"v\"}|]")]
+    // The partial sees the forloop of the enclosing loop.
+    [InlineData("{% for i in (1..2) %}{% include 'fl2' for a %}{% endfor %}", "111222")]
+    // The value replaces a keyword argument of the same name, even when it is nil.
+    [InlineData("{% assign item = 0 %}[{% include 'child' with 5 as item, item: 7 %}]|[{% include 'child' with missing as item, item: 7 %}]|[{% include 'child' for a as item, item: 7 %}]", "[5]|[]|[123]")]
+    public void IncludeTag_Iterates_Only_Arrays(string source, string expected)
+    {
+        Assert.Equal(expected, RenderWithLiquidPartials(source));
+    }
+
+    [Theory]
+    // Like Liquid, a break or continue in a partial isn't consumed by include: it applies to the enclosing loop.
+    [InlineData("{% for y in (1..2) %}{{ y }}{% include 'brk' for (1..3) %}after{% endfor %}end", "1<end")]
+    [InlineData("{% include 'cont' for (1..3) %}after", "<")]
+    [InlineData("{% for y in (1..2) %}{{ y }}{% include 'cont' for (1..2) %}after{% endfor %}end", "1<2<end")]
+    [InlineData("{% for x in (1..3) %}{{ x }}{% include 'brk' %}{{ x }}{% endfor %}", "1<")]
+    // Every item of an array is rendered, then the interrupt applies.
+    [InlineData("{% include 'brk' with a %}after", "<<<")]
+    [InlineData("{% for y in (1..2) %}{{ y }}{% include 'brk' for a %}after{% endfor %}end", "1<<<end")]
+    // render consumes them.
+    [InlineData("{% render 'brk' for (1..3) %}|{% render 'brk' %}after", "<<<|<after")]
+    public void IncludeTag_Propagates_Break_And_Continue(string source, string expected)
+    {
+        Assert.Equal(expected, RenderWithLiquidPartials(source));
+    }
+
+    [Theory]
+    // Like Liquid, each render, and each item of render ... for, starts with its own cycle and ifchanged state.
+    [InlineData("{% cycle 'a', 'b', 'c' %}{% render 'cyc' %}{% cycle 'a', 'b', 'c' %}{% render 'cyc' %}{% render 'cyc' %}", "aabaa")]
+    [InlineData("{% render 'cyc' for (1..3) %}|{% render 'cycg' for (1..3) %}", "aaa|aaa")]
+    [InlineData("{% cycle 'g': 'a', 'b' %}{% render 'cycg' %}{% cycle 'g': 'a', 'b' %}", "aab")]
+    [InlineData("{% for i in (1..3) %}{% render 'cyc' %}{% cycle 'a', 'b', 'c' %}{% endfor %}", "aaabac")]
+    [InlineData("{% ifchanged %}x{% endifchanged %}{% render 'chg', v: 'x' %}{% ifchanged %}x{% endifchanged %}{% render 'chg' for (1..3), v: 'x' %}", "xxxxx")]
+    // include shares them.
+    [InlineData("{% cycle 'a', 'b', 'c' %}{% include 'cyc' %}{% include 'cyc' %}{% cycle 'a', 'b', 'c' %}", "abca")]
+    [InlineData("{% ifchanged %}x{% endifchanged %}{% include 'chg', v: 'x' %}{% include 'chg', v: 'y' %}", "xy")]
+    public void RenderTag_Isolates_Cycle_And_IfChanged(string source, string expected)
+    {
+        Assert.Equal(expected, RenderWithLiquidPartials(source));
+    }
+
+    [Theory]
+    // Like Liquid, the named arguments are set before the value, which only replaces one of the same name when it isn't nil.
+    [InlineData("{% assign item = 0 %}[{% render 'child' for missing as item, item: item %}]|[{% render 'child' with missing as item, item: item %}]|[{% render 'child' for a as item, item: item %}]", "[0]|[0]|[123]")]
+    [InlineData("{% assign item = 0 %}[{% render 'child' with 5 as item, item: item %}]|[{% render 'child' for 5 as item, item: item %}]|[{% render 'child' for empty_a as item, item: item %}]", "[5]|[5]|[]")]
+    public void RenderTag_Arguments_Are_Set_Before_The_Value(string source, string expected)
+    {
+        Assert.Equal(expected, RenderWithLiquidPartials(source));
+    }
+
+    [Theory]
+    // Like Liquid, a partial rendered with render can't use include.
+    [InlineData("a{% render 'incl' %}b")]
+    [InlineData("{% render 'incl2' %}")]
+    [InlineData("{% render 'incl' for (1..2) %}")]
+    [InlineData("{% render 'incl' with 1 %}")]
+    public void RenderTag_Does_Not_Allow_Include(string source)
+    {
+        var exception = Assert.Throws<LiquidException>(() => RenderWithLiquidPartials(source));
+        Assert.Equal("include usage is not allowed in this context", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("{% include 'incl' %}|{% render 'rendered' %}|{% include 'rendered' %}", "<[]>|<[1]>|<[1]>")]
+    public void RenderTag_Allows_Include_Outside_Of_It(string source, string expected)
+    {
+        Assert.Equal(expected, RenderWithLiquidPartials(source));
+    }
+
+    [Fact]
+    public void RenderTag_Allows_Include_After_A_Failed_Render()
+    {
+        // The context state is restored when the partial throws.
+        var fileProvider = new MockFileProvider().Add("incl.liquid", "<{% include 'p' %}>").Add("p.liquid", "[{{ v }}]");
+        var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
+        var context = new TemplateContext(options);
+
+        Assert.Throws<LiquidException>(() => _parser.Parse("{% render 'incl' %}").Render(context));
+        Assert.Equal("<[]>", _parser.Parse("{% include 'incl' %}").Render(context));
     }
 
     [Fact]
