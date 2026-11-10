@@ -428,7 +428,9 @@ public class AstRewriter : AstVisitor
             TryRewriteStatements(forStatement.Statements, out var newStatements) |
             TryRewriteStatement(forStatement.Else, out var newElse))
         {
-            return new ForStatement(newStatements.ToList(), forStatement.Identifier, newSource, newLimit, newOffset, forStatement.Reversed, newElse);
+            // The name of the collection as written only applies to the same collection.
+            var collectionName = ReferenceEquals(newSource, forStatement.Source) ? forStatement.CollectionName : null;
+            return new ForStatement(newStatements.ToList(), forStatement.Identifier, newSource, newLimit, newOffset, forStatement.Reversed, newElse, collectionName);
         }
 
         return forStatement;

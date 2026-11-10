@@ -1,5 +1,6 @@
 using Fluid.SourceGeneration;
 using Fluid.Values;
+using System.ComponentModel;
 using System.Text.Encodings.Web;
 
 namespace Fluid.Ast;
@@ -36,25 +37,27 @@ public sealed class IncludeStatement : Statement, ISourceable
             ThrowIncludeNotAllowed();
         }
 
-        var relativePath = (await Path.EvaluateAsync(context)).ToStringValue(context);
+        var templateName = (await Path.EvaluateAsync(context)).ToStringValue(context);
         var loadedTemplate = await TemplateLoader.LoadAsync(
             Parser,
-            relativePath,
+            templateName,
             context,
             context.Options.DefaultFileExtension);
-        relativePath = loadedTemplate.Path;
         var template = loadedTemplate.Template;
 
-        var identifier = System.IO.Path.GetFileNameWithoutExtension(relativePath);
+        var identifier = System.IO.Path.GetFileNameWithoutExtension(loadedTemplate.Path);
 
         // Unlike render, include shares scope with the parent template.
         // Use a for-loop scope which passes through variable assignments to the parent.
         // This allows variables assigned inside the include to persist in the outer scope.
         using var scope = context.EnterScope(ScopeBehavior.WriteThrough);
 
-        // Like Liquid, the value is evaluated before the keyword arguments.
+        // Like Liquid, the value is evaluated before the keyword arguments. Without with or for, it is the variable
+        // named like the partial: {% include 'product' %} renders the partial for each item of an array named product.
         var value = With ?? For;
-        var evaluatedValue = value != null ? await value.EvaluateAsync(context) : null;
+        var evaluatedValue = value != null
+            ? await value.EvaluateAsync(context)
+            : await FindVariableAsync(templateName, context);
 
         // Keyword arguments are local to the include
         for (var i = 0; i < AssignStatements.Count; i++)
@@ -63,13 +66,8 @@ public sealed class IncludeStatement : Statement, ISourceable
             context.LocalScope.SetOwnValue(stmt.Identifier, await stmt.Value.EvaluateAsync(context));
         }
 
-        if (evaluatedValue == null)
-        {
-            // Keyword arguments alone, or nothing, e.g. {% include 'products' %}.
-            return await RenderStatementsAsync(template, output, encoder, context);
-        }
-
-        // The bound variable is local to this include, and like Liquid it replaces a keyword argument of the same name.
+        // The bound variable is local to this include, and like Liquid it replaces a keyword argument of the same name,
+        // even when it is nil.
         var variableName = Alias ?? identifier;
 
         if (!IsIterated(evaluatedValue))
@@ -86,19 +84,51 @@ public sealed class IncludeStatement : Statement, ISourceable
         {
             context.IncrementSteps();
 
+            // Like Liquid, a break or continue doesn't stop the include, which renders every item, but stays on the
+            // context: the next items render up to their first tag or output, and each break or continue they reach
+            // is stacked, so that the ones the enclosing loop doesn't consume apply to the loops around it.
+            if (result != Completion.Normal)
+            {
+                context.PushInterrupt(result);
+            }
+
             context.LocalScope.SetOwnValue(variableName, list[i]);
 
-            // Like Liquid, a break or continue doesn't stop the include, which renders every item, but
-            // applies to the enclosing loop.
-            var completion = await RenderStatementsAsync(template, output, encoder, context);
-
-            if (completion != Completion.Normal)
-            {
-                result = completion;
-            }
+            result = await RenderStatementsAsync(template, output, encoder, context);
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Finds the variable an <c>include</c> without <c>with</c> or <c>for</c> renders the partial with. Like Liquid, it is
+    /// named like the template as written: <c>product</c> for <c>'product'</c>, or <c>'product.liquid'</c> with the default
+    /// extension, and <c>snippets/product</c>, which is never a variable, for <c>'snippets/product'</c>.
+    /// </summary>
+    /// <returns>The value of the variable, or nil when it doesn't exist, which like Liquid isn't an undefined variable,
+    /// even with <see cref="TemplateOptions.StrictVariables"/>.</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static ValueTask<FluidValue> FindVariableAsync(string templateName, TemplateContext context)
+    {
+        var extension = context.Options.DefaultFileExtension;
+        var name = !string.IsNullOrEmpty(extension) && templateName.EndsWith(extension, StringComparison.OrdinalIgnoreCase)
+            ? templateName.Substring(0, templateName.Length - extension.Length)
+            : templateName;
+
+        var value = context.LocalScope.GetValue(name);
+
+        if (!value.IsNil() || context.Model.IsNil())
+        {
+            return new ValueTask<FluidValue>(value.IsNil() ? NilValue.Instance : value);
+        }
+
+        return FromModelAsync(context.Model.GetValueAsync(name, context));
+
+        static async ValueTask<FluidValue> FromModelAsync(ValueTask<FluidValue> task)
+        {
+            var value = await task;
+            return value.IsNil() ? NilValue.Instance : value;
+        }
     }
 
     /// <summary>
@@ -123,6 +153,12 @@ public sealed class IncludeStatement : Statement, ISourceable
     {
         if (template is IStatementList statementList)
         {
+            if (context.HasPendingInterrupts)
+            {
+                // Like Liquid, the partial renders up to its first tag or output. Rare enough not to cache the statement.
+                return await new PendingInterruptsStatement(statementList.Statements, skipText: false).WriteToAsync(output, encoder, context);
+            }
+
             var statements = statementList.Statements;
             var count = statements.Count;
             for (var i = 0; i < count; i++)
@@ -184,17 +220,12 @@ public sealed class IncludeStatement : Statement, ISourceable
 
         var value = With ?? For;
 
-        if (value == null)
-        {
-            // Keyword arguments alone, or nothing.
-            EmitAssignStatements();
-            context.WriteLine($"return {call};");
-            return;
-        }
-
         // Like the interpreter: the value is evaluated before the keyword arguments, and only an array is iterated.
-        var valueExpr = context.GetExpressionMethodName(value);
-        context.WriteLine($"var includeValue = await {valueExpr}({ctx});");
+        // Without with or for, it is the variable named like the partial.
+        var valueExpr = value == null
+            ? $"global::Fluid.Ast.IncludeStatement.FindVariableAsync({SourceGenerationContext.ToCSharpStringLiteral(path)}, {ctx})"
+            : $"{context.GetExpressionMethodName(value)}({ctx})";
+        context.WriteLine($"var includeValue = await {valueExpr};");
         EmitAssignStatements();
 
         context.WriteLine("if (includeValue.Type != FluidValues.Array || includeValue is RangeValue)");
@@ -214,9 +245,11 @@ public sealed class IncludeStatement : Statement, ISourceable
         using (context.Indent())
         {
             context.WriteLine($"{ctx}.IncrementSteps();");
+
+            // Like the interpreter, a break or continue stays pending while the next items render.
+            context.WriteLine($"if (result != Completion.Normal) {ctx}.PushInterrupt(result);");
             context.WriteLine($"{ctx}.LocalScope.SetOwnValue({variableName}, list[i]);");
-            context.WriteLine($"var completion = {call};");
-            context.WriteLine("if (completion != Completion.Normal) result = completion;");
+            context.WriteLine($"result = {call};");
         }
         context.WriteLine("}");
         context.WriteLine("return result;");

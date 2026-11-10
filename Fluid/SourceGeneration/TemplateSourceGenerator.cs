@@ -116,6 +116,8 @@ public static class TemplateSourceGenerator
                         ctx.WriteLine("{");
                         using (ctx.Indent())
                         {
+                            // Like the interpreter, the interrupts that reach the end of the template don't apply to a later render.
+                            ctx.WriteLine("while (context.HasPendingInterrupts) context.PopInterrupt();");
                             ctx.WriteLine("await writer.FlushAsync();");
                             ctx.WriteLine("return;");
                         }
@@ -202,6 +204,9 @@ public static class TemplateSourceGenerator
         ctx.WriteLine("{");
         using (ctx.Indent())
         {
+            // Like the interpreter, a partial that starts while interrupts are pending renders up to its first tag or output.
+            var pendingInterruptsMethod = ctx.GetStatementMethodName(new PendingInterruptsStatement(statementList.Statements, skipText: false));
+            ctx.WriteLine($"if ({ctx.ContextName}.HasPendingInterrupts) return await {pendingInterruptsMethod}(writer, encoder, context);");
             ctx.WriteStatements(statementList.Statements);
             ctx.WriteLine("context.CancellationToken.ThrowIfCancellationRequested();");
             ctx.WriteLine("return Completion.Normal;");

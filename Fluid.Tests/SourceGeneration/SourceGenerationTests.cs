@@ -504,10 +504,20 @@ public class SourceGenerationTests
     // Each render starts with its own cycle positions, the named arguments are set before the value, unless it is nil.
     [InlineData("{% cycle 'a', 'b', 'c' %}{% render 'cyc' %}{% cycle 'a', 'b', 'c' %}{% render 'cyc' for (1..2) %}{% cycle 'a', 'b', 'c' %}", "aabaac")]
     [InlineData("{% assign item = 0 %}[{% render 'child' for missing as item, item: item %}]|[{% render 'child' with 5 as item, item: item %}]|[{% render 'child' for items as item, item: item %}]", "[0]|[5]|[ab]")]
+    // Like Liquid, once an item of include reaches a break or continue, the next ones render up to their first tag or output,
+    // and stack theirs, which apply to the loops around the include: one per iteration, which renders up to its first tag or output.
+    [InlineData("{% for o in (1..1) %}{% include 'pb' for items %}{% endfor %}|{% for o in (1..2) %}{{ o }}{% for y in (1..2) %}{% include 'brk' for items %}after{% endfor %}|{% endfor %}end", "a-ab|1<<end")]
+    [InlineData("{% for y in (1..3) %}[{{ y }}{% include 'cont' for items %}after]{% endfor %}end", "[1<<[2[3<<")]
+    [InlineData("{% for o in (1..1) %}{% include 'lp' for items %}{% endfor %}|{% for o in (1..1) %}{% include 'rp' for items %}{% endfor %}|{% assign pn2 = items %}{% include 'pn2' %}", "123451|123123|[a][b]")]
     public async Task GeneratedPartials_MatchLiquid(string liquid, string expected)
     {
         var provider = new MockFileProvider();
-        foreach (var (name, content) in new[] { ("pn", "[{{ pn }}|{{ forloop.index }}]"), ("fl", "{{ forloop.index }}"), ("brk", "<{% break %}x>"), ("cyc", "{% cycle 'a', 'b', 'c' %}"), ("child", "{{ item }}") })
+        foreach (var (name, content) in new[]
+        {
+            ("pn", "[{{ pn }}|{{ forloop.index }}]"), ("fl", "{{ forloop.index }}"), ("brk", "<{% break %}x>"), ("cyc", "{% cycle 'a', 'b', 'c' %}"), ("child", "{{ item }}"),
+            ("pb", "{{ pb }}-{{ pb }}{% break %}"), ("cont", "<{% continue %}y>"), ("lp", "{% for z in (1..5) %}{{ z }}{% endfor %}{% break %}"),
+            ("rp", "{% render 'loop3' %}{% break %}"), ("loop3", "{% for z in (1..3) %}{{ z }}{% endfor %}"), ("pn2", "[{{ pn2 }}]"),
+        })
         {
             provider.Add(name, content).Add(name + ".liquid", content);
         }
@@ -596,6 +606,8 @@ public class SourceGenerationTests
     [InlineData("{% for i in (1..4) limit: 2 %}{{ i }}{% endfor %}|{% for i in (1..4) offset: continue %}{{ i }}{% endfor %}", "12|34")]
     [InlineData("{% for i in (1..6) limit: 2 %}{% for i in (1..6) offset: continue limit: 1 %}[{{ i }}]{% endfor %}{% endfor %}|{% for i in (1..6) offset: continue %}{{ i }}{% endfor %}", "[3][4]|56")]
     [InlineData("{% for i in (01..3) %}{{ forloop.name }}{% break %}{% endfor %}|{% for i in (1..6) limit: 2 %}{{ i }}{% endfor %}|{% for i in (01..6) offset: continue %}{{ i }}{% endfor %}", "i-(01..3)|12|123456")]
+    // Like Liquid, any collection is named as written.
+    [InlineData("{% for i in \"c\" %}{{ forloop.name }}{% endfor %}|{% for i in 'c' %}{{ forloop.name }}{% endfor %}|{% assign a = 'x,y' | split: ',' %}{% for i in a[ 0 ] %}{{ forloop.name }}{% endfor %}", "i-&quot;c&quot;|i-&#x27;c&#x27;|i-a[0]")]
     public async Task GeneratedRangeLoops_NameTheirSource(string liquid, string expected)
     {
         var instance = CompileTemplate(liquid, new MockFileProvider());

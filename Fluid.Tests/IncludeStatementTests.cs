@@ -775,6 +775,13 @@ shape: ''";
         ("incl", "<{% include 'p' %}>"),
         ("incl2", "<{% render 'incl' %}>"),
         ("rendered", "<{% render 'p', v: 1 %}>"),
+        ("pb", "{{ pb }}-{{ pb }}{% break %}"),
+        ("bc", "{% if bc == 1 %}{% continue %}{% endif %}{% break %}"),
+        ("lp", "{% for z in (1..5) %}{{ z }}{% endfor %}{% break %}"),
+        ("rp", "{% render 'loop3' %}{% break %}"),
+        ("loop3", "{% for z in (1..3) %}{{ z }}{% endfor %}"),
+        ("pn2", "[{{ pn2 }}]"),
+        ("snippets/pn2", "[{{ pn2 }}]"),
     ];
 
     private string RenderWithLiquidPartials(string source)
@@ -819,12 +826,79 @@ shape: ''";
     [InlineData("{% for x in (1..3) %}{{ x }}{% include 'brk' %}{{ x }}{% endfor %}", "1<")]
     // Every item of an array is rendered, then the interrupt applies.
     [InlineData("{% include 'brk' with a %}after", "<<<")]
-    [InlineData("{% for y in (1..2) %}{{ y }}{% include 'brk' for a %}after{% endfor %}end", "1<<<end")]
+    [InlineData("{% for y in (1..2) %}{{ y }}{% include 'brk' for a %}after{% endfor %}end", "1<<<")]
     // render consumes them.
     [InlineData("{% render 'brk' for (1..3) %}|{% render 'brk' %}after", "<<<|<after")]
     public void IncludeTag_Propagates_Break_And_Continue(string source, string expected)
     {
         Assert.Equal(expected, RenderWithLiquidPartials(source));
+    }
+
+    [Theory]
+    // Like Liquid, once an item reaches a break, the next ones render up to their first tag or output.
+    [InlineData("{% include 'pb' for a %}", "1-123")]
+    [InlineData("{% for y in (1..2) %}{{ y }}{% include 'bc' for a %}!{% endfor %}", "12")]
+    // Each break or continue they reach is stacked: those the enclosing loop doesn't consume apply to the loops around it.
+    [InlineData("{% for o in (1..3) %}{{ o }}{% for y in (1..2) %}{% include 'brk' for a %}after{% endfor %}|{% endfor %}end", "1<<<")]
+    [InlineData("{% for o in (1..2) %}{% if true %}{% include 'brk' for a %}{% endif %}{{ o }}{% endfor %}end", "<<<")]
+    [InlineData("{% tablerow o in (1..2) %}{% include 'brk' for a %}{% endtablerow %}end", "<tr class=\"row1\">\n<td class=\"col1\"><<<</td></tr>\n")]
+    // A loop consumes one per iteration, which renders up to its first tag or output.
+    [InlineData("{% for o in (1..2) %}{{ o }}{% for y in (1..3) %}[{{ y }}{% include 'cont' for a %}after]{% endfor %}|{% endfor %}end", "1[1<<<[2[3|2[1<<<[2[3|end")]
+    [InlineData("{% for o in (1..1) %}{% include 'lp' for a %}{% endfor %}end", "1234511end")]
+    // render doesn't see them.
+    [InlineData("{% for o in (1..1) %}{% include 'rp' for a %}{% endfor %}end", "123123123end")]
+    public void IncludeTag_Stacks_One_Interrupt_Per_Item(string source, string expected)
+    {
+        Assert.Equal(expected, RenderWithLiquidPartials(source));
+    }
+
+    [Fact]
+    public void IncludeTag_Interrupts_Do_Not_Reach_A_Later_Render()
+    {
+        var fileProvider = new MockFileProvider().Add("brk.liquid", "<{% break %}x>");
+        var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
+        var context = new TemplateContext(options).SetValue("a", new[] { 1, 2, 3 });
+
+        Assert.Equal("<<<", _parser.Parse("{% include 'brk' for a %}after").Render(context));
+        Assert.Equal("12", _parser.Parse("{% for i in (1..2) %}{{ i }}{% endfor %}").Render(context));
+    }
+
+    [Theory]
+    // Like Liquid, without with or for, the partial is rendered with the variable named like it, once for each item of an array.
+    [InlineData("{% assign pn2 = '1,2,3' | split: ',' %}{% include 'pn2' %}", "[1][2][3]")]
+    [InlineData("{% assign pn2 = a %}{% include 'pn2.liquid' %}|{% include 'pn2', x: 1 %}", "[1][2][3]|[1][2][3]")]
+    [InlineData("{% assign pn2 = 'x' %}{% include 'pn2' %}|{% assign pn2 = (1..2) %}{% include 'pn2' %}", "[x]|[1..2]")]
+    [InlineData("{% include 'pn2' %}|{% assign pn2 = empty_a %}{% include 'pn2' %}|", "[]||")]
+    // The variable replaces a keyword argument of the same name, even when there is none.
+    [InlineData("{% include 'pn2', pn2: 'y' %}|{% assign pn2 = 'x' %}{% include 'pn2', pn2: 'y' %}", "[]|[x]")]
+    // In a folder, the variable named like the template, snippets/pn2, doesn't exist: pn2 is nil in the partial.
+    [InlineData("{% assign pn2 = 'x' %}{% include 'snippets/pn2' %}|{{ pn2 }}", "[]|x")]
+    // The items break like with for.
+    [InlineData("{% assign pb = a %}{% include 'pb' %}", "1-123")]
+    public void IncludeTag_Iterates_The_Variable_Named_Like_The_Partial(string source, string expected)
+    {
+        Assert.Equal(expected, RenderWithLiquidPartials(source));
+    }
+
+    [Fact]
+    public void IncludeTag_Variable_Named_Like_The_Partial_Is_Not_Undefined()
+    {
+        // Like Liquid, which doesn't raise when the variable doesn't exist.
+        var fileProvider = new MockFileProvider().Add("loop3.liquid", "{% for z in (1..3) %}{{ z }}{% endfor %}");
+        var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).WithStrictVariables().Build();
+        var context = new TemplateContext(options);
+
+        Assert.Equal("123", _parser.Parse("{% include 'loop3' %}").Render(context));
+    }
+
+    [Fact]
+    public void IncludeTag_Reads_The_Variable_Named_Like_The_Partial_From_The_Model()
+    {
+        var fileProvider = new MockFileProvider().Add("pn2.liquid", "[{{ pn2 }}]");
+        var options = new TemplateOptionsBuilder().WithFileProvider(fileProvider).Build();
+        var context = new TemplateContext(new Dictionary<string, object> { ["pn2"] = new[] { 1, 2 } }, options);
+
+        Assert.Equal("[1][2]", _parser.Parse("{% include 'pn2' %}").Render(context));
     }
 
     [Theory]

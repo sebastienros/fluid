@@ -233,7 +233,40 @@ public class TemplateContext
         {
             _loadedTemplates?.Clear();
             _renderOutput = null;
+
+            // Interrupts that reached the end of the template don't apply to a later render.
+            _pendingInterrupts = null;
         }
+    }
+
+    // Like Liquid, which keeps a stack of interrupts, the break and continue tags still pending under the one a
+    // statement returns as its completion. Only an include over an array stacks more than one: one per item.
+    private Stack<Completion>? _pendingInterrupts;
+
+    /// <summary>
+    /// Gets whether interrupts are pending under the completion being returned. Like Liquid, a block whose rendering
+    /// starts while one is pending renders its text and its first tag or output, then stops with the interrupt on
+    /// top of the stack as its completion, and a loop consumes one interrupt per iteration.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public bool HasPendingInterrupts => _pendingInterrupts is { Count: > 0 };
+
+    /// <summary>
+    /// Keeps a <c>break</c> or <c>continue</c> pending while the next item of an <c>include</c> renders.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public void PushInterrupt(Completion completion)
+    {
+        (_pendingInterrupts ??= new Stack<Completion>()).Push(completion);
+    }
+
+    /// <summary>
+    /// Removes the most recent pending interrupt and returns it. Only valid when <see cref="HasPendingInterrupts"/> is <c>true</c>.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public Completion PopInterrupt()
+    {
+        return _pendingInterrupts!.Pop();
     }
 
     /// <summary>
@@ -400,21 +433,25 @@ public class TemplateContext
     [EditorBrowsable(EditorBrowsableState.Never)]
     public RenderTagScopeLease EnterRenderTagScope()
     {
-        var lease = new RenderTagScopeLease(this, EnterScopeCore(ScopeBehavior.Isolated), _cycleRegister, IfChangedRegister);
+        var lease = new RenderTagScopeLease(this, EnterScopeCore(ScopeBehavior.Isolated), _cycleRegister, IfChangedRegister, _pendingInterrupts);
 
+        // Like Liquid, which renders the partial in an isolated context, the interrupts of the caller don't
+        // reach the partial and those of the partial don't leave it.
         _cycleRegister = null;
         IfChangedRegister = null;
+        _pendingInterrupts = null;
         _renderTagDepth++;
 
         return lease;
     }
 
-    private void ExitRenderTagScope(Scope scope, Dictionary<string, int>? cycleRegister, string? ifChangedRegister)
+    private void ExitRenderTagScope(Scope scope, Dictionary<string, int>? cycleRegister, string? ifChangedRegister, Stack<Completion>? pendingInterrupts)
     {
         ReleaseScopeCore(scope);
 
         _cycleRegister = cycleRegister;
         IfChangedRegister = ifChangedRegister;
+        _pendingInterrupts = pendingInterrupts;
         _renderTagDepth--;
     }
 
@@ -428,13 +465,15 @@ public class TemplateContext
         private readonly Scope _scope;
         private readonly Dictionary<string, int>? _cycleRegister;
         private readonly string? _ifChangedRegister;
+        private readonly Stack<Completion>? _pendingInterrupts;
 
-        internal RenderTagScopeLease(TemplateContext context, Scope scope, Dictionary<string, int>? cycleRegister, string? ifChangedRegister)
+        internal RenderTagScopeLease(TemplateContext context, Scope scope, Dictionary<string, int>? cycleRegister, string? ifChangedRegister, Stack<Completion>? pendingInterrupts)
         {
             _context = context;
             _scope = scope;
             _cycleRegister = cycleRegister;
             _ifChangedRegister = ifChangedRegister;
+            _pendingInterrupts = pendingInterrupts;
         }
 
         /// <summary>
@@ -442,7 +481,7 @@ public class TemplateContext
         /// </summary>
         public void Dispose()
         {
-            _context?.ExitRenderTagScope(_scope, _cycleRegister, _ifChangedRegister);
+            _context?.ExitRenderTagScope(_scope, _cycleRegister, _ifChangedRegister, _pendingInterrupts);
         }
     }
 
