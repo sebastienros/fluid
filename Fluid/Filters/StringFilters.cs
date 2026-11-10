@@ -387,22 +387,21 @@ public static class StringFilters
 
         var firstArgument = arguments.At(0);
 
-        if (!firstArgument.IsInteger(context))
+        // Like Liquid, strings are read like Ruby's Integer(): "0x2" is 2, and "2147483648" is as large as an int gets.
+        if (!NumberConversions.TryToInt32Saturated(firstArgument, context, out var requestedStartIndex))
         {
             throw new LiquidException("Slice: offset argument is an invalid number");
         }
 
-        var requestedStartIndex = NumberConversions.ToInt32Saturated(firstArgument.ToNumberValue(context));
         var requestedLength = 1;
 
         if (arguments.Count > 1)
         {
             var secondArgument = arguments.At(1);
-            if (!secondArgument.IsNil() && !secondArgument.IsInteger(context))
+            if (!secondArgument.IsNil() && !NumberConversions.TryToInt32Saturated(secondArgument, context, out requestedLength))
             {
                 throw new LiquidException("Slice: length argument is not a number");
             }
-            requestedLength = secondArgument.IsNil() ? 1 : NumberConversions.ToInt32Saturated(secondArgument.ToNumberValue(context));
         }
 
         // Like Liquid, a range is sliced as its string representation, e.g. "1..5".
@@ -729,7 +728,7 @@ public static class StringFilters
                 throw new LiquidException("truncate: cannot convert nil to number");
             }
 
-            length = NumberConversions.ToInt32Saturated(firstArg.ToNumberValue(context));
+            length = ToLengthArgument("truncate", firstArg, context);
         }
 
         if (inputStr.Length <= length)
@@ -764,7 +763,8 @@ public static class StringFilters
             ellipsisLength = CodePoints.HasSurrogates(ellipsisStr.AsSpan()) ? CodePoints.Count(ellipsisStr) : ellipsisStr.Length;
         }
 
-        var l = Math.Max(0, length - ellipsisLength);
+        // A length near int.MinValue would wrap around when the ellipsis is subtracted.
+        var l = length > ellipsisLength ? length - ellipsisLength : 0;
 
         if (hasSurrogates)
         {
@@ -779,6 +779,23 @@ public static class StringFilters
         var concat = string.Concat(inputStr.Substring(0, l), ellipsisStr);
 #endif
         return CreateStringValue(concat, input);
+    }
+
+    // A length argument of truncate or truncatewords. Like Liquid, a string is read like Ruby's Integer(): "0x5" is 5,
+    // and "5.5" or "abc" is invalid.
+    private static int ToLengthArgument(string filter, FluidValue argument, TemplateContext context)
+    {
+        if (argument.Type == FluidValues.String)
+        {
+            if (!NumberConversions.TryParseInt32Saturated(argument.ToStringValue(context), out var parsed))
+            {
+                throw new LiquidException($"{filter}: invalid integer");
+            }
+
+            return parsed;
+        }
+
+        return NumberConversions.ToInt32Saturated(argument.ToNumberValue(context));
     }
 
     public static ValueTask<FluidValue> TruncateWords(FluidValue input, FilterArguments arguments, TemplateContext context)
@@ -807,7 +824,7 @@ public static class StringFilters
         }
         else
         {
-            size = NumberConversions.ToInt32Saturated(firstArg.ToNumberValue(context));
+            size = ToLengthArgument("truncatewords", firstArg, context);
         }
 
         if (size <= 0)

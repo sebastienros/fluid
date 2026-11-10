@@ -78,6 +78,62 @@ public class LargeNumberTests
     }
 
     [Theory]
+    // Like Liquid, where floats are doubles, a float literal too large for a decimal is valid, and written like a Ruby float.
+    [InlineData("{{ 99999999999999999999999999999.0 }}|{{ -99999999999999999999999999999.0 }}|{% assign x = 79228162514264337593543950336.0 %}{{ x }}", "1.0e+29|-1.0e+29|7.922816251426434e+28")]
+    [InlineData("{{ 123456789012345678901234567890.123456789 }}|{{ 100000000000000000000000000000000000000000000000000000000000000.0 }}|{{ 0099999999999999999999999999999 }}", "1.2345678901234568e+29|1.0e+62|99999999999999999999999999999")]
+    [InlineData("{{ 99999999999999999999999999999 | json }}|{{ 99999999999999999999999999999.0 | json }}|{{ 99999999999999999999999999999.0 | append: '' | plus: 0 }}", "\"99999999999999999999999999999\"|1e+29|1")]
+    // Like Shopify's json filter, a big integer is a string and a big float has no ".0".
+    [InlineData("{{ -99999999999999999999999999999 | json }}|{{ 123456789012345678901234567890.123456789 | json }}|{{ -99999999999999999999999999999.0 | json }}", "\"-99999999999999999999999999999\"|1.2345678901234568e+29|-1e+29")]
+    public async Task FloatLiteralsTooLargeForADecimalAreValid(string source, string expected)
+    {
+        Assert.Equal(expected, await RenderAsync(source));
+    }
+
+    [Theory]
+    // Like Liquid, a number literal too large for a decimal is compared with other numbers by its sign and magnitude.
+    [InlineData("{% if 99999999999999999999999999999 > 1 %}a{% endif %}{% if 1 < 99999999999999999999999999999 %}b{% endif %}{% if -99999999999999999999999999999 < 1 %}c{% endif %}{% if 1.5 <= 99999999999999999999999999999.0 %}d{% endif %}", "abcd")]
+    [InlineData("{% if 99999999999999999999999999999 > 79228162514264337593543950335 %}a{% endif %}{% if 99999999999999999999999999999 > 99999999999999999999999999998 %}b{% endif %}{% if -99999999999999999999999999999 < -99999999999999999999999999998 %}c{% endif %}{% if 199999999999999999999999999998 >= 99999999999999999999999999999.0 %}d{% endif %}", "abcd")]
+    [InlineData("{% assign x = 99999999999999999999999999999 %}{% if x > 5 and x >= 5 and 5 < x and 5 <= x %}ok{% endif %}|{% if 99999999999999999999999999999.0 >= 99999999999999999999999999999.0 %}ge{% endif %}", "ok|ge")]
+    // Equality is exact: 99999999999999999999999999999.0 is the double 99999999999999991433150857216.
+    [InlineData("{% if 99999999999999999999999999999 == 99999999999999999999999999999 %}a{% endif %}{% if 99999999999999999999999999999 == 99999999999999999999999999999.0 %}b{% endif %}{% if 79228162514264337593543950335 == 99999999999999999999999999999 %}c{% endif %}{% if 99999999999999999999999999999 == '99999999999999999999999999999' %}d{% endif %}", "a")]
+    [InlineData("{% case 99999999999999999999999999999 %}{% when 99999999999999999999999999999 %}a{% endcase %}{% case 99999999999999999999999999999.0 %}{% when 100000000000000000000000000000.0 %}b{% endcase %}{% if 99999999999999999999999999999 contains '9' %}c{% endif %}", "ab")]
+    public async Task NumberLiteralsTooLargeForADecimalAreCompared(string source, string expected)
+    {
+        Assert.Equal(expected, await RenderAsync(source));
+    }
+
+    [Theory]
+    [InlineData("{% if 99999999999999999999999999999 > '1' %}{% endif %}", "comparison of Integer with String failed")]
+    [InlineData("{% if '1' < 99999999999999999999999999999.0 %}{% endif %}", "comparison of String with Integer failed")]
+    public async Task NumberLiteralsTooLargeForADecimalArentComparedWithStrings(string source, string message)
+    {
+        var exception = await Assert.ThrowsAsync<LiquidException>(() => RenderAsync(source));
+
+        Assert.Equal(message, exception.Message);
+    }
+
+    [Theory]
+    // Like Liquid, a length shorter than the ellipsis only keeps the ellipsis, even near int.MinValue.
+    [InlineData("[{{ 'abcdef' | truncate: -2147483648 }}]|[{{ 'abcdef' | truncate: -9223372036854775808 }}]|[{{ 'abcdef' | truncate: -5 }}]", "[...]|[...]|[...]")]
+    [InlineData("[{{ 'abcdef' | truncate: -2147483648, '' }}]|[{{ 'abcdef' | truncate: '-99999999999999999999999999999' }}]|[{{ 'abcdef' | truncate: 2, '' }}]", "[]|[...]|[ab]")]
+    public async Task TruncateWithAHugeNegativeLengthKeepsTheEllipsis(string source, string expected)
+    {
+        var context = new TemplateContext(new TemplateOptionsBuilder().WithMaxOutputSize(1000).Build());
+
+        Assert.Equal(expected, await _parser.Parse(source).RenderAsync(context));
+    }
+
+    [Theory]
+    // Like Liquid, integer arguments are read like Ruby's Integer(), and saturated like numbers when out of an int's range.
+    [InlineData("[{{ s | slice: '2147483648' }}]|[{{ s | slice: 1, '2147483648' }}]|[{{ items | slice: 0, '2147483648' | join }}]|[{{ s | slice: '-99999999999999999999999999999999' }}]", "[]|[ello World]|[1 2 3]|[]")]
+    [InlineData("[{{ s | slice: 99999999999999999999999999999 }}]|[{{ s | slice: 0, 99999999999999999999999999999 }}]|[{{ s | truncate: '99999999999999999999999999999' }}]", "[]|[Hello World]|[Hello World]")]
+    [InlineData("{% capture n %}2147483648{% endcapture %}[{{ s | slice: n }}]|{% for i in items limit: n %}{{ i }}{% endfor %}", "[]|123")]
+    public async Task IntegerStringsOutOfIntRangeAreSaturated(string source, string expected)
+    {
+        Assert.Equal(expected, await RenderAsync(source, c => c.SetValue("s", "Hello World")));
+    }
+
+    [Theory]
     [InlineData("{% for i in (1..99999999999999999999) %}{% endfor %}", "The range bound 99999999999999999999 is out of range.")]
     [InlineData("{% assign r = (-99999999999..1) %}", "The range (-99999999999..1) has too many items.")]
     [InlineData("{% for i in (-2000000000..2000000000) %}{% endfor %}", "The range (-2000000000..2000000000) has too many items.")]

@@ -73,17 +73,14 @@ public abstract class FluidValue : IEquatable<FluidValue>
     {
         // Maps to https://github.com/Shopify/liquid/blob/1feaa6381300d56e2c71b49ad8fee0d4b625147b/lib/liquid/utils.rb#L38
 
-        if (Type == FluidValues.Number)
+        if (Type == FluidValues.Number && this is not BigNumberValue)
         {
             return NumberValue.GetScale(ToNumberValue(context)) == 0;
         }
 
-        return !IsNil() && IsIntegerString(ToStringValue(context));
-    }
-
-    private static bool IsIntegerString(string s)
-    {
-        return !String.IsNullOrWhiteSpace(s) && int.TryParse(s, out var _);
+        // Like Ruby's Integer(), which Liquid uses for strings: "0x1F" and "1_000" are integers too, and so is a
+        // number too large for an int.
+        return NumberConversions.TryToInt32Saturated(this, context, out _);
     }
 
     public static FluidValue Create(object value, TemplateOptions options)
