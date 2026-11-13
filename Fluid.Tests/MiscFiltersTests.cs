@@ -5,6 +5,8 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -1347,6 +1349,112 @@ public class MiscFiltersTests
         var template = new FluidParser().Parse(source);
         var exception = await Assert.ThrowsAsync<LiquidException>(() => template.RenderAsync(new TemplateContext()).AsTask());
         Assert.Equal(expected, exception.Message);
+    }
+
+    [Fact]
+    public async Task HashFiltersHashAValueWithoutStringAsAnEmptyString()
+    {
+        // An object whose ToString() returns null has a null string value.
+        var input = FluidValue.Create(new NullToString(), TemplateOptions.Default);
+        Assert.Null(input.ToStringValue(new TemplateContext()));
+
+        await AssertHashesMatchUtf8BytesAsync(input, "", "secret_key");
+
+        var context = new TemplateContext();
+        var keyArguments = new FilterArguments(input);
+        Assert.Equal("7f984109f39759f3f41dba04f5183741e36f1445", (await MiscFilters.HmacSha1(StringValue.Create("a"), keyArguments, context)).ToStringValue(context));
+        Assert.Equal("9615a95d4a336118c435b9cd54c5e8644ab956b573aa2926274a1280b6674713", (await MiscFilters.HmacSha256(StringValue.Create("a"), keyArguments, context)).ToStringValue(context));
+    }
+
+    private sealed class NullToString
+    {
+        public override string ToString() => null;
+    }
+
+    // Hashes of the UTF-8 bytes, from Python's hashlib and hmac.
+    [Theory]
+    [InlineData("héllo wörld, 日本語 😀", 1, "secret_key",
+        "524bc5b981501072b560909ac600105f",
+        "25966f8cf10d6c1b477e47e941b0758210ee1bd4",
+        "62bfd2d1749540ef6766c0ec7842b9a14c415534ea282531315a250de461cf4a",
+        "6a50d391b6a52aeeb1087cf5f7537f37e86c263e",
+        "d4a6aee8ea9953c86ad10e891cb1a56b794f7b2d1b5a81e75252c9529ad0a988")]
+    [InlineData("日本語😀", 50000, "secret_key",
+        "7321371bd6d15bb3280407def2294568",
+        "d4b7d9e22a5a58b93e42b821d68151656749c4ef",
+        "38c9b99f217ab2ee30861fc77850ce64a9cb9886912b66a65e8c94cdc7ce8dd3",
+        "d55a4430ace4bb0b741547a4d4b68fc37bbc654a",
+        "cb9c08d2a9fc777d7f67ba228c25aec570150d6c56bb224c92339c82714dc460")]
+    [InlineData("Fluid", 1, "clé 🔑",
+        "c2e7db5ac7ab74ea4bb9a7a89d251f3a",
+        "8bc9b7abbb676300656203a17863a0f0b8a2c2bf",
+        "c7ac4687585ab5d3d5030db5a5cfc959fdf4e608cc396f1f615db345e35adb9e",
+        "9921193647e9656f81040749fa1ebbedac300f25",
+        "cbff0d48811e9b1f66aedf5b390b219e57531f2bdaf12965a621fa187cd4aa05")]
+    public async Task HashFiltersHashUtf8Bytes(string unit, int count, string key, string md5, string sha1, string sha256, string hmacSha1, string hmacSha256)
+    {
+        var input = StringValue.Create(string.Concat(Enumerable.Repeat(unit, count)));
+
+        await AssertHashesAsync(input, key, md5, sha1, sha256, hmacSha1, hmacSha256);
+    }
+
+    [Fact]
+    public async Task HashFiltersReplaceLoneSurrogates()
+    {
+        // Like Encoding.UTF8.GetBytes, which encodes U+FFFD in place of a surrogate that has no pair.
+        foreach (var count in new[] { 1, 100, 10_000 })
+        {
+            var input = StringValue.Create(string.Concat(Enumerable.Repeat("a\ud83db\udc00", count)));
+            var expected = string.Concat(Enumerable.Repeat("a\ufffdb\ufffd", count));
+
+            await AssertHashesMatchUtf8BytesAsync(input, expected, "secret_key");
+        }
+    }
+
+    [Theory]
+    [InlineData("a")]
+    [InlineData("é")]
+    [InlineData("日")]
+    [InlineData("😀")]
+    [InlineData("aé日😀")]
+    public async Task HashFiltersHashValuesOfAnyLength(string unit)
+    {
+        // Around the sizes where an implementation may switch from the stack to a rented buffer, or read in chunks.
+        foreach (var count in new[] { 1, 2, 21, 22, 42, 43, 63, 64, 65, 84, 85, 86, 127, 128, 129, 255, 256, 257, 341, 342, 511, 512, 513, 1023, 1024, 1025, 4095, 4096, 4097, 81_920, 100_000 })
+        {
+            var value = string.Concat(Enumerable.Repeat(unit, count));
+
+            // The value is also the key, to cover keys of all these lengths.
+            await AssertHashesMatchUtf8BytesAsync(StringValue.Create(value), value, value);
+        }
+    }
+
+    private static Task AssertHashesMatchUtf8BytesAsync(FluidValue input, string expectedValue, string key)
+    {
+        var bytes = Encoding.UTF8.GetBytes(expectedValue);
+        var keyBytes = Encoding.UTF8.GetBytes(key);
+
+#pragma warning disable CA5350, CA5351 // Weak and broken algorithms, which these filters expose.
+        return AssertHashesAsync(input, key,
+            Convert.ToHexStringLower(System.Security.Cryptography.MD5.HashData(bytes)),
+            Convert.ToHexStringLower(SHA1.HashData(bytes)),
+            Convert.ToHexStringLower(SHA256.HashData(bytes)),
+            Convert.ToHexStringLower(HMACSHA1.HashData(keyBytes, bytes)),
+            Convert.ToHexStringLower(HMACSHA256.HashData(keyBytes, bytes)));
+#pragma warning restore CA5350, CA5351
+    }
+
+    private static async Task AssertHashesAsync(FluidValue input, string key, string md5, string sha1, string sha256, string hmacSha1, string hmacSha256)
+    {
+        var context = new TemplateContext();
+        var none = new FilterArguments();
+        var keyArguments = new FilterArguments(StringValue.Create(key));
+
+        Assert.Equal(md5, (await MiscFilters.MD5(input, none, context)).ToStringValue(context));
+        Assert.Equal(sha1, (await MiscFilters.Sha1(input, none, context)).ToStringValue(context));
+        Assert.Equal(sha256, (await MiscFilters.Sha256(input, none, context)).ToStringValue(context));
+        Assert.Equal(hmacSha1, (await MiscFilters.HmacSha1(input, keyArguments, context)).ToStringValue(context));
+        Assert.Equal(hmacSha256, (await MiscFilters.HmacSha256(input, keyArguments, context)).ToStringValue(context));
     }
 
     public static class TestObjects

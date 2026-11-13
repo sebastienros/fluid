@@ -84,6 +84,7 @@ Performance is a primary goal (competes with DotLiquid, Scriban, Handlebars.Net)
 - Use modern features (`Span<T>`, `stackalloc`, `ArrayPool`, `SearchValues`, ref structs) only when measurably faster or fewer allocations.
 - Reuse existing patterns: `ValueStringBuilder`, `BufferFluidOutput`, cached singletons, the synchronous `ValueTask` fast path.
 - Benchmark with `Fluid.Benchmarks` before and after hot-path changes and report the numbers.
+- `Fluid.Benchmarks` targets net11.0, so it measures the runtime async build of Fluid. It needs a BenchmarkDotNet 0.16 preview: 0.15.8 can't generate a net11.0 project.
 
 ### README benchmark results
 

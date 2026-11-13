@@ -781,15 +781,10 @@ public static class MiscFilters
         LiquidException.ThrowFilterArgumentsCount("md5", expected: 0, arguments);
 
         // An empty or nil input is hashed as an empty string, like Shopify does.
-        var value = input.ToStringValue(context);
-
-        // c.f. HashingBenchmarks
+        var value = input.ToStringValue(context) ?? "";
 
 #if NET6_0_OR_GREATER
-#pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
-        var hash = System.Security.Cryptography.MD5.HashData(Encoding.UTF8.GetBytes(value));
-        return StringValue.Create(HexUtilities.ToHexLower(hash));
-#pragma warning restore CA5351
+        return ComputeHash(HashFunction.MD5, value);
 #else
 
 #pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
@@ -812,15 +807,10 @@ public static class MiscFilters
         LiquidException.ThrowFilterArgumentsCount("sha1", expected: 0, arguments);
 
         // An empty or nil input is hashed as an empty string, like Shopify does.
-        var value = input.ToStringValue(context);
-
-        // c.f. HashingBenchmarks
+        var value = input.ToStringValue(context) ?? "";
 
 #if NET6_0_OR_GREATER
-#pragma warning disable CA5350 // Do Not Use Broken Cryptographic Algorithms
-        var hash = SHA1.HashData(Encoding.UTF8.GetBytes(value));
-#pragma warning restore CA5350
-        return StringValue.Create(HexUtilities.ToHexLower(hash));
+        return ComputeHash(HashFunction.SHA1, value);
 #else
 #pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
         using var provider = System.Security.Cryptography.SHA1.Create();
@@ -842,13 +832,10 @@ public static class MiscFilters
         LiquidException.ThrowFilterArgumentsCount("sha256", expected: 0, arguments);
 
         // An empty or nil input is hashed as an empty string, like Shopify does.
-        var value = input.ToStringValue(context);
-
-        // c.f. HashingBenchmarks
+        var value = input.ToStringValue(context) ?? "";
 
 #if NET6_0_OR_GREATER
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(value));
-        return StringValue.Create(HexUtilities.ToHexLower(hash));
+        return ComputeHash(HashFunction.SHA256, value);
 #else
         using var provider = SHA256.Create();
         var builder = new ValueStringBuilder(stackalloc char[64]);
@@ -863,6 +850,94 @@ public static class MiscFilters
 #endif
     }
 
+#if NET6_0_OR_GREATER
+    public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("hmac_sha1", HashFunction.HmacSHA1, input, arguments, context);
+
+    public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("hmac_sha256", HashFunction.HmacSHA256, input, arguments, context);
+
+    private static ValueTask<FluidValue> ComputeHmac(string filter, HashFunction function, FluidValue input, FilterArguments arguments, TemplateContext context)
+    {
+        // The key is required, so that a forgotten one doesn't sign the message with an empty key.
+        LiquidException.ThrowFilterArgumentsCount(filter, expected: 1, arguments);
+
+        // An empty or nil message, or key, is hashed as an empty string, like Shopify does.
+        return ComputeHash(function, input.ToStringValue(context) ?? "", arguments.At(0).ToStringValue(context) ?? "");
+    }
+
+    private enum HashFunction
+    {
+        MD5,
+        SHA1,
+        SHA256,
+        HmacSHA1,
+        HmacSHA256
+    }
+
+    // A UTF-16 char is encoded in three UTF-8 bytes at most, the four bytes of a surrogate pair being two chars.
+    private const int MaxUtf8BytesPerChar = 3;
+
+    // The most bytes of a value, or of a key, that are encoded on the stack.
+    private const int HashStackallocBytes = 256;
+
+    // A longer value is encoded in a rented array that fits three bytes per char without counting them, as long as
+    // this array is not in the large object heap.
+    private const int HashMaxUncountedBytes = 64 * 1024;
+
+    // c.f. HashingBenchmarks: this is faster than hashing Encoding.UTF8.GetBytes(value), which allocates the bytes and
+    // the hash, and than hashing a System.IO.StringStream (.NET 11), which is the slowest for short values.
+    private static FluidValue ComputeHash(HashFunction function, string value, string key = null)
+    {
+        byte[] rented = null;
+
+        Span<byte> buffer = value.Length <= HashStackallocBytes / MaxUtf8BytesPerChar
+            ? stackalloc byte[HashStackallocBytes]
+            : (rented = ArrayPool<byte>.Shared.Rent(value.Length <= HashMaxUncountedBytes / MaxUtf8BytesPerChar
+                ? value.Length * MaxUtf8BytesPerChar
+                : Encoding.UTF8.GetByteCount(value)));
+
+        ReadOnlySpan<byte> bytes = buffer.Slice(0, Encoding.UTF8.GetBytes(value, buffer));
+
+        // SHA-256 has the longest hash.
+        Span<byte> hash = stackalloc byte[SHA256.HashSizeInBytes];
+
+#pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
+#pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
+        var written = function switch
+        {
+            HashFunction.MD5 => System.Security.Cryptography.MD5.HashData(bytes, hash),
+            HashFunction.SHA1 => SHA1.HashData(bytes, hash),
+            HashFunction.SHA256 => SHA256.HashData(bytes, hash),
+            _ => ComputeHmac(function, key, bytes, hash)
+        };
+#pragma warning restore CA5351
+#pragma warning restore CA5350
+
+        if (rented != null)
+        {
+            ArrayPool<byte>.Shared.Return(rented);
+        }
+
+        return StringValue.Create(HexUtilities.ToHexLower(hash.Slice(0, written)));
+    }
+
+    private static int ComputeHmac(HashFunction function, string key, ReadOnlySpan<byte> bytes, Span<byte> hash)
+    {
+        Span<byte> buffer = key.Length <= HashStackallocBytes / MaxUtf8BytesPerChar
+            ? stackalloc byte[HashStackallocBytes]
+            : new byte[Encoding.UTF8.GetByteCount(key)];
+
+        ReadOnlySpan<byte> keyBytes = buffer.Slice(0, Encoding.UTF8.GetBytes(key, buffer));
+
+#pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
+        return function switch
+        {
+            HashFunction.HmacSHA1 => HMACSHA1.HashData(keyBytes, bytes, hash),
+            HashFunction.HmacSHA256 => HMACSHA256.HashData(keyBytes, bytes, hash),
+            _ => throw new ArgumentOutOfRangeException(nameof(function))
+        };
+#pragma warning restore CA5350
+    }
+#else
     public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("hmac_sha1", "HMACSHA1", input, arguments, context);
 
     public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("hmac_sha256", "HMACSHA256", input, arguments, context);
@@ -873,21 +948,9 @@ public static class MiscFilters
         LiquidException.ThrowFilterArgumentsCount(filter, expected: 1, arguments);
 
         // An empty or nil message, or key, is hashed as an empty string, like Shopify does.
-        var value = input.ToStringValue(context);
-        var keyBytes = Encoding.UTF8.GetBytes(arguments.At(0).ToStringValue(context));
+        var value = input.ToStringValue(context) ?? "";
+        var keyBytes = Encoding.UTF8.GetBytes(arguments.At(0).ToStringValue(context) ?? "");
 
-#if NET6_0_OR_GREATER
-#pragma warning disable CA5350
-        var hash = algorithm switch
-        {
-            "HMACSHA1" => HMACSHA1.HashData(keyBytes, Encoding.UTF8.GetBytes(value)),
-            "HMACSHA256" => HMACSHA256.HashData(keyBytes, Encoding.UTF8.GetBytes(value)),
-            _ => throw new ArgumentException("Unsupported HMAC algorithm", nameof(algorithm))
-        };
-#pragma warning restore CA5350
-
-        return StringValue.Create(HexUtilities.ToHexLower(hash));
-#else
         using var provider = HMAC.Create(algorithm);
         provider.Key = keyBytes;
         var builder = new ValueStringBuilder(stackalloc char[64]);
@@ -899,6 +962,6 @@ public static class MiscFilters
         }
 
         return StringValue.Create(builder.ToString());
-#endif
     }
+#endif
 }
