@@ -2,7 +2,9 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- Set the BenchmarkTargetFramework property to benchmark on another runtime, like net11.0 (c.f. HashingBenchmarks). -->
+    <BenchmarkTargetFramework Condition="'$(BenchmarkTargetFramework)' == ''">net10.0</BenchmarkTargetFramework>
+    <TargetFramework>$(BenchmarkTargetFramework)</TargetFramework>
     <NoWarn>$(NoWarn);NU5104</NoWarn>
     <!-- Ignore vulnerable packages imported for benchmarking only -->
     <NoWarn>$(NoWarn);NU1903</NoWarn>
@@ -56,10 +58,10 @@
     <Analyzer Include="..\Fluid.SourceGenerator\bin\$(Configuration)\netstandard2.0\*.dll" />
   </ItemGroup>
 
-  <Target Name="PreferNet10FluidRuntime" AfterTargets="Build">
+  <Target Name="PreferMatchingFluidRuntime" AfterTargets="Build">
     <ItemGroup>
-      <_RuntimeOverrides Include="..\Fluid\bin\$(Configuration)\net10.0\Fluid.dll" />
-      <_RuntimeOverrides Include="..\Fluid\bin\$(Configuration)\net10.0\Parlot.dll" Condition="Exists('..\Fluid\bin\$(Configuration)\net10.0\Parlot.dll')" />
+      <_RuntimeOverrides Include="..\Fluid\bin\$(Configuration)\$(TargetFramework)\Fluid.dll" />
+      <_RuntimeOverrides Include="..\Fluid\bin\$(Configuration)\$(TargetFramework)\Parlot.dll" Condition="Exists('..\Fluid\bin\$(Configuration)\$(TargetFramework)\Parlot.dll')" />
     </ItemGroup>
 
     <Copy SourceFiles="@(_RuntimeOverrides)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
