@@ -39,7 +39,7 @@
     <PackageVersion Include="TimeZoneConverter" Version="8.0.1" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
     <!-- Benchmarks -->
-    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageVersion Include="BenchmarkDotNet" Version="0.16.0-preview.2" />
     <PackageVersion Include="DotLiquid" Version="2.3.260" />
     <PackageVersion Include="Liquid.NET" Version="0.10.0" />
     <PackageVersion Include="Scriban" Version="7.6.1" />

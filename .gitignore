@@ -290,4 +290,6 @@ __pycache__/
 results
 
 BenchmarkDotNet.Artifacts
+# The projects BenchmarkDotNet 0.16 generates, left behind by --keepFiles or an interrupted run
+.bdn/
 Fluid.Benchmarks/profile-output/

@@ -1,9 +1,4 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Jobs;
-#if NET11_0_OR_GREATER
-using BenchmarkDotNet.Toolchains.InProcess.Emit;
-#endif
 using System;
 using System.Buffers;
 using System.IO;
@@ -17,11 +12,7 @@ namespace Fluid.Benchmarks;
 // - GetBytes: Encoding.UTF8.GetBytes(value) into a new array, HashData returning a new array.
 // - Pooled: encodes into a stackalloc'ed buffer or an ArrayPool<byte> array, HashData writing to the stack. This is
 //   what the filters do on .NET.
-// - StringStream (net11.0): HashData reading a System.IO.StringStream, which encodes the string incrementally.
-//
-// Fluid.Benchmarks targets net10.0. To include StringStream:
-//
-//   dotnet run -c Release --project Fluid.Benchmarks --property:BenchmarkTargetFramework=net11.0 -- --filter '*HashingBenchmarks*'
+// - StringStream: HashData reading a System.IO.StringStream (.NET 11), which encodes the string incrementally.
 //
 // .NET 11.0.0, Apple M4 Pro. The other algorithms compare the same way.
 //
@@ -46,22 +37,9 @@ namespace Fluid.Benchmarks;
 // | Pooled       | SHA256    | 100000 | True     | 137,960.0 ns |  0.83 |     153 B |
 // | StringStream | SHA256    | 100000 | True     | 146,602.5 ns |  0.88 |     473 B |
 
-[MemoryDiagnoser, Config(typeof(Config))]
+[MemoryDiagnoser, ShortRunJob]
 public class HashingBenchmarks
 {
-    private sealed class Config : ManualConfig
-    {
-        public Config()
-        {
-#if NET11_0_OR_GREATER
-            // In process, since BenchmarkDotNet 0.15.8 can't generate a net11.0 project.
-            AddJob(Job.ShortRun.WithToolchain(InProcessEmitToolchain.Instance));
-#else
-            AddJob(Job.ShortRun);
-#endif
-        }
-    }
-
     public enum HashAlgorithm { MD5, SHA1, SHA256, HMACSHA1, HMACSHA256 }
 
     private const int MaxUtf8BytesPerChar = 3;
@@ -154,7 +132,6 @@ public class HashingBenchmarks
         return Convert.ToHexStringLower(hash.Slice(0, written));
     }
 
-#if NET11_0_OR_GREATER
     [Benchmark]
     public string StringStream()
     {
@@ -175,7 +152,6 @@ public class HashingBenchmarks
 
         return Convert.ToHexStringLower(hash.Slice(0, written));
     }
-#endif
 
 #pragma warning restore CA5351
 #pragma warning restore CA5350
