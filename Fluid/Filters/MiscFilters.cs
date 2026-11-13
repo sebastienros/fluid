@@ -780,11 +780,8 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("md5", expected: 0, arguments);
 
+        // An empty or nil input is hashed as an empty string, like Shopify does.
         var value = input.ToStringValue(context);
-        if (string.IsNullOrEmpty(value))
-        {
-            return StringValue.Empty;
-        }
 
         // c.f. HashingBenchmarks
 
@@ -812,11 +809,10 @@ public static class MiscFilters
 
     public static ValueTask<FluidValue> Sha1(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
+        LiquidException.ThrowFilterArgumentsCount("sha1", expected: 0, arguments);
+
+        // An empty or nil input is hashed as an empty string, like Shopify does.
         var value = input.ToStringValue(context);
-        if (string.IsNullOrEmpty(value))
-        {
-            return StringValue.Empty;
-        }
 
         // c.f. HashingBenchmarks
 
@@ -845,11 +841,8 @@ public static class MiscFilters
     {
         LiquidException.ThrowFilterArgumentsCount("sha256", expected: 0, arguments);
 
+        // An empty or nil input is hashed as an empty string, like Shopify does.
         var value = input.ToStringValue(context);
-        if (string.IsNullOrEmpty(value))
-        {
-            return StringValue.Empty;
-        }
 
         // c.f. HashingBenchmarks
 
@@ -870,20 +863,18 @@ public static class MiscFilters
 #endif
     }
 
-    public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("HMACSHA1", input, arguments, context);
+    public static ValueTask<FluidValue> HmacSha1(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("hmac_sha1", "HMACSHA1", input, arguments, context);
 
-    public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("HMACSHA256", input, arguments, context);
+    public static ValueTask<FluidValue> HmacSha256(FluidValue input, FilterArguments arguments, TemplateContext context) => ComputeHmac("hmac_sha256", "HMACSHA256", input, arguments, context);
 
-    private static ValueTask<FluidValue> ComputeHmac(string algorithm, FluidValue input, FilterArguments arguments, TemplateContext context)
+    private static ValueTask<FluidValue> ComputeHmac(string filter, string algorithm, FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        var key = arguments.At(0);
-        if (key.IsNil() || input.IsNil())
-        {
-            return StringValue.Empty;
-        }
+        // The key is required, so that a forgotten one doesn't sign the message with an empty key.
+        LiquidException.ThrowFilterArgumentsCount(filter, expected: 1, arguments);
 
+        // An empty or nil message, or key, is hashed as an empty string, like Shopify does.
         var value = input.ToStringValue(context);
-        var keyBytes = Encoding.UTF8.GetBytes(key.ToStringValue(context));
+        var keyBytes = Encoding.UTF8.GetBytes(arguments.At(0).ToStringValue(context));
 
 #if NET6_0_OR_GREATER
 #pragma warning disable CA5350
