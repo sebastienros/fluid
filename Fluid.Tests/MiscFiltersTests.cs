@@ -1254,8 +1254,11 @@ public class MiscFiltersTests
     }
 
     [Theory]
-    [InlineData(null, "Fluid", "")]
-    [InlineData("secret_key", null, "")]
+    // Like Shopify, a nil key or message is an empty string.
+    [InlineData(null, "Fluid", "47ab4d87fabf7a7162d59c57298780904de9e245")]
+    [InlineData("secret_key", null, "9ccad9184d941469b4e96cb84794e9bb488414d2")]
+    [InlineData("secret_key", "", "9ccad9184d941469b4e96cb84794e9bb488414d2")]
+    [InlineData(null, null, "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d")]
     [InlineData("", "", "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d")]
     [InlineData("", "Fluid", "47ab4d87fabf7a7162d59c57298780904de9e245")]
     [InlineData("secret_key", "Fluid", "1061ea276551355150b8581aa64dca829d41e357")]
@@ -1263,7 +1266,7 @@ public class MiscFiltersTests
     {
         // Arrange
         FluidValue input = value is null
-            ? EmptyValue.Instance
+            ? NilValue.Instance
             : StringValue.Create(value);
         var arguments = new FilterArguments(FluidValue.Create(key, TemplateOptions.Default));
         var context = new TemplateContext();
@@ -1276,8 +1279,11 @@ public class MiscFiltersTests
     }
 
     [Theory]
-    [InlineData(null, "Fluid", "")]
-    [InlineData("secret_key", null, "")]
+    // Like Shopify, a nil key or message is an empty string.
+    [InlineData(null, "Fluid", "e9f2db8bd3900c469e4b560227c5d53b48f644208a13de05bb400f7611d1a623")]
+    [InlineData("secret_key", null, "f304c11274cabc93abe79f3abb848b94026d3e1c9a49071ea96fbece9b9f2bb0")]
+    [InlineData("secret_key", "", "f304c11274cabc93abe79f3abb848b94026d3e1c9a49071ea96fbece9b9f2bb0")]
+    [InlineData(null, null, "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad")]
     [InlineData("", "", "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad")]
     [InlineData("", "Fluid", "e9f2db8bd3900c469e4b560227c5d53b48f644208a13de05bb400f7611d1a623")]
     [InlineData("secret_key", "Fluid", "ac08ee5cdd007e1069680e93eb512049f5ff12afd0fe101de5c9b5043a047ea4")]
@@ -1285,7 +1291,7 @@ public class MiscFiltersTests
     {
         // Arrange
         FluidValue input = value is null
-            ? EmptyValue.Instance
+            ? NilValue.Instance
             : StringValue.Create(value);
         var arguments = new FilterArguments(FluidValue.Create(key, TemplateOptions.Default));
         var context = new TemplateContext();
@@ -1295,6 +1301,74 @@ public class MiscFiltersTests
 
         // Assert
         Assert.Equal(expected, result.ToStringValue(context));
+    }
+
+    [Theory]
+    // Like Shopify, an empty or nil value is hashed as an empty string instead of rendering nothing.
+    [InlineData("{{ '' | md5 }}", "d41d8cd98f00b204e9800998ecf8427e")]
+    [InlineData("{{ nil | md5 }}", "d41d8cd98f00b204e9800998ecf8427e")]
+    [InlineData("{{ missing | md5 }}", "d41d8cd98f00b204e9800998ecf8427e")]
+    [InlineData("{{ empty | md5 }}", "d41d8cd98f00b204e9800998ecf8427e")]
+    [InlineData("{{ '' | sha1 }}", "da39a3ee5e6b4b0d3255bfef95601890afd80709")]
+    [InlineData("{{ nil | sha1 }}", "da39a3ee5e6b4b0d3255bfef95601890afd80709")]
+    [InlineData("{{ missing | sha1 }}", "da39a3ee5e6b4b0d3255bfef95601890afd80709")]
+    [InlineData("{{ blank | sha1 }}", "da39a3ee5e6b4b0d3255bfef95601890afd80709")]
+    [InlineData("{{ '' | sha256 }}", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")]
+    [InlineData("{{ nil | sha256 }}", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")]
+    [InlineData("{{ missing | sha256 }}", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")]
+    [InlineData("{{ nil | hmac_sha1: 'k' }}", "3a84a218ee6665209bb70e84525dd837645a1965")]
+    [InlineData("{{ missing | hmac_sha1: 'k' }}", "3a84a218ee6665209bb70e84525dd837645a1965")]
+    [InlineData("{{ '' | hmac_sha1: 'k' }}", "3a84a218ee6665209bb70e84525dd837645a1965")]
+    [InlineData("{{ 'a' | hmac_sha1: nil }}", "7f984109f39759f3f41dba04f5183741e36f1445")]
+    [InlineData("{{ 'a' | hmac_sha1: missing }}", "7f984109f39759f3f41dba04f5183741e36f1445")]
+    [InlineData("{{ 'a' | hmac_sha1: '' }}", "7f984109f39759f3f41dba04f5183741e36f1445")]
+    [InlineData("{{ nil | hmac_sha1: nil }}", "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d")]
+    [InlineData("{{ nil | hmac_sha256: 'k' }}", "8bb990c40a7d61cb97597a942125025be50ac8beb74436e3735b98893a7f6620")]
+    [InlineData("{{ missing | hmac_sha256: 'k' }}", "8bb990c40a7d61cb97597a942125025be50ac8beb74436e3735b98893a7f6620")]
+    [InlineData("{{ '' | hmac_sha256: 'k' }}", "8bb990c40a7d61cb97597a942125025be50ac8beb74436e3735b98893a7f6620")]
+    [InlineData("{{ 'a' | hmac_sha256: nil }}", "9615a95d4a336118c435b9cd54c5e8644ab956b573aa2926274a1280b6674713")]
+    [InlineData("{{ 'a' | hmac_sha256: missing }}", "9615a95d4a336118c435b9cd54c5e8644ab956b573aa2926274a1280b6674713")]
+    [InlineData("{{ 'a' | hmac_sha256: '' }}", "9615a95d4a336118c435b9cd54c5e8644ab956b573aa2926274a1280b6674713")]
+    [InlineData("{{ nil | hmac_sha256: nil }}", "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad")]
+    public async Task HashFiltersHashEmptyAndNilValues(string source, string expected)
+    {
+        Assert.Equal(expected, await new FluidParser().Parse(source).RenderAsync(new TemplateContext()));
+    }
+
+    [Theory]
+    // Like Shopify, the hash filters take no argument and the HMAC ones only a key, which is required.
+    [InlineData("{{ 'a' | md5: 1 }}", "Wrong number of arguments for 'md5' (given 1, expected 0)")]
+    [InlineData("{{ 'a' | sha1: 1 }}", "Wrong number of arguments for 'sha1' (given 1, expected 0)")]
+    [InlineData("{{ 'a' | sha256: 1 }}", "Wrong number of arguments for 'sha256' (given 1, expected 0)")]
+    [InlineData("{{ 'a' | hmac_sha1 }}", "Wrong number of arguments for 'hmac_sha1' (given 0, expected 1)")]
+    [InlineData("{{ 'a' | hmac_sha1: 'k', 1 }}", "Wrong number of arguments for 'hmac_sha1' (given 2, expected 1)")]
+    [InlineData("{{ 'a' | hmac_sha256 }}", "Wrong number of arguments for 'hmac_sha256' (given 0, expected 1)")]
+    [InlineData("{{ 'a' | hmac_sha256: 'k', 1 }}", "Wrong number of arguments for 'hmac_sha256' (given 2, expected 1)")]
+    public async Task HashFiltersCheckTheirArguments(string source, string expected)
+    {
+        var template = new FluidParser().Parse(source);
+        var exception = await Assert.ThrowsAsync<LiquidException>(() => template.RenderAsync(new TemplateContext()).AsTask());
+        Assert.Equal(expected, exception.Message);
+    }
+
+    [Fact]
+    public async Task HashFiltersHashAValueWithoutStringAsAnEmptyString()
+    {
+        // An object whose ToString() returns null has a null string value.
+        var input = FluidValue.Create(new NullToString(), TemplateOptions.Default);
+        Assert.Null(input.ToStringValue(new TemplateContext()));
+
+        await AssertHashesMatchUtf8BytesAsync(input, "", "secret_key");
+
+        var context = new TemplateContext();
+        var keyArguments = new FilterArguments(input);
+        Assert.Equal("7f984109f39759f3f41dba04f5183741e36f1445", (await MiscFilters.HmacSha1(StringValue.Create("a"), keyArguments, context)).ToStringValue(context));
+        Assert.Equal("9615a95d4a336118c435b9cd54c5e8644ab956b573aa2926274a1280b6674713", (await MiscFilters.HmacSha256(StringValue.Create("a"), keyArguments, context)).ToStringValue(context));
+    }
+
+    private sealed class NullToString
+    {
+        public override string ToString() => null;
     }
 
     // Hashes of the UTF-8 bytes, from Python's hashlib and hmac.
