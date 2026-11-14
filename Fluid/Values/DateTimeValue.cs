@@ -59,17 +59,8 @@ public sealed class DateTimeValue : FluidValue
 
     public override bool Equals(FluidValue other)
     {
-        if (other.IsNil())
-        {
-            return false;
-        }
-
-        if (other.Type != FluidValues.DateTime)
-        {
-            return false;
-        }
-
-        return _value.Equals(((DateTimeValue)other)._value);
+        // Other values have the DateTime type too, like a TimeSpanValue.
+        return other is DateTimeValue dateTimeValue && _value.Equals(dateTimeValue._value);
     }
 
     public override bool ToBooleanValue(TemplateContext context)

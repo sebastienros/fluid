@@ -117,7 +117,16 @@ public sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
                 JsonSerializer.Serialize(writer, actualValue.ToObjectValue(context), options);
                 break;
             case FluidValues.DateTime:
-                writer.WriteStringValue((DateTimeOffset)actualValue.ToObjectValue(context));
+                switch (actualValue.ToObjectValue(context))
+                {
+                    case DateTimeOffset dateTimeOffset:
+                        writer.WriteStringValue(dateTimeOffset);
+                        break;
+                    default:
+                        // A time span, or another kind of date, is written like it renders: "13:00:00".
+                        writer.WriteStringValue(actualValue.ToStringValue(context));
+                        break;
+                }
                 break;
             case FluidValues.String:
                 writer.WriteStringValue(actualValue.ToStringValue(context));

@@ -708,10 +708,12 @@ public class MiscFiltersTests
     }
 
     [Theory]
-    [InlineData("0", "1969-12-31T19:00:00.000-05:00")]
-    [InlineData("1:2", "1969-12-31T20:02:00.000-05:00")]
-    [InlineData("1:2:3.1", "1969-12-31T20:02:03.100-05:00")]
-    public async Task DateTimeSpanIsParsedWithLocalTimeZone(string timespan, string expected)
+    [InlineData("0", "1970-01-01T00:00:00.000-05:00")]
+    [InlineData("1:2", "1970-01-01T01:02:00.000-05:00")]
+    [InlineData("1:2:3.1", "1970-01-01T01:02:03.100-05:00")]
+    [InlineData("1.2:3", "1970-01-02T02:03:00.000-05:00")]
+    [InlineData("-1:00", "1969-12-31T23:00:00.000-05:00")]
+    public async Task DateTimeSpanIsATimeOfDayInTheTimeZone(string timespan, string expected)
     {
         var options = new TemplateOptionsBuilder().WithTimeZone(Eastern).Build();
         var input = FluidValue.Create(TimeSpan.Parse(timespan), options);
