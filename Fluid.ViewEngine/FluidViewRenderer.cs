@@ -24,7 +24,11 @@ public class FluidViewRenderer : IFluidViewRenderer
 
     private sealed record AsyncTemplateCacheEntry(
         IFluidTemplate Template,
-        IReadOnlyList<TemplateSourceVersion> Sources);
+        IReadOnlyList<TemplateSourceVersion> Sources,
+        // Whether the template, without its view starts, contains a layout tag.
+        bool HasLayoutTag);
+
+    private static readonly AsyncTemplateCacheEntry EmptyTemplateEntry = new(new FluidTemplate(), [], HasLayoutTag: false);
 
     private readonly record struct TemplateSourceVersion(
         string Path,
@@ -84,7 +88,7 @@ public class FluidViewRenderer : IFluidViewRenderer
         context.AmbientValues[Constants.SectionsIndex] = null; // it is lazily initialized when first used
         context.AmbientValues[Constants.RendererIndex] = this;
 
-        var template = await GetFluidTemplateAsync(relativePath, _viewsFileProvider, true, context);
+        var template = (await GetTemplateEntryAsync(relativePath, _viewsFileProvider, true, context)).Template;
 
         if (_fluidViewEngineOptions.RenderingViewAsync != null)
         {
@@ -98,31 +102,52 @@ public class FluidViewRenderer : IFluidViewRenderer
 
         var body = await template.RenderAsync(context, _fluidViewEngineOptions.TextEncoder, isolateContext: false);
 
-        // If a layout is specified while rendering a view, execute it
-        if (context.AmbientValues.TryGetValue(Constants.LayoutIndex, out var layoutPath) && layoutPath is string layoutPathString && !String.IsNullOrEmpty(layoutPathString))
+        // Apply the layout specified while rendering the view, then the layout each layout specifies, if any.
+        var currentPath = relativePath;
+        List<string> bufferedLayouts = null;
+
+        while (context.AmbientValues.TryGetValue(Constants.LayoutIndex, out var layoutPath) && layoutPath is string layoutPathString && !String.IsNullOrEmpty(layoutPathString))
         {
+            // A nested layout is resolved from the location of the layout that declares it.
             layoutPathString = await ResolveLayoutPathAsync(
-                relativePath,
+                currentPath,
                 layoutPathString,
                 _viewsFileProvider,
                 context);
 
+            if (bufferedLayouts != null && bufferedLayouts.Contains(layoutPathString))
+            {
+                throw new InvalidOperationException($"Circular layout reference: the layout '{layoutPathString}' is applied more than once.");
+            }
+
             context.AmbientValues[Constants.ViewPathIndex] = layoutPathString;
             context.AmbientValues[Constants.BodyIndex] = body;
 
+            // Cleared so that the layout can specify its own layout.
+            context.AmbientValues[Constants.LayoutIndex] = null;
+
             // Parse the Layout file but ignore viewstarts
-            var layoutTemplate = await GetFluidTemplateAsync(
+            var layout = await GetTemplateEntryAsync(
                 layoutPathString,
                 _viewsFileProvider,
                 includeViewStarts: false,
                 context);
 
-            await layoutTemplate.RenderAsync(output, _fluidViewEngineOptions.TextEncoder, context);
+            if (!layout.HasLayoutTag)
+            {
+                // The outermost layout, which is the only one in most cases, is rendered without buffering.
+                await layout.Template.RenderAsync(output, _fluidViewEngineOptions.TextEncoder, context);
+                return;
+            }
+
+            // The layout might apply another layout, in which case its output is the body of the next one.
+            body = await layout.Template.RenderAsync(context, _fluidViewEngineOptions.TextEncoder, isolateContext: false);
+
+            (bufferedLayouts ??= new List<string>()).Add(layoutPathString);
+            currentPath = layoutPathString;
         }
-        else
-        {
-            output.Write(body);
-        }
+
+        output.Write(body);
     }
 
     public virtual async Task RenderPartialAsync(TextWriter writer, string relativePath, TemplateContext context)
@@ -160,11 +185,11 @@ public class FluidViewRenderer : IFluidViewRenderer
             await _fluidViewEngineOptions.RenderingViewAsync.Invoke(relativePath, context);
         }
 
-        var template = await GetFluidTemplateAsync(
+        var template = (await GetTemplateEntryAsync(
             relativePath,
             _partialsFileProvider,
             includeViewStarts: false,
-            context);
+            context)).Template;
 
         await template.RenderAsync(output, _fluidViewEngineOptions.TextEncoder, context);
     }
@@ -214,7 +239,7 @@ public class FluidViewRenderer : IFluidViewRenderer
         return layoutPath;
     }
 
-    private async ValueTask<IFluidTemplate> GetFluidTemplateAsync(
+    private async ValueTask<AsyncTemplateCacheEntry> GetTemplateEntryAsync(
         string path,
         ITemplateFileProvider fileProvider,
         bool includeViewStarts,
@@ -223,7 +248,7 @@ public class FluidViewRenderer : IFluidViewRenderer
         var source = await fileProvider.GetFileInfoAsync(path, context, context.CancellationToken);
         if (source == null)
         {
-            return new FluidTemplate();
+            return EmptyTemplateEntry;
         }
 
         var sources = new List<ResolvedTemplateSource>();
@@ -242,7 +267,7 @@ public class FluidViewRenderer : IFluidViewRenderer
                 sources,
                 _fluidViewEngineOptions.TrackFileChanges))
         {
-            return cachedTemplate.Template;
+            return cachedTemplate;
         }
 
         var subTemplates = new List<IFluidTemplate>(sources.Count * 2);
@@ -256,10 +281,11 @@ public class FluidViewRenderer : IFluidViewRenderer
                 return Statement.NormalCompletion;
             })));
 
-            subTemplates.Add(await GetFluidTemplateAsync(viewStartPath, fileProvider, includeViewStarts: false, context));
+            subTemplates.Add((await GetTemplateEntryAsync(viewStartPath, fileProvider, includeViewStarts: false, context)).Template);
         }
 
-        subTemplates.Add(await ParseTemplateSourceAsync(source, context.CancellationToken));
+        var parsedTemplate = await ParseTemplateSourceAsync(source, context.CancellationToken);
+        subTemplates.Add(parsedTemplate);
 
         IFluidTemplate template = new CompositeFluidTemplate(subTemplates);
 
@@ -277,8 +303,9 @@ public class FluidViewRenderer : IFluidViewRenderer
                 sources[i].Source.LastModified);
         }
 
-        cache.TemplateCache[cacheKey] = new AsyncTemplateCacheEntry(template, versions);
-        return template;
+        var entry = new AsyncTemplateCacheEntry(template, versions, LayoutTagFinder.HasLayoutTag(parsedTemplate));
+        cache.TemplateCache[cacheKey] = entry;
+        return entry;
     }
 
     private static bool SourcesMatch(
@@ -338,6 +365,37 @@ public class FluidViewRenderer : IFluidViewRenderer
 
         viewStarts.Reverse();
         return viewStarts;
+    }
+
+    /// <summary>
+    /// Finds whether a template contains a <c>layout</c> tag, in which case it is buffered when used as a layout.
+    /// </summary>
+    private sealed class LayoutTagFinder : AstVisitor
+    {
+        private bool _found;
+
+        public static bool HasLayoutTag(IFluidTemplate template)
+        {
+            // A template that can't be inspected is assumed to contain one.
+            if (template is not IStatementList)
+            {
+                return true;
+            }
+
+            var finder = new LayoutTagFinder();
+            finder.VisitTemplate(template);
+            return finder._found;
+        }
+
+        protected override Statement VisitParserTagStatement<T>(ParserTagStatement<T> parserTagStatement)
+        {
+            if (parserTagStatement.TagName == "layout")
+            {
+                _found = true;
+            }
+
+            return parserTagStatement;
+        }
     }
 
     private async ValueTask<IFluidTemplate> ParseTemplateSourceAsync(

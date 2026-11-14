@@ -1499,6 +1499,20 @@ From a layout template, the `{% renderbody %}` tag is used to depict the locatio
 </html>
 ```
 
+#### Nested layouts
+
+A layout can itself use a `{% layout %}` tag, for instance a `_columns.liquid` layout that renders its own content inside `_layout.liquid`. Layouts are applied from the innermost to the outermost, and the path of a nested layout is resolved from the location of the layout that declares it. Sections defined by a view or by any of its layouts can be rendered by any outer layout. A layout that ends up applying itself again throws an `InvalidOperationException`.
+
+```Liquid
+{% layout '_layout.liquid' %}
+
+<div class="columns">
+  {% renderbody %}
+</div>
+```
+
+A layout without a `{% layout %}` tag is rendered directly to the output. A layout that has one is buffered so it can become the body of the next layout. Only a tag in the layout file itself is detected, so a layout that only gets one from a partial or an include it renders ignores it.
+
 ### Sections
 
 Sections are defined in a layout for views to render content in specific locations. For instance, a view can render some content in a **menu** or a **footer** section.
