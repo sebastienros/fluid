@@ -32,6 +32,9 @@ public sealed partial class App : IAsyncDisposable
     private double? _readyMs;
     private string _shareLabel = "Share";
     private string _copyLabel = "Copy";
+    private string _outputFormat = "auto";
+    private PlaygroundLanguage? _outputLanguage;
+    private string? _outputHtml;
 
     private IJSObjectReference? _module;
     private CancellationTokenSource? _pending;
@@ -42,6 +45,9 @@ public sealed partial class App : IAsyncDisposable
 
     [Inject]
     private IJSRuntime JS { get; set; } = null!;
+
+    [Inject]
+    private PlaygroundHighlighter Highlighter { get; set; } = null!;
 
     private PlaygroundState State => new()
     {
@@ -94,7 +100,40 @@ public sealed partial class App : IAsyncDisposable
     private async Task RenderNowAsync()
     {
         _result = await Engine.RenderAsync(State);
+        HighlightOutput();
     }
+
+    // Colors the output in the selected format, or in the detected one with "auto". Plain text and long outputs aren't.
+    private void HighlightOutput()
+    {
+        var output = _result?.Error is null ? _result?.Output ?? "" : "";
+        _outputLanguage = _outputFormat switch
+        {
+            "html" => PlaygroundLanguage.Html,
+            "json" => PlaygroundLanguage.Json,
+            "xml" => PlaygroundLanguage.Xml,
+            "text" => null,
+            _ => PlaygroundOutputFormat.Detect(output),
+        };
+
+        _outputHtml = _outputLanguage is { } language && output.Length > 0 && output.Length <= PlaygroundOutputFormat.MaxLength
+            ? Highlighter.ToHtml(output, language)
+            : null;
+    }
+
+    private void OnOutputFormatChanged(ChangeEventArgs e)
+    {
+        _outputFormat = e.Value?.ToString() ?? "auto";
+        HighlightOutput();
+    }
+
+    private static string FormatName(PlaygroundLanguage? language) => language switch
+    {
+        PlaygroundLanguage.Html => "HTML",
+        PlaygroundLanguage.Json => "JSON",
+        PlaygroundLanguage.Xml => "XML",
+        _ => "plain text",
+    };
 
     // Renders again after a pause, so that typing doesn't render on every key.
     private async Task ScheduleRenderAsync(bool custom = true)
