@@ -1067,6 +1067,12 @@ internal sealed class LiquidSortComparer : IComparer<FluidValue>
             return xNum.CompareTo(yNum);
         }
 
+        // Time spans are sorted by duration: as text, "1.02:00:00" (26 hours) would come before "13:00:00"
+        if (x is TimeSpanValue && y is TimeSpanValue)
+        {
+            return ((TimeSpan)x.ToObjectValue(_context)).CompareTo((TimeSpan)y.ToObjectValue(_context));
+        }
+
         // Otherwise, compare as strings
         var xStr = x.ToStringValue(_context);
         var yStr = y.ToStringValue(_context);

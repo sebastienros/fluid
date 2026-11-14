@@ -174,8 +174,7 @@ public abstract class FluidValue : IEquatable<FluidValue>
                         return DateTimeValue.Create(dateTimeOffset);
 
                     case TimeSpan timeSpan:
-                        var baseDateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)timeSpan.TotalMilliseconds).ToOffset(options.TimeZone.BaseUtcOffset);
-                        return DateTimeValue.Create(baseDateTime);
+                        return TimeSpanValue.Create(timeSpan);
 
                     case IConvertible convertible:
                         var typeCode = convertible.GetTypeCode();

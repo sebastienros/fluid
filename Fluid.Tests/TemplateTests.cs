@@ -414,8 +414,7 @@ public class TemplateTests
     [Fact]
     public async Task ShouldEvaluateTimeSpanValue()
     {
-        // TimeSpan should be converted to DateTimeValue
-        // Then a DateTimeValue is rendered as Universal Sortable Date/Time (u)
+        // A TimeSpan renders in its constant ("c") format, whatever the time zone
 
         _parser.TryParse("{{ x }}", out var template, out var _);
         var context = new TemplateContext { TimeZone = Eastern };
@@ -423,7 +422,7 @@ public class TemplateTests
         context.SetValue("x", oneHour);
 
         var result = await template.RenderAsync(context);
-        Assert.Equal("1970-01-01 01:00:00Z", result);
+        Assert.Equal("01:00:00", result);
     }
 
     [Fact]

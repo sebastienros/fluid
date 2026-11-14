@@ -364,6 +364,8 @@ The time zone, set with `TemplateOptionsBuilder.WithTimeZone()` or `TemplateCont
 {{ published | time_zone: 'America/New_York' | date: '%+' }}
 ```
 
+A `TimeSpan` renders like `13:00:00`, and the date filters read it as a time of day in that time zone, so `{{ opening | date: '%H:%M %z' }}` renders `13:00 -0500` in New York.
+
 See [Cultures, dates and time zones](https://sebastienros.github.io/fluid/guide/localization/) and [Working with time zones](https://sebastienros.github.io/fluid/guide/time-zones/).
 
 <br>

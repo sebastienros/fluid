@@ -62,6 +62,30 @@ var result = template.Render(context);
 
 The date is rendered in UTC because that's what the `DateTime` object contains. The context's `TimeZone` property has no effect on rendering.
 
+### Time Spans
+
+A `TimeSpan` is a time of day or a duration, not a moment, so it has no time zone of its own. It renders in its constant format, like `13:00:00` or `1.02:00:00` for 26 hours:
+
+```csharp
+var context = new TemplateContext
+{
+    TimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/New_York")
+};
+
+context.SetValue("opening", TimeSpan.FromHours(13));
+```
+
+```liquid
+{{ opening }}                              → 13:00:00
+{{ opening | date: '%H:%M %z' }}           → 13:00 -0500
+{{ opening | format_date: 'HH:mm K' }}     → 13:00 -05:00
+{{ opening | time_zone: 'Europe/Berlin' | date: '%H:%M' }} → 19:00
+```
+
+The date filters (`date`, `format_date` and `time_zone`) read it as that time on January 1, 1970, in the time zone of the context, so the clock time is kept whatever the time zone. As a number, for instance with `plus`, it is a number of seconds: `{{ opening | divided_by: 60 }}` renders `780`. In .NET, `ToObjectValue()` returns the `TimeSpan`.
+
+> **Breaking change:** Fluid used to convert a `TimeSpan` to the moment this long after 1970-01-01 00:00 UTC, in the time zone of the options, ignoring `TemplateContext.TimeZone`. It rendered like `1970-01-01 13:00:00Z`, `ToObjectValue()` returned a `DateTimeOffset`, and `13:00` was formatted as `08:00 -05:00` in New York.
+
 ## The TimeZone Property
 
 The `TimeZone` property is available in both `TemplateOptions` and `TemplateContext`:
@@ -359,6 +383,7 @@ foreach (var tz in TimeZoneInfo.GetSystemTimeZones())
 | Scenario | Solution |
 |----------|----------|
 | Parse date strings without time zone info | Set `TemplateContext.TimeZone` |
+| Format a `TimeSpan` as a time of day | Use the `date` or `format_date` filter, in the context's time zone |
 | Display dates in a specific time zone | Use `{{ date \| time_zone: 'timezone-id' }}` filter |
 | Display dates in the context's time zone | Use `{{ date \| time_zone: 'local' }}` filter |
 | Resolve identifiers with a custom library | Set `TemplateOptionsBuilder.WithTimeZoneResolver()` |

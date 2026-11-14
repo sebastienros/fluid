@@ -108,14 +108,16 @@ public class FluidValueFactoryTests
     }
 
     [Fact]
-    public void TimeSpanConversionShouldUseConfiguredTimeZone()
+    public void TimeSpanConversionShouldKeepTheTimeSpan()
     {
         var zone = TimeZoneInfo.CreateCustomTimeZone("FactoryTests", TimeSpan.FromHours(2), "FactoryTests", "FactoryTests");
         var options = new TemplateOptionsBuilder().WithTimeZone(zone).Build();
         var span = TimeSpan.FromHours(1);
-        var expected = DateTimeOffset.FromUnixTimeMilliseconds((long)span.TotalMilliseconds).ToOffset(zone.BaseUtcOffset);
 
-        Assert.Equal(expected, FluidValue.Create(span, options).ToObjectValue(new TemplateContext()));
+        var value = FluidValue.Create(span, options);
+
+        Assert.IsType<TimeSpanValue>(value);
+        Assert.Equal(span, value.ToObjectValue(new TemplateContext(options)));
     }
 
     [Fact]

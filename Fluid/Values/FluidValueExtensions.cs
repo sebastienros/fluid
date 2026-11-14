@@ -111,9 +111,13 @@ public static class FluidValueExtensions
                 return false;
             }
         }
-        else if (input.Type == FluidValues.DateTime)
+        else if (input is DateTimeValue)
         {
             result = (DateTimeOffset)input.ToObjectValue(context);
+        }
+        else if (input is TimeSpanValue timeSpan)
+        {
+            return timeSpan.TryGetDateTimeOffset(context, out result);
         }
         else
         {
