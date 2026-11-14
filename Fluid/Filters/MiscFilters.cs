@@ -528,7 +528,7 @@ namespace Fluid.Filters
                             case 'M':
                                 result.Append(Format(value.Minute, 2));
                                 break;
-                            case 'n': result.Append(new String('\n', width ?? 1)); break;
+                            case 'n': result.Append('\n', width ?? 1); break;
                             case 'N':
                                 width ??= 9;
                                 var v = (value.Ticks % 10000000).ToString(context.CultureInfo);
@@ -554,7 +554,7 @@ namespace Fluid.Filters
                             case 'S':
                                 result.Append(Format(value.Second, 2));
                                 break;
-                            case 't': result.Append(new String('\t', width ?? 1)); break;
+                            case 't': result.Append('\t', width ?? 1); break;
                             case 'T':
                                 {
                                     var sb = new StringBuilder();
