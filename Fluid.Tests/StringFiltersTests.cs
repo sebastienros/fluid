@@ -573,7 +573,7 @@ world
     [InlineData(@"{{ 'a.b' | replace: '.', '\\' }}|{{ 'abc' | replace: 'b', '[\0]' }}|{{ 'abc' | replace_first: 'b', '\&\&' }}|{{ 'abc' | replace_last: 'b', '<\0>' }}", @"a\b|a[b]c|abbc|a<\0>c")]
     [InlineData(@"{{ 'abcb' | replace: 'b', ""<\`|\'>"" }}|{{ 'abc' | replace: 'b', '\1\9\k\x\' }}|{{ 'ab' | replace: '', '<\0\`>' }}|{{ '' | replace: '', '\&x' }}", @"a<a|cb>c<abc|>|a\k\x\c|<>a<a>b<ab>|x")]
     // Like Liquid, base64_encode gets back the bytes decoded by base64_decode, even when they aren't UTF-8.
-    [InlineData("{{ '/w==' | base64_decode | base64_encode }}|{% assign b = 'true' | base64_decode %}{{ b | base64_encode }}|{{ '/w' | base64_url_safe_decode | base64_url_safe_encode }}|{{ 'aGk=' | base64_decode }}", "/w==|true|_w==|hi")]
+    [InlineData("{{ '/w==' | base64_decode | base64_encode }}|{% assign b = 'true' | base64_decode %}{{ b | base64_encode }}|{{ '/w' | base64_url_safe_decode | base64_url_safe_encode }}|{{ 'aGk=' | base64_decode }}", "/w==|true|_w|hi")]
     // Like Liquid, replace with an empty string inserts between characters, never inside a surrogate pair.
     [InlineData(@"{{ 'a😀b' | replace: '', '-' }}|{{ '🇫🇷' | replace: '', '-' }}|{{ 'a😀' | replace: '', '\0.' }}|{{ 'ab' | replace: '', '-' }}", "-a-😀-b-|-🇫-🇷-|.a.😀.|-a-b-")]
     // Like Liquid, h is an alias of escape.

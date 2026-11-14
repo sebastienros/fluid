@@ -23,6 +23,9 @@ public class GoldenLiquidTests
         // e.g. ["id:negative_float"] = "reason for skipping single test",
         // e.g. ["tag:[tag]"] = "reason for skipping category of tests",
 
+        // Shopify's base64_url_safe_encode omits the '=' padding, like Fluid: https://github.com/Shopify/liquid/pull/1921 (fixes https://github.com/Shopify/liquid/issues/1862)
+        ["id:filters_base64_url_safe_encode_from_string"] = "Test expects '=' padding; Fluid omits it like https://github.com/Shopify/liquid/pull/1921",
+        ["id:filters_base64_url_safe_encode_not_a_string"] = "Test expects '=' padding; Fluid omits it like https://github.com/Shopify/liquid/pull/1921",
         ["id:filters_date_missing_argument"] = "Test expects an error, but Shopify renders the date with a default format",
 
         ["tag:strict2"] = "Fluid uses lenient parsing mode; strict2 mode not implemented",

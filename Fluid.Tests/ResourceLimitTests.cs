@@ -125,9 +125,9 @@ public class ResourceLimitTests
     public async Task ExactBase64UrlSafeOutputWithinLimitIsAllowed()
     {
         var template = new FluidParser().Parse("{{ '1' | base64_url_safe_encode }}");
-        var context = new TemplateContext { MaxOutputSize = 4 };
+        var context = new TemplateContext { MaxOutputSize = 2 };
 
-        Assert.Equal("MQ==", await template.RenderAsync(context));
+        Assert.Equal("MQ", await template.RenderAsync(context));
     }
 
     [Fact]
