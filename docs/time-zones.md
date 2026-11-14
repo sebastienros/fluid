@@ -378,5 +378,5 @@ foreach (var tz in TimeZoneInfo.GetSystemTimeZones())
 - [TimeZoneInfo.FindSystemTimeZoneById](https://learn.microsoft.com/dotnet/api/system.timezoneinfo.findsystemtimezonebyid) - Default time zone resolution
 - [TimeZoneConverter Library](https://github.com/mattjohnsonpint/TimeZoneConverter) - Optional resolver for additional compatibility
 - [IANA Time Zone Database](https://www.iana.org/time-zones) - Standard time zone identifiers
-- [Fluid README - Time zones section](README.md#time-zones) - Quick reference
-- [Fluid README - Value Converters section](README.md#adding-a-value-converter) - More on value converters
+- [Cultures, dates and time zones](localization.md) - How date strings are parsed
+- [Adding a value converter](models-and-values.md#adding-a-value-converter) - More on value converters

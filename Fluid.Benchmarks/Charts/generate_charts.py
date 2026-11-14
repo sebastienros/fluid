@@ -1,4 +1,4 @@
-"""Regenerates the README benchmark charts (Assets/benchmark-*.svg and .png).
+"""Regenerates the benchmark charts (Assets/benchmark-*.svg and .png).
 
 Run the comparison benchmarks first, from the repository root:
 

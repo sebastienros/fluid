@@ -18,7 +18,7 @@ The generator can't be used for:
 - Types that aren't known at compile time, for example types loaded from a plugin assembly.
 - Types the generated code can't reference: private or protected nested types, `file` types and anonymous types.
 
-Those types still work through reflection or an [explicit registration](../README.md#custom-member-accessors).
+Those types still work through reflection or an [explicit registration](models-and-values.md#custom-member-accessors).
 
 ## Registering types
 
