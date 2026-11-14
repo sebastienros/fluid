@@ -1,0 +1,61 @@
+---
+layout: base.html
+---
+{%- assign nav = sidebar | nav_active: url -%}
+{%- assign section = nil -%}
+{%- for item in nav -%}{%- if item.open or item.active -%}{%- assign section = item -%}{%- endif -%}{%- endfor -%}
+{%- assign pn = sidebar | nav_prev_next: url -%}
+{%- assign crumbs = sidebar | nav_breadcrumbs: url -%}
+{%- assign clean_url = url | replace: "index.html", "" -%}
+{%- assign source = clean_url | remove_first: "/" | remove_last: "/" | append: ".md" -%}
+{%- if meta.index_pages contains clean_url -%}{%- assign source = clean_url | remove_first: "/" | append: "index.md" -%}{%- endif -%}
+<div class="doc-shell">
+  <aside class="sidebar" id="sidebar" aria-label="{{ section.label | default: 'Documentation' }}">
+    <nav class="sidebar__nav">
+      <p class="sidebar__section">{{ section.label | default: "Documentation" }}</p>
+      {%- for group in section.items %}
+      {%- if group.items %}
+      <details class="sidebar__group"{% unless group.collapsed and group.open != true %} open{% endunless %}>
+        <summary>{{ group.label }}</summary>
+        <ul>
+          {%- for item in group.items %}
+          <li><a href="{{ item.link }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.label }}</a></li>
+          {%- endfor %}
+        </ul>
+      </details>
+      {%- else %}
+      <a class="sidebar__single" href="{{ group.link }}"{% if group.active %} aria-current="page"{% endif %}>{{ group.label }}</a>
+      {%- endif %}
+      {%- endfor %}
+    </nav>
+  </aside>
+  <main class="doc" id="main">
+    <article class="doc__article" data-pagefind-body>
+      {%- if crumbs.size > 1 %}
+      <p class="doc__eyebrow" data-pagefind-ignore>{% for c in crumbs %}{% unless forloop.last %}<span>{{ c.label }}</span>{% endunless %}{% endfor %}</p>
+      {%- endif %}
+      <h1 class="doc__title">{{ title }}</h1>
+      {%- if description %}
+      <p class="doc__lede">{{ description }}</p>
+      {%- endif %}
+      <div class="prose">
+        {{ content | raw }}
+      </div>
+    </article>
+    <footer class="doc__footer" data-pagefind-ignore>
+      {%- if pn.prev or pn.next %}
+      <nav class="pager" aria-label="Previous and next pages">
+        {%- if pn.prev %}<a class="pager__link pager__link--prev" href="{{ pn.prev.link }}"><span>Previous</span>{{ pn.prev.label }}</a>{% else %}<span></span>{% endif %}
+        {%- if pn.next %}<a class="pager__link pager__link--next" href="{{ pn.next.link }}"><span>Next</span>{{ pn.next.label }}</a>{% endif %}
+      </nav>
+      {%- endif %}
+      <p class="doc__meta"><a href="{{ meta.edit }}_content/{{ source }}">Edit this page on GitHub</a><span>Built with <a href="https://sebastienros.github.io/douze/">Douze</a></span></p>
+    </footer>
+  </main>
+  <aside class="outline" aria-label="On this page">
+    {%- if toc.size > 0 %}
+    <p class="outline__title">On this page</p>
+    {{ toc | toc: class: "outline__list", max-depth: 3 | raw }}
+    {%- endif %}
+  </aside>
+</div>

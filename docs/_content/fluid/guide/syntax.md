@@ -1,6 +1,7 @@
-# Liquid syntax
-
-How Fluid reads templates like Shopify Liquid, and the syntax extensions that can be enabled.
+---
+title: Liquid syntax
+description: "How Fluid reads templates like Shopify Liquid, and the syntax extensions that can be enabled."
+---
 
 ## Shopify Liquid syntax
 

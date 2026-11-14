@@ -88,10 +88,16 @@ Performance is a primary goal (competes with DotLiquid, Scriban, Handlebars.Net)
 
 ### Benchmark results
 
-On a quiet machine, run `dotnet run -c Release --project Fluid.Benchmarks -- --filter '*ComparisonBenchmarks*'`, then `python3 Fluid.Benchmarks/Charts/generate_charts.py` to regenerate `Assets/benchmark-*.svg` and `.png` from the report (PNGs need Chrome or Edge). Then update `docs/benchmarks.md` by hand: the summary sentences, test date, package versions and the Benchmark.NET table, and the README "Performance" summary if the conclusion changes.
+On a quiet machine, run `dotnet run -c Release --project Fluid.Benchmarks -- --filter '*ComparisonBenchmarks*'`, then `python3 Fluid.Benchmarks/Charts/generate_charts.py` to regenerate `docs/_content/fluid/assets/benchmarks/benchmark-*.svg` and `.png` from the report (PNGs need Chrome or Edge). Then update `docs/_content/fluid/benchmarks.md` by hand: the summary sentences, test date, package versions and the Benchmark.NET table, and the README "Performance" summary if the conclusion changes.
 
-The "Compiled templates and static engines" section of `docs/benchmarks.md` comes from `--filter '*StaticRenderingBenchmarks*'` (Fluid's compiled templates, RazorSlices and Lissic against a parsed template): `generate_charts.py` regenerates its `Assets/benchmark-static-*` charts from that report too, then update its summary, versions and table by hand. The script skips the charts of a report that wasn't generated.
+The "Compiled templates and static engines" section of that page comes from `--filter '*StaticRenderingBenchmarks*'` (Fluid's compiled templates, RazorSlices and Lissic against a parsed template): `generate_charts.py` regenerates its `benchmark-static-*` charts from that report too, then update its summary, versions and table by hand. The script skips the charts of a report that wasn't generated.
 
 ## Documentation
 
-`README.md` is both the quick start guide and the NuGet readme: it introduces every feature with a short example and links to the `docs/` files for the details. Update it for any template-visible behavior change, and put details (options, edge cases, compatibility notes, breaking changes) in the matching `docs/` file. The README is rendered on nuget.org, so its links to `docs/` and images use absolute `https://github.com/sebastienros/fluid/blob/main/...` URLs; links between `docs/` files are relative.
+`README.md` is both the quick start guide and the NuGet readme: it introduces every feature with a short example and links to the documentation site for the details. Update it for any template-visible behavior change, and put details (options, edge cases, compatibility notes, breaking changes) in the matching page of the site. The README is rendered on nuget.org, so its links and images use absolute URLs: `https://sebastienros.github.io/fluid/...` for pages, `https://github.com/sebastienros/fluid/raw/main/...` for images.
+
+The documentation site (https://sebastienros.github.io/fluid/) is built by [Douze](https://sebastienros.github.io/douze/) from `docs/`, and deployed with the playground by `.github/workflows/docs.yml`; `docs/README.md` explains how to build and preview it.
+
+- Pages are Markdown files in `docs/_content/fluid/` with a `title` and a `description` in their front matter, and the sidebar lists them in `docs/_data/sidebar.yml`. Links between pages are relative links to the `.md` files; Douze checks them, and the anchors, on every build.
+- Page content is not Liquid (`liquid: false` in `docs/_content/fluid/fluid.yml`), so Liquid samples are written as they are.
+- `Fluid.Playground` (Blazor WebAssembly) is the playground, and `Fluid.Playground.Core` its logic, tested by `Fluid.Tests/Playground`. Options worth trying in the browser go in `PlaygroundOptions`, and samples in `PlaygroundSamples`. .NET's WebAssembly runtime has no MD5, so the `md5` filter fails there.

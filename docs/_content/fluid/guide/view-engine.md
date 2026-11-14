@@ -1,6 +1,7 @@
-# View engines
-
-Using Liquid views with ASP.NET Core MVC, or with the MVC-agnostic `Fluid.ViewEngine` package.
+---
+title: View engines
+description: "Using Liquid views with ASP.NET Core MVC, or with the MVC-agnostic `Fluid.ViewEngine` package."
+---
 
 ## ASP.NET MVC View Engine
 

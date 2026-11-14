@@ -30,6 +30,7 @@
                       ReferenceOutputAssembly="true" />
     <ProjectReference Include="..\Fluid.ViewEngine\Fluid.ViewEngine.csproj" />
     <ProjectReference Include="..\Fluid\Fluid.csproj" />
+    <ProjectReference Include="..\Fluid.Playground.Core\Fluid.Playground.Core.csproj" />
   </ItemGroup>
 
 </Project>

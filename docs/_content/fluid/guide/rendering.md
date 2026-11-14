@@ -1,6 +1,7 @@
-# Parsing and rendering
-
-Details about parsing errors, scopes, undefined values, file providers, encoding and rendering performance.
+---
+title: Parsing and rendering
+description: "Details about parsing errors, scopes, undefined values, file providers, encoding and rendering performance."
+---
 
 ## Parsing errors
 

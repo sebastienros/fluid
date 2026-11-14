@@ -1,8 +1,11 @@
-# Model accessor generator
+---
+title: Model accessor generator
+description: "Generate the code that reads the members of your models, so that templates render without reflection."
+---
 
 The model accessor generator writes the code that reads the members of your .NET types, so that Fluid doesn't need reflection to render them. It is part of the `Fluid.SourceGenerator` package and is unrelated to the [compiled template generator](template-generator.md).
 
-The basic usage is described in the [README](../README.md#model-accessors). This document covers the details.
+The basic usage is described in the [README](https://github.com/sebastienros/fluid#model-accessors). This document covers the details.
 
 ## When to use it
 

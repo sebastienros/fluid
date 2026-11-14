@@ -1,14 +1,7 @@
-# Working with Time Zones in Fluid
-
-This guide explains how time zones work in Fluid templates, covering parsing, rendering, and conversion of date/time values.
-
-## Table of Contents
-- [Understanding Time Zone Behavior](#understanding-time-zone-behavior)
-- [The TimeZone Property](#the-timezone-property)
-- [Converting Time Zones During Rendering](#converting-time-zones-during-rendering)
-- [Resolving Time Zone Identifiers](#resolving-time-zone-identifiers)
-- [Automatic Conversion with Value Converters](#automatic-conversion-with-value-converters)
-- [Common Patterns and Examples](#common-patterns-and-examples)
+---
+title: Working with time zones
+description: "This guide explains how time zones work in Fluid templates, covering parsing, rendering, and conversion of date/time values."
+---
 
 ## Understanding Time Zone Behavior
 

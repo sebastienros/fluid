@@ -1,6 +1,7 @@
-# Optional and Fluid-specific filters
-
-Filters that are specific to Fluid, and the opt-in color and money filters.
+---
+title: Optional and Fluid-specific filters
+description: "Filters that are specific to Fluid, and the opt-in color and money filters."
+---
 
 ## Fluid-specific filters
 

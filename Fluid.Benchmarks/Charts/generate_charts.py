@@ -1,11 +1,11 @@
-"""Regenerates the benchmark charts (Assets/benchmark-*.svg and .png).
+"""Regenerates the benchmark charts (docs/_content/fluid/assets/benchmarks/benchmark-*.svg and .png).
 
 Run the comparison benchmarks first, from the repository root:
 
     dotnet run -c Release --project Fluid.Benchmarks -- --filter '*ComparisonBenchmarks*'
     python3 Fluid.Benchmarks/Charts/generate_charts.py
 
-The static engine charts (Assets/benchmark-static-*) come from another report:
+The static engine charts (benchmark-static-*) come from another report:
 
     dotnet run -c Release --project Fluid.Benchmarks -- --filter '*StaticRenderingBenchmarks*'
 
@@ -30,7 +30,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 RESULTS = os.path.join(ROOT, "BenchmarkDotNet.Artifacts", "results")
 REPORT = os.path.join(RESULTS, "Fluid.Benchmarks.ComparisonBenchmarks-report-github.md")
 STATIC_REPORT = os.path.join(RESULTS, "Fluid.Benchmarks.StaticRendering.StaticRenderingBenchmarks-report-github.md")
-ASSETS = os.path.join(ROOT, "Assets")
+ASSETS = os.path.join(ROOT, "docs", "_content", "fluid", "assets", "benchmarks")
 
 WIDTH, HEIGHT = 1051, 400
 TOP, BOTTOM = 84, 342

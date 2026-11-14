@@ -1,6 +1,7 @@
-# Benchmarks
-
-Detailed results of the benchmarks summarized in the README.
+---
+title: Benchmarks
+description: "How Fluid compares with other .NET template engines, and with compiled templates."
+---
 
 A benchmark application is provided in the source code to compare Fluid, [Scriban](https://github.com/scriban/scriban), [DotLiquid](https://github.com/dotliquid/dotliquid), [Liquid.NET](https://github.com/mikebridge/Liquid.NET), and [Handlebars.NET](https://github.com/Handlebars-Net/Handlebars.Net).
 Run it locally to analyze the time it takes to execute specific templates.
@@ -13,20 +14,20 @@ TL;DR — Fluid is faster and allocates less memory than all other well-known .N
 
 Scriban takes 71% longer to parse and allocates 4 times as much memory as Fluid.
 
-![Parse benchmark comparison](../Assets/benchmark-parse.png)
+![Parse benchmark comparison](/fluid/assets/benchmarks/benchmark-parse.svg)
 
 **ParseBig: Parses a Blog Post template**
 
 Scriban takes 2.4 times as long to parse and allocates over 5 times as much memory as Fluid.
 
-![Large template parse benchmark comparison](../Assets/benchmark-parse-big.png)
+![Large template parse benchmark comparison](/fluid/assets/benchmarks/benchmark-parse-big.svg)
 
 **Render: Renders a simple HTML template containing filters and properties, with 100 elements**
 
 DotLiquid takes almost 13 times as long to render and allocates 18 times as much memory as Fluid.
 The second best, Handlebars (Mustache), takes 66% longer and allocates over 3 times as much memory.
 
-![Render benchmark comparison](../Assets/benchmark-render.png)
+![Render benchmark comparison](/fluid/assets/benchmarks/benchmark-render.svg)
 
 Tested on 11/8/2026 with
 - Parlot 2.2.1
@@ -72,23 +73,23 @@ WarmupCount=3
 
 ## Compiled templates and static engines
 
-Some engines compile templates into the application instead of reading them at runtime. This benchmark compares Fluid's [compiled templates](template-generator.md), [RazorSlices](https://github.com/DamianEdwards/RazorSlices) and [Lissic](https://github.com/gendeg/Lissic) with Fluid rendering a parsed template, and with the same page written by hand in C#. Each one renders the product template with 100 products and HTML-encodes the values. Compiled Fluid templates read the products with [source-generated accessors](model-accessor-generator.md), parsed ones with the default accessors.
+Some engines compile templates into the application instead of reading them at runtime. This benchmark compares Fluid's [compiled templates](guide/template-generator.md), [RazorSlices](https://github.com/DamianEdwards/RazorSlices) and [Lissic](https://github.com/gendeg/Lissic) with Fluid rendering a parsed template, and with the same page written by hand in C#. Each one renders the product template with 100 products and HTML-encodes the values. Compiled Fluid templates read the products with [source-generated accessors](guide/model-accessor-generator.md), parsed ones with the default accessors.
 
 **Render: renders the product template to a string**
 
 Compiled Fluid templates are the fastest engine: they take 33% less time than parsed ones and allocate the same memory. RazorSlices takes 24% less time than parsed Fluid templates and allocates 51% more, and Lissic takes 7% more time and allocates 2.3 times as much. Hand-written C# takes 68% less time, for reference.
 
-![Compiled templates and static engines render benchmark comparison](../Assets/benchmark-static-render.png)
+![Compiled templates and static engines render benchmark comparison](/fluid/assets/benchmarks/benchmark-static-render.svg)
 
 **Render to UTF-8: renders the product template as UTF-8 to a buffer, like an HTTP response body**
 
 Compiled Fluid templates take 31% less time than parsed ones. RazorSlices is the fastest engine, taking 48% less time than parsed Fluid templates and allocating 70% less. Lissic takes 14% more time and allocates 3.5 times as much when each render copies the products into the template classes it generates. When the same model is built once and reused, it takes 21% less time and allocates nothing.
 
-![Compiled templates and static engines UTF-8 render benchmark comparison](../Assets/benchmark-static-render-utf8.png)
+![Compiled templates and static engines UTF-8 render benchmark comparison](/fluid/assets/benchmarks/benchmark-static-render-utf8.svg)
 
 These engines are faster because the compiler reads the template, not the application. In exchange, the template has to be part of the application's source code: changing it means rebuilding and redeploying, and it can't be provided by users, stored in a database or edited after deployment. Fluid can do both: compile the templates that ship with the application, and parse the others, with the same syntax and the same output. Each engine also has its own constraints:
 
-- Fluid's compiled templates are Liquid templates and render like parsed ones, except for a few unsupported features listed in [compiled templates](template-generator.md).
+- Fluid's compiled templates are Liquid templates and render like parsed ones, except for a few unsupported features listed in [compiled templates](guide/template-generator.md).
 - RazorSlices templates are Razor, so they contain C# code and can never come from users. RazorSlices requires ASP.NET Core.
 - Lissic templates have no expressions or conditions, only a choice between branches by a value. The data has to be copied into the classes it generates, and values are only HTML-encoded with a filter.
 

@@ -1,4 +1,9 @@
-<p align="center"><img width=25% src="https://github.com/sebastienros/fluid/raw/main/Assets/logo-vertical.png"></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/sebastienros/fluid/raw/main/Assets/logo-vertical-dark.svg">
+    <img width="200" alt="Fluid" src="https://github.com/sebastienros/fluid/raw/main/Assets/logo-vertical.png">
+  </picture>
+</p>
 
 [![NuGet](https://img.shields.io/nuget/v/Fluid.Core.svg)](https://nuget.org/packages/Fluid.Core)
 [![MIT](https://img.shields.io/github/license/sebastienros/fluid)](https://github.com/sebastienros/fluid/blob/main/LICENSE)
@@ -10,6 +15,8 @@ Fluid is an open-source .NET template engine based on the [Liquid template langu
 
 > This document describes Fluid 3.0, which is under development on `main`. Preview packages are available from the [preview feed](#preview-packages); stable releases are available on [NuGet.org](https://www.nuget.org/packages/Fluid.Core).
 > To see the corresponding content for v1.0, use [this version](https://github.com/sebastienros/fluid/blob/release/1.x/README.md)
+
+Read the documentation at **[sebastienros.github.io/fluid](https://sebastienros.github.io/fluid/)**, and try Fluid in your browser with the **[playground](https://sebastienros.github.io/fluid/playground/)**.
 
 <br>
 
@@ -142,7 +149,7 @@ else
 #### Result
 `Hello Bill Gates`
 
-`TryParse` returns parsing diagnostics as a string. `Parse` throws a `ParseException` with the line and column of the error instead, see [Parsing errors](https://github.com/sebastienros/fluid/blob/main/docs/rendering.md#parsing-errors).
+`TryParse` returns parsing diagnostics as a string. `Parse` throws a `ParseException` with the line and column of the error instead, see [Parsing errors](https://sebastienros.github.io/fluid/guide/rendering/#parsing-errors).
 
 ### Reusing instances
 
@@ -162,7 +169,7 @@ private static readonly TemplateOptions _options = new TemplateOptionsBuilder()
 var context = new TemplateContext(model, _options);
 ```
 
-Templates used by `include` and `render` are loaded from `TemplateOptions.FileProvider`, which can be asynchronous. See [Parsing and rendering](https://github.com/sebastienros/fluid/blob/main/docs/rendering.md) for file providers, scopes, cancellation and rendering to UTF-8.
+Templates used by `include` and `render` are loaded from `TemplateOptions.FileProvider`, which can be asynchronous. See [Parsing and rendering](https://sebastienros.github.io/fluid/guide/rendering/) for file providers, scopes, cancellation and rendering to UTF-8.
 
 <br>
 
@@ -184,7 +191,7 @@ Member names are case-sensitive by default. Use `WithModelNamesComparer(StringCo
 
 Fluid works with NativeAOT and trimming: it falls back to reflection when dynamic code isn't supported, and the [model accessor generator](#model-accessors) avoids reflection altogether.
 
-See [Models and values](https://github.com/sebastienros/fluid/blob/main/docs/models-and-values.md) for value converters, custom `FluidValue` types and arrays, explicit member registrations, custom member accessors and NativeAOT compatibility.
+See [Models and values](https://sebastienros.github.io/fluid/guide/models-and-values/) for value converters, custom `FluidValue` types and arrays, explicit member registrations, custom member accessors and NativeAOT compatibility.
 
 <br>
 
@@ -221,7 +228,7 @@ var options = new AppTemplateOptionsBuilder().Build();
 
 Templates can now read the public properties, public fields and parameterless methods of `Person` and `Address`, for example `{{ person.Address.City }}`. `new TemplateContext(person, options)` also detects a concrete `Person` model on its own.
 
-See [Model accessor generator](https://github.com/sebastienros/fluid/blob/main/docs/model-accessor-generator.md) for profile methods, the exact rules and the diagnostics.
+See [Model accessor generator](https://sebastienros.github.io/fluid/guide/model-accessor-generator/) for profile methods, the exact rules and the diagnostics.
 
 ### Compiled templates
 
@@ -243,7 +250,7 @@ public static partial class Templates
 var html = await Templates.WelcomeEmail.RenderAsync(context);
 ```
 
-See [Compiled template generator](https://github.com/sebastienros/fluid/blob/main/docs/template-generator.md) for glob patterns, parser options, partials, naming rules and the diagnostics.
+See [Compiled template generator](https://sebastienros.github.io/fluid/guide/template-generator/) for glob patterns, parser options, partials, naming rules and the diagnostics.
 
 <br>
 
@@ -287,7 +294,7 @@ var options = new TemplateOptionsBuilder()
     .Build();
 ```
 
-See [Handling undefined values](https://github.com/sebastienros/fluid/blob/main/docs/rendering.md#handling-undefined-values) for more examples.
+See [Handling undefined values](https://sebastienros.github.io/fluid/guide/rendering/#handling-undefined-values) for more examples.
 
 <br>
 
@@ -311,7 +318,7 @@ private static readonly TemplateOptions UserTemplateOptions = new TemplateOption
     .Build();
 ```
 
-See [Security](https://github.com/sebastienros/fluid/blob/main/docs/security.md) for what each limit counts and a complete example.
+See [Security](https://sebastienros.github.io/fluid/guide/security/) for what each limit counts and a complete example.
 
 <br>
 
@@ -332,7 +339,7 @@ Encoded: {{ html }}
 Not encoded: {{ html | raw }}
 ```
 
-The `json` filter uses the `JsonSerializerOptions` set with `TemplateOptionsBuilder.WithJsonSerializerOptions()`. See [Encoding](https://github.com/sebastienros/fluid/blob/main/docs/rendering.md#encoding) for details.
+The `json` filter uses the `JsonSerializerOptions` set with `TemplateOptionsBuilder.WithJsonSerializerOptions()`. See [Encoding](https://sebastienros.github.io/fluid/guide/rendering/#encoding) for details.
 
 <br>
 
@@ -357,7 +364,7 @@ The time zone, set with `TemplateOptionsBuilder.WithTimeZone()` or `TemplateCont
 {{ published | time_zone: 'America/New_York' | date: '%+' }}
 ```
 
-See [Cultures, dates and time zones](https://github.com/sebastienros/fluid/blob/main/docs/localization.md) and [Working with time zones](https://github.com/sebastienros/fluid/blob/main/docs/time-zones.md).
+See [Cultures, dates and time zones](https://sebastienros.github.io/fluid/guide/localization/) and [Working with time zones](https://sebastienros.github.io/fluid/guide/time-zones/).
 
 <br>
 
@@ -386,7 +393,7 @@ var options = new TemplateOptionsBuilder()
 | `{{ 1134.65 \| money_with_currency }}` | `$1,134.65 USD` |
 | `{{ 'rgb(10%, 10%, 20%)' \| color_to_hex }}` | `#1a1a33` |
 
-See [Optional and Fluid-specific filters](https://github.com/sebastienros/fluid/blob/main/docs/filters.md) for currencies, amounts in cents, custom money formats and supported colors.
+See [Optional and Fluid-specific filters](https://sebastienros.github.io/fluid/guide/filters/) for currencies, amounts in cents, custom money formats and supported colors.
 
 <br>
 
@@ -439,7 +446,7 @@ With functions enabled, `macro` declares reusable chunks of content that are inv
 {{ field('pass', type='password') }}
 ```
 
-See [Liquid syntax](https://github.com/sebastienros/fluid/blob/main/docs/syntax.md) for how Fluid reads tags like Shopify, `include` and `render`, whitespace, the `self` object, macros and the other extensions.
+See [Liquid syntax](https://sebastienros.github.io/fluid/guide/syntax/) for how Fluid reads tags like Shopify, `include` and `render`, whitespace, the `self` object, macros and the other extensions.
 
 <br>
 
@@ -481,7 +488,7 @@ parser.RegisterExpressionBlock("repeat", async (value, statements, writer, encod
 
 renders `Hi! Hi! Hi! `. Custom operators are registered with `parser.RegisteredOperators`.
 
-Templates can also be analyzed and rewritten with the `AstVisitor` and `AstRewriter` classes. See [Extending the grammar](https://github.com/sebastienros/fluid/blob/main/docs/extensibility.md) for blocks, custom parsers, operators, functions and visitors.
+Templates can also be analyzed and rewritten with the `AstVisitor` and `AstRewriter` classes. See [Extending the grammar](https://sebastienros.github.io/fluid/guide/extensibility/) for blocks, custom parsers, operators, functions and visitors.
 
 <br>
 
@@ -514,9 +521,9 @@ This is the home page
 </html>
 ```
 
-A view, a layout or a partial that can't be found throws a `FileNotFoundException`, unless `FluidViewEngineOptions.TemplateNotFound` renders something else.
+A view, a layout or a partial that can't be found throws a `FileNotFoundException`, unless `FluidViewEngineOptions.TemplateNotFound` renders something else (see [Missing views, layouts and partials](https://sebastienros.github.io/fluid/guide/view-engine/#missing-views-layouts-and-partials)).
 
-`Fluid.ViewEngine` provides the same features without MVC, and `MinimalApis.LiquidViews` renders Liquid views from Minimal APIs. See [View engines](https://github.com/sebastienros/fluid/blob/main/docs/view-engine.md).
+`Fluid.ViewEngine` provides the same features without MVC, and `MinimalApis.LiquidViews` renders Liquid views from Minimal APIs. See [View engines](https://sebastienros.github.io/fluid/guide/view-engine/).
 
 <br>
 
@@ -540,26 +547,29 @@ Run `liquid --help`, or see the [tool's README](https://github.com/sebastienros/
 
 Fluid is faster and allocates less memory than all other well-known .NET Liquid parsers. To get the best performance, cache `IFluidTemplate` instances, and reuse the `FluidParser` and `TemplateOptions` instances (see [Reusing instances](#reusing-instances)).
 
-![Render benchmark comparison](https://github.com/sebastienros/fluid/raw/main/Assets/benchmark-render.png)
+![Render benchmark comparison](https://github.com/sebastienros/fluid/raw/main/docs/_content/fluid/assets/benchmarks/benchmark-render.png)
 
-See [Benchmarks](https://github.com/sebastienros/fluid/blob/main/docs/benchmarks.md) for parsing results, compiled templates and the Benchmark.NET data.
+See [Benchmarks](https://sebastienros.github.io/fluid/benchmarks/) for parsing results, compiled templates and the Benchmark.NET data.
 
 <br>
 
 ## Documentation
 
-- [Parsing and rendering](https://github.com/sebastienros/fluid/blob/main/docs/rendering.md)
-- [Models and values](https://github.com/sebastienros/fluid/blob/main/docs/models-and-values.md)
-- [Model accessor generator](https://github.com/sebastienros/fluid/blob/main/docs/model-accessor-generator.md)
-- [Compiled template generator](https://github.com/sebastienros/fluid/blob/main/docs/template-generator.md)
-- [Security](https://github.com/sebastienros/fluid/blob/main/docs/security.md)
-- [Liquid syntax](https://github.com/sebastienros/fluid/blob/main/docs/syntax.md)
-- [Optional and Fluid-specific filters](https://github.com/sebastienros/fluid/blob/main/docs/filters.md)
-- [Cultures, dates and time zones](https://github.com/sebastienros/fluid/blob/main/docs/localization.md)
-- [Working with time zones](https://github.com/sebastienros/fluid/blob/main/docs/time-zones.md)
-- [Extending the grammar](https://github.com/sebastienros/fluid/blob/main/docs/extensibility.md)
-- [View engines](https://github.com/sebastienros/fluid/blob/main/docs/view-engine.md)
-- [Benchmarks](https://github.com/sebastienros/fluid/blob/main/docs/benchmarks.md)
+The [documentation site](https://sebastienros.github.io/fluid/) covers the details, and the [playground](https://sebastienros.github.io/fluid/playground/) renders templates with Fluid in your browser.
+
+- [Getting started](https://sebastienros.github.io/fluid/guide/getting-started/)
+- [Parsing and rendering](https://sebastienros.github.io/fluid/guide/rendering/)
+- [Models and values](https://sebastienros.github.io/fluid/guide/models-and-values/)
+- [Model accessor generator](https://sebastienros.github.io/fluid/guide/model-accessor-generator/)
+- [Compiled template generator](https://sebastienros.github.io/fluid/guide/template-generator/)
+- [Security](https://sebastienros.github.io/fluid/guide/security/)
+- [Liquid syntax](https://sebastienros.github.io/fluid/guide/syntax/)
+- [Optional and Fluid-specific filters](https://sebastienros.github.io/fluid/guide/filters/)
+- [Cultures, dates and time zones](https://sebastienros.github.io/fluid/guide/localization/)
+- [Working with time zones](https://sebastienros.github.io/fluid/guide/time-zones/)
+- [Extending the grammar](https://sebastienros.github.io/fluid/guide/extensibility/)
+- [View engines](https://sebastienros.github.io/fluid/guide/view-engine/)
+- [Benchmarks](https://sebastienros.github.io/fluid/benchmarks/)
 
 When questioning the result of a template, compare it with Shopify's implementation on https://shopify.dev/docs/api/liquid, or with `scripts/shopify-liquid.cs` from this repository.
 

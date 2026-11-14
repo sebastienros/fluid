@@ -1,0 +1,100 @@
+---
+title: Fluid
+description: An open-source .NET template engine based on the Liquid template language. Fast, secure for user templates, and extensible.
+layout: base.html
+body_class: home
+liquid: true
+---
+<main id="main" class="home" data-pagefind-ignore="all">
+  <section class="hero">
+    <div class="hero__copy">
+      <p class="eyebrow"><span class="eyebrow__dot"></span>Open source, MIT licensed</p>
+      <h1 class="hero__title">Liquid templates for .NET. <em>Fast, safe, yours.</em></h1>
+      <p class="hero__lede">Fluid parses and renders <a href="https://shopify.github.io/liquid/">Liquid</a>, the template language of Shopify, with few allocations. Templates only read the data you allow, so your users can write them, and every filter, tag and operator can be extended.</p>
+      <div class="hero__actions">
+        <a class="button button--primary" href="{{ meta.base }}guide/getting-started/">Get started</a>
+        <a class="button button--ghost" href="{{ meta.base }}playground/">Try it in the browser</a>
+      </div>
+      <div class="install" data-copy-root>
+        <span class="install__prompt" aria-hidden="true">$</span>
+        <code class="install__command">dotnet add package Fluid.Core</code>
+        <button class="install__copy" type="button" data-copy>Copy</button>
+      </div>
+    </div>
+    <div class="hero__visual" aria-label="A Liquid template and what Fluid renders">
+      <div class="terminal">
+        <div class="terminal__bar"><span></span><span></span><span></span><p>products.liquid</p></div>
+{% raw %}<pre class="terminal__body"><code><span class="t-dim">&lt;ul&gt;</span>
+<span class="t-accent">{% for product in products %}</span>
+  <span class="t-dim">&lt;li&gt;</span><span class="t-strong">{{ product.name | upcase }}</span>
+    <span class="t-ok">{{ product.price | money }}</span>
+  <span class="t-dim">&lt;/li&gt;</span>
+<span class="t-accent">{% endfor %}</span>
+<span class="t-dim">&lt;/ul&gt;</span></code></pre>{% endraw %}
+        <div class="terminal__bar terminal__bar--split"><p>Output</p></div>
+<pre class="terminal__body"><code><span class="t-dim">&lt;ul&gt;</span>
+  <span class="t-dim">&lt;li&gt;</span>APPLE <span class="t-ok">$329.00</span><span class="t-dim">&lt;/li&gt;</span>
+  <span class="t-dim">&lt;li&gt;</span>ORANGE <span class="t-ok">$25.00</span><span class="t-dim">&lt;/li&gt;</span>
+  <span class="t-dim">&lt;li&gt;</span>BANANA <span class="t-ok">$99.00</span><span class="t-dim">&lt;/li&gt;</span>
+<span class="t-dim">&lt;/ul&gt;</span></code></pre>
+      </div>
+      <img class="hero__mark" src="{{ meta.base }}assets/logo.svg" alt="" width="260" height="260">
+    </div>
+  </section>
+
+  <section class="twelve" aria-labelledby="features-title">
+    <header class="section-head">
+      <p class="section-head__kicker">Features</p>
+      <h2 id="features-title">Everything Liquid, and what .NET applications need</h2>
+    </header>
+    <ol class="twelve__grid">
+      <li><span class="n">01</span><h3>Shopify compatible</h3><p>Reads templates like Shopify Liquid, verified with the Golden Liquid test suite and against Shopify's own engine.</p><a href="{{ meta.base }}guide/syntax/">Liquid syntax</a></li>
+      <li><span class="n">02</span><h3>Fast, few allocations</h3><p>A hand-written parser, no regular expressions, and a synchronous fast path for async rendering.</p><a href="{{ meta.base }}benchmarks/">Benchmarks</a></li>
+      <li><span class="n">03</span><h3>Secure by design</h3><p>Templates read an allow-listed model, and limits bound recursion, steps, output size and collections.</p><a href="{{ meta.base }}guide/security/">Security</a></li>
+      <li><span class="n">04</span><h3>Async everything</h3><p>Filters, member accessors and file providers can be asynchronous, and renderings can be cancelled.</p><a href="{{ meta.base }}guide/rendering/">Parsing and rendering</a></li>
+      <li><span class="n">05</span><h3>Your own grammar</h3><p>Register tags, blocks, operators and functions, with any parser built from Parlot combinators.</p><a href="{{ meta.base }}guide/extensibility/">Extending the grammar</a></li>
+      <li><span class="n">06</span><h3>Any .NET model</h3><p>POCOs, dictionaries, <code>JsonNode</code> and custom values, with value converters and naming policies.</p><a href="{{ meta.base }}guide/models-and-values/">Models and values</a></li>
+      <li><span class="n">07</span><h3>Source generators</h3><p>Read models without reflection for NativeAOT, or compile <code>.liquid</code> files into C# at build time.</p><a href="{{ meta.base }}guide/template-generator/">Compiled templates</a></li>
+      <li><span class="n">08</span><h3>ASP.NET Core views</h3><p>Liquid views with layouts, sections and <code>_ViewStart</code> files, for MVC or Minimal APIs.</p><a href="{{ meta.base }}guide/view-engine/">View engines</a></li>
+    </ol>
+  </section>
+
+  <section class="flow" aria-labelledby="code-title">
+    <div class="flow__copy">
+      <p class="section-head__kicker">Three lines</p>
+      <h2 id="code-title">Parse once, render many times</h2>
+      <p>A parser and the options are created once and shared by the whole application. Parsed templates are thread-safe and can be cached, and each rendering gets its own context.</p>
+      <a class="button button--ghost" href="{{ meta.base }}guide/getting-started/">Getting started</a>
+    </div>
+    <div class="flow__code">
+{% raw %}<pre data-lang="csharp"><code class="language-csharp">var parser = new FluidParser();
+
+var template = parser.Parse("Hello {{ name | capitalize }}!");
+
+var context = new TemplateContext(new { name = "world" });
+
+Console.WriteLine(await template.RenderAsync(context));
+// Hello World!
+</code></pre>{% endraw %}
+    </div>
+  </section>
+
+  <section class="numbers" aria-labelledby="numbers-title">
+    <header class="section-head">
+      <p class="section-head__kicker">Benchmarks</p>
+      <h2 id="numbers-title">Faster than the other .NET Liquid engines</h2>
+      <p>Rendering a page of 100 products with filters and properties, with BenchmarkDotNet.</p>
+    </header>
+    <img class="numbers__chart" src="{{ meta.base }}assets/benchmarks/benchmark-render.svg" alt="Render benchmark: Fluid takes less time and allocates less memory than Handlebars.Net, Scriban and DotLiquid" width="780">
+    <a class="button button--ghost" href="{{ meta.base }}benchmarks/">All results</a>
+  </section>
+
+  <section class="cta">
+    <h2>Write a template now.</h2>
+    <p>The playground runs Fluid in your browser with WebAssembly. Change the template, the model and the options, and share a link to the result.</p>
+    <a class="button button--primary" href="{{ meta.base }}playground/">Open the playground</a>
+  </section>
+</main>
+<footer class="site-footer">
+  <p>Fluid is released under the MIT License. This site is built with <a href="https://sebastienros.github.io/douze/">Douze</a>, which renders its layouts with Fluid, from <a href="{{ meta.repo }}/tree/main/docs">docs/</a>.</p>
+</footer>

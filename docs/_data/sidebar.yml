@@ -1,0 +1,30 @@
+# The navigation of the site: one top-level item per section (header tabs), its items are the sidebar.
+# A bare url is labeled with the title of its page.
+
+- label: Guide
+  href: /fluid/guide/getting-started/
+  items:
+    - label: Introduction
+      items:
+        - /fluid/guide/getting-started/
+    - label: Writing templates
+      items:
+        - /fluid/guide/syntax/
+        - /fluid/guide/filters/
+        - /fluid/guide/localization/
+        - /fluid/guide/time-zones/
+    - label: Using Fluid in .NET
+      items:
+        - /fluid/guide/rendering/
+        - /fluid/guide/models-and-values/
+        - /fluid/guide/security/
+        - /fluid/guide/extensibility/
+        - /fluid/guide/view-engine/
+    - label: Source generators
+      items:
+        - /fluid/guide/model-accessor-generator/
+        - /fluid/guide/template-generator/
+    - label: More
+      items:
+        - /fluid/benchmarks/
+        - /fluid/playground/

@@ -1,0 +1,4 @@
+# Every page of the site is a documentation page, and its content is not Liquid: the pages show Liquid samples,
+# inline code included, that must be written as they are.
+layout: doc.html
+liquid: false

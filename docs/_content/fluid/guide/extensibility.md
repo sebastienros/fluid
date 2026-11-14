@@ -1,6 +1,7 @@
-# Extending the grammar
-
-Custom tags, blocks, operators and functions, and how to analyze or rewrite templates.
+---
+title: Extending the grammar
+description: "Custom tags, blocks, operators and functions, and how to analyze or rewrite templates."
+---
 
 ## Customizing tags and blocks
 

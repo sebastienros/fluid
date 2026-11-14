@@ -1,6 +1,7 @@
-# Security
-
-How to render templates written by users safely, and the limits Fluid applies while rendering.
+---
+title: Security
+description: "How to render templates written by users safely, and the limits Fluid applies while rendering."
+---
 
 ## Model security
 

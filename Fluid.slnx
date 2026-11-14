@@ -7,6 +7,7 @@
   <Folder Name="/Files/">
     <File Path=".editorconfig" />
     <File Path=".github/workflows/build.yml" />
+    <File Path=".github/workflows/docs.yml" />
     <File Path=".github/workflows/pr.yml" />
     <File Path=".github/workflows/publish.yml" />
     <File Path="Common.props" />
@@ -23,6 +24,8 @@
   <Project Path="Fluid.MinimalApisSample/Fluid.MinimalApisSample.csproj" />
   <Project Path="Fluid.MvcSample/Fluid.MvcSample.csproj" />
   <Project Path="Fluid.MvcViewEngine/Fluid.MvcViewEngine.csproj" />
+  <Project Path="Fluid.Playground/Fluid.Playground.csproj" />
+  <Project Path="Fluid.Playground.Core/Fluid.Playground.Core.csproj" />
   <Project Path="Fluid.SourceGenerator/Fluid.SourceGenerator.csproj" />
   <Project Path="Fluid.Tests/Fluid.Tests.csproj" />
   <Project Path="Fluid.ViewEngine/Fluid.ViewEngine.csproj" />

@@ -1,6 +1,7 @@
-# Cultures, dates and time zones
-
-How the culture and the time zone affect rendering, and how strings are converted to dates.
+---
+title: Cultures, dates and time zones
+description: "How the culture and the time zone affect rendering, and how strings are converted to dates."
+---
 
 ## Culture
 

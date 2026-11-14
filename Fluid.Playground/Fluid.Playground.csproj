@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <!-- The Fluid playground, published to https://sebastienros.github.io/fluid/playground/ by .github/workflows/docs.yml.
+       The logic is in Fluid.Playground.Core, tested by Fluid.Tests/Playground. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Fluid.Playground</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <BlazorEnableCompression>true</BlazorEnableCompression>
+    <!-- The culture option needs the globalization data of every culture, not only the browser's. -->
+    <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
+    <PublishTrimmed>true</PublishTrimmed>
+    <!-- -p:FluidPlaygroundAot=true compiles to WebAssembly ahead of time on publish. It needs
+         `dotnet workload install wasm-tools`, which the SDK asks for as soon as RunAOTCompilation is set. -->
+    <RunAOTCompilation Condition="'$(FluidPlaygroundAot)' == 'true'">true</RunAOTCompilation>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" PrivateAssets="all" />
+    <ProjectReference Include="..\Fluid.Playground.Core\Fluid.Playground.Core.csproj" />
+  </ItemGroup>
+  <!-- The logo is served from wwwroot/logo.svg: it is copied there instead of being committed twice (the copy is
+       git-ignored), before static web assets are resolved so that the development server serves it too. -->
+  <ItemGroup>
+    <PlaygroundAsset Include="..\Assets\logo.svg" Destination="wwwroot\logo.svg" />
+  </ItemGroup>
+  <Target Name="CopyPlaygroundAssets" BeforeTargets="AssignTargetPaths;ResolveProjectStaticWebAssets" Inputs="@(PlaygroundAsset)" Outputs="@(PlaygroundAsset->'%(Destination)')">
+    <Copy SourceFiles="@(PlaygroundAsset)" DestinationFiles="@(PlaygroundAsset->'%(Destination)')" SkipUnchangedFiles="true" />
+    <ItemGroup>
+      <Content Remove="@(PlaygroundAsset->'%(Destination)')" />
+      <Content Include="@(PlaygroundAsset->'%(Destination)')" />
+    </ItemGroup>
+  </Target>
+</Project>

@@ -1,6 +1,7 @@
-# Models and values
-
-How .NET objects are exposed to templates and converted to Liquid values.
+---
+title: Models and values
+description: "How .NET objects are exposed to templates and converted to Liquid values."
+---
 
 ## Converting CLR types
 
