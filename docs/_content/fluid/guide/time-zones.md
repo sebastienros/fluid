@@ -98,6 +98,7 @@ A `DateTime` of `Utc` or `Local` kind is a moment, a `DateTimeValue`: a `Utc` on
 > - A `DateOnly` was converted to a string with the culture of the options, `03/04/2026` with the invariant culture, which the date filters read as April 3.
 > - A `TimeOnly` was converted to a string like `13:00`.
 > - A date was its number of .NET ticks in math filters: `{{ starts | plus: 0 }}` rendered `639082260000000000`, and now renders `0` like in Liquid.
+> - A number with a fraction was read as a timestamp to the millisecond: `{{ 0.5 | date: '%L' }}` rendered `500`. Like in Liquid, only an integer is a timestamp now, and `date` returns `0.5` unchanged.
 >
 > `DateTimeValue.Create(DateTime)` is unchanged and still reads an `Unspecified` `DateTime` in the time zone of the machine: use `PlainDateTimeValue.Create()` in value converters.
 

@@ -52,9 +52,10 @@ public class JsonNodeTests
     [InlineData(0, "date: '%Y-%m-%d %H:%M:%S %z'", "1970-01-01 02:00:00 +0200")]
     [InlineData(0, "format_date: 'yyyy-MM-dd HH:mm:ss zzz'", "1970-01-01 02:00:00 +02:00")]
     [InlineData(0, "time_zone: 'local' | format_date: 'yyyy-MM-dd HH:mm:ss zzz'", "1970-01-01 02:00:00 +02:00")]
-    [InlineData(0.5, "date: '%Y-%m-%d %H:%M:%S.%L %z'", "1970-01-01 02:00:00.500 +0200")]
-    [InlineData(0.5, "format_date: 'yyyy-MM-dd HH:mm:ss.fff zzz'", "1970-01-01 02:00:00.500 +02:00")]
-    [InlineData(0.5, "time_zone: 'local' | format_date: 'yyyy-MM-dd HH:mm:ss.fff zzz'", "1970-01-01 02:00:00.500 +02:00")]
+    // Like Liquid, a number with a fraction isn't a timestamp.
+    [InlineData(0.5, "date: '%Y-%m-%d %H:%M:%S.%L %z'", "0.5")]
+    [InlineData(0.5, "format_date: 'yyyy-MM-dd HH:mm:ss.fff zzz'", "")]
+    [InlineData(0.5, "time_zone: 'local' | format_date: 'yyyy-MM-dd HH:mm:ss.fff zzz'", "")]
     [InlineData("not a date", "date: '%Y'", "not a date")]
     [InlineData("not a date", "format_date: 'yyyy'", "")]
     [InlineData("not a date", "time_zone: 'local'", "")]
