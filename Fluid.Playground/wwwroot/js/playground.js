@@ -30,13 +30,22 @@ export function markReady() {
     return measure.duration;
 }
 
-// The theme is shared with the documentation site: same origin, same storage key.
+// The theme is shared with the documentation site: same origin, same storage key. The effective theme is the one picked
+// with the toggle, or the system's.
+export function currentTheme() {
+    return document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+}
+
 export function toggleTheme() {
-    const root = document.documentElement;
-    const current = root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    const next = current === 'dark' ? 'light' : 'dark';
-    root.dataset.theme = next;
+    const next = currentTheme() === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
     try { localStorage.setItem('fluid-theme', next); } catch { }
+    return next;
+}
+
+// Tells the app when the system theme changes, for the content it renders itself, like the HTML preview.
+export function watchTheme(dotnet) {
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => dotnet.invokeMethodAsync('OnThemeChanged', currentTheme()));
 }
 
 // Tab inserts two spaces in the editors instead of leaving them, Escape then Tab leaves them. insertText keeps the
