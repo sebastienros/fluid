@@ -82,7 +82,7 @@ context.SetValue("opening", TimeSpan.FromHours(13));
 {{ opening | time_zone: 'Europe/Berlin' | date: '%H:%M' }} → 19:00
 ```
 
-The date filters (`date`, `format_date` and `time_zone`) read it as that time on January 1, 1970, in the time zone of the context, so the clock time is kept whatever the time zone. As a number, for instance with `plus`, it is a number of seconds: `{{ opening | divided_by: 60 }}` renders `780`. In .NET, `ToObjectValue()` returns the `TimeSpan`.
+The date filters (`date`, `format_date` and `time_zone`) read it as that time on January 1, 1970, at the standard offset of the context's time zone, so the clock time is kept whatever the time zone. Since a time of day isn't a moment, the offset is the one the time zone has today without daylight saving time, not the one it had in 1970: `+03:00` in Istanbul, `+10:00` in Sydney. As a number, for instance with `plus`, it is a number of seconds: `{{ opening | divided_by: 60 }}` renders `780`. In .NET, `ToObjectValue()` returns the `TimeSpan`.
 
 > **Breaking change:** Fluid used to convert a `TimeSpan` to the moment this long after 1970-01-01 00:00 UTC, in the time zone of the options, ignoring `TemplateContext.TimeZone`. It rendered like `1970-01-01 13:00:00Z`, `ToObjectValue()` returned a `DateTimeOffset`, and `13:00` was formatted as `08:00 -05:00` in New York.
 

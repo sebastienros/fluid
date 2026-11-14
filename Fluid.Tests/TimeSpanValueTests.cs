@@ -57,6 +57,27 @@ public class TimeSpanValueTests
     }
 
     [Theory]
+    [InlineData("Europe/Istanbul", "13:00 +0300")] // +02:00 in 1970
+    [InlineData("Australia/Sydney", "13:00 +1000")] // +11:00 in January with daylight saving time
+    public async Task UsesTheStandardOffsetOfTheTimeZone(string timeZoneId, string expected)
+    {
+        var context = new TemplateContext { TimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId) };
+
+        Assert.Equal(expected, await RenderAsync("{{ x | date: '%H:%M %z' }}", context, TimeSpan.FromHours(13)));
+    }
+
+    [Theory]
+    [InlineData("{% if date == x %}true{% else %}false{% endif %}")]
+    [InlineData("{% if x == date %}true{% else %}false{% endif %}")]
+    public async Task TimeSpanIsNotEqualToADate(string source)
+    {
+        var context = new TemplateContext();
+        context.SetValue("date", new DateTimeOffset(1970, 1, 1, 13, 0, 0, TimeSpan.Zero));
+
+        Assert.Equal("false", await RenderAsync(source, context, TimeSpan.FromHours(13)));
+    }
+
+    [Theory]
     [InlineData("13:00:00", "13:00:00")]
     [InlineData("1.02:03:04", "1.02:03:04")]
     [InlineData("00:00:01.5", "00:00:01.5000000")]

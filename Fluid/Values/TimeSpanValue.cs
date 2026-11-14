@@ -5,7 +5,7 @@ namespace Fluid.Values;
 
 /// <summary>
 /// A <see cref="TimeSpan"/>, rendered like <c>13:00:00</c>. The date filters read it as a time of day on
-/// January 1, 1970, in the time zone of the template context.
+/// January 1, 1970, at the standard offset of the time zone of the template context.
 /// </summary>
 public sealed class TimeSpanValue : FluidValue
 {
@@ -20,6 +20,8 @@ public sealed class TimeSpanValue : FluidValue
         _value = value;
     }
 
+    internal TimeSpan Value => _value;
+
     public override FluidValues Type => FluidValues.DateTime;
 
     /// <summary>
@@ -31,8 +33,9 @@ public sealed class TimeSpanValue : FluidValue
     {
         try
         {
-            var dateTime = Epoch.Add(_value);
-            result = new DateTimeOffset(dateTime, context.TimeZone.GetUtcOffset(dateTime));
+            // A time of day isn't a moment: the current standard offset of the time zone is used,
+            // not the one it had in 1970 (Istanbul was at +02:00, it is at +03:00), nor daylight saving time.
+            result = new DateTimeOffset(Epoch.Add(_value), context.TimeZone.BaseUtcOffset);
             return true;
         }
         catch (ArgumentOutOfRangeException)
@@ -55,7 +58,8 @@ public sealed class TimeSpanValue : FluidValue
 
     public override decimal ToNumberValue(TemplateContext context)
     {
-        // Like a number given to the date filters, in seconds.
+        // The duration in seconds. Unlike the time span, a number given to the date filters is a Unix
+        // timestamp, a moment in UTC: `opening | plus: 0 | date: '%H:%M'` doesn't keep the clock time.
         return (decimal)_value.Ticks / TimeSpan.TicksPerSecond;
     }
 
@@ -67,7 +71,7 @@ public sealed class TimeSpanValue : FluidValue
     public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
         AssertWriteToParameters(output, encoder, context);
-        output.Write(_value.ToString("c", CultureInfo.InvariantCulture));
+        output.Write(ToStringValue(context));
         return default;
     }
 
