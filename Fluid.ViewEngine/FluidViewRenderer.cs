@@ -28,8 +28,6 @@ public class FluidViewRenderer : IFluidViewRenderer
         // Whether the template, without its view starts, contains a layout tag.
         bool HasLayoutTag);
 
-    private static readonly AsyncTemplateCacheEntry EmptyTemplateEntry = new(new FluidTemplate(), [], HasLayoutTag: false);
-
     private readonly record struct TemplateSourceVersion(
         string Path,
         string CacheKey,
@@ -88,7 +86,7 @@ public class FluidViewRenderer : IFluidViewRenderer
         context.AmbientValues[Constants.SectionsIndex] = null; // it is lazily initialized when first used
         context.AmbientValues[Constants.RendererIndex] = this;
 
-        var template = (await GetTemplateEntryAsync(relativePath, _viewsFileProvider, true, context)).Template;
+        var template = (await GetTemplateEntryAsync(relativePath, _viewsFileProvider, ViewTemplateKind.View, includeViewStarts: true, context)).Template;
 
         if (_fluidViewEngineOptions.RenderingViewAsync != null)
         {
@@ -130,6 +128,7 @@ public class FluidViewRenderer : IFluidViewRenderer
             var layout = await GetTemplateEntryAsync(
                 layoutPathString,
                 _viewsFileProvider,
+                ViewTemplateKind.Layout,
                 includeViewStarts: false,
                 context);
 
@@ -188,6 +187,7 @@ public class FluidViewRenderer : IFluidViewRenderer
         var template = (await GetTemplateEntryAsync(
             relativePath,
             _partialsFileProvider,
+            ViewTemplateKind.Partial,
             includeViewStarts: false,
             context)).Template;
 
@@ -242,13 +242,14 @@ public class FluidViewRenderer : IFluidViewRenderer
     private async ValueTask<AsyncTemplateCacheEntry> GetTemplateEntryAsync(
         string path,
         ITemplateFileProvider fileProvider,
+        ViewTemplateKind kind,
         bool includeViewStarts,
         TemplateContext context)
     {
         var source = await fileProvider.GetFileInfoAsync(path, context, context.CancellationToken);
         if (source == null)
         {
-            return EmptyTemplateEntry;
+            return CreateNotFoundEntry(path, kind);
         }
 
         var sources = new List<ResolvedTemplateSource>();
@@ -281,7 +282,7 @@ public class FluidViewRenderer : IFluidViewRenderer
                 return Statement.NormalCompletion;
             })));
 
-            subTemplates.Add((await GetTemplateEntryAsync(viewStartPath, fileProvider, includeViewStarts: false, context)).Template);
+            subTemplates.Add((await GetTemplateEntryAsync(viewStartPath, fileProvider, ViewTemplateKind.View, includeViewStarts: false, context)).Template);
         }
 
         var parsedTemplate = await ParseTemplateSourceAsync(source, context.CancellationToken);
@@ -306,6 +307,32 @@ public class FluidViewRenderer : IFluidViewRenderer
         var entry = new AsyncTemplateCacheEntry(template, versions, LayoutTagFinder.HasLayoutTag(parsedTemplate));
         cache.TemplateCache[cacheKey] = entry;
         return entry;
+    }
+
+    private AsyncTemplateCacheEntry CreateNotFoundEntry(string path, ViewTemplateKind kind)
+    {
+        var templateNotFound = _fluidViewEngineOptions.TemplateNotFound;
+
+        if (templateNotFound == null)
+        {
+            var kindName = kind switch
+            {
+                ViewTemplateKind.Layout => "layout",
+                ViewTemplateKind.Partial => "partial",
+                _ => "view",
+            };
+
+            throw new FileNotFoundException($"The {kindName} '{path}' was not found.", path);
+        }
+
+        // Not cached, such that the template is used as soon as it is created.
+        var template = new FluidTemplate(new CallbackStatement(async (output, encoder, context) =>
+        {
+            await templateNotFound(path, kind, output, context);
+            return Completion.Normal;
+        }));
+
+        return new AsyncTemplateCacheEntry(template, [], HasLayoutTag: false);
     }
 
     private static bool SourcesMatch(
