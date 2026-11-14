@@ -138,9 +138,22 @@ textarea.code:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-soft); }
 .editor-input::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 .editor-input:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-soft); }
 
+/* The output, colored in its detected format. */
+.output-code { flex: 1; min-height: 0; overflow: auto; }
+.output-code .tint {
+    margin: 0; padding: 14px 16px; font: 13.5px/1.65 var(--font-mono); tab-size: 2; white-space: pre; min-width: max-content;
+    font-variant-ligatures: none; background: transparent !important; color: var(--ink) !important;
+}
+.output-code .tint code { font: inherit; }
+.tab-format { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; padding: 0 8px; }
+.tab-format select { padding: 2px 6px; font-size: 12.5px; }
+.tab-format + .tab-copy { margin-left: 0; }
+
 /* The dark theme uses the Dark+ colors that Tint writes as variables next to the Light+ ones. */
+:root[data-theme="dark"] .output-code .tint span,
 :root[data-theme="dark"] .editor-output .tint span { color: var(--tint-dark) !important; font-style: var(--tint-dark-font-style, inherit) !important; }
 @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .output-code .tint span,
     :root:not([data-theme="light"]) .editor-output .tint span { color: var(--tint-dark) !important; font-style: var(--tint-dark-font-style, inherit) !important; }
 }
 

@@ -70,6 +70,42 @@ public static class PlaygroundSamples
                 """,
         }),
 
+        new("json", "JSON output", new PlaygroundState
+        {
+            Template = """
+                {%- assign available = products | where: "available" -%}
+                {
+                  "store": {{ store | json }},
+                  "available": [
+                  {%- for product in available %}
+                    { "name": {{ product.name | json }}, "price": {{ product.price }}, "tags": {{ product.tags | json }} }
+                    {%- unless forloop.last %},{% endunless %}
+                  {%- endfor %}
+                  ]
+                }
+                """,
+            Model = Products,
+        }),
+
+        new("xml", "XML feed", new PlaygroundState
+        {
+            Template = """
+                <?xml version="1.0" encoding="utf-8"?>
+                <rss version="2.0">
+                  <channel>
+                    <title>{{ store | xml_escape }}</title>
+                    {%- for product in products %}
+                    <item>
+                      <title>{{ product.name | xml_escape }}</title>
+                      <category>{{ product.tags | first }}</category>
+                    </item>
+                    {%- endfor %}
+                  </channel>
+                </rss>
+                """,
+            Model = Products,
+        }),
+
         new("partials", "Partials", new PlaygroundState
         {
             Template = """
