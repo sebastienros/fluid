@@ -54,3 +54,16 @@ document.addEventListener('keydown', event => {
 
     escaped = event.key === 'Escape';
 });
+
+// The highlighted code under an editor's textarea follows its scroll through CSS variables on the editor element: Blazor
+// replaces the pre on every input, and the variables survive that, unlike a scroll position set on the pre.
+export function attachEditor(editor) {
+    const textarea = editor.querySelector('textarea');
+    const sync = () => {
+        editor.style.setProperty('--scroll-x', textarea.scrollLeft + 'px');
+        editor.style.setProperty('--scroll-y', textarea.scrollTop + 'px');
+    };
+    textarea.addEventListener('scroll', sync, { passive: true });
+    textarea.addEventListener('input', sync);
+    sync();
+}

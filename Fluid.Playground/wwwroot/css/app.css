@@ -119,6 +119,31 @@ select, input[type="text"], input[type="number"] {
 }
 textarea.code:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-soft); }
 
+/* Editors: a transparent textarea over the code highlighted by Tint. Both must lay out text identically: same font,
+   size, line height, padding and tab size, and no ligatures (JetBrains Mono has some). */
+
+.editor { position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--surface); }
+.editor-output, .editor-input { position: absolute; inset: 0; }
+.editor-output { overflow: hidden; pointer-events: none; }
+.editor-output .tint, .editor-input {
+    margin: 0; padding: 14px 16px; font: 13.5px/1.65 var(--font-mono); tab-size: 2; white-space: pre;
+    letter-spacing: normal; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0;
+}
+.editor-output .tint { height: 100%; overflow: hidden; background: transparent !important; color: var(--ink) !important; }
+.editor-output .tint code { display: block; font: inherit; transform: translate(calc(-1 * var(--scroll-x, 0px)), calc(-1 * var(--scroll-y, 0px))); }
+.editor-input {
+    width: 100%; height: 100%; border: 0; resize: none; overflow: auto; outline: none; background: transparent;
+    color: transparent; -webkit-text-fill-color: transparent; caret-color: var(--ink);
+}
+.editor-input::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.editor-input:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-soft); }
+
+/* The dark theme uses the Dark+ colors that Tint writes as variables next to the Light+ ones. */
+:root[data-theme="dark"] .editor-output .tint span { color: var(--tint-dark) !important; font-style: var(--tint-dark-font-style, inherit) !important; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .editor-output .tint span { color: var(--tint-dark) !important; font-style: var(--tint-dark-font-style, inherit) !important; }
+}
+
 .hint { margin: 0; padding: 8px 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
 
 .partial-bar { display: flex; align-items: center; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--line); font-size: 13.5px; }

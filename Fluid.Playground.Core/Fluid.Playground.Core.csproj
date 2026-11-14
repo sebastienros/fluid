@@ -9,7 +9,14 @@
     <IsAotCompatible>true</IsAotCompatible>
     <IsTrimmable>true</IsTrimmable>
   </PropertyGroup>
+  <!-- Compiled into LiquidGrammar by Tint's source generator (PlaygroundHighlighter.cs). -->
+  <ItemGroup>
+    <TintGrammar Include="Grammars\liquid.tmLanguage.json" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Fluid\Fluid.csproj" />
+    <PackageReference Include="Tint" />
+    <PackageReference Include="Tint.Grammars" />
+    <PackageReference Include="Tint.Themes" />
   </ItemGroup>
 </Project>

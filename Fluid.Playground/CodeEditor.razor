@@ -1,0 +1,6 @@
+@* A textarea over the highlighted code: the text of the textarea is transparent, so the colors come from the pre under
+   it, which js/playground.js keeps scrolled with the textarea (attachEditor). *@
+<div class="editor" @ref="_root">
+    <div class="editor-output" aria-hidden="true">@((MarkupString)_html)</div>
+    <textarea class="editor-input code" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" aria-label="@Label" value="@_value" @oninput="OnInputAsync"></textarea>
+</div>
