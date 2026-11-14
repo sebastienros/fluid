@@ -33,6 +33,8 @@ public sealed partial class App : IAsyncDisposable
     private string _shareLabel = "Share";
     private string _copyLabel = "Copy";
     private string _outputFormat = "auto";
+    private bool _dark;
+    private DotNetObjectReference<App>? _self;
     private PlaygroundLanguage? _outputLanguage;
     private string? _outputHtml;
 
@@ -57,9 +59,13 @@ public sealed partial class App : IAsyncDisposable
         Options = _options,
     };
 
-    // The preview renders the output in a sandboxed frame, with the colors of a blank page.
+    // The preview renders the output in a sandboxed frame, which can't see the page's theme: it gets the colors of the
+    // current theme, and the browser's default styles of that color scheme for links and form controls.
     private string PreviewDocument =>
-        "<!doctype html><meta charset=\"utf-8\"><style>body{font:15px/1.5 system-ui,sans-serif;margin:16px;color:#111;background:#fff}</style>" + (_result?.Output ?? "");
+        (_dark
+            ? "<!doctype html><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"dark\"><style>:root{color-scheme:dark}body{font:15px/1.5 system-ui,sans-serif;margin:16px;color:#e8f3fc;background:#0f1e30}a{color:#6cc8ff}</style>"
+            : "<!doctype html><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light\"><style>:root{color-scheme:light}body{font:15px/1.5 system-ui,sans-serif;margin:16px;color:#0b2a4a;background:#fff}a{color:#0a6dbd}</style>")
+        + (_result?.Output ?? "");
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -69,6 +75,9 @@ public sealed partial class App : IAsyncDisposable
         }
 
         _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/playground.js");
+        _dark = await _module.InvokeAsync<string>("currentTheme") == "dark";
+        _self = DotNetObjectReference.Create(this);
+        await _module.InvokeVoidAsync("watchTheme", _self);
         var state = PlaygroundState.FromHash(await _module.InvokeAsync<string>("readHash"));
         if (state is null)
         {
@@ -112,6 +121,8 @@ public sealed partial class App : IAsyncDisposable
             "html" => PlaygroundLanguage.Html,
             "json" => PlaygroundLanguage.Json,
             "xml" => PlaygroundLanguage.Xml,
+            "markdown" => PlaygroundLanguage.Markdown,
+            "csharp" => PlaygroundLanguage.CSharp,
             "text" => null,
             _ => PlaygroundOutputFormat.Detect(output),
         };
@@ -132,6 +143,8 @@ public sealed partial class App : IAsyncDisposable
         PlaygroundLanguage.Html => "HTML",
         PlaygroundLanguage.Json => "JSON",
         PlaygroundLanguage.Xml => "XML",
+        PlaygroundLanguage.Markdown => "Markdown",
+        PlaygroundLanguage.CSharp => "C#",
         _ => "plain text",
     };
 
@@ -288,8 +301,16 @@ public sealed partial class App : IAsyncDisposable
     {
         if (_module is not null)
         {
-            await _module.InvokeVoidAsync("toggleTheme");
+            _dark = await _module.InvokeAsync<string>("toggleTheme") == "dark";
         }
+    }
+
+    /// <summary>Called by the script when the system theme changes.</summary>
+    [JSInvokable]
+    public void OnThemeChanged(string theme)
+    {
+        _dark = theme == "dark";
+        StateHasChanged();
     }
 
     private static int CountChanged(PlaygroundOptions options)
@@ -325,6 +346,7 @@ public sealed partial class App : IAsyncDisposable
     {
         _pending?.Cancel();
         _pendingHash?.Cancel();
+        _self?.Dispose();
         if (_module is not null)
         {
             await _module.DisposeAsync();

@@ -72,13 +72,15 @@
             <div class="tabs" role="tablist">
                 <button type="button" role="tab" class="tab @(_preview ? null : "active")" aria-selected="@(_preview ? "false" : "true")" @onclick="() => _preview = false">Output</button>
                 <button type="button" role="tab" class="tab @(_preview ? "active" : null)" aria-selected="@(_preview ? "true" : "false")" @onclick="() => _preview = true">HTML preview</button>
-                <label class="tab-format" title="How the output is colored. Auto detects HTML, JSON and XML.">
+                <label class="tab-format" title="How the output is colored. Auto detects HTML, JSON, XML, Markdown and C#.">
                     <span class="field-label">Format</span>
                     <select value="@_outputFormat" @onchange="OnOutputFormatChanged" aria-label="Output format">
                         <option value="auto">Auto@(_outputFormat == "auto" ? $" ({FormatName(_outputLanguage)})" : null)</option>
                         <option value="html">HTML</option>
                         <option value="json">JSON</option>
                         <option value="xml">XML</option>
+                        <option value="markdown">Markdown</option>
+                        <option value="csharp">C#</option>
                         <option value="text">Plain text</option>
                     </select>
                 </label>

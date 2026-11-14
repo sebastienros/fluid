@@ -18,11 +18,17 @@ public enum PlaygroundLanguage
 
     /// <summary>An output detected as XML.</summary>
     Xml,
+
+    /// <summary>An output detected as Markdown.</summary>
+    Markdown,
+
+    /// <summary>An output detected as C#.</summary>
+    CSharp,
 }
 
 /// <summary>
 /// Colors the editors and the output with Tint, TextMate grammars compiled to .NET: Shopify's Liquid grammar and the VS Code
-/// JSON, HTML and XML grammars, with the Light+ colors inline and the Dark+ ones as CSS variables (<c>--tint-dark</c>) that the
+/// JSON, HTML, XML, Markdown and C# grammars, with the Light+ colors inline and the Dark+ ones as CSS variables (<c>--tint-dark</c>) that the
 /// stylesheet applies in the dark theme. Not thread-safe, like the Tint highlighters it owns.
 /// </summary>
 public sealed class PlaygroundHighlighter
@@ -37,7 +43,8 @@ public sealed class PlaygroundHighlighter
     {
         // The Liquid grammar includes HTML, which includes CSS and JavaScript, and JSON for {% schema %} blocks. Only the
         // grammars referenced here are kept by the trimmer.
-        _registry.Add(LiquidGrammar.Instance, TintGrammars.HtmlBasic, TintGrammars.Css, TintGrammars.JavaScript, TintGrammars.Json, TintGrammars.Xml);
+        _registry.Add(LiquidGrammar.Instance, TintGrammars.HtmlBasic, TintGrammars.Css, TintGrammars.JavaScript, TintGrammars.Json, TintGrammars.Xml,
+            TintGrammars.Markdown, TintGrammars.CSharp);
     }
 
     /// <summary>The highlighted HTML of <paramref name="code"/>: a <c>pre</c> with one <c>span.line</c> per line.</summary>
@@ -50,6 +57,8 @@ public sealed class PlaygroundHighlighter
                 PlaygroundLanguage.Json => TintGrammars.Json.ScopeName,
                 PlaygroundLanguage.Html => TintGrammars.HtmlBasic.ScopeName,
                 PlaygroundLanguage.Xml => TintGrammars.Xml.ScopeName,
+                PlaygroundLanguage.Markdown => TintGrammars.Markdown.ScopeName,
+                PlaygroundLanguage.CSharp => TintGrammars.CSharp.ScopeName,
                 _ => LiquidGrammar.Instance.ScopeName,
             };
 

@@ -106,6 +106,53 @@ public static class PlaygroundSamples
             Model = Products,
         }),
 
+        new("markdown", "Markdown email", new PlaygroundState
+        {
+            Template = """
+                # Your order at {{ store }}
+
+                Thanks for your order! Here is what we will ship:
+
+                | Product | Price |
+                | --- | ---: |
+                {%- for product in products %}{% if product.available %}
+                | {{ product.name }} | {{ product.price | times: 1.2 | round: 2 }} |
+                {%- endif %}{% endfor %}
+
+                {% for product in products %}{% unless product.available -%}
+                > **{{ product.name }}** is sold out, we will tell you when it is back.
+                {% endunless %}{% endfor %}
+                Questions? [Contact us](https://example.com/contact).
+                """,
+            Model = Products,
+        }),
+
+        new("csharp", "C# code generation", new PlaygroundState
+        {
+            Template = """
+                // Generated from the model.
+                namespace {{ namespace }};
+
+                /// <summary>{{ description }}</summary>
+                public sealed record {{ name }}(
+                {%- for property in properties %}
+                    {{ property.type }} {{ property.name | capitalize }}{% unless forloop.last %},{% endunless %}
+                {%- endfor %});
+                """,
+            Model = """
+                {
+                  "namespace": "Contoso.Store",
+                  "name": "Product",
+                  "description": "A product of the store.",
+                  "properties": [
+                    { "name": "name", "type": "string" },
+                    { "name": "price", "type": "decimal" },
+                    { "name": "available", "type": "bool" }
+                  ]
+                }
+                """,
+        }),
+
         new("partials", "Partials", new PlaygroundState
         {
             Template = """
