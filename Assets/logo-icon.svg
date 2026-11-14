@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Fluid">
+<rect width="64" height="64" rx="14" fill="#0b2a4a"/><g transform="translate(5 5) scale(.84)"><g transform="translate(0 0)">
+  <defs>
+    <linearGradient id="f-drop" x1="20" y1="9" x2="44" y2="54" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#62dbff"/><stop offset="1" stop-color="#1693e6"/></linearGradient>
+    <linearGradient id="f-wave" x1="17" y1="36" x2="47" y2="54" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#1279d6"/><stop offset="1" stop-color="#0a4fa8"/></linearGradient>
+    <linearGradient id="f-brace" x1="0" y1="10" x2="0" y2="54" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2bb5f5"/><stop offset="1" stop-color="#1279d6"/></linearGradient>
+    <clipPath id="f-clip"><path d="M32 9C28 16 17 25 17 38.5a15 15 0 0 0 30 0C47 25 36 16 32 9Z"/></clipPath>
+  </defs>
+  <g fill="none" stroke="url(#f-brace)" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13 10H12A5 5 0 0 0 7 15V25Q7 32 2.5 32Q7 32 7 39V49A5 5 0 0 0 12 54H13"/>
+    <path d="M51 10H52A5 5 0 0 1 57 15V25Q57 32 61.5 32Q57 32 57 39V49A5 5 0 0 1 52 54H51"/>
+  </g>
+  <path d="M32 9C28 16 17 25 17 38.5a15 15 0 0 0 30 0C47 25 36 16 32 9Z" fill="url(#f-drop)"/>
+  <g clip-path="url(#f-clip)">
+    <path d="M8 40c3-3 6-3 9 0s6 3 9 0 6-3 9 0 6 3 9 0 6-3 9 0V60H8Z" fill="url(#f-wave)"/>
+    <path d="M8 40c3-3 6-3 9 0s6 3 9 0 6-3 9 0 6 3 9 0 6-3 9 0" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+  <path d="M23.4 33.5c.9-3.8 3.2-7.4 5.8-10.3" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="2.8" stroke-linecap="round"/>
+</g></g>
+</svg>

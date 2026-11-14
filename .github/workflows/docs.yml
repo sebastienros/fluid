@@ -1,0 +1,103 @@
+name: Documentation
+
+# Builds the documentation site (docs/, with Douze) and the playground (Fluid.Playground, Blazor WebAssembly), and
+# deploys them to GitHub Pages from main: https://sebastienros.github.io/fluid/ and /fluid/playground/. Pull requests
+# build and check the site without deploying it. Pages must use the "GitHub Actions" source in the repository settings.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+    - 'docs/**'
+    - 'Assets/**'
+    - 'Fluid/**'
+    - 'Fluid.Playground/**'
+    - 'Fluid.Playground.Core/**'
+    - 'Directory.*'
+    - 'global.json'
+    - '.github/workflows/docs.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+    - 'docs/**'
+    - 'Assets/**'
+    - 'Fluid.Playground/**'
+    - 'Fluid.Playground.Core/**'
+    - '.github/workflows/docs.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: |
+          10.0.x
+        global-json-file: global.json
+
+    - name: Install Douze
+      run: |
+        curl -fsSL https://raw.githubusercontent.com/sebastienros/douze/main/install.sh | sh -s -- --preview --no-modify-path
+        echo "$HOME/.douze/bin" >> "$GITHUB_PATH"
+
+    # Pagefind, downloaded by the search step, is kept between runs.
+    - uses: actions/cache@v6
+      with:
+        path: docs/.douze/tools
+        key: douze-tools-${{ hashFiles('docs/douze.yml') }}
+
+    - name: Build the site
+      run: douze -s docs --no-cache --plain
+
+    - name: Publish the playground
+      run: dotnet publish Fluid.Playground -c Release -o artifacts/playground
+
+    - name: Add the playground to the site
+      shell: bash
+      run: |
+        set -euo pipefail
+        site=docs/_site/fluid
+        rm -rf "$site/playground"
+        cp -R artifacts/playground/wwwroot "$site/playground"
+        # The playground is served from /fluid/playground/.
+        sed -i 's|<base href="/" />|<base href="/fluid/playground/" />|' "$site/playground/index.html"
+        grep -q '<base href="/fluid/playground/" />' "$site/playground/index.html"
+        # Serve _framework as is.
+        touch "$site/.nojekyll"
+        echo "### Site" >> "$GITHUB_STEP_SUMMARY"
+        echo "Pages: $(find "$site" -name index.html | wc -l)" >> "$GITHUB_STEP_SUMMARY"
+        echo "Playground _framework: $(du -cb "$site"/playground/_framework/*.br | tail -1 | cut -f1) bytes (Brotli)" >> "$GITHUB_STEP_SUMMARY"
+
+    - uses: actions/upload-pages-artifact@v5
+      with:
+        path: docs/_site/fluid
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.repository == 'sebastienros/fluid'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+    - uses: actions/configure-pages@v6
+    - id: deployment
+      uses: actions/deploy-pages@v5

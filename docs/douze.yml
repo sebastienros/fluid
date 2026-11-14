@@ -1,0 +1,79 @@
+# The documentation site of Fluid, built by Douze (https://sebastienros.github.io/douze/).
+#
+#   douze serve -s docs        http://localhost:8080/fluid/
+#   douze -s docs              writes docs/_site; the site is docs/_site/fluid
+#
+# GitHub Pages serves the project at /fluid/, so the pages live in _content/fluid/: their urls, and the urls of the
+# .md links between them, start with /fluid/ without any rewriting. The deploy (.github/workflows/docs.yml) copies
+# the playground into _site/fluid/playground/ and uploads _site/fluid.
+
+site:
+  url: https://sebastienros.github.io
+  output: _site # relative to this folder, whatever the current folder is
+
+markdown:
+  extensions: [pipetables, footnotes, tasklists, definitionlists, attributes, autolinks, alerts, customcontainers]
+  aside:
+    kinds: [note, tip, caution, danger]
+
+steps:
+  site-data:
+    inputs: "_data/**/*.{yml,yaml,json}"
+    uses: data
+    with:
+      scope: site
+  folder-data:
+    inputs: "_content/**/*.{yml,yaml,json}"
+    uses: data
+    with:
+      scope: folder
+      root: _content
+  pages:
+    inputs: ["_content/**", "!_content/**/*.{yml,yaml,json}"]
+    needs: [site-data, folder-data]
+    uses: frontmatter
+    with:
+      require: [title]
+  permalink:
+    needs: pages
+    uses: permalink
+    with:
+      root: _content
+  collections:
+    needs: permalink
+    uses: collect
+  render:
+    needs: [permalink, collections]
+    uses: liquid
+  markdown:
+    needs: render
+    uses: markdown
+  headings:
+    needs: markdown
+    uses: headings
+    match: ["**/*.html", "!fluid/index.html"]
+    with:
+      anchors: true
+      levels: [2, 3]
+  highlight:
+    needs: headings
+    uses: highlight
+    with:
+      themes: [github-light, github-dark]
+      stylesheet: fluid/assets/code.css
+  layout:
+    needs: highlight
+    uses: layout
+  links:
+    needs: layout
+    uses: links
+  check-links:
+    needs: links
+    uses: check-links
+  write:
+    needs: links
+    uses: write
+  search:
+    needs: write
+    tool: pagefind
+    run: "{{ tool }} --site {{ site }}/fluid --glob \"**/*.html\" --quiet"

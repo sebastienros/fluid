@@ -1,14 +1,7 @@
-# Working with Time Zones in Fluid
-
-This guide explains how time zones work in Fluid templates, covering parsing, rendering, and conversion of date/time values.
-
-## Table of Contents
-- [Understanding Time Zone Behavior](#understanding-time-zone-behavior)
-- [The TimeZone Property](#the-timezone-property)
-- [Converting Time Zones During Rendering](#converting-time-zones-during-rendering)
-- [Resolving Time Zone Identifiers](#resolving-time-zone-identifiers)
-- [Automatic Conversion with Value Converters](#automatic-conversion-with-value-converters)
-- [Common Patterns and Examples](#common-patterns-and-examples)
+---
+title: Working with time zones
+description: "This guide explains how time zones work in Fluid templates, covering parsing, rendering, and conversion of date/time values."
+---
 
 ## Understanding Time Zone Behavior
 
@@ -378,5 +371,5 @@ foreach (var tz in TimeZoneInfo.GetSystemTimeZones())
 - [TimeZoneInfo.FindSystemTimeZoneById](https://learn.microsoft.com/dotnet/api/system.timezoneinfo.findsystemtimezonebyid) - Default time zone resolution
 - [TimeZoneConverter Library](https://github.com/mattjohnsonpint/TimeZoneConverter) - Optional resolver for additional compatibility
 - [IANA Time Zone Database](https://www.iana.org/time-zones) - Standard time zone identifiers
-- [Fluid README - Time zones section](README.md#time-zones) - Quick reference
-- [Fluid README - Value Converters section](README.md#adding-a-value-converter) - More on value converters
+- [Cultures, dates and time zones](localization.md) - How date strings are parsed
+- [Adding a value converter](models-and-values.md#adding-a-value-converter) - More on value converters

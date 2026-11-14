@@ -1,8 +1,11 @@
-# Compiled template generator
+---
+title: Compiled template generator
+description: "Compile .liquid files into C# classes at build time."
+---
 
 The compiled template generator parses `.liquid` files at build time and compiles each one into a C# class that implements `IFluidTemplate`. It is part of the `Fluid.SourceGenerator` package and is unrelated to the [model accessor generator](model-accessor-generator.md).
 
-The basic usage is described in the [README](../README.md#compiled-templates). This document covers the details.
+The basic usage is described in the [README](https://github.com/sebastienros/fluid#compiled-templates). This document covers the details.
 
 ## When to use it
 

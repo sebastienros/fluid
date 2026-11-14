@@ -1,0 +1,6 @@
+title: Fluid
+tagline: Fast, secure and extensible Liquid templates for .NET
+base: /fluid/
+repo: https://github.com/sebastienros/fluid
+edit: https://github.com/sebastienros/fluid/edit/main/docs/
+nuget: https://www.nuget.org/packages/Fluid.Core
