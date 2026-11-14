@@ -328,11 +328,11 @@ public class ViewEngineTests
         _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Layout.liquid' %}Hi");
         _mockFileProvider.Add("Views/Shared/_Layout.liquid", "SHARED {% renderbody %}");
 
-        var sw = new StringWriter();
-        await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
-        await sw.FlushAsync();
+        // A layout with an extension is only looked up relative to the view.
+        var exception = await Assert.ThrowsAsync<FileNotFoundException>(
+            () => Renderer.RenderViewAsync(new StringWriter(), "Index.liquid", new TemplateContext()));
 
-        Assert.Equal("", sw.ToString());
+        Assert.Equal("_Layout.liquid", exception.FileName);
     }
 
     [Fact]
@@ -729,5 +729,72 @@ public class ViewEngineTests
 
         // Should output "5 World" - the '2' has been replaced with '4', so 1+4=5
         Assert.Equal("5 World", sw2.ToString());
+    }
+
+    [Theory]
+    [InlineData("Missing.liquid", "The view 'Missing.liquid' was not found.", "Missing.liquid")]
+    [InlineData("WithLayout.liquid", "The layout '_Missing' was not found.", "_Missing")]
+    [InlineData("WithPartial.liquid", "The partial 'Missing.liquid' was not found.", "Missing.liquid")]
+    public async Task MissingTemplatesShouldThrowByDefault(string view, string message, string path)
+    {
+        _mockFileProvider.Add("Views/WithLayout.liquid", "{% layout '_Missing' %}Body");
+        _mockFileProvider.Add("Views/WithPartial.liquid", "A{% partial 'Missing' %}B");
+
+        var exception = await Assert.ThrowsAsync<FileNotFoundException>(
+            () => Renderer.RenderViewAsync(new StringWriter(), view, new TemplateContext()));
+
+        Assert.Equal(message, exception.Message);
+        Assert.Equal(path, exception.FileName);
+    }
+
+    [Fact]
+    public async Task TemplateNotFoundShouldRenderInPlaceOfMissingTemplates()
+    {
+        _mockFileProvider.Add("Views/WithPartial.liquid", "A{% partial 'Missing' %}B");
+        _mockFileProvider.Add("Views/WithLayout.liquid", "{% layout '_Missing' %}Body");
+
+        _options.TemplateNotFound = (path, kind, output, context) =>
+        {
+            output.Write($"[{kind} {path}]");
+
+            if (kind == ViewTemplateKind.Layout)
+            {
+                output.Write(context.AmbientValues[Constants.BodyIndex] as string);
+            }
+
+            return default;
+        };
+
+        var sw = new StringWriter();
+        await Renderer.RenderViewAsync(sw, "Missing.liquid", new TemplateContext());
+        Assert.Equal("[View Missing.liquid]", sw.ToString());
+
+        sw = new StringWriter();
+        await Renderer.RenderViewAsync(sw, "WithPartial.liquid", new TemplateContext());
+        Assert.Equal("A[Partial Missing.liquid]B", sw.ToString());
+
+        sw = new StringWriter();
+        await Renderer.RenderViewAsync(sw, "WithLayout.liquid", new TemplateContext());
+        Assert.Equal("[Layout _Missing]Body", sw.ToString());
+    }
+
+    [Fact]
+    public async Task TemplateNotFoundShouldNotBeCached()
+    {
+        _options.TemplateNotFound = (path, kind, output, context) =>
+        {
+            output.Write("missing");
+            return default;
+        };
+
+        var sw = new StringWriter();
+        await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+        Assert.Equal("missing", sw.ToString());
+
+        _mockFileProvider.Add("Views/Index.liquid", "Hello World");
+
+        sw = new StringWriter();
+        await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+        Assert.Equal("Hello World", sw.ToString());
     }
 }

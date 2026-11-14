@@ -128,4 +128,24 @@ public class FluidViewEngineOptions
     /// Gets or sets the delegate to execute when a view is rendered.
     /// </summary>
     public RenderingViewDelegate RenderingViewAsync { get; set; }
+
+    /// <summary>
+    /// <para>Represents the method that will handle a view, layout or partial that can't be found.</para>
+    /// </summary>
+    /// <param name="path">The path of the template that was requested.</param>
+    /// <param name="kind">Whether the template is a view, a layout or a partial.</param>
+    /// <param name="output">The output the missing template would have been rendered to.</param>
+    /// <param name="context">The <see cref="TemplateContext"/> of the current rendering.</param>
+    public delegate ValueTask TemplateNotFoundDelegate(string path, ViewTemplateKind kind, IFluidOutput output, TemplateContext context);
+
+    /// <summary>
+    /// Gets or sets the delegate to execute in place of a view, layout or partial that can't be found.
+    /// It can write some content to the output, log the path, or throw. When it is not set, a
+    /// <see cref="System.IO.FileNotFoundException"/> is thrown.
+    /// </summary>
+    /// <remarks>
+    /// A layout is responsible for rendering the body of the view. When a layout is missing, the body
+    /// is not rendered unless the delegate writes it, from <c>context.AmbientValues[Constants.BodyIndex]</c>.
+    /// </remarks>
+    public TemplateNotFoundDelegate TemplateNotFound { get; set; }
 }

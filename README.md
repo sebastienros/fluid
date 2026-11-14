@@ -1603,6 +1603,29 @@ requiring ASP.NET MVC. This is useful to provide the same experience when buildi
 
 Use the class `FluidViewRenderer : IFluidViewRenderer` and `FluidViewEngineOptions`. 
 
+### Missing views, layouts and partials
+
+A view, a layout or a partial that can't be found throws a `FileNotFoundException` whose `FileName` is the requested path. To render something else instead, log the path, or throw a different exception, set `FluidViewEngineOptions.TemplateNotFound`. It is called in place of the missing template, with the requested path, whether it is a view, a layout or a partial, and the output the template would have been rendered to:
+
+```csharp
+options.TemplateNotFound = (path, kind, output, context) =>
+{
+    output.Write($"<!-- Missing {kind}: {path} -->");
+
+    // A layout renders the body of the view, which is otherwise lost.
+    if (kind == ViewTemplateKind.Layout)
+    {
+        output.Write(context.AmbientValues[Constants.BodyIndex] as string);
+    }
+
+    return default;
+};
+```
+
+The text written by the delegate is not encoded. A missing template is looked up again on each rendering, so a file added later is used as soon as it exists.
+
+> In Fluid 3.0 a missing view, layout or partial throws instead of rendering nothing.
+
 
 
 ## Shopify Liquid syntax
