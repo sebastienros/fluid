@@ -93,6 +93,33 @@ public class PlainDateTimeValueTests
         Assert.Equal("2026-03-04 13:05:06", await RenderAsync("{{ x | append: '' }}", context, new DateTime(2026, 3, 4, 13, 5, 6)));
     }
 
+    public static TheoryData<object> DateValues => new()
+    {
+        new DateTime(2026, 3, 4, 13, 0, 0, DateTimeKind.Unspecified),
+        new DateTime(2026, 3, 4, 13, 0, 0, DateTimeKind.Utc),
+        new DateTimeOffset(2026, 3, 4, 13, 0, 0, TimeSpan.FromHours(-5)),
+        new DateOnly(2026, 3, 4),
+        new TimeOnly(13, 0),
+    };
+
+    [Theory]
+    [MemberData(nameof(DateValues))]
+    public async Task DatesAreZeroInMathFilters(object value)
+    {
+        // Like Liquid, where Utils.to_number returns 0 for a Time: math is done on date: '%s'.
+        Assert.Equal("0|0|0|5|0", await RenderAsync("{{ x | plus: 0 }}|{{ x | times: 2 }}|{{ x | abs }}|{{ x | at_least: 5 }}|{{ x | round }}", ContextIn("America/New_York"), value));
+    }
+
+    [Fact]
+    public async Task DateMathIsDoneOnUnixTime()
+    {
+        var context = ContextIn("America/New_York");
+        context.SetValue("end", new DateOnly(2026, 12, 25));
+
+        Assert.Equal("2026-03-05 13:00 -0500", await RenderAsync("{{ x | date: '%s' | plus: 86400 | date: '%Y-%m-%d %H:%M %z' }}", context, new DateTime(2026, 3, 4, 13, 0, 0)));
+        Assert.Equal("296", await RenderAsync("{% assign start = x | date: '%s' %}{{ end | date: '%s' | minus: start | divided_by: 86400 }}", context, new DateOnly(2026, 3, 4)));
+    }
+
     [Fact]
     public async Task TimeZoneFilterConvertsFromTheContextTimeZone()
     {

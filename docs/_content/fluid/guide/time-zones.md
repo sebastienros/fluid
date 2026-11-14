@@ -97,8 +97,21 @@ A `DateTime` of `Utc` or `Local` kind is a moment, a `DateTimeValue`: a `Utc` on
 > - A `DateTime` of `Unspecified` kind was read in the time zone of the machine, ignoring the options and the context: `13:00` was formatted as `13:00 +0100` on a server in Paris whatever `TemplateContext.TimeZone` was, and rendered in UTC as `2026-03-04 12:00:00Z`. `ToObjectValue()` returned a `DateTimeOffset`.
 > - A `DateOnly` was converted to a string with the culture of the options, `03/04/2026` with the invariant culture, which the date filters read as April 3.
 > - A `TimeOnly` was converted to a string like `13:00`.
+> - A date was its number of .NET ticks in math filters: `{{ starts | plus: 0 }}` rendered `639082260000000000`, and now renders `0` like in Liquid.
 >
 > `DateTimeValue.Create(DateTime)` is unchanged and still reads an `Unspecified` `DateTime` in the time zone of the machine: use `PlainDateTimeValue.Create()` in value converters.
+
+### Date Math
+
+Like in Liquid, a date isn't a number: it is `0` in math filters like `plus` or `minus`, whatever its type. Do the math on its Unix time instead, which `date: '%s'` returns, and read the result with `date` in the time zone of the context:
+
+```liquid
+{{ starts | date: '%s' | plus: 86400 | date: '%Y-%m-%d %H:%M' }}  → 2026-03-05 13:00
+{% assign from = day | date: '%s' %}
+{{ '2026-12-25' | date: '%s' | minus: from | divided_by: 86400 }} → 296
+```
+
+Adding `86400` adds 24 hours, which is a different clock time on the day daylight saving time starts or ends.
 
 ### Time Spans
 

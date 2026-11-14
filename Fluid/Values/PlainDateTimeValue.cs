@@ -99,8 +99,8 @@ public sealed class PlainDateTimeValue : FluidValue
 
     public override decimal ToNumberValue(TemplateContext context)
     {
-        // Like a DateTimeValue, the ticks of the clock reading.
-        return _value.Ticks;
+        // Like Liquid, a date is not a number: math is done on its Unix time, with date: '%s'.
+        return 0;
     }
 
     public override string ToStringValue(TemplateContext context)
