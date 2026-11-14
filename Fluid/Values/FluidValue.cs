@@ -176,6 +176,14 @@ public abstract class FluidValue : IEquatable<FluidValue>
                     case TimeSpan timeSpan:
                         return TimeSpanValue.Create(timeSpan);
 
+#if NET6_0_OR_GREATER
+                    case DateOnly dateOnly:
+                        return PlainDateTimeValue.Create(dateOnly);
+
+                    case TimeOnly timeOnly:
+                        return PlainDateTimeValue.Create(timeOnly);
+#endif
+
                     case IConvertible convertible:
                         var typeCode = convertible.GetTypeCode();
                         return typeCode switch
@@ -193,7 +201,7 @@ public abstract class FluidValue : IEquatable<FluidValue>
                             TypeCode.Single => NumberConversions.ToNumberValue(convertible.ToSingle(options.CultureInfo)),
                             TypeCode.Double => NumberConversions.ToNumberValue(convertible.ToDouble(options.CultureInfo)),
                             TypeCode.Decimal => NumberValue.Create(convertible.ToDecimal(options.CultureInfo)),
-                            TypeCode.DateTime => DateTimeValue.Create(convertible.ToDateTime(options.CultureInfo)),
+                            TypeCode.DateTime => PlainDateTimeValue.FromDateTime(convertible.ToDateTime(options.CultureInfo)),
                             TypeCode.String => StringValue.Create(convertible.ToString(options.CultureInfo)),
                             TypeCode.Object => StringValue.Create(convertible.ToString(options.CultureInfo)),
                             TypeCode.DBNull => NilValue.Instance,
@@ -310,7 +318,7 @@ public abstract class FluidValue : IEquatable<FluidValue>
                 return ObjectValue.Create(value);
 
             case TypeCode.DateTime:
-                return DateTimeValue.Create((DateTime)value);
+                return PlainDateTimeValue.FromDateTime((DateTime)value);
 
             case TypeCode.Char:
                 return StringValue.Create(Convert.ToString(value, options.CultureInfo));

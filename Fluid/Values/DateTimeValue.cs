@@ -9,6 +9,11 @@ public sealed class DateTimeValue : FluidValue
 
     public static DateTimeValue Create(DateTimeOffset value) => new DateTimeValue(value);
 
+    /// <summary>
+    /// Creates a value from a moment. A <see cref="DateTime"/> of <see cref="DateTimeKind.Unspecified"/> kind is read in
+    /// the time zone of the machine: <see cref="FluidValue.Create(object, TemplateOptions)"/> converts it to a
+    /// <see cref="PlainDateTimeValue"/> instead, read in the time zone of the template context.
+    /// </summary>
     public static DateTimeValue Create(DateTime value) => new DateTimeValue(value);
 
     private DateTimeValue(DateTimeOffset value)
@@ -59,7 +64,7 @@ public sealed class DateTimeValue : FluidValue
 
     public override bool Equals(FluidValue other)
     {
-        // Other values have the DateTime type too, like a TimeSpanValue.
+        // Other values have the DateTime type too, like a TimeSpanValue or a PlainDateTimeValue.
         return other is DateTimeValue dateTimeValue && _value.Equals(dateTimeValue._value);
     }
 

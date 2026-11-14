@@ -31,7 +31,7 @@ internal static class AccessorValueConverter
             TypeCode.Double => NumberConversions.CreateNumber((double)value),
             TypeCode.Single => NumberConversions.CreateNumber((float)value),
             TypeCode.Decimal => NumberValue.Create((decimal)value),
-            TypeCode.DateTime => DateTimeValue.Create((DateTime)value),
+            TypeCode.DateTime => PlainDateTimeValue.FromDateTime((DateTime)value),
             TypeCode.String => StringValue.Create((string)value),
             _ => FluidValue.Create(value, options),
         };

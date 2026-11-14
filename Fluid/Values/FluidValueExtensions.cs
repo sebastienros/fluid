@@ -115,6 +115,10 @@ public static class FluidValueExtensions
         {
             result = (DateTimeOffset)input.ToObjectValue(context);
         }
+        else if (input is PlainDateTimeValue plain)
+        {
+            return plain.TryGetDateTimeOffset(context, out result);
+        }
         else if (input is TimeSpanValue timeSpan)
         {
             return timeSpan.TryGetDateTimeOffset(context, out result);
@@ -124,7 +128,8 @@ public static class FluidValueExtensions
             switch (input.ToObjectValue(context))
             {
                 case DateTime dateTime:
-                    result = dateTime;
+                    // A date and time without time zone is in the one of the context, not the one of the machine.
+                    result = dateTime.Kind == DateTimeKind.Unspecified ? InTimeZone(dateTime, context) : dateTime;
                     break;
 
                 case DateTimeOffset dateTimeOffset:

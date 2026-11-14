@@ -62,6 +62,44 @@ var result = template.Render(context);
 
 The date is rendered in UTC because that's what the `DateTime` object contains. The context's `TimeZone` property has no effect on rendering.
 
+### Dates and Times Without a Time Zone
+
+A `DateTime` of `Unspecified` kind, a `DateOnly` and a `TimeOnly` are clock readings rather than moments, like a date read from a database column without offset. Fluid keeps them as they are, a `PlainDateTimeValue`, and reads them in the time zone of the context only when a date filter needs a moment, whatever the time zone of the machine:
+
+```csharp
+var context = new TemplateContext
+{
+    TimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/New_York")
+};
+
+context.SetValue("starts", new DateTime(2026, 3, 4, 13, 0, 0)); // Unspecified kind
+context.SetValue("day", new DateOnly(2026, 3, 4));
+context.SetValue("opening", new TimeOnly(13, 0));
+```
+
+```liquid
+{{ starts }}                                → 2026-03-04 13:00:00
+{{ starts | date: '%Y-%m-%d %H:%M %z' }}    → 2026-03-04 13:00 -0500
+{{ starts | time_zone: 'Europe/Berlin' | date: '%H:%M' }} → 19:00
+{{ day }}                                   → 2026-03-04
+{{ day | date: '%Y-%m-%d %H:%M %z' }}       → 2026-03-04 00:00 -0500
+{{ opening }}                               → 13:00:00
+{{ opening | date: '%H:%M %z' }}            → 13:00 -0500 (-0400 in summer)
+```
+
+- On their own, they render as ISO 8601 clock readings without offset, so they sort chronologically, and `json` writes them as `"2026-03-04T13:00:00"`, `"2026-03-04"` and `"13:00:00"`.
+- A `DateOnly` is read at midnight. A `TimeOnly` is read on the current date of the context, `TemplateContext.Now()` in its time zone, like Ruby's `Time.parse("13:00")`, so its offset follows daylight saving time.
+- In .NET, `ToObjectValue()` returns the `DateTime`, `DateOnly` or `TimeOnly`.
+
+A `DateTime` of `Utc` or `Local` kind is a moment, a `DateTimeValue`: a `Utc` one keeps the `+00:00` offset and a `Local` one, like `DateTime.Now`, the offset of the machine. The context's time zone doesn't change them.
+
+> **Breaking changes:**
+> - A `DateTime` of `Unspecified` kind was read in the time zone of the machine, ignoring the options and the context: `13:00` was formatted as `13:00 +0100` on a server in Paris whatever `TemplateContext.TimeZone` was, and rendered in UTC as `2026-03-04 12:00:00Z`. `ToObjectValue()` returned a `DateTimeOffset`.
+> - A `DateOnly` was converted to a string with the culture of the options, `03/04/2026` with the invariant culture, which the date filters read as April 3.
+> - A `TimeOnly` was converted to a string like `13:00`.
+>
+> `DateTimeValue.Create(DateTime)` is unchanged and still reads an `Unspecified` `DateTime` in the time zone of the machine: use `PlainDateTimeValue.Create()` in value converters.
+
 ### Time Spans
 
 A `TimeSpan` is a time of day or a duration, not a moment, so it has no time zone of its own. It renders in its constant format, like `13:00:00` or `1.02:00:00` for 26 hours:
@@ -105,6 +143,7 @@ var context = new TemplateContext
 
 **Use Cases for the TimeZone Property:**
 - Parsing date strings without explicit time zone information
+- Reading [dates and times without a time zone](#dates-and-times-without-a-time-zone): `DateTime` values of `Unspecified` kind, `DateOnly`, `TimeOnly` and `TimeSpan`
 - Ensuring consistent date parsing across different server environments
 - Interpreting user input in a specific time zone
 
@@ -227,10 +266,11 @@ var options = new TemplateOptionsBuilder()
     .WithTimeZone(timeZone)
     .AddValueConverter(obj =>
     {
-        if (obj is DateTime dt)
+        // A DateTime of Unspecified kind has no time zone to convert from, Fluid reads it in the context's one.
+        if (obj is DateTime dt && dt.Kind != DateTimeKind.Unspecified)
         {
             // Convert to the options' time zone
-            var converted = TimeZoneInfo.ConvertTime(dt, timeZone);
+            var converted = TimeZoneInfo.ConvertTime(new DateTimeOffset(dt), timeZone);
             return DateTimeValue.Create(converted);
         }
 
@@ -384,6 +424,7 @@ foreach (var tz in TimeZoneInfo.GetSystemTimeZones())
 |----------|----------|
 | Parse date strings without time zone info | Set `TemplateContext.TimeZone` |
 | Format a `TimeSpan` as a time of day | Use the `date` or `format_date` filter, in the context's time zone |
+| Read `DateOnly`, `TimeOnly` and `Unspecified` `DateTime` values in a time zone | Set `TemplateContext.TimeZone`, the machine's one is never used |
 | Display dates in a specific time zone | Use `{{ date \| time_zone: 'timezone-id' }}` filter |
 | Display dates in the context's time zone | Use `{{ date \| time_zone: 'local' }}` filter |
 | Resolve identifiers with a custom library | Set `TemplateOptionsBuilder.WithTimeZoneResolver()` |
