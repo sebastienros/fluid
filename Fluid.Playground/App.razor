@@ -72,15 +72,22 @@
             <div class="tabs" role="tablist">
                 <button type="button" role="tab" class="tab @(_preview ? null : "active")" aria-selected="@(_preview ? "false" : "true")" @onclick="() => _preview = false">Output</button>
                 <button type="button" role="tab" class="tab @(_preview ? "active" : null)" aria-selected="@(_preview ? "true" : "false")" @onclick="() => _preview = true">HTML preview</button>
-                <label class="tab-format" title="How the output is colored. Auto detects HTML, JSON, XML, Markdown and C#.">
+                <label class="tab-format" title="How the output is colored. Auto detects the formats of its group.">
                     <span class="field-label">Format</span>
                     <select value="@_outputFormat" @onchange="OnOutputFormatChanged" aria-label="Output format">
-                        <option value="auto">Auto@(_outputFormat == "auto" ? $" ({FormatName(_outputLanguage)})" : null)</option>
-                        <option value="html">HTML</option>
-                        <option value="json">JSON</option>
-                        <option value="xml">XML</option>
-                        <option value="markdown">Markdown</option>
-                        <option value="csharp">C#</option>
+                        <option value="auto">Auto@(_outputFormat == "auto" ? $" ({PlaygroundFormats.NameOf(_outputLanguage)})" : null)</option>
+                        <optgroup label="Detected by Auto">
+                            @foreach (var format in PlaygroundFormats.All.Where(f => f.Detected))
+                            {
+                                <option value="@format.Id">@format.Name</option>
+                            }
+                        </optgroup>
+                        <optgroup label="Other languages">
+                            @foreach (var format in PlaygroundFormats.All.Where(f => !f.Detected))
+                            {
+                                <option value="@format.Id">@format.Name</option>
+                            }
+                        </optgroup>
                         <option value="text">Plain text</option>
                     </select>
                 </label>

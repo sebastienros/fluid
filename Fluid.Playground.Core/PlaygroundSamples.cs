@@ -127,6 +127,47 @@ public static class PlaygroundSamples
             Model = Products,
         }),
 
+        new("yaml", "YAML configuration", new PlaygroundState
+        {
+            Template = """
+                # Generated from the model.
+                store:
+                  name: {{ store | json }}
+                  products:
+                {%- for product in products %}
+                    - name: {{ product.name }}
+                      price: {{ product.price }}
+                      available: {{ product.available }}
+                      tags: [{{ product.tags | join: ', ' }}]
+                {%- endfor %}
+                """,
+            Model = Products,
+        }),
+
+        new("css", "CSS theme", new PlaygroundState
+        {
+            Template = """
+                :root {
+                {%- for color in colors %}
+                  --{{ color.name }}: {{ color.value }};
+                {%- endfor %}
+                }
+
+                {% for color in colors -%}
+                .text-{{ color.name }} { color: var(--{{ color.name }}); }
+                {% endfor -%}
+                """,
+            Model = """
+                {
+                  "colors": [
+                    { "name": "primary", "value": "#1693e6" },
+                    { "name": "accent", "value": "#62dbff" },
+                    { "name": "ink", "value": "#0b2a4a" }
+                  ]
+                }
+                """,
+        }),
+
         new("csharp", "C# code generation", new PlaygroundState
         {
             Template = """

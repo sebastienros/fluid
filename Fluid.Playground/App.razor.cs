@@ -118,13 +118,8 @@ public sealed partial class App : IAsyncDisposable
         var output = _result?.Error is null ? _result?.Output ?? "" : "";
         _outputLanguage = _outputFormat switch
         {
-            "html" => PlaygroundLanguage.Html,
-            "json" => PlaygroundLanguage.Json,
-            "xml" => PlaygroundLanguage.Xml,
-            "markdown" => PlaygroundLanguage.Markdown,
-            "csharp" => PlaygroundLanguage.CSharp,
-            "text" => null,
-            _ => PlaygroundOutputFormat.Detect(output),
+            "auto" => PlaygroundOutputFormat.Detect(output),
+            _ => PlaygroundFormats.Find(_outputFormat)?.Language,
         };
 
         _outputHtml = _outputLanguage is { } language && output.Length > 0 && output.Length <= PlaygroundOutputFormat.MaxLength
@@ -137,16 +132,6 @@ public sealed partial class App : IAsyncDisposable
         _outputFormat = e.Value?.ToString() ?? "auto";
         HighlightOutput();
     }
-
-    private static string FormatName(PlaygroundLanguage? language) => language switch
-    {
-        PlaygroundLanguage.Html => "HTML",
-        PlaygroundLanguage.Json => "JSON",
-        PlaygroundLanguage.Xml => "XML",
-        PlaygroundLanguage.Markdown => "Markdown",
-        PlaygroundLanguage.CSharp => "C#",
-        _ => "plain text",
-    };
 
     // Renders again after a pause, so that typing doesn't render on every key.
     private async Task ScheduleRenderAsync(bool custom = true)
