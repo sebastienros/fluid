@@ -49,11 +49,11 @@
 
             @if (_tab == TemplateTab)
             {
-                <textarea class="code" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" aria-label="Template" value="@_template" @oninput="OnTemplateInput"></textarea>
+                <CodeEditor Label="Template" Language="PlaygroundLanguage.Liquid" Value="@_template" ValueChanged="OnTemplateChanged" />
             }
             else if (_tab == ModelTab)
             {
-                <textarea class="code" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" aria-label="Model (JSON)" value="@_model" @oninput="OnModelInput"></textarea>
+                <CodeEditor Label="Model (JSON)" Language="PlaygroundLanguage.Json" Value="@_model" ValueChanged="OnModelChanged" />
                 <p class="hint">The properties of a JSON object are the variables of the template. Any other value is the <code>data</code> variable. Comments and trailing commas are allowed.</p>
             }
             else if (_tab >= 0 && _tab < _partials.Count)
@@ -64,7 +64,7 @@
                     <code class="partial-usage">{% render '@partial.Name' %}</code>
                     <button type="button" class="link-button" @onclick="() => RemovePartial(_tab)">Remove</button>
                 </div>
-                <textarea class="code" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" aria-label="Partial template" value="@partial.Source" @oninput="e => OnPartialInput(_tab, e)"></textarea>
+                <CodeEditor @key="_tab" Label="Partial template" Language="PlaygroundLanguage.Liquid" Value="@partial.Source" ValueChanged="s => OnPartialChanged(_tab, s)" />
             }
         </section>
 

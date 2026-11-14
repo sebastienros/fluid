@@ -139,21 +139,21 @@ public sealed partial class App : IAsyncDisposable
         }
     }
 
-    private Task OnTemplateInput(ChangeEventArgs e)
+    private Task OnTemplateChanged(string value)
     {
-        _template = e.Value?.ToString() ?? "";
+        _template = value;
         return ScheduleRenderAsync();
     }
 
-    private Task OnModelInput(ChangeEventArgs e)
+    private Task OnModelChanged(string value)
     {
-        _model = e.Value?.ToString() ?? "";
+        _model = value;
         return ScheduleRenderAsync();
     }
 
-    private Task OnPartialInput(int index, ChangeEventArgs e)
+    private Task OnPartialChanged(int index, string value)
     {
-        _partials[index] = _partials[index] with { Source = e.Value?.ToString() ?? "" };
+        _partials[index] = _partials[index] with { Source = value };
         return ScheduleRenderAsync();
     }
 
