@@ -58,9 +58,8 @@ public sealed class TimeSpanValue : FluidValue
 
     public override decimal ToNumberValue(TemplateContext context)
     {
-        // The duration in seconds. Unlike the time span, a number given to the date filters is a Unix
-        // timestamp, a moment in UTC: `opening | plus: 0 | date: '%H:%M'` doesn't keep the clock time.
-        return (decimal)_value.Ticks / TimeSpan.TicksPerSecond;
+        // Like Liquid, where Utils.to_number returns 0 for anything but a number or a string.
+        return 0;
     }
 
     public override string ToStringValue(TemplateContext context)
