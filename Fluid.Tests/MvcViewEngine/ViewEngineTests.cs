@@ -177,6 +177,111 @@ public class ViewEngineTests
     }
 
     [Fact]
+    public async Task ShouldApplyNestedLayouts()
+    {
+        _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Inner' %}Hi");
+        _mockFileProvider.Add("Views/_Inner.liquid", "{% layout '_Middle' %}INNER [{% renderbody %}]");
+        _mockFileProvider.Add("Views/_Middle.liquid", "{% layout '_Outer' %}MIDDLE [{% renderbody %}]");
+        _mockFileProvider.Add("Views/_Outer.liquid", "OUTER [{% renderbody %}]");
+
+        var sw = new StringWriter();
+        await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+
+        Assert.Equal("OUTER [MIDDLE [INNER [Hi]]]", sw.ToString());
+    }
+
+    [Fact]
+    public async Task ShouldRenderSectionsInNestedLayouts()
+    {
+        _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Inner' %}Hi{% section view %}V{% endsection %}");
+        _mockFileProvider.Add("Views/_Inner.liquid", "{% layout '_Outer' %}{% section inner %}I{% endsection %}<{% rendersection view %}{% renderbody %}>");
+        _mockFileProvider.Add("Views/_Outer.liquid", "{% rendersection view %}{% rendersection inner %}{% renderbody %}");
+
+        var sw = new StringWriter();
+        await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+
+        Assert.Equal("VI<VHi>", sw.ToString());
+    }
+
+    [Fact]
+    public async Task ShouldResolveNestedLayoutFromTheLayoutLocation()
+    {
+        // '_Outer' is looked up from the folder of '_Inner', not from the folder of the view.
+        _mockFileProvider.Add("Views/Home/Index.liquid", "{% layout 'Layouts/_Inner' %}Hi");
+        _mockFileProvider.Add("Views/Home/_Outer.liquid", "WRONG [{% renderbody %}]");
+        _mockFileProvider.Add("Views/Layouts/_Inner.liquid", "{% layout '_Outer' %}INNER [{% renderbody %}]");
+        _mockFileProvider.Add("Views/Layouts/_Outer.liquid", "OUTER [{% renderbody %}]");
+
+        var sw = new StringWriter();
+        await Renderer.RenderViewAsync(sw, "Home/Index.liquid", new TemplateContext());
+
+        Assert.Equal("OUTER [INNER [Hi]]", sw.ToString());
+    }
+
+    [Fact]
+    public async Task ShouldApplyConditionalNestedLayout()
+    {
+        _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Inner' %}Hi");
+        _mockFileProvider.Add("Views/_Inner.liquid", "{% if nested %}{% layout '_Outer' %}{% endif %}INNER [{% renderbody %}]");
+        _mockFileProvider.Add("Views/_Outer.liquid", "OUTER [{% renderbody %}]");
+
+        var sw = new StringWriter();
+        await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+        Assert.Equal("INNER [Hi]", sw.ToString());
+
+        var context = new TemplateContext();
+        context.SetValue("nested", true);
+        sw = new StringWriter();
+        await Renderer.RenderViewAsync(sw, "Index.liquid", context);
+        Assert.Equal("OUTER [INNER [Hi]]", sw.ToString());
+    }
+
+    [Fact]
+    public async Task ShouldShareVariablesAcrossNestedLayouts()
+    {
+        _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Inner' %}{% assign title = 'T' %}Hi");
+        _mockFileProvider.Add("Views/_Inner.liquid", "{% layout '_Outer' %}{% assign subtitle = 'S' %}{{ title }}[{% renderbody %}]");
+        _mockFileProvider.Add("Views/_Outer.liquid", "{{ title }}{{ subtitle }}[{% renderbody %}]");
+
+        var sw = new StringWriter();
+        await Renderer.RenderViewAsync(sw, "Index.liquid", new TemplateContext());
+
+        Assert.Equal("TS[T[Hi]]", sw.ToString());
+    }
+
+    [Theory]
+    [InlineData("{% layout '_Layout' %}")]
+    [InlineData("{% layout '_Other' %}")]
+    public async Task ShouldThrowOnCircularLayouts(string layoutTag)
+    {
+        _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Layout' %}Hi");
+        _mockFileProvider.Add("Views/_Layout.liquid", layoutTag + "[{% renderbody %}]");
+        _mockFileProvider.Add("Views/_Other.liquid", "{% layout '_Layout' %}({% renderbody %})");
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => Renderer.RenderViewAsync(new StringWriter(), "Index.liquid", new TemplateContext()));
+
+        Assert.Contains("_Layout.liquid", exception.Message);
+    }
+
+    [Fact]
+    public async Task ShouldNotReuseLayoutOfPreviousViewWithSameContext()
+    {
+        _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Layout' %}Hi");
+        _mockFileProvider.Add("Views/Other.liquid", "Other");
+        _mockFileProvider.Add("Views/_Layout.liquid", "A {% renderbody %} B");
+
+        var context = new TemplateContext();
+        var sw = new StringWriter();
+        await Renderer.RenderViewAsync(sw, "Index.liquid", context);
+        Assert.Equal("A Hi B", sw.ToString());
+
+        sw = new StringWriter();
+        await Renderer.RenderViewAsync(sw, "Other.liquid", context);
+        Assert.Equal("Other", sw.ToString());
+    }
+
+    [Fact]
     public async Task ShouldFindLayoutWithoutExtensionInSharedFolder()
     {
         _mockFileProvider.Add("Views/Index.liquid", "{% layout '_Layout' %}Hi");
