@@ -192,8 +192,8 @@ public class MiscFiltersTests
 
     [Theory]
     [InlineData("a<>:a?", "YTw-OmE_")]
-    [InlineData("Hell", "SGVsbA")]
-    [InlineData("Hello", "SGVsbG8")]
+    [InlineData("Hell", "SGVsbA==")]
+    [InlineData("Hello", "SGVsbG8=")]
     public async Task Base64UrlSafeEncode(string value, string expected)
     {
         // Arrange
@@ -212,6 +212,8 @@ public class MiscFiltersTests
     [InlineData("YTw-OmE_", "a<>:a?")]
     [InlineData("SGVsbA", "Hell")]
     [InlineData("SGVsbG8", "Hello")]
+    [InlineData("SGVsbA==", "Hell")]
+    [InlineData("SGVsbG8=", "Hello")]
     public async Task Base64UrlSafeDecode(string value, string expected)
     {
         // Arrange

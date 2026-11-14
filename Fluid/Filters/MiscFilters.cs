@@ -349,25 +349,11 @@ public static class MiscFilters
         else
         {
             var bytes = GetEncodedBytes(input, value);
-            context.EnsureOutputSize(((4L * bytes.Length) + 2L) / 3L);
-            var encodedBase64StringBuilder = new StringBuilder(Convert.ToBase64String(bytes));
+            context.EnsureOutputSize(4L * ((bytes.Length + 2L) / 3L));
 
-            encodedBase64StringBuilder.Replace('+', '-');
-            encodedBase64StringBuilder.Replace('/', '_');
-
-            if (encodedBase64StringBuilder[^1] == '=')
-            {
-                if (encodedBase64StringBuilder[^2] == '=')
-                {
-                    encodedBase64StringBuilder.Length -= 2;
-                }
-                else
-                {
-                    encodedBase64StringBuilder.Length--;
-                }
-            }
-
-            return StringValue.Create(encodedBase64StringBuilder.ToString());
+            // Like Ruby's Base64.urlsafe_encode64, which Shopify uses: '+' and '/' become '-' and '_',
+            // and the '=' padding is kept.
+            return StringValue.Create(Convert.ToBase64String(bytes).Replace('+', '-').Replace('/', '_'));
         }
     }
 

@@ -23,14 +23,13 @@ public class GoldenLiquidTests
         // e.g. ["id:negative_float"] = "reason for skipping single test",
         // e.g. ["tag:[tag]"] = "reason for skipping category of tests",
 
-        ["tag:base64_url_safe_encode filter"] = "https://github.com/Shopify/liquid/issues/1862",
-        ["id:filters_date_missing_argument"] = "test expects error but Shopify parses date",
-        ["id:filters_date_undefined_argument"] = "test expects error but Shopify parses date",
+        ["id:filters_date_missing_argument"] = "Test expects an error, but Shopify renders the date with a default format",
 
         ["tag:strict2"] = "Fluid uses lenient parsing mode; strict2 mode not implemented",
 
-        // Inline comment multi-line enforcement: Shopify requires # on each line for multi-line inline comments
-        ["id:tags_inline_comment_enforce_leading_hash"] = "Multi-line inline comment validation not implemented",
+        // Inline comment multi-line enforcement: strict Liquid requires # on each line of a multi-line inline comment.
+        // Shopify's lax parsing accepts it, like Fluid.
+        ["id:tags_inline_comment_enforce_leading_hash"] = "Multi-line inline comment validation not implemented; Shopify accepts it too",
 
         ["id:tags_if_endswith_is_not_a_valid_operator"] = "Skipping: Shopify Liquid doesn't support `endswith`/`startswith` as operators; Fluid keeps them for backward compatibility",
         ["id:tags_if_startswith_is_not_a_valid_operator"] = "Skipping: Shopify Liquid doesn't support `endswith`/`startswith` as operators; Fluid keeps them for backward compatibility",
