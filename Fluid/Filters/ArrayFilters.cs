@@ -1067,13 +1067,8 @@ internal sealed class LiquidSortComparer : IComparer<FluidValue>
             return xNum.CompareTo(yNum);
         }
 
-        // Time spans are sorted by duration: as text, "1.02:00:00" (26 hours) would come before "13:00:00"
-        if (x is TimeSpanValue xTimeSpan && y is TimeSpanValue yTimeSpan)
-        {
-            return xTimeSpan.Value.CompareTo(yTimeSpan.Value);
-        }
-
-        // Like Ruby, moments and dates are sorted chronologically: as text, offsets would change the order
+        // Like Ruby, moments and dates are sorted chronologically: as text, offsets would change the order.
+        // Times of day and time spans are sorted by value.
         if (DateComparer.TryCompareSameKind(x, y, _context, out var dateComparison))
         {
             return dateComparison;

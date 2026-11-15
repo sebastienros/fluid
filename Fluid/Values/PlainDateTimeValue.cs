@@ -68,6 +68,9 @@ public sealed class PlainDateTimeValue : FluidValue
     /// <summary>Whether the value is a date and time, like a <see cref="DateTime"/>.</summary>
     internal bool IsDateTime => _kind == PlainKind.DateTime;
 
+    /// <summary>Whether the value is a time of day, like a <c>TimeOnly</c>.</summary>
+    internal bool IsTimeOfDay => _kind == PlainKind.Time;
+
     /// <summary>The date and time, of <see cref="DateTimeKind.Unspecified"/> kind. A time of day is on January 1, 0001.</summary>
     internal DateTime ClockReading => _value;
 

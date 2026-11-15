@@ -108,7 +108,7 @@ A `DateTime` of `Utc` or `Local` kind is a moment, a `DateTimeValue`: a `Utc` on
 
 ### Comparing Dates
 
-Like a Ruby `Time` or `Date` in Liquid, dates are ordered: `<`, `<=`, `>` and `>=` compare two moments (`DateTime` and `DateTimeOffset` values) or two `DateOnly` values chronologically, and `sort` sorts them chronologically. Moments are compared as instants, whatever their offset. Like in Ruby, comparing a moment with a `DateOnly`, a string or a number fails, like `comparison of Time with Date failed`, and comparing a `DateOnly` with a number compares its astronomical Julian day. A `TimeOnly` or a `TimeSpan` isn't ordered, like an object in Liquid: the comparison is false.
+Like a Ruby `Time` or `Date` in Liquid, dates are ordered: `<`, `<=`, `>` and `>=` compare two moments (`DateTime` and `DateTimeOffset` values) or two `DateOnly` values chronologically, and `sort` sorts them chronologically. Moments are compared as instants, whatever their offset. Like in Ruby, comparing a moment with a `DateOnly`, a string or a number fails, like `comparison of Time with Date failed`, and comparing a `DateOnly` with a number compares its astronomical Julian day. Two `TimeOnly` values, or two `TimeSpan` values, are ordered too, by time of day or duration: `{% if opens < closes %}`. They have no Ruby equivalent, so like an object in Liquid, comparing one with any other kind of value is false.
 
 ```liquid
 {% if published < expires %}...{% endif %}

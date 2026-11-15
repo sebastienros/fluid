@@ -120,6 +120,30 @@ public class TimeSpanValueTests
         Assert.Equal("-01:00:00,13:00:00,1.02:00:00", await template.RenderAsync(context));
     }
 
+    [Theory]
+    [InlineData("13:00:00", "1.02:00:00", "ltle")] // As text, "1.02:00:00" (26 hours) would come first
+    [InlineData("-01:00:00", "00:00:00", "ltle")]
+    [InlineData("01:30:00", "01:30:00", "leeqge")]
+    [InlineData("13:00:00.001", "13:00:00", "gegt")]
+    public async Task TimeSpansAreOrderedByDuration(string left, string right, string expected)
+    {
+        var context = new TemplateContext();
+        context.SetValue("y", TimeSpan.Parse(right));
+
+        Assert.Equal(expected, await RenderAsync("{% if x < y %}lt{% endif %}{% if x <= y %}le{% endif %}{% if x == y %}eq{% endif %}{% if x >= y %}ge{% endif %}{% if x > y %}gt{% endif %}", context, TimeSpan.Parse(left)));
+    }
+
+    [Fact]
+    public async Task TimeSpansAreNotOrderedWithOtherValues()
+    {
+        // Like objects in Liquid, which aren't Comparable: no Ruby class is like a time span.
+        var context = new TemplateContext();
+        context.SetValue("t", new TimeOnly(13, 0));
+        context.SetValue("d", new DateTimeOffset(1970, 1, 1, 13, 0, 0, TimeSpan.Zero));
+
+        Assert.Equal("false", await RenderAsync("{% if x < t or t < x or x <= t or x < d or d < x or x >= d or x < nil or nil < x %}true{% else %}false{% endif %}", context, TimeSpan.FromHours(13)));
+    }
+
     [Fact]
     public async Task EqualTimeSpansAreEqual()
     {
