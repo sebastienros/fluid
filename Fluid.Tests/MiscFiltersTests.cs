@@ -786,6 +786,39 @@ public class MiscFiltersTests
         Assert.Equal("-0700", result.ToStringValue(context));
     }
 
+    // Checked with the Liquid gem (TZ set to the time zone): a time skipped when the clocks move forward is read at the
+    // offset before the gap and shown at the offset after it, a time that exists twice is read at the standard offset.
+    [Theory]
+    [InlineData("America/New_York", "2026-03-08 02:30:00", "2026-03-08 03:30:00 -0400 1772955000")]
+    [InlineData("America/New_York", "2026-03-08 02:00:00", "2026-03-08 03:00:00 -0400 1772953200")]
+    [InlineData("America/New_York", "2026-03-08T02:59:59", "2026-03-08 03:59:59 -0400 1772956799")]
+    [InlineData("America/New_York", "March 8, 2026 2:30 am", "2026-03-08 03:30:00 -0400 1772955000")]
+    [InlineData("America/New_York", "2026-03-08 01:59:59", "2026-03-08 01:59:59 -0500 1772953199")]
+    [InlineData("America/New_York", "2026-03-08 03:00:00", "2026-03-08 03:00:00 -0400 1772953200")]
+    [InlineData("America/New_York", "2026-11-01 01:30:00", "2026-11-01 01:30:00 -0500 1793514600")]
+    [InlineData("Europe/Paris", "2026-03-29 02:30:00", "2026-03-29 03:30:00 +0200 1774747800")]
+    [InlineData("Australia/Lord_Howe", "2026-10-04 02:15:00", "2026-10-04 02:45:00 +1100 1791042300")]
+    [InlineData("America/Santiago", "2026-09-06 00:30:00", "2026-09-06 01:30:00 -0300 1788669000")]
+    [InlineData("Pacific/Apia", "2011-12-30 12:00:00", "2011-12-31 12:00:00 +1400 1325282400")] // Samoa skipped this day
+    public async Task DateReadsTimesInADaylightSavingGapLikeRuby(string timeZone, string input, string expected)
+    {
+        var context = new TemplateContext { TimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZone) };
+
+        var result = await MiscFilters.Date(StringValue.Create(input), new FilterArguments(StringValue.Create("%F %T %z %s")), context);
+
+        Assert.Equal(expected, result.ToStringValue(context));
+    }
+
+    [Fact]
+    public async Task DateReadsTimesInADaylightSavingGapWithACulture()
+    {
+        var context = new TemplateContext { TimeZone = Eastern, CultureInfo = new CultureInfo("en-US") };
+
+        var result = await MiscFilters.Date(StringValue.Create("3/8/2026 2:30 AM"), new FilterArguments(StringValue.Create("%F %T %z %s")), context);
+
+        Assert.Equal("2026-03-08 03:30:00 -0400 1772955000", result.ToStringValue(context));
+    }
+
     [Fact]
     public async Task DateNumberIsParsedInLocalTimeZone()
     {

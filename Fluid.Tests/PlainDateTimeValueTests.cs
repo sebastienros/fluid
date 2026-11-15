@@ -43,6 +43,31 @@ public class PlainDateTimeValueTests
         Assert.Equal("2026-07-04 13:00 -0400", await RenderAsync("{{ x | date: '%Y-%m-%d %H:%M %z' }}", ContextIn("America/New_York"), value));
     }
 
+    // Like Ruby's Time.new, checked with the Liquid gem: a time skipped by daylight saving time is read at the offset
+    // before the gap and shown at the offset after it.
+    [Theory]
+    [InlineData("America/New_York", 2026, 3, 8, 2, 30, "2026-03-08 03:30:00 -0400|2026-03-08 03:30 -0400 1772955000")]
+    [InlineData("Europe/Paris", 2026, 3, 29, 2, 30, "2026-03-29 03:30:00 +0200|2026-03-29 03:30 +0200 1774747800")]
+    [InlineData("Australia/Sydney", 2026, 10, 4, 2, 30, "2026-10-04 03:30:00 +1100|2026-10-04 03:30 +1100 1791045000")]
+    [InlineData("Pacific/Apia", 2011, 12, 30, 12, 0, "2011-12-31 12:00:00 +1400|2011-12-31 12:00 +1400 1325282400")]
+    [InlineData("America/New_York", 2026, 11, 1, 1, 30, "2026-11-01 01:30:00 -0500|2026-11-01 01:30 -0500 1793514600")]
+    public async Task UnspecifiedDateTimeInADaylightSavingGapIsReadLikeRuby(string timeZoneId, int year, int month, int day, int hour, int minute, string expected)
+    {
+        var value = new DateTime(year, month, day, hour, minute, 0, DateTimeKind.Unspecified);
+
+        Assert.Equal(expected, await RenderAsync("{{ x }}|{{ x | date: '%Y-%m-%d %H:%M %z %s' }}", ContextIn(timeZoneId), value));
+    }
+
+    [Fact]
+    public async Task TimeOnlyInADaylightSavingGapIsReadLikeRuby()
+    {
+        // Like Time.parse("02:30") on that day.
+        var context = ContextIn("America/New_York");
+        context.Now = () => new DateTimeOffset(2026, 3, 8, 12, 0, 0, TimeSpan.Zero);
+
+        Assert.Equal("2026-03-08 03:30 -0400", await RenderAsync("{{ x | date: '%Y-%m-%d %H:%M %z' }}", context, new TimeOnly(2, 30)));
+    }
+
     [Fact]
     public async Task UnspecifiedDateTimeIsReadInTheOptionsTimeZone()
     {

@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using System.Globalization;
 using System.Text.Encodings.Web;
 
@@ -92,7 +93,7 @@ public sealed class PlainDateTimeValue : FluidValue
 
         try
         {
-            result = new DateTimeOffset(dateTime, context.TimeZone.GetUtcOffset(dateTime));
+            result = LocalTimes.ToDateTimeOffset(dateTime, context.TimeZone);
         }
         catch (ArgumentOutOfRangeException)
         {
