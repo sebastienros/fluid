@@ -58,7 +58,6 @@ scripts/liquid-gem/liquid-gem.sh template.liquid -d data.json --expected-file ex
 - `-z` sets `TZ` for Ruby and `TemplateContext.TimeZone` for Fluid (default UTC). `-m` sets the gem's error mode (default `strict`).
 - Exit codes: 0 rendered or matched, 1 differ, 2 syntax error, 3 usage or Docker error, 4 render error. `--help` lists all options.
 - Needs Docker, and the .NET SDK for `-c` and `--expected`. No partials, and no network access is needed after the image is built.
-- `scripts/shopify-liquid.cs`, which renders with Shopify's storefront playground, is deprecated: the storefront differs from the gem (it reads `"1772643600.75"` and `0.5` as timestamps, for instance). Use it only to check storefront objects like `product`.
 
 ## Build rules
 
