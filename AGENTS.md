@@ -42,20 +42,22 @@ Run them from the test executable after `dotnet build`. Each test's display name
 ./Fluid.Tests/bin/Debug/net10.0/Fluid.Tests --filter-display-name "*(test: filters_date_*"
 ```
 
-## Checking behavior against Shopify
+## Checking behavior against the Liquid gem
 
-`scripts/shopify-liquid.cs` renders a template with Shopify's official engine (the playground behind https://shopify.dev/docs/api/liquid). Use it to confirm the expected output before changing behavior, or to verify a fix.
+`scripts/liquid-gem/liquid-gem.cs` renders a template with the [Liquid gem](https://github.com/Shopify/liquid), the reference implementation, in Docker. Use them to confirm the expected output before changing behavior, or to verify a fix. The image (`scripts/liquid-gem/Dockerfile`, Liquid 5.14.0 on Ruby 3.4) is built on the first run.
 
 ```shell
-dotnet run scripts/shopify-liquid.cs -- -e '{{ "a,b" | split: "," | join: "-" }}'   # Shopify output, raw on stdout
-dotnet run scripts/shopify-liquid.cs -- -c -e '{%- for i in (1..3) -%} {{ i }} {% endfor -%}'   # diff with Fluid
-dotnet run scripts/shopify-liquid.cs -- template.liquid --expected-file expected.txt
+dotnet run scripts/liquid-gem/liquid-gem.cs -- -e '{{ "a,b" | split: "," | join: "-" }}'   # gem output, raw on stdout
+dotnet run scripts/liquid-gem/liquid-gem.cs -- -c -e '{%- for i in (1..3) -%} {{ i }} {% endfor -%}'   # diff with Fluid
+dotnet run scripts/liquid-gem/liquid-gem.cs -- -c -z America/New_York -j '{"t": {"$time": "2026-03-04T13:00:00"}}' -e '{{ t | date: "%H:%M %z" }}'
+dotnet run scripts/liquid-gem/liquid-gem.cs -- template.liquid -d data.json --expected-file expected.txt
 ```
 
-- `-c` parses with `AllowLiquidTag = true`, the only opt-in `FluidParserOptions` syntax Shopify supports.
-- No custom data: make templates self-contained with `assign`/`capture` (arrays via `split`). `--path /products/health-potion` exposes demo store objects such as `product`; `--show-data` prints the ones used.
-- Exit codes: 0 match, 1 differ, 2 invalid template (Shopify only says `Syntax error`), 3 usage/network error. `--help` lists all options.
-- Needs network access to a public shopify.dev endpoint: don't use it from tests or CI.
+- `-c` renders with Fluid too, parsing with `AllowLiquidTag = true`, the only opt-in `FluidParserOptions` syntax the gem supports. Two syntax errors match, since the messages differ. Render errors match when their messages are the same.
+- `-d`/`-j` give the variables as JSON. `{"$time": "..."}` is a Ruby `Time` and a .NET `DateTime` (in the `-z` time zone without an offset, `Time.utc` and a Utc `DateTime` with `Z`, a `DateTimeOffset` with an offset), `{"$date": "..."}` a `Date` and a `DateOnly`. Integers are `Integer`/`long`, other numbers `Float`/`decimal`.
+- `-z` sets `TZ` for Ruby and `TemplateContext.TimeZone` for Fluid (default UTC). `-m` sets the gem's error mode (default `strict`).
+- Exit codes: 0 rendered or matched, 1 differ, 2 syntax error, 3 usage or Docker error, 4 render error. `--help` lists all options.
+- Needs Docker. The template and data reach the container through environment variables, so they need no quoting. No partials, and no network access is needed after the image is built.
 
 ## Build rules
 
