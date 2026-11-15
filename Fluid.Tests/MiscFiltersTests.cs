@@ -799,7 +799,6 @@ public class MiscFiltersTests
     [InlineData("Europe/Paris", "2026-03-29 02:30:00", "2026-03-29 03:30:00 +0200 1774747800")]
     [InlineData("Australia/Lord_Howe", "2026-10-04 02:15:00", "2026-10-04 02:45:00 +1100 1791042300")]
     [InlineData("America/Santiago", "2026-09-06 00:30:00", "2026-09-06 01:30:00 -0300 1788669000")]
-    [InlineData("Pacific/Apia", "2011-12-30 12:00:00", "2011-12-31 12:00:00 +1400 1325282400")] // Samoa skipped this day
     public async Task DateReadsTimesInADaylightSavingGapLikeRuby(string timeZone, string input, string expected)
     {
         var context = new TemplateContext { TimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZone) };
@@ -807,6 +806,23 @@ public class MiscFiltersTests
         var result = await MiscFilters.Date(StringValue.Create(input), new FilterArguments(StringValue.Create("%F %T %z %s")), context);
 
         Assert.Equal(expected, result.ToStringValue(context));
+    }
+
+    [Fact]
+    public async Task DateReadsTheDaySamoaSkippedLikeRuby()
+    {
+        // Samoa moved from -10:00 to +14:00, its standard offset, and skipped 2011-12-30: the time is read at -10:00,
+        // like Ruby. Windows' time zone data has no gap on this day, so only the instant is the same everywhere.
+        var context = new TemplateContext { TimeZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific/Apia") };
+
+        var result = await MiscFilters.Date(StringValue.Create("2011-12-30 12:00:00"), new FilterArguments(StringValue.Create("%F %T %z %s")), context);
+
+        Assert.EndsWith(" 1325282400", result.ToStringValue(context));
+
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Equal("2011-12-31 12:00:00 +1400 1325282400", result.ToStringValue(context));
+        }
     }
 
     [Fact]
