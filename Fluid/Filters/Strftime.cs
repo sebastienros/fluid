@@ -1,3 +1,5 @@
+using Fluid.Values;
+using Fluid.Utils;
 using System.Globalization;
 using System.Text;
 
@@ -16,6 +18,14 @@ internal static class Strftime
     private const int ChangeCase = 8;
 
     public static void Format(DateTimeOffset value, string format, TemplateContext context, ref ValueStringBuilder result)
+    {
+        Format(value, DateTimeZone.Context, format, context, ref result);
+    }
+
+    /// <summary>
+    /// Formats a date, with what it knows of its time zone for <c>%Z</c>.
+    /// </summary>
+    public static void Format(DateTimeOffset value, DateTimeZone zone, string format, TemplateContext context, ref ValueStringBuilder result)
     {
         var culture = context.CultureInfo;
 
@@ -161,8 +171,7 @@ internal static class Strftime
                             flags = (flags & ~(Upper | ChangeCase)) | Lower;
                         }
 
-                        // .NET has no time zone abbreviations: UTC is named, other zones are written as their offset.
-                        AppendText(ref result, value.Offset == TimeSpan.Zero ? "UTC" : value.ToString("zzz", CultureInfo.InvariantCulture), flags, padding, precision, culture);
+                        AppendText(ref result, GetZoneName(value, zone, context), flags, padding, precision, culture);
                         break;
 
                     case '%':
@@ -222,18 +231,18 @@ internal static class Strftime
                         break;
 
                     // Combinations, which are padded and upper cased as a whole.
-                    case 'c': AppendCombination(ref result, value, "%a %b %e %H:%M:%S %Y", flags, padding, precision, context); break;
+                    case 'c': AppendCombination(ref result, value, zone, "%a %b %e %H:%M:%S %Y", flags, padding, precision, context); break;
                     case 'x':
-                    case 'D': AppendCombination(ref result, value, "%m/%d/%y", flags, padding, precision, context); break;
+                    case 'D': AppendCombination(ref result, value, zone, "%m/%d/%y", flags, padding, precision, context); break;
                     case 'X':
-                    case 'T': AppendCombination(ref result, value, "%H:%M:%S", flags, padding, precision, context); break;
-                    case 'F': AppendCombination(ref result, value, "%Y-%m-%d", flags, padding, precision, context); break;
-                    case 'R': AppendCombination(ref result, value, "%H:%M", flags, padding, precision, context); break;
-                    case 'r': AppendCombination(ref result, value, "%I:%M:%S %p", flags, padding, precision, context); break;
-                    case 'v': AppendCombination(ref result, value, "%e-%^b-%4Y", flags, padding, precision, context); break;
+                    case 'T': AppendCombination(ref result, value, zone, "%H:%M:%S", flags, padding, precision, context); break;
+                    case 'F': AppendCombination(ref result, value, zone, "%Y-%m-%d", flags, padding, precision, context); break;
+                    case 'R': AppendCombination(ref result, value, zone, "%H:%M", flags, padding, precision, context); break;
+                    case 'r': AppendCombination(ref result, value, zone, "%I:%M:%S %p", flags, padding, precision, context); break;
+                    case 'v': AppendCombination(ref result, value, zone, "%e-%^b-%4Y", flags, padding, precision, context); break;
 
                     // Not supported by Ruby, kept from date(1).
-                    case '+': AppendCombination(ref result, value, "%a %b %e %H:%M:%S %Z %Y", flags, padding, precision, context); break;
+                    case '+': AppendCombination(ref result, value, zone, "%a %b %e %H:%M:%S %Z %Y", flags, padding, precision, context); break;
 
                     // Like Ruby, an unknown conversion is written as is.
                     default:
@@ -329,10 +338,41 @@ internal static class Strftime
         result.Append(text);
     }
 
-    private static void AppendCombination(ref ValueStringBuilder result, DateTimeOffset value, string format, int flags, char padding, int precision, TemplateContext context)
+    // Like Ruby's %Z: a Date is named +00:00 and a UTC time UTC. Another time has the abbreviation of its time zone, like
+    // EST or CEST, when its offset is the one of the time zone at this instant, and no name otherwise, like a Ruby Time
+    // with a fixed offset: 12:00 +04:00 in New York.
+    private static string GetZoneName(DateTimeOffset value, DateTimeZone zone, TemplateContext context)
+    {
+        if (zone.IsDate)
+        {
+            return "+00:00";
+        }
+
+        if (zone.IsUtc)
+        {
+            return "UTC";
+        }
+
+        var timeZone = zone.TimeZone ?? context.TimeZone;
+
+        if (timeZone.GetUtcOffset(value) != value.Offset)
+        {
+            return "";
+        }
+
+        if (TimeZoneAbbreviations.TryGet(timeZone, value, out var abbreviation))
+        {
+            return abbreviation;
+        }
+
+        // Without a time zone database, like on Windows or with a custom time zone, the offset stands for the name.
+        return value.Offset == TimeSpan.Zero ? "UTC" : value.ToString("zzz", CultureInfo.InvariantCulture);
+    }
+
+    private static void AppendCombination(ref ValueStringBuilder result, DateTimeOffset value, DateTimeZone zone, string format, int flags, char padding, int precision, TemplateContext context)
     {
         var inner = new ValueStringBuilder(stackalloc char[64]);
-        Format(value, format, context, ref inner);
+        Format(value, zone, format, context, ref inner);
 
         var text = inner.ToString();
         if ((flags & Upper) != 0)

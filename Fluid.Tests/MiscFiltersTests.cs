@@ -368,9 +368,10 @@ public class MiscFiltersTests
     [InlineData("%y", "17", "0217-01-01")]
     [InlineData("%y", "07", "0207-01-01")]
     [InlineData("%z", "+0800")]
-    [InlineData("%Z", "+08:00")]
+    // Like a Ruby Time with a fixed offset: +08:00 isn't the offset of the time zone of the context, UTC.
+    [InlineData("%Z", "")]
     [InlineData("%:z", "+08:00")]
-    [InlineData("%+", "Tue Aug  1 17:04:36 +08:00 2017")]
+    [InlineData("%+", "Tue Aug  1 17:04:36  2017")]
     [InlineData("%%", "%")]
     [InlineData("It is %r", "It is 05:04:36 PM")]
     [InlineData("Chained %z%:z%a%a%^a", "Chained +0800+08:00TueTueTUE")]
@@ -798,7 +799,8 @@ public class MiscFiltersTests
 
         var result = await MiscFilters.Date(input, format, context);
 
-        Assert.Equal("Wed Dec 31 19:00:00 -05:00 1969", result.ToStringValue(context));
+        // The abbreviation comes from the time zone database, which Windows doesn't have.
+        Assert.Equal(OperatingSystem.IsWindows() ? "Wed Dec 31 19:00:00 -05:00 1969" : "Wed Dec 31 19:00:00 EST 1969", result.ToStringValue(context));
     }
 
     [Fact]
@@ -839,8 +841,8 @@ public class MiscFiltersTests
     [InlineData("{{ '2024-02-29T13:05:09.1234567Z' | date: '%L %N %3N %12N %1N %-N %_5L|%U %W %G %V %g %u %w %C %s' }}", "123 123456700 123 123456700000 1 123456700 12345|08 09 2024 09 24 4 4 20 1709211909")]
     [InlineData("{{ '2024-02-29T13:05:09-05:30' | date: '%z|%:z|%::z|%:::z|%_z|%_:z' }}", "-0530|-05:30|-05:30:00|-05:30| -530| -5:30")]
     [InlineData("{{ '2024-02-29T13:05:09+02:00' | date: '%:::z' }}|{{ 1709211909 | date: '%l %0l %I %k %H %P %p' }}", "+02| 1 01 01 13 13 pm PM")]
-    // Ruby writes the abbreviation of a time zone, which .NET doesn't have: other offsets than UTC are written as is.
-    [InlineData("{{ '2024-02-29T13:05:09+02:00' | date: '%Z' }}", "+02:00")]
+    // Like Ruby, a time with another offset than the one of the time zone has no zone name.
+    [InlineData("{{ '2024-02-29T13:05:09+02:00' | date: '[%Z]' }}", "[]")]
     public async Task DateFormatsLikeRuby(string source, string expected)
     {
         var context = new TemplateContext { TimeZone = TimeZoneInfo.Utc };

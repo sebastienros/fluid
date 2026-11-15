@@ -128,14 +128,24 @@ internal static partial class RubyTimeParser
 
     public static bool TryParse(string value, TemplateContext context, out DateTimeOffset result)
     {
+        return TryParse(value, context, out result, out _);
+    }
+
+    /// <summary>
+    /// Parses a date like <c>Time.parse</c>, and tells if its zone makes it a UTC time, like Ruby's <c>zone_utc?</c>:
+    /// <c>UTC</c>, <c>Z</c>, <c>UT</c>, <c>-00:00</c>, <c>-0000</c> or <c>-00</c>, but not <c>GMT</c> or <c>+00:00</c>.
+    /// </summary>
+    public static bool TryParse(string value, TemplateContext context, out DateTimeOffset result, out bool utc)
+    {
         result = default;
+        utc = false;
 
         if (value.Length > MaxLength)
         {
             return false;
         }
 
-        if (TryParseIsoDateTime(value, context, out result))
+        if (TryParseIsoDateTime(value, context, out result, out utc))
         {
             return true;
         }
@@ -190,7 +200,13 @@ internal static partial class RubyTimeParser
             fields.Year = shortYear + (shortYear >= 69 ? 1900 : 2000);
         }
 
-        return MakeTime(ref fields, context, out result);
+        if (!MakeTime(ref fields, context, out result))
+        {
+            return false;
+        }
+
+        utc = fields.Zone is "utc" or "z" or "ut" or "-00:00" or "-0000" or "-00";
+        return true;
     }
 
     // Like Ruby's String#downcase, which turns U+0130 (capital I with dot above) into i and U+0307 (combining dot above).
@@ -204,9 +220,10 @@ internal static partial class RubyTimeParser
     // yyyy-mm-dd, optionally followed by T or a space, hh:mm[:ss[.fraction]] and a zone: Z, UTC, GMT or ±hh[[:]mm].
     // Time.parse reads these common forms like ISO 8601: the ones that need its other rules, like an hour of 24,
     // a day after the end of the month or a large offset, are left to them.
-    private static bool TryParseIsoDateTime(string s, TemplateContext context, out DateTimeOffset result)
+    private static bool TryParseIsoDateTime(string s, TemplateContext context, out DateTimeOffset result, out bool utc)
     {
         result = default;
+        utc = false;
         var length = s.Length;
 
         if (length < 10 || s[4] != '-' || s[7] != '-'
@@ -275,10 +292,12 @@ internal static partial class RubyTimeParser
             else if (rest == 1 && s[i] is 'Z' or 'z')
             {
                 offset = 0;
+                utc = true;
             }
             else if (rest == 3 && (string.Compare(s, i, "UTC", 0, 3, StringComparison.OrdinalIgnoreCase) == 0 || string.Compare(s, i, "GMT", 0, 3, StringComparison.OrdinalIgnoreCase) == 0))
             {
                 offset = 0;
+                utc = s[i] is 'U' or 'u';
             }
             else if (s[i] is '+' or '-' && TryDigits(s, i + 1, 2, out var offsetHours))
             {
@@ -291,6 +310,9 @@ internal static partial class RubyTimeParser
                 }
 
                 offset = (s[i] == '-' ? -1 : 1) * (offsetHours * 60 + offsetMinutes);
+
+                // -00:00 is UTC, +00:00 a zero offset.
+                utc = s[i] == '-' && offset == 0;
             }
             else
             {
