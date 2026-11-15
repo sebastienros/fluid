@@ -1,5 +1,5 @@
 # Renders Liquid templates with the Liquid gem (https://github.com/Shopify/liquid), the reference implementation.
-# Built and run by liquid-gem.sh and liquid-gem.ps1, see `liquid-gem.sh --help`.
+# Built and run by liquid-gem.cs: `dotnet run scripts/liquid-gem/liquid-gem.cs -- --help`.
 
 FROM ruby:3.4-slim
 
