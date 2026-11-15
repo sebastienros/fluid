@@ -15,7 +15,13 @@ public sealed class DateTimeValue : FluidValue
     // Created from a DateTime of Utc kind, rendered with "UTC" rather than "+0000" like Ruby's Time.utc.
     private readonly bool _utc;
 
+    // The time zone the time_zone filter converted the value to, which %Z names.
+    private readonly TimeZoneInfo _timeZone;
+
     public static DateTimeValue Create(DateTimeOffset value) => new DateTimeValue(value);
+
+    // A moment converted to a time zone, which %Z names, like EST.
+    internal static DateTimeValue Create(DateTimeOffset value, TimeZoneInfo timeZone) => new DateTimeValue(value, timeZone);
 
     /// <summary>
     /// Creates a value from a moment. A <see cref="DateTime"/> of <see cref="DateTimeKind.Unspecified"/> kind is read in
@@ -28,6 +34,18 @@ public sealed class DateTimeValue : FluidValue
     {
         _value = value;
     }
+
+    private DateTimeValue(DateTimeOffset value, TimeZoneInfo timeZone)
+    {
+        _value = value;
+        _timeZone = timeZone;
+    }
+
+    internal DateTimeOffset Value => _value;
+
+    // What %Z names: UTC for a DateTime of Utc kind, like Ruby's Time.utc, the time zone of the time_zone filter, or
+    // the context's.
+    internal DateTimeZone Zone => _utc ? DateTimeZone.Utc : _timeZone != null ? DateTimeZone.In(_timeZone) : DateTimeZone.Context;
 
     private DateTimeValue(DateTime value)
     {

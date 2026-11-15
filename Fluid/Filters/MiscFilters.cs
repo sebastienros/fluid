@@ -627,7 +627,7 @@ public static class MiscFilters
         }
 
         var result = TimeZoneInfo.ConvertTime(value, timeZoneInfo);
-        return DateTimeValue.Create(result);
+        return DateTimeValue.Create(result, timeZoneInfo);
     }
 
     // https://docs.ruby-lang.org/en/master/strftime_formatting_rdoc.html
@@ -641,7 +641,7 @@ public static class MiscFilters
             return input;
         }
 
-        if (!input.TryGetDateTimeInput(context, out var value))
+        if (!input.TryGetDateTimeInput(context, out var value, out var zone))
         {
             // return input unchanged if it can't be parsed as a date
             return input;
@@ -657,7 +657,7 @@ public static class MiscFilters
 
         var result = new ValueStringBuilder(stackalloc char[128]);
 
-        Strftime.Format(value, format, context, ref result);
+        Strftime.Format(value, zone, format, context, ref result);
 
         return StringValue.Create(result.ToString());
     }

@@ -52,6 +52,17 @@ public static class FluidValueExtensions
 
     public static bool TryGetDateTimeInput(this FluidValue input, TemplateContext context, out DateTimeOffset result)
     {
+        return TryGetDateTimeInput(input, context, out result, out _);
+    }
+
+    /// <summary>
+    /// Reads a date like <see cref="TryGetDateTimeInput(FluidValue, TemplateContext, out DateTimeOffset)"/>, and what it
+    /// knows of its time zone, which <c>%Z</c> shows like Ruby.
+    /// </summary>
+    internal static bool TryGetDateTimeInput(this FluidValue input, TemplateContext context, out DateTimeOffset result, out DateTimeZone zone)
+    {
+        zone = DateTimeZone.Context;
+
         if (input.Type == FluidValues.String)
         {
             var stringValue = input.ToStringValue(context);
@@ -91,11 +102,27 @@ public static class FluidValueExtensions
             // A specific culture reads dates in its formats first, like 08/01/2017 as August 1 in en-US and January 8 in fr-FR.
             if (context.CultureInfo.Name.Length > 0 && TryParseWithCulture(stringValue, context, out result))
             {
+                // Like Ruby, a time in Z or UTC is a UTC time.
+                if (result.Offset == TimeSpan.Zero && HasUtcDesignator(stringValue))
+                {
+                    zone = DateTimeZone.Utc;
+                }
+
                 return true;
             }
 
             // Otherwise like Liquid, which uses Ruby's Time.parse.
-            return RubyTimeParser.TryParse(stringValue, context, out result);
+            if (!RubyTimeParser.TryParse(stringValue, context, out result, out var utc))
+            {
+                return false;
+            }
+
+            if (utc)
+            {
+                zone = DateTimeZone.Utc;
+            }
+
+            return true;
         }
         else if (input.Type == FluidValues.Number)
         {
@@ -121,12 +148,18 @@ public static class FluidValueExtensions
                 return false;
             }
         }
-        else if (input is DateTimeValue)
+        else if (input is DateTimeValue dateTimeValue)
         {
-            result = (DateTimeOffset)input.ToObjectValue(context);
+            result = dateTimeValue.Value;
+            zone = dateTimeValue.Zone;
         }
         else if (input is PlainDateTimeValue plain)
         {
+            if (plain.IsDate)
+            {
+                zone = DateTimeZone.Date;
+            }
+
             return plain.TryGetDateTimeOffset(context, out result);
         }
         else if (input is TimeSpanValue timeSpan)
@@ -140,6 +173,12 @@ public static class FluidValueExtensions
                 case DateTime dateTime:
                     // A date and time without time zone is in the one of the context, not the one of the machine.
                     result = dateTime.Kind == DateTimeKind.Unspecified ? InTimeZone(dateTime, context) : dateTime;
+
+                    if (dateTime.Kind == DateTimeKind.Utc)
+                    {
+                        zone = DateTimeZone.Utc;
+                    }
+
                     break;
 
                 case DateTimeOffset dateTimeOffset:
@@ -153,6 +192,13 @@ public static class FluidValueExtensions
         }
 
         return true;
+    }
+
+    // A string that ends with Z or UTC, a zone Ruby reads as UTC.
+    private static bool HasUtcDesignator(string value)
+    {
+        var trimmed = value.TrimEnd();
+        return trimmed.EndsWith("Z", StringComparison.OrdinalIgnoreCase) || trimmed.EndsWith("UTC", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsDigits(string value)
