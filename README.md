@@ -55,6 +55,7 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 - [Command line tool](#command-line-tool)
 - [Performance](#performance)
 - [Documentation](#documentation)
+- [Contributing](#contributing)
 - [Used by](#used-by)
 
 <br>
@@ -573,7 +574,23 @@ The [documentation site](https://sebastienros.github.io/fluid/) covers the detai
 - [View engines](https://sebastienros.github.io/fluid/guide/view-engine/)
 - [Benchmarks](https://sebastienros.github.io/fluid/benchmarks/)
 
-When questioning the result of a template, compare it with Shopify's implementation on https://shopify.dev/docs/api/liquid, or with `scripts/shopify-liquid.cs` from this repository.
+When questioning the result of a template, compare it with the Liquid gem, as described in [Contributing](#contributing).
+
+<br>
+
+## Contributing
+
+Build with `dotnet build` and test with `dotnet test`: see [AGENTS.md](https://github.com/sebastienros/fluid/blob/main/AGENTS.md) for the build rules, the [Golden Liquid](https://github.com/jg-rp/golden-liquid) tests and the architecture.
+
+Fluid follows the [Liquid gem](https://github.com/Shopify/liquid), the reference implementation. To check what the gem renders, and compare it with Fluid, run a template in Docker with `scripts/liquid-gem/liquid-gem.sh` (bash) or `scripts/liquid-gem/liquid-gem.ps1` (PowerShell):
+
+```shell
+scripts/liquid-gem/liquid-gem.sh -e '{{ "a,b" | split: "," | join: "-" }}'
+scripts/liquid-gem/liquid-gem.sh -c -e '{%- for i in (1..3) -%} {{ i }} {% endfor -%}'
+scripts/liquid-gem/liquid-gem.ps1 -c template.liquid -d data.json -z America/New_York
+```
+
+`-c` renders the template with Fluid too and shows the difference, `-d` (a file) or `-j` (inline JSON) gives its variables, and `--help` lists the options, like the notation for dates. The scripts need Docker, and the .NET SDK to compare with Fluid.
 
 <br>
 

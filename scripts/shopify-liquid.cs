@@ -4,6 +4,10 @@
 #:property PublishAot=false
 #:project ../Fluid/Fluid.csproj
 
+// DEPRECATED: use scripts/liquid-gem/liquid-gem.sh or liquid-gem.ps1, which render with the Liquid gem, the
+// reference implementation, in Docker. Shopify's storefront differs from the gem: for instance it reads
+// "1772643600.75" and 0.5 as timestamps, which the gem doesn't. Keep this script for storefront objects only.
+//
 // Renders a Liquid template with Shopify's official Liquid engine, using the playground
 // that backs the examples on https://shopify.dev/docs/api/liquid, and optionally compares
 // the result with Fluid (built from this repository) or with an expected output.
@@ -18,7 +22,11 @@ using Fluid;
 
 const string Endpoint = "https://shopify.dev/liquid/render";
 
+const string Deprecation = "Deprecated: Shopify's storefront differs from the Liquid gem, the reference implementation. Use scripts/liquid-gem/liquid-gem.sh or liquid-gem.ps1 instead, and this script only for storefront objects like `product`.";
+
 const string Usage = """
+    DEPRECATED: use scripts/liquid-gem/liquid-gem.sh or liquid-gem.ps1, which render with the Liquid gem.
+
     Renders a Liquid template with Shopify's official Liquid engine (the shopify.dev playground).
 
     Usage:
@@ -52,6 +60,8 @@ const string Usage = """
       The playground renders against a demo store. Custom data cannot be supplied: use
       {% assign %} / {% capture %} in the template, or the store objects reachable from --path.
     """;
+
+Console.Error.WriteLine(Deprecation);
 
 string? templateFile = null, inline = null, expected = null, expectedFile = null;
 var path = "/";
