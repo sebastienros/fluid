@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using System.Globalization;
 
 namespace Fluid.Values;
@@ -200,7 +201,7 @@ public static class FluidValueExtensions
     // since it can vary with daylight saving time.
     private static DateTimeOffset InTimeZone(DateTime dateTime, TemplateContext context)
     {
-        return new DateTimeOffset(dateTime, context.TimeZone.GetUtcOffset(dateTime));
+        return LocalTimes.ToDateTimeOffset(dateTime, context.TimeZone);
     }
 
     public static FluidValue Or(this FluidValue self, FluidValue other)

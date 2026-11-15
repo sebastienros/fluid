@@ -92,6 +92,7 @@ context.SetValue("opening", new TimeOnly(13, 0));
 - A `DateTime` is like a Ruby `Time` created in the time zone of the context: it renders like `Time#to_s`, with the offset of the context's time zone at that date.
 - A `DateOnly` is like a Ruby `Date`, which has no time zone: it renders `2026-03-04`, and the date filters read it at midnight UTC, so `{{ day | date: '%s' }}` is the same whatever the time zone.
 - A `TimeOnly` has no Ruby equivalent. It renders `13:00:00`, and is read on the current date of the context, `TemplateContext.Now()` in its time zone, like Ruby's `Time.parse("13:00")`, so its offset follows daylight saving time.
+- Like in Ruby, a time that the clocks skip when daylight saving time starts is read at the offset before the change and shown at the offset after it: `2026-03-08 02:30` in New York is `2026-03-08 03:30:00 -0400`. A time that exists twice when daylight saving time ends is read at the standard offset: `2026-11-01 01:30` is `-0500`. Date strings without an offset are read the same way.
 - `json` writes them as `"2026-03-04T13:00:00"`, `"2026-03-04"` and `"13:00:00"`.
 - In .NET, `ToObjectValue()` returns the `DateTime`, `DateOnly` or `TimeOnly`.
 

@@ -1,3 +1,4 @@
+using Fluid.Utils;
 using System.Text.RegularExpressions;
 
 namespace Fluid.Values;
@@ -304,7 +305,7 @@ internal static partial class RubyTimeParser
         {
             result = offset is int minutes
                 ? new DateTimeOffset(dateTime, TimeSpan.FromMinutes(minutes))
-                : new DateTimeOffset(dateTime, context.TimeZone.GetUtcOffset(dateTime));
+                : LocalTimes.ToDateTimeOffset(dateTime, context.TimeZone);
 
             return true;
         }
@@ -1156,7 +1157,7 @@ internal static partial class RubyTimeParser
             if (offset is not int seconds)
             {
                 // The offset of the time zone at this date, which can vary with daylight saving time.
-                result = new DateTimeOffset(dateTime, context.TimeZone.GetUtcOffset(dateTime));
+                result = LocalTimes.ToDateTimeOffset(dateTime, context.TimeZone);
                 localDayOfYear = dateTime.DayOfYear;
             }
             else
