@@ -598,6 +598,7 @@ public class MiscFiltersTests
         var options = new TemplateOptionsBuilder()
             .WithCultureInfo(CultureInfo.InvariantCulture)
             .WithNow(() => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0)))
+            .WithTimeZone(TimeZoneInfo.Utc)
             .Build();
         var context = new TemplateContext(options);
 
@@ -616,12 +617,40 @@ public class MiscFiltersTests
         var options = new TemplateOptionsBuilder()
             .WithCultureInfo(CultureInfo.InvariantCulture)
             .WithNow(() => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0)))
+            .WithTimeZone(TimeZoneInfo.Utc)
             .Build();
         var context = new TemplateContext(options);
 
         var result = await MiscFilters.Date(input, arguments, context);
 
         Assert.Equal("08/01/17", result.ToStringValue(context));
+    }
+
+    // Checked with the Liquid gem, where Time.now is in the TZ time zone: the instant of Now, in the context's time zone.
+    [Theory]
+    [InlineData("UTC", "2026-03-04 18:00:00 +0000 1772647200")]
+    [InlineData("America/New_York", "2026-03-04 13:00:00 -0500 1772647200")]
+    [InlineData("Asia/Tokyo", "2026-03-05 03:00:00 +0900 1772647200")]
+    public async Task NowIsInTheContextTimeZone(string timeZone, string expected)
+    {
+        var context = new TemplateContext
+        {
+            TimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZone),
+            Now = () => new DateTimeOffset(2026, 3, 4, 10, 0, 0, TimeSpan.FromHours(-8)),
+        };
+
+        var source = "{{ 'now' | date: '%F %T %z %s' }}|{{ 'Today' | date: '%F %T %z %s' }}|{{ 'now' | format_date: 'yyyy-MM-dd HH:mm:ss zzz' }}";
+        var offset = expected.Split(' ')[2];
+
+        Assert.Equal($"{expected}|{expected}|{expected.Substring(0, 19)} {offset.Substring(0, 3)}:{offset.Substring(3)}", await new FluidParser().Parse(source).RenderAsync(context));
+    }
+
+    [Fact]
+    public async Task NowFollowsDaylightSavingTimeOfTheContextTimeZone()
+    {
+        var context = new TemplateContext { TimeZone = Eastern, Now = () => new DateTimeOffset(2026, 7, 4, 16, 0, 0, TimeSpan.Zero) };
+
+        Assert.Equal("2026-07-04 12:00 -0400", await new FluidParser().Parse("{{ 'now' | date: '%F %R %z' }}").RenderAsync(context));
     }
 
     [Fact]
@@ -634,6 +663,7 @@ public class MiscFiltersTests
         var options = new TemplateOptionsBuilder()
             .WithCultureInfo(CultureInfo.InvariantCulture)
             .WithNow(() => new DateTimeOffset(new DateTime(2017, 8, 1, 5, 4, 36, 123), new TimeSpan(0)))
+            .WithTimeZone(TimeZoneInfo.Utc)
             .Build();
         var context = new TemplateContext(options);
 

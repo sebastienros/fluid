@@ -174,8 +174,11 @@ var context = new TemplateContext
 **Use Cases for the TimeZone Property:**
 - Parsing date strings without explicit time zone information
 - Reading [dates and times without a time zone](#dates-and-times-without-a-time-zone): `DateTime` values of `Unspecified` kind, `DateOnly`, `TimeOnly` and `TimeSpan`
+- Showing the current time: like Ruby's `Time.now`, `'now'` and `'today'` are the instant `TemplateContext.Now()` returns, in this time zone, whatever the offset `Now` has (the machine's one by default). With the time zone set to New York, `{{ 'now' | date: '%H:%M %z' }}` renders the time in New York, like `13:00 -0500`.
 - Ensuring consistent date parsing across different server environments
 - Interpreting user input in a specific time zone
+
+> **Breaking change:** `'now'` and `'today'` used to keep the offset of `TemplateContext.Now()`, so they showed the machine's time (or UTC with `WithNow(() => DateTimeOffset.UtcNow)`) whatever the time zone. The instant, `{{ 'now' | date: '%s' }}`, is the same.
 
 **What it Does NOT Do:**
 - Automatically convert DateTime values during rendering

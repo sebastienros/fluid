@@ -359,7 +359,7 @@ var options = new TemplateOptionsBuilder()
 {{ "now" | date: "%A %-d %B %Y" }}
 ```
 
-The time zone, set with `TemplateOptionsBuilder.WithTimeZone()` or `TemplateContext.TimeZone`, is used when **parsing** date strings without an offset. To display a date in another time zone, use the `time_zone` filter:
+The time zone, set with `TemplateOptionsBuilder.WithTimeZone()` or `TemplateContext.TimeZone`, is used when **parsing** date strings without an offset, and for `"now"`, the current time in that time zone like Ruby's `Time.now` (**breaking change:** it used to keep the offset of `TemplateContext.Now()`, the machine's one by default). To display a date in another time zone, use the `time_zone` filter:
 
 ```Liquid
 {{ published | time_zone: 'America/New_York' | date: '%+' }}

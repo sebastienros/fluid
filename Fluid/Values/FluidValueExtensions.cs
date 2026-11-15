@@ -56,10 +56,11 @@ public static class FluidValueExtensions
         {
             var stringValue = input.ToStringValue(context);
 
-            // Like Liquid, which downcases the string.
+            // Like Liquid, which downcases the string. Like Ruby's Time.now, the current time is in the time zone of the
+            // context, whatever the offset TemplateContext.Now returns (the machine's one by default).
             if (string.Equals(stringValue, Now, StringComparison.OrdinalIgnoreCase) || string.Equals(stringValue, Today, StringComparison.OrdinalIgnoreCase))
             {
-                result = context.Now();
+                result = TimeZoneInfo.ConvertTime(context.Now(), context.TimeZone);
 
                 return true;
             }
