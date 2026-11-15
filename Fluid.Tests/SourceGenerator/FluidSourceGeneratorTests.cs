@@ -322,6 +322,9 @@ public static partial class Templates
             ["t12.liquid"] = "{% from 'p_macros' import hello %}{{ hello('Ada') }}",
             ["t13.liquid"] = "{% from 'p_macros' %}{{ hello('Ada') }} {{ bye('Bob') }}",
 
+            // dates are ordered, like a Ruby Time
+            ["t14.liquid"] = "{% assign a = '2026-03-04 13:00' | date %}{% assign b = '2026-03-05' | date %}{% if a < b %}lt{% endif %}|{% if a > b %}gt{% else %}ngt{% endif %}|{% if b >= a %}ge{% endif %}|{% if a <= a %}le{% endif %}|{% if a < nil %}y{% else %}n{% endif %}",
+
             ["p_set.liquid"] = "{% assign v = 'set' %}",
             ["p_echo.liquid"] = "[{{ p_echo }}{{ other }}]",
             ["p_skip.liquid"] = "{% if i == 2 %}{% continue %}{% endif %}{% if i == 4 %}{% break %}{% endif %}",

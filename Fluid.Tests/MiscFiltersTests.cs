@@ -686,7 +686,7 @@ public class MiscFiltersTests
         var result = await MiscFilters.Date(input, FilterArguments.Empty, context);
 
         Assert.IsType<DateTimeValue>(result);
-        Assert.Equal("2017-08-01 00:00:00Z", result.ToStringValue(context));
+        Assert.Equal("2017-08-01 00:00:00 +0000", result.ToStringValue(context));
     }
 
     [Theory]

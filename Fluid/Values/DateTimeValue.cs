@@ -3,9 +3,17 @@ using System.Text.Encodings.Web;
 
 namespace Fluid.Values;
 
+/// <summary>
+/// A moment, like a Ruby <c>Time</c>. It renders like <c>Time#to_s</c>, with its own offset: <c>2026-03-04 13:00:00 -0500</c>,
+/// or <c>2026-03-04 18:00:00 UTC</c> when created from a <see cref="DateTime"/> of <see cref="DateTimeKind.Utc"/> kind,
+/// like <c>Time.utc</c>.
+/// </summary>
 public sealed class DateTimeValue : FluidValue
 {
     private readonly DateTimeOffset _value;
+
+    // Created from a DateTime of Utc kind, rendered with "UTC" rather than "+0000" like Ruby's Time.utc.
+    private readonly bool _utc;
 
     public static DateTimeValue Create(DateTimeOffset value) => new DateTimeValue(value);
 
@@ -23,6 +31,8 @@ public sealed class DateTimeValue : FluidValue
 
     private DateTimeValue(DateTime value)
     {
+        _utc = value.Kind == DateTimeKind.Utc;
+
         // Handle edge cases where DateTime cannot be safely converted to DateTimeOffset
         // with local timezone offset due to overflow (e.g., DateTime.MinValue with positive offset)
 
@@ -81,13 +91,32 @@ public sealed class DateTimeValue : FluidValue
 
     public override string ToStringValue(TemplateContext context)
     {
-        return _value.ToString("u", CultureInfo.InvariantCulture);
+        return Format(_value, _utc);
+    }
+
+    /// <summary>
+    /// Formats a moment like Ruby's <c>Time#to_s</c>: <c>2026-03-04 13:00:00 -0500</c>, or <c>2026-03-04 18:00:00 UTC</c>.
+    /// </summary>
+    internal static string Format(DateTimeOffset value, bool utc)
+    {
+        var dateTime = value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+
+        if (utc && value.Offset == TimeSpan.Zero)
+        {
+            return dateTime + " UTC";
+        }
+
+        var offset = value.Offset;
+        var sign = offset < TimeSpan.Zero ? '-' : '+';
+        offset = offset.Duration();
+
+        return dateTime + " " + sign + offset.Hours.ToString("00", CultureInfo.InvariantCulture) + offset.Minutes.ToString("00", CultureInfo.InvariantCulture);
     }
 
     public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
         AssertWriteToParameters(output, encoder, context);
-        output.Write(_value.ToString("u", context.CultureInfo));
+        output.Write(Format(_value, _utc));
         return default;
     }
 

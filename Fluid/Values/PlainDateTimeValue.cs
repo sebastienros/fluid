@@ -5,9 +5,9 @@ namespace Fluid.Values;
 
 /// <summary>
 /// A date and time without a time zone, like a <see cref="DateTime"/> of <see cref="DateTimeKind.Unspecified"/> kind,
-/// a <c>DateOnly</c> or a <c>TimeOnly</c>: a clock reading rather than a moment. It renders as given, like
-/// <c>2026-03-04 13:00:00</c>, <c>2026-03-04</c> or <c>13:00:00</c>, and the date filters read it in the time zone
-/// of the template context.
+/// a <c>DateOnly</c> or a <c>TimeOnly</c>: a clock reading rather than a moment. A date and time is read in the time
+/// zone of the template context, and renders like a Ruby <c>Time</c>: <c>2026-03-04 13:00:00 -0500</c>. A date is
+/// like a Ruby <c>Date</c>, at midnight UTC, and renders <c>2026-03-04</c>. A time of day renders <c>13:00:00</c>.
 /// </summary>
 /// <remarks>
 /// The name comes from the <c>PlainDateTime</c> type of JavaScript's Temporal API. A <see cref="DateTime"/> of
@@ -62,14 +62,30 @@ public sealed class PlainDateTimeValue : FluidValue
 
     public override FluidValues Type => FluidValues.DateTime;
 
+    /// <summary>Whether the value is a date, like a <c>DateOnly</c>.</summary>
+    internal bool IsDate => _kind == PlainKind.Date;
+
+    /// <summary>Whether the value is a date and time, like a <see cref="DateTime"/>.</summary>
+    internal bool IsDateTime => _kind == PlainKind.DateTime;
+
+    /// <summary>The date and time, of <see cref="DateTimeKind.Unspecified"/> kind. A time of day is on January 1, 0001.</summary>
+    internal DateTime ClockReading => _value;
+
     /// <summary>
-    /// Reads the value in the time zone of the context, with the offset at this date and time since it can vary with
-    /// daylight saving time. A time of day is on the current date of the context, like Ruby's <c>Time.parse("13:00")</c>.
+    /// Reads the value as a moment. A date and time is in the time zone of the context, with the offset at this date
+    /// and time since it can vary with daylight saving time. A date is at midnight UTC, like a Ruby <c>Date</c>, which
+    /// has no time zone. A time of day is on the current date of the context, like Ruby's <c>Time.parse("13:00")</c>.
     /// The time zone is applied here rather than when the value is created, so <see cref="TemplateContext.TimeZone"/>
     /// is used even when it differs from the options.
     /// </summary>
     internal bool TryGetDateTimeOffset(TemplateContext context, out DateTimeOffset result)
     {
+        if (_kind == PlainKind.Date)
+        {
+            result = new DateTimeOffset(_value, TimeSpan.Zero);
+            return true;
+        }
+
         var dateTime = _kind == PlainKind.Time
             ? TimeZoneInfo.ConvertTime(context.Now(), context.TimeZone).Date.Add(_value.TimeOfDay)
             : _value;
@@ -105,23 +121,31 @@ public sealed class PlainDateTimeValue : FluidValue
 
     public override string ToStringValue(TemplateContext context)
     {
-        return Format();
+        return Format(context);
     }
 
     public override ValueTask WriteToAsync(IFluidOutput output, TextEncoder encoder, TemplateContext context)
     {
         AssertWriteToParameters(output, encoder, context);
-        output.Write(Format());
+        output.Write(Format(context));
         return default;
     }
 
-    // ISO 8601 with a space, like the "u" format of a DateTimeValue without the Z, so the values sort as text.
-    private string Format() => _kind switch
+    // A date and time like Ruby's Time#to_s, with the offset of the context's time zone: "2026-03-04 13:00:00 -0500".
+    // A date like Date#to_s: "2026-03-04". A time of day has no Ruby equivalent and renders like a TimeSpan: "13:00:00".
+    private string Format(TemplateContext context)
     {
-        PlainKind.Date => _value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-        PlainKind.Time => _value.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
-        _ => _value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-    };
+        switch (_kind)
+        {
+            case PlainKind.Date:
+                return _value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            case PlainKind.Time:
+                return _value.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+            default:
+                TryGetDateTimeOffset(context, out var moment);
+                return DateTimeValue.Format(moment, utc: false);
+        }
+    }
 
     /// <summary>
     /// Returns the <see cref="DateTime"/>, <c>DateOnly</c> or <c>TimeOnly</c> the value was created from.
