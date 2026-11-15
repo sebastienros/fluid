@@ -17,7 +17,7 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
     {
         bool comparisonResult;
 
-        // Like Liquid, only numbers and strings are ordered. Comparing a number with a string fails,
+        // Like Liquid, numbers, strings and dates are ordered. Comparing a number with a string or a date fails,
         // any other operand (nil, ranges, arrays, ...) makes the comparison false.
         if (leftValue is NumberValue or BigNumberValue)
         {
@@ -28,6 +28,8 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
 
             if (rightValue is not (NumberValue or BigNumberValue))
             {
+                // Like Integer#<, which fails with a Time or a Date.
+                DateComparer.TryCompare(leftValue, rightValue, context, out _);
                 return BinaryExpressionFluidValue.Create(NilValue.Instance, false);
             }
 
@@ -54,6 +56,8 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
 
             if (rightValue is not StringValue)
             {
+                // Like String#<, which fails with a Time or a Date.
+                DateComparer.TryCompare(leftValue, rightValue, context, out _);
                 return BinaryExpressionFluidValue.Create(NilValue.Instance, false);
             }
 
@@ -67,6 +71,11 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
             {
                 comparisonResult = comparison >= 0;
             }
+        }
+        else if (DateComparer.TryCompare(leftValue, rightValue, context, out var dateComparison))
+        {
+            // Like a Ruby Time or Date, which are Comparable.
+            comparisonResult = Strict ? dateComparison > 0 : dateComparison >= 0;
         }
         else
         {
@@ -103,6 +112,7 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
             context.WriteLine("{");
             using (context.Indent())
             {
+                context.WriteLine($"DateComparer.TryCompare(leftValue, rightValue, {context.ContextName}, out _);");
                 context.WriteLine("return BinaryExpressionFluidValue.Create(NilValue.Instance, false);");
             }
             context.WriteLine("}");
@@ -137,11 +147,19 @@ public sealed class GreaterThanBinaryExpression : BinaryExpression, ISourceable
             context.WriteLine("{");
             using (context.Indent())
             {
+                context.WriteLine($"DateComparer.TryCompare(leftValue, rightValue, {context.ContextName}, out _);");
                 context.WriteLine("return BinaryExpressionFluidValue.Create(NilValue.Instance, false);");
             }
             context.WriteLine("}");
             context.WriteLine("var comparison = LiquidStringComparer.Compare(leftValue.ToStringValue(context), rightValue.ToStringValue(context));");
             context.WriteLine($"comparisonResult = {strict} ? comparison > 0 : comparison >= 0;");
+        }
+        context.WriteLine("}");
+        context.WriteLine($"else if (DateComparer.TryCompare(leftValue, rightValue, {context.ContextName}, out var dateComparison))");
+        context.WriteLine("{");
+        using (context.Indent())
+        {
+            context.WriteLine($"comparisonResult = {strict} ? dateComparison > 0 : dateComparison >= 0;");
         }
         context.WriteLine("}");
         context.WriteLine("else");

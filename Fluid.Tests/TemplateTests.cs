@@ -402,13 +402,13 @@ public class TemplateTests
     [Fact]
     public async Task ShouldEvaluateDateTimeValue()
     {
-        // DateTimeValue is rendered as Universal Sortable Date/Time (u)
+        // DateTimeValue is rendered like Ruby's Time#to_s, with UTC for a DateTime of Utc kind like Time.utc
         _parser.TryParse("{{ x }}", out var template, out var error);
         var context = new TemplateContext { TimeZone = Eastern };
         context.SetValue("x", new DateTime(2022, 10, 20, 17, 00, 00, 000, DateTimeKind.Utc));
 
         var result = await template.RenderAsync(context);
-        Assert.Equal("2022-10-20 17:00:00Z", result);
+        Assert.Equal("2022-10-20 17:00:00 UTC", result);
     }
 
     [Fact]

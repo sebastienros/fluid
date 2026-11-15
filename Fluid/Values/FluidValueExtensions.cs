@@ -100,8 +100,16 @@ public static class FluidValueExtensions
             try
             {
                 // Out of range for a decimal or a date, the input isn't a date.
-                var milliseconds = input.ToNumberValue(context) * 1000;
-                var dateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)milliseconds);
+                var seconds = input.ToNumberValue(context);
+
+                // Like Liquid, only an integer is a timestamp: Ruby's Time.at isn't called with a Float.
+                if (NumberValue.GetScale(seconds) != 0)
+                {
+                    result = default;
+                    return false;
+                }
+
+                var dateTime = DateTimeOffset.FromUnixTimeSeconds((long)seconds);
                 result = dateTime.ToOffset(context.TimeZone.GetUtcOffset(dateTime));
                 return true;
             }
@@ -115,6 +123,10 @@ public static class FluidValueExtensions
         {
             result = (DateTimeOffset)input.ToObjectValue(context);
         }
+        else if (input is PlainDateTimeValue plain)
+        {
+            return plain.TryGetDateTimeOffset(context, out result);
+        }
         else if (input is TimeSpanValue timeSpan)
         {
             return timeSpan.TryGetDateTimeOffset(context, out result);
@@ -124,7 +136,8 @@ public static class FluidValueExtensions
             switch (input.ToObjectValue(context))
             {
                 case DateTime dateTime:
-                    result = dateTime;
+                    // A date and time without time zone is in the one of the context, not the one of the machine.
+                    result = dateTime.Kind == DateTimeKind.Unspecified ? InTimeZone(dateTime, context) : dateTime;
                     break;
 
                 case DateTimeOffset dateTimeOffset:

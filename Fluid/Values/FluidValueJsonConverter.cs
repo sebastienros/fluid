@@ -122,8 +122,12 @@ public sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
                     case DateTimeOffset dateTimeOffset:
                         writer.WriteStringValue(dateTimeOffset);
                         break;
+                    case DateTime dateTime:
+                        // A date and time without time zone, in ISO 8601 without offset: "2026-03-04T13:00:00".
+                        writer.WriteStringValue(dateTime);
+                        break;
                     default:
-                        // A time span, or another kind of date, is written like it renders: "13:00:00".
+                        // A time span, a date or a time of day is written like it renders: "13:00:00", "2026-03-04".
                         writer.WriteStringValue(actualValue.ToStringValue(context));
                         break;
                 }

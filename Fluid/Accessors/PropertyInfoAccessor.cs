@@ -44,7 +44,7 @@ public sealed class PropertyInfoAccessor : MemberAccessor
             TypeCode.Double => (double x, TemplateOptions _) => NumberConversions.CreateNumber(x),
             TypeCode.Single => (float x, TemplateOptions _) => NumberConversions.CreateNumber(x),
             TypeCode.Decimal => (decimal x, TemplateOptions _) => NumberValue.Create(x),
-            TypeCode.DateTime => (DateTime x, TemplateOptions _) => DateTimeValue.Create(x),
+            TypeCode.DateTime => (DateTime x, TemplateOptions _) => PlainDateTimeValue.FromDateTime(x),
             TypeCode.String => (string x, TemplateOptions _) => StringValue.Create(x),
             _ => null,
         };

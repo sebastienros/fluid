@@ -88,9 +88,10 @@ public class TimeSpanValueTests
     }
 
     [Fact]
-    public async Task NumberValueIsInSeconds()
+    public async Task TimeSpansAreZeroInMathFilters()
     {
-        Assert.Equal("90.5", await RenderAsync("{{ x | plus: 0 }}", new TemplateContext(), TimeSpan.FromSeconds(90.5)));
+        // Like Liquid, where Utils.to_number returns 0 for anything but a number or a string.
+        Assert.Equal("0|0|5", await RenderAsync("{{ x | plus: 0 }}|{{ x | divided_by: 60 }}|{{ x | at_least: 5 }}", new TemplateContext(), TimeSpan.FromSeconds(90.5)));
     }
 
     [Fact]

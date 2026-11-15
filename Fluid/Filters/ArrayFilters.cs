@@ -1073,6 +1073,12 @@ internal sealed class LiquidSortComparer : IComparer<FluidValue>
             return xTimeSpan.Value.CompareTo(yTimeSpan.Value);
         }
 
+        // Like Ruby, moments and dates are sorted chronologically: as text, offsets would change the order
+        if (DateComparer.TryCompareSameKind(x, y, _context, out var dateComparison))
+        {
+            return dateComparison;
+        }
+
         // Otherwise, compare as strings
         var xStr = x.ToStringValue(_context);
         var yStr = y.ToStringValue(_context);

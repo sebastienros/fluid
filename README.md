@@ -366,6 +366,8 @@ The time zone, set with `TemplateOptionsBuilder.WithTimeZone()` or `TemplateCont
 
 A `TimeSpan` renders like `13:00:00`, and the date filters read it as a time of day in that time zone, so `{{ opening | date: '%H:%M %z' }}` renders `13:00 -0500` in New York.
 
+Dates behave like Ruby's in Liquid. A moment renders like a `Time`, with its offset (`2026-03-04 13:00:00 -0500`, or `UTC` for a `DateTime` of `Utc` kind), and a `DateTime` of `Unspecified` kind is read in that time zone, never in the machine's one. A `DateOnly` is like a `Date`: it renders `2026-03-04` and is read at midnight UTC. A `TimeOnly` renders `13:00:00` and is read on the current date. Dates are ordered in `<`, `>` and `sort`, and are `0` in math filters: do date math on their Unix time, like `{{ starts | date: '%s' | plus: 86400 | date: '%F' }}`. Only integers are timestamps, so `{{ 0.5 | date: '%L' }}` returns `0.5`. **Breaking change:** dates used to render in UTC (`2026-03-04 18:00:00Z`), `Unspecified` ones got the machine's offset, a `DateOnly` became a string like `03/04/2026` (read as April 3), comparing dates was always false, a date was its number of ticks in math filters, and numbers with a fraction were timestamps.
+
 See [Cultures, dates and time zones](https://sebastienros.github.io/fluid/guide/localization/) and [Working with time zones](https://sebastienros.github.io/fluid/guide/time-zones/).
 
 <br>
