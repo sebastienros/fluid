@@ -7,8 +7,8 @@ namespace Fluid.Values;
 /// <remarks>
 /// A moment, like a <c>Time</c>, is a <see cref="DateTimeValue"/> or a <see cref="PlainDateTimeValue"/> of a
 /// <see cref="DateTime"/>, read in the time zone of the context. A date, like a <c>Date</c>, is a
-/// <see cref="PlainDateTimeValue"/> of a <c>DateOnly</c>. A time of day or a <see cref="TimeSpan"/> has no Ruby
-/// equivalent and isn't ordered, like an object.
+/// <see cref="PlainDateTimeValue"/> of a <c>DateOnly</c>. A time of day (a <c>TimeOnly</c>) or a <see cref="TimeSpan"/>
+/// has no Ruby equivalent: it is ordered with a value of the same kind only, and any other comparison is false.
 /// </remarks>
 public static class DateComparer
 {
@@ -27,7 +27,10 @@ public static class DateComparer
     /// <exception cref="LiquidException">The values can't be compared, like a date and a string.</exception>
     public static bool TryCompare(FluidValue left, FluidValue right, TemplateContext context, out int comparison)
     {
-        comparison = 0;
+        if (TryCompareTimes(left, right, out comparison))
+        {
+            return true;
+        }
 
         var leftKind = GetKind(left);
         var rightKind = GetKind(right);
@@ -91,6 +94,11 @@ public static class DateComparer
     /// </summary>
     internal static bool TryCompareSameKind(FluidValue left, FluidValue right, TemplateContext context, out int comparison)
     {
+        if (TryCompareTimes(left, right, out comparison))
+        {
+            return true;
+        }
+
         var kind = GetKind(left);
 
         if (kind == null || kind != GetKind(right))
@@ -103,6 +111,26 @@ public static class DateComparer
             ? GetDate(left).CompareTo(GetDate(right))
             : GetMoment(left, context).CompareTo(GetMoment(right, context));
         return true;
+    }
+
+    // Two times of day, or two time spans. As text, "1.02:00:00" (26 hours) would come before "13:00:00", and a time of
+    // day used to be a string like "13:00", ordered as text: they are compared by value instead.
+    private static bool TryCompareTimes(FluidValue left, FluidValue right, out int comparison)
+    {
+        if (left is PlainDateTimeValue { IsTimeOfDay: true } leftTime && right is PlainDateTimeValue { IsTimeOfDay: true } rightTime)
+        {
+            comparison = leftTime.ClockReading.CompareTo(rightTime.ClockReading);
+            return true;
+        }
+
+        if (left is TimeSpanValue leftSpan && right is TimeSpanValue rightSpan)
+        {
+            comparison = leftSpan.Value.CompareTo(rightSpan.Value);
+            return true;
+        }
+
+        comparison = 0;
+        return false;
     }
 
     // The Ruby class the value is like, when it is ordered.

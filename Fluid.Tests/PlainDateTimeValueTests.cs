@@ -330,6 +330,41 @@ public class PlainDateTimeValueTests
     }
 
     [Fact]
+    public async Task TimesOfDayAreOrdered()
+    {
+        // A TimeOnly used to be a string like "09:30", so comparing two of them worked, and still does.
+        Assert.Equal("ltle", await CompareAsync(Comparisons, new TimeOnly(9, 30), new TimeOnly(17, 0)));
+        Assert.Equal("leeqge", await CompareAsync(Comparisons, new TimeOnly(13, 0), new TimeOnly(13, 0)));
+        Assert.Equal("gegt", await CompareAsync(Comparisons, new TimeOnly(13, 0, 0, 1), new TimeOnly(13, 0)));
+
+        // Whatever the time zone: a time of day isn't a moment.
+        Assert.Equal("ltle", await CompareAsync(Comparisons, new TimeOnly(23, 30), new TimeOnly(23, 45), "Pacific/Kiritimati"));
+    }
+
+    [Fact]
+    public async Task TimesOfDayAreNotOrderedWithOtherValues()
+    {
+        // Like objects in Liquid, which aren't Comparable: no Ruby class is like a time of day.
+        var context = ContextIn("America/New_York");
+        context.SetValue("s", "12:00");
+        context.SetValue("n", 5);
+        context.SetValue("m", new DateTime(2026, 3, 4, 13, 0, 0));
+        context.SetValue("d", new DateOnly(2026, 3, 4));
+        context.SetValue("span", TimeSpan.FromHours(13));
+
+        Assert.Equal("false", await RenderAsync("{% if x < s or s < x or x > n or n > x or x < m or m < x or x < d or d < x or x <= span or span <= x %}true{% else %}false{% endif %}", context, new TimeOnly(9, 30)));
+    }
+
+    [Fact]
+    public async Task TimesOfDaySortByValue()
+    {
+        var context = ContextIn("America/New_York");
+        context.SetValue("x", new object[] { new TimeOnly(17, 0), new TimeOnly(9, 30), new TimeOnly(13, 0) });
+
+        Assert.Equal("09:30:00,13:00:00,17:00:00", await new FluidParser().Parse("{{ x | sort | join: ',' }}").RenderAsync(context));
+    }
+
+    [Fact]
     public async Task DatesAreComparedWithNumbersByJulianDay()
     {
         // Like Ruby, which compares the astronomical Julian day of a Date with a number: 2461103.5 for 2026-03-04.
