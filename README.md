@@ -1,9 +1,4 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/sebastienros/fluid/raw/main/Assets/logo-vertical-dark.svg">
-    <img width="200" alt="Fluid" src="https://github.com/sebastienros/fluid/raw/main/Assets/logo-vertical.png">
-  </picture>
-</p>
+![Fluid](https://raw.githubusercontent.com/sebastienros/fluid/main/Assets/logo-vertical-auto.svg)
 
 [![NuGet](https://img.shields.io/nuget/v/Fluid.Core.svg)](https://nuget.org/packages/Fluid.Core)
 [![MIT](https://img.shields.io/github/license/sebastienros/fluid)](https://github.com/sebastienros/fluid/blob/main/LICENSE)
@@ -13,12 +8,10 @@
 
 Fluid is an open-source .NET template engine based on the [Liquid template language](https://shopify.github.io/liquid/). It is a **secure** template language that is also **very accessible** for non-programmer audiences.
 
-> This document describes Fluid 3.0, which is under development on `main`. Preview packages are available from the [preview feed](#preview-packages); stable releases are available on [NuGet.org](https://www.nuget.org/packages/Fluid.Core).
+> This document describes Fluid 3.0, available on [NuGet.org](https://www.nuget.org/packages/Fluid.Core). Previews of the next version are available from the [preview feed](#preview-packages).
 > To see the corresponding content for v1.0, use [this version](https://github.com/sebastienros/fluid/blob/release/1.x/README.md)
 
 Read the documentation at **[sebastienros.github.io/fluid](https://sebastienros.github.io/fluid/)**, and try Fluid in your browser with the **[playground](https://sebastienros.github.io/fluid/playground/)**.
-
-<br>
 
 ## Features
 
@@ -29,14 +22,10 @@ Read the documentation at **[sebastienros.github.io/fluid](https://sebastienros.
 - Parses templates into a concrete syntax tree that lets you cache, analyze, and alter the templates before they are rendered.
 - Register any .NET types and properties, or define **custom handlers** to intercept when a named variable is accessed.
 
-<br>
-
 ## Tutorials
 
 [Deane Barker](https://deanebarker.net) wrote a [very comprehensive tutorial](https://deanebarker.net/tech/fluid/) on how to write Liquid templates with Fluid.
 For a high-level overview, read [The Four Levels of Fluid Development](https://deanebarker.net/tech/fluid/intro/), which describes different stages of using Fluid.
-
-<br>
 
 ## Contents
 
@@ -57,8 +46,6 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 - [Documentation](#documentation)
 - [Contributing](#contributing)
 - [Used by](#used-by)
-
-<br>
 
 #### Source
 
@@ -103,8 +90,6 @@ For a high-level overview, read [The Four Levels of Fluid Development](https://d
 Notice
 - The `<li>` tags are at the same index as in the template, even though the `{% for }` tag had some leading spaces
 - The `<ul>` and `<li>` tags are on contiguous lines even though the `{% for }` is taking a full line.
-
-<br>
 
 ## Using Fluid in your project
 
@@ -174,8 +159,6 @@ var context = new TemplateContext(model, _options);
 
 Templates used by `include` and `render` are loaded from `TemplateOptions.FileProvider`, which can be asynchronous. See [Parsing and rendering](https://sebastienros.github.io/fluid/guide/rendering/) for file providers, scopes, cancellation and rendering to UTF-8.
 
-<br>
-
 ## Exposing .NET objects
 
 Templates can read the public properties and fields of the model and of the objects reachable through it. Treat the model as the template's readable data boundary: when rendering an untrusted template, pass a dedicated model that contains only the data the template is allowed to read.
@@ -195,8 +178,6 @@ Member names are case-sensitive by default. Use `WithModelNamesComparer(StringCo
 Fluid works with NativeAOT and trimming: it falls back to reflection when dynamic code isn't supported, and the [model accessor generator](#model-accessors) avoids reflection altogether.
 
 See [Models and values](https://sebastienros.github.io/fluid/guide/models-and-values/) for value converters, custom `FluidValue` types and arrays, explicit member registrations, custom member accessors and NativeAOT compatibility.
-
-<br>
 
 ## Source generators
 
@@ -255,8 +236,6 @@ var html = await Templates.WelcomeEmail.RenderAsync(context);
 
 See [Compiled template generator](https://sebastienros.github.io/fluid/guide/template-generator/) for glob patterns, parser options, partials, naming rules and the diagnostics.
 
-<br>
-
 ## Adding custom filters
 
 Filters can be **async** or not. They are defined as a `delegate` that accepts an **input**, a **set of arguments** and the current **context** of the rendering process.
@@ -271,8 +250,6 @@ var options = new TemplateOptionsBuilder()
     .AddFilter("downcase", Downcase)
     .Build();
 ```
-
-<br>
 
 ## Handling undefined values
 
@@ -299,8 +276,6 @@ var options = new TemplateOptionsBuilder()
 
 See [Handling undefined values](https://sebastienros.github.io/fluid/guide/rendering/#handling-undefined-values) for more examples.
 
-<br>
-
 ## Rendering user-provided templates
 
 Fluid is a template engine, not a security sandbox. When templates come from users:
@@ -323,8 +298,6 @@ private static readonly TemplateOptions UserTemplateOptions = new TemplateOption
 
 See [Security](https://sebastienros.github.io/fluid/guide/security/) for what each limit counts and a complete example.
 
-<br>
-
 ## Encoding
 
 By default, Fluid doesn't encode the output. Pass an encoder when rendering, for instance `HtmlEncoder.Default`, or `HtmlEncoder.Create(UnicodeRanges.All)` to keep non-ASCII text readable:
@@ -343,8 +316,6 @@ Not encoded: {{ html | raw }}
 ```
 
 The `json` filter uses the `JsonSerializerOptions` set with `TemplateOptionsBuilder.WithJsonSerializerOptions()`. See [Encoding](https://sebastienros.github.io/fluid/guide/rendering/#encoding) for details.
-
-<br>
 
 ## Cultures and time zones
 
@@ -375,8 +346,6 @@ Dates behave like Ruby's in Liquid. A moment renders like a `Time`, with its off
 
 See [Cultures, dates and time zones](https://sebastienros.github.io/fluid/guide/localization/) and [Working with time zones](https://sebastienros.github.io/fluid/guide/time-zones/).
 
-<br>
-
 ## Additional filters
 
 Fluid provides some non-standard filters by default, which format values with .NET format strings and an optional culture name:
@@ -403,8 +372,6 @@ var options = new TemplateOptionsBuilder()
 | `{{ 'rgb(10%, 10%, 20%)' \| color_to_hex }}` | `#1a1a33` |
 
 See [Optional and Fluid-specific filters](https://sebastienros.github.io/fluid/guide/filters/) for currencies, amounts in cents, custom money formats and supported colors.
-
-<br>
 
 ## Liquid syntax
 
@@ -457,8 +424,6 @@ With functions enabled, `macro` declares reusable chunks of content that are inv
 
 See [Liquid syntax](https://sebastienros.github.io/fluid/guide/syntax/) for how Fluid reads tags like Shopify, `include` and `render`, whitespace, the `self` object, macros and the other extensions.
 
-<br>
-
 ## Customizing tags and blocks
 
 Fluid's grammar can be extended with custom tags, blocks and operators. The parser is based on [Parlot](https://github.com/sebastienros/parlot), which makes it completely extensible.
@@ -499,8 +464,6 @@ renders `Hi! Hi! Hi! `. Custom operators are registered with `parser.RegisteredO
 
 Templates can also be analyzed and rewritten with the `AstVisitor` and `AstRewriter` classes. See [Extending the grammar](https://sebastienros.github.io/fluid/guide/extensibility/) for blocks, custom parsers, operators, functions and visitors.
 
-<br>
-
 ## View engines
 
 The `Fluid.MvcViewEngine` package lets ASP.NET Core MVC render Liquid views, alone or with Razor, with layouts, sections and `_ViewStart.liquid` files:
@@ -534,8 +497,6 @@ A view, a layout or a partial that can't be found throws a `FileNotFoundExceptio
 
 `Fluid.ViewEngine` provides the same features without MVC, and `MinimalApis.LiquidViews` renders Liquid views from Minimal APIs. See [View engines](https://sebastienros.github.io/fluid/guide/view-engine/).
 
-<br>
-
 ## Command line tool
 
 The `Fluid.Core.Tool` .NET tool installs a `liquid` command that renders Liquid templates from any shell, with JSON read from stdin (or `--data <file>`) as the model.
@@ -550,17 +511,13 @@ liquid page.liquid --validate
 
 Run `liquid --help`, or see the [tool's README](https://github.com/sebastienros/fluid/blob/main/Fluid.Core.Tool/README.md), for all options, such as include paths, culture, time zone, strict mode and execution limits.
 
-<br>
-
 ## Performance
 
 Fluid is faster and allocates less memory than all other well-known .NET Liquid parsers. To get the best performance, cache `IFluidTemplate` instances, and reuse the `FluidParser` and `TemplateOptions` instances (see [Reusing instances](#reusing-instances)).
 
-![Render benchmark comparison](https://github.com/sebastienros/fluid/raw/main/docs/_content/fluid/assets/benchmarks/benchmark-render.png)
+![Render benchmark comparison](https://raw.githubusercontent.com/sebastienros/fluid/main/docs/_content/fluid/assets/benchmarks/benchmark-render.png)
 
 See [Benchmarks](https://sebastienros.github.io/fluid/benchmarks/) for parsing results, compiled templates and the Benchmark.NET data.
-
-<br>
 
 ## Documentation
 
@@ -582,8 +539,6 @@ The [documentation site](https://sebastienros.github.io/fluid/) covers the detai
 
 When questioning the result of a template, compare it with the Liquid gem, as described in [Contributing](#contributing).
 
-<br>
-
 ## Contributing
 
 Build with `dotnet build` and test with `dotnet test`: see [AGENTS.md](https://github.com/sebastienros/fluid/blob/main/AGENTS.md) for the build rules, the [Golden Liquid](https://github.com/jg-rp/golden-liquid) tests and the architecture.
@@ -597,8 +552,6 @@ dotnet run scripts/liquid-gem/liquid-gem.cs -- -c template.liquid -d data.json -
 ```
 
 `-c` renders the template with Fluid too and shows the difference, `-d` (a file) or `-j` (inline JSON) gives its variables, and `--help` lists the options, like the notation for dates. It needs Docker.
-
-<br>
 
 ## Used by
 
