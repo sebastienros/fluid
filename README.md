@@ -262,6 +262,8 @@ Property are added to the `TemplateOptions.MemberAccessStrategy` property. This 
 
 Alternatively, the `MemberAccessStrategy` can be assigned an instance of `UnsafeMemberAccessStrategy` which will allow any property to be accessed.
 
+Outputting an object itself, as in `{{ obj }}` or with the `format_string` filter, writes its `ToString()` result, which the member access strategy doesn't control. What `ToString()` returns is up to the application.
+
 ### Allow-listing a specific type
 
 This will allow any public field or property to be read from a template.
@@ -614,6 +616,8 @@ var context = new TemplateContext(options);
 ### Customizing JSON output
 
 The `json` filter uses `System.Text.Json.JsonSerializerOptions` to control the JSON output format. You can customize these options through `TemplateOptions.JsonSerializerOptions` or `TemplateContext.JsonSerializerOptions`.
+
+The members of a .NET object are read like a template reads them, through the `MemberAccessStrategy`: the output only contains the members that are registered, with the values their accessors return. The serializer options provide the member names and order, and `[JsonIgnore]` members are left out. Types that `System.Text.Json` doesn't write as objects, like scalars or types with a custom converter, are written by the serializer.
 
 #### Example: Indented JSON output
 

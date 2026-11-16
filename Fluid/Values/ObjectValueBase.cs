@@ -40,7 +40,10 @@ namespace Fluid.Values
             return other is ObjectValueBase otherObject && Value.Equals(otherObject.Value);
         }
 
-        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
+        /// <summary>
+        /// Gets the accessor a template uses to read a member of the object, or <c>null</c> if it can't access it.
+        /// </summary>
+        internal IMemberAccessor GetMemberAccessor(string name, TemplateContext context)
         {
             // The model type has a custom ability to allow any of its members optionally
             _isModelType ??= context.Model != null && context.Model?.ToObjectValue()?.GetType() == Value.GetType();
@@ -51,6 +54,13 @@ namespace Fluid.Values
             {
                 accessor = context.Options.MemberAccessStrategy.GetModelAccessor(Value.GetType(), name);
             }
+
+            return accessor;
+        }
+
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
+        {
+            var accessor = GetMemberAccessor(name, context);
 
             if (name.Contains('.'))
             {
