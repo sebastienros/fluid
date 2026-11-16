@@ -96,7 +96,7 @@ The "Compiled templates and static engines" section of that page comes from `--f
 
 ## Documentation
 
-`README.md` is both the quick start guide and the NuGet readme: it introduces every feature with a short example and links to the documentation site for the details. Update it for any template-visible behavior change, and put details (options, edge cases, compatibility notes, breaking changes) in the matching page of the site. The README is rendered on nuget.org, so its links and images use absolute URLs: `https://sebastienros.github.io/fluid/...` for pages, `https://github.com/sebastienros/fluid/raw/main/...` for images.
+`README.md` is both the quick start guide and the NuGet readme: it introduces every feature with a short example and links to the documentation site for the details. Update it for any template-visible behavior change, and put details (options, edge cases, compatibility notes, breaking changes) in the matching page of the site. The README is rendered on nuget.org, which doesn't render HTML and only shows images from allowed hosts: write it in Markdown only, and use absolute URLs, `https://sebastienros.github.io/fluid/...` for pages and `https://raw.githubusercontent.com/sebastienros/fluid/main/...` for images. nuget.org has a dark theme too, so an image must read on both backgrounds (`Assets/logo-vertical-auto.svg` switches colors with `prefers-color-scheme`).
 
 The documentation site (https://sebastienros.github.io/fluid/) is built by [Douze](https://sebastienros.github.io/douze/) from `docs/`, and deployed with the playground by `.github/workflows/docs.yml`; `docs/README.md` explains how to build and preview it.
 
