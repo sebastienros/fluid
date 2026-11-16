@@ -18,6 +18,16 @@ Outputting an object itself, as in `{{ obj }}` or with the `format_string` filte
 When invoking `{% include 'sub-template' %}` statements, it is possible that some templates create an infinite recursion that could block the server.
 To prevent this, the `TemplateOptions` class defines a default `MaxRecursion = 100` that prevents templates from having a depth greater than `100`.
 
+### Limiting template nesting
+
+Nested blocks and expressions are parsed and rendered recursively. `FluidParserOptions.MaxRecursionDepth` limits how deeply a template can nest, so that it can't exhaust the stack: nested blocks, nested expressions like parentheses and indexers, and the number of filters or `and`/`or` operators of an expression. Parsing a template that goes deeper fails with `The maximum parser recursion depth of 200 was exceeded`. The default, `FluidParserOptions.DefaultMaxRecursionDepth = 200`, allows about 100 nested blocks, and `0` removes the limit.
+
+```csharp
+var parser = new FluidParser(new FluidParserOptions { MaxRecursionDepth = 100 });
+```
+
+Independently of this limit, Fluid checks the remaining stack while parsing and rendering. When too little is left, like on a thread with a small stack, parsing fails with an error saying the template is nested too deeply to be parsed, and rendering throws an `InsufficientExecutionStackException`.
+
 ### Limiting template execution
 
 A template can inadvertently perform enough work to block the server. `MaxSteps` limits statements, loop iterations, range construction, and built-in collection enumeration. String filters are not counted per character; their cost follows the length of their input, and `MaxOutputSize` bounds what they produce. `MaxOutputSize` limits cumulative rendered output, captured blocks, macro results, and amplified string operations. `MaxCollectionSize` limits ranges and collections materialized by built-in operations.

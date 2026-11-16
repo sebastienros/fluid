@@ -9,7 +9,11 @@ public abstract class BinaryExpression : Expression
     {
         Left = left;
         Right = right;
+        _nested = left is BinaryExpression or FilterExpression || right is BinaryExpression or FilterExpression;
     }
+
+    // Whether evaluating an operand recurses into another expression that can nest, see EvaluateAsync.
+    private readonly bool _nested;
 
     public Expression Left { get; }
 
@@ -28,6 +32,12 @@ public abstract class BinaryExpression : Expression
     /// </summary>
     public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
     {
+        if (_nested)
+        {
+            // A long chain of operators fails with an exception that can be handled instead of a stack overflow.
+            RuntimeHelpers.EnsureSufficientExecutionStack();
+        }
+
         var leftTask = Left.EvaluateAsync(context);
         var rightTask = Right.EvaluateAsync(context);
 
@@ -59,6 +69,12 @@ public abstract class BinaryExpression : Expression
     /// <param name="decidingValue">The truthiness of the left operand that decides the result.</param>
     private protected ValueTask<FluidValue> EvaluateShortCircuitAsync(TemplateContext context, bool decidingValue)
     {
+        if (_nested)
+        {
+            // A long chain of operators fails with an exception that can be handled instead of a stack overflow.
+            RuntimeHelpers.EnsureSufficientExecutionStack();
+        }
+
         var leftTask = Left.EvaluateAsync(context);
 
         if (!leftTask.IsCompletedSuccessfully)

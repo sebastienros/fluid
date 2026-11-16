@@ -15,6 +15,7 @@ namespace Fluid;
 public class FluidParser
 {
     private readonly bool _trackStatementLocations;
+    private readonly int _maxRecursionDepth;
     private readonly Parser<TextSpan> _tagName;
     public Parser<IReadOnlyList<Statement>> Grammar;
     public Dictionary<string, Parser<Statement>> RegisteredTags { get; } = new();
@@ -125,9 +126,16 @@ public class FluidParser
     {
     }
 
+    /// <summary>
+    /// Gets the maximum nesting depth of a template, or <c>0</c> for no limit.
+    /// </summary>
+    /// <seealso cref="FluidParserOptions.MaxRecursionDepth"/>
+    public int MaxRecursionDepth => _maxRecursionDepth;
+
     public FluidParser(FluidParserOptions parserOptions)
     {
         _trackStatementLocations = parserOptions.TrackStatementLocations;
+        _maxRecursionDepth = parserOptions.MaxRecursionDepth;
         if (!parserOptions.AllowLiquidTag)
         {
             OutputStart = NoInlineOutputStart;
@@ -161,16 +169,19 @@ public class FluidParser
         var Number = Terms.Decimal().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))).Or(BigNumber);
         Number.Name = "Number";
 
+        // Expressions nest through indexers, function arguments and groups, which check the stack before recursing.
+        var NestedPrimary = new StackGuardParser<Expression>(Primary);
+
         // Member expressions
         // Like Liquid, whitespace is allowed before an indexer: `products [0]` is `products[0]`.
-        var Indexer = Between(Terms.Char('['), Primary, RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
+        var Indexer = Between(Terms.Char('['), NestedPrimary, RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
         Indexer.Name = "Indexer";
 
         // ([name =] value,)+
         FunctionCallArgumentsList = Separated(Comma,
                         OneOf(
-                            Identifier.AndSkip(Equal).And(Primary).Then(static x => new FunctionCallArgument(x.Item1, x.Item2)),
-                            Primary.Then(static x => new FunctionCallArgument(null, x))
+                            Identifier.AndSkip(Equal).And(NestedPrimary).Then(static x => new FunctionCallArgument(x.Item1, x.Item2)),
+                            NestedPrimary.Then(static x => new FunctionCallArgument(null, x))
                         )).Else(default(IReadOnlyList<FunctionCallArgument>));
         FunctionCallArgumentsList.Name = "FunctionArgumentsList";
 
@@ -223,9 +234,10 @@ public class FluidParser
             .Then<Expression>(static x => new RangeExpression(x.Item1.Expression, x.Item2.Expression) { FromSource = x.Item1.Source, ToSource = x.Item2.Source });
         Range.Name = "Range";
 
+        // A disallowed group is still parsed before it's rejected, so it checks the stack too.
         var Group = parserOptions.AllowParentheses
-            ? LParen.SkipAnd(FilterExpression).AndSkip(RParen)
-            : LParen.SkipAnd(FilterExpression).AndSkip(RParen).Error<Expression>(ErrorMessages.ParenthesesNotAllowed)
+            ? LParen.SkipAnd(new StackGuardParser<Expression>(FilterExpression)).AndSkip(RParen)
+            : LParen.SkipAnd(new StackGuardParser<Expression>(FilterExpression)).AndSkip(RParen).Error<Expression>(ErrorMessages.ParenthesesNotAllowed)
             ;
         Group.Name = "Group";
 
@@ -234,10 +246,10 @@ public class FluidParser
         // Uses Terms.Char to skip leading whitespace (unlike LBracket which is Literals.Char)
         // Also allows chained brackets like ['foo']['bar'] with whitespace between them
         // Creates a MemberExpression with an IndexerSegment as the first segment
-        var ChainedIndexer = Terms.Char('[').SkipAnd(Primary).AndSkip(RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
+        var ChainedIndexer = Terms.Char('[').SkipAnd(NestedPrimary).AndSkip(RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
         ChainedIndexer.Name = "ChainedIndexer";
 
-        var BracketedAccess = Terms.Char('[').SkipAnd(Primary).AndSkip(RBracket).Then<MemberSegment>(x => new IndexerSegment(x))
+        var BracketedAccess = Terms.Char('[').SkipAnd(NestedPrimary).AndSkip(RBracket).Then<MemberSegment>(x => new IndexerSegment(x))
             .And(ZeroOrMany(
                 Dot.SkipAnd(Identifier.Then<MemberSegment>(x => new IdentifierSegment(x)))
                 .Or(ChainedIndexer)
@@ -305,7 +317,17 @@ public class FluidParser
         LogicalExpression = CombinatoryExpression.Operators()
             .RightAssociative(
                 (BinaryOr, static (a, b) => new OrBinaryExpression(a, b)),
-                (BinaryAnd, static (a, b) => new AndBinaryExpression(a, b)));
+                (BinaryAnd, static (a, b) => new AndBinaryExpression(a, b)))
+            .Then(static (ctx, x) =>
+            {
+                if (x is OrBinaryExpression or AndBinaryExpression)
+                {
+                    // Each operator nests the expression one level deeper, which evaluating it recurses into.
+                    EnsureNestingDepth(ctx, CountLogicalOperators(x));
+                }
+
+                return x;
+            });
         LogicalExpression.Name = "LogicalExpression";
 
         // ([name :] value ,)+
@@ -326,6 +348,9 @@ public class FluidParser
                 {
                     // Primary
                     var result = x.Item1;
+
+                    // Each filter nests the expression one level deeper, which evaluating it recurses into.
+                    EnsureNestingDepth(ctx, x.Item2.Count);
 
                     // Filters
                     foreach (var pipeResult in x.Item2)
@@ -825,7 +850,7 @@ public class FluidParser
         var KnownTags = TrackStatement(TagStart.SkipAnd(_knownRegisteredTag), skipLeadingWhitespace: true);
 
         RefreshRegisteredTagParser();
-        AnyTagsList.Parser = ZeroOrMany(Output.Or(AnyTags).Or(Text)); // Used in block and stop when an unknown tag is found
+        AnyTagsList.Parser = new StackGuardParser<IReadOnlyList<Statement>>(ZeroOrMany(Output.Or(AnyTags).Or(Text))); // Used in block and stop when an unknown tag is found
         KnownTagsList.Parser = ZeroOrMany(Output.Or(KnownTags).Or(Text)); // Used in main list and raises an issue when an unknown tag is found
 
         Grammar = Always().Then(x =>
@@ -851,6 +876,31 @@ public class FluidParser
     /// between the end of a tag or an output ('%}', '}}', or '-%}', '-}}' to strip it) and the start of the next one
     /// ('{%', '{{', or '{%-', '{{-').
     /// </summary>
+    // The operators of a chain of "and" and "or", which nests from the right.
+    private static int CountLogicalOperators(Expression expression)
+    {
+        var count = 0;
+
+        while (expression is OrBinaryExpression or AndBinaryExpression)
+        {
+            count++;
+            expression = ((BinaryExpression)expression).Right;
+        }
+
+        return count;
+    }
+
+    private static void EnsureNestingDepth(ParseContext context, int depth)
+    {
+        var maxRecursionDepth = context.MaxRecursionDepth;
+
+        if (maxRecursionDepth > 0 && depth > maxRecursionDepth)
+        {
+            // Same error as a nested parser exceeding the limit
+            throw new Parlot.ParseException($"The maximum parser recursion depth of {maxRecursionDepth} was exceeded.", context.Scanner.Cursor.Position);
+        }
+    }
+
     private static TextSpanStatement CreateTextSpanStatement(in TextSpan text)
     {
         var result = new TextSpanStatement(text);

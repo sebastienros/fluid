@@ -1,5 +1,6 @@
 using Fluid.Values;
 using Fluid.SourceGeneration;
+using System.Runtime.CompilerServices;
 
 namespace Fluid.Ast;
 
@@ -12,6 +13,7 @@ public sealed class FilterExpression : Expression, ISynchronousSourceable
         Parameters = parameters ?? [];
         _canBeCached = Parameters.All(x => x.Expression is LiteralExpression);
         _callSite = new FilterCallSite(name);
+        _nested = input is FilterExpression or BinaryExpression;
     }
 
     public Expression Input { get; }
@@ -26,8 +28,24 @@ public sealed class FilterExpression : Expression, ISynchronousSourceable
     // Resolves the filter by name and caches it, see FilterCallSite.
     private readonly FilterCallSite _callSite;
 
+    // Whether evaluating the input recurses into another expression that can nest, see EvaluateAsync.
+    private readonly bool _nested;
+
     public override ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
     {
+        if (_nested)
+        {
+            try
+            {
+                // A long chain of filters fails with an exception that can be handled instead of a stack overflow.
+                RuntimeHelpers.EnsureSufficientExecutionStack();
+            }
+            catch (Exception e)
+            {
+                return FilterCallSite.Faulted(e);
+            }
+        }
+
         var arguments = _cachedArguments;
 
         if (arguments is null)

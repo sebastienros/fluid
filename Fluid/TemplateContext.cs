@@ -360,6 +360,10 @@ public class TemplateContext
             ExceptionHelper.ThrowMaximumRecursionException();
         }
 
+        // Scopes nest with the templates that include or render other templates, which a recursion limit doesn't
+        // keep from exhausting a small stack: fail with an exception that can be handled instead of a stack overflow.
+        RuntimeHelpers.EnsureSufficientExecutionStack();
+
         _recursion++;
 
         var previous = _localScope;

@@ -38,4 +38,27 @@ public sealed class FluidParserOptions
     /// Default is <c>false</c>: like Liquid, a backslash is a plain character and a string ends at the next matching quote.
     /// </summary>
     public bool AllowStringEscapeSequences { get; init; }
+
+    /// <summary>
+    /// The default value of <see cref="MaxRecursionDepth"/>.
+    /// </summary>
+    public const int DefaultMaxRecursionDepth = 200;
+
+    /// <summary>
+    /// Gets the maximum nesting depth of a template: nested blocks, nested expressions, and the number of filters or
+    /// <c>and</c>/<c>or</c> operators of an expression. Parsing a template that goes deeper fails, which prevents a
+    /// template from exhausting the stack when it is parsed or rendered. Default is <see cref="DefaultMaxRecursionDepth"/>,
+    /// which allows about 100 nested blocks; <c>0</c> means unlimited.
+    /// </summary>
+    public int MaxRecursionDepth
+    {
+        get => _maxRecursionDepth;
+        init
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(value);
+            _maxRecursionDepth = value;
+        }
+    }
+
+    private readonly int _maxRecursionDepth = DefaultMaxRecursionDepth;
 }

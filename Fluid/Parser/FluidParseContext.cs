@@ -5,7 +5,13 @@ namespace Fluid.Parser;
 
 public class FluidParseContext : ParseContext
 {
-    public FluidParseContext(string text) : base(new Scanner(text))
+    public FluidParseContext(string text) : this(text, 0)
+    {
+    }
+
+    /// <param name="text">The template to parse.</param>
+    /// <param name="maxRecursionDepth">The maximum number of nested recursive parser invocations, or <c>0</c> for no limit.</param>
+    public FluidParseContext(string text, int maxRecursionDepth) : base(new Scanner(text), maxRecursionDepth)
     {
         WhiteSpaceSet = LiquidWhiteSpace.Set;
     }

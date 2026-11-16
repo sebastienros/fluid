@@ -9,7 +9,7 @@ public static class FluidParserExtensions
 {
     public static IFluidTemplate Parse(this FluidParser parser, string template)
     {
-        var context = new FluidParseContext(template);
+        var context = new FluidParseContext(template, parser.MaxRecursionDepth);
 
         bool success;
         IReadOnlyList<Statement> statements;
@@ -18,6 +18,10 @@ public static class FluidParserExtensions
         try
         {
             success = parser.Grammar.TryParse(context, out statements, out parlotError);
+        }
+        catch (InsufficientExecutionStackException exception)
+        {
+            throw new ParseException("The template is nested too deeply to be parsed.", template, context.Scanner.Cursor.Position, exception);
         }
         catch (ParseException exception) when (exception.TemplateSource == null || exception.Position == null)
         {
