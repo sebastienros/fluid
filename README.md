@@ -114,8 +114,10 @@ The code samples in this document assume you have registered the `Fluid` namespa
 
 ### Preview packages
 
-After a successful build triggered by a push to `main`, preview packages (`3.1.0-preview.<run number>`) are published to the
+After a successful build triggered by a push to `main`, preview packages are published to the
 [Fluid feed on feedz.io](https://f.feedz.io/sebastienros/fluid/nuget/index.json). Tagged releases continue to be published to NuGet.org.
+Previews are versioned after the latest release, so they sort above it and below the next one: `3.0.1-preview.<run number>`
+after 3.0.0, or `3.1.0-beta.1.preview.<run number>` after 3.1.0-beta.1.
 
 ```shell
 dotnet nuget add source https://f.feedz.io/sebastienros/fluid/nuget/index.json --name fluid-preview
