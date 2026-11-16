@@ -1125,7 +1125,7 @@ public class MiscFiltersTests
         var options = new TemplateOptionsBuilder().Build();
         var input = FluidValue.Create(model, options);
         var result = await MiscFilters.Json(input, new FilterArguments(), new TemplateContext(options));
-        Assert.Equal("{\"Id\":1,\"WithoutIndexable\":{\"Type\":6,\"Value\":{}},\"Bool\":true}", result.ToStringValue(new TemplateContext()));
+        Assert.Equal("{\"Id\":1,\"WithoutIndexable\":null,\"Bool\":true}", result.ToStringValue(new TemplateContext()));
     }
 
     [Fact]

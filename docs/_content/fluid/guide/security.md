@@ -9,6 +9,8 @@ Fluid templates can read public properties and fields from the model and from ob
 
 When rendering an untrusted template, pass a dedicated model that contains only the data the template is allowed to read. Do not pass domain entities, service objects, configuration objects, or other object graphs that may expose sensitive data through public members.
 
+Outputting an object itself, as in `{{ obj }}` or with the `format_string` filter, writes its `ToString()` result, which the member access strategy doesn't control. What `ToString()` returns is up to the application.
+
 ## Execution limits
 
 ### Limiting template recursion

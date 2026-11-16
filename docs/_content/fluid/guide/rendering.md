@@ -260,6 +260,8 @@ The body of a `capture` always runs, so its tags take effect even when the resul
 
 The `json` filter uses `System.Text.Json.JsonSerializerOptions` to control the JSON output format. You can customize these options through `TemplateOptionsBuilder.WithJsonSerializerOptions` or `TemplateContext.JsonSerializerOptions`.
 
+The members of a .NET object are read like a template reads them, through the `MemberAccessStrategy`: the output only contains members a template can access, with the values their accessors return. The serializer options provide the member names and order, and `[JsonIgnore]` members are left out. Types that `System.Text.Json` doesn't write as objects, like scalars or types with a custom converter, are written by the serializer.
+
 #### Example: Indented JSON output
 
 ```csharp

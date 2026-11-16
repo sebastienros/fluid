@@ -1,6 +1,8 @@
 using System.Globalization;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Fluid.Values;
 
@@ -114,7 +116,7 @@ public sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
                 writer.WriteEndObject();
                 break;
             case FluidValues.Object:
-                JsonSerializer.Serialize(writer, actualValue.ToObjectValue(context), options);
+                WriteObject(writer, actualValue.ToObjectValue(context), context, options);
                 break;
             case FluidValues.DateTime:
                 switch (actualValue.ToObjectValue(context))
@@ -145,5 +147,72 @@ public sealed class FluidValueJsonConverter : JsonConverter<FluidValue>
                 writer.WriteNullValue();
                 break;
         }
+    }
+
+    private static void WriteObject(Utf8JsonWriter writer, object value, TemplateContext context, JsonSerializerOptions options)
+    {
+        if (value == null)
+        {
+            writer.WriteNullValue();
+            return;
+        }
+
+        var type = value.GetType();
+        var typeInfo = options.GetTypeInfo(type);
+
+        // Values that System.Text.Json doesn't write as a set of members, like scalars or types with a
+        // custom converter, have nothing for the member access strategy to filter.
+        if (typeInfo.Kind != JsonTypeInfoKind.Object)
+        {
+            JsonSerializer.Serialize(writer, value, typeInfo);
+            return;
+        }
+
+        if (context == null)
+        {
+            throw new InvalidOperationException("A TemplateContext is required to serialize FluidValue instances. Please wrap the FluidValue in a SerializableFluidValue.");
+        }
+
+        // Members are read like a template reads them, through the member access strategy, so the
+        // output never contains a member the template couldn't access. System.Text.Json still
+        // provides the names, the order and the ignored members.
+        var strategy = context.Options.MemberAccessStrategy;
+        var comparer = context.Options.ModelNamesComparer;
+
+        writer.WriteStartObject();
+
+        foreach (var property in typeInfo.Properties)
+        {
+            if (property.Get == null)
+            {
+                continue;
+            }
+
+            var memberName = property.AttributeProvider is MemberInfo member ? member.Name : property.Name;
+            var accessor = strategy.GetAccessor(type, memberName, comparer);
+
+            if (accessor == null)
+            {
+                continue;
+            }
+
+            if (property.ShouldSerialize != null && !property.ShouldSerialize(value, property.Get(value)))
+            {
+                continue;
+            }
+
+            var task = accessor.GetAsync(value, memberName, context);
+            var memberValue = (task.IsCompletedSuccessfully ? task.Result : task.AsTask().GetAwaiter().GetResult()) ?? NilValue.Instance;
+
+            if (memberValue.IsNil() && options.DefaultIgnoreCondition == JsonIgnoreCondition.WhenWritingNull)
+            {
+                continue;
+            }
+
+            writer.WritePropertyName(property.Name);
+            JsonSerializer.Serialize<FluidValue>(writer, SerializableFluidValue.Create(memberValue, context), options);
+        }
+
+        writer.WriteEndObject();
     }
 }
