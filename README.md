@@ -506,6 +506,16 @@ To prevent this the `TemplateOptions` class defines a default `MaxRecursion = 10
 Template can inadvertently create infinite loop that could block the server by running indefinitely. 
 To prevent this the `TemplateOptions` class defines a default `MaxSteps`. By default this value is not set.
 
+### Limiting templates nesting
+
+Nested blocks and expressions are parsed and rendered recursively. `FluidParserOptions.MaxRecursionDepth` limits how deeply a template can nest, so that it can't exhaust the stack: nested blocks, nested expressions like parentheses and indexers, and the number of filters or `and`/`or` operators of an expression. Parsing a template that goes deeper fails with `The maximum parser recursion depth of 100 was exceeded`. The default is `FluidParserOptions.DefaultMaxRecursionDepth = 100`, and `0` removes the limit.
+
+```csharp
+var parser = new FluidParser(new FluidParserOptions { MaxRecursionDepth = 50 });
+```
+
+Independently of this limit, Fluid checks the remaining stack while parsing and rendering. When too little is left, like on a thread with a small stack, parsing fails with `The template is nested too deeply to be parsed`, and rendering throws an `InsufficientExecutionStackException`.
+
 <br>
 
 ## Converting CLR types

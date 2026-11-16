@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using Fluid.Values;
 
 namespace Fluid.Ast
@@ -10,6 +11,7 @@ namespace Fluid.Ast
             Input = input;
             Name = name;
             Parameters = parameters ?? [];
+            _nested = input is FilterExpression or BinaryExpression;
         }
 
         public Expression Input { get; }
@@ -19,8 +21,17 @@ namespace Fluid.Ast
         private volatile bool _canBeCached = true;
         private volatile FilterArguments _cachedArguments;
 
+        // Whether evaluating the input recurses into another expression that can nest, see EvaluateAsync.
+        private readonly bool _nested;
+
         public override async ValueTask<FluidValue> EvaluateAsync(TemplateContext context)
         {
+            if (_nested)
+            {
+                // A long chain of filters fails with an exception that can be handled instead of a stack overflow.
+                RuntimeHelpers.EnsureSufficientExecutionStack();
+            }
+
             FilterArguments arguments;
 
             // The arguments can be cached if all the parameters are LiteralExpression

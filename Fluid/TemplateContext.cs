@@ -201,6 +201,10 @@ namespace Fluid
                 return;
             }
 
+            // Scopes nest with the templates that include or render other templates, which a recursion limit doesn't
+            // keep from exhausting a small stack: fail with an exception that can be handled instead of a stack overflow.
+            RuntimeHelpers.EnsureSufficientExecutionStack();
+
             LocalScope = new Scope(LocalScope);
         }
 
@@ -215,6 +219,10 @@ namespace Fluid
                 ExceptionHelper.ThrowMaximumRecursionException();
                 return;
             }
+
+            // Scopes nest with the templates that include or render other templates, which a recursion limit doesn't
+            // keep from exhausting a small stack: fail with an exception that can be handled instead of a stack overflow.
+            RuntimeHelpers.EnsureSufficientExecutionStack();
 
             LocalScope = new Scope(LocalScope, forLoopScope: true);
         }

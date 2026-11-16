@@ -86,8 +86,16 @@ namespace Fluid
         {
         }
 
+        /// <summary>
+        /// Gets the maximum nesting depth of a template, or <c>0</c> for no limit.
+        /// </summary>
+        /// <seealso cref="FluidParserOptions.MaxRecursionDepth"/>
+        public int MaxRecursionDepth { get; }
+
         public FluidParser(FluidParserOptions parserOptions)
         {
+            MaxRecursionDepth = parserOptions.MaxRecursionDepth;
+
             if (!parserOptions.AllowLiquidTag)
             {
                 OutputStart = NoInlineOutputStart;
@@ -105,14 +113,17 @@ namespace Fluid
             Integer.Name = "Integer";
 
             // Member expressions
-            var Indexer = Between(LBracket, Primary, RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
+            // Expressions nest through indexers, function arguments and groups, which limit the nesting depth.
+            var NestedPrimary = new NestingGuardParser<Expression>(Primary);
+
+            var Indexer = Between(LBracket, NestedPrimary, RBracket).Then<MemberSegment>(x => new IndexerSegment(x));
             Indexer.Name = "Indexer";
 
             // ([name =] value,)+
             FunctionCallArgumentsList = ZeroOrOne(Separated(Comma,
                             OneOf(
-                                Identifier.AndSkip(Equal).And(Primary).Then(static x => new FunctionCallArgument(x.Item1, x.Item2)),
-                                Primary.Then(static x => new FunctionCallArgument(null, x))
+                                Identifier.AndSkip(Equal).And(NestedPrimary).Then(static x => new FunctionCallArgument(x.Item1, x.Item2)),
+                                NestedPrimary.Then(static x => new FunctionCallArgument(null, x))
                             )));
             FunctionCallArgumentsList.Name = "FunctionArgumentsList";
 
@@ -147,9 +158,10 @@ namespace Fluid
                 .Then<Expression>(x => new RangeExpression(x.Item1, x.Item2));
             Range.Name = "Range";
 
+            // A disallowed group is still parsed before it's rejected, so it's guarded too.
             var Group = parserOptions.AllowParentheses
-                ? LParen.SkipAnd(FilterExpression).AndSkip(RParen)
-                : LParen.SkipAnd(FilterExpression).AndSkip(RParen).Error<Expression>(ErrorMessages.ParenthesesNotAllowed)
+                ? LParen.SkipAnd(new NestingGuardParser<Expression>(FilterExpression)).AndSkip(RParen)
+                : LParen.SkipAnd(new NestingGuardParser<Expression>(FilterExpression)).AndSkip(RParen).Error<Expression>(ErrorMessages.ParenthesesNotAllowed)
                 ;
             Group.Name = "Group";
 
@@ -208,12 +220,15 @@ namespace Fluid
                  }).Named("CombinatoryExpression");
 
             LogicalExpression = CombinatoryExpression.And(ZeroOrMany(OneOf(Terms.Text("or"), Terms.Text("and")).And(CombinatoryExpression)))
-                .Then(x =>
+                .Then((ctx, x) =>
                 {
                     if (x.Item2.Count == 0)
                     {
                         return x.Item1;
                     }
+
+                    // Each operator nests the expression one level deeper, which evaluating it recurses into.
+                    EnsureNestingDepth(ctx, x.Item2.Count);
 
                     var result = x.Item2[^1].Item2;
 
@@ -252,6 +267,9 @@ namespace Fluid
                     {
                         // Primary
                         var result = x.Item1;
+
+                        // Each filter nests the expression one level deeper, which evaluating it recurses into.
+                        EnsureNestingDepth(ctx, x.Item2.Count);
 
                         // Filters
                         foreach (var pipeResult in x.Item2)
@@ -712,7 +730,7 @@ namespace Fluid
                 }
             }));
 
-            AnyTagsList.Parser = ZeroOrMany(Output.Or(AnyTags).Or(Text)); // Used in block and stop when an unknown tag is found
+            AnyTagsList.Parser = new NestingGuardParser<IReadOnlyList<Statement>>(ZeroOrMany(Output.Or(AnyTags).Or(Text))); // Used in block and stop when an unknown tag is found
             KnownTagsList.Parser = ZeroOrMany(Output.Or(KnownTags).Or(Text)); // Used in main list and raises an issue when an unknown tag is found
 
             Grammar = KnownTagsList;
@@ -772,6 +790,16 @@ namespace Fluid
         /// <summary>
         /// Compiles all expressions.
         /// </summary>
+        private static void EnsureNestingDepth(ParseContext context, int depth)
+        {
+            var maxRecursionDepth = (context as FluidParseContext)?.MaxRecursionDepth ?? 0;
+
+            if (maxRecursionDepth > 0 && depth > maxRecursionDepth)
+            {
+                FluidParseContext.ThrowMaxRecursionDepthExceeded(context);
+            }
+        }
+
         public virtual FluidParser Compile()
         {
             foreach (var entry in RegisteredTags.ToArray())

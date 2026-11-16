@@ -8,9 +8,20 @@ namespace Fluid
     {
         public static IFluidTemplate Parse(this FluidParser parser, string template)
         {
-            var context = new FluidParseContext(template);
+            var context = new FluidParseContext(template, parser.MaxRecursionDepth);
 
-            var success = parser.Grammar.TryParse(context, out var statements, out var parlotError);
+            bool success;
+            IReadOnlyList<Statement> statements;
+            Parlot.ParseError parlotError;
+
+            try
+            {
+                success = parser.Grammar.TryParse(context, out statements, out parlotError);
+            }
+            catch (InsufficientExecutionStackException)
+            {
+                throw new ParseException($"The template is nested too deeply to be parsed at {context.Scanner.Cursor.Position}");
+            }
 
             if (parlotError != null)
             {
