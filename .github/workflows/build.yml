@@ -29,8 +29,13 @@ jobs:
     - name: Test
       run: dotnet test -c Release
 
+    # Versioned from the highest release tag, so previews sort above the latest release without bumping a version by hand
     - name: Pack preview packages
-      run: dotnet pack --output artifacts --configuration Release --property:VersionSuffix=preview.$GITHUB_RUN_NUMBER --property:ContinuousIntegrationBuild=True
+      run: |
+        set -euo pipefail
+        VERSION=$(git ls-remote --tags --refs origin 'v*' | sed 's|.*refs/tags/||' | python3 .github/scripts/preview-version.py "$GITHUB_RUN_NUMBER")
+        echo "Preview version: $VERSION"
+        dotnet pack --output artifacts --configuration Release --property:Version=$VERSION --property:ContinuousIntegrationBuild=True
 
     - name: Push preview packages to Feedz
       shell: bash
