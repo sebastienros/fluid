@@ -638,6 +638,39 @@ public class TemplateTests
         Assert.Equal("Bill 1 Bill blah", result);
     }
 
+    [Fact]
+    public async Task ShouldEvaluateCustomObjectPropertiesAndFallBackToMembers()
+    {
+        // Mirrors the "Customizing object properties" sample of the "Models and values" documentation page
+        var options = new TemplateOptionsBuilder()
+            .AddValueConverter(o => o is Person p ? new DocumentedPersonValue(p) : null)
+            .Build();
+
+        var context = new TemplateContext(options);
+        context.SetValue("myPerson", new Person { Firstname = "Bill" });
+
+        _parser.TryParse("{{ myPerson.Bingo }} {{ myPerson.Firstname }}", out var template, out var error);
+        var result = await template.RenderAsync(context);
+        Assert.Equal("Hello, World! Bill", result);
+    }
+
+    private class DocumentedPersonValue : ObjectValueBase
+    {
+        public DocumentedPersonValue(Person value) : base(value)
+        {
+        }
+
+        public override ValueTask<FluidValue> GetValueAsync(string name, TemplateContext context)
+        {
+            if (name == "Bingo")
+            {
+                return StringValue.Create("Hello, World!");
+            }
+
+            return base.GetValueAsync(name, context);
+        }
+    }
+
     private sealed class NullStringContainer
     {
         public string Value => null;
