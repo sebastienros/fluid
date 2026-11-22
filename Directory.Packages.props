@@ -22,24 +22,24 @@
 
   <ItemGroup>
     <!-- Global Package References -->
-    <GlobalPackageReference Include="PolySharp" Version="1.17.0" PrivateAssets="all" />
+    <GlobalPackageReference Include="PolySharp" Version="1.17.1" PrivateAssets="all" />
     <!-- TFM specific reference since they could lift some framework dependencies -->
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Abstractions" Version="$(MicrosoftExtensionsFileProvidersAbstractionsPackageVersion)" />
     <!-- Fluid.Playground (Blazor WebAssembly, net10.0) -->
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="11.0.0" />
     <PackageVersion Include="Tint" Version="0.3.0" />
     <PackageVersion Include="Tint.Grammars" Version="0.3.0" />
     <PackageVersion Include="Tint.Themes" Version="0.3.0" />
     <!-- Built into net10.0, keep it aligned with Microsoft.Bcl.AsyncInterfaces -->
-    <PackageVersion Include="System.Linq.AsyncEnumerable" Version="10.0.14" />
+    <PackageVersion Include="System.Linq.AsyncEnumerable" Version="11.0.0" />
     <!-- Only used with netstandard2.0 -->
-    <PackageVersion Include="System.CommandLine" Version="2.0.14" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.15" />
     <PackageVersion Include="System.Text.Json" Version="8.0.6" />
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageVersion Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
     <PackageVersion Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
-    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="11.0.0" />
     <!-- Common to all TFMs -->
     <PackageVersion Include="Parlot" Version="2.3.1" />
     <PackageVersion Include="TimeZoneConverter" Version="8.0.1" />
