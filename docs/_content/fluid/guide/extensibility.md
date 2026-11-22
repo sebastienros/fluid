@@ -84,7 +84,7 @@ Hi! Hi! Hi!
 If __identifier__, __empty__ and __expression__ parsers are not sufficient, the methods `RegisterParserBlock` and `RegisterParserTag` accept
 any custom parser construct. These can be the standard ones defined in the `FluidParser` class, like `Primary`, or any other composition of them.
 
-For instance, `RegisterParseTag(Primary.AndSkip(Comma).And(Primary), ...)` will expect two `Primary` elements separated by a comma. The delegate will then 
+For instance, `RegisterParserTag("mytag", Primary.AndSkip(Comma).And(Primary), ...)` will expect two `Primary` elements separated by a comma. The delegate will then 
 be invoked with a `ValueTuple<Expression, Expression>` representing the two `Primary` expressions.
 
 With Parlot 2.0, `FluidParser.Compile()` is no longer available. Create and cache a `FluidParser` directly; no runtime grammar compilation step is required.
