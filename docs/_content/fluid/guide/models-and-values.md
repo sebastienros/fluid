@@ -92,11 +92,17 @@ private class PersonValue : ObjectValueBase
     {
         if (name == "Bingo")
         {
-          return StringValue.Create("Hello, World!");
+            // A FluidValue converts implicitly to ValueTask<FluidValue>
+            return StringValue.Create("Hello, World!");
         }
+
+        // Any other member is resolved as usual, through the member access strategy
+        return base.GetValueAsync(name, context);
     }
 }
 ```
+
+Every code path must return a value: falling back to `base.GetValueAsync` keeps the other members of `Person` available, as long as the member access strategy allows them. Return `NilValue.Instance` instead to hide them.
 
 This custom type can be used with a converter so that any time a `Person` is used, it is wrapped as a `PersonValue`.
 
