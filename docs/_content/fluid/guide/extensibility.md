@@ -87,6 +87,40 @@ any custom parser construct. These can be the standard ones defined in the `Flui
 For instance, `RegisterParserTag("mytag", Primary.AndSkip(Comma).And(Primary), ...)` will expect two `Primary` elements separated by a comma. The delegate will then 
 be invoked with a `ValueTuple<Expression, Expression>` representing the two `Primary` expressions.
 
+`Primary`, `Comma` and the other building blocks are `protected` members of `FluidParser`, so register such tags in the constructor of a class
+deriving from it:
+
+```csharp
+using Fluid;
+using Fluid.Ast;
+using Parlot.Fluent; // Parser combinators like AndSkip and And
+
+public class MyParser : FluidParser
+{
+    public MyParser()
+    {
+        RegisterParserTag("mytag", Primary.AndSkip(Comma).And(Primary), static async (values, writer, encoder, context) =>
+        {
+            var first = await values.Item1.EvaluateAsync(context);
+            var second = await values.Item2.EvaluateAsync(context);
+
+            writer.Write($"{first.ToStringValue(context)} and {second.ToStringValue(context)}");
+
+            return Completion.Normal;
+        });
+    }
+}
+```
+
+```Liquid
+{% mytag 'one', 'two' %}
+```
+
+#### Result
+```html
+one and two
+```
+
 With Parlot 2.0, `FluidParser.Compile()` is no longer available. Create and cache a `FluidParser` directly; no runtime grammar compilation step is required.
 
 When composing an EOF check with an error, use
