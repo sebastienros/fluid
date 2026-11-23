@@ -25,9 +25,10 @@
     <GlobalPackageReference Include="PolySharp" Version="1.17.1" PrivateAssets="all" />
     <!-- TFM specific reference since they could lift some framework dependencies -->
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Abstractions" Version="$(MicrosoftExtensionsFileProvidersAbstractionsPackageVersion)" />
-    <!-- Fluid.Playground (Blazor WebAssembly, net10.0) -->
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="11.0.0" />
+    <!-- Fluid.Playground (Blazor WebAssembly, net10.0): stay on 10.0.x. A net11.0 playground would load Fluid's net11.0
+         build, which uses runtime async, and WebAssembly doesn't support runtime async. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.15" />
     <PackageVersion Include="Tint" Version="0.3.0" />
     <PackageVersion Include="Tint.Grammars" Version="0.3.0" />
     <PackageVersion Include="Tint.Themes" Version="0.3.0" />
