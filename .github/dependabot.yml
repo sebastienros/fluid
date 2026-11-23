@@ -16,6 +16,9 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "System.*"
         update-types: ["version-update:semver-major"]
+      # Fluid.Playground targets net10.0: WebAssembly doesn't support the runtime async of Fluid's net11.0 build
+      - dependency-name: "Microsoft.AspNetCore.*"
+        update-types: ["version-update:semver-major"]
     groups:
        # Grouped version updates configuration
        all-dependencies:
