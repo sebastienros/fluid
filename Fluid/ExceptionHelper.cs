@@ -93,7 +93,7 @@ internal static class ExceptionHelper
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void ThrowArgumentException(string paramName, string message)
     {
-        throw new ArgumentException(paramName, message);
+        throw new ArgumentException(message, paramName);
     }
 
     [DoesNotReturn]
